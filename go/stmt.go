@@ -289,18 +289,65 @@ func writeBareScalarCompoundAssign(out *strings.Builder, lhs ast.Expr, op token.
 	return true
 }
 
-func writeBareScalarIncDec(out *strings.Builder, expr ast.Expr, op token.Token) bool {
-	ident, _, ok := bareScalarMutationTarget(expr)
+func bareExternalIntegerMutationTarget(expr ast.Expr) (*ast.Ident, *types.Named, bool) {
+	ident, ok := expr.(*ast.Ident)
+	if !ok || ident.Name == "_" || !isVarBare(ident.Name) {
+		return nil, nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, nil, false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
+	if !ok {
+		return nil, nil, false
+	}
+	if _, ok := externalIntegerRustTypeForNamed(named); !ok {
+		return nil, nil, false
+	}
+	return ident, named, true
+}
+
+func writeBareExternalIntegerCompoundAssign(out *strings.Builder, lhs ast.Expr, op token.Token, rhs ast.Expr) bool {
+	ident, named, ok := bareExternalIntegerMutationTarget(lhs)
 	if !ok {
 		return false
+	}
+	out.WriteString("{ let __rhs = ")
+	writeBareCompoundAssignValueForOp(out, rhs, named, op)
+	out.WriteString("; ")
+	out.WriteString(RustIdentForUse(ident))
+	out.WriteString(" = ")
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("(")
+	out.WriteString(RustIdentForUse(ident))
+	out.WriteString(".0 ")
+	writeCompoundAssignOperator(out, op)
+	out.WriteString(" __rhs); }")
+	return true
+}
+
+func writeBareScalarIncDec(out *strings.Builder, expr ast.Expr, op token.Token) bool {
+	ident, typ, ok := bareScalarMutationTarget(expr)
+	if !ok {
+		return false
+	}
+	step := "1"
+	if basic, ok := types.Unalias(typ).(*types.Basic); ok {
+		switch basic.Kind() {
+		case types.Float32, types.Float64:
+			step = "1.0"
+		}
 	}
 	out.WriteString("{ ")
 	out.WriteString(RustIdentForUse(ident))
 	if op == token.INC {
-		out.WriteString(" += 1; }")
+		out.WriteString(" += ")
 	} else {
-		out.WriteString(" -= 1; }")
+		out.WriteString(" -= ")
 	}
+	out.WriteString(step)
+	out.WriteString("; }")
 	return true
 }
 
@@ -1508,6 +1555,13 @@ func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result as
 								WriteWrapperSuffix(out)
 								return true
 							}
+						}
+						var boxed strings.Builder
+						if writeConcreteLocalInterfaceValue(&boxed, result, targetType, interfaceName) {
+							WriteWrapperPrefix(out)
+							out.WriteString(boxed.String())
+							WriteWrapperSuffix(out)
+							return true
 						}
 					}
 				}
@@ -4923,7 +4977,9 @@ func rustCastForExpectedBasic(expected types.Type) string {
 		return "i16"
 	case types.Int64:
 		return "i64"
-	case types.Uint, types.Uint32:
+	case types.Uint:
+		return rustUintType()
+	case types.Uint32:
 		return "u32"
 	case types.Uint8:
 		return "u8"
@@ -4982,6 +5038,19 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 			return
 		}
 		if isVarBare(ident.Name) {
+			if expected != nil {
+				if typeInfo := GetTypeInfo(); typeInfo != nil {
+					if expectedNamed, ok := types.Unalias(expected).(*types.Named); ok {
+						if exprNamed, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named); ok && sameNamedTypeDefinition(exprNamed, expectedNamed) {
+							if _, ok := externalIntegerRustTypeForNamed(expectedNamed); ok {
+								out.WriteString(varName)
+								out.WriteString(".0")
+								return
+							}
+						}
+					}
+				}
+			}
 			out.WriteString(varName)
 			return
 		}
@@ -5000,6 +5069,16 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 		return
 	}
 	if lit, ok := expr.(*ast.BasicLit); ok {
+		if lit.Kind == token.INT {
+			if basic, ok := types.Unalias(expected).Underlying().(*types.Basic); ok {
+				switch basic.Kind() {
+				case types.Float32, types.Float64:
+					out.WriteString(lit.Value)
+					out.WriteString(".0")
+					return
+				}
+			}
+		}
 		out.WriteString(lit.Value)
 		return
 	}
@@ -5575,6 +5654,56 @@ func mutexReceiverKey(receiver mutexReceiverInfo) (string, bool) {
 	return buf.String(), true
 }
 
+func mutexAliasIdentKey(expr ast.Expr) (string, types.Type, bool) {
+	ident, ok := expr.(*ast.Ident)
+	if !ok || ident.Name == "_" {
+		return "", nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return "", nil, false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return "", nil, false
+	}
+	if _, ok := types.Unalias(typ).(*types.Pointer); !ok {
+		return "", nil, false
+	}
+	return ident.Name, typ, true
+}
+
+func noteMutexGuardAliasAssignment(lhs ast.Expr, rhs ast.Expr) {
+	lhsKey, lhsType, ok := mutexAliasIdentKey(lhs)
+	if !ok {
+		return
+	}
+	rhsKey, rhsType, ok := mutexAliasIdentKey(rhs)
+	if !ok || !types.AssignableTo(rhsType, lhsType) {
+		return
+	}
+	type aliasUpdate struct {
+		from  string
+		to    string
+		guard string
+	}
+	var updates []aliasUpdate
+	for key, guardName := range activeMutexGuards {
+		if key == rhsKey {
+			updates = append(updates, aliasUpdate{from: key, to: lhsKey, guard: guardName})
+			continue
+		}
+		prefix := rhsKey + "."
+		if strings.HasPrefix(key, prefix) {
+			updates = append(updates, aliasUpdate{from: key, to: lhsKey + strings.TrimPrefix(key, rhsKey), guard: guardName})
+		}
+	}
+	for _, update := range updates {
+		delete(activeMutexGuards, update.from)
+		activeMutexGuards[update.to] = update.guard
+	}
+}
+
 func writeMutexReceiver(out *strings.Builder, receiver mutexReceiverInfo) {
 	if len(receiver.fields) == 0 {
 		TranspileExpressionContext(out, receiver.expr, LValue)
@@ -5617,6 +5746,11 @@ func writeMutexLockStatement(out *strings.Builder, expr ast.Expr) bool {
 	if !ok {
 		return false
 	}
+	if currentLoopDepth > 0 {
+		writeMutexReceiver(out, receiver)
+		out.WriteString(".lock();")
+		return true
+	}
 	id := int(expr.Pos())
 	sourceName := fmt.Sprintf("__mutex_guard_source_%d", id)
 	guardName := fmt.Sprintf("__mutex_guard_%d", id)
@@ -5630,7 +5764,7 @@ func writeMutexLockStatement(out *strings.Builder, expr ast.Expr) bool {
 	out.WriteString(guardName)
 	out.WriteString(" = ")
 	out.WriteString(sourceName)
-	out.WriteString(".lock();")
+	out.WriteString(".guard();")
 	if key, ok := mutexReceiverKey(receiver); ok {
 		activeMutexGuards[key] = guardName
 	}
@@ -5648,7 +5782,9 @@ func writeMutexUnlockStatement(out *strings.Builder, expr ast.Expr) bool {
 	}
 	guardName, ok := activeMutexGuards[key]
 	if !ok {
-		return false
+		writeMutexReceiver(out, receiver)
+		out.WriteString(".unlock();")
+		return true
 	}
 	out.WriteString("drop(")
 	out.WriteString(guardName)
@@ -7045,6 +7181,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				writeMapElementUpdate(out, indexExpr, s.Tok, s.Rhs[0])
 			} else if indexExpr, ok := s.Lhs[0].(*ast.IndexExpr); ok && writeIndexedCompoundAssign(out, indexExpr, s.Tok, s.Rhs[0]) {
 				// array/slice element compound assignment mutates the underlying sequence directly.
+			} else if writeBareExternalIntegerCompoundAssign(out, s.Lhs[0], s.Tok, s.Rhs[0]) {
+				// Bare external named integer locals mutate by rewrapping their primitive field.
 			} else if writeBareScalarCompoundAssign(out, s.Lhs[0], s.Tok, s.Rhs[0]) {
 				// Bare scalar locals mutate directly.
 			} else {
@@ -7590,6 +7728,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								}
 							} else {
 								// Direct assignment: x = value
+								noteMutexGuardAliasAssignment(s.Lhs[0], s.Rhs[0])
 								// Check if RHS is nil
 								if writePackageGlobalCollectionAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Package-global map/slice slots copy the current option value, preserving nil.
@@ -7858,6 +7997,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											out.WriteString(rhsVarName)
 											WriteBorrowMethod(out, false)
 											out.WriteString(".as_ref().unwrap().clone()")
+										} else if writeNamedIntegerAssignmentValue(out, s.Rhs[0]) {
+											// Named integer arithmetic returns the underlying scalar; assignments store the named value in the existing wrapper.
 										} else if writeConstAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
 											// Constants assigned to wrapped slots need the target type from go/types.
 										} else if writeByteConstAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
@@ -7868,8 +8009,6 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											// Reference-style range values must be cloned into ordinary wrapped assignment targets.
 										} else if writeOwnedExpressionValue(out, s.Rhs[0]) {
 											// Copied by value from an existing wrapped field or handle.
-										} else if writeNamedIntegerAssignmentValue(out, s.Rhs[0]) {
-											// Named integer arithmetic returns the underlying scalar; assignments store the named value in the existing wrapper.
 										} else {
 											TranspileExpression(out, s.Rhs[0])
 										}
@@ -8746,6 +8885,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		popForPost := pushForPost(s.Post)
 		restoreLoopBreakTarget := pushBreakTarget("")
 
+		currentLoopDepth++
 		var prevStmt ast.Stmt
 		var forBodyLastPos token.Pos = s.Body.Lbrace
 		for i, stmt := range s.Body.List {
@@ -8768,6 +8908,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			TranspileStatementSimple(out, s.Post, fnType, fileSet)
 			out.WriteString("\n")
 		}
+		currentLoopDepth--
 		restoreLoopBreakTarget()
 		popForPost()
 
@@ -8929,6 +9070,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString(" {\n")
 			restoreLoopBreakTarget := pushBreakTarget("")
 
+			currentLoopDepth++
 			var rangeBodyLastPos token.Pos = s.Body.Lbrace
 			for i, stmt := range s.Body.List {
 				out.WriteString("        ")
@@ -8936,6 +9078,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.Body.List)-1)
 				out.WriteString("\n")
 			}
+			currentLoopDepth--
 
 			out.WriteString("    }")
 			restoreLoopBreakTarget()
@@ -9467,6 +9610,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString(rangePrelude)
 		restoreLoopBreakTarget := pushBreakTarget("")
 
+		currentLoopDepth++
 		var rangeBodyLastPos token.Pos = s.Body.Lbrace
 		for i, stmt := range s.Body.List {
 			out.WriteString("        ")
@@ -9474,6 +9618,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.Body.List)-1)
 			out.WriteString("\n")
 		}
+		currentLoopDepth--
 
 		out.WriteString("    }")
 		restoreLoopBreakTarget()

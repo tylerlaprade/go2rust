@@ -165,7 +165,7 @@ func externalIntegerRustTypeForNamed(named *types.Named) (string, bool) {
 	case types.Int64:
 		return "i64", true
 	case types.Uint:
-		return "u32", true
+		return rustUintType(), true
 	case types.Uint8:
 		return "u8", true
 	case types.Uint16:

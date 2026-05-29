@@ -5,8 +5,11 @@ import (
 	"go/constant"
 	"go/token"
 	"go/types"
+	"math/big"
+	"sort"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 func isConstIdent(ident *ast.Ident) bool {
@@ -41,8 +44,79 @@ func isConstIdent(ident *ast.Ident) bool {
 	return false
 }
 
-func rustConstName(name string) string {
+func rustConstNameBase(name string) string {
 	return strings.ToUpper(strings.TrimPrefix(ToSnakeCase(name), "r#"))
+}
+
+func rustConstName(name string) string {
+	if ctx := GetTranspileContext(); ctx != nil && ctx.Package != nil && ctx.Package.ConstantNameOverrides != nil {
+		if rustName, ok := ctx.Package.ConstantNameOverrides[name]; ok {
+			return rustName
+		}
+	}
+	return rustConstNameBase(name)
+}
+
+type packageConstantName struct {
+	goName   string
+	rustName string
+	pos      token.Pos
+	exported bool
+}
+
+func assignPackageConstantNames(files []*ast.File) map[string]string {
+	byRustName := make(map[string][]packageConstantName)
+	seenGoNames := make(map[string]bool)
+	for _, file := range files {
+		for _, decl := range file.Decls {
+			genDecl, ok := decl.(*ast.GenDecl)
+			if !ok || genDecl.Tok != token.CONST {
+				continue
+			}
+			for _, spec := range genDecl.Specs {
+				valueSpec, ok := spec.(*ast.ValueSpec)
+				if !ok {
+					continue
+				}
+				for _, name := range valueSpec.Names {
+					if name.Name == "_" || seenGoNames[name.Name] {
+						continue
+					}
+					seenGoNames[name.Name] = true
+					rustName := rustConstNameBase(name.Name)
+					byRustName[rustName] = append(byRustName[rustName], packageConstantName{
+						goName:   name.Name,
+						rustName: rustName,
+						pos:      name.Pos(),
+						exported: ast.IsExported(name.Name),
+					})
+				}
+			}
+		}
+	}
+
+	overrides := make(map[string]string)
+	for rustName, constants := range byRustName {
+		if len(constants) <= 1 {
+			continue
+		}
+		sort.Slice(constants, func(i, j int) bool {
+			if constants[i].exported != constants[j].exported {
+				return constants[i].exported
+			}
+			if constants[i].pos != constants[j].pos {
+				return constants[i].pos < constants[j].pos
+			}
+			return constants[i].goName < constants[j].goName
+		})
+		for i, constantName := range constants {
+			if i == 0 {
+				continue
+			}
+			overrides[constantName.goName] = rustName + "_" + strconv.Itoa(i)
+		}
+	}
+	return overrides
 }
 
 func registerPackageConstant(name string, constType string) {
@@ -255,7 +329,7 @@ func rustIntegerCastTypeFromRustType(rustType string) (string, bool) {
 		return rustType, true
 	}
 	switch rustType {
-	case "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64":
+	case "i8", "i16", "i32", "i64", "i128", "u8", "u16", "u32", "u64", "u128":
 		return rustType, true
 	default:
 		return rustCastTypeForDefinedUnderlying(rustType)
@@ -304,6 +378,38 @@ func constExpressionValue(expr ast.Expr) (constant.Value, bool) {
 	if paren, ok := expr.(*ast.ParenExpr); ok {
 		return constExpressionValue(paren.X)
 	}
+	if binary, ok := expr.(*ast.BinaryExpr); ok {
+		left, lok := constExpressionValue(binary.X)
+		right, rok := constExpressionValue(binary.Y)
+		if !lok || !rok {
+			return nil, false
+		}
+		switch binary.Op {
+		case token.SHL, token.SHR:
+			shift, exact := constant.Uint64Val(right)
+			if !exact {
+				return nil, false
+			}
+			return constant.Shift(left, binary.Op, uint(shift)), true
+		case token.ADD, token.SUB, token.MUL, token.QUO, token.REM,
+			token.AND, token.OR, token.XOR, token.AND_NOT:
+			return constant.BinaryOp(left, binary.Op, right), true
+		default:
+			return nil, false
+		}
+	}
+	if unary, ok := expr.(*ast.UnaryExpr); ok {
+		value, ok := constExpressionValue(unary.X)
+		if !ok {
+			return nil, false
+		}
+		switch unary.Op {
+		case token.ADD, token.SUB, token.XOR:
+			return constant.UnaryOp(unary.Op, value, 0), true
+		default:
+			return nil, false
+		}
+	}
 	return nil, false
 }
 
@@ -315,6 +421,9 @@ func writeConstExpressionForExpectedGoType(out *strings.Builder, value ast.Expr,
 		return true
 	}
 	if writeConstExpressionForExpectedString(out, value, expected) {
+		return true
+	}
+	if writeConstExpressionForExpectedFloat(out, value, expected) {
 		return true
 	}
 	if writeConstExpressionForExpectedInteger(out, value, expected) {
@@ -359,6 +468,240 @@ func writeConstStringLiteralValue(out *strings.Builder, expr ast.Expr) bool {
 	return true
 }
 
+func constStringValue(expr ast.Expr) (string, bool) {
+	value, ok := constExpressionValue(expr)
+	if !ok || value.Kind() != constant.String {
+		return "", false
+	}
+	return constant.StringVal(value), true
+}
+
+func constStringValueNeedsByteSlice(value constant.Value) bool {
+	return value != nil && value.Kind() == constant.String && !utf8.ValidString(constant.StringVal(value))
+}
+
+func constStringNeedsByteSlice(expr ast.Expr) bool {
+	value, ok := constStringValue(expr)
+	return ok && !utf8.ValidString(value)
+}
+
+func rustByteSliceLiteralForStringValue(value string) string {
+	var out strings.Builder
+	out.WriteString("&[")
+	for i, b := range []byte(value) {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString("0x")
+		out.WriteString(strconv.FormatUint(uint64(b), 16))
+		out.WriteString("u8")
+	}
+	out.WriteString("]")
+	return out.String()
+}
+
+func writeConstByteSliceLiteralValue(out *strings.Builder, expr ast.Expr) bool {
+	value, ok := constStringValue(expr)
+	if !ok || utf8.ValidString(value) {
+		return false
+	}
+	out.WriteString(rustByteSliceLiteralForStringValue(value))
+	return true
+}
+
+func formatRustFloat64(value float64) (string, bool) {
+	text := strconv.FormatFloat(value, 'g', -1, 64)
+	if strings.Contains(text, "Inf") || strings.Contains(text, "NaN") {
+		return "", false
+	}
+	if !strings.ContainsAny(text, ".eE") {
+		text += ".0"
+	}
+	return text, true
+}
+
+func rustFloatLiteral(lit *ast.BasicLit) (string, bool) {
+	if lit == nil || lit.Kind != token.FLOAT {
+		return "", false
+	}
+	text := strings.ReplaceAll(lit.Value, "_", "")
+	if strings.ContainsAny(text, "pP") {
+		if value, ok := constExpressionValue(lit); ok && value.Kind() == constant.Float {
+			f, _ := constant.Float64Val(value)
+			if formatted, ok := formatRustFloat64(f); ok {
+				return formatted, true
+			}
+		}
+		if f, err := strconv.ParseFloat(text, 64); err == nil {
+			if formatted, ok := formatRustFloat64(f); ok {
+				return formatted, true
+			}
+		}
+		return "", false
+	}
+	if strings.HasPrefix(text, ".") {
+		text = "0" + text
+	}
+	if strings.HasSuffix(text, ".") {
+		text += "0"
+	}
+	return text, true
+}
+
+func writeConstIntegerLiteralValue(out *strings.Builder, expr ast.Expr) bool {
+	value, ok := constExpressionValue(expr)
+	if !ok || value.Kind() != constant.Int {
+		return false
+	}
+	out.WriteString(value.String())
+	return true
+}
+
+func writeConstShiftCountValue(out *strings.Builder, expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isNamedIntegerType(typeInfo.GetType(expr)) {
+		return false
+	}
+	return writeConstIntegerLiteralValue(out, expr)
+}
+
+func rustConstTypeForUntypedIntegerValue(expr ast.Expr, value constant.Value) (string, bool) {
+	min, max, ok := typedIntegerConstBounds(expr)
+	if valueMin, valueMax, valueOK := integerConstValueBounds(value); valueOK {
+		if ok {
+			if valueMin.Cmp(min) < 0 {
+				min = valueMin
+			}
+			if valueMax.Cmp(max) > 0 {
+				max = valueMax
+			}
+		} else {
+			min, max, ok = valueMin, valueMax, true
+		}
+	}
+	if !ok {
+		return "", false
+	}
+	return rustIntegerTypeForConstBounds(min, max)
+}
+
+func typedIntegerConstBounds(expr ast.Expr) (*big.Int, *big.Int, bool) {
+	if expr == nil {
+		return nil, nil, false
+	}
+	var min, max *big.Int
+	ast.Inspect(expr, func(node ast.Node) bool {
+		expr, ok := node.(ast.Expr)
+		if !ok {
+			return true
+		}
+		value, ok := typedIntegerConstValue(expr)
+		if !ok {
+			return true
+		}
+		n, ok := bigIntForConstInteger(value)
+		if !ok {
+			return true
+		}
+		if min == nil || n.Cmp(min) < 0 {
+			min = n
+		}
+		if max == nil || n.Cmp(max) > 0 {
+			max = n
+		}
+		return true
+	})
+	return min, max, min != nil && max != nil
+}
+
+func typedIntegerConstValue(expr ast.Expr) (constant.Value, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || expr == nil {
+		return nil, false
+	}
+	if tv, ok := typeInfo.info.Types[expr]; ok && tv.Value != nil && tv.Value.Kind() == constant.Int && isUntypedIntegerConstType(tv.Type) {
+		return tv.Value, true
+	}
+	switch e := expr.(type) {
+	case *ast.Ident:
+		if obj, ok := typeInfo.GetObject(e).(*types.Const); ok && obj.Val() != nil && obj.Val().Kind() == constant.Int && isUntypedIntegerConstType(obj.Type()) {
+			return obj.Val(), true
+		}
+	case *ast.SelectorExpr:
+		if obj, ok := typeInfo.GetObject(e.Sel).(*types.Const); ok && obj.Val() != nil && obj.Val().Kind() == constant.Int && isUntypedIntegerConstType(obj.Type()) {
+			return obj.Val(), true
+		}
+	}
+	return nil, false
+}
+
+func isUntypedIntegerConstType(typ types.Type) bool {
+	basic, ok := types.Unalias(typ).(*types.Basic)
+	return ok && (basic.Kind() == types.UntypedInt || basic.Kind() == types.UntypedRune)
+}
+
+func integerConstValueBounds(value constant.Value) (*big.Int, *big.Int, bool) {
+	n, ok := bigIntForConstInteger(value)
+	if !ok {
+		return nil, nil, false
+	}
+	return n, new(big.Int).Set(n), true
+}
+
+func bigIntForConstInteger(value constant.Value) (*big.Int, bool) {
+	if value == nil || value.Kind() != constant.Int {
+		return nil, false
+	}
+	var n big.Int
+	if _, ok := n.SetString(value.ExactString(), 0); !ok {
+		return nil, false
+	}
+	return &n, true
+}
+
+func rustIntegerTypeForConstBounds(min *big.Int, max *big.Int) (string, bool) {
+	if min == nil || max == nil {
+		return "", false
+	}
+	if min.Sign() < 0 {
+		if min.Cmp(minSignedBigInt(32)) >= 0 && max.Cmp(maxSignedBigInt(32)) <= 0 {
+			return "i32", true
+		}
+		if min.Cmp(minSignedBigInt(64)) >= 0 && max.Cmp(maxSignedBigInt(64)) <= 0 {
+			return "i64", true
+		}
+		if min.Cmp(minSignedBigInt(128)) >= 0 && max.Cmp(maxSignedBigInt(128)) <= 0 {
+			return "i128", true
+		}
+		return "", false
+	}
+	if max.Cmp(maxSignedBigInt(32)) <= 0 {
+		return "i32", true
+	}
+	if max.Cmp(maxSignedBigInt(64)) <= 0 {
+		return "i64", true
+	}
+	if max.Cmp(maxUnsignedBigInt(64)) <= 0 {
+		return "u64", true
+	}
+	if max.Cmp(maxUnsignedBigInt(128)) <= 0 {
+		return "u128", true
+	}
+	return "", false
+}
+
+func minSignedBigInt(bits uint) *big.Int {
+	return new(big.Int).Neg(new(big.Int).Lsh(big.NewInt(1), bits-1))
+}
+
+func maxSignedBigInt(bits uint) *big.Int {
+	return new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), bits-1), big.NewInt(1))
+}
+
+func maxUnsignedBigInt(bits uint) *big.Int {
+	return new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), bits), big.NewInt(1))
+}
+
 func isBasicStringGoType(typ types.Type) bool {
 	if typ == nil {
 		return false
@@ -375,6 +718,64 @@ func writeConstExpressionForExpectedString(out *strings.Builder, value ast.Expr,
 		return false
 	}
 	out.WriteString(".to_string()")
+	return true
+}
+
+func rustFloatTypeForGoType(typ types.Type) (string, bool) {
+	basic, ok := types.Unalias(typ).(*types.Basic)
+	if !ok {
+		return "", false
+	}
+	switch basic.Kind() {
+	case types.Float32:
+		return "f32", true
+	case types.Float64, types.UntypedFloat:
+		return "f64", true
+	default:
+		return "", false
+	}
+}
+
+func constFloatLiteralForRustType(value constant.Value, rustType string) (string, bool) {
+	floatValue := constant.ToFloat(value)
+	if floatValue.Kind() != constant.Float {
+		return "", false
+	}
+	f, _ := constant.Float64Val(floatValue)
+	bits := 64
+	if rustType == "f32" {
+		bits = 32
+	}
+	text := strconv.FormatFloat(f, 'g', -1, bits)
+	if strings.Contains(text, "Inf") || strings.Contains(text, "NaN") {
+		return "", false
+	}
+	if !strings.ContainsAny(text, ".eE") {
+		text += ".0"
+	}
+	return text, true
+}
+
+func writeConstExpressionForExpectedFloat(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
+	rustType, ok := rustFloatTypeForGoType(expected)
+	if !ok {
+		return false
+	}
+	value, ok := constExpressionValue(expr)
+	if !ok || (value.Kind() != constant.Int && value.Kind() != constant.Float) {
+		return false
+	}
+	if value.Kind() == constant.Float {
+		switch expr.(type) {
+		case *ast.Ident, *ast.SelectorExpr:
+			return false
+		}
+	}
+	lit, ok := constFloatLiteralForRustType(value, rustType)
+	if !ok {
+		return false
+	}
+	out.WriteString(lit)
 	return true
 }
 
@@ -561,7 +962,11 @@ func writePrimitiveConstExpressionForBinaryPeer(out *strings.Builder, expr ast.E
 	if typeInfo == nil {
 		return false
 	}
-	return writeConstExpressionForExpectedInteger(out, expr, typeInfo.GetType(other))
+	expected := typeInfo.GetType(other)
+	if writeConstExpressionForExpectedFloat(out, expr, expected) {
+		return true
+	}
+	return writeConstExpressionForExpectedInteger(out, expr, expected)
 }
 
 func writeSwitchCaseValueForTag(out *strings.Builder, expr ast.Expr, tag ast.Expr) {
@@ -626,6 +1031,10 @@ func rustConstTypeForGoTypesType(typ types.Type) (string, bool) {
 			return "bool", true
 		case types.String, types.UntypedString:
 			return "&'static str", true
+		case types.Float32:
+			return "f32", true
+		case types.Float64, types.UntypedFloat:
+			return "f64", true
 		}
 		return rustConstTypeForDefinedUnderlying(t.Name())
 	default:

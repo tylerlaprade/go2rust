@@ -28,6 +28,7 @@ type PackageState struct {
 	MapKeyStructTypes            map[string]bool
 	PackageConstants             map[string]string
 	PackageConstantTypeNames     map[string]string
+	ConstantNameOverrides        map[string]string
 	GoPackageImports             map[string]string
 	ExternalPackages             map[string]bool
 	StructDefs                   map[string]*StructDef
@@ -120,6 +121,7 @@ func NewPackageState() *PackageState {
 		MapKeyStructTypes:            make(map[string]bool),
 		PackageConstants:             make(map[string]string),
 		PackageConstantTypeNames:     make(map[string]string),
+		ConstantNameOverrides:        make(map[string]string),
 		GoPackageImports:             make(map[string]string),
 		ExternalPackages:             make(map[string]bool),
 		StructDefs:                   make(map[string]*StructDef),

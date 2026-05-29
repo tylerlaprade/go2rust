@@ -16,6 +16,13 @@ var anonymousStructs = make(map[string]*ast.StructType)
 var anonymousStructTypeMap = make(map[string]string) // maps struct signature to type name
 var anonymousStructAliases = make(map[string]string) // maps package global type aliases to anonymous struct names
 
+func rustUintType() string {
+	if strconv.IntSize == 64 {
+		return "u64"
+	}
+	return "u32"
+}
+
 func isEmptyInterfaceExpr(expr ast.Expr) bool {
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "any" {
 		return true
@@ -649,7 +656,7 @@ func goTypeToRustBase(expr ast.Expr) string {
 		case "int64":
 			return "i64"
 		case "uint":
-			return "u32"
+			return rustUintType()
 		case "uint8", "byte":
 			return "u8"
 		case "uint16":
@@ -1180,7 +1187,7 @@ func goTypesTypeToRust(t types.Type) string {
 		case types.Int64:
 			return "i64"
 		case types.Uint:
-			return "u32"
+			return rustUintType()
 		case types.Uint8:
 			return "u8"
 		case types.Uint16:

@@ -2681,12 +2681,24 @@ func writeScalarTypeDefinitionNumericOps(out *strings.Builder, typeName string, 
 	writeScalarTypeDefinitionPartialOrd(out, rustTypeName, rustType)
 	writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "Add", "add", "+", true)
 	writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "Sub", "sub", "-", true)
+	if definedUnderlyingSupportsUnaryMinus(underlying) {
+		writeScalarTypeDefinitionUnaryOp(out, rustTypeName, "Neg", "neg", "-")
+	}
 	if isBitwiseDefinedUnderlying(underlying) {
 		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "BitAnd", "bitand", "&", true)
 		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "BitOr", "bitor", "|", true)
 		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "BitXor", "bitxor", "^", true)
 		writeScalarTypeDefinitionUnaryOp(out, rustTypeName, "Not", "not", "!")
 		writeScalarTypeDefinitionShiftOps(out, rustTypeName)
+	}
+}
+
+func definedUnderlyingSupportsUnaryMinus(underlying string) bool {
+	switch underlying {
+	case "int", "int8", "int16", "int32", "int64", "rune", "float32", "float64":
+		return true
+	default:
+		return false
 	}
 }
 
@@ -3088,6 +3100,14 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 				if name.Name == "_" {
 					continue
 				}
+				var constExpr ast.Expr
+				if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
+					constExpr = valueSpec.Values[i]
+				} else if len(lastExpressions) > i && lastExpressions[i] != nil {
+					constExpr = lastExpressions[i]
+				} else if len(lastExpressions) > 0 && lastExpressions[0] != nil {
+					constExpr = lastExpressions[0]
+				}
 				if toUpper {
 					if ast.IsExported(name.Name) {
 						out.WriteString("pub ")
@@ -3105,7 +3125,7 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 				} else if len(valueSpec.Values) == 0 && lastType != nil {
 					constType = rustConstTypeForTypeExpr(lastType)
 					constTypeName, _ = constDeclaredNamedType(lastType)
-				} else if inferredType, ok := rustConstTypeForConstObject(name); ok {
+				} else if inferredType, ok := rustConstTypeForConstObject(name, constExpr); ok {
 					constType = inferredType
 				} else if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
 					constType = inferConstType(valueSpec.Values[i])
@@ -3113,6 +3133,9 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 					constType = inferConstType(lastExpressions[i])
 				} else {
 					constType = "i32"
+				}
+				if constType == "&'static str" && constExpr != nil && constStringNeedsByteSlice(constExpr) {
+					constType = "&'static [u8]"
 				}
 				if toUpper {
 					constName = rustConstName(name.Name)
@@ -3160,6 +3183,9 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 }
 
 func writeConstExprForRustType(out *strings.Builder, expr ast.Expr, iotaValue int, rustType string) {
+	if rustType == "&'static [u8]" && writeConstByteSliceLiteralValue(out, expr) {
+		return
+	}
 	if rustType == "&'static str" && writeConstStringLiteralValue(out, expr) {
 		return
 	}
@@ -3269,7 +3295,7 @@ func constDeclaredNamedType(expr ast.Expr) (string, bool) {
 	return ident.Name, true
 }
 
-func rustConstTypeForConstObject(name *ast.Ident) (string, bool) {
+func rustConstTypeForConstObject(name *ast.Ident, expr ast.Expr) (string, bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || name == nil {
 		return "", false
@@ -3277,6 +3303,14 @@ func rustConstTypeForConstObject(name *ast.Ident) (string, bool) {
 	obj, ok := typeInfo.GetObject(name).(*types.Const)
 	if !ok || obj.Type() == nil {
 		return "", false
+	}
+	if constStringValueNeedsByteSlice(obj.Val()) {
+		return "&'static [u8]", true
+	}
+	if basic, ok := types.Unalias(obj.Type()).(*types.Basic); ok && (basic.Kind() == types.UntypedInt || basic.Kind() == types.UntypedRune) {
+		if rustType, ok := rustConstTypeForUntypedIntegerValue(expr, obj.Val()); ok {
+			return rustType, true
+		}
 	}
 	return rustConstTypeForGoTypesType(obj.Type())
 }
@@ -3512,6 +3546,12 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 			out.WriteString("(")
 			out.WriteString(RustCharLiteral(e.Value))
 			out.WriteString(" as i32)")
+		} else if e.Kind == token.FLOAT {
+			if value, ok := rustFloatLiteral(e); ok {
+				out.WriteString(value)
+			} else {
+				out.WriteString(e.Value)
+			}
 		} else {
 			out.WriteString(e.Value)
 		}
@@ -3552,7 +3592,9 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 				out.WriteString(" ")
 				out.WriteString(e.Op.String())
 				out.WriteString(" ")
-				TranspileConstExpr(out, e.Y, iotaValue)
+				if !writeConstShiftCountValue(out, e.Y) {
+					TranspileConstExpr(out, e.Y, iotaValue)
+				}
 			} else {
 				if _, isCall := e.X.(*ast.CallExpr); isCall || !writePrimitiveConstExpressionForBinaryPeer(out, e.X, e.Y) {
 					TranspileConstExpr(out, e.X, iotaValue)

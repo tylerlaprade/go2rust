@@ -794,6 +794,69 @@ func makeHolder() Holder {
 	}
 }
 
+func TestFloatCompoundAssignUntypedIntegerConstantUsesFloatLiteral(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func scale(m float64) float64 {
+	m *= 10
+	m /= 10
+	return m
+}
+`)
+
+	if strings.Contains(rust, "__rhs = 10;") || strings.Contains(rust, "m * 10;") || strings.Contains(rust, "m / 10;") {
+		t.Fatalf("float compound assignment should not use an integer RHS literal:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__rhs = 10.0;") {
+		t.Fatalf("float compound assignment should coerce untyped integer constants to float literals:\n%s", rust)
+	}
+}
+
+func TestBareFloatIncDecUsesFloatLiteral(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func split(x float64) (float64, float64) { return x, x }
+
+func adjust(x float64) float64 {
+	yf, yi := split(x)
+	yf--
+	yi++
+	return yf + yi
+}
+`)
+
+	if strings.Contains(rust, "yf -= 1;") || strings.Contains(rust, "yi += 1;") {
+		t.Fatalf("bare float inc/dec should not use integer literals:\n%s", rust)
+	}
+	if !strings.Contains(rust, "yf -= 1.0;") || !strings.Contains(rust, "yi += 1.0;") {
+		t.Fatalf("bare float inc/dec should emit float literals:\n%s", rust)
+	}
+}
+
+func TestUintConversionUsesGoUintWidthForBitmask(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const shift = 52
+const mask = 0x7ff
+const bias = 1023
+
+func clear(x uint64) uint64 {
+	e := uint(x>>shift)&mask - bias
+	if e < 64-12 {
+		x &^= 1<<(64-12-e) - 1
+	}
+	return x
+}
+`)
+
+	if strings.Contains(rust, "as u32") {
+		t.Fatalf("uint conversion in uint64 bitmask path should not narrow to u32 on this target:\n%s", rust)
+	}
+	if !strings.Contains(rust, "as u64") {
+		t.Fatalf("uint conversion should use the Go uint width for this target:\n%s", rust)
+	}
+}
+
 func TestParallelAssignmentToValueReceiverUsesReceiverAlias(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -811,6 +874,202 @@ func (z nat) swap(x nat) nat {
 	}
 	if !strings.Contains(rust, "__self =") {
 		t.Fatalf("parallel assignment to value receiver should assign the receiver alias:\n%s", rust)
+	}
+}
+
+func TestNamedScalarTypeSwitchAndInterfaceConversionsUseInnerValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Value interface{ marker() }
+type int64Val int64
+type boolVal bool
+
+func (int64Val) marker() {}
+func (boolVal) marker() {}
+
+func asBool(v Value) bool {
+	switch x := v.(type) {
+	case boolVal:
+		return bool(x)
+	default:
+		return false
+	}
+}
+
+func makeValue() Value {
+	return int64Val(0)
+}
+
+func makeAny() any {
+	return int64Val(0)
+}
+`)
+
+	if strings.Contains(rust, "(*x.borrow().as_ref().unwrap()).borrow") ||
+		strings.Contains(rust, "(*x.lock().unwrap().as_ref().unwrap()).lock") {
+		t.Fatalf("type switch named bool conversion should use the named bool inner value:\n%s", rust)
+	}
+	if !strings.Contains(rust, ").0.borrow") && !strings.Contains(rust, ").0.lock") {
+		t.Fatalf("type switch named bool conversion should read the newtype field:\n%s", rust)
+	}
+	if strings.Contains(rust, "int64Val(Rc::new(RefCell::new(Some(0 as i64)))).borrow") ||
+		strings.Contains(rust, "int64Val(Arc::new(Mutex::new(Some(0 as i64)))).lock") {
+		t.Fatalf("named integer conversion boxed as an interface should not be unwrapped as a handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(int64Val(") {
+		t.Fatalf("named integer conversion should be boxed directly as the interface value:\n%s", rust)
+	}
+}
+
+func TestNamedBoolReceiverConversionUsesSelfInnerValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type boolVal bool
+
+func (x boolVal) truth() bool {
+	return bool(x)
+}
+`)
+
+	if strings.Contains(rust, "x.lock") || strings.Contains(rust, "x.borrow") {
+		t.Fatalf("named bool receiver conversion should use self, not the Go receiver name:\n%s", rust)
+	}
+	if !strings.Contains(rust, "self.0") {
+		t.Fatalf("named bool receiver conversion should read the receiver newtype field:\n%s", rust)
+	}
+}
+
+func TestNamedBoolLogicalOpsBoxInterfaceReturns(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Value interface{ marker() }
+type boolVal bool
+
+func (boolVal) marker() {}
+
+func notValue(v Value) Value {
+	switch y := v.(type) {
+	case boolVal:
+		return !y
+	}
+	return nil
+}
+
+func andValue(x, y boolVal) Value {
+	return x && y
+}
+
+func orValue(x, y boolVal) Value {
+	return x || y
+}
+`)
+
+	if strings.Count(rust, "Box::new(boolVal(") < 3 {
+		t.Fatalf("named bool logical results should be boxed as concrete interface values:\n%s", rust)
+	}
+	if strings.Contains(rust, "Some(!{ let __v =") || strings.Contains(rust, "Some({ let __v =") {
+		t.Fatalf("named bool logical operations should use primitive bool operands before rewrapping:\n%s", rust)
+	}
+}
+
+func TestNamedIntegerUnaryAndShiftInterfaceReturnsBoxConcreteValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Value interface{ marker() }
+type int64Val int64
+
+func (int64Val) marker() {}
+
+func negValue(v Value) Value {
+	switch y := v.(type) {
+	case int64Val:
+		return -y
+	}
+	return nil
+}
+
+func shiftValue(x int64Val, s uint) Value {
+	return x >> s
+}
+
+func asUint(x int64Val) uint64 {
+	return uint64(-x)
+}
+`)
+
+	if !strings.Contains(rust, "impl std::ops::Neg for int64Val") {
+		t.Fatalf("named signed integer type should implement unary minus:\n%s", rust)
+	}
+	if strings.Contains(rust, "(*-") {
+		t.Fatalf("numeric conversion of a negated named integer should negate the primitive value, not dereference after unary minus:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(-") || !strings.Contains(rust, "Box::new((*x") {
+		t.Fatalf("named integer unary and shift results should be boxed as concrete interface values:\n%s", rust)
+	}
+}
+
+func TestExternalNamedIntegerRangeCompoundAssignMutatesBareValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "math/big"
+
+func drain(words []big.Word) byte {
+	var out byte
+	for _, w := range words {
+		out = byte(w)
+		w >>= 8
+	}
+	return out
+}
+`)
+
+	if strings.Contains(rust, "w.lock") || strings.Contains(rust, "w.borrow") {
+		t.Fatalf("bare external named integer range variables should not be mutated as wrapped handles:\n%s", rust)
+	}
+	if !strings.Contains(rust, "w = big_Word(") {
+		t.Fatalf("external named integer compound assignment should rewrap the mutated primitive value:\n%s", rust)
+	}
+}
+
+func TestMutexGuardTransfersAcrossPointerAliasAssignment(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+type node struct {
+	mu sync.Mutex
+}
+
+func aliasUnlock(x, l *node) {
+	l.mu.Lock()
+	x = l
+	x.mu.Unlock()
+}
+`)
+
+	if strings.Contains(rust, ".mu.unlock();") {
+		t.Fatalf("mutex unlock through an assigned alias should drop the tracked guard, not call a missing unlock method:\n%s", rust)
+	}
+	if !strings.Contains(rust, "drop(__mutex_guard") {
+		t.Fatalf("mutex unlock through an assigned alias should drop the original lock guard:\n%s", rust)
+	}
+}
+
+func TestPointerReceiverComparisonUsesHandleIdentity(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type node struct{}
+
+func (x *node) different(y *node) bool {
+	return y != x
+}
+`)
+
+	if strings.Contains(rust, "return true") {
+		t.Fatalf("pointer receiver comparison against another pointer should not collapse to a constant:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__self_ptr") {
+		t.Fatalf("pointer receiver comparison should compare the peer handle against the receiver address:\n%s", rust)
 	}
 }
 

@@ -72,6 +72,9 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 	if binary, ok := expr.(*ast.BinaryExpr); ok {
 		return writeNamedIntegerBinaryPrimitiveExpression(out, binary)
 	}
+	if unary, ok := expr.(*ast.UnaryExpr); ok {
+		return writeNamedIntegerUnaryPrimitiveExpression(out, unary)
+	}
 	if writeUnaryIntegerLiteral(out, expr) {
 		return true
 	}
@@ -126,6 +129,33 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap())")
 	return true
+}
+
+func writeNamedIntegerUnaryPrimitiveExpression(out *strings.Builder, expr *ast.UnaryExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || expr == nil || !isNamedIntegerType(typeInfo.GetType(expr)) {
+		return false
+	}
+	switch expr.Op {
+	case token.ADD:
+		writeNamedIntegerPrimitiveExpression(out, expr.X)
+		return true
+	case token.SUB:
+		operandType := typeInfo.GetType(expr.X)
+		if named, ok := types.Unalias(operandType).(*types.Named); ok {
+			if basic, ok := types.Unalias(named.Underlying()).(*types.Basic); ok && basic.Info()&types.IsUnsigned != 0 {
+				out.WriteString("(")
+				writeNamedIntegerPrimitiveExpression(out, expr.X)
+				out.WriteString(").wrapping_neg()")
+				return true
+			}
+		}
+		out.WriteString("-")
+		writeNamedIntegerPrimitiveExpression(out, expr.X)
+		return true
+	default:
+		return false
+	}
 }
 
 func writeNamedIntegerBinaryPrimitiveExpression(out *strings.Builder, expr *ast.BinaryExpr) bool {
@@ -264,6 +294,18 @@ func isNamedIntegerType(typ types.Type) bool {
 	}
 	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
 	return ok && isIntegerBasicKind(basic.Kind())
+}
+
+func namedBoolType(typ types.Type) (*types.Named, bool) {
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok {
+		return nil, false
+	}
+	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
+	if !ok || basic.Kind() != types.Bool {
+		return nil, false
+	}
+	return named, true
 }
 
 func isConstExpressionForUsize(expr ast.Expr) bool {
@@ -737,6 +779,9 @@ func isExpressionResultBare(expr ast.Expr) bool {
 		_, ok := typeInfo.GetObject(e.Sel).(*types.Const)
 		return ok
 	case *ast.CallExpr:
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsTypeConversion(e) && !typeConversionEmitsWrappedValue(e) {
+			return true
+		}
 		// Calls whose signature has a single bare-scalar result lower to a
 		// bare Rust value at the call site; their consumers must not wrap
 		// the result through .borrow().as_ref().unwrap().
@@ -744,6 +789,18 @@ func isExpressionResultBare(expr ast.Expr) bool {
 	default:
 		return false
 	}
+}
+
+func isLocalVarIdent(ident *ast.Ident) bool {
+	if ident == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	obj, ok := typeInfo.GetObject(ident).(*types.Var)
+	return ok && !isPackageScopeObject(obj)
 }
 
 func writeStringSequenceValue(out *strings.Builder, expr ast.Expr) {
@@ -3512,16 +3569,33 @@ func writeCurrentReceiverPointerComparison(out *strings.Builder, expr *ast.Binar
 	if !leftIsReceiver && !rightIsReceiver {
 		return false
 	}
-	// This collapse models the Go pointer-identity `self == nil` / `self ==
-	// otherPtr` patterns, where the wrapped receiver is never None. It is only
-	// valid when the receiver is a pointer. A value receiver (e.g. a
-	// named-integer receiver `t == Add`) compared against a peer is a real
-	// value comparison and must fall through to the normal comparison lowering.
+	var otherExpr ast.Expr
 	var receiverExpr ast.Expr
 	if leftIsReceiver {
 		receiverExpr = left
+		otherExpr = expr.Y
 	} else {
 		receiverExpr = right
+		otherExpr = expr.X
+	}
+	if ident, ok := otherExpr.(*ast.Ident); !ok || ident.Name != "nil" {
+		typeInfo := GetTypeInfo()
+		if typeInfo == nil || !typeInfo.IsPointer(receiverExpr) || !typeInfo.IsPointer(otherExpr) {
+			return false
+		}
+		trackWrapperImports()
+		out.WriteString("{ let __peer = ")
+		writePointerHandleExpression(out, otherExpr)
+		out.WriteString("; let __peer_guard = __peer")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = ")
+		out.WriteString(currentReceiverRustName())
+		out.WriteString(" as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); ")
+		if expr.Op == token.NEQ {
+			out.WriteString("!")
+		}
+		out.WriteString("__eq }")
+		return true
 	}
 	if typeInfo := GetTypeInfo(); typeInfo == nil || !typeInfo.IsPointer(receiverExpr) {
 		return false
@@ -5188,6 +5262,9 @@ func isPointerFieldType(t types.Type) bool {
 }
 
 func isConstantExpression(expr ast.Expr) bool {
+	if _, ok := constExpressionValue(expr); ok {
+		return true
+	}
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil && typeInfo.info != nil {
 		if tv, ok := typeInfo.info.Types[expr]; ok && tv.Value != nil {
@@ -6070,11 +6147,15 @@ func writeIdentExpression(out *strings.Builder, e *ast.Ident, ctx ExprContext, v
 		case AddressOf, LValue:
 			out.WriteString(rustPackageGlobalName(e.Name))
 		}
-	} else if e.Name[0] >= 'A' && e.Name[0] <= 'Z' && e.Name != "String" {
-		// Likely a constant - convert to UPPER_SNAKE_CASE
-		out.WriteString(rustConstName(e.Name))
 	} else if e.Name == "true" || e.Name == "false" || e.Name == "_" {
 		out.WriteString(e.Name)
+	} else if isLocalConstantIdent(e) {
+		out.WriteString(varName)
+	} else if isConstIdent(e) {
+		out.WriteString(rustConstName(e.Name))
+	} else if e.Name[0] >= 'A' && e.Name[0] <= 'Z' && e.Name != "String" && lookupVarInfo(e.Name) == nil && !isLocalVarIdent(e) {
+		// Likely a constant - convert to UPPER_SNAKE_CASE
+		out.WriteString(rustConstName(e.Name))
 	} else if varType, isRangeVar := rangeLoopVars[e.Name]; isRangeVar {
 		// Check if this is a wrapped type (contains Arc)
 		if isWrappedRangeVarType(varType) {
@@ -6091,10 +6172,6 @@ func writeIdentExpression(out *strings.Builder, e *ast.Ident, ctx ExprContext, v
 			// Simple type (like usize for array indices)
 			out.WriteString(varName)
 		}
-	} else if isLocalConstantIdent(e) {
-		out.WriteString(varName)
-	} else if isConstIdent(e) {
-		out.WriteString(rustConstName(e.Name))
 	} else if isVarBare(e.Name) {
 		// VarTable says this variable is bare (e.g., interface parameter &dyn Trait)
 		out.WriteString(varName)
@@ -6355,6 +6432,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 			}
 			out.WriteString(e.Value)
+		case token.FLOAT:
+			if value, ok := rustFloatLiteral(e); ok {
+				out.WriteString(value)
+			} else {
+				out.WriteString(e.Value)
+			}
 		default:
 			out.WriteString(e.Value)
 		}
@@ -6931,6 +7014,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString("!")
 			writeNumericConversionValue(out, e.X)
 		case token.NOT:
+			if writeNamedBoolNotExpression(out, e) {
+				return
+			}
 			if exprNeedsBoolWrapperUnwrap(e.X) {
 				out.WriteString("!(")
 				writeUnwrappedBoolExpression(out, e.X)
@@ -7066,6 +7152,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			return
 		}
 		if writeNamedIntegerBitwiseExpression(out, e) {
+			return
+		}
+		if writeNamedBoolLogicalExpression(out, e) {
 			return
 		}
 
@@ -7226,6 +7315,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// This works for comparing with String, &String, and &str
 				lit := expr.(*ast.BasicLit)
 				out.WriteString(RustStringLiteral(lit.Value))
+			} else if _, ok := expr.(*ast.Ident); ok {
+				TranspileExpression(out, expr)
 			} else if isCloneableNonPointerExpr(expr) && !isCopyTypeExpression(expr) && writeOwnedExpressionValue(out, expr) {
 				return
 			} else {
@@ -7235,6 +7326,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 		if NeedsConcurrentWrapper() && e.Op != token.LAND && e.Op != token.LOR {
 			writeTempOperand := func(expr ast.Expr, other ast.Expr, isStringLit bool, needsUnwrap bool) {
+				if writeConstExpressionForBinaryPeer(out, expr, other) {
+					return
+				}
 				if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.INT && isFloatExpression(other) {
 					out.WriteString(lit.Value)
 					out.WriteString(".0")
@@ -7256,7 +7350,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		if needsUnwrapX || needsUnwrapY || xIsStringLit || yIsStringLit {
 			// At least one operand needs special handling
 			// Handle X operand
-			if xLit, ok := e.X.(*ast.BasicLit); ok && xLit.Kind == token.INT && isFloatExpression(e.Y) {
+			if writeConstExpressionForBinaryPeer(out, e.X, e.Y) {
+				// Constant emitted in the peer's expected representation.
+			} else if xLit, ok := e.X.(*ast.BasicLit); ok && xLit.Kind == token.INT && isFloatExpression(e.Y) {
 				out.WriteString(xLit.Value)
 				out.WriteString(".0")
 			} else {
@@ -7266,7 +7362,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString(rustBinaryOp(e.Op))
 			out.WriteString(" ")
 			// Handle Y operand
-			if yLit, ok := e.Y.(*ast.BasicLit); ok && yLit.Kind == token.INT && isFloatExpression(e.X) {
+			if writeConstExpressionForBinaryPeer(out, e.Y, e.X) {
+				// Constant emitted in the peer's expected representation.
+			} else if yLit, ok := e.Y.(*ast.BasicLit); ok && yLit.Kind == token.INT && isFloatExpression(e.X) {
 				out.WriteString(yLit.Value)
 				out.WriteString(".0")
 			} else {
@@ -7460,11 +7558,19 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			} else if isString {
 				// String indexing returns a byte (u8). Bind by reference so
 				// repeated reads of a range loop string don't move the value.
-				out.WriteString("{ let __s = &(")
-				writeStringSequenceValue(out, e.X)
-				out.WriteString("); __s.as_bytes()[")
-				writeExpressionAsUsize(out, e.Index)
-				out.WriteString("] }")
+				if constStringNeedsByteSlice(e.X) {
+					out.WriteString("{ let __s = ")
+					writeStringSequenceValue(out, e.X)
+					out.WriteString("; __s[")
+					writeExpressionAsUsize(out, e.Index)
+					out.WriteString("] }")
+				} else {
+					out.WriteString("{ let __s = &(")
+					writeStringSequenceValue(out, e.X)
+					out.WriteString("); __s.as_bytes()[")
+					writeExpressionAsUsize(out, e.Index)
+					out.WriteString("] }")
+				}
 			} else if writeNamedSliceIndexValue(out, e.X, e.Index) {
 				// Named slice element emitted by helper.
 			} else {
@@ -8282,7 +8388,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				case "int64":
 					rustType = "i64"
 				case "uint":
-					rustType = "u32"
+					rustType = rustUintType()
 				case "uint8", "byte":
 					rustType = "u8"
 				case "uint16":
@@ -9142,7 +9248,7 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	case "int64":
 		rustType = "i64"
 	case "uint":
-		rustType = "u32"
+		rustType = rustUintType()
 	case "uint8", "byte":
 		rustType = "u8"
 	case "uint16":
@@ -9156,6 +9262,11 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 		rustType = "usize"
+	case "bool":
+		WriteWrapperPrefix(out)
+		writeBoolConversionValue(out, call.Args[0])
+		WriteWrapperSuffix(out)
+		return
 	case "any":
 		arg := call.Args[0]
 		typeInfo := GetTypeInfo()
@@ -10217,6 +10328,118 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 	writeExternalIntegerTupleField(out, argType)
 }
 
+func writeBoolConversionValue(out *strings.Builder, arg ast.Expr) {
+	if writeNamedBoolUnderlyingValue(out, arg) {
+		return
+	}
+	if exprNeedsBoolWrapperUnwrap(arg) {
+		writeUnwrappedBoolExpression(out, arg)
+		return
+	}
+	TranspileExpression(out, arg)
+}
+
+func writeNamedBoolLogicalOperand(out *strings.Builder, expr ast.Expr) {
+	if writeNamedBoolUnderlyingValue(out, expr) {
+		return
+	}
+	if exprNeedsBoolWrapperUnwrap(expr) {
+		writeUnwrappedBoolExpression(out, expr)
+		return
+	}
+	TranspileExpression(out, expr)
+}
+
+func writeNamedBoolLogicalExpression(out *strings.Builder, expr *ast.BinaryExpr) bool {
+	if expr == nil || (expr.Op != token.LAND && expr.Op != token.LOR) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	named, ok := namedBoolType(typeInfo.GetType(expr))
+	if !ok {
+		return false
+	}
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("(")
+	WriteWrapperPrefix(out)
+	writeNamedBoolLogicalOperand(out, expr.X)
+	out.WriteString(" ")
+	out.WriteString(expr.Op.String())
+	out.WriteString(" ")
+	writeNamedBoolLogicalOperand(out, expr.Y)
+	WriteWrapperSuffix(out)
+	out.WriteString(")")
+	return true
+}
+
+func writeNamedBoolNotExpression(out *strings.Builder, expr *ast.UnaryExpr) bool {
+	if expr == nil || expr.Op != token.NOT {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	named, ok := namedBoolType(typeInfo.GetType(expr))
+	if !ok {
+		return false
+	}
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("(")
+	WriteWrapperPrefix(out)
+	out.WriteString("!(")
+	writeNamedBoolLogicalOperand(out, expr.X)
+	out.WriteString(")")
+	WriteWrapperSuffix(out)
+	out.WriteString(")")
+	return true
+}
+
+func writeNamedBoolUnderlyingValue(out *strings.Builder, arg ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	argType := typeInfo.GetType(arg)
+	named, ok := types.Unalias(argType).(*types.Named)
+	if !ok {
+		return false
+	}
+	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
+	if !ok || basic.Kind() != types.Bool {
+		return false
+	}
+	out.WriteString("(*")
+	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+		if isCurrentReceiverIdent(ident) {
+			out.WriteString(currentReceiverRustName())
+			out.WriteString(".0")
+		} else if isVarBare(ident.Name) {
+			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(".0")
+		} else {
+			out.WriteString("(*")
+			out.WriteString(RustIdentForUse(ident))
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).0")
+		}
+	} else if isExpressionResultBare(arg) {
+		TranspileExpression(out, arg)
+		out.WriteString(".0")
+	} else {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, arg, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).0")
+	}
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap())")
+	return true
+}
+
 func expressionContainsRangeChar(expr ast.Expr) bool {
 	found := false
 	ast.Inspect(expr, func(n ast.Node) bool {
@@ -10957,7 +11180,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 			rustType = "i64"
 			defaultValue = "0"
 		case "uint":
-			rustType = "u32"
+			rustType = rustUintType()
 			defaultValue = "0"
 		case "uint8", "byte":
 			rustType = "u8"

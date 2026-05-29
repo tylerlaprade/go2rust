@@ -32,6 +32,24 @@ func TestUnknownPositionalStructLiteralFallbackParses(t *testing.T) {
 	}
 }
 
+func TestUppercaseLocalVariableReferenceUsesVarTable(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func sum(s float64, h float64) float64 {
+	R := s + h
+	return s * (h + R)
+}
+`)
+
+	if strings.Contains(rust, "let __tmp_y = R;") {
+		t.Fatalf("uppercase local variable should not be emitted as a bare const-like identifier:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*R.borrow().as_ref().unwrap())") &&
+		!strings.Contains(rust, "(*R.lock().unwrap().as_ref().unwrap())") {
+		t.Fatalf("uppercase local variable reference should unwrap the tracked local variable:\n%s", rust)
+	}
+}
+
 func TestSelectorStructCompositeLiteralUsesTypeInfo(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
@@ -2099,7 +2117,7 @@ func extractBits(data uint64, start, end uint) uint {
 		strings.Contains(rust, ").lock().unwrap().as_ref().unwrap().lock().unwrap().as_ref().unwrap()") {
 		t.Fatalf("parenthesized numeric conversion target should not leave a bare block for binary unwrapping:\n%s", rust)
 	}
-	if !strings.Contains(rust, " as u32") {
+	if !strings.Contains(rust, " as "+rustUintType()) {
 		t.Fatalf("parenthesized uint conversion target should still cast to the Rust uint representation:\n%s", rust)
 	}
 }

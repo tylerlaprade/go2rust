@@ -1175,18 +1175,55 @@ impl std::fmt::Debug for WaitGroup {
 func generateGoMutexHelper(out *strings.Builder) {
 	out.WriteString(`
 struct GoMutex {
-    inner: std::sync::Arc<std::sync::Mutex<()>>,
+    inner: std::sync::Arc<(std::sync::Mutex<bool>, std::sync::Condvar)>,
+}
+
+struct GoMutexGuard {
+    mutex: GoMutex,
+    active: bool,
 }
 
 impl GoMutex {
     fn new() -> Self {
         GoMutex {
-            inner: std::sync::Arc::new(std::sync::Mutex::new(())),
+            inner: std::sync::Arc::new((std::sync::Mutex::new(false), std::sync::Condvar::new())),
         }
     }
 
-    fn lock(&self) -> std::sync::MutexGuard<()> {
-        self.inner.lock().unwrap()
+    fn lock(&self) {
+        let (state, ready) = &*self.inner;
+        let mut locked = state.lock().unwrap();
+        while *locked {
+            locked = ready.wait(locked).unwrap();
+        }
+        *locked = true;
+    }
+
+    fn unlock(&self) {
+        let (state, ready) = &*self.inner;
+        let mut locked = state.lock().unwrap();
+        if !*locked {
+            panic!("sync.Mutex: unlock of unlocked mutex");
+        }
+        *locked = false;
+        ready.notify_one();
+    }
+
+    fn guard(&self) -> GoMutexGuard {
+        self.lock();
+        GoMutexGuard {
+            mutex: self.clone(),
+            active: true,
+        }
+    }
+}
+
+impl Drop for GoMutexGuard {
+    fn drop(&mut self) {
+        if self.active {
+            self.mutex.unlock();
+            self.active = false;
+        }
     }
 }
 

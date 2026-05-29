@@ -258,6 +258,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	}
 	runCtx.Package.FunctionNameOverrides = assignPackageFunctionNames(astFiles)
 	runCtx.Package.MethodNameOverrides = assignPackageMethodNames(astFiles, pg.typeInfo)
+	runCtx.Package.ConstantNameOverrides = assignPackageConstantNames(astFiles)
 	runCtx.Package.MethodsByType = collectPackageMethods(astFiles)
 	SetTranspileContext(runCtx)
 	defer SetTranspileContext(nil)

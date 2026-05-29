@@ -594,6 +594,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	pkgState := NewPackageState()
 	pkgState.FunctionNameOverrides = assignPackageFunctionNames(pkg.Syntax)
 	pkgState.MethodNameOverrides = assignPackageMethodNames(pkg.Syntax, pkgTypeInfo)
+	pkgState.ConstantNameOverrides = assignPackageConstantNames(pkg.Syntax)
 	pkgState.MethodsByType = collectPackageMethods(pkg.Syntax)
 	SetTranspileContext(&TranspileContext{
 		Session:                 NewTranspileSession(pkgTypeInfo, pl.packageMapping),

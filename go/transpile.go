@@ -57,6 +57,8 @@ var currentFunctionBodyLbrace token.Pos
 // so a direct Unlock statement can drop the matching Rust guard at that point.
 var activeMutexGuards = make(map[string]string)
 
+var currentLoopDepth int
+
 // currentCaptureRenames tracks variable renames for captured variables in closures
 var currentCaptureRenames map[string]string
 
@@ -1490,6 +1492,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.MethodNameOverrides) == 0 {
 		currentContext.Package.MethodNameOverrides = assignPackageMethodNames([]*ast.File{file}, typeInfo)
 		packageMethodNameOverrides = currentContext.Package.MethodNameOverrides
+	}
+	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.ConstantNameOverrides) == 0 {
+		currentContext.Package.ConstantNameOverrides = assignPackageConstantNames([]*ast.File{file})
 	}
 	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.MethodsByType) == 0 {
 		currentContext.Package.MethodsByType = collectPackageMethods([]*ast.File{file})
