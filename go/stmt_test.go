@@ -1053,6 +1053,30 @@ func drain(words []big.Word) byte {
 	}
 }
 
+func TestNamedIntegerRangeCompoundAssignMutatesBareValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func drain(words nat) byte {
+	var out byte
+	for _, w := range words {
+		out = byte(w)
+		w >>= 8
+	}
+	return out
+}
+`)
+
+	if strings.Contains(rust, "w.lock") || strings.Contains(rust, "w.borrow") {
+		t.Fatalf("bare named integer range variables should not be mutated as wrapped handles:\n%s", rust)
+	}
+	if !strings.Contains(rust, "w = w >> __rhs") {
+		t.Fatalf("named integer compound assignment should mutate the bare range value:\n%s", rust)
+	}
+}
+
 func TestMutexGuardTransfersAcrossPointerAliasAssignment(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

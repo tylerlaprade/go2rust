@@ -356,6 +356,47 @@ func writeBareExternalIntegerCompoundAssign(out *strings.Builder, lhs ast.Expr, 
 	return true
 }
 
+func bareNamedIntegerMutationTarget(expr ast.Expr) (*ast.Ident, *types.Named, bool) {
+	ident, ok := expr.(*ast.Ident)
+	if !ok || ident.Name == "_" {
+		return nil, nil, false
+	}
+	if !isVarBare(ident.Name) {
+		if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+			return nil, nil, false
+		}
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, nil, false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
+	if !ok || !isNamedIntegerType(named) {
+		return nil, nil, false
+	}
+	if _, ok := externalIntegerRustTypeForNamed(named); ok {
+		return nil, nil, false
+	}
+	return ident, named, true
+}
+
+func writeBareNamedIntegerCompoundAssign(out *strings.Builder, lhs ast.Expr, op token.Token, rhs ast.Expr) bool {
+	ident, named, ok := bareNamedIntegerMutationTarget(lhs)
+	if !ok {
+		return false
+	}
+	out.WriteString("{ let __rhs = ")
+	writeBareCompoundAssignValueForOp(out, rhs, named, op)
+	out.WriteString("; ")
+	out.WriteString(RustIdentForUse(ident))
+	out.WriteString(" = ")
+	out.WriteString(RustIdentForUse(ident))
+	out.WriteString(" ")
+	writeCompoundAssignOperator(out, op)
+	out.WriteString(" __rhs; }")
+	return true
+}
+
 func writeBareScalarIncDec(out *strings.Builder, expr ast.Expr, op token.Token) bool {
 	ident, typ, ok := bareScalarMutationTarget(expr)
 	if !ok {
@@ -7383,6 +7424,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// array/slice element compound assignment mutates the underlying sequence directly.
 			} else if writeBareExternalIntegerCompoundAssign(out, s.Lhs[0], s.Tok, s.Rhs[0]) {
 				// Bare external named integer locals mutate by rewrapping their primitive field.
+			} else if writeBareNamedIntegerCompoundAssign(out, s.Lhs[0], s.Tok, s.Rhs[0]) {
+				// Bare local named integer values use their generated operator impls directly.
 			} else if writeBareScalarCompoundAssign(out, s.Lhs[0], s.Tok, s.Rhs[0]) {
 				// Bare scalar locals mutate directly.
 			} else {
