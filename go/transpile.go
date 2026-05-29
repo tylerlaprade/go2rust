@@ -161,6 +161,7 @@ type transpileFileAnalysis struct {
 	localInterfaceEqualityTypes map[string]bool
 	functionLocalInterfaces     map[string]*ast.InterfaceType
 	importedInterfaceImpls      map[string]map[string]*types.Interface
+	externalLocalInterfaceArgs  []externalLocalInterfaceArg
 	typeAssertExprs             []*ast.TypeAssertExpr
 	typeSwitchStmts             []*ast.TypeSwitchStmt
 }
@@ -259,9 +260,14 @@ func (analysis *transpileFileAnalysis) inspectCallExpr(call *ast.CallExpr, typeI
 		}
 	}
 	for i, arg := range call.Args {
-		analysis.recordImportedInterfaceImpl(callParamTypeFromTypeInfo(call, i), arg, typeInfo)
+		paramType := callParamTypeFromTypeInfo(call, i)
+		argType := typeInfo.GetType(arg)
+		analysis.recordImportedInterfaceImpl(paramType, arg, typeInfo)
+		analysis.recordExternalLocalInterfaceArg(paramType, argType)
 		if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
-			analysis.recordImportedInterfaceImpl(selectedMethodParamType(sel, i), arg, typeInfo)
+			methodParamType := selectedMethodParamType(sel, i)
+			analysis.recordImportedInterfaceImpl(methodParamType, arg, typeInfo)
+			analysis.recordExternalLocalInterfaceArg(methodParamType, argType)
 		}
 	}
 }
@@ -303,6 +309,30 @@ func (analysis *transpileFileAnalysis) recordImportedInterfaceImpl(expected type
 	analysis.importedInterfaceImpls[typeName][ifaceName] = ifaceType
 }
 
+func (analysis *transpileFileAnalysis) recordExternalLocalInterfaceArg(expected, argType types.Type) {
+	if expected == nil || argType == nil {
+		return
+	}
+	ifaceName, ok := localNamedInterfaceTypeNameFromTypes(expected)
+	if !ok {
+		return
+	}
+	named, ok := types.Unalias(expected).(*types.Named)
+	if !ok {
+		return
+	}
+	ifaceType, ok := named.Underlying().(*types.Interface)
+	if !ok {
+		return
+	}
+	ifaceType.Complete()
+	analysis.externalLocalInterfaceArgs = append(analysis.externalLocalInterfaceArgs, externalLocalInterfaceArg{
+		ifaceName: ifaceName,
+		ifaceType: ifaceType,
+		argType:   argType,
+	})
+}
+
 func (analysis *transpileFileAnalysis) externalLocalInterfaceImpls(interfaces map[string]*ast.InterfaceType) map[string]map[string]externalLocalInterfaceImpl {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.pkg == nil {
@@ -340,6 +370,9 @@ func (analysis *transpileFileAnalysis) externalLocalInterfaceImpls(interfaces ma
 		}
 	}
 
+	for _, arg := range analysis.externalLocalInterfaceArgs {
+		record(arg.ifaceName, arg.ifaceType, arg.argType)
+	}
 	for _, node := range analysis.typeAssertExprs {
 		ifaceName, ifaceType, _, candidates, ok := localInterfaceAssertionTarget(node)
 		if !ok {
@@ -679,6 +712,12 @@ type externalLocalInterfaceImpl struct {
 	ifaceAST          *ast.InterfaceType
 	ifaceType         *types.Interface
 	sourceIsInterface bool
+}
+
+type externalLocalInterfaceArg struct {
+	ifaceName string
+	ifaceType *types.Interface
+	argType   types.Type
 }
 
 type localInterfaceAssertionCandidate struct {

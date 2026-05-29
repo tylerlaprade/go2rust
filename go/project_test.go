@@ -252,6 +252,66 @@ func spanOf(at positioner) int {
 	}
 }
 
+func TestExternalInterfaceCallArgumentImplementsLocalInterfaceForTraitObject(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+type Node interface {
+	Pos() int
+	End() int
+}
+
+type Expr interface {
+	Node
+	exprNode()
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+type positioner interface {
+	Pos() int
+}
+
+func report(at positioner) int {
+	return at.Pos()
+}
+
+func use(expr dep.Expr) int {
+	return report(expr)
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "main.go"),
+	})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "impl positioner for Box<dyn example_com_dep::Expr>") {
+		t.Fatalf("imported interface call arguments should implement the local interface for the boxed trait object:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "(**self).pos()") {
+		t.Fatalf("boxed imported interface impl should delegate methods through the inner trait object:\n%s", mainRS)
+	}
+}
+
 func TestDefinedTypeOverImportedScalarEmitsDisplayForLocalInterface(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
