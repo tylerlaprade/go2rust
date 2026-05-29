@@ -2736,7 +2736,20 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 			return
 		}
 	}
-	if isExpressionResultBare(arg) {
+	// A pointer-typed value (*T) boxed as an interface its pointee implements
+	// must be dereferenced to the pointee before boxing — `impl Iface for T` is
+	// on the value T, not the `Rc/Arc<...<Option<T>>>` handle. A bare expression
+	// result (e.g. a slice/array element `Typ[i]` of type *Basic) is that handle,
+	// so the isExpressionResultBare shortcut would box the handle directly
+	// (`Box::new(handle) as Box<dyn Iface>` → "handle: Iface not satisfied").
+	// Skip the shortcut for pointers so they take the dereferencing path below.
+	argIsPointer := false
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if t := typeInfo.GetType(arg); t != nil {
+			_, argIsPointer = types.Unalias(t).(*types.Pointer)
+		}
+	}
+	if !argIsPointer && isExpressionResultBare(arg) {
 		TranspileExpression(out, arg)
 		return
 	}

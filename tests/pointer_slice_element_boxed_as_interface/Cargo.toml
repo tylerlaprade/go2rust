@@ -1,0 +1,8 @@
+[package]
+name = "pointer_slice_element_boxed_as_interface"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "pointer_slice_element_boxed_as_interface"
+path = "main.rs"

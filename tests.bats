@@ -1867,6 +1867,10 @@ run_xfail_test() {
     run_test "tests/pointer_receiver_value_copy"
 }
 
+@test "pointer_slice_element_boxed_as_interface" {
+    run_test "tests/pointer_slice_element_boxed_as_interface"
+}
+
 @test "pointer_slice_element_handle_assignment" {
     run_test "tests/pointer_slice_element_handle_assignment"
 }
