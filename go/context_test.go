@@ -295,7 +295,7 @@ func TestPackageTypeMetadataPrefersContextState(t *testing.T) {
 		pkg: currentPkg,
 	})
 
-	if got := GoTypeToRustParam(localIfaceIdent); got != "&dyn LocalIface" {
+	if got := GoTypeToRustParam(localIfaceIdent); got != "Rc<RefCell<Option<Box<dyn LocalIface>>>>" {
 		t.Fatalf("GoTypeToRustParam() = %q, want type info to prove context-owned interface", got)
 	}
 	if got := GoTypeToRust(ast.NewIdent("LocalAlias")); got != "LocalAlias" {

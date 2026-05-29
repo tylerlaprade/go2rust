@@ -2313,6 +2313,48 @@ func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr
 	return true
 }
 
+func writeLocalInterfaceBareReferenceCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(expected); !ok {
+		return false
+	}
+	if ident, ok := arg.(*ast.Ident); ok {
+		if writeLocalInterfaceConstReferenceCallArgument(out, ident, expected) {
+			return true
+		}
+		if ident.Name == "nil" {
+			out.WriteString(`unimplemented!("nil interface argument requires wrapped interface parameter")`)
+			return true
+		}
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	argType := typeInfo.GetType(arg)
+	if argType == nil {
+		out.WriteString(`unimplemented!("type info required to lower interface reference argument")`)
+		return true
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(argType); ok {
+		TranspileExpressionContext(out, arg, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap().as_ref()")
+		return true
+	}
+	if isBareLocalInterfaceValue(arg) {
+		TranspileExpression(out, arg)
+		return true
+	}
+	if ident, ok := arg.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
+		out.WriteString(currentReceiverRustName())
+		return true
+	}
+	TranspileExpressionContext(out, arg, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()")
+	return true
+}
+
 // functionTypeAliasNameFromTypes returns the Go-side name of typ when it
 // resolves to a named type whose underlying is a function signature AND that
 // name is registered as a function-type alias. Used by interface call-arg
@@ -4958,7 +5000,7 @@ func writeLocalInterfaceFieldValue(out *strings.Builder, value ast.Expr, fieldEx
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil {
-		if _, ok := localNamedInterfaceTypeNameFromTypes(typeInfo.GetType(value)); ok {
+		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(value)); ok {
 			TranspileExpressionContext(out, value, LValue)
 			out.WriteString(".clone()")
 			return true
@@ -11837,20 +11879,23 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				continue
 			}
 
-			// Special handling for interface parameters that now use &dyn Trait
+			// Function values use &dyn Trait for interface parameters; ordinary
+			// functions keep nilable wrapped handles.
 			if expectsInterfaceParam {
-				// Interface parameter - pass as reference without wrapper
-				if expectedArgType != nil {
-					if writeLocalInterfaceReferenceCallArgument(out, arg, expectedArgType) {
+				if isClosureCall && expectedArgType != nil {
+					if writeLocalInterfaceBareReferenceCallArgument(out, arg, expectedArgType) {
 						continue
 					}
-				} else if writeLocalInterfaceReferenceCallArgumentForTypeExpr(out, arg, paramTypeForArg) {
-					continue
 				}
-				// Complex expression - need to evaluate and reference
-				out.WriteString("&*")
-				TranspileExpression(out, arg)
-				continue // Skip the regular handling
+				if !isClosureCall {
+					if expectedArgType != nil {
+						if writeLocalInterfaceReferenceCallArgument(out, arg, expectedArgType) {
+							continue
+						}
+					} else if writeLocalInterfaceReferenceCallArgumentForTypeExpr(out, arg, paramTypeForArg) {
+						continue
+					}
+				}
 			}
 
 			// Check if this parameter expects interface{} (Box<dyn Any>)

@@ -1354,7 +1354,7 @@ func writeFunctionTypeAliasWrappedReturn(out *strings.Builder, result ast.Expr, 
 }
 
 func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
-	interfaceName, ok := localInterfaceNameFromTypeExpr(expected)
+	interfaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(expectedTypeFromParamExpr(expected))
 	if !ok {
 		return false
 	}
@@ -1373,7 +1373,7 @@ func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result as
 		return true
 	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		if _, ok := localNamedInterfaceTypeNameFromTypes(typeInfo.GetType(result)); ok {
+		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(result)); ok {
 			if typeInfo.ReturnsWrappedValue(result) {
 				TranspileExpressionContext(out, result, LValue)
 				out.WriteString(".clone()")

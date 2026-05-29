@@ -3362,7 +3362,7 @@ func writeConcreteLocalInterfaceValue(out *strings.Builder, expr ast.Expr, expec
 	if sourceType == nil {
 		return false
 	}
-	if _, ok := localNamedInterfaceTypeNameFromTypes(sourceType); ok {
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(sourceType); ok {
 		return false
 	}
 	targetNamed, ok := types.Unalias(expected).(*types.Named)
@@ -3423,7 +3423,7 @@ func writeLocalInterfaceSliceElementValue(out *strings.Builder, expr ast.Expr, e
 	if elemType == nil {
 		return false
 	}
-	ifaceName, ok := localNamedInterfaceTypeNameFromTypes(elemType)
+	ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(elemType)
 	if !ok {
 		return false
 	}
@@ -3445,7 +3445,7 @@ func writeLocalInterfaceSliceElementValue(out *strings.Builder, expr ast.Expr, e
 	if exprType == nil {
 		return false
 	}
-	if _, ok := localNamedInterfaceTypeNameFromTypes(exprType); ok {
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(exprType); ok {
 		writeLocalInterfaceHandleClone(out, expr)
 		return true
 	}
@@ -3479,7 +3479,7 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 					return
 				}
 				if elemType != nil {
-					if _, ok := localNamedInterfaceTypeNameFromTypes(elemType); ok {
+					if _, ok := transpiledNamedInterfaceTypeNameFromTypes(elemType); ok {
 						if writeLocalInterfaceSliceElementValue(out, expr, elemType) {
 							return
 						}
@@ -3527,11 +3527,11 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 							return
 						}
 					}
-					if _, ok := localNamedInterfaceTypeNameFromTypes(elemType); ok && isBareLocalInterfaceValue(expr) {
+					if _, ok := transpiledNamedInterfaceTypeNameFromTypes(elemType); ok && isBareLocalInterfaceValue(expr) {
 						writeLocalInterfaceBareClone(out, expr)
 						return
 					}
-					if ifaceName, ok := localNamedInterfaceTypeNameFromTypes(elemType); ok && writeConcreteLocalInterfaceValue(out, expr, elemType, ifaceName) {
+					if ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(elemType); ok && writeConcreteLocalInterfaceValue(out, expr, elemType, ifaceName) {
 						return
 					}
 					if _, ok := types.Unalias(elemType).Underlying().(*types.Pointer); ok && typeInfo.IsPointer(expr) {

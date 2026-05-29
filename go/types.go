@@ -1468,7 +1468,7 @@ func goTypesTypeToRustWrapped(t types.Type) string {
 
 func goTypesParamTypeToRust(t types.Type) string {
 	if interfaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(t); ok {
-		return rustLocalInterfaceParam(interfaceName)
+		return rustLocalInterfaceParamBare(interfaceName)
 	}
 	if _, ok := types.Unalias(t).Underlying().(*types.Pointer); ok {
 		return goTypesTypeToRust(t)

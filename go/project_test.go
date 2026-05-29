@@ -726,6 +726,77 @@ type Holder struct {
 	}
 }
 
+func TestImportedInterfaceValueBoundariesBoxConcreteValues(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+type Node interface {
+	Pos() int
+}
+
+type Ident struct{}
+
+func (Ident) Pos() int { return 1 }
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+type Holder struct {
+	Node dep.Node
+}
+
+func keep(node dep.Node) Holder {
+	return Holder{Node: node}
+}
+
+func asNode(ident dep.Ident) dep.Node {
+	return ident
+}
+
+func collect(ident dep.Ident) []dep.Node {
+	var nodes []dep.Node
+	nodes = append(nodes, ident)
+	return nodes
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "return ident.clone();") {
+		t.Fatalf("concrete imported values returned as an imported interface should be boxed, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "Box::new((*ident.borrow().as_ref().unwrap()).clone()) as Box<dyn example_com_dep::Node>") {
+		t.Fatalf("concrete imported values should be boxed at imported interface boundaries, got:\n%s", mainRS)
+	}
+	if strings.Contains(mainRS, "node: Rc::new(RefCell::new(Some(Box::new((*node.borrow().as_ref().unwrap()).clone())") {
+		t.Fatalf("existing imported interface handles should not be cloned into a nested box, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "node: node.clone()") {
+		t.Fatalf("existing imported interface handles should be preserved at struct fields, got:\n%s", mainRS)
+	}
+	if strings.Contains(mainRS, ".push((*ident.borrow().as_ref().unwrap()).clone())") {
+		t.Fatalf("append to imported interface slice should not push the concrete value directly, got:\n%s", mainRS)
+	}
+}
+
 func TestFunctionTypeAliasCallPassesConcreteImportedInterfaceArgument(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

@@ -223,7 +223,7 @@ func TestGoTypeToRustParamUsesTypeInfoForImportedInterfaces(t *testing.T) {
 	defer SetTypeInfo(nil)
 
 	got := GoTypeToRustParam(expr)
-	want := "&dyn example_com_label::Map"
+	want := "Rc<RefCell<Option<Box<dyn example_com_label::Map>>>>"
 	if got != want {
 		t.Fatalf("GoTypeToRustParam(imported interface) = %q, want %q", got, want)
 	}
