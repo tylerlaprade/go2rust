@@ -397,6 +397,62 @@ func useB(expr dep.Expr) int {
 	}
 }
 
+func TestExternalInterfaceSliceIndexCallArgumentBoxesElementValue(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+type Node interface {
+	Pos() int
+	End() int
+}
+
+type Expr interface {
+	Node
+	exprNode()
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+func end(node dep.Node) int {
+	return node.End()
+}
+
+func use(rhs []dep.Expr) int {
+	return end(rhs[len(rhs)-1])
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "main.go"),
+	})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "Box::new({ let __seq =") {
+		t.Fatalf("indexed imported interface argument should not box the wrapped element handle:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, ".borrow().as_ref().unwrap()).clone()) as Box<dyn example_com_dep::Node>") {
+		t.Fatalf("indexed imported interface argument should unwrap and box the element value as the expected interface:\n%s", mainRS)
+	}
+}
+
 func TestDefinedTypeOverImportedScalarEmitsDisplayForLocalInterface(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

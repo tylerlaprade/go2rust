@@ -2904,9 +2904,22 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 	// (`Box::new(handle) as Box<dyn Iface>` → "handle: Iface not satisfied").
 	// Skip the shortcut for pointers so they take the dereferencing path below.
 	argIsPointer := false
+	var argType types.Type
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		if t := typeInfo.GetType(arg); t != nil {
+			argType = t
 			_, argIsPointer = types.Unalias(t).(*types.Pointer)
+		}
+	}
+	if expectedIface != nil && argType != nil {
+		if _, argIsInterface := types.Unalias(argType).Underlying().(*types.Interface); argIsInterface {
+			if _, expectedIsInterface := types.Unalias(expectedIface).Underlying().(*types.Interface); expectedIsInterface && types.AssignableTo(argType, expectedIface) {
+				out.WriteString("(*")
+				TranspileExpressionContext(out, arg, LValue)
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()).clone()")
+				return
+			}
 		}
 	}
 	if !argIsPointer && isExpressionResultBare(arg) {
