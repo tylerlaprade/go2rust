@@ -229,6 +229,33 @@ func TestGoTypeToRustParamUsesTypeInfoForImportedInterfaces(t *testing.T) {
 	}
 }
 
+func TestGoTypesFunctionParamUsesBareImportedInterfaceReference(t *testing.T) {
+	paramType := types.Typ[types.Int]
+	method := types.NewFunc(
+		token.NoPos,
+		nil,
+		"Find",
+		types.NewSignatureType(
+			nil,
+			nil,
+			nil,
+			types.NewTuple(types.NewVar(token.NoPos, nil, "key", paramType)),
+			types.NewTuple(types.NewVar(token.NoPos, nil, "", paramType)),
+			false,
+		),
+	)
+	iface := types.NewInterfaceType([]*types.Func{method}, nil).Complete()
+	labelPkg := types.NewPackage("example.com/label", "label")
+	named := types.NewNamed(types.NewTypeName(token.NoPos, labelPkg, "Map", nil), iface, nil)
+
+	if got, want := goTypesParamTypeToRust(named), "Rc<RefCell<Option<Box<dyn example_com_label::Map>>>>"; got != want {
+		t.Fatalf("goTypesParamTypeToRust(imported interface) = %q, want %q", got, want)
+	}
+	if got, want := goTypesFunctionParamTypeToRust(named), "&dyn example_com_label::Map"; got != want {
+		t.Fatalf("goTypesFunctionParamTypeToRust(imported interface) = %q, want %q", got, want)
+	}
+}
+
 func TestGoTypeToRustParamDoesNotTrustInterfaceRegistryWithoutTypeInfo(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	prevContext := currentContext

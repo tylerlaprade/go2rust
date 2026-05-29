@@ -1468,12 +1468,19 @@ func goTypesTypeToRustWrapped(t types.Type) string {
 
 func goTypesParamTypeToRust(t types.Type) string {
 	if interfaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(t); ok {
-		return rustLocalInterfaceParamBare(interfaceName)
+		return rustLocalInterfaceParam(interfaceName)
 	}
 	if _, ok := types.Unalias(t).Underlying().(*types.Pointer); ok {
 		return goTypesTypeToRust(t)
 	}
 	return goTypesTypeToRustWrapped(t)
+}
+
+func goTypesFunctionParamTypeToRust(t types.Type) string {
+	if interfaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(t); ok {
+		return rustLocalInterfaceParamBare(interfaceName)
+	}
+	return goTypesParamTypeToRust(t)
 }
 
 func isFunctionSignatureType(t types.Type) bool {
@@ -1570,7 +1577,7 @@ func signatureToBoxDynFn(sig *types.Signature) string {
 	var paramTypes []string
 	params := sig.Params()
 	for i := 0; i < params.Len(); i++ {
-		paramTypes = append(paramTypes, goTypesParamTypeToRust(params.At(i).Type()))
+		paramTypes = append(paramTypes, goTypesFunctionParamTypeToRust(params.At(i).Type()))
 	}
 
 	var returnType string
