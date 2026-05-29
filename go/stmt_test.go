@@ -1714,6 +1714,31 @@ func mul(z, x, y nat, n int) {
 	}
 }
 
+func TestNamedSliceTupleAssignmentTargetsUseInnerHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func pair(x Word) (Word, Word) {
+	return x, x
+}
+
+func set(z nat, x Word) {
+	z[1], z[0] = pair(x)
+}
+`)
+
+	if strings.Contains(rust, "(*z.borrow_mut().as_mut().unwrap())") ||
+		strings.Contains(rust, "(*z.lock().unwrap().as_mut().unwrap())") {
+		t.Fatalf("tuple assignment into named-slice elements should not index the named wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__named_slice = (*z.borrow().as_ref().unwrap()).0.clone()") &&
+		!strings.Contains(rust, "__named_slice = (*z.lock().unwrap().as_ref().unwrap()).0.clone()") {
+		t.Fatalf("tuple assignment into named-slice elements should use the inner slice handle:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerSliceRangeUsesClonedValues(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

@@ -4430,7 +4430,11 @@ func writeIndexedSequenceAssignmentFromTemp(out *strings.Builder, indexExpr *ast
 		elemKeepsHandle = tupleTempAssignsHandleToElementBySyntax(indexExpr.X)
 	}
 	out.WriteString(" (*")
-	TranspileExpressionContext(out, indexExpr.X, LValue)
+	if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
+		writeNamedSliceInnerHandleClone(out, subj)
+	} else {
+		TranspileExpressionContext(out, indexExpr.X, LValue)
+	}
 	WriteBorrowMethod(out, true)
 	out.WriteString(".as_mut().unwrap())[")
 	writeExpressionAsUsize(out, indexExpr.Index)
