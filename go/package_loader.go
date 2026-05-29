@@ -477,6 +477,12 @@ func (pl *PackageLoader) TranspileAll() error {
 	SetTypeInfo(globalTypeInfo)
 	pl.concurrencyDetector = pl.buildWorkspaceConcurrencyDetector()
 
+	// When any stdlib package is transpiled from source, prune unreachable
+	// funcs/methods/types in those packages so peripheral declarations pulling
+	// in heavy deps (go/ast's reflect printer, filepath's os-based Glob) don't
+	// block compilation of the subset the program actually uses.
+	SetSourceStdlibReachable(pl.computeSourceStdlibReachable())
+
 	resetPackageMethodReceiverMutability()
 	for _, pkgPath := range pl.orderedAllPackagePaths() {
 		pkg := pl.allPackages[pkgPath]

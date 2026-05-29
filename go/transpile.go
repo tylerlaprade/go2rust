@@ -1673,7 +1673,19 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		importedInterfaceImpls = ctx.Package.ImportedInterfaceImpls
 	}
 	externalLocalInterfaceImpls := fileAnalysis.externalLocalInterfaceImpls(interfaces)
+	// DCE: when a stdlib package is transpiled from source, types unreachable
+	// from live code are pruned. prunedTypeNames gates the type decl, its impl
+	// block, and any `impl LocalIface for T` so nothing references a dropped type.
+	prunedTypeNames := map[string]bool{}
 	for _, t := range types {
+		if isPrunedSourceDecl(t.spec.Name) {
+			prunedTypeNames[t.spec.Name.Name] = true
+		}
+	}
+	for _, t := range types {
+		if prunedTypeNames[t.spec.Name.Name] {
+			continue
+		}
 		if !first {
 			body.WriteString("\n\n")
 		}
@@ -1739,6 +1751,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	})
 
 	for _, typeName := range typeNames {
+		if prunedTypeNames[typeName] {
+			continue
+		}
 		typeMethods := methods[typeName] // May be nil if type has no methods
 		if typeMethods == nil {
 			typeMethods = []*ast.FuncDecl{}
@@ -1857,6 +1872,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		slices.Sort(ifaceNames)
 
 		for _, ifaceName := range ifaceNames {
+			if prunedTypeNames[ifaceName] {
+				continue
+			}
 			ifaceType := localInterfaceTypesByName(ifaceName)
 			if !currentPackageTypeImplementsInterface(typeName, ifaceType) {
 				continue
@@ -1911,6 +1929,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 
 	// Output regular functions
 	for _, fn := range functions {
+		if isPrunedSourceDecl(fn.Name) {
+			continue
+		}
 		if !first {
 			body.WriteString("\n\n")
 		}
