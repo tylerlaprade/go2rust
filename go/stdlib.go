@@ -931,6 +931,17 @@ func transpilePrintHexArg(out *strings.Builder, arg ast.Expr, formatSpec string)
 		}
 		return
 	}
+	if typeInfo != nil && isNamedIntegerType(typeInfo.GetType(arg)) {
+		var value strings.Builder
+		if writeNamedIntegerPrimitiveExpression(&value, arg) {
+			out.WriteString("format!(\"{:")
+			out.WriteString(formatSpec)
+			out.WriteString("}\", ")
+			out.WriteString(value.String())
+			out.WriteString(")")
+			return
+		}
+	}
 
 	out.WriteString("format!(\"{:")
 	out.WriteString(formatSpec)

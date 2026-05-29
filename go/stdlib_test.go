@@ -77,6 +77,28 @@ func render(m float64, e int) string {
 	}
 }
 
+func TestFmtSprintfHexNamedIntegerUsesUnderlyingValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type Word uint
+
+func render(w Word) string {
+	return fmt.Sprintf("%#x", w)
+}
+`)
+
+	directWrapper := `format!("{:#x}", { let __v = (*w.borrow().as_ref().unwrap()).clone(); __v })`
+	if strings.Contains(rust, directWrapper) {
+		t.Fatalf("fmt.Sprintf %%#x should not format the named integer wrapper directly:\n%s", rust)
+	}
+	want := `format!("{:#x}", (*(*w.borrow().as_ref().unwrap()).0.borrow().as_ref().unwrap()))`
+	if !strings.Contains(rust, want) {
+		t.Fatalf("fmt.Sprintf %%#x should format the named integer's underlying value, missing %q:\n%s", want, rust)
+	}
+}
+
 func TestBuiltinPrintUsesRustStderrMacro(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
