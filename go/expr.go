@@ -7093,8 +7093,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if typeInfo.IsSlice(indexExpr.X) {
 					NeedSliceElemPtr()
 					out.WriteString("GoSliceElemPtr::new(")
-					TranspileExpressionContext(out, indexExpr.X, LValue)
-					out.WriteString(".clone(), ")
+					if _, _, ok := namedSliceTypeForExpr(indexExpr.X); ok {
+						writeNamedSliceInnerHandleClone(out, indexExpr.X)
+					} else {
+						TranspileExpressionContext(out, indexExpr.X, LValue)
+						out.WriteString(".clone()")
+					}
+					out.WriteString(", ")
 					writeExpressionAsUsize(out, indexExpr.Index)
 					out.WriteString(")")
 					return

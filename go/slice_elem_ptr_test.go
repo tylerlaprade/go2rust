@@ -68,6 +68,26 @@ func update() {
 	}
 }
 
+func TestNamedSliceSliceElemAddressUsesInnerHandle(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func alias(x nat) {
+	p := &x[0:cap(x)][cap(x)-1]
+	_ = p
+}
+`)
+
+	if strings.Contains(rust, "GoSliceElemPtr::new(nat(") {
+		t.Fatalf("slice element pointer into named-slice slice expression should not use the bare named value as the sequence handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__named_slice.0.clone()") {
+		t.Fatalf("slice element pointer into named-slice slice expression should use the named slice inner handle:\n%s", rust)
+	}
+}
+
 func TestArrayElemAddressDoesNotUseSliceElemPtr(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
