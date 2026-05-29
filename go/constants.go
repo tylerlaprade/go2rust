@@ -1183,7 +1183,13 @@ func writeNamedIntegerConstForExpected(out *strings.Builder, value ast.Expr, nam
 	out.WriteString("(")
 	WriteWrapperPrefix(out)
 	if isConstantExpression(value) && !isNamedIntegerConversionCall(value) {
-		TranspileConstExpr(out, value, 0)
+		if constTypeConversionArgNeedsParens(value) {
+			out.WriteString("(")
+			TranspileConstExpr(out, value, 0)
+			out.WriteString(")")
+		} else {
+			TranspileConstExpr(out, value, 0)
+		}
 	} else {
 		writeNumericConversionValue(out, value)
 	}

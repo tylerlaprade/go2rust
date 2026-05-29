@@ -1480,6 +1480,28 @@ func (t *Type) ChanDir() ChanDir {
 	}
 }
 
+func TestNamedIntegerConstBinaryAssignmentCastsWholeExpression(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+
+const MaxBase = 10 + ('z' - 'a' + 1)
+
+func set() Word {
+	var d Word
+	d = MaxBase + 1
+	return d
+}
+`)
+
+	if strings.Contains(rust, "MAX_BASE + 1 as u64") {
+		t.Fatalf("named integer const assignment should not cast only the binary RHS:\n%s", rust)
+	}
+	if !strings.Contains(rust, "((MAX_BASE + 1) as u64)") {
+		t.Fatalf("named integer const assignment should cast the whole expression:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerBitClearConversionOperandStaysBare(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
