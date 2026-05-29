@@ -16,6 +16,8 @@ use std::sync::{Arc, Mutex};
 /// (./test.sh auto-promotes) and the matching filepath-* rows in
 /// docs/bridge_debt.md become retirable.
 fn main() {
+    internal_filepathlite::__go_init_all();
+    internal_stringslite::__go_init_all();
     path_filepath::__go_init_all();
 
     println!("{}", format!("{}", path_filepath::is_abs(Arc::new(Mutex::new(Some("/foo".to_string()))))));

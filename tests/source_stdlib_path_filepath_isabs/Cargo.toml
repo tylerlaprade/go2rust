@@ -3,6 +3,8 @@
 members = [
     ".",
     "vendor/go2rust_stdlib_stubs",
+    "vendor/internal_filepathlite",
+    "vendor/internal_stringslite",
     "vendor/path_filepath",
 ]
 
@@ -17,4 +19,6 @@ path = "main.rs"
 
 [dependencies]
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+internal_filepathlite = { path = "vendor/internal_filepathlite" }
+internal_stringslite = { path = "vendor/internal_stringslite" }
 path_filepath = { path = "vendor/path_filepath" }

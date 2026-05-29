@@ -639,7 +639,7 @@ func transpilePackageGlobalInit(out *strings.Builder, globals []packageGlobal) {
 		if !ok {
 			continue
 		}
-		if writePackageGlobalErrorCallInit(out, global, init.Rhs) {
+		if writePackageGlobalErrorHandleInit(out, global, init.Rhs) {
 			continue
 		}
 		if writePackageGlobalCompositeInit(out, global, init.Rhs) {
@@ -847,20 +847,16 @@ func underlyingSliceType(typ types.Type) *types.Slice {
 	return nil
 }
 
-func writePackageGlobalErrorCallInit(out *strings.Builder, global packageGlobal, expr ast.Expr) bool {
+func writePackageGlobalErrorHandleInit(out *strings.Builder, global packageGlobal, expr ast.Expr) bool {
 	if !isGoErrorType(global.typ) {
 		return false
 	}
-	call, ok := expr.(*ast.CallExpr)
-	if !ok {
-		return false
-	}
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !isGoErrorType(typeInfo.GetType(call)) {
+	if typeInfo == nil || !isGoErrorType(typeInfo.GetType(expr)) {
 		return false
 	}
 	out.WriteString("    { let __rhs_holder = ")
-	TranspileExpressionContext(out, call, LValue)
+	TranspileExpressionContext(out, expr, LValue)
 	out.WriteString(".clone(); let new_val = { let mut guard = __rhs_holder")
 	WriteBorrowMethod(out, true)
 	out.WriteString("; guard.take() }; *")
@@ -881,6 +877,12 @@ func isPointerGlobalType(typ types.Type) bool {
 func writePackageGlobalInitValue(out *strings.Builder, expr ast.Expr, targetType types.Type) {
 	if funcLit, ok := expr.(*ast.FuncLit); ok {
 		TranspileFuncLitBox(out, funcLit)
+		return
+	}
+	if packageGlobalFunctionObjectInit(expr, targetType) {
+		out.WriteString("Box::new(")
+		TranspileExpression(out, expr)
+		out.WriteString(")")
 		return
 	}
 	if writeConstExpressionForExpectedGoType(out, expr, targetType) {
@@ -916,6 +918,28 @@ func writePackageGlobalInitValue(out *strings.Builder, expr ast.Expr, targetType
 		return
 	}
 	TranspileExpression(out, expr)
+}
+
+func packageGlobalFunctionObjectInit(expr ast.Expr, targetType types.Type) bool {
+	if targetType == nil {
+		return false
+	}
+	if _, ok := types.Unalias(targetType).Underlying().(*types.Signature); !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	switch e := expr.(type) {
+	case *ast.Ident:
+		_, ok := typeInfo.GetObject(e).(*types.Func)
+		return ok
+	case *ast.SelectorExpr:
+		_, ok := typeInfo.GetObject(e.Sel).(*types.Func)
+		return ok
+	}
+	return false
 }
 
 func TranspilePackageInitAll(out *strings.Builder, hasGlobals bool, initFunctionNames map[*ast.FuncDecl]string) {

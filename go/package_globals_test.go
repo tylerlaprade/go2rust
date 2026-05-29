@@ -111,3 +111,53 @@ func parseEnabled() (bool, error) {
 		t.Fatalf("bare-scalar tuple slot should assign the temp directly into the global slot:\n%s", rust)
 	}
 }
+
+func TestPackageGlobalErrorSelectorInitMovesHandle(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "io/fs"
+
+var Skip error = fs.SkipDir
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "Some(fs::SkipDir())") {
+		t.Fatalf("package global error selector should move from the error handle, not wrap the handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __rhs_holder = fs::SkipDir().clone()") || !strings.Contains(rust, "*Skip.borrow_mut() = new_val") {
+		t.Fatalf("package global error selector should move the option payload into the global slot:\n%s", rust)
+	}
+}
+
+func TestPackageGlobalFunctionSelectorInitBoxesFunctionObject(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "os"
+
+var lstat = os.Lstat
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "Some(os::lstat);") {
+		t.Fatalf("package global function selector should box the function object:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some(Box::new(os::lstat));") {
+		t.Fatalf("package global function selector should initialize with Box::new:\n%s", rust)
+	}
+}
