@@ -1,0 +1,8 @@
+[package]
+name = "return_conversion_as_interface"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "return_conversion_as_interface"
+path = "main.rs"

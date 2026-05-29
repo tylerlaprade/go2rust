@@ -1827,6 +1827,10 @@ run_xfail_test() {
     run_test "tests/pointer_method_value_of_receiver"
 }
 
+@test "pointer_receiver_as_pointer_value" {
+    run_test "tests/pointer_receiver_as_pointer_value"
+}
+
 @test "pointer_receiver_deref_assignment" {
     run_test "tests/pointer_receiver_deref_assignment"
 }
@@ -2819,8 +2823,8 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/pointer_package_global"
 }
 
-@test "XFAIL: pointer_receiver_as_pointer_value" {
-    run_xfail_test "tests/XFAIL/pointer_receiver_as_pointer_value"
+@test "XFAIL: return_conversion_as_interface" {
+    run_xfail_test "tests/XFAIL/return_conversion_as_interface"
 }
 
 @test "XFAIL: stateful_goroutines" {
