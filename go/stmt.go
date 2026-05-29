@@ -10542,7 +10542,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				} else {
 					// Complex expression or literal, wrap it
 					WriteWrapperPrefix(out)
-					TranspileExpression(out, arg)
+					if !writeOwnedExpressionValue(out, arg) {
+						TranspileExpression(out, arg)
+					}
 					WriteWrapperSuffix(out)
 				}
 				out.WriteString("; ")

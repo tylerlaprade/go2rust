@@ -3163,6 +3163,35 @@ func parse() (f *File) {
 	}
 }
 
+func TestDeferFuncLiteralSelectorArgumentCapturesValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type env struct {
+	hasCallOrRecv bool
+}
+
+type checker struct {
+	env
+}
+
+func (check *checker) builtin() {
+	defer func(b bool) {
+		check.hasCallOrRecv = b
+	}(check.hasCallOrRecv)
+	check.hasCallOrRecv = false
+}
+`)
+
+	if strings.Contains(rust, "has_call_or_recv.clone())))") ||
+		strings.Contains(rust, "has_call_or_recv.clone(); __field })") {
+		t.Fatalf("deferred selector argument should capture the selector value, not the field handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __selector_guard = __selector_holder.borrow(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone()") &&
+		!strings.Contains(rust, "let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone()") {
+		t.Fatalf("deferred selector argument should unwrap and clone the field value:\n%s", rust)
+	}
+}
+
 func TestTrailingInfiniteForWithDeferSuppressesFinalDeferDrain(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
