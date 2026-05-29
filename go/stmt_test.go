@@ -1098,6 +1098,26 @@ func invert(z nat) {
 	}
 }
 
+func TestNamedIntegerReturnCallAssignedToSliceElementPreservesCall(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func decode(buf []byte) Word {
+	return Word(buf[0])
+}
+
+func store(z nat, buf []byte) {
+	z[0] = decode(buf[:1])
+}
+`)
+
+	if !strings.Contains(rust, "decode(Rc::new") && !strings.Contains(rust, "decode(Arc::new") {
+		t.Fatalf("named integer return call assigned to slice element should remain a function call, not a conversion:\n%s", rust)
+	}
+}
+
 func TestMutexGuardTransfersAcrossPointerAliasAssignment(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

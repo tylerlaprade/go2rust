@@ -10247,6 +10247,9 @@ func externalIntegerConversionTarget(call *ast.CallExpr) (*types.Named, string, 
 	if typeInfo == nil || call == nil {
 		return nil, "", false
 	}
+	if !typeInfo.IsTypeConversion(call) {
+		return nil, "", false
+	}
 	named, ok := typeInfo.GetType(call).(*types.Named)
 	if !ok {
 		return nil, "", false
@@ -10258,6 +10261,9 @@ func externalIntegerConversionTarget(call *ast.CallExpr) (*types.Named, string, 
 func namedIntegerConversionTarget(call *ast.CallExpr) (*types.Named, string, bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || call == nil {
+		return nil, "", false
+	}
+	if !typeInfo.IsTypeConversion(call) {
 		return nil, "", false
 	}
 	named, ok := types.Unalias(typeInfo.GetType(call)).(*types.Named)
