@@ -453,6 +453,61 @@ func use(rhs []dep.Expr) int {
 	}
 }
 
+func TestSelectorInterfaceStructFieldBoxesConcretePointerValue(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+type Expr interface {
+	Pos() int
+}
+
+type SelectorExpr struct{}
+
+func (*SelectorExpr) Pos() int { return 0 }
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+type operand struct {
+	expr dep.Expr
+}
+
+func record(selx *dep.SelectorExpr) operand {
+	return operand{expr: selx}
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "main.go"),
+	})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "expr: selx.clone()") {
+		t.Fatalf("selector-qualified interface struct field should not clone the concrete pointer handle:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "expr: Rc::new(RefCell::new(Some(Box::new((*selx.borrow().as_ref().unwrap()).clone()) as Box<dyn example_com_dep::Expr>)))") &&
+		!strings.Contains(mainRS, "expr: Arc::new(Mutex::new(Some(Box::new((*selx.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn example_com_dep::Expr + Send + Sync>)))") {
+		t.Fatalf("selector-qualified interface struct field should box the concrete pointee:\n%s", mainRS)
+	}
+}
+
 func TestDefinedTypeOverImportedScalarEmitsDisplayForLocalInterface(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

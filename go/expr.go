@@ -8518,10 +8518,18 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							out.WriteString(ToSnakeCase(key.Name))
 							out.WriteString(": ")
 							var fieldType ast.Expr
+							var typedFieldType types.Type
 							if sd, exists := structDefs[ident.Name]; exists {
 								fieldType = findStructFieldExpr(sd.ASTType, key.Name)
 							}
-							writeWrappedStructFieldValue(out, kv.Value, fieldType, nil)
+							if typeInfo := GetTypeInfo(); typeInfo != nil {
+								if typ := typeInfo.GetType(e); typ != nil {
+									if structUnder, ok := types.Unalias(typ).Underlying().(*types.Struct); ok {
+										typedFieldType = findTypesStructFieldType(structUnder, key.Name)
+									}
+								}
+							}
+							writeWrappedStructFieldValue(out, kv.Value, fieldType, typedFieldType)
 						}
 					}
 				}
