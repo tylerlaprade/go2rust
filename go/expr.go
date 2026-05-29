@@ -5608,6 +5608,15 @@ func writeLocalInterfaceFieldValue(out *strings.Builder, value ast.Expr, fieldEx
 			return true
 		}
 	}
+	if _, ok := value.(*ast.SelectorExpr); ok {
+		var boxed strings.Builder
+		if writeConcreteLocalInterfaceBox(&boxed, value, interfaceName) {
+			WriteWrapperPrefix(out)
+			out.WriteString(boxed.String())
+			WriteWrapperSuffix(out)
+			return true
+		}
+	}
 	if ident, ok := value.(*ast.Ident); ok && ident.Name != "_" {
 		WriteWrapperPrefix(out)
 		if !writeConcreteLocalInterfaceBox(out, value, interfaceName) {

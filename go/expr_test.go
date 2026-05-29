@@ -449,6 +449,42 @@ func collect(list []Expr, x Expr) []Expr {
 	}
 }
 
+func TestLocalInterfaceStructFieldBoxesSelectorPointerValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type interface {
+	String() string
+}
+
+type Signature struct{}
+
+func (*Signature) String() string { return "" }
+
+type target struct {
+	sig *Signature
+}
+
+type operand struct {
+	typ Type
+}
+
+func record(t *target) operand {
+	return operand{typ: t.sig}
+}
+`)
+
+	if strings.Contains(rust, "typ: { let __field = (*t.borrow().as_ref().unwrap()).sig.clone(); __field }") ||
+		strings.Contains(rust, "typ: { let __field = (*t.lock().unwrap().as_ref().unwrap()).sig.clone(); __field }") {
+		t.Fatalf("local interface struct field should not clone the selector pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "typ: Rc::new(RefCell::new(Some(Box::new((*(*t.borrow().as_ref().unwrap()).sig.borrow().as_ref().unwrap()).clone()) as Box<dyn Type>)))") &&
+		!strings.Contains(rust, "typ: Arc::new(Mutex::new(Some(Box::new((*(*t.lock().unwrap().as_ref().unwrap()).sig.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Type + Send + Sync>)))") &&
+		!strings.Contains(rust, "typ: Rc::new(RefCell::new(Some(Box::new((*{ let __field = (*t.borrow().as_ref().unwrap()).sig.clone(); __field }.borrow().as_ref().unwrap()).clone()) as Box<dyn Type>)))") &&
+		!strings.Contains(rust, "typ: Arc::new(Mutex::new(Some(Box::new((*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).sig.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Type + Send + Sync>)))") {
+		t.Fatalf("local interface struct field should box the selector pointee:\n%s", rust)
+	}
+}
+
 func TestAppendCurrentReceiverToInterfaceSliceBoxesSelf(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
