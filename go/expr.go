@@ -1549,6 +1549,11 @@ func writeNamedSliceInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
 			out.WriteString(".0.clone()")
 			return true
 		}
+		out.WriteString("{ let __named_slice = (*")
+		TranspileExpressionContext(out, star.X, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).0.clone(); __named_slice }")
+		return true
 	}
 	if _, ok := inner.(*ast.SliceExpr); ok {
 		out.WriteString("{ let __named_slice = ")

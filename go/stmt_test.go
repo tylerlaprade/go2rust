@@ -1739,6 +1739,27 @@ func set(z nat, x Word) {
 	}
 }
 
+func TestPointerToNamedSliceElementAssignmentUsesInnerHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func set(z *nat) {
+	(*z)[0] = 0xfedcb
+}
+`)
+
+	if strings.Contains(rust, "(*(*z.borrow().as_mut().unwrap()).borrow()") ||
+		strings.Contains(rust, "(*(*z.lock().unwrap().as_mut().unwrap()).lock()") {
+		t.Fatalf("pointer-to-named-slice element assignment should not lock the dereferenced named value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__named_slice = (*z.borrow().as_ref().unwrap()).0.clone()") &&
+		!strings.Contains(rust, "__named_slice = (*z.lock().unwrap().as_ref().unwrap()).0.clone()") {
+		t.Fatalf("pointer-to-named-slice element assignment should use the named slice inner handle:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerSliceRangeUsesClonedValues(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
