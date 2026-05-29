@@ -2368,6 +2368,33 @@ func keep(values nat) Word {
 	}
 }
 
+func TestTripleSlashStatementCommentEmitsRegularRustComment(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func f() {
+	/// may be other situations.
+	x := 1
+	_ = x
+}
+`, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust := transpileParsedRegression(t, file, fset, typeInfo)
+	if strings.Contains(rust, "/// may be other situations.") {
+		t.Fatalf("statement comment starting with /// should not emit a Rust doc comment:\n%s", rust)
+	}
+	if !strings.Contains(rust, "// may be other situations.") {
+		t.Fatalf("statement comment starting with /// should stay as a regular comment:\n%s", rust)
+	}
+}
+
 func TestReturnBitClearUsesRustOperator(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

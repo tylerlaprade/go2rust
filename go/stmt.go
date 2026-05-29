@@ -6362,7 +6362,7 @@ func outputCommentsBeforePos(out *strings.Builder, comments []*ast.CommentGroup,
 		if cgLine > startLine && cgLine < targetLine {
 			for _, comment := range cg.List {
 				out.WriteString(indent)
-				out.WriteString(comment.Text)
+				out.WriteString(rustStatementCommentText(comment.Text))
 				out.WriteString("\n")
 				out.WriteString(indent)
 			}
@@ -6371,6 +6371,17 @@ func outputCommentsBeforePos(out *strings.Builder, comments []*ast.CommentGroup,
 
 	*lastPos = pos
 }
+
+func rustStatementCommentText(text string) string {
+	if strings.HasPrefix(text, "///") {
+		return "//" + strings.TrimLeft(text[2:], "/")
+	}
+	if strings.HasPrefix(text, "//!") {
+		return "//" + text[3:]
+	}
+	return text
+}
+
 func outputComment(out *strings.Builder, cg *ast.CommentGroup, indent string, isDoc bool) {
 	if cg == nil {
 		return
