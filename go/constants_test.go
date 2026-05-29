@@ -299,6 +299,21 @@ const maxNestLev int = 1e5
 	}
 }
 
+func TestUntypedConstLenStringEmitsGoIntCast(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const dots = ". . . "
+const n = len(dots)
+`)
+
+	if !strings.Contains(rust, "const N: i32 = DOTS.len() as i32;") {
+		t.Fatalf("untyped len const should cast Rust usize length to Go int, got:\n%s", rust)
+	}
+	if strings.Contains(rust, "const N: i32 = DOTS.len();") {
+		t.Fatalf("untyped len const should not assign usize length directly to i32:\n%s", rust)
+	}
+}
+
 func TestCollectPackageGlobalsIgnoresConstDecl(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	prevGlobals := packageGlobalNames

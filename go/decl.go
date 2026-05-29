@@ -3075,6 +3075,9 @@ func writeConstExprForRustType(out *strings.Builder, expr ast.Expr, iotaValue in
 	if writeIntegerTypedFloatConstLiteral(out, expr, rustType) {
 		return
 	}
+	if writeConstLenCallForRustType(out, expr, iotaValue, rustType) {
+		return
+	}
 	TranspileConstExpr(out, expr, iotaValue)
 }
 
@@ -3103,6 +3106,63 @@ func writeIntegerTypedFloatConstLiteral(out *strings.Builder, expr ast.Expr, rus
 	if value, exact := constant.Uint64Val(tv.Value); exact {
 		out.WriteString(strconv.FormatUint(value, 10))
 		return true
+	}
+	return false
+}
+
+func writeConstLenCallForRustType(out *strings.Builder, expr ast.Expr, iotaValue int, rustType string) bool {
+	castType, ok := rustIntegerCastTypeFromRustType(rustType)
+	if !ok {
+		return false
+	}
+	call, ok := expr.(*ast.CallExpr)
+	if !ok || !constBuiltinCallName(call, "len") || len(call.Args) != 1 {
+		return false
+	}
+	if !constExprIsStringValue(call.Args[0]) {
+		return false
+	}
+	TranspileConstExpr(out, call.Args[0], iotaValue)
+	out.WriteString(".len() as ")
+	out.WriteString(castType)
+	return true
+}
+
+func constBuiltinCallName(call *ast.CallExpr, name string) bool {
+	if call == nil {
+		return false
+	}
+	ident, ok := call.Fun.(*ast.Ident)
+	if !ok || ident.Name != name {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	builtin, ok := typeInfo.GetObject(ident).(*types.Builtin)
+	return ok && builtin.Name() == name
+}
+
+func constExprIsStringValue(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || expr == nil {
+		return false
+	}
+	if tv, ok := typeInfo.info.Types[expr]; ok && tv.Value != nil {
+		return tv.Value.Kind() == constant.String
+	}
+	switch e := expr.(type) {
+	case *ast.Ident:
+		if obj, ok := typeInfo.GetObject(e).(*types.Const); ok && obj.Val() != nil {
+			return obj.Val().Kind() == constant.String
+		}
+	case *ast.SelectorExpr:
+		if obj, ok := typeInfo.GetObject(e.Sel).(*types.Const); ok && obj.Val() != nil {
+			return obj.Val().Kind() == constant.String
+		}
+	case *ast.ParenExpr:
+		return constExprIsStringValue(e.X)
 	}
 	return false
 }
