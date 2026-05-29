@@ -1779,6 +1779,10 @@ run_xfail_test() {
     run_test "tests/panic_with_sprintf"
 }
 
+@test "parallel_assign_value_field_swap" {
+    run_test "tests/parallel_assign_value_field_swap"
+}
+
 @test "parallel_decl_from_wrapped_fields" {
     run_test "tests/parallel_decl_from_wrapped_fields"
 }
@@ -2781,6 +2785,10 @@ run_xfail_test() {
 
 @test "XFAIL: panic_recover" {
     run_xfail_test "tests/XFAIL/panic_recover"
+}
+
+@test "XFAIL: parallel_assign_receiver_value_field_swap" {
+    run_xfail_test "tests/XFAIL/parallel_assign_receiver_value_field_swap"
 }
 
 @test "XFAIL: pointer_package_global" {

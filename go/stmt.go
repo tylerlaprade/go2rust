@@ -4279,12 +4279,24 @@ func tempHoldsWrappedValue(rhs ast.Expr) bool {
 		if !ok {
 			return false
 		}
-		if _, isVar := obj.(*types.Var); !isVar {
+		field, isVar := obj.(*types.Var)
+		if !isVar {
 			return false
 		}
-		// Struct field reads emit Arc<Mutex<Option<T>>>.clone(). Anything
-		// rooted in a wrapped receiver (so not a package var) is wrapped.
-		return true
+		// Handle-typed fields (pointer/slice/map/chan/func/interface) always keep
+		// their wrapped Arc<Mutex<Option<T>>> handle when read.
+		if selectorFieldValueKeepsHandle(field.Type()) {
+			return true
+		}
+		// A value-typed field (Basic, named scalars like token.Pos, structs,
+		// arrays) keeps its handle when read directly off the current receiver
+		// (self.field), but is unwrapped to a bare value when read through a
+		// wrapped pointer variable (v.field), so only the receiver form yields a
+		// wrapped temporary.
+		if ident, ok := sel.X.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
+			return true
+		}
+		return false
 	}
 	return false
 }

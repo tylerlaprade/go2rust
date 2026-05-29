@@ -1,0 +1,8 @@
+[package]
+name = "parallel_assign_receiver_value_field_swap"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "parallel_assign_receiver_value_field_swap"
+path = "main.rs"
