@@ -380,6 +380,66 @@ func use(args []operand) positioner {
 	}
 }
 
+func TestExternalInterfaceConversionVariadicAnyBoxesWrappedInterface(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+type Node interface {
+	Pos() int
+	End() int
+}
+
+type Expr interface {
+	Node
+	exprNode()
+}
+
+type SelectorExpr struct{}
+
+func (s *SelectorExpr) Pos() int { return 0 }
+func (s *SelectorExpr) End() int { return 0 }
+func (s *SelectorExpr) exprNode() {}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+func sink(args ...any) {}
+
+func use(expr *dep.SelectorExpr) {
+	sink(dep.Expr(expr))
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "main.go"),
+	})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "let __v = (*expr.borrow().as_ref().unwrap()); let __owned = (*__v.borrow().as_ref().unwrap()).clone()") {
+		t.Fatalf("interface conversion passed to variadic any should not treat the concrete pointer value as a wrapped handle:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "Box::new((*expr.borrow().as_ref().unwrap()).clone()) as Box<dyn example_com_dep::Expr>") {
+		t.Fatalf("interface conversion passed to variadic any should build the converted interface handle before boxing as any:\n%s", mainRS)
+	}
+}
+
 func TestExternalInterfaceCallArgumentImplEmitsWithInterfaceFileOnce(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

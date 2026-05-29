@@ -9672,6 +9672,9 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	if writeTypedNilConversion(out, call) {
 		return
 	}
+	if writeTranspiledInterfaceTypeConversion(out, call) {
+		return
+	}
 	if reflectStructTagConversionTarget(call) {
 		writeReflectStructTagConversion(out, call.Args[0])
 		return
@@ -10101,6 +10104,25 @@ func writeTypedNilConversion(out *strings.Builder, call *ast.CallExpr) bool {
 	return true
 }
 
+func writeTranspiledInterfaceTypeConversion(out *strings.Builder, call *ast.CallExpr) bool {
+	if call == nil || len(call.Args) != 1 {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsTypeConversion(call) {
+		return false
+	}
+	targetType := typeInfo.GetType(call)
+	if targetType == nil {
+		out.WriteString(`unimplemented!("type info required to lower interface conversion")`)
+		return true
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(targetType); !ok {
+		return false
+	}
+	return writeLocalInterfaceReferenceCallArgument(out, call.Args[0], targetType)
+}
+
 func writeNamedSliceNilConversion(out *strings.Builder, call *ast.CallExpr) bool {
 	targetType, ok := typedNilConversionType(call)
 	if !ok {
@@ -10523,6 +10545,11 @@ func writeNamedTypeDefinitionAccess(out *strings.Builder, expr ast.Expr) {
 func typeConversionEmitsWrappedValue(call *ast.CallExpr) bool {
 	if typeConversionTargetIsTypeParam(call) {
 		return false
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && call != nil && typeInfo.IsTypeConversion(call) {
+		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(call)); ok {
+			return true
+		}
 	}
 	if _, _, ok := externalIntegerConversionTarget(call); ok {
 		return false
