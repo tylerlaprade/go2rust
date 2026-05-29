@@ -1627,6 +1627,30 @@ func mul(z, x, y nat, n int) {
 	}
 }
 
+func TestNamedIntegerSliceRangeUsesClonedValues(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func sticky(x nat) bool {
+	for _, w := range x[:1] {
+		if w != 0 {
+			return true
+		}
+	}
+	return false
+}
+`)
+
+	if strings.Contains(rust, ".iter().copied()") {
+		t.Fatalf("range over named integer slice should clone wrapper values, not require Copy:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".iter().cloned()") {
+		t.Fatalf("range over named integer slice should use cloned values:\n%s", rust)
+	}
+}
+
 func TestStructLiteralNamedSliceFieldFromUnnamedSliceConstructsNamedValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

@@ -947,6 +947,9 @@ func rangeElementUsesCopied(typ types.Type) bool {
 	if typ == nil {
 		return false
 	}
+	if isNamedIntegerType(typ) {
+		return false
+	}
 	switch underlying := types.Unalias(typ).Underlying().(type) {
 	case *types.Basic:
 		info := underlying.Info()
@@ -1005,7 +1008,7 @@ func typeSyntaxIsRustCopyRangeElement(expr ast.Expr) bool {
 }
 
 func rangeElementUsesCloned(typ types.Type) bool {
-	return isGoErrorType(typ) || isFunctionSignatureType(typ)
+	return isGoErrorType(typ) || isFunctionSignatureType(typ) || isNamedIntegerType(typ)
 }
 
 func compositeLiteralRangeElemRustType(lit *ast.CompositeLit) (string, bool) {
