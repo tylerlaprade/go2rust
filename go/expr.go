@@ -160,12 +160,20 @@ func writeNamedIntegerUnaryPrimitiveExpression(out *strings.Builder, expr *ast.U
 
 func writeNamedIntegerBinaryPrimitiveExpression(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !isNamedIntegerType(typeInfo.GetType(expr)) {
+	if typeInfo == nil {
 		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
+	if !ok || !isNamedIntegerType(named) {
+		return false
+	}
+	primitiveType := ""
+	if basic, ok := types.Unalias(named.Underlying()).(*types.Basic); ok {
+		primitiveType, _ = rustCastTypeForDefinedUnderlying(basic.Name())
 	}
 	out.WriteString("(")
 	var left strings.Builder
-	writeNamedIntegerPrimitiveOperand(&left, expr.X)
+	writeNamedIntegerPrimitiveOperand(&left, expr.X, primitiveType)
 	leftEmission := left.String()
 	if (expr.Op == token.SHL || expr.Op == token.SHR) && shiftOperandEmissionNeedsParens(leftEmission) {
 		out.WriteString("(")
@@ -177,13 +185,21 @@ func writeNamedIntegerBinaryPrimitiveExpression(out *strings.Builder, expr *ast.
 	out.WriteString(" ")
 	out.WriteString(rustBinaryOp(expr.Op))
 	out.WriteString(" ")
-	writeNamedIntegerPrimitiveOperand(out, expr.Y)
+	writeNamedIntegerPrimitiveOperand(out, expr.Y, primitiveType)
 	out.WriteString(")")
 	return true
 }
 
-func writeNamedIntegerPrimitiveOperand(out *strings.Builder, expr ast.Expr) {
+func writeNamedIntegerPrimitiveOperand(out *strings.Builder, expr ast.Expr, primitiveType string) {
 	if lit, ok := expr.(*ast.BasicLit); ok {
+		if lit.Kind == token.CHAR && primitiveType != "" {
+			out.WriteString("(")
+			out.WriteString(RustCharLiteral(lit.Value))
+			out.WriteString(" as ")
+			out.WriteString(primitiveType)
+			out.WriteString(")")
+			return
+		}
 		out.WriteString(RustCharLiteral(lit.Value))
 		return
 	}

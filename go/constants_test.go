@@ -1292,6 +1292,10 @@ func digit(n, ch Word) Word {
 func split(n, ch Word) Word {
 	return n/ch + n%ch
 }
+
+func emit(d Word) byte {
+	return byte(d + '0')
+}
 `)
 
 	for _, trait := range []string{"Mul", "Div", "Rem"} {
