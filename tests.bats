@@ -2739,6 +2739,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/http_client"
 }
 
+@test "XFAIL: named_func_type_interface_param" {
+    run_xfail_test "tests/XFAIL/named_func_type_interface_param"
+}
+
 @test "XFAIL: panic_recover" {
     run_xfail_test "tests/XFAIL/panic_recover"
 }
