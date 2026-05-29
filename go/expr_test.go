@@ -1667,6 +1667,30 @@ func trimParens(s string) string {
 	}
 }
 
+func TestStringSliceComplexBoundsUseLocalTemps(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Accuracy int8
+
+const name = "BelowExactAbove"
+
+var index = [...]uint8{0, 5, 10, 15}
+
+func (i Accuracy) String() string {
+	i -= -1
+	return name[index[i]:index[i+1]]
+}
+`)
+
+	if strings.Contains(rust, "__s[({ let __seq") {
+		t.Fatalf("string slice should not borrow complex bounds inside the slice range:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __low =") || !strings.Contains(rust, "let __high =") ||
+		!strings.Contains(rust, "__s[__low..__high].to_string()") {
+		t.Fatalf("string slice should bind complex bounds before slicing:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoMakeMapWithCapacityTracksMapSyntax(t *testing.T) {
 	rust := transpileNoTypeInfoRegression(t, `package main
 

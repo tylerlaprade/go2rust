@@ -5176,17 +5176,7 @@ func writeBareStringSliceValue(out *strings.Builder, expr ast.Expr, expected typ
 	if typeInfo == nil || !typeInfo.IsString(slice.X) {
 		return false
 	}
-	out.WriteString("{ let __s = &(")
-	writeStringSequenceValue(out, slice.X)
-	out.WriteString("); __s[")
-	if slice.Low != nil {
-		writeExpressionAsUsize(out, slice.Low)
-	}
-	out.WriteString("..")
-	if slice.High != nil {
-		writeExpressionAsUsize(out, slice.High)
-	}
-	out.WriteString("].to_string() }")
+	writeStringSliceValue(out, slice.X, slice.Low, slice.High)
 	return true
 }
 

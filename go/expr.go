@@ -977,6 +977,31 @@ func writeGoByteSequenceSliceToString(out *strings.Builder, expr ast.Expr, low a
 	out.WriteString(")")
 }
 
+func writeStringSliceValue(out *strings.Builder, expr ast.Expr, low ast.Expr, high ast.Expr) {
+	out.WriteString("{ let __s = &(")
+	writeStringSequenceValue(out, expr)
+	out.WriteString("); ")
+	if low != nil {
+		out.WriteString("let __low = ")
+		writeExpressionAsUsize(out, low)
+		out.WriteString("; ")
+	}
+	if high != nil {
+		out.WriteString("let __high = ")
+		writeExpressionAsUsize(out, high)
+		out.WriteString("; ")
+	}
+	out.WriteString("__s[")
+	if low != nil {
+		out.WriteString("__low")
+	}
+	out.WriteString("..")
+	if high != nil {
+		out.WriteString("__high")
+	}
+	out.WriteString("].to_string() }")
+}
+
 func methodReceiverExpressionNeedsUnwrap(expr ast.Expr) bool {
 	switch e := expr.(type) {
 	case *ast.CallExpr:
@@ -7966,17 +7991,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			WriteWrapperSuffix(out)
 		} else if isStringSlice {
 			WriteWrapperPrefix(out)
-			out.WriteString("{ let __s = &(")
-			writeStringSequenceValue(out, e.X)
-			out.WriteString("); __s[")
-			if e.Low != nil {
-				writeExpressionAsUsize(out, e.Low)
-			}
-			out.WriteString("..")
-			if e.High != nil {
-				writeExpressionAsUsize(out, e.High)
-			}
-			out.WriteString("].to_string() }")
+			writeStringSliceValue(out, e.X, e.Low, e.High)
 			WriteWrapperSuffix(out)
 		} else if sliceSubject := unwrapParens(e.X); isNamedSliceExpression(sliceSubject) {
 			named, _, _ := namedSliceTypeForExpr(sliceSubject)
