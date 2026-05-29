@@ -1535,6 +1535,30 @@ func (x *Int) Bits() []Word {
 	}
 }
 
+func TestStructLiteralNamedSliceFieldFromUnnamedSliceConstructsNamedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+type Int struct {
+	abs nat
+}
+
+func makeInt(abs []Word) *Int {
+	return &Int{abs: abs}
+}
+`)
+
+	if strings.Contains(rust, "abs: abs.clone()") {
+		t.Fatalf("named-slice field should not receive the unnamed slice handle directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "abs: Rc::new(RefCell::new(Some(nat(abs.clone()))))") &&
+		!strings.Contains(rust, "abs: Arc::new(Mutex::new(Some(nat(abs.clone()))))") {
+		t.Fatalf("named-slice field should construct the named slice inside the field wrapper:\n%s", rust)
+	}
+}
+
 func TestVarInitializerFromBareScalarCallRegistersBareLocal(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
