@@ -2819,6 +2819,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/pointer_package_global"
 }
 
+@test "XFAIL: pointer_receiver_as_pointer_value" {
+    run_xfail_test "tests/XFAIL/pointer_receiver_as_pointer_value"
+}
+
 @test "XFAIL: stateful_goroutines" {
     run_xfail_test "tests/XFAIL/stateful_goroutines"
 }

@@ -4483,6 +4483,28 @@ func writeRangeOwnedValuesAdapter(out *strings.Builder, rangeExpr ast.Expr, usin
 	}
 }
 
+// writePointerShortDeclRhsValue emits the value for `lhs := rhs` where rhs is a
+// pointer-typed expression. A pointer variable already lowers to a wrapped
+// handle, so its handle is cloned to preserve aliasing. The current pointer
+// receiver, however, is `&self` (a bare borrow, not a handle), so a clone of it
+// is wrapped into a fresh handle (the clone shares the receiver's wrapped field
+// handles, like the defer-capture / method-value patterns).
+func writePointerShortDeclRhsValue(out *strings.Builder, rhs ast.Expr) {
+	if ident, ok := unwrapParens(rhs).(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
+		if currentReceiverObject != nil {
+			if _, isPtr := types.Unalias(currentReceiverObject.Type()).(*types.Pointer); isPtr {
+				WriteWrapperPrefix(out)
+				out.WriteString(currentReceiverRustName())
+				out.WriteString(".clone()")
+				WriteWrapperSuffix(out)
+				return
+			}
+		}
+	}
+	TranspileExpressionContext(out, rhs, AddressOf)
+	out.WriteString(".clone()")
+}
+
 func tempHoldsWrappedValue(rhs ast.Expr) bool {
 	if isAssignmentSelfWrappingExpression(rhs) {
 		return true
@@ -8062,8 +8084,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											} else if rhsIsPointerType(rhs) {
 												// RHS is a pointer-typed variable (e.g., z := y where y is *int)
 												// Clone the Rc to preserve aliasing instead of copying the inner value
-												TranspileExpressionContext(out, rhs, AddressOf)
-												out.WriteString(".clone()")
+												writePointerShortDeclRhsValue(out, rhs)
 											} else {
 												// Wrap new variables
 												WriteWrapperPrefix(out)
@@ -8073,8 +8094,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										} else if rhsIsPointerType(rhs) {
 											// RHS is a pointer-typed variable (e.g., z := y where y is *int)
 											// Clone the Rc to preserve aliasing instead of copying the inner value
-											TranspileExpressionContext(out, rhs, AddressOf)
-											out.WriteString(".clone()")
+											writePointerShortDeclRhsValue(out, rhs)
 										} else if writeNamedIntegerWrappedInitializer(out, rhs) {
 											// Named integer arithmetic returns the underlying scalar; short declarations store the named value.
 										} else {
