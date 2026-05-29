@@ -1395,6 +1395,16 @@ func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result as
 		if targetType != nil {
 			targetNamed, targetIsNamed := types.Unalias(targetType).(*types.Named)
 			sourceType := typeInfo.GetType(result)
+			if unary, ok := result.(*ast.UnaryExpr); ok && unary.Op == token.AND && sourceType != nil && types.AssignableTo(sourceType, targetType) {
+				if _, isComposite := unary.X.(*ast.CompositeLit); !isComposite {
+					WriteWrapperPrefix(out)
+					if !writeConcreteLocalInterfaceBox(out, result, interfaceName) {
+						return false
+					}
+					WriteWrapperSuffix(out)
+					return true
+				}
+			}
 			if targetIsNamed && targetNamed.Obj() != nil && sourceType != nil {
 				if targetInterface, ok := targetNamed.Underlying().(*types.Interface); ok {
 					sourceNamedType := sourceType
@@ -4359,6 +4369,39 @@ func writePointerHandleSelectorTarget(out *strings.Builder, sel *ast.SelectorExp
 	}
 
 	return false
+}
+
+// rangeSliceElementIsEmptyInterface reports whether ranging rangeExpr yields
+// elements of an empty interface type (any / interface{}), which lower to
+// Box<dyn Any> — a non-Clone type the plain .cloned() materialization can't
+// snapshot.
+func rangeSliceElementIsEmptyInterface(rangeExpr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	t := typeInfo.GetType(rangeExpr)
+	if t == nil {
+		return false
+	}
+	slice, ok := types.Unalias(t).Underlying().(*types.Slice)
+	if !ok {
+		return false
+	}
+	return isEmptyInterfaceType(slice.Elem())
+}
+
+// writeRangeValuesMaterialization emits the `let __range_values = ...;
+// drop(__range_guard);` slice-range snapshot. A []any slice holds Box<dyn Any>
+// elements, which aren't Clone, so it is cloned element-by-element via
+// go_any_clone instead of the whole-Vec .cloned().
+func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr) {
+	if rangeSliceElementIsEmptyInterface(rangeExpr) {
+		NeedAnyClone()
+		out.WriteString("; let __range_values = __range_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default(); drop(__range_guard); ")
+		return
+	}
+	out.WriteString("; let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); ")
 }
 
 func tempHoldsWrappedValue(rhs ast.Expr) bool {
@@ -8668,7 +8711,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			writeNamedSliceInnerHandleClone(out, s.X)
 			out.WriteString("; let __range_guard = __range_holder")
 			WriteBorrowMethod(out, false)
-			out.WriteString("; let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); ")
+			writeRangeValuesMaterialization(out, s.X)
 			rangeValuesVar = "__range_values"
 			closeRangeGuard = true
 		} else if needsSliceValues && !isMap && !isString && (isSlice || isArray) {
@@ -8677,7 +8720,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				writeWrappedHandleExpression(out, s.X)
 				out.WriteString(".clone(); let __range_guard = __range_holder")
 				WriteBorrowMethod(out, false)
-				out.WriteString("; let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); ")
+				writeRangeValuesMaterialization(out, s.X)
 				rangeValuesVar = "__range_values"
 				closeRangeGuard = true
 			}

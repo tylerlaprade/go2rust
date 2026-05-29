@@ -419,6 +419,10 @@ run_xfail_test() {
     run_test "tests/append_nil_selector_slice_expansion"
 }
 
+@test "append_nil_to_nested_slice" {
+    run_test "tests/append_nil_to_nested_slice"
+}
+
 @test "append_selector_slice_expansion" {
     run_test "tests/append_selector_slice_expansion"
 }
@@ -2767,10 +2771,6 @@ run_xfail_test() {
     run_test "tests/wrapped_call_argument"
 }
 
-@test "XFAIL: append_nil_to_nested_slice" {
-    run_xfail_test "tests/XFAIL/append_nil_to_nested_slice"
-}
-
 @test "XFAIL: concurrency_patterns" {
     run_xfail_test "tests/XFAIL/concurrency_patterns"
 }
@@ -2805,6 +2805,10 @@ run_xfail_test() {
 
 @test "XFAIL: pointer_package_global" {
     run_xfail_test "tests/XFAIL/pointer_package_global"
+}
+
+@test "XFAIL: range_any_slice_materialize" {
+    run_xfail_test "tests/XFAIL/range_any_slice_materialize"
 }
 
 @test "XFAIL: stateful_goroutines" {
