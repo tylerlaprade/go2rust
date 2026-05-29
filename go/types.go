@@ -1477,12 +1477,18 @@ func goTypesParamTypeToRust(t types.Type) string {
 }
 
 func goTypesFunctionParamTypeToRust(t types.Type) string {
-	// Named interface parameters use the wrapped nilable handle at every
-	// function boundary, closure types included, matching func values,
-	// func-typed parameters, and call sites. This keeps the named func-type
-	// alias, the func value, and the call site in the same shape so a
+	// Imported interfaces stay a bare cross-crate trait reference in closure
+	// types; the func values that cross the crate boundary are bare too, so the
+	// type, the value, and the call site agree. A LOCAL interface instead uses
+	// the wrapped nilable handle that local func values and func-typed params
+	// use (via goTypesParamTypeToRust -> rustLocalInterfaceParam), so a
 	// `func(Node) bool` value converts to a named `type T func(Node) bool`
-	// (e.g. go/ast's ast.Inspect) and a nil interface arg lowers to None.
+	// within the same package, for example go/ast's ast.Inspect / type inspector.
+	if _, isLocal := localNamedInterfaceTypeNameFromTypes(t); !isLocal {
+		if interfaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(t); ok {
+			return rustLocalInterfaceParamBare(interfaceName)
+		}
+	}
 	return goTypesParamTypeToRust(t)
 }
 

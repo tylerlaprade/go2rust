@@ -11877,6 +11877,12 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			// call) uses the wrapped nilable handle so a `func(Node) bool` value
 			// converts to a named `type T func(Node) bool` and nil lowers to None.
 			if expectsInterfaceParam {
+				_, isLocalIface := localNamedInterfaceTypeNameFromTypes(expectedArgType)
+				if isClosureCall && !isLocalIface && expectedArgType != nil {
+					if writeLocalInterfaceBareReferenceCallArgument(out, arg, expectedArgType) {
+						continue
+					}
+				}
 				if expectedArgType != nil {
 					if writeLocalInterfaceReferenceCallArgument(out, arg, expectedArgType) {
 						continue
