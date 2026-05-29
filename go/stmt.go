@@ -5828,7 +5828,7 @@ func syncMutexMethodReceiver(expr ast.Expr, methodName string) (mutexReceiverInf
 	if len(indexes) < 2 {
 		return mutexReceiverInfo{}, false
 	}
-	fields, ok := promotedMutexFieldPath(selection.Recv(), indexes[:len(indexes)-1])
+	fields, ok := promotedFieldPath(selection.Recv(), indexes[:len(indexes)-1])
 	if !ok {
 		return mutexReceiverInfo{}, false
 	}
@@ -5847,7 +5847,7 @@ func isSyncMutexType(typ types.Type) bool {
 		named.Obj().Pkg().Path() == "sync" && named.Obj().Name() == "Mutex"
 }
 
-func promotedMutexFieldPath(recv types.Type, indexes []int) ([]string, bool) {
+func promotedFieldPath(recv types.Type, indexes []int) ([]string, bool) {
 	var fields []string
 	current := recv
 	for _, index := range indexes {

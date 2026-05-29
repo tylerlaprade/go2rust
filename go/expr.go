@@ -1366,16 +1366,65 @@ func methodCallFuncLitArgCapturesReceiver(call *ast.CallExpr, receiver string) b
 	return false
 }
 
+type syncOnceReceiverInfo struct {
+	expr   ast.Expr
+	fields []string
+}
+
 func isSyncOnceDoCall(call *ast.CallExpr) bool {
+	_, ok := syncOnceDoReceiver(call)
+	return ok
+}
+
+func syncOnceDoReceiver(call *ast.CallExpr) (syncOnceReceiverInfo, bool) {
 	if call == nil || len(call.Args) != 1 {
-		return false
+		return syncOnceReceiverInfo{}, false
 	}
 	sel, ok := call.Fun.(*ast.SelectorExpr)
 	if !ok || sel.Sel.Name != "Do" {
-		return false
+		return syncOnceReceiverInfo{}, false
 	}
 	typeInfo := GetTypeInfo()
-	return typeInfo != nil && isGoSyncOnceNamedType(typeInfo.GetType(sel.X))
+	if typeInfo == nil {
+		return syncOnceReceiverInfo{}, false
+	}
+	if isGoSyncOnceMethodReceiver(typeInfo.GetType(sel.X)) {
+		return syncOnceReceiverInfo{expr: sel.X}, true
+	}
+	if typeInfo.info == nil {
+		return syncOnceReceiverInfo{}, false
+	}
+	selection := typeInfo.info.Selections[sel]
+	if selection == nil {
+		return syncOnceReceiverInfo{}, false
+	}
+	fn, ok := selection.Obj().(*types.Func)
+	if !ok || fn.Name() != "Do" {
+		return syncOnceReceiverInfo{}, false
+	}
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok || sig.Recv() == nil || !isGoSyncOnceMethodReceiver(sig.Recv().Type()) {
+		return syncOnceReceiverInfo{}, false
+	}
+	indexes := selection.Index()
+	if len(indexes) < 2 {
+		return syncOnceReceiverInfo{}, false
+	}
+	fields, ok := promotedFieldPath(selection.Recv(), indexes[:len(indexes)-1])
+	if !ok {
+		return syncOnceReceiverInfo{}, false
+	}
+	return syncOnceReceiverInfo{expr: sel.X, fields: fields}, true
+}
+
+func isGoSyncOnceMethodReceiver(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
+		typ = ptr.Elem()
+	}
+	return isGoSyncOnceNamedType(typ)
 }
 
 func isSyncOnceDoFuncLitCall(call *ast.CallExpr) bool {
@@ -1386,8 +1435,16 @@ func isSyncOnceDoFuncLitCall(call *ast.CallExpr) bool {
 	return ok
 }
 
-func writeSyncOnceReceiverClone(out *strings.Builder, expr ast.Expr) {
-	TranspileExpressionContext(out, expr, LValue)
+func writeSyncOnceReceiverClone(out *strings.Builder, receiver syncOnceReceiverInfo) {
+	if len(receiver.fields) == 0 {
+		TranspileExpressionContext(out, receiver.expr, LValue)
+		out.WriteString(".clone()")
+		return
+	}
+	writeMutexReceiver(out, mutexReceiverInfo{
+		expr:   receiver.expr,
+		fields: receiver.fields,
+	})
 	out.WriteString(".clone()")
 }
 
@@ -1416,10 +1473,13 @@ func writeBareFunctionValue(out *strings.Builder, expr ast.Expr) bool {
 }
 
 func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
-	if !isSyncOnceDoFuncLitCall(call) {
+	receiver, ok := syncOnceDoReceiver(call)
+	if !ok {
 		return false
 	}
-	sel := call.Fun.(*ast.SelectorExpr)
+	if _, ok := call.Args[0].(*ast.FuncLit); !ok {
+		return false
+	}
 	funcLit := call.Args[0].(*ast.FuncLit)
 	hasClosureDefer := funcLit.Body != nil && checkHasDefer(funcLit.Body.List)
 	oldFunctionHasDefer := currentFunctionHasDefer
@@ -1427,7 +1487,7 @@ func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
 	defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
 
 	out.WriteString("{ let __once = ")
-	writeSyncOnceReceiverClone(out, sel.X)
+	writeSyncOnceReceiverClone(out, receiver)
 	out.WriteString("; __once.r#do(|| {\n")
 	if hasClosureDefer {
 		out.WriteString("        let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();\n")
@@ -1462,7 +1522,8 @@ func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
 }
 
 func writeSyncOnceDoFunctionValueCall(out *strings.Builder, call *ast.CallExpr) bool {
-	if !isSyncOnceDoCall(call) {
+	receiver, ok := syncOnceDoReceiver(call)
+	if !ok {
 		return false
 	}
 	if _, ok := call.Args[0].(*ast.FuncLit); ok {
@@ -1472,9 +1533,8 @@ func writeSyncOnceDoFunctionValueCall(out *strings.Builder, call *ast.CallExpr) 
 	if !writeBareFunctionValue(&arg, call.Args[0]) {
 		return false
 	}
-	sel := call.Fun.(*ast.SelectorExpr)
 	out.WriteString("{ let __once = ")
-	writeSyncOnceReceiverClone(out, sel.X)
+	writeSyncOnceReceiverClone(out, receiver)
 	out.WriteString("; __once.r#do(")
 	out.WriteString(arg.String())
 	out.WriteString(") }")

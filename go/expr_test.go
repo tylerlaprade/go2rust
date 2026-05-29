@@ -3211,6 +3211,31 @@ func (o *outer) mark() {
 	}
 }
 
+func TestSyncOnceDoPromotedAnonymousStructMethodUsesEmbeddedOnce(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "sync"
+
+var holder struct {
+	sync.Once
+	n int
+}
+
+func initHolder() {
+	holder.Do(func() {
+		holder.n++
+	})
+}
+`)
+
+	if strings.Contains(rust, ".as_mut().unwrap()).r#do") {
+		t.Fatalf("promoted sync.Once.Do should not call Do on the outer anonymous struct:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".once.clone(); __once.r#do") {
+		t.Fatalf("promoted sync.Once.Do should invoke the embedded once field:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoMethodFunctionParameterPassesHandle(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()
