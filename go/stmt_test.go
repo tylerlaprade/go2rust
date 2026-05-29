@@ -1557,6 +1557,26 @@ func (x *Int) Bits() []Word {
 	}
 }
 
+func TestNamedSliceSliceExprReturnWrapsNamedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func (z nat) norm(i int) nat {
+	return z[:i]
+}
+`)
+
+	if strings.Contains(rust, "return nat(") || strings.Contains(rust, "{\n        nat(") {
+		t.Fatalf("named-slice slice return should not return the bare named value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Rc::new(RefCell::new(Some(nat(") &&
+		!strings.Contains(rust, "Arc::new(Mutex::new(Some(nat(") {
+		t.Fatalf("named-slice slice return should wrap the named slice value:\n%s", rust)
+	}
+}
+
 func TestStructLiteralNamedSliceFieldFromUnnamedSliceConstructsNamedValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

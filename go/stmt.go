@@ -3108,6 +3108,39 @@ func writeNamedSliceInnerHandleReturnValue(out *strings.Builder, result ast.Expr
 	return writeNamedSliceInnerHandleForExpectedType(out, result, expectedTypeFromParamExpr(expected))
 }
 
+func writeNamedSliceWrappedReturnValue(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
+	if _, ok := result.(*ast.SliceExpr); !ok {
+		return false
+	}
+	expectedType := expectedTypeFromParamExpr(expected)
+	expectedNamed, _, ok := namedSliceTypeFromType(expectedType)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString("unimplemented!(\"type info required for named slice return\")")
+		return true
+	}
+	actual := typeInfo.GetType(result)
+	if actual == nil {
+		out.WriteString("unimplemented!(\"type info required for named slice return\")")
+		return true
+	}
+	if !types.AssignableTo(actual, expectedType) {
+		return false
+	}
+	actualNamed, _, ok := namedSliceTypeFromType(actual)
+	if !ok || !sameNamedTypeDefinition(actualNamed, expectedNamed) {
+		return false
+	}
+
+	WriteWrapperPrefix(out)
+	TranspileExpression(out, result)
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func typeExprIsPointer(expr ast.Expr) bool {
 	if expr == nil {
 		return false
@@ -6819,6 +6852,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					WriteWrappedNone(out)
 				} else if writeEmptyInterfaceReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
 				} else if writeNamedSliceInnerHandleReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
+				} else if writeNamedSliceWrappedReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
 				} else if resultType := returnResultTypeExpr(fnType, i); resultTypeExprIsBareScalar(resultType) {
 					writeBareScalarReturnValue(out, result, resultType)
 				} else {
