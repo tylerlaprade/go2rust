@@ -2,8 +2,11 @@ package main
 
 import (
 	"go/build"
+	"os"
+	importpath "path"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 // asyncStdlibFunctions contains stdlib functions that spawn goroutines
@@ -37,6 +40,8 @@ var asyncStdlibFunctions = map[string]bool{
 	"os/signal.Notify": true,
 	"signal.Notify":    true,
 }
+
+var stdlibPackageCache sync.Map
 
 // syncStdlibFunctions contains stdlib functions known to be synchronous.
 // These functions don't spawn goroutines and don't pass user data to
@@ -238,6 +243,9 @@ func isStdlibPackage(pkgName string) bool {
 	if pkgName == "" || pkgName == "main" {
 		return false
 	}
+	if strings.HasPrefix(pkgName, "/") {
+		return false
+	}
 
 	// Check if it starts with a domain (has a dot in first component)
 	parts := strings.Split(pkgName, "/")
@@ -245,19 +253,39 @@ func isStdlibPackage(pkgName string) bool {
 		return false // External package (e.g., github.com/...)
 	}
 
-	pkg, err := build.Default.Import(pkgName, "", build.FindOnly)
-	if err != nil {
+	clean := importpath.Clean(pkgName)
+	if clean != pkgName || clean == "." || clean == ".." || strings.HasPrefix(clean, "../") {
 		return false
 	}
 
-	goroot, err := filepath.Abs(build.Default.GOROOT)
-	if err != nil {
-		goroot = build.Default.GOROOT
+	goroot := build.Default.GOROOT
+	if goroot == "" {
+		return false
 	}
-	dir, err := filepath.Abs(pkg.Dir)
-	if err != nil {
-		dir = pkg.Dir
+	cacheKey := goroot + "\x00" + pkgName
+	if cached, ok := stdlibPackageCache.Load(cacheKey); ok {
+		return cached.(bool)
 	}
 
-	return pkg.Goroot && (dir == goroot || strings.HasPrefix(dir, goroot+string(filepath.Separator)))
+	ok := gorootPackageDirHasGoFiles(goroot, pkgName)
+	stdlibPackageCache.Store(cacheKey, ok)
+	return ok
+}
+
+func gorootPackageDirHasGoFiles(goroot string, pkgName string) bool {
+	dir := filepath.Join(goroot, "src", filepath.FromSlash(pkgName))
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return false
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if strings.HasSuffix(name, ".go") && !strings.HasSuffix(name, "_test.go") {
+			return true
+		}
+	}
+	return false
 }
