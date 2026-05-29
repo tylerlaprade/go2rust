@@ -2669,28 +2669,21 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				out.WriteString("        write!(f, \"{}\", format_slice(&self.0))\n")
 				out.WriteString("    }\n")
 				out.WriteString("}\n")
-			} else if ident, ok := t.(*ast.Ident); ok {
-				// Add Display impl when the underlying Rust type is displayable.
-				if isDisplayableDefinedUnderlying(ident.Name) {
-					// Track necessary imports
-					TrackImport("Display")
-					TrackImport("Formatter")
-					TrackImport("fmt")
+			} else if typeDefinitionScalarUnderlyingDisplayable(typeSpec) {
+				// Track necessary imports
+				TrackImport("Display")
+				TrackImport("Formatter")
+				TrackImport("fmt")
 
-					out.WriteString("\nimpl Display for ")
-					out.WriteString(rustTypeName)
-					out.WriteString(" {\n")
-					out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
-					if IsStringerImplType(typeSpec.Name.Name) {
-						writeStringerDisplayBody(out, typeSpec.Name.Name, "        ")
-					} else {
-						out.WriteString("        write!(f, \"{}\", self.0")
-						WriteBorrowMethod(out, false)
-						out.WriteString(".as_ref().unwrap())\n")
-					}
-					out.WriteString("    }\n")
-					out.WriteString("}\n")
-				}
+				out.WriteString("\nimpl Display for ")
+				out.WriteString(rustTypeName)
+				out.WriteString(" {\n")
+				out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
+				out.WriteString("        write!(f, \"{}\", self.0")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap())\n")
+				out.WriteString("    }\n")
+				out.WriteString("}\n")
 			}
 			if ident, ok := t.(*ast.Ident); ok && isEqualityComparableDefinedUnderlying(ident.Name) {
 				writeScalarTypeDefinitionPartialEq(out, typeSpec.Name.Name)
@@ -2710,6 +2703,23 @@ func arrayTypeDefinitionElemDisplayable(array *ast.ArrayType) bool {
 		return false
 	}
 	return isDisplayableDefinedUnderlying(typeDefinitionUnderlyingName(array.Elt))
+}
+
+func typeDefinitionScalarUnderlyingDisplayable(typeSpec *ast.TypeSpec) bool {
+	if typeSpec == nil || typeSpec.Name == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.info != nil {
+		if obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName); ok {
+			if named, ok := types.Unalias(obj.Type()).(*types.Named); ok {
+				if basic, ok := types.Unalias(named.Underlying()).(*types.Basic); ok {
+					return basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) != 0
+				}
+			}
+		}
+	}
+	return false
 }
 
 func registerStructDef(name string, structType *ast.StructType) {

@@ -252,6 +252,55 @@ func spanOf(at positioner) int {
 	}
 }
 
+func TestDefinedTypeOverImportedScalarEmitsDisplayForLocalInterface(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+type Pos int
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+type positioner interface {
+	Pos() dep.Pos
+}
+
+type atPos dep.Pos
+
+func (p atPos) Pos() dep.Pos {
+	return dep.Pos(p)
+}
+
+var _ positioner = atPos(0)
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "main.go"),
+	})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "impl Display for atPos") {
+		t.Fatalf("defined type over imported displayable scalar should implement Display:\n%s", mainRS)
+	}
+}
+
 func TestExternalPackageUsesOwnConcurrencyDetector(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
