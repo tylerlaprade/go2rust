@@ -1879,6 +1879,14 @@ run_xfail_test() {
     run_test "tests/random_numbers"
 }
 
+@test "range_any_slice_consumed" {
+    run_test "tests/range_any_slice_consumed"
+}
+
+@test "range_any_slice_materialize" {
+    run_test "tests/range_any_slice_materialize"
+}
+
 @test "range_index_array_literal" {
     run_test "tests/range_index_array_literal"
 }
@@ -2805,10 +2813,6 @@ run_xfail_test() {
 
 @test "XFAIL: pointer_package_global" {
     run_xfail_test "tests/XFAIL/pointer_package_global"
-}
-
-@test "XFAIL: range_any_slice_materialize" {
-    run_xfail_test "tests/XFAIL/range_any_slice_materialize"
 }
 
 @test "XFAIL: stateful_goroutines" {

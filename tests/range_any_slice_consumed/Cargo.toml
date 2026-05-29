@@ -1,0 +1,8 @@
+[package]
+name = "range_any_slice_consumed"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "range_any_slice_consumed"
+path = "main.rs"

@@ -4404,6 +4404,21 @@ func writeRangeValuesMaterialization(out *strings.Builder, rangeExpr ast.Expr) {
 	out.WriteString("; let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); ")
 }
 
+// writeRangeOwnedValuesAdapter emits the iterator adapter that yields owned
+// loop values from a materialized range snapshot. A []any snapshot holds
+// Box<dyn Any> (not Clone), so it is consumed with into_iter; everything else
+// clones each element. enumerate adds the (index, value) pairing.
+func writeRangeOwnedValuesAdapter(out *strings.Builder, rangeExpr ast.Expr, usingRangeValues bool, enumerate bool) {
+	if usingRangeValues && rangeSliceElementIsEmptyInterface(rangeExpr) {
+		out.WriteString(".into_iter()")
+	} else {
+		out.WriteString(".iter().cloned()")
+	}
+	if enumerate {
+		out.WriteString(".enumerate()")
+	}
+}
+
 func tempHoldsWrappedValue(rhs ast.Expr) bool {
 	if isAssignmentSelfWrappingExpression(rhs) {
 		return true
@@ -9161,7 +9176,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						} else {
 							writeUnwrappedRangeTarget(out, s.X)
 						}
-						out.WriteString(".iter().cloned()")
+						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
 					} else if valCopied {
 						out.WriteString(" in ")
 						if rangeValuesVar != "" {
@@ -9177,7 +9192,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						} else {
 							writeUnwrappedRangeTarget(out, s.X)
 						}
-						out.WriteString(".iter().cloned()")
+						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
 					} else {
 						out.WriteString(" in ")
 						if rangeValuesVar != "" {
@@ -9206,11 +9221,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						writeUnwrappedRangeTarget(out, s.X)
 					}
 					if needsCloned {
-						out.WriteString(".iter().cloned().enumerate()")
+						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", true)
 					} else if needsCopied {
 						out.WriteString(".iter().copied().enumerate()")
 					} else if valueAssigned {
-						out.WriteString(".iter().cloned().enumerate()")
+						writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", true)
 					} else {
 						out.WriteString(".iter().enumerate()")
 					}
@@ -9236,7 +9251,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					} else {
 						writeUnwrappedRangeTarget(out, s.X)
 					}
-					out.WriteString(".iter().cloned()")
+					writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
 				} else if valCopied2 {
 					out.WriteString(" in ")
 					if rangeValuesVar != "" {
@@ -9252,7 +9267,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					} else {
 						writeUnwrappedRangeTarget(out, s.X)
 					}
-					out.WriteString(".iter().cloned()")
+					writeRangeOwnedValuesAdapter(out, s.X, rangeValuesVar != "", false)
 				} else {
 					out.WriteString(" in ")
 					if rangeValuesVar != "" {
