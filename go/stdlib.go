@@ -4551,9 +4551,16 @@ func writeCopySliceLen(out *strings.Builder, slice *ast.SliceExpr) {
 func transpileNew(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		WriteWrapperPrefix(out)
-		out.WriteString(goTypeToRustBase(call.Args[0]))
-		out.WriteString("::default())))")
+		out.WriteString(rustDefaultConstructorExpression(goTypeToRustBase(call.Args[0])))
+		out.WriteString(")))")
 	}
+}
+
+func rustDefaultConstructorExpression(rustType string) string {
+	if idx := strings.Index(rustType, "<"); idx != -1 {
+		return rustType[:idx] + "::" + rustType[idx:] + "::default()"
+	}
+	return rustType + "::default()"
 }
 
 // transpileComplex handles the complex() builtin function

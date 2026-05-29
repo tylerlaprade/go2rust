@@ -370,3 +370,19 @@ func hasNil(list []Type) bool {
 		t.Fatalf("slices.Contains over keyword-named interface should use identifier-safe equality suffix:\n%s", rust)
 	}
 }
+
+func TestBuiltinNewSliceUsesTurbofishDefault(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func alloc() *[]int {
+	return new([]int)
+}
+`)
+
+	if strings.Contains(rust, "Vec<i32>::default()") {
+		t.Fatalf("new([]T) should not emit generic type path without turbofish:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Vec::<i32>::default()") {
+		t.Fatalf("new([]T) should emit a turbofish default constructor:\n%s", rust)
+	}
+}
