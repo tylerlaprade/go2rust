@@ -4334,6 +4334,10 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 		typeInfo := GetTypeInfo()
 		srcIsString := typeInfo != nil && typeInfo.IsString(call.Args[1])
 
+		if dstSlice, ok := call.Args[0].(*ast.SliceExpr); ok && writeCopyNamedSliceDestinationSlice(out, dstSlice, call.Args[1], srcIsString) {
+			return
+		}
+
 		if isNamedSliceExpression(call.Args[0]) {
 			out.WriteString("{ let _dst_holder = ")
 			writeNamedSliceInnerHandleClone(out, call.Args[0])
@@ -4395,6 +4399,37 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 		WriteWrapperSuffix(out)
 		out.WriteString(" }")
 	}
+}
+
+func writeCopyNamedSliceDestinationSlice(out *strings.Builder, dstSlice *ast.SliceExpr, src ast.Expr, srcIsString bool) bool {
+	sliceSubject := unwrapParens(dstSlice.X)
+	if !isNamedSliceExpression(sliceSubject) {
+		return false
+	}
+	out.WriteString("{ let _dst_holder = ")
+	writeNamedSliceInnerHandleClone(out, sliceSubject)
+	out.WriteString("; let _dst_start = ")
+	writeCopySliceLow(out, dstSlice)
+	out.WriteString("; let _dst_len = ")
+	if dstSlice.High != nil {
+		out.WriteString("(")
+		writeExpressionAsUsize(out, dstSlice.High)
+		out.WriteString(") - _dst_start")
+	} else {
+		out.WriteString("{ let _dst_guard = _dst_holder")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; _dst_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } - _dst_start")
+	}
+	out.WriteString("; let _src = ")
+	writeCopySourceValue(out, src, srcIsString)
+	out.WriteString("; let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*_dst_holder")
+	WriteBorrowMethod(out, true)
+	out.WriteString(".as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } ")
+	WriteWrapperPrefix(out)
+	out.WriteString("_n as i32")
+	WriteWrapperSuffix(out)
+	out.WriteString(" }")
+	return true
 }
 
 func copyDestinationIsBareSlice(dst ast.Expr) bool {

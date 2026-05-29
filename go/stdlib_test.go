@@ -256,6 +256,28 @@ func shift(z nat, m, n uint32) int {
 	}
 }
 
+func TestBuiltinCopyNamedSliceDestinationSliceUsesInnerHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func fill(dst nat, src nat, d int) int {
+	return copy(dst[d:], src)
+}
+`)
+
+	if strings.Contains(rust, "(*nat(") {
+		t.Fatalf("copy named-slice destination slice should not borrow a constructed named slice as a handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let _dst_holder = { let __named_slice = (*dst.borrow().as_ref().unwrap()).0.clone(); __named_slice }") {
+		t.Fatalf("copy named-slice destination slice should use the inner slice handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "[_dst_start + _i]") {
+		t.Fatalf("copy named-slice destination slice should write with the slice offset:\n%s", rust)
+	}
+}
+
 func TestBuiltinClearNamedSliceAndSliceExprUsesTypedBuiltin(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
