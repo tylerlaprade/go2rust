@@ -391,6 +391,38 @@ func Inspect(node Node, f func(Node) bool) {
 	}
 }
 
+func TestEmbeddedInterfaceTraitObjectAdapterUsesMutableReceiver(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Importer interface {
+	Import(path string)
+}
+
+type ImporterFrom interface {
+	Importer
+	ImportFrom(path string)
+}
+
+type loader struct {
+	n int
+}
+
+func (l *loader) Import(path string) {
+	l.n = l.n + 1
+}
+
+func (l *loader) ImportFrom(path string) {}
+`)
+
+	if strings.Contains(rust, "fn import(&self, path: Rc<RefCell<Option<String>>>)") {
+		t.Fatalf("embedded interface trait-object adapter should not use &self for mutable methods:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl Importer for Box<dyn ImporterFrom> {\n") ||
+		!strings.Contains(rust, "fn import(&mut self, path: Rc<RefCell<Option<String>>>)") {
+		t.Fatalf("embedded interface trait-object adapter should use &mut self for mutable methods:\n%s", rust)
+	}
+}
+
 func TestInterfaceKeywordNameUsesIdentifierSafeHelperSuffix(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

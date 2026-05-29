@@ -1433,11 +1433,7 @@ func writeEmbeddedTraitObjectAdapter(out *strings.Builder, ifaceName, embeddedNa
 	writeEmbeddedTraitObjectEq(out, embeddedName)
 	for i := 0; i < embeddedIface.NumMethods(); i++ {
 		method := embeddedIface.Method(i)
-		sig, ok := method.Type().(*types.Signature)
-		if !ok {
-			continue
-		}
-		writeEmbeddedTraitObjectMethod(out, method.Name(), sig)
+		writeEmbeddedTraitObjectMethod(out, method)
 	}
 	out.WriteString("}")
 }
@@ -1468,10 +1464,22 @@ func writeEmbeddedTraitObjectEq(out *strings.Builder, embeddedName string) {
 	out.WriteString("    }\n")
 }
 
-func writeEmbeddedTraitObjectMethod(out *strings.Builder, name string, sig *types.Signature) {
+func writeEmbeddedTraitObjectMethod(out *strings.Builder, method *types.Func) {
+	if method == nil {
+		return
+	}
+	sig, ok := method.Type().(*types.Signature)
+	if !ok {
+		return
+	}
 	out.WriteString("    fn ")
-	out.WriteString(ToSnakeCase(name))
-	out.WriteString("(&self")
+	out.WriteString(ToSnakeCase(method.Name()))
+	out.WriteString("(")
+	if interfaceMethodRequiresMutableReceiver(method) {
+		out.WriteString("&mut self")
+	} else {
+		out.WriteString("&self")
+	}
 	params := sig.Params()
 	argNames := make([]string, 0, params.Len())
 	for j := 0; j < params.Len(); j++ {
@@ -1506,7 +1514,7 @@ func writeEmbeddedTraitObjectMethod(out *strings.Builder, name string, sig *type
 	}
 	out.WriteString(" {\n")
 	out.WriteString("        (**self).")
-	out.WriteString(ToSnakeCase(name))
+	out.WriteString(ToSnakeCase(method.Name()))
 	out.WriteString("(")
 	for i, argName := range argNames {
 		if i > 0 {
