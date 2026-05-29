@@ -302,6 +302,17 @@ func writeConstShiftLeftOperandForResult(out *strings.Builder, expr ast.Expr, sh
 	return true
 }
 
+func writeShiftCountPrimitiveOperand(out *strings.Builder, expr ast.Expr, shift *ast.BinaryExpr) bool {
+	if shift == nil || expr != shift.Y || (shift.Op != token.SHL && shift.Op != token.SHR) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isNamedIntegerType(typeInfo.GetType(expr)) {
+		return false
+	}
+	return writeNamedIntegerPrimitiveExpression(out, expr)
+}
+
 // shiftOperandEmissionNeedsParens reports whether a shift LHS emission ends
 // with a top-level `as <type>` cast. Rust parses `expr as Ty << rhs` as
 // `expr as (Ty << rhs)`, so the cast must be parenthesized.
@@ -7477,6 +7488,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 		// Helper to write an operand, using bare &str for string literals in comparisons
 		writeOperand := func(expr ast.Expr, other ast.Expr, isStringLit bool, needsUnwrap bool) {
+			if writeShiftCountPrimitiveOperand(out, expr, e) {
+				return
+			}
 			if isComparison && isStringLiteralExpr(other) && writeNamedStringComparisonValue(out, expr) {
 				return
 			}

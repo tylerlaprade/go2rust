@@ -1523,6 +1523,31 @@ func max(b Word) bool {
 	}
 }
 
+func TestPrimitiveShiftCountNamedIntegerUsesInnerValue(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Word uint
+
+const primeBitMask uint64 = 1<<2 | 1<<3
+
+func start() {
+	go func() {}()
+}
+
+func small(w Word) bool {
+	return primeBitMask&(1<<w) != 0
+}
+`)
+
+	if strings.Contains(rust, "__tmp_y = { let __v = (*w.borrow().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y") ||
+		strings.Contains(rust, "__tmp_y = { let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y") {
+		t.Fatalf("primitive shift count should use the named integer inner value, not the wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__tmp_y = (*{ let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()); __tmp_x << __tmp_y") {
+		t.Fatalf("primitive shift count should unwrap the named integer inner value:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerBitClearConversionOperandStaysBare(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
