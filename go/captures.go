@@ -458,6 +458,74 @@ func findCapturedInCall(call *ast.CallExpr) map[string]bool {
 	return captured
 }
 
+func assignedCapturedVarsInCall(call *ast.CallExpr, captured map[string]bool) map[string]bool {
+	assigned := make(map[string]bool)
+	if call == nil || len(captured) == 0 {
+		return assigned
+	}
+	addFromFuncLit := func(funcLit *ast.FuncLit) {
+		for name := range directlyAssignedCapturedVarsForFuncLit(funcLit, captured) {
+			assigned[name] = true
+		}
+	}
+	if funcLit, ok := call.Fun.(*ast.FuncLit); ok {
+		addFromFuncLit(funcLit)
+	}
+	for _, arg := range call.Args {
+		if funcLit, ok := arg.(*ast.FuncLit); ok {
+			addFromFuncLit(funcLit)
+		}
+	}
+	return assigned
+}
+
+func directlyAssignedCapturedVarsForFuncLit(funcLit *ast.FuncLit, captured map[string]bool) map[string]bool {
+	assigned := make(map[string]bool)
+	typeInfo := GetTypeInfo()
+	if funcLit == nil || len(captured) == 0 || typeInfo == nil || typeInfo.info == nil {
+		return assigned
+	}
+
+	localObjects := declaredVarObjectsInFuncLit(funcLit, typeInfo)
+	paramNames := parameterNamesInFuncLit(funcLit)
+	markIdent := func(ident *ast.Ident) {
+		if ident == nil || ident.Name == "_" || !captured[ident.Name] {
+			return
+		}
+		obj, ok := typeInfo.info.Uses[ident].(*types.Var)
+		if !ok || localObjects[obj] || paramNames[ident.Name] || isPackageScopeObject(obj) {
+			return
+		}
+		assigned[ident.Name] = true
+	}
+
+	ast.Inspect(funcLit.Body, func(n ast.Node) bool {
+		switch node := n.(type) {
+		case *ast.AssignStmt:
+			for _, lhs := range node.Lhs {
+				if ident, ok := lhs.(*ast.Ident); ok {
+					markIdent(ident)
+				}
+			}
+		case *ast.RangeStmt:
+			if node.Tok == token.ASSIGN {
+				if ident, ok := node.Key.(*ast.Ident); ok {
+					markIdent(ident)
+				}
+				if ident, ok := node.Value.(*ast.Ident); ok {
+					markIdent(ident)
+				}
+			}
+		case *ast.IncDecStmt:
+			if ident, ok := node.X.(*ast.Ident); ok {
+				markIdent(ident)
+			}
+		}
+		return true
+	})
+	return assigned
+}
+
 func pointerCapturedVarsInCall(call *ast.CallExpr) map[string]bool {
 	if call == nil {
 		return map[string]bool{}

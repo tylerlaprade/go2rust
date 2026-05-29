@@ -2035,6 +2035,26 @@ func (p *parser) parse() {
 	}
 }
 
+func TestDeferClosureAssignedCapturedResultIsMutable(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type File struct{}
+
+func parse() (f *File) {
+	defer func() {
+		if f == nil {
+			f = &File{}
+		}
+	}()
+	return
+}
+`)
+
+	if !strings.Contains(rust, "let mut f_defer_captured = f.clone();") {
+		t.Fatalf("deferred closure should make directly assigned captured result handles mutable:\n%s", rust)
+	}
+}
+
 func TestTrailingInfiniteForWithDeferSuppressesFinalDeferDrain(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

@@ -9954,12 +9954,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 		slices.Sort(capturedVars)
 
+		assignedCaptured := assignedCapturedVarsInCall(s.Call, captured)
 		captureRenames := make(map[string]string)
 		for _, varName := range capturedVars {
 			cloneName := varName + "_defer_captured"
 			captureRenames[varName] = cloneName
 			out.WriteString("let ")
-			if currentReceiver != "" && varName == currentReceiver {
+			if assignedCaptured[varName] || currentReceiver != "" && varName == currentReceiver {
 				out.WriteString("mut ")
 			}
 			out.WriteString(cloneName)
@@ -10137,9 +10138,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 		slices.Sort(capturedVars)
 
+		assignedCaptured := assignedCapturedVarsInCall(s.Call, captured)
 		for _, varName := range capturedVars {
 			out.WriteString("let ")
-			if currentReceiver != "" && varName == currentReceiver {
+			if assignedCaptured[varName] || currentReceiver != "" && varName == currentReceiver {
 				out.WriteString("mut ")
 			}
 			out.WriteString(varName)
