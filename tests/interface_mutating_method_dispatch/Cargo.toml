@@ -1,0 +1,8 @@
+[package]
+name = "interface_mutating_method_dispatch"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "interface_mutating_method_dispatch"
+path = "main.rs"

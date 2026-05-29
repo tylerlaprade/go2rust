@@ -1442,6 +1442,11 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	imports := NewImportTracker()
 	helpers := &HelperTracker{}
 	parentCtx := GetTranspileContext()
+	if parentCtx == nil && typeInfo != nil && typeInfo.pkg != nil {
+		resetPackageMethodReceiverMutability()
+		registerPackageMethodReceiverMutability(typeInfo.pkg.Path(), []*ast.File{file})
+		registerInterfaceMethodMutableReceivers([]*types.Package{typeInfo.pkg})
+	}
 	session := NewTranspileSession(typeInfo, packageMapping)
 	packageState := NewPackageState()
 	if parentCtx != nil {
@@ -1919,7 +1924,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			body.WriteString(" {\n")
 			for i := 0; i < ifaceType.NumMethods(); i++ {
 				if method := methodDeclByName(methods[typeName], ifaceType.Method(i).Name()); method != nil {
-					TranspileTraitMethodImpl(&body, method, fileSet, file.Comments)
+					TranspileTraitMethodImpl(&body, method, interfaceMethodRequiresMutableReceiver(ifaceType.Method(i)), fileSet, file.Comments)
 				}
 			}
 			writeLocalInterfaceSupportImpl(&body, ifaceName, typeName, ifaceType)

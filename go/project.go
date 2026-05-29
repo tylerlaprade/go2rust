@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"go/types"
 	"os"
 	"path/filepath"
 	"sort"
@@ -242,6 +243,9 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		resetPackageMethodReceiverMutability()
 	}
 	registerPackageMethodReceiverMutability("main", astFiles)
+	if pg.typeInfo != nil && pg.typeInfo.pkg != nil {
+		registerInterfaceMethodMutableReceivers([]*types.Package{pg.typeInfo.pkg})
+	}
 	packageState := NewPackageState()
 	packageState.MapKeyStructTypes = packageAnalysis.mapKeyStructTypes
 	pg.usePackageHelpers = len(astFiles) > 1

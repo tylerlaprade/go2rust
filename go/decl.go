@@ -1410,7 +1410,12 @@ func writeLocalInterfaceForwardMethodFromTypes(out *strings.Builder, method *typ
 	}
 	out.WriteString("    fn ")
 	out.WriteString(ToSnakeCase(method.Name()))
-	out.WriteString("(&self")
+	out.WriteString("(")
+	if interfaceMethodRequiresMutableReceiver(method) {
+		out.WriteString("&mut self")
+	} else {
+		out.WriteString("&self")
+	}
 	params := sig.Params()
 	argNames := make([]string, 0, params.Len())
 	for j := 0; j < params.Len(); j++ {
@@ -2346,7 +2351,8 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 
 				out.WriteString("    fn ")
 				out.WriteString(ToSnakeCase(method.Names[0].Name))
-				out.WriteString("(&self")
+				out.WriteString("(")
+				out.WriteString(interfaceTraitMethodReceiver(typeSpec.Name.Name, method.Names[0].Name))
 
 				// Add other parameters
 				if funcType.Params != nil && len(funcType.Params.List) > 0 {
@@ -3676,11 +3682,16 @@ func writeExternalNamedIntegerConstValue(out *strings.Builder, name *ast.Ident) 
 
 // TranspileMethodImpl transpiles a method inside an impl block
 func TranspileMethodImpl(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.FileSet, comments []*ast.CommentGroup) {
-	transpileMethodImplWithVisibility(out, fn, true, false, fileSet, comments)
+	transpileMethodImplWithVisibility(out, fn, true, false, false, fileSet, comments)
 }
 
-func TranspileTraitMethodImpl(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.FileSet, comments []*ast.CommentGroup) {
-	transpileMethodImplWithVisibility(out, fn, false, true, fileSet, comments)
+// TranspileTraitMethodImpl transpiles a method inside a trait impl block.
+// traitReceiverMutable forces a `&mut self` receiver when the implemented
+// interface method lowers to a mutable receiver (see
+// interfaceMethodMutableReceiver); the trait definition and every other impl of
+// that method use the same decision so the signatures stay consistent.
+func TranspileTraitMethodImpl(out *strings.Builder, fn *ast.FuncDecl, traitReceiverMutable bool, fileSet *token.FileSet, comments []*ast.CommentGroup) {
+	transpileMethodImplWithVisibility(out, fn, false, true, traitReceiverMutable, fileSet, comments)
 }
 
 func writeFunctionTypeAliasMethodImpl(out *strings.Builder, rustTypeName string, methods []*ast.FuncDecl, fileSet *token.FileSet, comments []*ast.CommentGroup) {
@@ -3701,7 +3712,7 @@ func writeFunctionTypeAliasMethodImpl(out *strings.Builder, rustTypeName string,
 		if i > 0 {
 			out.WriteString("\n")
 		}
-		TranspileTraitMethodImpl(out, method, fileSet, comments)
+		TranspileTraitMethodImpl(out, method, false, fileSet, comments)
 	}
 	out.WriteString("}")
 }
@@ -4050,6 +4061,12 @@ func packageMethodReceiverMutabilityForSelector(sel *ast.SelectorExpr) (bool, bo
 	if typeInfo == nil || typeInfo.info == nil || sel == nil {
 		return false, false
 	}
+	// Dispatching through an interface method mutates the dynamic value when an
+	// implementor does; such methods lower to `&mut self`, so the call site must
+	// borrow mutably (.as_mut()/.borrow_mut()).
+	if interfaceMethodSelectorRequiresMutableReceiver(sel) {
+		return true, true
+	}
 	selection, ok := typeInfo.info.Selections[sel]
 	if !ok {
 		return false, false
@@ -4076,6 +4093,128 @@ func packageMethodReceiverMutabilityForSelector(sel *ast.SelectorExpr) (bool, bo
 	}
 	mutable, ok := packageMethodReceiverMutability[key]
 	return mutable, ok
+}
+
+// interfaceMethodMutableReceiver records whether any concrete implementor's
+// corresponding method requires a mutable Rust receiver. A Go interface method
+// carries no receiver mutability of its own, but dispatching through it mutates
+// the dynamic value whenever an implementor does. The interface trait method,
+// every impl of it, and every interface-dispatch call site consult this single
+// map so the three stay consistent: a method that mutates through any
+// implementor lowers to `&mut self` everywhere.
+var interfaceMethodMutableReceiver = make(map[*types.Func]bool)
+
+func resetInterfaceMethodMutableReceiver() {
+	interfaceMethodMutableReceiver = make(map[*types.Func]bool)
+}
+
+// registerInterfaceMethodMutableReceivers walks every interface across all
+// loaded packages and ORs in, per interface method, whether any concrete
+// implementor's matching method requires a mutable receiver. It must run after
+// packageMethodReceiverMutability is fully populated for every package and
+// before any emission (see PackageLoader.TranspileAll).
+func registerInterfaceMethodMutableReceivers(pkgs []*types.Package) {
+	resetInterfaceMethodMutableReceiver()
+	var ifaceTypes []*types.Named
+	var concreteTypes []*types.Named
+	for _, pkg := range pkgs {
+		if pkg == nil || pkg.Scope() == nil {
+			continue
+		}
+		for _, name := range pkg.Scope().Names() {
+			tn, ok := pkg.Scope().Lookup(name).(*types.TypeName)
+			if !ok {
+				continue
+			}
+			named, ok := types.Unalias(tn.Type()).(*types.Named)
+			if !ok {
+				continue
+			}
+			if _, ok := named.Underlying().(*types.Interface); ok {
+				ifaceTypes = append(ifaceTypes, named)
+			} else {
+				concreteTypes = append(concreteTypes, named)
+			}
+		}
+	}
+	for _, ifaceNamed := range ifaceTypes {
+		iface, _ := ifaceNamed.Underlying().(*types.Interface)
+		if iface == nil || iface.NumMethods() == 0 {
+			continue
+		}
+		for _, concrete := range concreteTypes {
+			obj := concrete.Obj()
+			if obj == nil || obj.Pkg() == nil {
+				continue
+			}
+			if !types.Implements(concrete, iface) && !types.Implements(types.NewPointer(concrete), iface) {
+				continue
+			}
+			pkgPath := obj.Pkg().Path()
+			if pkgPath == "" {
+				pkgPath = "main"
+			}
+			for j := 0; j < iface.NumMethods(); j++ {
+				m := iface.Method(j)
+				concreteKey := packageMethodReceiverMutabilityKey(pkgPath, obj.Name(), m.Name())
+				if mutable, ok := packageMethodReceiverMutability[concreteKey]; ok && mutable {
+					interfaceMethodMutableReceiver[m] = true
+				}
+			}
+		}
+	}
+}
+
+// interfaceMethodRequiresMutableReceiver reports whether the given interface
+// method (an interface's *types.Func) lowers to a `&mut self` Rust trait method.
+func interfaceMethodRequiresMutableReceiver(method *types.Func) bool {
+	if method == nil {
+		return false
+	}
+	return interfaceMethodMutableReceiver[method]
+}
+
+// interfaceMethodSelectorRequiresMutableReceiver reports whether a method-call
+// selector dispatches through an interface method that lowers to `&mut self`.
+func interfaceMethodSelectorRequiresMutableReceiver(sel *ast.SelectorExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || sel == nil {
+		return false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	if !ok {
+		return false
+	}
+	fn, ok := selection.Obj().(*types.Func)
+	if !ok {
+		return false
+	}
+	return interfaceMethodRequiresMutableReceiver(fn)
+}
+
+// interfaceMethodByName returns the interface's method with the given Go name,
+// or nil. Only the interface's own method set is considered.
+func interfaceMethodByName(iface *types.Interface, name string) *types.Func {
+	if iface == nil {
+		return nil
+	}
+	for j := 0; j < iface.NumMethods(); j++ {
+		if m := iface.Method(j); m != nil && m.Name() == name {
+			return m
+		}
+	}
+	return nil
+}
+
+// interfaceTraitMethodReceiver returns "&mut self" when the named local
+// interface's method lowers to a mutable receiver, else "&self".
+func interfaceTraitMethodReceiver(ifaceName, methodName string) string {
+	if iface := localInterfaceTypesByName(ifaceName); iface != nil {
+		if m := interfaceMethodByName(iface, methodName); interfaceMethodRequiresMutableReceiver(m) {
+			return "&mut self"
+		}
+	}
+	return "&self"
 }
 
 func methodReceiverGroupKey(fn *ast.FuncDecl, typeInfo *TypeInfo) string {
@@ -4251,7 +4390,7 @@ func methodMutatesReceiverWithSeen(fn *ast.FuncDecl, receiverName string, receiv
 	return mutates
 }
 
-func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, addPub bool, forceSharedReceiver bool, fileSet *token.FileSet, comments []*ast.CommentGroup) {
+func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, addPub bool, forceSharedReceiver bool, traitReceiverMutable bool, fileSet *token.FileSet, comments []*ast.CommentGroup) {
 	// Store the receiver name and type for self translation
 	if fn.Recv != nil && len(fn.Recv.List) > 0 {
 		recv := fn.Recv.List[0]
@@ -4290,7 +4429,11 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		}
 
 		if forceSharedReceiver {
-			out.WriteString("&self")
+			if traitReceiverMutable {
+				out.WriteString("&mut self")
+			} else {
+				out.WriteString("&self")
+			}
 		} else if methodRequiresMutableReceiver(fn) {
 			out.WriteString("&mut self")
 		} else {

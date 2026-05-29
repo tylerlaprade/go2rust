@@ -484,12 +484,20 @@ func (pl *PackageLoader) TranspileAll() error {
 	SetSourceStdlibReachable(pl.computeSourceStdlibReachable())
 
 	resetPackageMethodReceiverMutability()
+	var allPackageTypes []*types.Package
 	for _, pkgPath := range pl.orderedAllPackagePaths() {
 		pkg := pl.allPackages[pkgPath]
 		if pkg != nil {
 			registerPackageMethodReceiverMutability(pkg.PkgPath, pkg.Syntax)
+			if pkg.Types != nil {
+				allPackageTypes = append(allPackageTypes, pkg.Types)
+			}
 		}
 	}
+	// With every package's concrete-method mutability registered, decide which
+	// interface methods lower to `&mut self` (any implementor mutates through
+	// them). Trait defs, impls, and dispatch call sites all consult this.
+	registerInterfaceMethodMutableReceivers(allPackageTypes)
 
 	// Transpile external packages first
 	for _, pkgPath := range pl.orderedPackagePaths() {

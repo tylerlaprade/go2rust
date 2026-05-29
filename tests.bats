@@ -1171,6 +1171,10 @@ run_xfail_test() {
     run_test "tests/interface_method_nil_argument"
 }
 
+@test "interface_mutating_method_dispatch" {
+    run_test "tests/interface_mutating_method_dispatch"
+}
+
 @test "interface_slice_index_arg" {
     run_test "tests/interface_slice_index_arg"
 }

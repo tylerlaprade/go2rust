@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"go/types"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -306,6 +307,9 @@ func (ut *UnifiedTranspiler) transpileAll() error {
 	for _, pkgPath := range pkgPaths {
 		pkg := ut.vendorPackages[pkgPath]
 		registerPackageMethodReceiverMutability(pkg.ImportPath, pkg.ASTFiles)
+	}
+	if ut.globalTypeInfo != nil && ut.globalTypeInfo.pkg != nil {
+		registerInterfaceMethodMutableReceivers([]*types.Package{ut.globalTypeInfo.pkg})
 	}
 
 	// Transpile vendor packages first (dependencies before dependents)
