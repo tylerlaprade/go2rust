@@ -399,6 +399,10 @@ run_xfail_test() {
     run_test "tests/any_selector_return"
 }
 
+@test "any_slice_index_assign_concrete" {
+    run_test "tests/any_slice_index_assign_concrete"
+}
+
 @test "any_struct_empty_literal" {
     run_test "tests/any_struct_empty_literal"
 }
@@ -2777,10 +2781,6 @@ run_xfail_test() {
 
 @test "wrapped_call_argument" {
     run_test "tests/wrapped_call_argument"
-}
-
-@test "XFAIL: any_slice_index_assign_concrete" {
-    run_xfail_test "tests/XFAIL/any_slice_index_assign_concrete"
 }
 
 @test "XFAIL: concurrency_patterns" {

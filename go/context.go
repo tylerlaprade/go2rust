@@ -611,6 +611,34 @@ func NeedAnyClone() {
 	}
 }
 
+func RegisterAnyCloneType(typ types.Type) {
+	rustType, ok := anyCloneRustType(typ)
+	if !ok {
+		return
+	}
+	if helpers := activeHelperTracker(); helpers != nil {
+		if helpers.anyCloneTypes == nil {
+			helpers.anyCloneTypes = make(map[string]bool)
+		}
+		helpers.anyCloneTypes[rustType] = true
+	}
+}
+
+func anyCloneRustType(typ types.Type) (string, bool) {
+	if typ == nil {
+		return "", false
+	}
+	typ = types.Unalias(typ)
+	named, ok := typ.(*types.Named)
+	if !ok || named.Obj() == nil {
+		return "", false
+	}
+	if _, ok := named.Underlying().(*types.Interface); ok {
+		return "", false
+	}
+	return goTypesTypeToRust(named), true
+}
+
 // NeedGoByteSequence marks that we need the GoByteSequence helper trait.
 func NeedGoByteSequence() {
 	if helpers := activeHelperTracker(); helpers != nil {

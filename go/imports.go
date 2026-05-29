@@ -153,6 +153,7 @@ type HelperTracker struct {
 	needsReflect                    bool
 	needsGoHttpResponse             bool
 	needsGoPtrKey                   bool
+	anyCloneTypes                   map[string]bool
 }
 
 var generatingPublicHelpers bool
@@ -214,7 +215,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	}
 
 	if ht.needsAnyClone {
-		generateAnyClone(&result)
+		generateAnyClone(&result, ht.anyCloneTypes)
 	}
 
 	if ht.needsGoByteSequence {
@@ -647,7 +648,28 @@ func generateAnyFormatter(out *strings.Builder) {
 	out.WriteString("}\n")
 }
 
-func generateAnyClone(out *strings.Builder) {
+func sortedAnyCloneTypes(anyCloneTypes map[string]bool) []string {
+	names := make([]string, 0, len(anyCloneTypes))
+	for name := range anyCloneTypes {
+		if name != "" {
+			names = append(names, name)
+		}
+	}
+	slices.Sort(names)
+	return names
+}
+
+func writeAnyCloneTypeArms(out *strings.Builder, anyCloneTypes map[string]bool, traitObject string) {
+	for _, rustType := range sortedAnyCloneTypes(anyCloneTypes) {
+		out.WriteString("    if let Some(v) = value.downcast_ref::<")
+		out.WriteString(rustType)
+		out.WriteString(">() { return Box::new(v.clone()) as ")
+		out.WriteString(traitObject)
+		out.WriteString("; }\n")
+	}
+}
+
+func generateAnyClone(out *strings.Builder, anyCloneTypes map[string]bool) {
 	TrackImport("Any")
 	if NeedsConcurrentWrapper() {
 		out.WriteString(`
@@ -668,6 +690,9 @@ fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
     if let Some(v) = value.downcast_ref::<&'static str>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
     if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
     if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+`)
+		writeAnyCloneTypeArms(out, anyCloneTypes, "Box<dyn Any + Send + Sync>")
+		out.WriteString(`
     panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
 }
 `)
@@ -691,6 +716,9 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
     if let Some(v) = value.downcast_ref::<&'static str>() { return Box::new(*v) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any>; }
+`)
+	writeAnyCloneTypeArms(out, anyCloneTypes, "Box<dyn Any>")
+	out.WriteString(`
     panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
 }
 `)

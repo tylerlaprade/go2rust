@@ -4452,6 +4452,9 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 		out.WriteString(rustAnyTraitObject())
 		return
 	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		RegisterAnyCloneType(typeInfo.GetType(expr))
+	}
 	out.WriteString("Box::new(")
 	if call, ok := expr.(*ast.CallExpr); ok {
 		typeInfo := GetTypeInfo()

@@ -1277,6 +1277,14 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsFormatAnySlice = dst.needsFormatAnySlice || src.needsFormatAnySlice
 	dst.needsAnyEq = dst.needsAnyEq || src.needsAnyEq
 	dst.needsAnyClone = dst.needsAnyClone || src.needsAnyClone
+	if len(src.anyCloneTypes) > 0 {
+		if dst.anyCloneTypes == nil {
+			dst.anyCloneTypes = make(map[string]bool)
+		}
+		for rustType := range src.anyCloneTypes {
+			dst.anyCloneTypes[rustType] = true
+		}
+	}
 	dst.needsGoByteSequence = dst.needsGoByteSequence || src.needsGoByteSequence
 	dst.needsGoChannel = dst.needsGoChannel || src.needsGoChannel
 	dst.needsWaitGroup = dst.needsWaitGroup || src.needsWaitGroup

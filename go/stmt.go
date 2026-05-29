@@ -328,7 +328,7 @@ func compositeLiteralEmitsBareStructValue(lit *ast.CompositeLit) bool {
 }
 
 // writeAnyBoxInnerValue emits the owned concrete value to box into a Box<dyn
-// Any> — unwrapping a wrapped variable or wrapped-returning call, or stripping
+// Any>, unwrapping a wrapped variable or wrapped-returning call, or stripping
 // the wrapper off a literal/expression.
 func writeAnyBoxInnerValue(out *strings.Builder, expr ast.Expr) {
 	if ident, ok := expr.(*ast.Ident); ok {
@@ -372,6 +372,9 @@ func writeAnyBoxInnerValue(out *strings.Builder, expr ast.Expr) {
 // expr into a bare Box<dyn Any> trait object (the element slot of a []any, which
 // stores bare boxes).
 func writeBareAnyBox(out *strings.Builder, expr ast.Expr) {
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		RegisterAnyCloneType(typeInfo.GetType(expr))
+	}
 	out.WriteString("Box::new(")
 	writeAnyBoxInnerValue(out, expr)
 	out.WriteString(") as ")
@@ -10478,6 +10481,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if typeSwitchSubjectHasGuard {
 				out.WriteString("        drop(_ts_guard);\n")
 			}
+			restoreRangeLoopShadow := func() {}
+			if varName != "" {
+				restoreRangeLoopShadow = shadowRangeLoopVars([]string{varName})
+			}
 			restoreCaptureRename := suppressCaptureRename(varName)
 			for _, stmt := range caseClause.Body {
 				if isUnlabeledBreakStmt(stmt) {
@@ -10488,6 +10495,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString(";\n")
 			}
 			restoreCaptureRename()
+			restoreRangeLoopShadow()
 			popCaseVarScope()
 
 			out.WriteString("    }")
