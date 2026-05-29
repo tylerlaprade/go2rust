@@ -3849,6 +3849,9 @@ func transpileNamedSliceAppend(out *strings.Builder, call *ast.CallExpr) bool {
 		if writeLocalInterfaceSliceElementValue(out, expr, sliceType.Elem()) {
 			return
 		}
+		if named, ok := types.Unalias(sliceType.Elem()).(*types.Named); ok && writeNamedIntegerValueForExpected(out, expr, named) {
+			return
+		}
 		if !writeOwnedExpressionValue(out, expr) {
 			TranspileExpression(out, expr)
 		}

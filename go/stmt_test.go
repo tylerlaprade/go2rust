@@ -1077,6 +1077,27 @@ func drain(words nat) byte {
 	}
 }
 
+func TestNamedIntegerSliceElementUnaryNotStoresNamedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func invert(z nat) {
+	for i := range z {
+		z[i] = ^z[i]
+	}
+}
+`)
+
+	if strings.Contains(rust, "] = !(*") {
+		t.Fatalf("named integer slice element unary-not assignment should not store a raw primitive:\n%s", rust)
+	}
+	if !strings.Contains(rust, "] = Word(") {
+		t.Fatalf("named integer slice element unary-not assignment should store the named value:\n%s", rust)
+	}
+}
+
 func TestMutexGuardTransfersAcrossPointerAliasAssignment(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

@@ -667,6 +667,25 @@ func indexes(values []string) []int {
 	}
 }
 
+func TestAppendNamedIntegerConstToNamedSliceWrapsElement(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func push(z nat) nat {
+	return append(z, 0)
+}
+`)
+
+	if strings.Contains(rust, "__values.push(0)") {
+		t.Fatalf("append to named-integer slice should not push raw untyped constants:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__values.push(Word(") {
+		t.Fatalf("append to named-integer slice should wrap the element as the named type:\n%s", rust)
+	}
+}
+
 func TestAppendLocalInterfaceHandleKeepsWrappedValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

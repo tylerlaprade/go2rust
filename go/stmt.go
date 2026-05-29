@@ -562,6 +562,11 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 	if writeBareValueForWrappedSlot(out, rhs) {
 		return
 	}
+	if expected != nil {
+		if named, ok := types.Unalias(expected).(*types.Named); ok && writeNamedIntegerValueForExpected(out, rhs, named) {
+			return
+		}
+	}
 
 	if ident, ok := rhs.(*ast.Ident); ok {
 		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "usize" {
