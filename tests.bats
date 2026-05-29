@@ -1071,6 +1071,10 @@ run_xfail_test() {
     run_test "tests/generic_function_type_alias"
 }
 
+@test "generic_pointer_interface_type_arg" {
+    run_test "tests/generic_pointer_interface_type_arg"
+}
+
 @test "global_fixed_array" {
     run_test "tests/global_fixed_array"
 }
@@ -2647,6 +2651,10 @@ run_xfail_test() {
     run_test "tests/variadic_any_arguments"
 }
 
+@test "variadic_existing_any_argument" {
+    run_test "tests/variadic_existing_any_argument"
+}
+
 @test "variadic_function_value_empty" {
     run_test "tests/variadic_function_value_empty"
 }
@@ -2703,8 +2711,16 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/concurrency_patterns"
 }
 
+@test "XFAIL: const_case_collision" {
+    run_xfail_test "tests/XFAIL/const_case_collision"
+}
+
 @test "XFAIL: file_operations" {
     run_xfail_test "tests/XFAIL/file_operations"
+}
+
+@test "XFAIL: generic_type_param_method_call" {
+    run_xfail_test "tests/XFAIL/generic_type_param_method_call"
 }
 
 @test "XFAIL: generics_basic" {

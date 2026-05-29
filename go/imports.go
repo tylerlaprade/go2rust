@@ -123,6 +123,7 @@ type HelperTracker struct {
 	needsFormatAny                  bool
 	needsFormatAnySlice             bool
 	needsAnyEq                      bool
+	needsAnyClone                   bool
 	needsGoByteSequence             bool
 	needsGoInteger                  bool
 	needsGoChannel                  bool
@@ -205,6 +206,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	if ht.needsAnyEq {
 		generateAnyEquality(&result)
+	}
+
+	if ht.needsAnyClone {
+		generateAnyClone(&result)
 	}
 
 	if ht.needsGoByteSequence {
@@ -329,6 +334,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsFormatAny ||
 		ht.needsFormatAnySlice ||
 		ht.needsAnyEq ||
+		ht.needsAnyClone ||
 		ht.needsGoByteSequence ||
 		ht.needsGoInteger ||
 		ht.needsGoChannel ||
@@ -446,6 +452,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsAnyEq {
 		add("go_any_eq")
+	}
+	if ht.needsAnyClone {
+		add("go_any_clone")
 	}
 	if ht.needsGoByteSequence {
 		add("GoByteSequence")
@@ -624,6 +633,55 @@ func generateAnyFormatter(out *strings.Builder) {
 	out.WriteString("        \"<unknown>\".to_string()\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
+}
+
+func generateAnyClone(out *strings.Builder) {
+	TrackImport("Any")
+	if NeedsConcurrentWrapper() {
+		out.WriteString(`
+fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
+    if let Some(v) = value.downcast_ref::<i32>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<i64>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<i8>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<i16>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<u32>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<u64>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<u8>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<u16>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<usize>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<isize>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<f64>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<f32>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<String>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<&'static str>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
+}
+`)
+		return
+	}
+	out.WriteString(`
+fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
+    if let Some(v) = value.downcast_ref::<i32>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<i64>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<i8>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<i16>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<u32>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<u64>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<u8>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<u16>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<usize>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<isize>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<f64>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<f32>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<String>() { return Box::new(v.clone()) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<&'static str>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any>; }
+    if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any>; }
+    panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
+}
+`)
 }
 
 func generateAnyEquality(out *strings.Builder) {

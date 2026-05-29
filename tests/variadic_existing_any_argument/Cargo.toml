@@ -1,0 +1,8 @@
+[package]
+name = "variadic_existing_any_argument"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "variadic_existing_any_argument"
+path = "main.rs"

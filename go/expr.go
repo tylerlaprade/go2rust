@@ -1016,6 +1016,9 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 
 func writeVariadicPackedElementValue(out *strings.Builder, arg ast.Expr, elemType types.Type, elemTypeExpr ast.Expr, elemIsAny bool) {
 	if elemIsAny || isEmptyInterfaceTypeExpr(elemTypeExpr) {
+		if writeExistingAnyVariadicElementValue(out, arg) {
+			return
+		}
 		writeInterfaceBoxedValue(out, arg)
 		return
 	}
@@ -1057,6 +1060,22 @@ func writeVariadicPackedElementValue(out *strings.Builder, arg ast.Expr, elemTyp
 		}
 	}
 	TranspileExpression(out, arg)
+}
+
+func writeExistingAnyVariadicElementValue(out *strings.Builder, arg ast.Expr) bool {
+	if !isEmptyInterfaceValueExpr(arg) {
+		return false
+	}
+	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
+		return false
+	}
+	NeedAnyClone()
+	out.WriteString("{ let __any_holder = ")
+	TranspileExpressionContext(out, arg, LValue)
+	out.WriteString(".clone(); let __any_guard = __any_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; go_any_clone(__any_guard.as_ref().expect(\"nil interface in variadic any argument\").as_ref()) }")
+	return true
 }
 
 func variadicElementTypeExpr(funcSig *FunctionSignature, variadicStart int) ast.Expr {

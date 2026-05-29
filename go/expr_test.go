@@ -1089,6 +1089,24 @@ func use(hash uint32) uint32 {
 	}
 }
 
+func TestVariadicAnyArgumentFromExistingAnyClonesDynamicValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func sink(args ...any) int { return len(args) }
+
+func call(value any) int {
+	return sink(value)
+}
+`)
+
+	if strings.Contains(rust, "Box::new((*value.") && strings.Contains(rust, "clone()) as Box<dyn Any") {
+		t.Fatalf("existing any passed to variadic any should not clone Box<dyn Any> directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "go_any_clone(") {
+		t.Fatalf("existing any passed to variadic any should clone through go_any_clone:\n%s", rust)
+	}
+}
+
 func TestReferenceRangeComparisonDereferencesWithoutTypeInfo(t *testing.T) {
 	expr, err := parser.ParseExpr("num > 6")
 	if err != nil {

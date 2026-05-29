@@ -592,6 +592,14 @@ func NeedAnyEq() {
 	}
 }
 
+// NeedAnyClone marks that we need the go_any_clone helper.
+func NeedAnyClone() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsAnyClone = true
+		TrackImport("Any")
+	}
+}
+
 // NeedGoByteSequence marks that we need the GoByteSequence helper trait.
 func NeedGoByteSequence() {
 	if helpers := activeHelperTracker(); helpers != nil {
