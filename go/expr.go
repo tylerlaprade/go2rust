@@ -216,6 +216,10 @@ func writeNamedIntegerValueForExpected(out *strings.Builder, expr ast.Expr, name
 	if named == nil || !isNamedIntegerType(named) {
 		return false
 	}
+	if stdlibStubSelectorConstHasNamedType(expr, named) {
+		TranspileExpression(out, expr)
+		return true
+	}
 	if rustType, ok := externalIntegerRustTypeForNamed(named); ok {
 		out.WriteString(goTypesNamedTypeToRust(named))
 		out.WriteString("(")
@@ -5406,6 +5410,10 @@ func writeExpressionForExpectedTypesType(out *strings.Builder, value ast.Expr, e
 	}
 	if isTimeDurationType(named) {
 		writeTimeDurationValue(out, value)
+		return true
+	}
+	if stdlibStubSelectorConstHasNamedType(value, named) {
+		TranspileExpression(out, value)
 		return true
 	}
 	if rustType, ok := externalIntegerRustTypeForNamed(named); ok {

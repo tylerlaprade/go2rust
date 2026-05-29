@@ -355,12 +355,51 @@ func callResultIsBareScalar(call *ast.CallExpr, index int) bool {
 	return signatureResultIsBareScalar(sig, index)
 }
 
+func writeBareScalarConstSelectorReturnValue(out *strings.Builder, expr ast.Expr, expectedType ast.Expr) bool {
+	if expectedType == nil {
+		return false
+	}
+	expected, ok := resultTypeExprType(expectedType)
+	if !ok {
+		return false
+	}
+	if unary, ok := expr.(*ast.UnaryExpr); ok && unary.Op == token.SUB {
+		var inner strings.Builder
+		if !writeBareScalarConstSelectorReturnValue(&inner, unary.X, expectedType) {
+			return false
+		}
+		out.WriteString("-(")
+		out.WriteString(inner.String())
+		out.WriteString(")")
+		return true
+	}
+	if _, ok := expr.(*ast.SelectorExpr); !ok {
+		return false
+	}
+	if !isConstantExpression(expr) {
+		return false
+	}
+	if writeConstExpressionForExpectedInteger(out, expr, expected) {
+		return true
+	}
+	if rustType, ok := rustFloatTypeForGoType(expected); ok {
+		TranspileExpression(out, expr)
+		out.WriteString(" as ")
+		out.WriteString(rustType)
+		return true
+	}
+	return false
+}
+
 // writeBareScalarReturnValue emits a single return expression in a context
 // that expects a raw Rust scalar (not a wrapper handle). It handles the
 // common AST shapes directly and falls back to a wrap-then-unwrap pattern
 // for shapes we have not specialized, keeping behavior correct while the
 // optimization is rolled out.
 func writeBareScalarReturnValue(out *strings.Builder, expr ast.Expr, expectedType ast.Expr) {
+	if writeBareScalarConstSelectorReturnValue(out, expr, expectedType) {
+		return
+	}
 	switch e := expr.(type) {
 	case *ast.BasicLit:
 		writeBareScalarBasicLit(out, e, expectedType)

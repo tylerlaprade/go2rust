@@ -483,6 +483,55 @@ const MaxExp = dep.MaxInt32
 	}
 }
 
+func TestTranspiledExternalPackageConstSelectorBareScalarReturn(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+const (
+	MaxUint64 = 1<<64 - 1
+	Small32 = 0x1p-126 * 0x1p-23
+)
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+func limits() (uint64, float32) {
+	return dep.MaxUint64, dep.Small32
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "example_com_dep::MAX_UINT64.lock()") || strings.Contains(mainRS, "example_com_dep::SMALL32.lock()") {
+		t.Fatalf("external const selectors returned through bare scalar slots should not be unwrapped as handles:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "example_com_dep::MAX_UINT64 as u64") {
+		t.Fatalf("external integer const selector should cast to the bare return slot type:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "example_com_dep::SMALL32 as f32") {
+		t.Fatalf("external float const selector should cast to the bare return slot type:\n%s", mainRS)
+	}
+}
+
 func TestTranspiledExternalPackagePointerGlobalMethodCall(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

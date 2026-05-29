@@ -505,10 +505,23 @@ func (ti *TypeInfo) ReturnsWrappedValue(expr ast.Expr) bool {
 		// (TranspileTypeConversion wraps its output with WriteWrapperPrefix/Suffix)
 		return true
 	case *ast.SelectorExpr:
-		// Field accesses return wrapped values in our conservative model
-		// Method calls are handled by CallExpr case
+		if ti != nil && ti.info != nil {
+			if selection := ti.info.Selections[e]; selection != nil {
+				return true
+			}
+			switch obj := ti.GetObject(e.Sel).(type) {
+			case *types.Const, *types.Func, *types.TypeName:
+				return false
+			case *types.Var:
+				if obj.Pkg() != nil && obj.Parent() == obj.Pkg().Scope() {
+					return true
+				}
+			}
+		}
+		// Field accesses return wrapped values in our conservative model.
+		// Method calls are handled by CallExpr case.
 		if ti.IsFunction(e.Sel) {
-			return false // This will be handled as a CallExpr
+			return false
 		}
 		return true // Field access returns wrapped value
 	case *ast.IndexExpr:

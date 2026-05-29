@@ -1175,6 +1175,10 @@ func writeNamedIntegerConstForExpected(out *strings.Builder, value ast.Expr, nam
 	if !ok {
 		return false
 	}
+	if stdlibStubSelectorConstHasNamedType(value, named) {
+		TranspileExpression(out, value)
+		return true
+	}
 	out.WriteString(goTypesNamedTypeToRust(named))
 	out.WriteString("(")
 	WriteWrapperPrefix(out)
@@ -1188,6 +1192,37 @@ func writeNamedIntegerConstForExpected(out *strings.Builder, value ast.Expr, nam
 	WriteWrapperSuffix(out)
 	out.WriteString(")")
 	return true
+}
+
+func stdlibStubSelectorConstHasNamedType(value ast.Expr, named *types.Named) bool {
+	sel, ok := value.(*ast.SelectorExpr)
+	if !ok || named == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	constObj, ok := typeInfo.GetObject(sel.Sel).(*types.Const)
+	if !ok {
+		return false
+	}
+	pkgPath := ""
+	if constObj.Pkg() != nil {
+		pkgPath = constObj.Pkg().Path()
+	} else if xIdent, ok := sel.X.(*ast.Ident); ok {
+		if pkgName, ok := typeInfo.info.Uses[xIdent].(*types.PkgName); ok && pkgName.Imported() != nil {
+			pkgPath = pkgName.Imported().Path()
+		}
+	}
+	if !isStdlibPackage(pkgPath) || isSourceMappedPackagePath(pkgPath) {
+		return false
+	}
+	if valueNamed, ok := types.Unalias(typeInfo.GetType(value)).(*types.Named); ok && sameNamedTypeDefinition(valueNamed, named) {
+		return true
+	}
+	valueNamed, ok := types.Unalias(constObj.Type()).(*types.Named)
+	return ok && sameNamedTypeDefinition(valueNamed, named)
 }
 
 func isNamedIntegerConversionCall(value ast.Expr) bool {
