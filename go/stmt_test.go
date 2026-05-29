@@ -1443,6 +1443,37 @@ func get(i int) Type {
 	}
 }
 
+func TestAddressOfConcreteReturnBoxesLocalInterface(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Expr interface {
+	exprNode()
+}
+
+type BinaryExpr struct {
+	X Expr
+}
+
+func (*BinaryExpr) exprNode() {}
+
+func cloneExpr(x Expr) Expr {
+	switch x := x.(type) {
+	case *BinaryExpr:
+		op := *x
+		return &op
+	}
+	return nil
+}
+`)
+
+	if strings.Contains(rust, "return op.clone()") {
+		t.Fatalf("address-of concrete returned as interface should not return the local pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new((*op.clone()") || !strings.Contains(rust, "as Box<dyn Expr") {
+		t.Fatalf("address-of concrete returned as interface should box the pointed-to concrete value:\n%s", rust)
+	}
+}
+
 func TestLabeledContinueBeforeLoopPostTerminatesRustStatement(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
