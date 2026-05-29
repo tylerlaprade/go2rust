@@ -8414,7 +8414,20 @@ func pointerMethodValueSignature(expr ast.Expr) (*types.Signature, bool) {
 
 func writePointerMethodValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig *types.Signature) {
 	boxType := signatureToBoxDynFn(sig)
-	out.WriteString("{ let __recv = ")
+	// A method value bound to the current method's own receiver (`self`) binds a
+	// bare value, not a wrapped Arc/Rc handle; clone it (the clone shares the
+	// receiver's wrapped field handles, like the defer-capture pattern) and call
+	// the method directly. Any other receiver is a wrapped pointer handle that
+	// must be locked/borrowed and unwrapped.
+	rawReceiver := false
+	if ident, ok := unwrapParens(sel.X).(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
+		rawReceiver = true
+	}
+	out.WriteString("{ let ")
+	if rawReceiver {
+		out.WriteString("mut ")
+	}
+	out.WriteString("__recv = ")
 	writePointerHandleExpression(out, sel.X)
 	out.WriteString("; Box::new(move |")
 	params := sig.Params()
@@ -8442,9 +8455,13 @@ func writePointerMethodValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig
 		}
 	}
 
-	out.WriteString(" { (*__recv")
-	WriteBorrowMethod(out, true)
-	out.WriteString(".as_mut().unwrap()).")
+	if rawReceiver {
+		out.WriteString(" { __recv.")
+	} else {
+		out.WriteString(" { (*__recv")
+		WriteBorrowMethod(out, true)
+		out.WriteString(".as_mut().unwrap()).")
+	}
 	out.WriteString(rustMethodSelectorName(sel))
 	out.WriteString("(")
 	for i := 0; i < params.Len(); i++ {

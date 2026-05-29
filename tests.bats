@@ -1807,6 +1807,10 @@ run_xfail_test() {
     run_test "tests/pointer_field_handle_assignment"
 }
 
+@test "pointer_method_value_of_receiver" {
+    run_test "tests/pointer_method_value_of_receiver"
+}
+
 @test "pointer_receiver_deref_assignment" {
     run_test "tests/pointer_receiver_deref_assignment"
 }

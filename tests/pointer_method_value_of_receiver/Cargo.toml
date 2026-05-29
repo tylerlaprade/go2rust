@@ -1,0 +1,8 @@
+[package]
+name = "pointer_method_value_of_receiver"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "pointer_method_value_of_receiver"
+path = "main.rs"
