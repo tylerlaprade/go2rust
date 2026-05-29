@@ -339,6 +339,10 @@ func (ut *UnifiedTranspiler) transpilePackage(pkg *PackageInfo) error {
 	pkgState.MethodNameOverrides = assignPackageMethodNames(pkg.ASTFiles, ut.globalTypeInfo)
 	pkgState.ConstantNameOverrides = assignPackageConstantNames(pkg.ASTFiles)
 	pkgState.MethodsByType = collectPackageMethods(pkg.ASTFiles)
+	packageAnalysis := analyzeTranspileFiles(pkg.ASTFiles, ut.globalTypeInfo)
+	pkgState.MapKeyStructTypes = packageAnalysis.mapKeyStructTypes
+	pkgState.ImportedInterfaceImpls = packageAnalysis.importedInterfaceImpls
+	pkgState.ExternalLocalInterfaceImpls = packageAnalysis.externalLocalInterfaceImpls(collectPackageInterfaceDecls(pkg.ASTFiles))
 	runCtx := &TranspileContext{
 		Session:        NewTranspileSession(ut.globalTypeInfo, ut.packageMapping),
 		Package:        pkgState,

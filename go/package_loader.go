@@ -632,6 +632,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 		pkgCtx.UsePackageHelpers = usePackageHelpers
 	}
 	pkgState.ImportedInterfaceImpls = packageAnalysis.importedInterfaceImpls
+	pkgState.ExternalLocalInterfaceImpls = packageAnalysis.externalLocalInterfaceImpls(collectPackageInterfaceDecls(pkg.Syntax))
 	registerPackageTypeModuleNames(pkgState, pkg.Syntax, moduleNamesByIndex)
 	registerPackageTypeFactsFromFiles(pkg.Syntax)
 	registerFunctionSignaturesFromFiles(pkg.Syntax)

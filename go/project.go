@@ -266,6 +266,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		SetPackageImports(packageImports)
 	}
 	packageState.ImportedInterfaceImpls = packageAnalysis.importedInterfaceImpls
+	packageState.ExternalLocalInterfaceImpls = packageAnalysis.externalLocalInterfaceImpls(collectPackageInterfaceDecls(astFiles))
 	registerPackageTypeFactsFromFiles(astFiles)
 	registerFunctionSignaturesFromFiles(astFiles)
 

@@ -312,6 +312,85 @@ func use(expr dep.Expr) int {
 	}
 }
 
+func TestExternalInterfaceCallArgumentImplEmitsWithInterfaceFileOnce(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+type Node interface {
+	Pos() int
+	End() int
+}
+
+type Expr interface {
+	Node
+	exprNode()
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "iface.go"), `package main
+
+type positioner interface {
+	Pos() int
+}
+
+func report(at positioner) int {
+	return at.Pos()
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "a.go"), `package main
+
+import "example.com/dep"
+
+func useA(expr dep.Expr) int {
+	return report(expr)
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "b.go"), `package main
+
+import "example.com/dep"
+
+func useB(expr dep.Expr) int {
+	return report(expr)
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "iface.go"),
+		filepath.Join(tempDir, "a.go"),
+		filepath.Join(tempDir, "b.go"),
+	})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	ifaceRS := mustReadFile(t, filepath.Join(tempDir, "iface.rs"))
+	aRS := mustReadFile(t, filepath.Join(tempDir, "a.rs"))
+	bRS := mustReadFile(t, filepath.Join(tempDir, "b.rs"))
+	impl := "impl positioner for Box<dyn example_com_dep::Expr>"
+	implCount := strings.Count(ifaceRS, impl) + strings.Count(aRS, impl) + strings.Count(bRS, impl)
+	if implCount != 1 {
+		t.Fatalf("external interface adapter should be emitted exactly once with the local interface, got %d\niface.rs:\n%s\na.rs:\n%s\nb.rs:\n%s", implCount, ifaceRS, aRS, bRS)
+	}
+	if !strings.Contains(ifaceRS, impl) {
+		t.Fatalf("external interface adapter should be emitted in the file that defines the local interface:\n%s", ifaceRS)
+	}
+	if !strings.Contains(ifaceRS, "(**self).pos()") {
+		t.Fatalf("boxed external interface adapter should delegate the local interface method:\n%s", ifaceRS)
+	}
+}
+
 func TestDefinedTypeOverImportedScalarEmitsDisplayForLocalInterface(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

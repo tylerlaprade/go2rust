@@ -39,6 +39,7 @@ type PackageState struct {
 	AnonymousStructTypeMap       map[string]string
 	AnonymousStructAliases       map[string]string
 	ImportedInterfaceImpls       map[string]map[string]*types.Interface
+	ExternalLocalInterfaceImpls  map[string]map[string]externalLocalInterfaceImpl
 	ExternalTypeStubs            map[string]bool
 	ExternalTypeStubInterfaces   map[string]bool
 	ExternalTypeStubIntegerTypes map[string]string
@@ -131,6 +132,7 @@ func NewPackageState() *PackageState {
 		AnonymousStructTypeMap:       make(map[string]string),
 		AnonymousStructAliases:       make(map[string]string),
 		ImportedInterfaceImpls:       make(map[string]map[string]*types.Interface),
+		ExternalLocalInterfaceImpls:  make(map[string]map[string]externalLocalInterfaceImpl),
 		ExternalTypeStubs:            make(map[string]bool),
 		ExternalTypeStubInterfaces:   make(map[string]bool),
 		ExternalTypeStubIntegerTypes: make(map[string]string),
@@ -280,6 +282,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		}
 		if ctx.Package.ImportedInterfaceImpls == nil {
 			ctx.Package.ImportedInterfaceImpls = make(map[string]map[string]*types.Interface)
+		}
+		if ctx.Package.ExternalLocalInterfaceImpls == nil {
+			ctx.Package.ExternalLocalInterfaceImpls = make(map[string]map[string]externalLocalInterfaceImpl)
 		}
 		if ctx.Package.ExternalTypeStubs == nil {
 			ctx.Package.ExternalTypeStubs = make(map[string]bool)

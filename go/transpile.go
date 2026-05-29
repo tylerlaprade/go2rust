@@ -733,6 +733,31 @@ func collectFunctionLocalInterfaces(file *ast.File) map[string]*ast.InterfaceTyp
 	return analyzeTranspileFile(file, GetTypeInfo()).functionLocalInterfaces
 }
 
+func collectPackageInterfaceDecls(files []*ast.File) map[string]*ast.InterfaceType {
+	interfaces := make(map[string]*ast.InterfaceType)
+	for _, file := range files {
+		if file == nil {
+			continue
+		}
+		for _, decl := range file.Decls {
+			genDecl, ok := decl.(*ast.GenDecl)
+			if !ok || genDecl.Tok != token.TYPE {
+				continue
+			}
+			for _, spec := range genDecl.Specs {
+				typeSpec, ok := spec.(*ast.TypeSpec)
+				if !ok {
+					continue
+				}
+				if iface, ok := typeSpec.Type.(*ast.InterfaceType); ok {
+					interfaces[typeSpec.Name.Name] = iface
+				}
+			}
+		}
+	}
+	return interfaces
+}
+
 func sourceAllowsInterfaceAssertionCandidate(candidate types.Type, source types.Type) bool {
 	if source == nil {
 		return true
@@ -1059,6 +1084,45 @@ func writeExternalLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, con
 	out.WriteString("            false\n")
 	out.WriteString("        }\n")
 	out.WriteString("    }\n")
+}
+
+func filterExternalLocalInterfaceImplsForInterfaces(impls map[string]map[string]externalLocalInterfaceImpl, interfaces map[string]*ast.InterfaceType) map[string]map[string]externalLocalInterfaceImpl {
+	if len(impls) == 0 || len(interfaces) == 0 {
+		return nil
+	}
+	filtered := make(map[string]map[string]externalLocalInterfaceImpl)
+	for ifaceName, implsByType := range impls {
+		ifaceAST, ok := interfaces[ifaceName]
+		if !ok {
+			continue
+		}
+		for concreteType, impl := range implsByType {
+			impl.ifaceAST = ifaceAST
+			if filtered[ifaceName] == nil {
+				filtered[ifaceName] = make(map[string]externalLocalInterfaceImpl)
+			}
+			filtered[ifaceName][concreteType] = impl
+		}
+	}
+	return filtered
+}
+
+func mergeExternalLocalInterfaceImpls(dst, src map[string]map[string]externalLocalInterfaceImpl) map[string]map[string]externalLocalInterfaceImpl {
+	if len(src) == 0 {
+		return dst
+	}
+	if dst == nil {
+		dst = make(map[string]map[string]externalLocalInterfaceImpl)
+	}
+	for ifaceName, implsByType := range src {
+		if dst[ifaceName] == nil {
+			dst[ifaceName] = make(map[string]externalLocalInterfaceImpl)
+		}
+		for concreteType, impl := range implsByType {
+			dst[ifaceName][concreteType] = impl
+		}
+	}
+	return dst
 }
 
 func writeExternalLocalInterfaceImpls(out *strings.Builder, first *bool, impls map[string]map[string]externalLocalInterfaceImpl) {
@@ -1737,6 +1801,13 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		importedInterfaceImpls = ctx.Package.ImportedInterfaceImpls
 	}
 	externalLocalInterfaceImpls := fileAnalysis.externalLocalInterfaceImpls(interfaces)
+	if ctx := GetTranspileContext(); ctx != nil && ctx.Package != nil && len(ctx.Package.ExternalLocalInterfaceImpls) > 0 {
+		externalLocalInterfaceImpls = filterExternalLocalInterfaceImplsForInterfaces(externalLocalInterfaceImpls, interfaces)
+		externalLocalInterfaceImpls = mergeExternalLocalInterfaceImpls(
+			externalLocalInterfaceImpls,
+			filterExternalLocalInterfaceImplsForInterfaces(ctx.Package.ExternalLocalInterfaceImpls, interfaces),
+		)
+	}
 	// DCE: when a stdlib package is transpiled from source, types unreachable
 	// from live code are pruned. prunedTypeNames gates the type decl, its impl
 	// block, and any `impl LocalIface for T` so nothing references a dropped type.
