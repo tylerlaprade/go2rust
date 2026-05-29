@@ -50,8 +50,8 @@ func isPrunedSourceDecl(ident *ast.Ident) bool {
 // different file from its decl (e.g. token.FileSet's Read/Write in serialize.go
 // vs the FileSet decl in position.go). When the type is unreachable, that other
 // file would still emit `impl FileSet { ... }` referencing a type that was never
-// emitted. Gating the impl block on the receiver type's reachability — resolved
-// through go/types, not file membership — keeps emission consistent with DCE.
+// emitted. Gating the impl block on the receiver type's reachability, resolved
+// through go/types rather than file membership, keeps emission consistent with DCE.
 //
 // A *types.Named has one canonical TypeName (named.Obj()), the same object the
 // reachability set is keyed by, so there is no object-identity mismatch here

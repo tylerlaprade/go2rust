@@ -2943,7 +2943,7 @@ func dead() {}
 }
 
 // TestSourceStdlibPruningSkipsCrossFileImplForUnreachableType covers the case
-// where a pruned type's methods live in a different file from its type decl —
+// where a pruned type's methods live in a different file from its type decl -
 // exactly token.FileSet (declared in position.go) with Read/Write methods in
 // serialize.go. The per-file prunedTypeNames gate only sees types declared in
 // the file being emitted, so the methods file would emit `impl Dead { ... }`
