@@ -1621,6 +1621,10 @@ func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result as
 		TranspileExpression(out, result)
 		return true
 	}
+	if mapIndexExpressionKeepsHandle(result) {
+		TranspileExpression(out, result)
+		return true
+	}
 	if isBareLocalInterfaceValue(result) {
 		WriteWrapperPrefix(out)
 		writeLocalInterfaceBareClone(out, result)

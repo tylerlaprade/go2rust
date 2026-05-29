@@ -507,6 +507,47 @@ func assignFromIndex(nodes []Node) Node {
 	}
 }
 
+func TestReturnLocalInterfaceMapValueKeepsHandle(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Object interface {
+	Pos() int
+}
+
+type Ident struct {
+	p int
+}
+
+func (i Ident) Pos() int {
+	return i.p
+}
+
+type Info struct {
+	Uses map[*Ident]Object
+}
+
+func (info *Info) ObjectOf(id *Ident) Object {
+	return info.Uses[id]
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "Some({ let __map =") {
+		t.Fatalf("returning a local-interface map value should not wrap the handle inside Some:\n%s", rust)
+	}
+	if !strings.Contains(rust, "get(&GoLocalPtrKey::new(id.clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default())") {
+		t.Fatalf("returning a local-interface map value should return the map value handle directly:\n%s", rust)
+	}
+}
+
 func TestPointerAssignmentFromRangeStructScalarFieldKeepsBareValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
