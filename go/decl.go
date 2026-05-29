@@ -3745,23 +3745,31 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 		} else {
 			// Handle binary expressions in const context
 			if e.Op == token.SHL || e.Op == token.SHR {
-				TranspileConstExpr(out, e.X, iotaValue)
-				out.WriteString(" ")
-				out.WriteString(e.Op.String())
-				out.WriteString(" ")
-				if !writeConstShiftCountValue(out, e.Y) {
-					TranspileConstExpr(out, e.Y, iotaValue)
-				}
-			} else {
-				if _, isCall := e.X.(*ast.CallExpr); isCall || !writePrimitiveConstExpressionForBinaryPeer(out, e.X, e.Y) {
+				writeConstBinaryOperand(out, e.X, e.Op, false, func() {
 					TranspileConstExpr(out, e.X, iotaValue)
-				}
+				})
 				out.WriteString(" ")
 				out.WriteString(e.Op.String())
 				out.WriteString(" ")
-				if _, isCall := e.Y.(*ast.CallExpr); isCall || !writePrimitiveConstExpressionForBinaryPeer(out, e.Y, e.X) {
-					TranspileConstExpr(out, e.Y, iotaValue)
-				}
+				writeConstBinaryOperand(out, e.Y, e.Op, true, func() {
+					if !writeConstShiftCountValue(out, e.Y) {
+						TranspileConstExpr(out, e.Y, iotaValue)
+					}
+				})
+			} else {
+				writeConstBinaryOperand(out, e.X, e.Op, false, func() {
+					if _, isCall := e.X.(*ast.CallExpr); isCall || !writePrimitiveConstExpressionForBinaryPeer(out, e.X, e.Y) {
+						TranspileConstExpr(out, e.X, iotaValue)
+					}
+				})
+				out.WriteString(" ")
+				out.WriteString(e.Op.String())
+				out.WriteString(" ")
+				writeConstBinaryOperand(out, e.Y, e.Op, true, func() {
+					if _, isCall := e.Y.(*ast.CallExpr); isCall || !writePrimitiveConstExpressionForBinaryPeer(out, e.Y, e.X) {
+						TranspileConstExpr(out, e.Y, iotaValue)
+					}
+				})
 			}
 		}
 	case *ast.ParenExpr:
@@ -3783,6 +3791,57 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 	default:
 		// Fallback to regular expression transpilation
 		TranspileExpression(out, expr)
+	}
+}
+
+func writeConstBinaryOperand(out *strings.Builder, expr ast.Expr, parentOp token.Token, isRight bool, write func()) {
+	if constBinaryOperandNeedsParens(expr, parentOp, isRight) {
+		out.WriteString("(")
+		write()
+		out.WriteString(")")
+		return
+	}
+	write()
+}
+
+func constBinaryOperandNeedsParens(expr ast.Expr, parentOp token.Token, isRight bool) bool {
+	binary, ok := expr.(*ast.BinaryExpr)
+	if !ok {
+		return false
+	}
+	childPrec := rustConstBinaryPrecedence(binary.Op)
+	parentPrec := rustConstBinaryPrecedence(parentOp)
+	if childPrec == 0 || parentPrec == 0 {
+		return false
+	}
+	if childPrec < parentPrec {
+		return true
+	}
+	return isRight && childPrec == parentPrec
+}
+
+func rustConstBinaryPrecedence(op token.Token) int {
+	switch op {
+	case token.LOR:
+		return 1
+	case token.LAND:
+		return 2
+	case token.EQL, token.NEQ, token.LSS, token.LEQ, token.GTR, token.GEQ:
+		return 3
+	case token.OR:
+		return 4
+	case token.XOR:
+		return 5
+	case token.AND, token.AND_NOT:
+		return 6
+	case token.SHL, token.SHR:
+		return 7
+	case token.ADD, token.SUB:
+		return 8
+	case token.MUL, token.QUO, token.REM:
+		return 9
+	default:
+		return 0
 	}
 }
 

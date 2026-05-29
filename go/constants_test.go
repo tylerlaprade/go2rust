@@ -211,8 +211,27 @@ const (
 	if strings.Contains(rust, "1 << _LOG") && !strings.Contains(rust, "1 << _LOG.0") {
 		t.Fatalf("shift count with named integer type should use the underlying scalar value:\n%s", rust)
 	}
+	if strings.Contains(rust, "_M >> 8 as u64 & 1 as u64 as u64 + _M >>") {
+		t.Fatalf("bitwise terms summed in const expressions must stay parenthesized for Rust precedence:\n%s", rust)
+	}
 	if !strings.Contains(rust, "WORD_SIZE") {
 		t.Fatalf("test fixture should emit wordSize const:\n%s", rust)
+	}
+}
+
+func TestConstBitwiseTermsAreParenthesizedBeforeAddition(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+
+const (
+	_m = ^Word(0)
+	_log = _m>>8&1 + _m>>16&1 + _m>>32&1
+)
+`)
+
+	if strings.Contains(rust, "_M >> 8 as u64 & 1 as u64 as u64 + _M >>") {
+		t.Fatalf("bitwise terms summed in const expressions must stay parenthesized for Rust precedence:\n%s", rust)
 	}
 }
 
