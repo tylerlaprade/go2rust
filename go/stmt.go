@@ -580,6 +580,23 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 	}
 }
 
+func writeNamedSliceSliceExprShortDeclInitializer(out *strings.Builder, rhs ast.Expr) bool {
+	if _, ok := rhs.(*ast.SliceExpr); !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if _, _, ok := namedSliceTypeFromType(typeInfo.GetType(rhs)); !ok {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	TranspileExpression(out, rhs)
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeByteConstAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -7765,8 +7782,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							// Function calls already return wrapped values
 							writeCallExpressionForInitializer(out, call)
 						} else if _, isSlice := rhs.(*ast.SliceExpr); isSlice {
-							// Slice expressions already return wrapped values
-							TranspileExpression(out, rhs)
+							// Plain slice expressions already return wrapped values; named-slice
+							// slice expressions emit a bare named value that the local wrapper stores.
+							if !writeNamedSliceSliceExprShortDeclInitializer(out, rhs) {
+								TranspileExpression(out, rhs)
+							}
 						} else if unary, ok := rhs.(*ast.UnaryExpr); ok && unary.Op == token.AND {
 							// Address-of expressions already return wrapped handles.
 							TranspileExpression(out, rhs)
@@ -8433,8 +8453,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												TranspileExpression(out, rhs)
 											}
 										} else if _, isSliceExpr := rhs.(*ast.SliceExpr); isSliceExpr {
-											// Slice expressions already return wrapped values
-											TranspileExpression(out, rhs)
+											// Plain slice expressions already return wrapped values; named-slice
+											// slice expressions emit a bare named value that the local wrapper stores.
+											if !writeNamedSliceSliceExprShortDeclInitializer(out, rhs) {
+												TranspileExpression(out, rhs)
+											}
 										} else if isWrappedInterfaceSliceIndex(rhs) {
 											// IndexExpr on a slice of wrapped local-interface
 											// elements returns the same wrapped handle the
@@ -8532,8 +8555,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								// Function calls already return wrapped values, don't wrap again
 								writeCallExpressionForInitializer(out, call)
 							} else if _, isSlice := rhs.(*ast.SliceExpr); isSlice {
-								// Slice expressions already return wrapped values
-								TranspileExpression(out, rhs)
+								// Plain slice expressions already return wrapped values; named-slice
+								// slice expressions emit a bare named value that the local wrapper stores.
+								if !writeNamedSliceSliceExprShortDeclInitializer(out, rhs) {
+									TranspileExpression(out, rhs)
+								}
 							} else if mapIndexExpressionKeepsHandle(rhs) {
 								// Map values that are maps/slices/pointers/etc. already return cloneable handles.
 								TranspileExpression(out, rhs)

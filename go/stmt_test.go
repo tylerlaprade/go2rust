@@ -1602,6 +1602,31 @@ func (z nat) add(x, y nat, n int) Word {
 	}
 }
 
+func TestNamedSliceSliceExprShortDeclWrapsNamedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func karatsuba(z, x, y nat) {
+}
+
+func mul(z, x, y nat, n int) {
+	x0 := x[:n]
+	y0 := y[:n]
+	karatsuba(z, x0, y0)
+}
+`)
+
+	if strings.Contains(rust, "let mut x0 = nat(") || strings.Contains(rust, "let mut y0 = nat(") {
+		t.Fatalf("named-slice slice short declaration should wrap the named value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut x0 = Rc::new(RefCell::new(Some(nat(") &&
+		!strings.Contains(rust, "let mut x0 = Arc::new(Mutex::new(Some(nat(") {
+		t.Fatalf("named-slice slice short declaration should initialize a wrapped local:\n%s", rust)
+	}
+}
+
 func TestStructLiteralNamedSliceFieldFromUnnamedSliceConstructsNamedValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
