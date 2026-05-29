@@ -2984,6 +2984,42 @@ func writeConcreteToTranspiledInterfaceAssignment(out *strings.Builder, lhs ast.
 	return true
 }
 
+// writeConcreteToTranspiledInterfaceValue boxes a concrete rhs into the wrapped
+// transpiled-interface form when ifaceType is a transpiled named interface and
+// rhs is an assignable concrete (non-interface, non-nil) value. It emits only
+// the value (no `lhs =`), for use at initializer/return positions. Returns true
+// if it emitted.
+func writeConcreteToTranspiledInterfaceValue(out *strings.Builder, rhs ast.Expr, ifaceType types.Type) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || rhs == nil || ifaceType == nil {
+		return false
+	}
+	ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(ifaceType)
+	if !ok {
+		return false
+	}
+	rhsType := typeInfo.GetType(rhs)
+	if rhsType == nil {
+		return false
+	}
+	// Interface-to-interface and bare-interface RHS keep the handle; nil is
+	// handled by the caller.
+	if _, rhsIsIface := transpiledNamedInterfaceTypeNameFromTypes(rhsType); rhsIsIface {
+		return false
+	}
+	if isBareLocalInterfaceValue(rhs) {
+		return false
+	}
+	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
+		return false
+	}
+	if !types.AssignableTo(rhsType, ifaceType) {
+		return false
+	}
+	writeLocalInterfaceWrappedConstruction(out, rhs, ifaceName, ifaceType)
+	return true
+}
+
 func writeLocalInterfaceAssignedCallHandleClone(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	lhsIdent, ok := lhs.(*ast.Ident)
 	if !ok {
@@ -4692,11 +4728,12 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 	}
 	if ident, ok := expr.(*ast.Ident); ok {
 		_, isRangeVar := rangeLoopVars[ident.Name]
-		_, isLocalConst := localConstants[ident.Name]
+		isLocalConst := isLocalConstantIdent(ident)
+		varName := rustIdentForUseWithCapture(ident)
 		if isRangeVar && rangeLoopVarIsUsize(ident.Name) && expected != nil {
 			if rustCast := rustCastForExpectedBasic(expected); rustCast != "" {
 				out.WriteString("(")
-				out.WriteString(EscapeRustIdent(ident.Name))
+				out.WriteString(varName)
 				out.WriteString(" as ")
 				out.WriteString(rustCast)
 				out.WriteString(")")
@@ -4718,13 +4755,13 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 			return
 		}
 		if isVarBare(ident.Name) {
-			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(varName)
 			return
 		}
 		if !isRangeVar && !isLocalConst && ident.Name != "true" && ident.Name != "false" &&
 			ident.Name != "nil" && ident.Name != "_" {
 			out.WriteString("(*")
-			out.WriteString(EscapeRustIdent(ident.Name))
+			out.WriteString(varName)
 			WriteBorrowMethod(out, false)
 			out.WriteString(".as_ref().unwrap())")
 			if !isCopyTypeExpression(expr) && isCloneableNonPointerExpr(expr) {
@@ -4732,7 +4769,7 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 			}
 			return
 		}
-		out.WriteString(EscapeRustIdent(ident.Name))
+		out.WriteString(varName)
 		return
 	}
 	if lit, ok := expr.(*ast.BasicLit); ok {
@@ -8033,6 +8070,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								} else if ident, ok := valueSpec.Values[i].(*ast.Ident); ok && ident.Name == "nil" {
 									// Initializing with nil
 									WriteWrappedNone(out)
+								} else if valueSpec.Type != nil && writeConcreteToTranspiledInterfaceValue(out, valueSpec.Values[i], expectedTypeFromParamExpr(valueSpec.Type)) {
+									// Concrete value boxed into a transpiled named interface variable.
 								} else if valueSpec.Type != nil && writeStdlibInterfaceCallArgumentConversion(out, valueSpec.Values[i], expectedTypeFromParamExpr(valueSpec.Type)) {
 									// Converted concrete stdlib values assigned to a stdlib interface variable.
 								} else if valueSpec.Type != nil && isEmptyInterfaceTypeExpr(valueSpec.Type) {

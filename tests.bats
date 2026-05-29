@@ -2810,4 +2810,8 @@ run_xfail_test() {
 @test "XFAIL: unsafe_pointer_ops" {
     run_xfail_test "tests/XFAIL/unsafe_pointer_ops"
 }
+
+@test "XFAIL: var_decl_concrete_to_interface_box" {
+    run_xfail_test "tests/XFAIL/var_decl_concrete_to_interface_box"
+}
 # END GENERATED TESTS
