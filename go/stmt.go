@@ -7118,9 +7118,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						} else if ident, ok := rhs.(*ast.Ident); ok && writeWrappedValueCopyFromIdent(out, ident) {
 							// Copied by value from an existing wrapped value
 						} else {
-							// Wrap new variables
+							// Wrap new variables. For an expression that already
+							// yields a wrapped value (e.g. a wrapped struct field
+							// selector `p.pos`), copy the inner value rather than
+							// re-wrapping the handle, which would double-wrap
+							// (Arc<Mutex<Option<Arc<Mutex<...>>>>>). Mirrors the
+							// single-variable short-declaration path.
 							WriteWrapperPrefix(out)
-							TranspileExpression(out, rhs)
+							if !writeOwnedExpressionValue(out, rhs) {
+								TranspileExpression(out, rhs)
+							}
 							WriteWrapperSuffix(out)
 						}
 					}

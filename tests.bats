@@ -1767,6 +1767,10 @@ run_xfail_test() {
     run_test "tests/panic_with_sprintf"
 }
 
+@test "parallel_decl_from_wrapped_fields" {
+    run_test "tests/parallel_decl_from_wrapped_fields"
+}
+
 @test "parallel_slice_field_assign" {
     run_test "tests/parallel_slice_field_assign"
 }
