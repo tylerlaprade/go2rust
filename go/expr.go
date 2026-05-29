@@ -206,10 +206,40 @@ func writeNamedIntegerPrimitiveOperand(out *strings.Builder, expr ast.Expr, prim
 	if writeUnaryIntegerLiteral(out, expr) {
 		return
 	}
+	if writeNamedIntegerPrimitiveConstOperand(out, expr, primitiveType) {
+		return
+	}
 	if writeNamedIntegerPrimitiveExpression(out, expr) {
 		return
 	}
 	TranspileExpression(out, expr)
+}
+
+func writeNamedIntegerPrimitiveConstOperand(out *strings.Builder, expr ast.Expr, primitiveType string) bool {
+	if primitiveType == "" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	var obj types.Object
+	switch e := expr.(type) {
+	case *ast.Ident:
+		obj = typeInfo.GetObject(e)
+	case *ast.SelectorExpr:
+		obj = typeInfo.GetObject(e.Sel)
+	default:
+		return false
+	}
+	constObj, ok := obj.(*types.Const)
+	if !ok || constObj.Val() == nil || constObj.Val().Kind() != constant.Int {
+		return false
+	}
+	TranspileExpression(out, expr)
+	out.WriteString(" as ")
+	out.WriteString(primitiveType)
+	return true
 }
 
 func writeNamedIntegerValueForExpected(out *strings.Builder, expr ast.Expr, named *types.Named) bool {

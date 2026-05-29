@@ -1502,6 +1502,27 @@ func set() Word {
 	}
 }
 
+func TestNamedIntegerBinaryConstIdentOperandCastsToPrimitivePeer(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+
+const M = 1<<64 - 1
+
+func max(b Word) bool {
+	max := M / b
+	return max >= b
+}
+`)
+
+	if strings.Contains(rust, "M / (*") {
+		t.Fatalf("named integer binary const identifier should not keep its inferred const type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "M as u64 / (*") {
+		t.Fatalf("named integer binary const identifier should cast to the named primitive peer:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerBitClearConversionOperandStaysBare(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
