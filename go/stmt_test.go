@@ -1577,6 +1577,31 @@ func (z nat) norm(i int) nat {
 	}
 }
 
+func TestNamedSliceSliceExprCallArgumentUsesInnerHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func addVV(z, x, y []Word) Word {
+	return 0
+}
+
+func (z nat) add(x, y nat, n int) Word {
+	return addVV(z[:n], x, y)
+}
+`)
+
+	if strings.Contains(rust, "nat(Rc::new(RefCell::new(Some(") &&
+		strings.Contains(rust, ")).borrow().as_ref().unwrap()).0.clone()") {
+		t.Fatalf("named-slice slice call argument should not borrow from bare named value:\n%s", rust)
+	}
+	if strings.Contains(rust, "nat(Arc::new(Mutex::new(Some(") &&
+		strings.Contains(rust, ")).lock().unwrap().as_ref().unwrap()).0.clone()") {
+		t.Fatalf("named-slice slice call argument should not lock from bare named value:\n%s", rust)
+	}
+}
+
 func TestStructLiteralNamedSliceFieldFromUnnamedSliceConstructsNamedValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
