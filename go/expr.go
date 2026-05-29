@@ -2627,8 +2627,13 @@ func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr
 	if localInterfaceArgumentIsWrappedInterfaceValue(arg, expected) {
 		typeInfo := GetTypeInfo()
 		if typeInfo != nil {
-			if argIface, argOK := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(arg)); argOK && argIface != ifaceName {
+			argType := typeInfo.GetType(arg)
+			if argIface, argOK := localNamedInterfaceTypeNameFromTypes(argType); argOK && argIface != ifaceName {
 				writeLocalInterfaceSubtraitUpcast(out, arg, ifaceName)
+				return true
+			}
+			if argIface, argOK := transpiledNamedInterfaceTypeNameFromTypes(argType); argOK && argIface != ifaceName {
+				writeLocalInterfaceWrappedConstruction(out, arg, ifaceName, expected)
 				return true
 			}
 		}

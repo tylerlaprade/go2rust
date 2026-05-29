@@ -307,6 +307,12 @@ func use(expr dep.Expr) int {
 	if !strings.Contains(mainRS, "impl positioner for Box<dyn example_com_dep::Expr>") {
 		t.Fatalf("imported interface call arguments should implement the local interface for the boxed trait object:\n%s", mainRS)
 	}
+	if strings.Contains(mainRS, "let __inner: Box<dyn positioner> = (*expr.borrow().as_ref().unwrap()).clone()") {
+		t.Fatalf("imported interface call argument should not use local subtrait upcast shape:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "Box::new((*expr.borrow().as_ref().unwrap()).clone()) as Box<dyn positioner>") {
+		t.Fatalf("imported interface call argument should box the imported trait object as the local interface:\n%s", mainRS)
+	}
 	if !strings.Contains(mainRS, "(**self).pos()") {
 		t.Fatalf("boxed imported interface impl should delegate methods through the inner trait object:\n%s", mainRS)
 	}
