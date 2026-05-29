@@ -575,6 +575,10 @@ run_xfail_test() {
     run_test "tests/closures_basic"
 }
 
+@test "comma_ok_assert_imported_interface_field" {
+    run_test "tests/comma_ok_assert_imported_interface_field"
+}
+
 @test "comment_complex" {
     run_test "tests/comment_complex"
 }
@@ -2733,10 +2737,6 @@ run_xfail_test() {
 
 @test "wrapped_call_argument" {
     run_test "tests/wrapped_call_argument"
-}
-
-@test "XFAIL: comma_ok_assert_imported_interface_field" {
-    run_xfail_test "tests/XFAIL/comma_ok_assert_imported_interface_field"
 }
 
 @test "XFAIL: concurrency_patterns" {

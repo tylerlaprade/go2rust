@@ -4,7 +4,7 @@ use std::rc::{Rc};
 
 /// Comma-ok type assertion on a field whose type is an interface imported from
 /// another package (ast.Expr). The assertion operand must stay the wrapped
-/// interface handle so the downcast can unwrap it — go/parser does this on
+/// interface handle so the downcast can unwrap it; go/parser does this on
 /// ast.Expr/ast.Stmt fields throughout (`typ, ok := x.(*ast.ChanType)`).
 pub fn describe(f: Rc<RefCell<Option<example_com_commaok_ast::Field>>>) -> Rc<RefCell<Option<String>>> {
     {
