@@ -94,6 +94,76 @@ impl std::ops::Sub<Kind> for i8 {
     }
 }
 
+impl std::ops::Mul for Kind {
+    type Output = Kind;
+    fn mul(self, other: Self) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i8> for Kind {
+    type Output = Kind;
+    fn mul(self, other: i8) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<Kind> for i8 {
+    type Output = Kind;
+    fn mul(self, other: Kind) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for Kind {
+    type Output = Kind;
+    fn div(self, other: Self) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i8> for Kind {
+    type Output = Kind;
+    fn div(self, other: i8) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<Kind> for i8 {
+    type Output = Kind;
+    fn div(self, other: Kind) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for Kind {
+    type Output = Kind;
+    fn neg(self) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for Kind {
+    type Output = Kind;
+    fn rem(self, other: Self) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i8> for Kind {
+    type Output = Kind;
+    fn rem(self, other: i8) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<Kind> for i8 {
+    type Output = Kind;
+    fn rem(self, other: Kind) -> Kind {
+        Kind(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
 impl std::ops::BitAnd for Kind {
     type Output = Kind;
     fn bitand(self, other: Self) -> Kind {

@@ -89,6 +89,55 @@ impl std::ops::Sub<Celsius> for f64 {
     }
 }
 
+impl std::ops::Mul for Celsius {
+    type Output = Celsius;
+    fn mul(self, other: Self) -> Celsius {
+        Celsius(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<f64> for Celsius {
+    type Output = Celsius;
+    fn mul(self, other: f64) -> Celsius {
+        Celsius(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<Celsius> for f64 {
+    type Output = Celsius;
+    fn mul(self, other: Celsius) -> Celsius {
+        Celsius(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for Celsius {
+    type Output = Celsius;
+    fn div(self, other: Self) -> Celsius {
+        Celsius(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<f64> for Celsius {
+    type Output = Celsius;
+    fn div(self, other: f64) -> Celsius {
+        Celsius(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<Celsius> for f64 {
+    type Output = Celsius;
+    fn div(self, other: Celsius) -> Celsius {
+        Celsius(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for Celsius {
+    type Output = Celsius;
+    fn neg(self) -> Celsius {
+        Celsius(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
 
 #[derive(Debug, Clone, Default)]
 pub struct Fahrenheit(pub Rc<RefCell<Option<f64>>>);
@@ -174,6 +223,55 @@ impl std::ops::Sub<Fahrenheit> for f64 {
     type Output = Fahrenheit;
     fn sub(self, other: Fahrenheit) -> Fahrenheit {
         Fahrenheit(Rc::new(RefCell::new(Some(self - *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul for Fahrenheit {
+    type Output = Fahrenheit;
+    fn mul(self, other: Self) -> Fahrenheit {
+        Fahrenheit(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<f64> for Fahrenheit {
+    type Output = Fahrenheit;
+    fn mul(self, other: f64) -> Fahrenheit {
+        Fahrenheit(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<Fahrenheit> for f64 {
+    type Output = Fahrenheit;
+    fn mul(self, other: Fahrenheit) -> Fahrenheit {
+        Fahrenheit(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for Fahrenheit {
+    type Output = Fahrenheit;
+    fn div(self, other: Self) -> Fahrenheit {
+        Fahrenheit(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<f64> for Fahrenheit {
+    type Output = Fahrenheit;
+    fn div(self, other: f64) -> Fahrenheit {
+        Fahrenheit(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<Fahrenheit> for f64 {
+    type Output = Fahrenheit;
+    fn div(self, other: Fahrenheit) -> Fahrenheit {
+        Fahrenheit(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for Fahrenheit {
+    type Output = Fahrenheit;
+    fn neg(self) -> Fahrenheit {
+        Fahrenheit(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
     }
 }
 
