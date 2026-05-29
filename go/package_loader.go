@@ -653,6 +653,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 			pkgCtx.CurrentModuleName = moduleName
 		}
 		rustCode, fileImports, _ := TranspileWithMapping(astFile, pkg.Fset, pkgTypeInfo, pl.packageMapping)
+		rustCode = prefixDotImportedCrateUses(rustCode, astFile, pl.packageMapping)
 		if fileImports != nil {
 			for imp := range fileImports.needs {
 				packageImports.Add(imp)

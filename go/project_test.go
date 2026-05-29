@@ -13,6 +13,49 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
+func TestPrefixDotImportedCrateUsesEmitsGlobUse(t *testing.T) {
+	fset := token.NewFileSet()
+	mapping := map[string]string{"internal/types/errors": "internal_types_errors"}
+
+	// A dot import of a mapped (source-transpiled) package brings its names into
+	// scope bare in Go (e.g. go/types referencing InvalidSyntaxTree); the Rust
+	// output needs a glob use of the dependency crate so those bare names resolve.
+	dotFile, err := parser.ParseFile(fset, "dot.go", `package p
+import . "internal/types/errors"
+var _ = InvalidSyntaxTree
+`, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("parse dot.go: %v", err)
+	}
+	out := prefixDotImportedCrateUses("// body\n", dotFile, mapping)
+	if !strings.Contains(out, "use internal_types_errors::*;") {
+		t.Fatalf("dot import of a mapped package should emit a glob use:\n%s", out)
+	}
+
+	// A regular (non-dot) import qualifies references with the crate path, so no
+	// glob use is emitted.
+	plainFile, err := parser.ParseFile(fset, "plain.go", `package p
+import "internal/types/errors"
+`, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("parse plain.go: %v", err)
+	}
+	if got := prefixDotImportedCrateUses("// body\n", plainFile, mapping); strings.Contains(got, "use internal_types_errors") {
+		t.Fatalf("non-dot import should not emit a glob use:\n%s", got)
+	}
+
+	// A dot import of an unmapped (bridged) package gets no glob use.
+	unmappedFile, err := parser.ParseFile(fset, "unmapped.go", `package p
+import . "internal/types/errors"
+`, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("parse unmapped.go: %v", err)
+	}
+	if got := prefixDotImportedCrateUses("// body\n", unmappedFile, map[string]string{}); strings.Contains(got, "use ") {
+		t.Fatalf("dot import of an unmapped package should not emit a glob use:\n%s", got)
+	}
+}
+
 func TestPackageLoaderMainASTByPathUsesWorkDirForRelativeCompiledFiles(t *testing.T) {
 	tempDir := t.TempDir()
 	workDir := filepath.Join(tempDir, "go")

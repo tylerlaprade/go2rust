@@ -478,6 +478,40 @@ func (pg *ProjectGenerator) nonMainModuleNames(astFilesByPath map[string]*ast.Fi
 	return moduleNames
 }
 
+// prefixDotImportedCrateUses emits a glob `use <crate>::*;` for every
+// dot-imported (`import . "path"`) source-mapped package, so the bare names a
+// dot import brings into Go scope resolve to the dependency crate's exports.
+// go/types dot-imports internal/types/errors, referencing Code and the error
+// codes (InvalidSyntaxTree, ...) bare; without the glob use those resolve to
+// nothing.
+func prefixDotImportedCrateUses(rustCode string, astFile *ast.File, packageMapping map[string]string) string {
+	if astFile == nil || packageMapping == nil {
+		return rustCode
+	}
+	var uses strings.Builder
+	seen := map[string]bool{}
+	for _, imp := range astFile.Imports {
+		if imp.Name == nil || imp.Name.Name != "." || imp.Path == nil {
+			continue
+		}
+		path := strings.Trim(imp.Path.Value, `"`)
+		crate := packageMapping[path]
+		if crate == "" || seen[crate] {
+			continue
+		}
+		seen[crate] = true
+		uses.WriteString("use ")
+		uses.WriteString(crate)
+		uses.WriteString("::*;\n")
+	}
+	if uses.Len() == 0 {
+		return rustCode
+	}
+	uses.WriteString("\n")
+	uses.WriteString(rustCode)
+	return uses.String()
+}
+
 func prefixSiblingModuleImports(rustCode, selfModule string, moduleNames []string) string {
 	var imports strings.Builder
 	for _, modName := range moduleNames {

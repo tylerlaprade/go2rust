@@ -379,6 +379,7 @@ func (ut *UnifiedTranspiler) transpilePackage(pkg *PackageInfo) error {
 		runCtx.CurrentModuleName = moduleName
 		rustCode, _, _ := TranspileWithMapping(astFile, ut.fileSet, ut.globalTypeInfo, ut.packageMapping)
 		rustCode = prefixSiblingModuleImports(rustCode, moduleName, modules)
+		rustCode = prefixDotImportedCrateUses(rustCode, astFile, ut.packageMapping)
 
 		// Write the module file
 		moduleFile := filepath.Join(pkg.OutputPath, SanitizeRustModuleFileName(moduleName)+".rs")
