@@ -147,6 +147,52 @@ func main() {
 	}
 }
 
+func TestCrossFileInterfaceImplEmittedOnlyWithTypeDeclaration(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "type.go"), `package main
+
+type I interface {
+	A() int
+	B() int
+}
+
+type T struct{}
+
+func (T) A() int { return 1 }
+`)
+	writeTestFile(t, filepath.Join(tempDir, "extra.go"), `package main
+
+func (T) B() int { return 2 }
+
+func Use() int {
+	var i I = T{}
+	return i.B()
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "type.go"),
+		filepath.Join(tempDir, "extra.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	typeRS := mustReadFile(t, filepath.Join(tempDir, "type.rs"))
+	extraRS := mustReadFile(t, filepath.Join(tempDir, "extra.rs"))
+	implCount := strings.Count(typeRS, "impl I for") + strings.Count(extraRS, "impl I for")
+	if implCount != 1 {
+		t.Fatalf("cross-file methods should not emit duplicate trait impls, got %d\ntype.rs:\n%s\nextra.rs:\n%s", implCount, typeRS, extraRS)
+	}
+	if strings.Contains(extraRS, "impl I for") {
+		t.Fatalf("trait impl should be emitted with the concrete type declaration, not each file adding methods:\n%s", extraRS)
+	}
+}
+
 func TestExternalPackageUsesOwnConcurrencyDetector(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
