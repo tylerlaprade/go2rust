@@ -1778,6 +1778,20 @@ func writeOwnedStringStdlibArg(out *strings.Builder, arg ast.Expr) {
 		return
 	}
 	if isConstantExpression(arg) {
+		// A constant string-typed type conversion (e.g. string(rune)) lowers to
+		// a wrapped value via TranspileExpression, but this helper must yield a
+		// raw owned String so the result is usable as a Rust str Pattern (&str).
+		// Unwrap such conversions; other constants (literals, const idents,
+		// const arithmetic) already lower to a raw string.
+		if call, ok := arg.(*ast.CallExpr); ok {
+			if ti := GetTypeInfo(); ti != nil && ti.IsTypeConversion(call) && ti.IsString(arg) && typeConversionEmitsWrappedValue(call) {
+				out.WriteString("(*")
+				TranspileExpression(out, arg)
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()).clone()")
+				return
+			}
+		}
 		TranspileExpression(out, arg)
 		return
 	}
