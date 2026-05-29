@@ -1,0 +1,8 @@
+[package]
+name = "nested_pointer_slice_field_display"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "nested_pointer_slice_field_display"
+path = "main.rs"

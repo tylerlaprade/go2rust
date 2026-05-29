@@ -62,18 +62,19 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 
 	// Collect all fields (including embedded)
 	type fieldEntry struct {
-		name           string
-		isEmbedded     bool
-		isSlice        bool
-		isMap          bool
-		isInterface    bool
-		isFunction     bool
-		funcSlice      bool
-		hasTrait       bool
-		mapOpaque      bool
-		nestedSlice    bool
-		ptrSlice       bool
-		interfaceSlice bool
+		name               string
+		isEmbedded         bool
+		isSlice            bool
+		isMap              bool
+		isInterface        bool
+		isFunction         bool
+		funcSlice          bool
+		hasTrait           bool
+		mapOpaque          bool
+		nestedSlice        bool
+		nestedSliceWrapped bool
+		ptrSlice           bool
+		interfaceSlice     bool
 	}
 	var fields []fieldEntry
 	for fieldIndex, field := range structType.Fields.List {
@@ -90,6 +91,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		hasTrait := typeHasTraitField(field.Type)
 		mapOpaque := mapFieldNeedsOpaqueDisplay(field.Type)
 		nestedSlice := arrayFieldContainsSlice(field.Type)
+		nestedSliceWrapped := arrayFieldNestedInnerIsPointer(field.Type)
 		ptrSlice := arrayFieldContainsPointer(field.Type)
 		interfaceSlice := arrayFieldContainsLocalInterface(field.Type)
 		if isChannel {
@@ -98,36 +100,38 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		if len(field.Names) > 0 {
 			for nameIndex, name := range field.Names {
 				fields = append(fields, fieldEntry{
-					name:           rustStructFieldName(name, fieldIndex, nameIndex),
-					isEmbedded:     false,
-					isSlice:        isSlice,
-					isMap:          isMap,
-					isInterface:    isInterface,
-					isFunction:     isFunction,
-					funcSlice:      funcSlice,
-					hasTrait:       hasTrait,
-					mapOpaque:      mapOpaque,
-					nestedSlice:    nestedSlice,
-					ptrSlice:       ptrSlice,
-					interfaceSlice: interfaceSlice,
+					name:               rustStructFieldName(name, fieldIndex, nameIndex),
+					isEmbedded:         false,
+					isSlice:            isSlice,
+					isMap:              isMap,
+					isInterface:        isInterface,
+					isFunction:         isFunction,
+					funcSlice:          funcSlice,
+					hasTrait:           hasTrait,
+					mapOpaque:          mapOpaque,
+					nestedSlice:        nestedSlice,
+					nestedSliceWrapped: nestedSliceWrapped,
+					ptrSlice:           ptrSlice,
+					interfaceSlice:     interfaceSlice,
 				})
 			}
 		} else {
 			// Embedded field
 			typeName := getEmbeddedFieldName(field.Type)
 			fields = append(fields, fieldEntry{
-				name:           typeName,
-				isEmbedded:     true,
-				isSlice:        isSlice,
-				isMap:          isMap,
-				isInterface:    isInterface,
-				isFunction:     isFunction,
-				funcSlice:      funcSlice,
-				hasTrait:       hasTrait,
-				mapOpaque:      mapOpaque,
-				nestedSlice:    nestedSlice,
-				ptrSlice:       ptrSlice,
-				interfaceSlice: interfaceSlice,
+				name:               typeName,
+				isEmbedded:         true,
+				isSlice:            isSlice,
+				isMap:              isMap,
+				isInterface:        isInterface,
+				isFunction:         isFunction,
+				funcSlice:          funcSlice,
+				hasTrait:           hasTrait,
+				mapOpaque:          mapOpaque,
+				nestedSlice:        nestedSlice,
+				nestedSliceWrapped: nestedSliceWrapped,
+				ptrSlice:           ptrSlice,
+				interfaceSlice:     interfaceSlice,
 			})
 		}
 	}
@@ -162,6 +166,11 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		} else if f.isMap {
 			NeedFormatMap()
 			out.WriteString("format_map(&self.")
+			out.WriteString(ToSnakeCase(f.name))
+			out.WriteString(")")
+		} else if f.nestedSliceWrapped {
+			NeedFormatNestedSliceWrapped()
+			out.WriteString("format_nested_slice_wrapped(&self.")
 			out.WriteString(ToSnakeCase(f.name))
 			out.WriteString(")")
 		} else if f.nestedSlice {
@@ -224,6 +233,31 @@ func arrayFieldContainsPointer(expr ast.Expr) bool {
 	}
 	_, ok = arrayType.Elt.(*ast.StarExpr)
 	return ok
+}
+
+// arrayFieldNestedInnerIsPointer reports whether expr is a nested slice ([][]X)
+// whose innermost element is a pointer (e.g. [][]*T). Such fields store the
+// innermost element as a wrapped Arc/Rc handle, which format_nested_slice cannot
+// Display directly — format_nested_slice_wrapped unwraps the handle.
+func arrayFieldNestedInnerIsPointer(expr ast.Expr) bool {
+	outer, ok := expr.(*ast.ArrayType)
+	if !ok {
+		return false
+	}
+	inner, ok := outer.Elt.(*ast.ArrayType)
+	if !ok {
+		return false
+	}
+	elt := inner.Elt
+	for {
+		next, ok := elt.(*ast.ArrayType)
+		if !ok {
+			break
+		}
+		elt = next.Elt
+	}
+	_, isPtr := elt.(*ast.StarExpr)
+	return isPtr
 }
 
 func arrayFieldContainsFunction(expr ast.Expr) bool {

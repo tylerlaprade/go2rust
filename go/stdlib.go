@@ -4697,6 +4697,59 @@ where
 	}
 }
 
+// generateNestedSliceWrappedFormatter emits format_nested_slice_wrapped, the
+// variant for a nested slice whose innermost elements are wrapped handles
+// (e.g. [][]*T). It formats each inner row via format_slice_wrapped_values,
+// which unwraps the handles, so the innermost T only needs Display.
+func generateNestedSliceWrappedFormatter(out *strings.Builder) {
+	TrackImport("Display")
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString(`fn format_nested_slice_wrapped<T, C, Inner>(slice: &Arc<Mutex<Option<C>>>) -> String
+where
+    C: AsRef<[Inner]>,
+    Inner: AsRef<[Arc<Mutex<Option<T>>>]>,
+    T: Display,
+{
+    let guard = slice.lock().unwrap();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s
+            .as_ref()
+            .iter()
+            .map(|inner| format_slice_wrapped_values(inner.as_ref()))
+            .collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+`)
+	} else {
+		TrackImport("Rc")
+		TrackImport("RefCell")
+		out.WriteString(`fn format_nested_slice_wrapped<T, C, Inner>(slice: &Rc<RefCell<Option<C>>>) -> String
+where
+    C: AsRef<[Inner]>,
+    Inner: AsRef<[Rc<RefCell<Option<T>>>]>,
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s
+            .as_ref()
+            .iter()
+            .map(|inner| format_slice_wrapped_values(inner.as_ref()))
+            .collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+`)
+	}
+}
+
 // transpilePanic handles the panic() builtin function
 func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 && writePanicAnyArg(out, call.Args[0]) {

@@ -575,6 +575,17 @@ func NeedFormatNestedSlice() {
 	}
 }
 
+// NeedFormatNestedSliceWrapped marks that we need the format_nested_slice_wrapped
+// helper (a nested slice whose innermost elements are wrapped handles, e.g.
+// [][]*T). It depends on format_slice_wrapped_values for the inner row.
+func NeedFormatNestedSliceWrapped() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsFormatSlice = true
+		helpers.needsFormatSliceWrappedValues = true
+		helpers.needsFormatNestedSliceWrapped = true
+	}
+}
+
 // NeedFormatAny marks that we need the format_any helper
 func NeedFormatAny() {
 	if helpers := activeHelperTracker(); helpers != nil {

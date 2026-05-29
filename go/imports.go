@@ -120,6 +120,7 @@ type HelperTracker struct {
 	needsFormatSliceWrappedValues   bool
 	needsFormatSliceWrappedStringer bool
 	needsFormatNestedSlice          bool
+	needsFormatNestedSliceWrapped   bool
 	needsFormatAny                  bool
 	needsFormatAnySlice             bool
 	needsAnyEq                      bool
@@ -194,6 +195,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	if ht.needsFormatNestedSlice {
 		generateNestedSliceFormatter(&result)
+	}
+
+	if ht.needsFormatNestedSliceWrapped {
+		generateNestedSliceWrappedFormatter(&result)
 	}
 
 	if ht.needsFormatAny {
@@ -443,6 +448,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsFormatNestedSlice {
 		add("format_nested_slice")
+	}
+	if ht.needsFormatNestedSliceWrapped {
+		add("format_nested_slice_wrapped", "format_slice_wrapped_values")
 	}
 	if ht.needsFormatAny {
 		add("format_any")

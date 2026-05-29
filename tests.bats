@@ -2683,6 +2683,10 @@ run_xfail_test() {
     run_test "tests/values_basic"
 }
 
+@test "var_decl_concrete_to_interface_box" {
+    run_test "tests/var_decl_concrete_to_interface_box"
+}
+
 @test "var_len_make" {
     run_test "tests/var_len_make"
 }
@@ -2783,6 +2787,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/http_client"
 }
 
+@test "XFAIL: nested_pointer_slice_field_display" {
+    run_xfail_test "tests/XFAIL/nested_pointer_slice_field_display"
+}
+
 @test "XFAIL: panic_recover" {
     run_xfail_test "tests/XFAIL/panic_recover"
 }
@@ -2809,9 +2817,5 @@ run_xfail_test() {
 
 @test "XFAIL: unsafe_pointer_ops" {
     run_xfail_test "tests/XFAIL/unsafe_pointer_ops"
-}
-
-@test "XFAIL: var_decl_concrete_to_interface_box" {
-    run_xfail_test "tests/XFAIL/var_decl_concrete_to_interface_box"
 }
 # END GENERATED TESTS
