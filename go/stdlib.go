@@ -4663,6 +4663,9 @@ where
 
 // transpilePanic handles the panic() builtin function
 func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) > 0 && writePanicAnyArg(out, call.Args[0]) {
+		return
+	}
 	out.WriteString("panic!(")
 	if len(call.Args) > 0 {
 		// Check if the argument is a string literal
@@ -4701,6 +4704,30 @@ func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString("\"explicit panic\"")
 	}
 	out.WriteString(")")
+}
+
+func writePanicAnyArg(out *strings.Builder, arg ast.Expr) bool {
+	if !isEmptyInterfaceValueExpr(arg) {
+		return false
+	}
+	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
+		return false
+	}
+	if NeedsConcurrentWrapper() {
+		out.WriteString("std::panic::panic_any(")
+		if !writeExistingAnyBoxClone(out, arg) {
+			return false
+		}
+		out.WriteString(")")
+		return true
+	}
+	NeedFormatAny()
+	out.WriteString("panic!(\"{}\", { let __any_holder = ")
+	TranspileExpressionContext(out, arg, LValue)
+	out.WriteString(".clone(); let __any_guard = __any_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; format_any(__any_guard.as_ref().expect(\"nil interface in panic argument\").as_ref()) })")
+	return true
 }
 
 // writePanicDisplayArg emits `"{}", <unwrapped arg>` so panic! can format

@@ -1063,6 +1063,10 @@ func writeVariadicPackedElementValue(out *strings.Builder, arg ast.Expr, elemTyp
 }
 
 func writeExistingAnyVariadicElementValue(out *strings.Builder, arg ast.Expr) bool {
+	return writeExistingAnyBoxClone(out, arg)
+}
+
+func writeExistingAnyBoxClone(out *strings.Builder, arg ast.Expr) bool {
 	if !isEmptyInterfaceValueExpr(arg) {
 		return false
 	}

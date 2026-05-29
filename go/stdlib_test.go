@@ -75,6 +75,55 @@ func warn(field string) {
 	}
 }
 
+func TestPanicAnyFormatsInterfacePayload(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func fail(value any) {
+	panic(value)
+}
+`)
+
+	if strings.Contains(rust, "panic!(\"{}\", (*value.") {
+		t.Fatalf("panic(any) should not display the raw Box<dyn Any> payload:\n%s", rust)
+	}
+	if !strings.Contains(rust, "format_any(") {
+		t.Fatalf("panic(any) should format through format_any in single-threaded lowering:\n%s", rust)
+	}
+}
+
+func TestConcurrentPanicAnyUsesPanicAnyPayload(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func fail(value any) {
+	done := make(chan bool)
+	_ = done
+	panic(value)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	prevDetector := GetConcurrencyDetector()
+	detector := NewConcurrencyDetector()
+	detector.AnalyzeFile(file)
+	SetConcurrencyDetector(detector)
+	defer SetConcurrencyDetector(prevDetector)
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+
+	if strings.Contains(rust, "panic!(\"{}\", (*value.") {
+		t.Fatalf("concurrent panic(any) should not display the raw Box<dyn Any> payload:\n%s", rust)
+	}
+	if !strings.Contains(rust, "std::panic::panic_any(") || !strings.Contains(rust, "go_any_clone(") {
+		t.Fatalf("concurrent panic(any) should preserve the payload through panic_any/go_any_clone:\n%s", rust)
+	}
+}
+
 func TestCopyToSliceTypeAssertionUsesBareDestination(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
