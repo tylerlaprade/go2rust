@@ -1394,6 +1394,43 @@ func caller() int {
 	}
 }
 
+func TestShortDeclShadowingBareTupleResultRegistersWrappedLocal(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type box struct {
+	flag bool
+}
+
+func source() (int, bool) {
+	return 0, true
+}
+
+func flip(b *box) bool {
+	_, flag := source()
+	if flag {
+		flag := true
+		flag = !flag
+		b.flag = flag
+		return flag
+	}
+	return flag
+}
+`)
+
+	if strings.Contains(rust, "let new_val = !flag; flag = new_val;") {
+		t.Fatalf("shadowed wrapped bool local should not inherit the outer bare tuple slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut flag = ") ||
+		(!strings.Contains(rust, "Rc::new(RefCell::new(Some(true)))") &&
+			!strings.Contains(rust, "Arc::new(Mutex::new(Some(true)))")) {
+		t.Fatalf("inner bool short declaration should remain a wrapped local:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = !(*flag.borrow().as_ref().unwrap())") &&
+		!strings.Contains(rust, "let new_val = !(*flag.lock().unwrap().as_ref().unwrap())") {
+		t.Fatalf("shadowed wrapped bool assignment should unwrap the inner local:\n%s", rust)
+	}
+}
+
 func TestSliceTypeAssertionAssignmentStoresAssertedSliceInHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

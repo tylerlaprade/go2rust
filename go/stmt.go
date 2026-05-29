@@ -230,6 +230,35 @@ func registerBareShortDecl(lhs ast.Expr) {
 	}
 }
 
+func registerDefaultShortDeclBindings(lhs []ast.Expr) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return
+	}
+	vt := GetVarTable()
+	if vt == nil {
+		return
+	}
+	for _, expr := range lhs {
+		ident, ok := expr.(*ast.Ident)
+		if !ok || ident.Name == "_" || isVarDeclaredInCurrentScope(ident.Name) {
+			continue
+		}
+		obj, ok := typeInfo.info.Defs[ident]
+		if !ok || obj == nil {
+			continue
+		}
+		info := &VarInfo{
+			WrapLevel: WrapFull,
+			Source:    SourceLocal,
+		}
+		if typ := typeInfo.GetType(ident); typ != nil {
+			info.RustType = goTypesTypeToRust(typ)
+		}
+		vt.Register(ident.Name, info)
+	}
+}
+
 func writeBareScalarAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	ident, ok := lhs.(*ast.Ident)
 	if !ok || ident.Name == "_" || !isVarBare(ident.Name) {
@@ -7216,6 +7245,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 	case *ast.AssignStmt:
+		if s.Tok == token.DEFINE {
+			registerDefaultShortDeclBindings(s.Lhs)
+		}
+
 		// Check if this is a map index assignment using type information
 		isMapIndexAssign := false
 		if len(s.Lhs) == 1 && len(s.Rhs) == 1 && s.Tok == token.ASSIGN {
