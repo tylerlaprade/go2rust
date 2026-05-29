@@ -2002,3 +2002,27 @@ func (p *parser) parse() {
 		t.Fatalf("deferred closure compound assignment should read the captured clone:\n%s", rust)
 	}
 }
+
+func TestTrailingInfiniteForWithDeferSuppressesFinalDeferDrain(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type parser struct {
+	nestLev int
+}
+
+func (p *parser) parse() int {
+	var n int
+	defer func() { p.nestLev -= n }()
+	for n = 1; ; n++ {
+		if n > 2 {
+			return p.nestLev
+		}
+		p.nestLev++
+	}
+}
+`)
+
+	if got := strings.Count(rust, "// Execute deferred functions"); got != 1 {
+		t.Fatalf("infinite trailing for loop should not emit a second final defer drain, got %d:\n%s", got, rust)
+	}
+}

@@ -1838,6 +1838,42 @@ func stmtContainsBreakForCurrentSwitch(stmt ast.Stmt) bool {
 	}
 }
 
+func stmtContainsBreakForCurrentLoop(stmt ast.Stmt) bool {
+	switch s := stmt.(type) {
+	case *ast.BranchStmt:
+		return s.Tok == token.BREAK && s.Label == nil
+	case *ast.BlockStmt:
+		return stmtListContainsBreakForCurrentLoop(s.List)
+	case *ast.IfStmt:
+		if stmtListContainsBreakForCurrentLoop(s.Body.List) {
+			return true
+		}
+		if s.Else != nil {
+			return stmtContainsBreakForCurrentLoop(s.Else)
+		}
+		return false
+	case *ast.LabeledStmt:
+		return stmtContainsBreakForCurrentLoop(s.Stmt)
+	case *ast.ForStmt, *ast.RangeStmt, *ast.SwitchStmt, *ast.TypeSwitchStmt, *ast.SelectStmt:
+		return false
+	default:
+		return false
+	}
+}
+
+func stmtListContainsBreakForCurrentLoop(stmts []ast.Stmt) bool {
+	for _, stmt := range stmts {
+		if stmtContainsBreakForCurrentLoop(stmt) {
+			return true
+		}
+	}
+	return false
+}
+
+func forStmtTerminates(stmt *ast.ForStmt) bool {
+	return stmt != nil && stmt.Cond == nil && stmt.Body != nil && !stmtListContainsBreakForCurrentLoop(stmt.Body.List)
+}
+
 func stmtListContainsBreakForCurrentSwitch(stmts []ast.Stmt) bool {
 	for _, stmt := range stmts {
 		if stmtContainsBreakForCurrentSwitch(stmt) {
@@ -1878,6 +1914,10 @@ func stmtTerminates(stmt ast.Stmt) bool {
 		return switchStmtTerminates(s)
 	case *ast.TypeSwitchStmt:
 		return typeSwitchStmtTerminates(s)
+	case *ast.ForStmt:
+		return forStmtTerminates(s)
+	case *ast.LabeledStmt:
+		return stmtTerminates(s.Stmt)
 	default:
 		return false
 	}
