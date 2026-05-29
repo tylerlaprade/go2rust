@@ -2047,6 +2047,91 @@ func (xs Items) subset(ys Items) bool {
 	}
 }
 
+func TestNamedSliceNilConversionMethodReceiverUsesNamedValue(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+type Items []int
+
+func start() {
+	go func() {}()
+}
+
+func (z Items) shift(xs Items, s uint) Items {
+	return z
+}
+
+func use(xs Items, s uint) Items {
+	return Items(nil).shift(xs, s)
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "None::<Items>") {
+		t.Fatalf("named-slice nil conversion receiver should not be a missing Items handle, got:\n%s", mainRS)
+	}
+	if strings.Contains(mainRS, "Arc::new(Mutex::new(None::<Items>)).shift") {
+		t.Fatalf("named-slice nil conversion receiver should call the method on an Items value, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "Items(Arc::new(Mutex::new(None::<Vec<i32>>))).shift") {
+		t.Fatalf("named-slice nil conversion receiver should construct the named slice value, got:\n%s", mainRS)
+	}
+}
+
+func TestUnaryMinusWrappedIntFieldUsesInnerValue(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+type decimal struct {
+	mant []byte
+	exp  int
+}
+
+func start() {
+	go func() {}()
+}
+
+func appendZeros(buf []byte, n int) []byte {
+	return buf
+}
+
+func (d *decimal) String() []byte {
+	var buf []byte
+	if d.exp <= 0 {
+		buf = make([]byte, 0, 2+(-d.exp)+len(d.mant))
+		buf = appendZeros(buf, -d.exp)
+	}
+	return buf
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "-self.exp.clone()") {
+		t.Fatalf("unary minus on wrapped int field should unwrap the field value, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "-({ let __selector_holder = self.exp.clone();") {
+		t.Fatalf("unary minus on wrapped int field should negate the inner value, got:\n%s", mainRS)
+	}
+}
+
 func TestNumericTypeDefinitionOps(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

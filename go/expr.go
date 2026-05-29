@@ -387,6 +387,28 @@ func writeUnsignedUnaryMinus(out *strings.Builder, expr ast.Expr) bool {
 	return true
 }
 
+func isSignedNumericType(typ types.Type) bool {
+	if typ == nil || isUnsignedIntegerType(typ) {
+		return false
+	}
+	if named, ok := types.Unalias(typ).(*types.Named); ok {
+		typ = named.Underlying()
+	}
+	basic, ok := types.Unalias(typ).(*types.Basic)
+	return ok && basic.Info()&types.IsNumeric != 0
+}
+
+func writeSignedUnaryMinus(out *strings.Builder, expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isSignedNumericType(typeInfo.GetType(expr)) {
+		return false
+	}
+	out.WriteString("-(")
+	writeNumericConversionValue(out, expr)
+	out.WriteString(")")
+	return true
+}
+
 func writeStdlibSelectorConstAsUsize(out *strings.Builder, expr ast.Expr) bool {
 	sel, ok := expr.(*ast.SelectorExpr)
 	if !ok {
@@ -7007,6 +7029,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if writeUnsignedUnaryMinus(out, e.X) {
 				return
 			}
+			if writeSignedUnaryMinus(out, e.X) {
+				return
+			}
 			out.WriteString("-")
 			TranspileExpression(out, e.X)
 		case token.XOR:
@@ -9155,6 +9180,9 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	if writeFunctionSignatureTypeConversion(out, call) {
 		return
 	}
+	if writeNamedSliceNilConversion(out, call) {
+		return
+	}
 	if writeTypedNilConversion(out, call) {
 		return
 	}
@@ -9579,6 +9607,22 @@ func writeTypedNilConversion(out *strings.Builder, call *ast.CallExpr) bool {
 		return true
 	}
 	writeTypedWrappedNone(out, goTypesTypeToRust(targetType))
+	return true
+}
+
+func writeNamedSliceNilConversion(out *strings.Builder, call *ast.CallExpr) bool {
+	targetType, ok := typedNilConversionType(call)
+	if !ok {
+		return false
+	}
+	named, sliceType, ok := namedSliceTypeFromType(targetType)
+	if !ok {
+		return false
+	}
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("(")
+	writeTypedWrappedNone(out, goTypesTypeToRust(sliceType))
+	out.WriteString(")")
 	return true
 }
 
