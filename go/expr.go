@@ -13555,6 +13555,11 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 	if writeGoErrorCallArgument(out, arg, expected) {
 		return
 	}
+	if _, ok := localNamedInterfaceTypeNameFromTypes(expected); ok {
+		if writeLocalInterfaceReferenceCallArgument(out, arg, expected) {
+			return
+		}
+	}
 	if writeEmptyInterfaceCallArgument(out, arg, expected) {
 		return
 	}

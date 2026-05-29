@@ -766,6 +766,35 @@ func main() {
 	}
 }
 
+func TestVariadicFixedLocalInterfaceArgumentBoxesIndexedPointer(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type interface{ Underlying() Type }
+
+type Basic struct{}
+
+func (*Basic) Underlying() Type { return nil }
+
+var Typ = []*Basic{{}}
+
+func makeSig(res Type, args ...Type) {}
+
+func use(x Type) {
+	makeSig(Typ[0], x)
+}
+`)
+
+	if strings.Contains(rust, "make_sig(Rc::new(RefCell::new(Some({") ||
+		strings.Contains(rust, "make_sig(Arc::new(Mutex::new(Some({") ||
+		strings.Contains(rust, "Some((*Typ.borrow().as_ref().unwrap())[(0) as usize].clone())") {
+		t.Fatalf("fixed local-interface argument should not wrap indexed pointer handles directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "make_sig(Rc::new(RefCell::new(Some(Box::new((*(*Typ.borrow().as_ref().unwrap())") &&
+		!strings.Contains(rust, "make_sig(Arc::new(Mutex::new(Some(Box::new((*(*Typ.lock().unwrap().as_ref().unwrap())") {
+		t.Fatalf("fixed local-interface argument should box the indexed pointer pointee:\n%s", rust)
+	}
+}
+
 func TestWrappedStringCallArgumentUsesShortGuardBlock(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
