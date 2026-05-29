@@ -12290,7 +12290,19 @@ func writeTypeArgsFromInstance(out *strings.Builder, instance types.Instance) {
 		if i > 0 {
 			out.WriteString(", ")
 		}
-		out.WriteString(goTypesTypeToRust(instance.TypeArgs.At(i)))
+		// A Rust type parameter is the RAW type; values of param type are
+		// stored wrapped as Arc<Mutex<Option<N>>> in the generic signature.
+		// goTypesTypeToRust already yields the raw form for value/struct args
+		// (int -> i32, T -> T), but for a pointer arg (*Ident) it yields the
+		// wrapped handle Arc<Mutex<Option<Ident>>> — which would make N the
+		// handle (not impl'ing the bound interface, and double-wrapping the
+		// signature). Emit the pointee's raw type so N matches the convention.
+		typeArg := instance.TypeArgs.At(i)
+		if ptr, ok := types.Unalias(typeArg).(*types.Pointer); ok {
+			out.WriteString(goTypesTypeToRust(ptr.Elem()))
+		} else {
+			out.WriteString(goTypesTypeToRust(typeArg))
+		}
 	}
 	out.WriteString(">")
 }

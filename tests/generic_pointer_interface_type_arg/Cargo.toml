@@ -1,0 +1,8 @@
+[package]
+name = "generic_pointer_interface_type_arg"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "generic_pointer_interface_type_arg"
+path = "main.rs"
