@@ -4591,6 +4591,16 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 	if ident, ok := expr.(*ast.Ident); ok {
 		_, isRangeVar := rangeLoopVars[ident.Name]
 		_, isLocalConst := localConstants[ident.Name]
+		if isRangeVar && rangeLoopVarIsUsize(ident.Name) && expected != nil {
+			if rustCast := rustCastForExpectedBasic(expected); rustCast != "" {
+				out.WriteString("(")
+				out.WriteString(EscapeRustIdent(ident.Name))
+				out.WriteString(" as ")
+				out.WriteString(rustCast)
+				out.WriteString(")")
+				return
+			}
+		}
 		if isLocalConst {
 			if writeConstIdentForCompoundExpected(out, ident, expected, RustIdentForUse(ident)) {
 				return
@@ -4619,16 +4629,6 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 				out.WriteString(".clone()")
 			}
 			return
-		}
-		if isRangeVar && rangeLoopVarIsUsize(ident.Name) && expected != nil {
-			if rustCast := rustCastForExpectedBasic(expected); rustCast != "" {
-				out.WriteString("(")
-				out.WriteString(EscapeRustIdent(ident.Name))
-				out.WriteString(" as ")
-				out.WriteString(rustCast)
-				out.WriteString(")")
-				return
-			}
 		}
 		out.WriteString(EscapeRustIdent(ident.Name))
 		return
@@ -4872,6 +4872,25 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 		if writeIndexedSequenceAssignmentFromTemp(out, indexExpr, tmpName, tmpWrapped) {
 			return
 		}
+	}
+	if ident, ok := lhs.(*ast.Ident); ok && isVarBare(ident.Name) {
+		out.WriteString(" ")
+		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(" = ")
+		if tmpWrapped {
+			out.WriteString("(*")
+			out.WriteString(tmpName)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).clone()")
+		} else {
+			out.WriteString(tmpName)
+		}
+		if cast := parallelTempBareCast(lhs, rhs); cast != "" {
+			out.WriteString(" as ")
+			out.WriteString(cast)
+		}
+		out.WriteString(";")
+		return
 	}
 
 	out.WriteString(" *")

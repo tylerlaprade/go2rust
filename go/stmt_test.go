@@ -1901,3 +1901,50 @@ func assign(typ *table, comparable bool) {
 		t.Fatalf("function literal assignment should write through the cloned target handle:\n%s", rust)
 	}
 }
+
+func TestParallelAssignmentBareScalarsMutatesBareLocals(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func triple() (int, int, bool) {
+	return 1, 2, true
+}
+
+func swap() int {
+	i, _, _ := triple()
+	i2, _, _ := triple()
+	i, i2 = i2, i
+	return i
+}
+`)
+
+	if strings.Contains(rust, "*i.borrow") || strings.Contains(rust, "*i.lock") ||
+		strings.Contains(rust, "*i2.borrow") || strings.Contains(rust, "*i2.lock") {
+		t.Fatalf("parallel assignment of bare scalars should not treat locals as wrapper handles:\n%s", rust)
+	}
+	if !strings.Contains(rust, "i = __tmp_0;") || !strings.Contains(rust, "i2 = __tmp_1;") {
+		t.Fatalf("parallel assignment of bare scalars should assign temporaries directly:\n%s", rust)
+	}
+}
+
+func TestCompoundAssignRangeIndexCastsToIntField(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type scanner struct {
+	rdOffset int
+	src []byte
+}
+
+func (s *scanner) advance() {
+	for rdOffset := range s.src[s.rdOffset:] {
+		s.rdOffset += rdOffset
+	}
+}
+`)
+
+	if strings.Contains(rust, "let __rhs = rdOffset;") {
+		t.Fatalf("compound assignment to int field should not use usize range index without a cast:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __rhs = (rdOffset as i32);") {
+		t.Fatalf("compound assignment to int field should cast usize range index to i32:\n%s", rust)
+	}
+}
