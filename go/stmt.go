@@ -351,6 +351,47 @@ func writeBareScalarIncDec(out *strings.Builder, expr ast.Expr, op token.Token) 
 	return true
 }
 
+func incDecStepForType(typ types.Type) string {
+	if basic, ok := types.Unalias(typ).(*types.Basic); ok {
+		switch basic.Kind() {
+		case types.Float32, types.Float64:
+			return "1.0"
+		}
+	}
+	return "1"
+}
+
+func writeIndexedIncDec(out *strings.Builder, indexExpr *ast.IndexExpr, op token.Token) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString("/* ERROR: Cannot determine indexed inc/dec target - type information required */ ")
+		return true
+	}
+	if typeInfo.IsMap(indexExpr.X) {
+		return false
+	}
+	elemType := typeInfo.GetArrayOrSliceElemType(indexExpr.X)
+	if elemType == nil {
+		out.WriteString("/* ERROR: Cannot determine indexed inc/dec element type - type information required */ unimplemented!(\"type info required for indexed inc/dec\")")
+		return true
+	}
+
+	out.WriteString("{ let __idx = ")
+	TranspileExpression(out, indexExpr.Index)
+	out.WriteString(" as usize; let mut __seq_guard = ")
+	TranspileExpressionContext(out, indexExpr.X, LValue)
+	WriteBorrowMethod(out, true)
+	out.WriteString("; let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] ")
+	if op == token.INC {
+		out.WriteString("+ ")
+	} else {
+		out.WriteString("- ")
+	}
+	out.WriteString(incDecStepForType(elemType))
+	out.WriteString("; }")
+	return true
+}
+
 func compositeLiteralEmitsBareStructValue(lit *ast.CompositeLit) bool {
 	if lit == nil {
 		return false
@@ -8954,6 +8995,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	case *ast.IncDecStmt:
 		if indexExpr, isMapIndex := isMapIndexExpression(s.X); isMapIndex {
 			writeMapElementUpdate(out, indexExpr, s.Tok, nil)
+		} else if indexExpr, ok := s.X.(*ast.IndexExpr); ok && writeIndexedIncDec(out, indexExpr, s.Tok) {
+			// array/slice element inc/dec mutates the underlying sequence directly.
 		} else if writeIntegerTypeParamIncDec(out, s.X, s.Tok) {
 			// Generic integer increments use the typed helper instead of a raw Rust integer literal.
 		} else if writeNamedIntegerIncDec(out, s.X, s.Tok) {

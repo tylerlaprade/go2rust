@@ -1797,6 +1797,26 @@ func (p *parser) assign(i int) [2]Pos {
 	}
 }
 
+func TestIndexedSelectorIncDecMutatesSequenceElement(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type decimal struct {
+	mant []byte
+}
+
+func (x *decimal) bump(n int) {
+	x.mant[n-1]++
+}
+`)
+
+	if strings.Contains(rust, ".clone() }.lock().unwrap()") {
+		t.Fatalf("indexed selector inc/dec should not lock a cloned scalar element:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + 1;") {
+		t.Fatalf("indexed selector inc/dec should mutate the underlying sequence element:\n%s", rust)
+	}
+}
+
 func TestReturnBitClearUsesRustOperator(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
