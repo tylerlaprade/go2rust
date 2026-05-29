@@ -3160,6 +3160,9 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 }
 
 func writeConstExprForRustType(out *strings.Builder, expr ast.Expr, iotaValue int, rustType string) {
+	if rustType == "&'static str" && writeConstStringLiteralValue(out, expr) {
+		return
+	}
 	if writeIntegerTypedFloatConstLiteral(out, expr, rustType) {
 		return
 	}

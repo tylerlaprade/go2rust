@@ -696,6 +696,104 @@ func convertOp(ok bool) func(value) value {
 	}
 }
 
+func TestPackageStringVarFromUntypedConstUsesOwnedString(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const defaultGO_LDSO = ""
+
+var GO_LDSO = defaultGO_LDSO
+`)
+
+	if strings.Contains(rust, "Some(DEFAULT_G_O__L_D_S_O)") {
+		t.Fatalf("string var initialized from an untyped string const should not store a borrowed const:\n%s", rust)
+	}
+	if !strings.Contains(rust, `Some("".to_string())`) {
+		t.Fatalf("string var initialized from an untyped string const should store an owned String:\n%s", rust)
+	}
+}
+
+func TestStringShortDeclFromUntypedConstUsesOwnedString(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const DefaultGOARM = "7"
+
+func goarm() string {
+	def := DefaultGOARM
+	def = "6"
+	return def
+}
+`)
+
+	if strings.Contains(rust, "Some(DEFAULT_G_O_A_R_M)") {
+		t.Fatalf("string short declaration from an untyped string const should not store a borrowed const:\n%s", rust)
+	}
+	if !strings.Contains(rust, `Some("7".to_string())`) {
+		t.Fatalf("string short declaration from an untyped string const should store an owned String:\n%s", rust)
+	}
+}
+
+func TestStrconvAtoiStringSliceUsesOwnedStringInput(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "strconv"
+
+func year(v string, i int) int {
+	year, _ := strconv.Atoi(v[:i])
+	return year
+}
+`)
+
+	if strings.Contains(rust, "let __atoi_input = Rc::new") || strings.Contains(rust, "let __atoi_input = Arc::new") {
+		t.Fatalf("strconv.Atoi should parse an owned string value, not a wrapped string handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "match __atoi_input.parse::<i32>()") {
+		t.Fatalf("strconv.Atoi should parse the prepared string input:\n%s", rust)
+	}
+}
+
+func TestReflectMethodValueMapAssignmentUsesTypedClosure(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "reflect"
+
+func use(field reflect.Value) {
+	names := map[string]func(bool){}
+	names["x"] = field.SetBool
+}
+`)
+
+	if strings.Contains(rust, ".set_bool.clone()") {
+		t.Fatalf("method value assigned into function map should lower as a typed closure, not a field clone:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(move |") || !strings.Contains(rust, ".set_bool(") {
+		t.Fatalf("method value assigned into function map should emit a callable closure:\n%s", rust)
+	}
+}
+
+func TestStructLiteralWrappingBareStructVarClonesFieldValues(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "go/ast"
+
+type Holder struct {
+	First ast.Field
+	Second ast.Field
+}
+
+func makeHolder() Holder {
+	baseline := ast.Field{}
+	return Holder{First: baseline, Second: baseline}
+}
+`)
+
+	if strings.Contains(rust, "Some(baseline))") {
+		t.Fatalf("struct literal field wrappers should not move a bare struct local:\n%s", rust)
+	}
+	if strings.Count(rust, "Some(baseline.clone())") < 2 {
+		t.Fatalf("struct literal should clone bare non-copy struct values for wrapped fields:\n%s", rust)
+	}
+}
+
 func TestNestedReturnsInsideTailControlFlowStayExplicit(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

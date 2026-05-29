@@ -4796,6 +4796,9 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		} else if isVarBare(valIdent.Name) {
 			WriteWrapperPrefix(out)
 			TranspileExpression(out, value)
+			if !isCopyTypeExpression(value) {
+				out.WriteString(".clone()")
+			}
 			WriteWrapperSuffix(out)
 		} else {
 			// It's already wrapped, just clone it.
@@ -8452,7 +8455,18 @@ func selectorFunctionValueSignature(expr ast.Expr) (*types.Signature, bool) {
 		return nil, false
 	}
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.IsFunction(sel.Sel) {
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil, false
+	}
+	if selection, ok := typeInfo.info.Selections[sel]; ok {
+		if selection.Kind() == types.MethodVal {
+			return signatureFromType(typeInfo.GetType(sel))
+		}
+		if selection.Kind() != types.FieldVal {
+			return nil, false
+		}
+	}
+	if !typeInfo.IsFunction(sel.Sel) {
 		return nil, false
 	}
 	typ := typeInfo.GetType(sel)
@@ -8461,6 +8475,15 @@ func selectorFunctionValueSignature(expr ast.Expr) (*types.Signature, bool) {
 	}
 	sig, ok := typ.Underlying().(*types.Signature)
 	return sig, ok
+}
+
+func isTypedMethodValueSelector(sel *ast.SelectorExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || sel == nil {
+		return false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	return ok && selection.Kind() == types.MethodVal
 }
 
 func pointerMethodValueSignature(expr ast.Expr) (*types.Signature, bool) {
@@ -8604,6 +8627,10 @@ func writeFunctionValueExpressionBox(out *strings.Builder, expr ast.Expr, sig *t
 		writeFunctionValueBox(out, ident, sig)
 		return
 	}
+	if sel, ok := expr.(*ast.SelectorExpr); ok && isTypedMethodValueSelector(sel) {
+		writeMethodValueExpressionBox(out, sel, sig)
+		return
+	}
 	boxType := signatureToBoxDynFn(sig)
 	out.WriteString("Box::new(move |")
 	params := sig.Params()
@@ -8642,6 +8669,68 @@ func writeFunctionValueExpressionBox(out *strings.Builder, expr ast.Expr, sig *t
 	}
 	out.WriteString(") }) as ")
 	out.WriteString(boxType)
+}
+
+func writeMethodValueExpressionBox(out *strings.Builder, sel *ast.SelectorExpr, sig *types.Signature) {
+	boxType := signatureToBoxDynFn(sig)
+	out.WriteString("{ let mut __recv = ")
+	writeMethodValueReceiverSnapshot(out, sel.X)
+	out.WriteString("; Box::new(move |")
+	params := sig.Params()
+	for i := 0; i < params.Len(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(fmt.Sprintf("__arg%d: %s", i, goTypesParamTypeToRust(params.At(i).Type())))
+	}
+	out.WriteString("|")
+
+	results := sig.Results()
+	if results.Len() > 0 {
+		out.WriteString(" -> ")
+		if results.Len() == 1 {
+			out.WriteString(goTypesReturnTypeToRust(results.At(0).Type()))
+		} else {
+			retTypes := make([]string, 0, results.Len())
+			for i := 0; i < results.Len(); i++ {
+				retTypes = append(retTypes, goTypesReturnTypeToRust(results.At(i).Type()))
+			}
+			out.WriteString("(")
+			out.WriteString(strings.Join(retTypes, ", "))
+			out.WriteString(")")
+		}
+	}
+
+	out.WriteString(" { __recv.")
+	out.WriteString(rustMethodSelectorName(sel))
+	out.WriteString("(")
+	for i := 0; i < params.Len(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(fmt.Sprintf("__arg%d", i))
+	}
+	out.WriteString(") }) as ")
+	out.WriteString(boxType)
+	out.WriteString(" }")
+}
+
+func writeMethodValueReceiverSnapshot(out *strings.Builder, expr ast.Expr) {
+	if ident, ok := unwrapParens(expr).(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
+		out.WriteString("self.clone()")
+		return
+	}
+	if writeOwnedExpressionValue(out, expr) {
+		return
+	}
+	if isExpressionResultBare(expr) {
+		TranspileExpression(out, expr)
+		return
+	}
+	out.WriteString("(*")
+	TranspileExpressionContext(out, expr, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()")
 }
 
 func writeWrappedFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Signature) {

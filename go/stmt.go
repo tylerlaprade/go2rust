@@ -5075,6 +5075,31 @@ func writeNamedIntegerWrappedInitializer(out *strings.Builder, expr ast.Expr) bo
 	return true
 }
 
+func writeStringConstWrappedInitializer(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	expected := typeInfo.GetType(lhs)
+	if expected == nil {
+		if ident, ok := lhs.(*ast.Ident); ok {
+			if obj := typeInfo.GetObject(ident); obj != nil {
+				expected = obj.Type()
+			}
+		}
+	}
+	if !isBasicStringGoType(expected) {
+		return false
+	}
+	if _, ok := constStringLiteral(rhs); !ok {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	writeConstExpressionForExpectedString(out, rhs, expected)
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeNamedIntegerAssignmentValue(out *strings.Builder, expr ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -8079,6 +8104,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											// Existing error values are already represented by a handle.
 										} else if writeStdlibInterfaceFieldValueCopy(out, rhs) {
 											// Copied by value from an existing stdlib interface field.
+										} else if writeStringConstWrappedInitializer(out, s.Lhs[i], rhs) {
+											// Untyped string constants default to owned Go strings in local variables.
 										} else if writeWrappedOwnedExpressionValue(out, rhs) {
 											// Copied by value from an existing wrapped field or handle.
 										} else if ident, ok := rhs.(*ast.Ident); ok {
@@ -8110,6 +8137,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											// RHS is a pointer-typed variable (e.g., z := y where y is *int)
 											// Clone the Rc to preserve aliasing instead of copying the inner value
 											writePointerShortDeclRhsValue(out, rhs)
+										} else if writeStringConstWrappedInitializer(out, s.Lhs[i], rhs) {
+											// Untyped string constants default to owned Go strings in local variables.
 										} else if writeNamedIntegerWrappedInitializer(out, rhs) {
 											// Named integer arithmetic returns the underlying scalar; short declarations store the named value.
 										} else {

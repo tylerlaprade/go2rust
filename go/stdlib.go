@@ -2420,8 +2420,8 @@ func transpileStrconvAtoi(out *strings.Builder, call *ast.CallExpr) {
 		// Copy scalar, so it lowers to a bare i32 at the boundary; the error
 		// slot keeps the wrapped representation.
 		out.WriteString("{ let __atoi_input = ")
-		TranspileExpression(out, call.Args[0])
-		out.WriteString(".clone(); match __atoi_input.parse::<i32>() { ")
+		writeStringSequenceValue(out, call.Args[0])
+		out.WriteString("; match __atoi_input.parse::<i32>() { ")
 		out.WriteString("Ok(n) => (n, ")
 		WriteWrappedNone(out)
 		out.WriteString("), ")

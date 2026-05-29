@@ -181,6 +181,21 @@ const (
 	}
 }
 
+func TestStringConstAliasUsesConstantValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const defaultGOEXPERIMENT = ""
+const DefaultGOEXPERIMENT = defaultGOEXPERIMENT
+`)
+
+	if strings.Contains(rust, "pub const DEFAULT_G_O_E_X_P_E_R_I_M_E_N_T: &'static str = DEFAULT_G_O_E_X_P_E_R_I_M_E_N_T;") {
+		t.Fatalf("string const alias should not self-reference after Rust name normalization:\n%s", rust)
+	}
+	if !strings.Contains(rust, `pub const DEFAULT_G_O_E_X_P_E_R_I_M_E_N_T: &'static str = "";`) {
+		t.Fatalf("string const alias should use the go/types constant value:\n%s", rust)
+	}
+}
+
 func TestTypedVarInitializerCastsUntypedConstPeer(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

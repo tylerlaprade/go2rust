@@ -5,6 +5,7 @@ import (
 	"go/constant"
 	"go/token"
 	"go/types"
+	"strconv"
 	"strings"
 )
 
@@ -295,6 +296,14 @@ func constExpressionValue(expr ast.Expr) (constant.Value, bool) {
 			}
 		}
 	}
+	if sel, ok := expr.(*ast.SelectorExpr); ok {
+		if obj, ok := typeInfo.GetObject(sel.Sel).(*types.Const); ok && obj.Val() != nil {
+			return obj.Val(), true
+		}
+	}
+	if paren, ok := expr.(*ast.ParenExpr); ok {
+		return constExpressionValue(paren.X)
+	}
 	return nil, false
 }
 
@@ -303,6 +312,9 @@ func writeConstExpressionForExpectedGoType(out *strings.Builder, value ast.Expr,
 		return true
 	}
 	if writeConstExpressionForExpectedNamedInteger(out, value, expected) {
+		return true
+	}
+	if writeConstExpressionForExpectedString(out, value, expected) {
 		return true
 	}
 	if writeConstExpressionForExpectedInteger(out, value, expected) {
@@ -327,6 +339,42 @@ func writeConstExpressionForExpectedGoType(out *strings.Builder, value ast.Expr,
 	}
 	TranspileExpression(out, value)
 	out.WriteString(" as u8")
+	return true
+}
+
+func constStringLiteral(expr ast.Expr) (string, bool) {
+	value, ok := constExpressionValue(expr)
+	if !ok || value.Kind() != constant.String {
+		return "", false
+	}
+	return RustStringLiteral(strconv.Quote(constant.StringVal(value))), true
+}
+
+func writeConstStringLiteralValue(out *strings.Builder, expr ast.Expr) bool {
+	lit, ok := constStringLiteral(expr)
+	if !ok {
+		return false
+	}
+	out.WriteString(lit)
+	return true
+}
+
+func isBasicStringGoType(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	basic, ok := types.Unalias(typ).(*types.Basic)
+	return ok && basic.Kind() == types.String
+}
+
+func writeConstExpressionForExpectedString(out *strings.Builder, value ast.Expr, expected types.Type) bool {
+	if !isBasicStringGoType(expected) {
+		return false
+	}
+	if !writeConstStringLiteralValue(out, value) {
+		return false
+	}
+	out.WriteString(".to_string()")
 	return true
 }
 
