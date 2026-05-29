@@ -4260,11 +4260,8 @@ func methodRequiresMutableReceiver(fn *ast.FuncDecl) bool {
 	return methodMutatesReceiver(fn, receiverNameForMethod(fn))
 }
 
-func methodReassignsValueReceiver(fn *ast.FuncDecl) bool {
+func methodReassignsReceiver(fn *ast.FuncDecl) bool {
 	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 || fn.Body == nil {
-		return false
-	}
-	if _, isPointer := fn.Recv.List[0].Type.(*ast.StarExpr); isPointer {
 		return false
 	}
 	found := false
@@ -4289,6 +4286,16 @@ func methodReassignsValueReceiver(fn *ast.FuncDecl) bool {
 		return true
 	})
 	return found
+}
+
+func methodReassignsValueReceiver(fn *ast.FuncDecl) bool {
+	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 {
+		return false
+	}
+	if _, isPointer := fn.Recv.List[0].Type.(*ast.StarExpr); isPointer {
+		return false
+	}
+	return methodReassignsReceiver(fn)
 }
 
 func collectMethodReceiverMutability(files []*ast.File, typeInfo *TypeInfo) map[string]bool {
@@ -4704,7 +4711,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 	}
 	prevCurrentReceiverRustAlias := currentReceiverRustAlias
 	currentReceiverRustAlias = ""
-	if methodReassignsValueReceiver(fn) {
+	if methodReassignsReceiver(fn) {
 		currentReceiverRustAlias = "__self"
 	}
 	defer func() {

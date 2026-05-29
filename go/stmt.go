@@ -4344,6 +4344,9 @@ func writePointerHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Ex
 	if typeInfo == nil || !typeInfo.IsPointer(lhs) || !typeInfo.IsPointer(rhs) {
 		return false
 	}
+	if ident, ok := lhs.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && currentReceiverRustAlias != "" {
+		return false
+	}
 	if _, ok := lhs.(*ast.SelectorExpr); ok {
 		var unsupported strings.Builder
 		if writeUnsupportedSliceElemPointerHandleValue(&unsupported, rhs, "slice element pointer cannot assign to pointer field") {

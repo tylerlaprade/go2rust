@@ -1118,6 +1118,34 @@ func (x *node) current() *node {
 	}
 }
 
+func TestPointerReceiverReassignmentUsesLocalReceiverCopy(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type node struct {
+	n int
+}
+
+func makeNode() *node {
+	return &node{n: 7}
+}
+
+func (x *node) reset() int {
+	x = makeNode()
+	return x.n
+}
+`)
+
+	if strings.Contains(rust, "self = new_val") {
+		t.Fatalf("pointer receiver reassignment should not assign a pointer handle to self:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut __self = self.clone();") {
+		t.Fatalf("pointer receiver reassignment should introduce a local receiver copy:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__self = __moved_val") {
+		t.Fatalf("pointer receiver reassignment should move the pointed value into the local receiver copy:\n%s", rust)
+	}
+}
+
 func TestNestedReturnsInsideTailControlFlowStayExplicit(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
