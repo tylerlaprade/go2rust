@@ -65,6 +65,14 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 	if !ok || !isNamedIntegerType(named) {
 		return false
 	}
+	if call, ok := expr.(*ast.CallExpr); ok {
+		if _, rustType, ok := namedIntegerConversionTarget(call); ok && len(call.Args) == 1 {
+			writeNumericConversionValue(out, call.Args[0])
+			out.WriteString(" as ")
+			out.WriteString(rustType)
+			return true
+		}
+	}
 	if isConstantExpression(expr) {
 		TranspileConstExpr(out, expr, 0)
 		return true
@@ -81,14 +89,6 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 	if lit, ok := expr.(*ast.BasicLit); ok {
 		out.WriteString(RustCharLiteral(lit.Value))
 		return true
-	}
-	if call, ok := expr.(*ast.CallExpr); ok {
-		if _, rustType, ok := namedIntegerConversionTarget(call); ok && len(call.Args) == 1 {
-			writeNumericConversionValue(out, call.Args[0])
-			out.WriteString(" as ")
-			out.WriteString(rustType)
-			return true
-		}
 	}
 	if _, ok := externalIntegerRustTypeForNamed(named); ok {
 		var value strings.Builder

@@ -863,6 +863,18 @@ func writeConstExpressionCastValue(out *strings.Builder, value ast.Expr) {
 			}
 		}
 	}
+	if typeInfo != nil {
+		if call, ok := value.(*ast.CallExpr); ok && typeInfo.IsTypeConversion(call) {
+			if named, ok := types.Unalias(typeInfo.GetType(call)).(*types.Named); ok && isNamedIntegerType(named) {
+				writeNumericConversionValue(out, call)
+				return
+			}
+		}
+	}
+	if _, ok := value.(*ast.UnaryExpr); ok && isConstantExpression(value) {
+		TranspileConstExpr(out, value, 0)
+		return
+	}
 	TranspileExpression(out, value)
 }
 
@@ -1166,7 +1178,7 @@ func writeNamedIntegerConstForExpected(out *strings.Builder, value ast.Expr, nam
 	out.WriteString(goTypesNamedTypeToRust(named))
 	out.WriteString("(")
 	WriteWrapperPrefix(out)
-	if isConstantExpression(value) {
+	if isConstantExpression(value) && !isNamedIntegerConversionCall(value) {
 		TranspileConstExpr(out, value, 0)
 	} else {
 		writeNumericConversionValue(out, value)
@@ -1176,6 +1188,19 @@ func writeNamedIntegerConstForExpected(out *strings.Builder, value ast.Expr, nam
 	WriteWrapperSuffix(out)
 	out.WriteString(")")
 	return true
+}
+
+func isNamedIntegerConversionCall(value ast.Expr) bool {
+	call, ok := value.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsTypeConversion(call) {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(call)).(*types.Named)
+	return ok && isNamedIntegerType(named)
 }
 
 func writeWrappedExpressionForExpectedType(out *strings.Builder, value ast.Expr, expected ast.Expr) {

@@ -1327,6 +1327,56 @@ func read(p *ctrl) ctrl {
 	}
 }
 
+func TestNamedIntegerPrimitiveConversionUsesInnerValue(t *testing.T) {
+	src := `package main
+
+type Word uint
+
+func widen(w Word) uint64 {
+	return uint64(w)
+}
+
+func mask(s uint) uint {
+	return uint(Word(1)<<s - 1)
+}
+
+func digit(n Word, s uint) byte {
+	for n>>s == 0 {
+		n *= 10
+	}
+	mask := Word(1)<<s - 1
+	d := n >> s
+	n &= mask
+	return byte(d + '0')
+}
+
+func forceConcurrent() {
+	go func() {}()
+}
+`
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", src, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	prevDetector := GetConcurrencyDetector()
+	detector := NewConcurrencyDetector()
+	detector.AnalyzeFile(file)
+	SetConcurrencyDetector(detector)
+	defer SetConcurrencyDetector(prevDetector)
+
+	rust := transpileParsedRegression(t, file, fset, typeInfo)
+	if strings.Contains(rust, "Word(Arc::new(Mutex::new(Some(1 as u64)))) as u64") ||
+		strings.Contains(rust, "Word(Rc::new(RefCell::new(Some(1 as u64)))) as u64") {
+		t.Fatalf("primitive conversion of named integer values must cast the inner scalar, not the named wrapper:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerConstReturnWrapsLocalPackageConst(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
