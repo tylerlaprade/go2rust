@@ -794,6 +794,26 @@ func makeHolder() Holder {
 	}
 }
 
+func TestParallelAssignmentToValueReceiverUsesReceiverAlias(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type nat []uint
+
+func (z nat) swap(x nat) nat {
+	var zz nat
+	zz, z = z, zz
+	return z
+}
+`)
+
+	if strings.Contains(rust, "*z.borrow") || strings.Contains(rust, "*z.lock") {
+		t.Fatalf("parallel assignment to reassigned value receiver should use the receiver alias, not the Go receiver name:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__self =") {
+		t.Fatalf("parallel assignment to value receiver should assign the receiver alias:\n%s", rust)
+	}
+}
+
 func TestNestedReturnsInsideTailControlFlowStayExplicit(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

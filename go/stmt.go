@@ -5254,6 +5254,9 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 	}
 
 	tmpWrapped := tempHoldsWrappedValue(rhs)
+	if writeParallelCurrentReceiverAssignmentTarget(out, lhs, tmpName, tmpWrapped) {
+		return
+	}
 	if indexExpr, ok := lhs.(*ast.IndexExpr); ok {
 		typeInfo := GetTypeInfo()
 		if typeInfo == nil {
@@ -5323,6 +5326,35 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 		}
 		out.WriteString(");")
 	}
+}
+
+func writeParallelCurrentReceiverAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string, tmpWrapped bool) bool {
+	ident, ok := lhs.(*ast.Ident)
+	if !ok || !isCurrentReceiverIdent(ident) || currentReceiverRustAlias == "" {
+		return false
+	}
+	out.WriteString(" ")
+	if tmpWrapped {
+		out.WriteString("{ let __moved_val = { let mut __guard = ")
+		out.WriteString(tmpName)
+		WriteBorrowMethod(out, true)
+		out.WriteString("; __guard.take().unwrap() }; ")
+		out.WriteString(currentReceiverRustAlias)
+		out.WriteString(" = __moved_val; }")
+		return true
+	}
+	out.WriteString(currentReceiverRustAlias)
+	out.WriteString(" = ")
+	out.WriteString(tmpName)
+	out.WriteString(";")
+	return true
+}
+
+func writeParallelAssignmentTempValue(out *strings.Builder, rhs ast.Expr) {
+	if writeOwnedExpressionValue(out, rhs) {
+		return
+	}
+	TranspileExpression(out, rhs)
 }
 
 func parallelTempNamedIntegerWrap(lhs ast.Expr, rhs ast.Expr) string {
@@ -7450,7 +7482,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString(" ")
 						}
 						out.WriteString(fmt.Sprintf("let __tmp_%d = ", i))
-						TranspileExpression(out, rhs)
+						writeParallelAssignmentTempValue(out, rhs)
 						out.WriteString(";")
 					}
 					// Then assign all LHS from temporaries
