@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"go/types"
 	"os"
 	"path/filepath"
 	"strings"
@@ -2552,6 +2553,113 @@ func main() {
 	}
 }
 
+func TestSourceStdlibReachabilityPrunesUnusedDeclarations(t *testing.T) {
+	t.Setenv(sourceStdlibPackagesEnv, "go/token")
+	prevCtx := GetTranspileContext()
+	SetTranspileContext(&TranspileContext{PackageMapping: map[string]string{"go/token": "go_token"}})
+	defer SetTranspileContext(prevCtx)
+	prevReachable := sourceStdlibReachable
+	defer SetSourceStdlibReachable(prevReachable)
+
+	fset := token.NewFileSet()
+	tokenPkg := parsePackageForReachabilityTest(t, fset, "go/token", "token.go", `package token
+
+type File struct{}
+func (f *File) Position() int { return helper() }
+
+type Box[T any] struct{}
+func (b Box[T]) Touch() int { return helper() }
+
+func helper() int { return 1 }
+func unused() int { return 0 }
+
+type Unused struct{}
+func (Unused) Drop() {}
+`)
+	mainPkg := parsePackageForReachabilityTest(t, fset, "main", "main.go", `package main
+
+import "go/token"
+
+func main() {
+	var f *token.File
+	_ = f.Position()
+	var _ token.Box[int]
+}
+`)
+	loader := &PackageLoader{
+		fileSet: fset,
+		mainPkg: mainPkg,
+		allPackages: map[string]*packages.Package{
+			"main":     mainPkg,
+			"go/token": tokenPkg,
+		},
+		packageMapping: map[string]string{"go/token": "go_token"},
+	}
+	if err := loader.typeCheckLocalPackage(tokenPkg, loader.projectImporter()); err != nil {
+		t.Fatalf("typeCheckLocalPackage(go/token) error = %v", err)
+	}
+	if err := loader.typeCheckLocalPackage(mainPkg, loader.projectImporter()); err != nil {
+		t.Fatalf("typeCheckLocalPackage(main) error = %v", err)
+	}
+
+	SetSourceStdlibReachable(loader.computeSourceStdlibReachable())
+	for _, name := range []string{"File", "Position", "Box", "Touch", "helper"} {
+		if sourceMappedDeclIsPruned(definitionByName(t, tokenPkg, name)) {
+			t.Fatalf("%s should be reachable in source stdlib package", name)
+		}
+	}
+	for _, name := range []string{"unused", "Unused", "Drop"} {
+		if !sourceMappedDeclIsPruned(definitionByName(t, tokenPkg, name)) {
+			t.Fatalf("%s should be pruned from source stdlib package", name)
+		}
+	}
+}
+
+func TestSourceStdlibPruningSkipsUnreachableDeclarationsInOutput(t *testing.T) {
+	prevCtx := GetTranspileContext()
+	SetTranspileContext(&TranspileContext{PackageMapping: map[string]string{"go/token": "go_token"}})
+	defer SetTranspileContext(prevCtx)
+	prevReachable := sourceStdlibReachable
+	defer SetSourceStdlibReachable(prevReachable)
+
+	fset := token.NewFileSet()
+	pkg := parsePackageForReachabilityTest(t, fset, "go/token", "token.go", `package token
+
+// Live docs.
+type Live struct{}
+func (Live) Keep() {}
+
+// Dead docs.
+type Dead struct{}
+func (Dead) Drop() {}
+
+func live() {}
+func dead() {}
+`)
+	typeInfo, err := NewTypeInfoWithImporter("go/token", pkg.Syntax, fset, nil)
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter(go/token) error = %v", err)
+	}
+	pkg.Types = typeInfo.pkg
+	pkg.TypesInfo = typeInfo.info
+	SetSourceStdlibReachable(map[types.Object]bool{
+		definitionByName(t, pkg, "Live"): true,
+		definitionByName(t, pkg, "live"): true,
+	})
+
+	rust, _, _ := TranspileWithMapping(pkg.Syntax[0], fset, typeInfo, map[string]string{"go/token": "go_token"})
+	for _, want := range []string{"pub struct Live", "pub fn live"} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("reachable declaration %q missing from output:\n%s", want, rust)
+		}
+	}
+	for _, unwanted := range []string{"pub struct Dead", "fn dead", "Dead docs", "impl Dead"} {
+		if strings.Contains(rust, unwanted) {
+			t.Fatalf("unreachable declaration %q should be pruned from output:\n%s", unwanted, rust)
+		}
+	}
+}
+
 func TestCollectGoFilesSkipsTestFilesForDirectoryInput(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "main.go"), "package main\nfunc main() {}\n")
@@ -2654,6 +2762,37 @@ func build() dep.Type {
 	if !strings.Contains(mainRS, "Some(example_com_mainmod_dep::PTR_SIZE as u8)") {
 		t.Fatalf("imported const selector assigned to uint8 field should cast to u8:\n%s", mainRS)
 	}
+}
+
+func parsePackageForReachabilityTest(t *testing.T, fset *token.FileSet, pkgPath, filename, source string) *packages.Package {
+	t.Helper()
+	file, err := parser.ParseFile(fset, filename, source, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("ParseFile(%s) error = %v", filename, err)
+	}
+	return &packages.Package{
+		Name:            file.Name.Name,
+		PkgPath:         pkgPath,
+		Fset:            fset,
+		GoFiles:         []string{filename},
+		CompiledGoFiles: []string{filename},
+		Syntax:          []*ast.File{file},
+		Imports:         make(map[string]*packages.Package),
+	}
+}
+
+func definitionByName(t *testing.T, pkg *packages.Package, name string) types.Object {
+	t.Helper()
+	if pkg == nil || pkg.TypesInfo == nil {
+		t.Fatalf("package %s has no type info", name)
+	}
+	for ident, obj := range pkg.TypesInfo.Defs {
+		if ident != nil && ident.Name == name && obj != nil {
+			return obj
+		}
+	}
+	t.Fatalf("definition %s not found", name)
+	return nil
 }
 
 func writeTestFile(t *testing.T, path string, content string) {
