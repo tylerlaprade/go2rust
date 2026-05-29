@@ -3048,17 +3048,17 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 				if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
 					// Replace iota with actual value
 					if !writeExternalNamedIntegerConstValue(out, name) {
-						TranspileConstExpr(out, valueSpec.Values[i], iotaValue)
+						writeConstExprForRustType(out, valueSpec.Values[i], iotaValue, constType)
 					}
 				} else if len(lastExpressions) > i && lastExpressions[i] != nil {
 					// Use the corresponding expression from lastExpressions for this position
 					if !writeExternalNamedIntegerConstValue(out, name) {
-						TranspileConstExpr(out, lastExpressions[i], iotaValue)
+						writeConstExprForRustType(out, lastExpressions[i], iotaValue, constType)
 					}
 				} else if len(lastExpressions) > 0 && lastExpressions[0] != nil {
 					// If we don't have an expression for this position, use the first one
 					if !writeExternalNamedIntegerConstValue(out, name) {
-						TranspileConstExpr(out, lastExpressions[0], iotaValue)
+						writeConstExprForRustType(out, lastExpressions[0], iotaValue, constType)
 					}
 				} else {
 					// No previous expression pattern, just use iota value
@@ -3069,6 +3069,42 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 			}
 		}
 	}
+}
+
+func writeConstExprForRustType(out *strings.Builder, expr ast.Expr, iotaValue int, rustType string) {
+	if writeIntegerTypedFloatConstLiteral(out, expr, rustType) {
+		return
+	}
+	TranspileConstExpr(out, expr, iotaValue)
+}
+
+func writeIntegerTypedFloatConstLiteral(out *strings.Builder, expr ast.Expr, rustType string) bool {
+	if _, ok := rustIntegerCastTypeFromRustType(rustType); !ok {
+		return false
+	}
+	lit, ok := expr.(*ast.BasicLit)
+	if !ok || lit.Kind != token.FLOAT {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		out.WriteString(`/* ERROR: Type information required for integer const literal */ unimplemented!("type info required for integer const literal")`)
+		return true
+	}
+	tv, ok := typeInfo.info.Types[lit]
+	if !ok || tv.Value == nil {
+		out.WriteString(`/* ERROR: Type information required for integer const literal */ unimplemented!("type info required for integer const literal")`)
+		return true
+	}
+	if value, exact := constant.Int64Val(tv.Value); exact {
+		out.WriteString(strconv.FormatInt(value, 10))
+		return true
+	}
+	if value, exact := constant.Uint64Val(tv.Value); exact {
+		out.WriteString(strconv.FormatUint(value, 10))
+		return true
+	}
+	return false
 }
 
 func constDeclaredNamedType(expr ast.Expr) (string, bool) {

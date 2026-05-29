@@ -262,6 +262,43 @@ func TestPackageConstDeclUpdatesCurrentContext(t *testing.T) {
 	}
 }
 
+func TestIntegerTypedFloatLiteralConstEmitsIntegerLiteral(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+const maxNestLev int = 1e5
+`, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	prevTypeInfo := currentTypeInfo
+	prevPackageConstants := packageConstants
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		packageConstants = prevPackageConstants
+	}()
+
+	SetTypeInfo(typeInfo)
+	packageConstants = make(map[string]string)
+
+	genDecl := file.Decls[0].(*ast.GenDecl)
+	var out strings.Builder
+	TranspileConstDecl(&out, genDecl)
+
+	rust := out.String()
+	if !strings.Contains(rust, "MAX_NEST_LEV: i32 = 100000;") {
+		t.Fatalf("integer-typed float literal const should emit an integer literal, got:\n%s", rust)
+	}
+	if strings.Contains(rust, "1e5") || strings.Contains(rust, "100000.0") {
+		t.Fatalf("integer-typed float literal const should not emit a Rust float literal, got:\n%s", rust)
+	}
+}
+
 func TestCollectPackageGlobalsIgnoresConstDecl(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	prevGlobals := packageGlobalNames
