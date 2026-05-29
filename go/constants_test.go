@@ -1280,6 +1280,34 @@ func (b bitset) removeFirst() bitset {
 	}
 }
 
+func TestNamedIntegerMulDivRemAndCharConstPreserveNamedType(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+
+func digit(n, ch Word) Word {
+	return n*10 + ch - '0'
+}
+
+func split(n, ch Word) Word {
+	return n/ch + n%ch
+}
+`)
+
+	for _, trait := range []string{"Mul", "Div", "Rem"} {
+		want := "impl std::ops::" + trait + " for Word {\n    type Output = Word"
+		if !strings.Contains(rust, want) {
+			t.Fatalf("named integer %s op should preserve named type, missing %q:\n%s", trait, want, rust)
+		}
+	}
+	if strings.Contains(rust, "+ '0'") || strings.Contains(rust, "- '0'") {
+		t.Fatalf("named integer arithmetic should cast char constants to the named type's primitive peer:\n%s", rust)
+	}
+	if !strings.Contains(rust, "('0' as u64)") {
+		t.Fatalf("named integer char constant should use the underlying primitive type:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerReturnSameTypedValueDoesNotReconstruct(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

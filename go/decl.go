@@ -2681,10 +2681,13 @@ func writeScalarTypeDefinitionNumericOps(out *strings.Builder, typeName string, 
 	writeScalarTypeDefinitionPartialOrd(out, rustTypeName, rustType)
 	writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "Add", "add", "+", true)
 	writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "Sub", "sub", "-", true)
+	writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "Mul", "mul", "*", true)
+	writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "Div", "div", "/", true)
 	if definedUnderlyingSupportsUnaryMinus(underlying) {
 		writeScalarTypeDefinitionUnaryOp(out, rustTypeName, "Neg", "neg", "-")
 	}
 	if isBitwiseDefinedUnderlying(underlying) {
+		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "Rem", "rem", "%", true)
 		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "BitAnd", "bitand", "&", true)
 		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "BitOr", "bitor", "|", true)
 		writeScalarTypeDefinitionBinaryOp(out, rustTypeName, rustType, "BitXor", "bitxor", "^", true)
