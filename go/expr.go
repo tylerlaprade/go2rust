@@ -6161,8 +6161,7 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 			out.WriteString("Default::default()")
 			return
 		}
-		if _, ok := value.(*ast.FuncLit); ok {
-			TranspileExpression(out, value)
+		if writeFunctionValueHandle(out, value) {
 			return
 		}
 	}

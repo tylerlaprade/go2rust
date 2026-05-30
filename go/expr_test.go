@@ -4120,6 +4120,44 @@ func (o *outer) mark() {
 	}
 }
 
+func TestStructLiteralFunctionFieldUsesMethodValueClosure(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Parser struct {
+	LookupPackage func(string) (string, bool)
+	LookupSym     func(string, string) bool
+}
+
+type Package struct {
+	Name string
+}
+
+func (p *Package) lookupPackage(name string) (string, bool) {
+	return p.Name, true
+}
+
+func (p *Package) lookupSym(recv, name string) bool {
+	return recv == "" && name == p.Name
+}
+
+func (p *Package) Parser() *Parser {
+	return &Parser{
+		LookupPackage: p.lookupPackage,
+		LookupSym:     p.lookupSym,
+	}
+}
+`)
+
+	if strings.Contains(rust, "lookup_package: Rc::new(RefCell::new(Some(self.lookup_package.clone())))") ||
+		strings.Contains(rust, "lookup_package: Arc::new(Mutex::new(Some(self.lookup_package.clone())))") {
+		t.Fatalf("method value field should not be lowered as a selector field clone:\n%s", rust)
+	}
+	if !strings.Contains(rust, "lookup_package: Rc::new(RefCell::new(Some({ let mut __recv = self.clone(); Box::new(move |") &&
+		!strings.Contains(rust, "lookup_package: Arc::new(Mutex::new(Some({ let mut __recv = self.clone(); Box::new(move |") {
+		t.Fatalf("method value field should lower to a boxed receiver closure:\n%s", rust)
+	}
+}
+
 func TestSyncOnceDoPromotedAnonymousStructMethodUsesEmbeddedOnce(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
