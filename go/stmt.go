@@ -1769,7 +1769,7 @@ func writeRangeBinding(out *strings.Builder, expr ast.Expr, mutable bool) {
 		if mutable && ident.Name != "_" {
 			out.WriteString("mut ")
 		}
-		out.WriteString(EscapeRustIdent(ident.Name))
+		out.WriteString(RustLocalIdent(ident.Name))
 		return
 	}
 	TranspileExpression(out, expr)
@@ -10451,7 +10451,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 			}
 			if valueName != "" {
-				out.WriteString(EscapeRustIdent(valueName))
+				out.WriteString(RustLocalIdent(valueName))
 			} else {
 				out.WriteString("_")
 			}
@@ -10664,7 +10664,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				} else if isString && valueAssigned && valueName != "_" {
 					registeredValueType = "i32"
 					stringRangeValueTemp = "__range_" + ToSnakeCase(valueName)
-					rangePrelude = fmt.Sprintf("        let mut %s = %s as i32;\n", EscapeRustIdent(valueName), stringRangeValueTemp)
+					rangePrelude = fmt.Sprintf("        let mut %s = %s as i32;\n", RustLocalIdent(valueName), stringRangeValueTemp)
 				} else {
 					registeredValueType = valueType
 				}
@@ -10700,7 +10700,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if keyAssigned {
 				prelude.WriteString("mut ")
 			}
-			prelude.WriteString(EscapeRustIdent(keyName))
+			prelude.WriteString(RustLocalIdent(keyName))
 			prelude.WriteString(" = ")
 			if mapKeyNeedsValueBinding {
 				prelude.WriteString("__range_key.value()")

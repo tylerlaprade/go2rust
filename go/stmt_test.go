@@ -945,6 +945,34 @@ func collect(values []Value) map[string]bool {
 	}
 }
 
+func TestRangeValueShadowingPackageGlobalUsesLocalBinding(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+var env = map[string]int{}
+var envs []string
+
+func Environ() []string {
+	out := make([]string, 0, len(envs))
+	for _, env := range envs {
+		if env != "" {
+			out = append(out, env)
+		}
+	}
+	return out
+}
+`)
+
+	if strings.Contains(rust, "for env in ") {
+		t.Fatalf("range value shadowing package global should not bind the package-global name:\n%s", rust)
+	}
+	if !strings.Contains(rust, "for env_local in ") {
+		t.Fatalf("range value shadowing package global should bind a local name:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*env_local).clone()") {
+		t.Fatalf("range value shadowing package global should read the local binding:\n%s", rust)
+	}
+}
+
 func TestInterfaceMapRangeKeyUsesStoredInterfaceHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
