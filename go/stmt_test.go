@@ -848,6 +848,32 @@ func main() {
 	}
 }
 
+func TestStringMapAssignmentClonesRangeRefKey(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Value struct {
+	Names []string
+}
+
+func collect(values []Value) map[string]bool {
+	syms := map[string]bool{}
+	for _, v := range values {
+		for _, name := range v.Names {
+			syms[name] = true
+		}
+	}
+	return syms
+}
+`)
+
+	if strings.Contains(rust, "let __map_key = name;") {
+		t.Fatalf("string map assignment should clone a range ref key, not store &String:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __map_key = (*name).clone();") {
+		t.Fatalf("string map assignment should clone the range ref key:\n%s", rust)
+	}
+}
+
 func TestInterfaceMapRangeKeyUsesStoredInterfaceHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

@@ -5654,6 +5654,9 @@ func writeStringValueForExpectedBasicType(out *strings.Builder, expr ast.Expr, e
 	if !ok || valueBasic.Kind() != types.String {
 		return false
 	}
+	if writeRangeStringValue(out, expr) {
+		return true
+	}
 	if !typeInfo.ReturnsWrappedValue(expr) {
 		TranspileExpression(out, expr)
 		return true
