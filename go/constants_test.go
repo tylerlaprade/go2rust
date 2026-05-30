@@ -411,6 +411,22 @@ func isNegOne(x float64) bool {
 	}
 }
 
+func TestUntypedFloatLiteralConstUsesIntegerValueForIntPeer(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func overflow(n int) bool {
+	return n >= 1e8
+}
+`)
+
+	if strings.Contains(rust, "1e8") {
+		t.Fatalf("untyped numeric constant used with int peer should not remain a Rust float literal:\n%s", rust)
+	}
+	if !strings.Contains(rust, "100000000") {
+		t.Fatalf("untyped numeric constant used with int peer should emit its exact integer value:\n%s", rust)
+	}
+}
+
 func TestTypedVarInitializerCastsUntypedConstPeer(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

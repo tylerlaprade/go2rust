@@ -818,6 +818,9 @@ func writeConstExpressionForExpectedInteger(out *strings.Builder, value ast.Expr
 	if lit, ok := value.(*ast.BasicLit); ok && lit.Kind == token.CHAR {
 		return false
 	}
+	if writeConstExpressionForExpectedGoInt(out, value, expected) {
+		return true
+	}
 	rustType, ok := rustIntegerCastTypeForExpected(expected)
 	if !ok {
 		return false
@@ -829,6 +832,26 @@ func writeConstExpressionForExpectedInteger(out *strings.Builder, value ast.Expr
 	}
 	out.WriteString(" as ")
 	out.WriteString(rustType)
+	return true
+}
+
+func writeConstExpressionForExpectedGoInt(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
+	basic, ok := types.Unalias(expected).(*types.Basic)
+	if !ok || basic.Kind() != types.Int {
+		return false
+	}
+	value, ok := constExpressionValue(expr)
+	if !ok {
+		return false
+	}
+	intValue := value
+	if intValue.Kind() != constant.Int {
+		intValue = constant.ToInt(value)
+	}
+	if intValue.Kind() != constant.Int {
+		return false
+	}
+	out.WriteString(intValue.String())
 	return true
 }
 
