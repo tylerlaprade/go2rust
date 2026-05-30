@@ -569,7 +569,7 @@ func writeBareScalarBasicLit(out *strings.Builder, lit *ast.BasicLit, expectedTy
 	case token.CHAR:
 		// Rare for return types, but support it: emit as scalar.
 		out.WriteString("(")
-		out.WriteString(lit.Value)
+		out.WriteString(RustCharLiteral(lit.Value))
 		out.WriteString(" as ")
 		if rustType == "" {
 			rustType = "i32"

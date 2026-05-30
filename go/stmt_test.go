@@ -3047,6 +3047,26 @@ func paramsOnly(a, b int) (int, int) {
 	}
 }
 
+func TestBareScalarCharReturnUsesRustEscapes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func escaped() (rune, rune, rune) {
+	return '\a', '\f', '\v'
+}
+`)
+
+	for _, invalid := range []string{`'\a'`, `'\f'`, `'\v'`} {
+		if strings.Contains(rust, invalid) {
+			t.Fatalf("bare scalar rune return should translate Go-only char escape %s:\n%s", invalid, rust)
+		}
+	}
+	for _, want := range []string{`'\u{7}'`, `'\u{c}'`, `'\u{b}'`} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("bare scalar rune return should include %s:\n%s", want, rust)
+		}
+	}
+}
+
 func TestTailReturnFallsBackForShortDeclWrappedLocals(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
