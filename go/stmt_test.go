@@ -2246,6 +2246,33 @@ func caller() int {
 	}
 }
 
+func TestBareScalarAssignmentFromSelectorUnwrapsField(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type checker struct {
+	nextID uint64
+}
+
+func nextID() uint64 {
+	return 1
+}
+
+func (check *checker) newTypeParam() uint64 {
+	id := nextID()
+	check.nextID++
+	id = check.nextID
+	return id
+}
+`)
+
+	if strings.Contains(rust, "id = new_val;") && strings.Contains(rust, "let new_val = self.next_i_d.clone();") {
+		t.Fatalf("bare scalar assignment from selector should not store the field handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __v = self.next_i_d.clone(); let __owned = (*__v") {
+		t.Fatalf("bare scalar assignment from selector should copy the field value:\n%s", rust)
+	}
+}
+
 func TestShortDeclShadowingBareTupleResultRegistersWrappedLocal(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

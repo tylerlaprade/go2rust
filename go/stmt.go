@@ -5632,6 +5632,9 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 			return
 		}
 	}
+	if writeBareValueForWrappedSlot(out, expr) {
+		return
+	}
 	if ident, ok := expr.(*ast.Ident); ok {
 		_, isRangeVar := rangeLoopVars[ident.Name]
 		isLocalConst := isLocalConstantIdent(ident)
