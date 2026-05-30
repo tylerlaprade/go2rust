@@ -308,6 +308,33 @@ func lookup() Object {
 	}
 }
 
+func TestAddressOfStringsBuilderPassedToStdlibWriterMethod(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"io"
+	"strings"
+)
+
+type Scope struct{}
+
+func (s *Scope) WriteTo(w io.Writer, n int, recurse bool) {}
+
+func (s *Scope) String() string {
+	var buf strings.Builder
+	s.WriteTo(&buf, 0, false)
+	return buf.String()
+}
+`)
+
+	if strings.Contains(rust, "write_to(buf.clone()") {
+		t.Fatalf("strings.Builder passed as io.Writer should not use the raw builder handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "io_Writer::__go_from(buf.clone())") {
+		t.Fatalf("strings.Builder passed as io.Writer should wrap the builder handle:\n%s", rust)
+	}
+}
+
 func TestMultiShortDeclLenCapWrapsGoInt(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

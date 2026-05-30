@@ -2256,6 +2256,19 @@ impl io_Writer {
         }
 `)
 	}
+	if NeedsConcurrentWrapper() {
+		out.WriteString(`        if let Some(builder) = self.downcast_ref::<Arc<Mutex<Option<String>>>>() {
+            let mut guard = builder.lock().unwrap();
+            guard.get_or_insert_with(String::new).push_str(&String::from_utf8_lossy(data));
+        }
+`)
+	} else {
+		out.WriteString(`        if let Some(builder) = self.downcast_ref::<Rc<RefCell<Option<String>>>>() {
+            let mut guard = builder.borrow_mut();
+            guard.get_or_insert_with(String::new).push_str(&String::from_utf8_lossy(data));
+        }
+`)
+	}
 	fmt.Fprintf(out, `    }
 
     pub fn write<T0: 'static>(&self, arg0: T0) -> (%s, %s) {
