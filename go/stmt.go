@@ -541,6 +541,10 @@ func writeBareAnyBox(out *strings.Builder, expr ast.Expr) {
 }
 
 func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, expected types.Type) {
+	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" && arraySliceElementExpectedStoresBareCollection(expected) {
+		out.WriteString(zeroValueForTypesType(expected))
+		return
+	}
 	if isGoErrorType(expected) && writeGoErrorHandleValue(out, rhs) {
 		return
 	}
@@ -999,6 +1003,66 @@ func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.Inde
 	out.WriteString("] = ")
 	writeArraySliceElementAssignmentValue(out, rhs, typeInfo.GetArrayOrSliceElemTypePreservingTypeParam(indexExpr.X))
 	return true
+}
+
+func writePointerDerefSequenceElementAssignment(out *strings.Builder, indexExpr *ast.IndexExpr, rhs ast.Expr) bool {
+	star, ok := unwrapParens(indexExpr.X).(*ast.StarExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString("/* ERROR: Type information required for pointer sequence element assignment */ unimplemented!(\"type info required for pointer sequence element assignment\")")
+		return true
+	}
+	starType := typeInfo.GetType(star)
+	operandType := typeInfo.GetType(star.X)
+	if starType == nil || operandType == nil {
+		out.WriteString("/* ERROR: Type information required for pointer sequence element assignment */ unimplemented!(\"type info required for pointer sequence element assignment\")")
+		return true
+	}
+	if _, isNamed := starType.(*types.Named); isNamed {
+		return false
+	}
+	if !pointerDerefTargetsSequence(starType, operandType) {
+		return false
+	}
+
+	out.WriteString("{ let __slice_holder = ")
+	TranspileExpressionContext(out, star.X, LValue)
+	out.WriteString(".clone(); let mut __slice_guard = __slice_holder")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; let __slice = __slice_guard.as_mut().unwrap(); __slice[")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("] = ")
+	elemType := typeInfo.GetArrayOrSliceElemTypePreservingTypeParam(indexExpr.X)
+	if elemRustType, ok := sliceElemPtrSliceCandidateForExpr(indexExpr.X); ok {
+		if !writeSliceElemPtrSliceSlotValue(out, rhs, elemRustType) {
+			out.WriteString(`unimplemented!("type info required to lower pointer slice assignment")`)
+		}
+	} else {
+		writeArraySliceElementAssignmentValue(out, rhs, elemType)
+	}
+	out.WriteString("; }")
+	return true
+}
+
+func pointerDerefTargetsSequence(starType types.Type, operandType types.Type) bool {
+	switch coreUnderlyingType(starType).(type) {
+	case *types.Array, *types.Slice:
+	default:
+		return false
+	}
+	ptr, ok := types.Unalias(operandType).Underlying().(*types.Pointer)
+	if !ok {
+		return false
+	}
+	switch coreUnderlyingType(ptr.Elem()).(type) {
+	case *types.Array, *types.Slice:
+		return true
+	default:
+		return false
+	}
 }
 
 func writeIndexedSequenceCollectionFieldAssignment(out *strings.Builder, sel *ast.SelectorExpr, rhs ast.Expr) bool {
@@ -9162,7 +9226,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								}
 							} else if indexExpr, ok := s.Lhs[0].(*ast.IndexExpr); ok && !isMapIndexAssign {
 								// Array/slice element assignment: arr[i] = value
-								if writeNestedSliceElementAssignment(out, indexExpr, s.Rhs[0]) {
+								if writePointerDerefSequenceElementAssignment(out, indexExpr, s.Rhs[0]) {
+									// Pointer-to-slice/array element assignment mutates the pointee handle.
+								} else if writeNestedSliceElementAssignment(out, indexExpr, s.Rhs[0]) {
 									// Nested slice element assignment emitted by helper.
 								} else if call, ok := s.Rhs[0].(*ast.CallExpr); ok && appendCallReturnsBareIndexedSlice(call) {
 									if appendTarget, ok := call.Args[0].(*ast.IndexExpr); ok && sameExpressionSyntax(indexExpr, appendTarget) {

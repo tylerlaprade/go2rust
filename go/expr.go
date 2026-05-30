@@ -9381,6 +9381,20 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString("].to_vec() }")
 			WriteWrapperSuffix(out)
 			out.WriteString(")")
+		} else if isExpressionResultBare(e.X) {
+			WriteWrapperPrefix(out)
+			out.WriteString("{ let __seq = ")
+			TranspileExpressionContext(out, e.X, LValue)
+			out.WriteString("; __seq[")
+			if e.Low != nil {
+				writeExpressionAsUsize(out, e.Low)
+			}
+			out.WriteString("..")
+			if e.High != nil {
+				writeExpressionAsUsize(out, e.High)
+			}
+			out.WriteString("].to_vec() }")
+			WriteWrapperSuffix(out)
 		} else {
 			WriteWrapperPrefix(out)
 			out.WriteString("{ let __seq = ")

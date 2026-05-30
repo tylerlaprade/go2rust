@@ -3364,6 +3364,31 @@ func set(z *nat) {
 	}
 }
 
+func TestPointerToSliceElementAssignmentUsesPointeeHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+var _ sync.Mutex
+
+func trim(v *[][]byte, n int) {
+	(*v)[0] = (*v)[0][n:]
+	(*v)[0] = nil
+}
+`)
+
+	if strings.Contains(rust, "(*((*v.lock().unwrap().as_mut().unwrap())).lock()") ||
+		strings.Contains(rust, "(*((*v.borrow_mut().as_mut().unwrap())).borrow_mut()") {
+		t.Fatalf("pointer-to-slice element assignment should not lock the dereferenced Vec as a handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __slice_holder = v.clone()") {
+		t.Fatalf("pointer-to-slice element assignment should mutate through the pointer's slice handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "] = None") {
+		t.Fatalf("nil assigned into a bare nested slice slot should use the slice zero value:\n%s", rust)
+	}
+}
+
 func TestParallelNamedSliceFieldAssignmentStoresValues(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
