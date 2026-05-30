@@ -153,6 +153,46 @@ func important(q Node) bool {
 	}
 }
 
+func TestTypeSwitchDefaultBindingKeepsInterfaceHandleWrapped(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type positioner interface {
+	Pos() int
+}
+
+type Spec interface {
+	Pos() int
+	End() int
+}
+
+type ValueSpec struct{}
+
+func (*ValueSpec) Pos() int { return 0 }
+func (*ValueSpec) End() int { return 0 }
+
+func report(p positioner) {}
+
+func walk(specs []Spec) {
+	for _, s := range specs {
+		switch s := s.(type) {
+		case *ValueSpec:
+			_ = s
+		default:
+			report(s)
+		}
+	}
+}
+`)
+
+	if strings.Contains(rust, "Box::new(s) as Box<dyn positioner") {
+		t.Fatalf("type switch default binding should not box the interface handle itself:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new((*s.borrow().as_ref().unwrap()).clone()) as Box<dyn positioner") &&
+		!strings.Contains(rust, "Box::new((*s.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn positioner") {
+		t.Fatalf("type switch default binding should rebox the source trait object through the adapter:\n%s", rust)
+	}
+}
+
 func TestMultiShortDeclLenCapWrapsGoInt(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

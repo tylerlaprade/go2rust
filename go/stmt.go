@@ -1969,6 +1969,18 @@ func writeTypeSwitchOriginalBinding(out *strings.Builder, varName string, expr a
 	}
 	TranspileExpressionContext(out, expr, LValue)
 	out.WriteString(".clone();\n")
+	if vt := GetVarTable(); vt != nil {
+		info := &VarInfo{
+			WrapLevel: WrapFull,
+			Source:    SourceLocal,
+		}
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			if typ := typeInfo.GetType(expr); typ != nil {
+				info.RustType = goTypesTypeToRust(typ)
+			}
+		}
+		vt.Register(varName, info)
+	}
 }
 
 func isLocalInterfaceRefIdent(expr ast.Expr) bool {
