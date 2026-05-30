@@ -822,6 +822,38 @@ func parse() (err any) {
 	}
 }
 
+func TestExpressionSwitchOnErrorKeepsHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "errors"
+
+var ErrPermission = errors.New("permission denied")
+var ErrOther = errors.New("permission denied")
+
+func classify(target error) string {
+	switch target {
+	case ErrPermission:
+		return "permission"
+	case ErrOther:
+		return "other"
+	default:
+		return "unknown"
+	}
+}
+`)
+
+	if strings.Contains(rust, "let _switch_val = (*target.borrow().as_ref().unwrap()).clone()") ||
+		strings.Contains(rust, "let _switch_val = (*target.lock().unwrap().as_ref().unwrap()).clone()") {
+		t.Fatalf("error switch tag should keep the handle, not clone Box<dyn Error>:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let _switch_val = target.clone();") {
+		t.Fatalf("error switch tag should clone the error handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "std::ptr::addr_eq(&**__left, &**__right)") {
+		t.Fatalf("error switch case should compare boxed error identity:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoConcurrentPointerMapCommaOkKeepsSliceHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
