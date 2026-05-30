@@ -10563,6 +10563,10 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 		out.WriteString("        let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();\n")
 	}
 	writeNamedReturnDeclarations(out, funcLit.Type)
+	if funcLit.Body != nil {
+		restoreSliceElemPtrCandidates := setSliceElemPtrCandidates(funcLit.Body)
+		defer restoreSliceElemPtrCandidates()
+	}
 	prevReturnTail := currentReturnStatementIsTail
 	currentReturnStatementIsTail = false
 	defer func() { currentReturnStatementIsTail = prevReturnTail }()

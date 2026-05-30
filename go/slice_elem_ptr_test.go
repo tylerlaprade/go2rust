@@ -476,6 +476,33 @@ func walk(p []inst, start int) int {
 	}
 }
 
+func TestFuncLiteralSliceElemPointerLocalUsesMetadata(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type inst struct {
+	out int
+}
+
+func run(p []inst) int {
+	check := func(pc int) int {
+		inst := &p[pc]
+		return inst.out
+	}
+	return check(0)
+}
+`)
+
+	if strings.Contains(rust, "inst.lock()") || strings.Contains(rust, "inst.borrow()") {
+		t.Fatalf("function literal slice element pointer local should not be treated as a normal pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "inst: Option<GoSliceElemPtr<inst>>") {
+		t.Fatalf("function literal slice element pointer local should be registered with GoSliceElemPtr metadata:\n%s", rust)
+	}
+	if !strings.Contains(rust, "inst.as_ref().unwrap().borrow().as_ref().unwrap()).out") {
+		t.Fatalf("function literal slice element pointer selector should borrow the element:\n%s", rust)
+	}
+}
+
 func transpileTypedSliceElemPtrRegression(t *testing.T, src string) string {
 	t.Helper()
 
