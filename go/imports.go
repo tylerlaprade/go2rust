@@ -1417,14 +1417,14 @@ func generateGoRWMutexHelper(out *strings.Builder) {
 struct GoRWMutex;
 
 impl GoRWMutex {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self
     }
 
-    fn lock(&self) {}
-    fn unlock(&self) {}
-    fn r_lock(&self) {}
-    fn r_unlock(&self) {}
+    pub fn lock(&self) {}
+    pub fn unlock(&self) {}
+    pub fn r_lock(&self) {}
+    pub fn r_unlock(&self) {}
 }
 
 impl std::fmt::Display for GoRWMutex {
@@ -1435,11 +1435,6 @@ impl std::fmt::Display for GoRWMutex {
 `
 	if generatingPublicHelpers {
 		code = strings.ReplaceAll(code, "struct GoRWMutex", "pub struct GoRWMutex")
-		code = strings.ReplaceAll(code, "    fn new(", "    pub fn new(")
-		code = strings.ReplaceAll(code, "    fn lock(", "    pub fn lock(")
-		code = strings.ReplaceAll(code, "    fn unlock(", "    pub fn unlock(")
-		code = strings.ReplaceAll(code, "    fn r_lock(", "    pub fn r_lock(")
-		code = strings.ReplaceAll(code, "    fn r_unlock(", "    pub fn r_unlock(")
 	}
 	out.WriteString(code)
 }
