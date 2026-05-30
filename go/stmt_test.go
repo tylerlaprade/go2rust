@@ -1362,6 +1362,54 @@ func apply(insts []inst, chunks [][]int) {
 	}
 }
 
+func TestIndexedStructSliceFieldNilAssignmentClearsHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type inst struct {
+	next []uint32
+}
+
+func clear(insts []inst, i int) {
+	insts[i].next = nil
+}
+`)
+
+	if strings.Contains(rust, "Some(None)") {
+		t.Fatalf("nil slice field assignment should clear the field handle, not store Some(None):\n%s", rust)
+	}
+	if !strings.Contains(rust, "].next.borrow_mut() = None") &&
+		!strings.Contains(rust, "].next.lock().unwrap() = None") {
+		t.Fatalf("nil slice field assignment should clear the indexed element field handle:\n%s", rust)
+	}
+}
+
+func TestIndexedStructPromotedSliceFieldAssignmentMutatesElement(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type embedded struct {
+	rune []int
+}
+
+type inst struct {
+	embedded
+}
+
+func apply(insts []inst, chunks [][]int) {
+	for i := range insts {
+		insts[i].rune = chunks[i]
+	}
+}
+`)
+
+	if strings.Contains(rust, ".clone() }.rune = new_val") {
+		t.Fatalf("promoted indexed struct field assignment should not assign to a cloned element:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".embedded.borrow().as_ref().unwrap()).rune.borrow_mut() = Some(new_val)") &&
+		!strings.Contains(rust, ".embedded.lock().unwrap().as_ref().unwrap()).rune.lock().unwrap() = Some(new_val)") {
+		t.Fatalf("promoted indexed struct field assignment should mutate the embedded field handle:\n%s", rust)
+	}
+}
+
 func TestMapInterfaceValueAssignmentKeepsHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

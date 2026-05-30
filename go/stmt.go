@@ -1007,8 +1007,13 @@ func writeIndexedSequenceCollectionFieldAssignment(out *strings.Builder, sel *as
 		return false
 	}
 	fieldInfo := selectorFieldAccessInfo(sel)
-	if fieldInfo.IsPromoted {
-		return false
+
+	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
+		out.WriteString("{ *")
+		writeIndexedSequenceElementFieldHandle(out, indexExpr, fieldInfo)
+		WriteBorrowMethod(out, true)
+		out.WriteString(" = None; }")
+		return true
 	}
 
 	out.WriteString("{ let new_val = ")
@@ -1021,6 +1026,28 @@ func writeIndexedSequenceCollectionFieldAssignment(out *strings.Builder, sel *as
 }
 
 func writeIndexedSequenceElementFieldHandle(out *strings.Builder, indexExpr *ast.IndexExpr, fieldInfo FieldAccessInfo) {
+	if fieldInfo.IsPromoted {
+		out.WriteString("(*")
+		writeIndexedSequenceElementValue(out, indexExpr)
+		for i, embedded := range fieldInfo.EmbeddedPath {
+			out.WriteString(".")
+			out.WriteString(ToSnakeCase(embedded))
+			WriteBorrowMethod(out, false)
+			if i < len(fieldInfo.EmbeddedPath)-1 {
+				out.WriteString(".as_ref().unwrap()")
+			} else {
+				out.WriteString(".as_ref().unwrap()).")
+			}
+		}
+		out.WriteString(fieldInfo.FieldName)
+		return
+	}
+	writeIndexedSequenceElementValue(out, indexExpr)
+	out.WriteString(".")
+	out.WriteString(fieldInfo.FieldName)
+}
+
+func writeIndexedSequenceElementValue(out *strings.Builder, indexExpr *ast.IndexExpr) {
 	out.WriteString("(*")
 	if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
 		writeNamedSliceInnerHandleClone(out, subj)
@@ -1030,8 +1057,7 @@ func writeIndexedSequenceElementFieldHandle(out *strings.Builder, indexExpr *ast
 	WriteBorrowMethod(out, true)
 	out.WriteString(".as_mut().unwrap())[")
 	writeExpressionAsUsize(out, indexExpr.Index)
-	out.WriteString("].")
-	out.WriteString(fieldInfo.FieldName)
+	out.WriteString("]")
 }
 
 // writeUnwrappedRangeTarget writes a range target expression unwrapped for iteration.
