@@ -283,6 +283,28 @@ type graphNode struct {
 	}
 }
 
+func TestNamedSliceTypeDefinitionOverNonDebugStructDoesNotDeriveDebug(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type dependency interface {
+	Name() string
+}
+
+type graphNode struct {
+	obj dependency
+}
+
+type nodeQueue []*graphNode
+`)
+
+	if strings.Contains(rust, "#[derive(Debug, Clone, Default)]\npub struct nodeQueue") {
+		t.Fatalf("named slice over non-Debug element should not derive Debug:\n%s", rust)
+	}
+	if !strings.Contains(rust, "#[derive(Clone, Default)]\npub struct nodeQueue") {
+		t.Fatalf("named slice over non-Debug element should still derive Clone and Default:\n%s", rust)
+	}
+}
+
 func TestSyncMapStructFieldUsesWrappedHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

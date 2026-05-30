@@ -1062,6 +1062,82 @@ func typeCanDeriveDebug(expr ast.Expr, seen map[string]bool) bool {
 	return true
 }
 
+func typeDefinitionCanDeriveDebug(typeSpec *ast.TypeSpec) bool {
+	if typeSpec == nil || typeSpec.Name == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName)
+	if !ok || obj == nil || obj.Type() == nil {
+		return false
+	}
+	return goTypesTypeCanDeriveDebug(obj.Type(), make(map[*types.Named]bool))
+}
+
+func goTypesTypeCanDeriveDebug(typ types.Type, seen map[*types.Named]bool) bool {
+	if typ == nil {
+		return false
+	}
+	typ = types.Unalias(typ)
+	switch t := typ.(type) {
+	case *types.Named:
+		if !goTypesNamedTypeGeneratedInCurrentPackage(t) {
+			return false
+		}
+		if seen[t] {
+			return true
+		}
+		seen[t] = true
+		return goTypesTypeCanDeriveDebug(t.Underlying(), seen)
+	case *types.Basic:
+		return t.Kind() != types.Invalid
+	case *types.Pointer:
+		return goTypesTypeCanDeriveDebug(t.Elem(), seen)
+	case *types.Slice:
+		return goTypesTypeCanDeriveDebug(t.Elem(), seen)
+	case *types.Array:
+		return goTypesTypeCanDeriveDebug(t.Elem(), seen)
+	case *types.Map:
+		return goTypesMapKeyCanDeriveDebug(t.Key(), seen) && goTypesTypeCanDeriveDebug(t.Elem(), seen)
+	case *types.Struct:
+		for i := 0; i < t.NumFields(); i++ {
+			if !goTypesTypeCanDeriveDebug(t.Field(i).Type(), seen) {
+				return false
+			}
+		}
+		return true
+	case *types.Chan:
+		return true
+	case *types.Interface, *types.Signature, *types.TypeParam:
+		return false
+	default:
+		return false
+	}
+}
+
+func goTypesNamedTypeGeneratedInCurrentPackage(named *types.Named) bool {
+	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && typeInfo.pkg != nil && named.Obj().Pkg().Path() == typeInfo.pkg.Path()
+}
+
+func goTypesMapKeyCanDeriveDebug(typ types.Type, seen map[*types.Named]bool) bool {
+	if typ == nil {
+		return false
+	}
+	switch types.Unalias(typ).Underlying().(type) {
+	case *types.Pointer, *types.Interface:
+		return true
+	default:
+		return goTypesTypeCanDeriveDebug(typ, seen)
+	}
+}
+
 func typeReferencesExternalNamedType(typ types.Type) bool {
 	return typeReferencesExternalNamedTypeSeen(types.Unalias(typ), make(map[types.Type]bool))
 }
@@ -1769,35 +1845,6 @@ func interfaceParamVarInfo(typeExpr ast.Expr) (*VarInfo, bool) {
 		RustType:  rustLocalInterfaceParam(interfaceName),
 		Source:    SourceParam,
 	}, true
-}
-
-// typeContainsTraitObjectInUnderlying reports whether the given type
-// expression's underlying lowering would contain a `Box<dyn Trait>` trait
-// object — which Rust cannot derive Debug for. Used to decide whether a
-// newtype struct can `#[derive(Debug)]` or must opt out.
-func typeContainsTraitObjectInUnderlying(expr ast.Expr) bool {
-	switch t := expr.(type) {
-	case *ast.ArrayType:
-		return typeContainsTraitObjectInUnderlying(t.Elt)
-	case *ast.MapType:
-		return typeContainsTraitObjectInUnderlying(t.Key) || typeContainsTraitObjectInUnderlying(t.Value)
-	case *ast.StarExpr:
-		return typeContainsTraitObjectInUnderlying(t.X)
-	case *ast.Ident:
-		if _, ok := transpiledNamedInterfaceTypeNameFromExpr(t); ok {
-			return true
-		}
-		if t.Name == "any" {
-			return true
-		}
-		return false
-	case *ast.InterfaceType:
-		return true
-	case *ast.FuncType:
-		return true
-	default:
-		return false
-	}
 }
 
 // writeFunctionTypeInterfaceImpls emits per-interface wrapper structs for a
@@ -2803,10 +2850,10 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			// Type definition: type A B
 			// Create a newtype wrapper in Rust
 			registerTypeDefinitionForTypeExpr(typeSpec.Name.Name, t)
-			if typeContainsTraitObjectInUnderlying(t) {
-				out.WriteString("#[derive(Clone, Default)]\n")
-			} else {
+			if typeDefinitionCanDeriveDebug(typeSpec) {
 				out.WriteString("#[derive(Debug, Clone, Default)]\n")
+			} else {
+				out.WriteString("#[derive(Clone, Default)]\n")
 			}
 			out.WriteString("pub struct ")
 			out.WriteString(rustTypeName)
