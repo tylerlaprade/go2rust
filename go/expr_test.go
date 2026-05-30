@@ -464,6 +464,30 @@ func isTag(n *NotExpr) bool {
 	}
 }
 
+func TestStringConversionFromNamedStringAssertionUsesBareValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Text interface {
+	text()
+}
+
+type Plain string
+
+func (Plain) text() {}
+
+func plain(x Text) string {
+	return string(x.(Plain))
+}
+`)
+
+	if strings.Contains(rust, "}).borrow()") || strings.Contains(rust, "}).lock()") {
+		t.Fatalf("string conversion from named string assertion should not borrow the bare assertion result:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".to_string()") {
+		t.Fatalf("string conversion from named string assertion should stringify the bare value:\n%s", rust)
+	}
+}
+
 func TestPointerAssertionToStructAliasUsesUnderlyingPointee(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

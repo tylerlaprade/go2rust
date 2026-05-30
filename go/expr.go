@@ -10445,6 +10445,12 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 						writeNumericConversionValue(out, arg)
 						out.WriteString(" as char).to_string())))")
 						return
+					} else if basic.Kind() == types.String && !typeInfo.ReturnsWrappedValue(arg) {
+						WriteWrapperPrefix(out)
+						TranspileExpression(out, arg)
+						out.WriteString(".to_string()")
+						WriteWrapperSuffix(out)
+						return
 					}
 				}
 			}
