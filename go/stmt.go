@@ -663,7 +663,24 @@ func writeTypeParamHandleInitializer(out *strings.Builder, rhs ast.Expr) bool {
 	if _, ok := types.Unalias(typeInfo.GetType(rhs)).(*types.TypeParam); !ok {
 		return false
 	}
+	if writePointerConstrainedTypeParamDerefInitializer(out, rhs, typeInfo) {
+		return true
+	}
 	return writeTypeParamHandleExpression(out, rhs)
+}
+
+func writePointerConstrainedTypeParamDerefInitializer(out *strings.Builder, rhs ast.Expr, typeInfo *TypeInfo) bool {
+	star, ok := unwrapParens(rhs).(*ast.StarExpr)
+	if !ok || typeInfo == nil {
+		return false
+	}
+	if !goTypeParamHasPointerConstraint(typeInfo.GetType(star.X)) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	TranspileExpressionContext(out, star, RValue)
+	WriteWrapperSuffix(out)
+	return true
 }
 
 func writeNamedSliceSliceExprShortDeclInitializer(out *strings.Builder, rhs ast.Expr) bool {

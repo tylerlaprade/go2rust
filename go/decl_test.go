@@ -357,6 +357,16 @@ func clone[P *T, T any](p P) P {
 	if !strings.Contains(rust, want) {
 		t.Fatalf("generic pointer-constrained type parameter should get a clone bound, want %q:\n%s", want, rust)
 	}
+	if strings.Contains(rust, "let mut c = (*p") {
+		t.Fatalf("pointer-constrained dereference short declaration should not bind a bare type-parameter value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut c = Rc::new(RefCell::new(Some({ let __v = (*p") &&
+		!strings.Contains(rust, "let mut c = Arc::new(Mutex::new(Some({ let __v = (*p") {
+		t.Fatalf("pointer-constrained dereference short declaration should wrap the cloned pointee in a handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "return c.clone();") {
+		t.Fatalf("address of the cloned pointee should return the local handle:\n%s", rust)
+	}
 }
 
 func TestStructDefaultWrapsNamedArrayFieldZeroValue(t *testing.T) {
