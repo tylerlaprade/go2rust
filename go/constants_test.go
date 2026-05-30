@@ -1824,6 +1824,30 @@ func (r *xorshift) Next() uint64 {
 	}
 }
 
+func TestNamedIntegerCompoundAssignMethodCallRHSUsesWrappedResult(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type flag uintptr
+
+func (f flag) ro() flag { return f }
+
+type Value struct {
+	flag flag
+}
+
+func set(dst *Value, src Value) {
+	dst.flag |= src.flag.ro()
+}
+`)
+
+	if strings.Contains(rust, ".ro()).0") || strings.Contains(rust, ".ro().0") {
+		t.Fatalf("named integer method-call RHS already returns a wrapped value and should not be unwrapped as bare:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".ro()") {
+		t.Fatalf("named integer compound assignment should retain the method call RHS:\n%s", rust)
+	}
+}
+
 func TestByteCompoundAssignCastsConstantExpression(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

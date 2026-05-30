@@ -5829,6 +5829,9 @@ func writeNamedIntegerCompoundAssignUnderlyingValue(out *strings.Builder, expr a
 	if typeInfo == nil || typeInfo.pkg == nil {
 		return false
 	}
+	if call, ok := expr.(*ast.CallExpr); ok && typeInfo.ReturnsWrappedValue(call) {
+		return false
+	}
 	expectedNamed, ok := types.Unalias(expected).(*types.Named)
 	if !ok || expectedNamed.Obj() == nil || expectedNamed.Obj().Pkg() != typeInfo.pkg {
 		return false
