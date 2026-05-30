@@ -567,6 +567,20 @@ func pointerAliasElemTypeToRust(star *ast.StarExpr) (string, bool) {
 	return goTypesTypeToRust(types.Unalias(alias)), true
 }
 
+func pointerTypeExprElemIsGoError(star *ast.StarExpr) bool {
+	typ, ok := typeInfoTypeForTypeExpr(star)
+	if !ok {
+		return false
+	}
+	ptr, ok := types.Unalias(typ).Underlying().(*types.Pointer)
+	return ok && isGoErrorType(ptr.Elem())
+}
+
+func rustGoErrorHandleType() string {
+	trackWrapperImports()
+	return GetOuterWrapperType() + "<" + GetInnerWrapperType() + "<Option<" + rustStdErrorBoxType() + ">>>"
+}
+
 // Generate Rust closure type from Go function type
 func generateClosureType(funcType *ast.FuncType) string {
 	var paramTypes []string
@@ -730,6 +744,9 @@ func goTypeToRustBase(expr ast.Expr) string {
 		valueType := GoTypeToRust(t.Value)
 		return "BTreeMap<" + keyType + ", " + valueType + ">"
 	case *ast.StarExpr:
+		if pointerTypeExprElemIsGoError(t) {
+			return rustGoErrorHandleType()
+		}
 		// Pointer to sync types → bare type (they handle sharing internally)
 		if isSyncParam(t) {
 			return goTypeToRustBase(t.X)
@@ -1272,6 +1289,9 @@ func goTypesTypeToRust(t types.Type) string {
 	case *types.Array:
 		return "[" + goTypesCollectionElemTypeToRust(ut.Elem()) + "; " + strconv.FormatInt(ut.Len(), 10) + "]"
 	case *types.Pointer:
+		if isGoErrorType(ut.Elem()) {
+			return rustGoErrorHandleType()
+		}
 		outerWrapper := GetOuterWrapperType()
 		innerWrapper := GetInnerWrapperType()
 		trackWrapperImports()

@@ -3012,6 +3012,45 @@ func start() {
 	}
 }
 
+func TestConcurrentAddressOfErrorPassesErrorHandleToPointerParam(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+type holder struct{}
+
+func (h *holder) handle(err *error) {}
+
+func (h *holder) run() (err error) {
+	h.handle(&err)
+	return
+}
+
+func start() {
+	go func() {}()
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "Option<Option<Box<dyn StdError") {
+		t.Fatalf("*error should use the same error handle shape as an error variable, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "pub fn handle(&self, err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>)") {
+		t.Fatalf("*error parameter should accept the error handle shape, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "self.handle(err.clone())") {
+		t.Fatalf("&error argument should pass the existing error handle, got:\n%s", mainRS)
+	}
+}
+
 func TestTypeDefinitionMethodReceiverUsesSelfValue(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

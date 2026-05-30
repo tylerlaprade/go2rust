@@ -8001,7 +8001,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString("*")
 									TranspileExpressionContext(out, star.X, LValue)
 									WriteBorrowMethod(out, true)
-									out.WriteString(" = Some(new_val); }")
+									if isGoErrorType(expected) {
+										out.WriteString(" = new_val; }")
+									} else {
+										out.WriteString(" = Some(new_val); }")
+									}
 								}
 							} else if indexExpr, ok := s.Lhs[0].(*ast.IndexExpr); ok && !isMapIndexAssign {
 								// Array/slice element assignment: arr[i] = value
