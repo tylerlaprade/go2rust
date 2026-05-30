@@ -655,6 +655,17 @@ func writeTypeParamArraySliceElementAssignmentValue(out *strings.Builder, rhs as
 	return true
 }
 
+func writeTypeParamHandleInitializer(out *strings.Builder, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if _, ok := types.Unalias(typeInfo.GetType(rhs)).(*types.TypeParam); !ok {
+		return false
+	}
+	return writeTypeParamHandleExpression(out, rhs)
+}
+
 func writeNamedSliceSliceExprShortDeclInitializer(out *strings.Builder, rhs ast.Expr) bool {
 	if _, ok := rhs.(*ast.SliceExpr); !ok {
 		return false
@@ -9213,6 +9224,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											if !writeNamedSliceSliceExprShortDeclInitializer(out, rhs) {
 												TranspileExpression(out, rhs)
 											}
+										} else if writeTypeParamHandleInitializer(out, rhs) {
+											// Type-parameter values are represented by handles; clone the handle into the new local.
 										} else if isWrappedInterfaceSliceIndex(rhs) {
 											// IndexExpr on a slice of wrapped local-interface
 											// elements returns the same wrapped handle the
@@ -9317,6 +9330,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								if !writeNamedSliceSliceExprShortDeclInitializer(out, rhs) {
 									TranspileExpression(out, rhs)
 								}
+							} else if writeTypeParamHandleInitializer(out, rhs) {
+								// Type-parameter values are represented by handles; clone the handle into the new local.
 							} else if mapIndexExpressionKeepsHandle(rhs) {
 								// Map values that are maps/slices/pointers/etc. already return cloneable handles.
 								TranspileExpression(out, rhs)

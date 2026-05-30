@@ -2612,6 +2612,23 @@ func (x *Float) bits() int {
 	}
 }
 
+func TestTypeParamSliceElementShortDeclUsesHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func pick[S ~[]E, E any](values S, i int, use func(E) bool) bool {
+	v := values[i]
+	return use(v)
+}
+`)
+
+	if strings.Contains(rust, "Some({ let __seq") {
+		t.Fatalf("type-parameter slice element short declaration should not double-wrap the element handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut v = (*values") {
+		t.Fatalf("type-parameter slice element short declaration should bind the existing element handle:\n%s", rust)
+	}
+}
+
 func TestNamedSliceSelectorReturnAsUnnamedSliceUsesInnerHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
