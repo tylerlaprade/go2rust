@@ -6348,6 +6348,10 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		return
 	}
 
+	if writeSliceExpressionFieldValue(out, value, expectedFieldType) {
+		return
+	}
+
 	// Check if the value is an identifier (parameter/variable/constant).
 	if valIdent, ok := value.(*ast.Ident); ok {
 		if valIdent.Name == "true" || valIdent.Name == "false" || valIdent.Name == "nil" {
@@ -6536,6 +6540,31 @@ func writeAlreadyWrappedSelectorFieldValue(out *strings.Builder, value ast.Expr,
 	out.WriteString("{ let __field = ")
 	TranspileExpressionContext(out, sel, LValue)
 	out.WriteString(".clone(); __field }")
+	return true
+}
+
+func writeSliceExpressionFieldValue(out *strings.Builder, value ast.Expr, expected types.Type) bool {
+	if expected == nil {
+		return false
+	}
+	if _, ok := types.Unalias(expected).Underlying().(*types.Slice); !ok {
+		return false
+	}
+	if _, ok := unwrapParens(value).(*ast.SliceExpr); !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	actual := typeInfo.GetType(value)
+	if actual == nil || !types.AssignableTo(actual, expected) {
+		return false
+	}
+	if !typeInfo.ReturnsWrappedValue(value) {
+		return false
+	}
+	TranspileExpression(out, value)
 	return true
 }
 

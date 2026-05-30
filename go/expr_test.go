@@ -506,6 +506,24 @@ func makeError(s string, n int) Error {
 	}
 }
 
+func TestSliceFieldCompositeLiteralUsesSliceExpressionHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Message struct {
+	Data []byte
+}
+
+func makeMessage(b []byte, n int) Message {
+	return Message{Data: b[1:n]}
+}
+`)
+
+	if strings.Contains(rust, "data: Rc::new(RefCell::new(Some(Rc::new") ||
+		strings.Contains(rust, "data: Arc::new(Mutex::new(Some(Arc::new") {
+		t.Fatalf("slice field composite value should store the slice expression handle, not wrap it again:\n%s", rust)
+	}
+}
+
 func TestPointerAssertionToStructAliasUsesUnderlyingPointee(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
