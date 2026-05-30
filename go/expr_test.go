@@ -215,6 +215,12 @@ func declare(obj object) {
 	if !strings.Contains(rust, "impl positioner for Box<dyn object") {
 		t.Fatalf("structural interface argument should have a trait-object adapter:\n%s", rust)
 	}
+	if strings.Contains(rust, "(**self).__go_eq_positioner(other)") {
+		t.Fatalf("structural interface adapter should not delegate equality to a non-embedded helper:\n%s", rust)
+	}
+	if !strings.Contains(rust, `panic!("interface equality for structurally adapted object as positioner")`) {
+		t.Fatalf("structural interface adapter equality should be loud when it cannot preserve Go semantics:\n%s", rust)
+	}
 	if !strings.Contains(rust, "Box::new((*obj.borrow().as_ref().unwrap()).clone()) as Box<dyn positioner") {
 		t.Fatalf("structural interface argument should box the source trait object through the adapter:\n%s", rust)
 	}

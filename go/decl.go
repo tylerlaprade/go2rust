@@ -1542,7 +1542,7 @@ func writeEmbeddedTraitObjectAdapters(out *strings.Builder, ifaceName string, em
 		if embeddedIface == nil {
 			continue
 		}
-		writeEmbeddedTraitObjectAdapter(out, ifaceName, embeddedName, embeddedIface)
+		writeEmbeddedTraitObjectAdapter(out, ifaceName, embeddedName, embeddedIface, true)
 	}
 }
 
@@ -1575,11 +1575,11 @@ func writeAssignableInterfaceObjectAdapters(out *strings.Builder, ifaceName stri
 	}
 	sort.Strings(targetNames)
 	for _, targetName := range targetNames {
-		writeEmbeddedTraitObjectAdapter(out, ifaceName, targetName, localInterfaceTypesByName(targetName))
+		writeEmbeddedTraitObjectAdapter(out, ifaceName, targetName, localInterfaceTypesByName(targetName), false)
 	}
 }
 
-func writeEmbeddedTraitObjectAdapter(out *strings.Builder, ifaceName, embeddedName string, embeddedIface *types.Interface) {
+func writeEmbeddedTraitObjectAdapter(out *strings.Builder, ifaceName, embeddedName string, embeddedIface *types.Interface, delegateEquality bool) {
 	out.WriteString("\n\nimpl ")
 	out.WriteString(embeddedName)
 	out.WriteString(" for ")
@@ -1591,7 +1591,7 @@ func writeEmbeddedTraitObjectAdapter(out *strings.Builder, ifaceName, embeddedNa
 		out.WriteString("        (**self).__go_as_any()\n")
 		out.WriteString("    }\n")
 	}
-	writeEmbeddedTraitObjectEq(out, embeddedName)
+	writeEmbeddedTraitObjectEq(out, ifaceName, embeddedName, delegateEquality)
 	for i := 0; i < embeddedIface.NumMethods(); i++ {
 		method := embeddedIface.Method(i)
 		writeEmbeddedTraitObjectMethod(out, method)
@@ -1612,13 +1612,23 @@ func writeEmbeddedTraitObjectClone(out *strings.Builder, embeddedName string) {
 	out.WriteString("    }\n")
 }
 
-func writeEmbeddedTraitObjectEq(out *strings.Builder, embeddedName string) {
+func writeEmbeddedTraitObjectEq(out *strings.Builder, ifaceName, embeddedName string, delegateEquality bool) {
 	traitSnake := traitMethodSuffix(embeddedName)
 	out.WriteString("    fn __go_eq_")
 	out.WriteString(traitSnake)
 	out.WriteString("(&self, other: ")
 	out.WriteString(rustLocalInterfaceParamBare(embeddedName))
 	out.WriteString(") -> bool {\n")
+	if !delegateEquality {
+		out.WriteString("        let _ = other;\n")
+		out.WriteString("        panic!(\"interface equality for structurally adapted ")
+		out.WriteString(ifaceName)
+		out.WriteString(" as ")
+		out.WriteString(embeddedName)
+		out.WriteString("\")\n")
+		out.WriteString("    }\n")
+		return
+	}
 	out.WriteString("        (**self).__go_eq_")
 	out.WriteString(traitSnake)
 	out.WriteString("(other)\n")
