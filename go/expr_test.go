@@ -464,6 +464,44 @@ func isTag(n *NotExpr) bool {
 	}
 }
 
+func TestPointerAssertionToStructAliasUsesUnderlyingPointee(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Expr interface {
+	expr()
+}
+
+type Ident struct {
+	Name string
+}
+
+func (*Ident) expr() {}
+
+type identType = Ident
+
+func identName(n *identType) string {
+	return n.Name
+}
+
+func firstName(values []Expr) string {
+	for _, value := range values {
+		if ident, ok := value.(*identType); ok {
+			return identName(ident)
+		}
+	}
+	return ""
+}
+`)
+
+	if strings.Contains(rust, "downcast_ref::<identType>()") ||
+		strings.Contains(rust, "None::<identType>") {
+		t.Fatalf("pointer assertion to a struct alias should assert the underlying pointee type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "downcast_ref::<Ident>()") {
+		t.Fatalf("pointer assertion to a struct alias should downcast to the underlying struct:\n%s", rust)
+	}
+}
+
 func TestEmbeddedLocalInterfaceFieldConcreteAssertionQualifiesAsAny(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

@@ -9084,11 +9084,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 			} else if star, ok := e.Type.(*ast.StarExpr); ok {
 				assertionReturnsPointer = true
-				if ident, ok := star.X.(*ast.Ident); ok {
-					rustType = RustTypeNameForUse(ident.Name)
-				} else {
-					rustType = goTypeToRustBase(star.X)
-				}
+				rustType = pointerAssertionPointeeRustType(star)
 			} else {
 				// Complex type - use the base type
 				rustType = goTypeToRustBase(e.Type)
@@ -11954,6 +11950,16 @@ func writeLocalInterfaceAssertionValue(out *strings.Builder, e *ast.TypeAssertEx
 	out.WriteString("    })")
 }
 
+func pointerAssertionPointeeRustType(star *ast.StarExpr) string {
+	if aliasElem, ok := pointerAliasElemTypeToRust(star); ok {
+		return aliasElem
+	}
+	if ident, ok := star.X.(*ast.Ident); ok {
+		return RustTypeNameForUse(ident.Name)
+	}
+	return goTypeToRustBase(star.X)
+}
+
 // TranspileTypeAssertionCommaOk generates code for type assertion with comma-ok form
 func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) {
 	if e.Type == nil {
@@ -12068,11 +12074,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	} else if star, ok := e.Type.(*ast.StarExpr); ok {
 		// Pointer type assertion (*T) - downcast to the bare type T
 		targetIsPointer = true
-		if ident, ok := star.X.(*ast.Ident); ok {
-			rustType = RustTypeNameForUse(ident.Name)
-		} else {
-			rustType = goTypeToRustBase(star.X)
-		}
+		rustType = pointerAssertionPointeeRustType(star)
 		defaultValue = "Default::default()"
 	} else {
 		// Complex type - use the base type
