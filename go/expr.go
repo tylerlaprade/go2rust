@@ -6325,6 +6325,14 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 		return
 	}
 
+	if isGoErrorType(expectedFieldType) {
+		if writeGoErrorHandleValue(out, value) {
+			return
+		}
+		out.WriteString(`unimplemented!("type info required to lower error struct field")`)
+		return
+	}
+
 	if writeStdlibInterfaceCallArgumentConversion(out, value, expectedFieldType) {
 		return
 	}

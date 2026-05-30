@@ -812,6 +812,31 @@ func record() operand {
 	}
 }
 
+func TestErrorStructFieldBoxesConcreteNamedIntegerValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Errno uintptr
+
+func (e Errno) Error() string { return "" }
+
+type PathError struct {
+	Err error
+}
+
+func wrap(errno Errno) *PathError {
+	return &PathError{Err: errno}
+}
+`)
+
+	if strings.Contains(rust, "err: errno.clone()") {
+		t.Fatalf("error struct field should not clone the concrete error handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "err: Rc::new(RefCell::new(Some(Box::new((*errno.borrow().as_ref().unwrap()).clone()) as Box<dyn StdError>)))") &&
+		!strings.Contains(rust, "err: Arc::new(Mutex::new(Some(Box::new((*errno.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>)))") {
+		t.Fatalf("error struct field should box the concrete error value:\n%s", rust)
+	}
+}
+
 func TestAppendCurrentReceiverToInterfaceSliceBoxesSelf(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
