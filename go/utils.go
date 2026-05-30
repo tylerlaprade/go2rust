@@ -321,7 +321,7 @@ func isPackageGlobalName(s string) bool {
 
 func RustIdentForUse(ident *ast.Ident) string {
 	if isPackageGlobalIdent(ident) {
-		return EscapeRustIdent(ident.Name)
+		return rustPackageGlobalName(ident.Name)
 	}
 	return RustLocalIdent(ident.Name)
 }

@@ -269,3 +269,26 @@ func Logger() int {
 		t.Fatalf("package global should not keep the colliding Rust name:\n%s", rust)
 	}
 }
+
+func TestPackageGlobalMethodReceiverUsesRenamedGlobal(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync/atomic"
+
+var logger atomic.Pointer[int]
+
+func Logger() *int {
+	return logger.Load()
+}
+`)
+
+	if !strings.Contains(rust, "static logger_1:") {
+		t.Fatalf("package global should be renamed away from colliding function:\n%s", rust)
+	}
+	if strings.Contains(rust, "logger.lock()") || strings.Contains(rust, "logger.borrow()") {
+		t.Fatalf("method receiver should not use the colliding package-global name:\n%s", rust)
+	}
+	if !strings.Contains(rust, "logger_1.lock()") && !strings.Contains(rust, "logger_1.borrow") {
+		t.Fatalf("method receiver should use the renamed package global:\n%s", rust)
+	}
+}
