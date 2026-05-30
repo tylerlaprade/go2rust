@@ -1018,6 +1018,25 @@ func withNil(nodes []Node) []Node {
 	}
 }
 
+func TestAppendNilToPointerSliceUsesWrappedNone(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Ident struct{}
+
+func collect(names []*Ident) []*Ident {
+	return append(names, nil)
+}
+`)
+
+	if strings.Contains(rust, ".push(None)") {
+		t.Fatalf("append nil to pointer slice should push a wrapped None handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".push(Rc::new(RefCell::new(None)))") &&
+		!strings.Contains(rust, ".push(Arc::new(Mutex::new(None)))") {
+		t.Fatalf("append nil to pointer slice should emit a wrapped None handle:\n%s", rust)
+	}
+}
+
 func TestAppendThroughPointerToSliceFieldUsesHandleTarget(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

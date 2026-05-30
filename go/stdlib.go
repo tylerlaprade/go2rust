@@ -3620,6 +3620,10 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 						out.WriteString("Default::default()")
 						return
 					}
+					if _, isPointer := types.Unalias(elemType).Underlying().(*types.Pointer); isPointer {
+						WriteWrappedNone(out)
+						return
+					}
 				}
 				if isGoErrorType(elemType) && writeGoErrorHandleValue(out, expr) {
 					return
