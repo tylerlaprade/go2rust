@@ -679,6 +679,9 @@ func writeConstAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.Expr)
 }
 
 func writePointerDerefAssignmentValue(out *strings.Builder, rhs ast.Expr, expected types.Type) bool {
+	if isGoErrorType(expected) && writeGoErrorPointerDerefAssignmentValue(out, rhs) {
+		return true
+	}
 	if call, ok := rhs.(*ast.CallExpr); ok {
 		typeInfo := GetTypeInfo()
 		if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
@@ -693,6 +696,29 @@ func writePointerDerefAssignmentValue(out *strings.Builder, rhs ast.Expr, expect
 		return true
 	}
 	if expected != nil && writeConstExpressionForExpectedGoType(out, rhs, expected) {
+		return true
+	}
+	return false
+}
+
+func writeGoErrorPointerDerefAssignmentValue(out *strings.Builder, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
+		writeErrorOptionFromHandleExpression(out, rhs)
+		return true
+	}
+	rhsType := typeInfo.GetType(rhs)
+	if isGoErrorType(rhsType) {
+		writeErrorOptionFromHandleExpression(out, rhs)
+		return true
+	}
+	if isConcreteGoErrorValue(rhsType) {
+		out.WriteString("Some(")
+		writeConcreteErrorBox(out, rhs)
+		out.WriteString(")")
 		return true
 	}
 	return false

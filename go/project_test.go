@@ -2977,6 +2977,41 @@ func start() {
 	}
 }
 
+func TestConcurrentPointerToErrorAssignmentStoresErrorValue(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+type holder struct {
+	firstErr error
+}
+
+func (h *holder) handle(err *error) {
+	*err = h.firstErr
+}
+
+func start() {
+	go func() {}()
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "let new_val = self.first_err.clone(); *err.lock().unwrap() = Some(new_val);") {
+		t.Fatalf("*error assignment should store the error option value, not the handle, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "__err_guard.take()") {
+		t.Fatalf("*error assignment should extract an error option from the RHS handle, got:\n%s", mainRS)
+	}
+}
+
 func TestTypeDefinitionMethodReceiverUsesSelfValue(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
