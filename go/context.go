@@ -864,6 +864,9 @@ func NeedGoTime() {
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsGoTime = true
 	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsGoTime = true
+	})
 }
 
 // NeedGoTimer marks that we need time.Timer helpers
@@ -873,6 +876,9 @@ func NeedGoTimer() {
 		helpers.needsGoChannel = true
 		helpers.needsGoTime = true
 	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsGoTime = true
+	})
 }
 
 // NeedGoAfter marks that we need time.After helpers
@@ -882,6 +888,9 @@ func NeedGoAfter() {
 		helpers.needsGoChannel = true
 		helpers.needsGoTime = true
 	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsGoTime = true
+	})
 }
 
 // NeedGoTicker marks that we need time.Ticker helpers
@@ -891,6 +900,9 @@ func NeedGoTicker() {
 		helpers.needsGoChannel = true
 		helpers.needsGoTime = true
 	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsGoTime = true
+	})
 }
 
 // NeedGoTick marks that we need time.Tick helpers
@@ -900,6 +912,9 @@ func NeedGoTick() {
 		helpers.needsGoChannel = true
 		helpers.needsGoTime = true
 	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsGoTime = true
+	})
 }
 
 // NeedGoContext marks that we need context.Context helpers

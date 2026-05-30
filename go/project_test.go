@@ -2650,26 +2650,98 @@ func main() {
 
 	depDir := filepath.Join(tempDir, "vendor", "example_com_dep")
 	depLib := mustReadFile(t, filepath.Join(depDir, "lib.rs"))
-	if !strings.Contains(depLib, `include!("__go2rust_helpers.rs");`) {
-		t.Fatalf("external package lib.rs should include package-scoped helpers, got:\n%s", depLib)
+	if strings.Contains(depLib, `include!("__go2rust_helpers.rs");`) {
+		t.Fatalf("external package should use shared GoTime instead of a package-scoped helper include, got:\n%s", depLib)
 	}
-
-	helpersRS := mustReadFile(t, filepath.Join(depDir, packageHelperIncludeFile))
-	if !strings.Contains(helpersRS, "struct GoTime") {
-		t.Fatalf("external package helper include should define GoTime once, got:\n%s", helpersRS)
+	if !strings.Contains(depLib, "pub use go2rust_stdlib_stubs::*;") {
+		t.Fatalf("external package should re-export shared stdlib helpers, got:\n%s", depLib)
+	}
+	sharedLib := mustReadFile(t, filepath.Join(tempDir, "vendor", sharedStdlibStubCrateName, "lib.rs"))
+	if !strings.Contains(sharedLib, "pub struct GoTime") {
+		t.Fatalf("shared stdlib helper crate should define exported GoTime once, got:\n%s", sharedLib)
 	}
 
 	clockRS := mustReadFile(t, filepath.Join(depDir, "clock.rs"))
 	consumeRS := mustReadFile(t, filepath.Join(depDir, "consume.rs"))
 	for name, code := range map[string]string{"clock.rs": clockRS, "consume.rs": consumeRS} {
-		if !strings.Contains(code, "use crate::{GoTime, go_time_civil_from_days};") {
-			t.Fatalf("%s should import crate-root helpers, got:\n%s", name, code)
+		if !strings.Contains(code, "use go2rust_stdlib_stubs::*;") {
+			t.Fatalf("%s should import shared stdlib helpers, got:\n%s", name, code)
 		}
 		if strings.Contains(code, "use crate::*;") {
 			t.Fatalf("%s should not glob-import the crate root for helpers, got:\n%s", name, code)
 		}
 		if strings.Contains(code, "struct GoTime") {
 			t.Fatalf("%s should not define a file-local GoTime, got:\n%s", name, code)
+		}
+	}
+}
+
+func TestSharedStdlibHelperGoTimeCrossesTranspiledCrates(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "clock", "clock.go"), `package clock
+
+import "time"
+
+func Made() time.Time {
+	return time.Unix(1, 0)
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "consume", "consume.go"), `package consume
+
+import "time"
+
+func UnixSecond(t time.Time) int64 {
+	return t.Unix()
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import (
+	"example.com/mainmod/clock"
+	"example.com/mainmod/consume"
+)
+
+func main() {
+	println(consume.UnixSecond(clock.Made()))
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	sharedLib := mustReadFile(t, filepath.Join(tempDir, "vendor", sharedStdlibStubCrateName, "lib.rs"))
+	if !strings.Contains(sharedLib, "pub struct GoTime") {
+		t.Fatalf("shared stdlib helper crate should define exported GoTime once, got:\n%s", sharedLib)
+	}
+
+	for _, importPath := range []string{"example.com/mainmod/clock", "example.com/mainmod/consume"} {
+		crateName := RustCrateNameForGoImportPath(importPath)
+		libRS := mustReadFile(t, filepath.Join(tempDir, "vendor", crateName, "lib.rs"))
+		if strings.Contains(libRS, `include!("__go2rust_helpers.rs");`) {
+			t.Fatalf("%s should use shared GoTime instead of a package-local helper include, got:\n%s", crateName, libRS)
+		}
+		if !strings.Contains(libRS, "pub use go2rust_stdlib_stubs::*;") {
+			t.Fatalf("%s should re-export shared stdlib helpers, got:\n%s", crateName, libRS)
+		}
+		entries, err := os.ReadDir(filepath.Join(tempDir, "vendor", crateName))
+		if err != nil {
+			t.Fatalf("ReadDir(%s) error = %v", crateName, err)
+		}
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".rs") {
+				continue
+			}
+			code := mustReadFile(t, filepath.Join(tempDir, "vendor", crateName, entry.Name()))
+			if strings.Contains(code, "struct GoTime") {
+				t.Fatalf("%s/%s should not define a crate-local GoTime, got:\n%s", crateName, entry.Name(), code)
+			}
 		}
 	}
 }

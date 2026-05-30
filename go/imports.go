@@ -168,6 +168,7 @@ func (ht *HelperTracker) withoutSharedStdlibHelpers() *HelperTracker {
 	helperCopy := *ht
 	helperCopy.needsGoChannel = false
 	helperCopy.needsGoContext = false
+	helperCopy.needsGoTime = false
 	return &helperCopy
 }
 
@@ -181,6 +182,9 @@ func (ht *HelperTracker) sharedStdlibHelpersOnly() *HelperTracker {
 	}
 	if ht.needsGoContext {
 		helperCopy.needsGoContext = true
+	}
+	if ht.needsGoTime {
+		helperCopy.needsGoTime = true
 	}
 	if ht.needsGoRWMutex {
 		helperCopy.needsGoRWMutex = true
@@ -2539,7 +2543,8 @@ impl<T: Clone> GoPtr<T> {
 }
 
 func generateGoTimeHelper(out *strings.Builder) {
-	out.WriteString(`
+	var code strings.Builder
+	code.WriteString(`
 #[derive(Clone, Debug, Default)]
 struct GoTime {
     seconds: i64,
@@ -2583,7 +2588,7 @@ impl GoTime {
 	if NeedsConcurrentWrapper() {
 		TrackImport("Arc")
 		TrackImport("Mutex")
-		out.WriteString(`
+		code.WriteString(`
     fn add(&self, duration: Arc<Mutex<Option<std::time::Duration>>>) -> Arc<Mutex<Option<GoTime>>> {
         let duration = *duration.lock().unwrap().as_ref().unwrap();
         Arc::new(Mutex::new(Some(GoTime::from_unix(
@@ -2616,7 +2621,7 @@ impl GoTime {
 	} else {
 		TrackImport("Rc")
 		TrackImport("RefCell")
-		out.WriteString(`
+		code.WriteString(`
     fn add(&self, duration: Rc<RefCell<Option<std::time::Duration>>>) -> Rc<RefCell<Option<GoTime>>> {
         let duration = *duration.borrow().as_ref().unwrap();
         Rc::new(RefCell::new(Some(GoTime::from_unix(
@@ -2647,7 +2652,7 @@ impl GoTime {
 }
 `)
 	}
-	out.WriteString(`
+	code.WriteString(`
 impl std::fmt::Display for GoTime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let days = self.seconds.div_euclid(86_400);
@@ -2676,6 +2681,20 @@ impl std::fmt::Display for GoTime {
     }
 }
 `)
+	helper := code.String()
+	if generatingPublicHelpers {
+		helper = strings.ReplaceAll(helper, "struct GoTime", "pub struct GoTime")
+		helper = strings.ReplaceAll(helper, "fn go_time_civil_from_days(", "pub fn go_time_civil_from_days(")
+		helper = strings.ReplaceAll(helper, "    fn now(", "    pub fn now(")
+		helper = strings.ReplaceAll(helper, "    fn from_unix(", "    pub fn from_unix(")
+		helper = strings.ReplaceAll(helper, "    fn add(", "    pub fn add(")
+		helper = strings.ReplaceAll(helper, "    fn u_t_c(", "    pub fn u_t_c(")
+		helper = strings.ReplaceAll(helper, "    fn unix(", "    pub fn unix(")
+		helper = strings.ReplaceAll(helper, "    fn unix_nano(", "    pub fn unix_nano(")
+		helper = strings.ReplaceAll(helper, "    fn is_zero(", "    pub fn is_zero(")
+		helper = strings.ReplaceAll(helper, "    fn format(", "    pub fn format(")
+	}
+	out.WriteString(helper)
 }
 
 func generateGoTimerHelper(out *strings.Builder) {
