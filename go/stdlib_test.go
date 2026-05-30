@@ -50,6 +50,26 @@ func Write(buf *strings.Builder, cmap CommentMap, s string) {
 	}
 }
 
+func TestLenOfPointerToSliceDerefUsesSliceHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type ranges struct {
+	p *[]rune
+}
+
+func (ra ranges) Len() int {
+	return len(*ra.p) / 2
+}
+`)
+
+	if strings.Contains(rust, "(*(*self.p") {
+		t.Fatalf("len of pointer-to-slice dereference should not borrow the raw Vec as a handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __slice_holder = self.p.clone()") {
+		t.Fatalf("len of pointer-to-slice dereference should measure the cloned slice handle:\n%s", rust)
+	}
+}
+
 func TestFmtFprintfSourceMappedStringsBuilderUsesGeneratedWriteString(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

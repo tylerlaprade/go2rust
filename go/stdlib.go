@@ -4071,6 +4071,10 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 
+		if writePointerDerefSliceLen(out, call.Args[0]) {
+			return
+		}
+
 		// len() returns the length of arrays, slices, maps, strings, or channels
 		if isExpressionResultBare(call.Args[0]) {
 			// Bare value (range var, index result, etc.) - access directly
@@ -4091,6 +4095,34 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(".as_ref().unwrap()).len()")
 		}
 	}
+}
+
+func writePointerDerefSliceLen(out *strings.Builder, expr ast.Expr) bool {
+	star, ok := unwrapParens(expr).(*ast.StarExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if _, ok := types.Unalias(typeInfo.GetType(star)).Underlying().(*types.Slice); !ok {
+		return false
+	}
+	operandType := typeInfo.GetType(star.X)
+	ptr, ok := types.Unalias(operandType).Underlying().(*types.Pointer)
+	if !ok {
+		return false
+	}
+	if _, ok := types.Unalias(ptr.Elem()).Underlying().(*types.Slice); !ok {
+		return false
+	}
+	out.WriteString("{ let __slice_holder = ")
+	TranspileExpressionContext(out, star.X, LValue)
+	out.WriteString(".clone(); let __slice_guard = __slice_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }")
+	return true
 }
 
 func writeConstStringLen(out *strings.Builder, expr ast.Expr) bool {
