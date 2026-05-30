@@ -376,6 +376,43 @@ func (s *Scope) String() string {
 	}
 }
 
+func TestSourceMappedStringsBuilderUsesGeneratedMethods(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "strings"
+
+func build(parts []string, sep string) string {
+	var b strings.Builder
+	b.WriteString(parts[0])
+	b.WriteString(sep)
+	return b.String()
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"strings": "strings"})
+
+	if strings.Contains(rust, ".push_str(") {
+		t.Fatalf("source-mapped strings.Builder should call generated WriteString, not Rust String::push_str:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __builder = b.clone()") {
+		t.Fatalf("source-mapped strings.Builder should call generated String, not clone the builder as a native string:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".write_string(") {
+		t.Fatalf("source-mapped strings.Builder should call the generated write_string method:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".string()") {
+		t.Fatalf("source-mapped strings.Builder should call the generated string method:\n%s", rust)
+	}
+}
+
 func TestMultiShortDeclLenCapWrapsGoInt(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

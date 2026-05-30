@@ -12639,7 +12639,11 @@ func isFunctionTypeAliasValue(expr ast.Expr) bool {
 
 func writeStringsBuilderMethodCall(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr) bool {
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !isStringsBuilderReceiverType(typeInfo.GetType(sel.X)) {
+	if typeInfo == nil {
+		return false
+	}
+	receiverType := typeInfo.GetType(sel.X)
+	if !isStringsBuilderReceiverType(receiverType) || isSourceMappedStringsBuilderReceiverType(receiverType) {
 		return false
 	}
 
@@ -12734,17 +12738,30 @@ func writeStringsBuilderMethodCall(out *strings.Builder, sel *ast.SelectorExpr, 
 }
 
 func isStringsBuilderReceiverType(typ types.Type) bool {
+	_, ok := stringsBuilderReceiverNamedType(typ)
+	return ok
+}
+
+func isSourceMappedStringsBuilderReceiverType(typ types.Type) bool {
+	named, ok := stringsBuilderReceiverNamedType(typ)
+	return ok && isSourceMappedPackagePath(named.Obj().Pkg().Path())
+}
+
+func stringsBuilderReceiverNamedType(typ types.Type) (*types.Named, bool) {
 	if typ == nil {
-		return false
+		return nil, false
 	}
 	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
-		return isStringsBuilderReceiverType(ptr.Elem())
+		return stringsBuilderReceiverNamedType(ptr.Elem())
 	}
 	named, ok := types.Unalias(typ).(*types.Named)
 	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
-		return false
+		return nil, false
 	}
-	return named.Obj().Pkg().Path() == "strings" && named.Obj().Name() == "Builder"
+	if named.Obj().Pkg().Path() != "strings" || named.Obj().Name() != "Builder" {
+		return nil, false
+	}
+	return named, true
 }
 
 // isByteWriterReceiverType reports whether typ is a stdlib type that we know
