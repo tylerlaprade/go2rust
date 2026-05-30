@@ -7954,6 +7954,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						}
 					} else if writeLocalInterfaceConcreteReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
 					} else if writePointerReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
+					} else if writeNamedIntegerWrappedInitializer(out, result) {
 					} else if compositeLit, ok := result.(*ast.CompositeLit); ok && isCompositeLitSelfWrapping(compositeLit) {
 						// Slice and map literals already return wrapped values.
 						TranspileExpression(out, result)

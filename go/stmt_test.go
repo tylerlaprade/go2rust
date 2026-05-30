@@ -2097,6 +2097,24 @@ func invert(z nat) {
 	}
 }
 
+func TestNamedIntegerUnaryNotReturnWrapsNamedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type EmptyOp uint8
+
+func impossible() EmptyOp {
+	return ^EmptyOp(0)
+}
+`)
+
+	if strings.Contains(rust, "Some(!0 as u8)") {
+		t.Fatalf("named integer unary-not return should not wrap the raw primitive:\n%s", rust)
+	}
+	if !strings.Contains(rust, "EmptyOp(") {
+		t.Fatalf("named integer unary-not return should rebuild the named value:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerReturnCallAssignedToSliceElementPreservesCall(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
