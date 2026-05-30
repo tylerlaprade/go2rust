@@ -2037,6 +2037,33 @@ func main() {
 	}
 }
 
+func TestTimeDurationConversionToInt64UsesNanoseconds(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "time"
+
+func nanos(t time.Time) int64 {
+	return int64(time.Until(t))
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, ".0 as i64") {
+		t.Fatalf("conversion from time.Duration to int64 should not use tuple fields:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".as_nanos() as i64") {
+		t.Fatalf("conversion from time.Duration to int64 should use nanoseconds:\n%s", rust)
+	}
+}
+
 func TestCompoundAssignSelectorConstCastsToExpectedUintptr(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

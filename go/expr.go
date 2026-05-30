@@ -253,6 +253,10 @@ func writeNamedIntegerValueForExpected(out *strings.Builder, expr ast.Expr, name
 		TranspileExpression(out, expr)
 		return true
 	}
+	if isTimeDurationType(named) {
+		writeTimeDurationValue(out, expr)
+		return true
+	}
 	if rustType, ok := externalIntegerRustTypeForNamed(named); ok {
 		out.WriteString(goTypesNamedTypeToRust(named))
 		out.WriteString("(")
@@ -11388,7 +11392,10 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 
 	if needsCast && rustType != "" {
 		WriteWrapperPrefix(out)
-		if !writeIntegerTypeParamToRustNumericConversion(out, call.Args[0], rustType) {
+		if writeTimeDurationNumericConversionValue(out, call.Args[0]) {
+			out.WriteString(" as ")
+			out.WriteString(rustType)
+		} else if !writeIntegerTypeParamToRustNumericConversion(out, call.Args[0], rustType) {
 			needsParens := numericConversionCastNeedsParens(call.Args[0])
 			if needsParens {
 				out.WriteString("(")
@@ -12370,6 +12377,24 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 
 	TranspileExpression(out, arg)
 	writeExternalIntegerTupleField(out, argType)
+}
+
+func writeTimeDurationNumericConversionValue(out *strings.Builder, arg ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isTimeDurationType(typeInfo.GetType(arg)) {
+		return false
+	}
+	if typeInfo.ReturnsWrappedValue(arg) {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, arg, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).as_nanos()")
+		return true
+	}
+	out.WriteString("(")
+	TranspileExpression(out, arg)
+	out.WriteString(").as_nanos()")
+	return true
 }
 
 func writeBoolConversionValue(out *strings.Builder, arg ast.Expr) {

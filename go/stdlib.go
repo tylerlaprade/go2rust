@@ -5588,10 +5588,6 @@ func writeTimeDurationBinaryExpression(out *strings.Builder, expr *ast.BinaryExp
 	if expr == nil || expr.Op != token.MUL {
 		return false
 	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !isTimeDurationType(typeInfo.GetType(expr)) {
-		return false
-	}
 	if _, _, ok := durationBinaryParts(expr); !ok {
 		return false
 	}
