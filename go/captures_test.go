@@ -302,6 +302,68 @@ func clear(x *operand) bool {
 	}
 }
 
+func TestFuncLitUsesCapturedInterfaceArgClone(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type interface {
+	isType()
+}
+
+type Basic struct{}
+
+func (*Basic) isType() {}
+
+type Map struct {
+	key Type
+}
+
+func identical(Type, Type) bool {
+	return true
+}
+
+func under(fn func(Type) bool) bool {
+	return fn(nil)
+}
+
+func use(Type) {}
+
+func deleteLike(m *Map) {
+	var key Type
+	if !under(func(u Type) bool {
+		if key != nil && !identical(m.key, key) {
+			return false
+		}
+		key = m.key
+		return true
+	}) {
+		return
+	}
+	use(key)
+}
+`)
+
+	start := strings.Index(rust, "let mut key_closure_clone = key.clone();")
+	if start < 0 {
+		t.Fatalf("closure should clone the assigned interface capture:\n%s", rust)
+	}
+	bodyStart := strings.Index(rust[start:], "Box::new(move")
+	if bodyStart < 0 {
+		t.Fatalf("closure body not found after capture clone:\n%s", rust)
+	}
+	body := rust[start+bodyStart:]
+	bodyEnd := strings.Index(body, "}) as Box<dyn")
+	if bodyEnd < 0 {
+		t.Fatalf("closure body end not found after capture clone:\n%s", rust)
+	}
+	body = body[:bodyEnd]
+	if strings.Contains(body, "identical(") && strings.Contains(body, ", key.clone()") {
+		t.Fatalf("closure should pass the captured interface clone, not the outer interface handle:\n%s", rust)
+	}
+	if !strings.Contains(body, "key_closure_clone.clone()") {
+		t.Fatalf("closure should pass the captured interface clone to interface arguments:\n%s", rust)
+	}
+}
+
 func TestIfConditionFuncLitAssignedCaptureCloneIsMutable(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

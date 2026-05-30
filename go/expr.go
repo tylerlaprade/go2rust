@@ -2781,7 +2781,11 @@ func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr
 			}
 		}
 		if ident, ok := arg.(*ast.Ident); ok {
-			out.WriteString(RustIdentForUse(ident))
+			varName := RustIdentForUse(ident)
+			if renamed, exists := captureRenameForIdent(ident); exists {
+				varName = RustLocalIdent(renamed)
+			}
+			out.WriteString(varName)
 			out.WriteString(".clone()")
 			return true
 		}
