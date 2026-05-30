@@ -4486,7 +4486,7 @@ func count[T int8 | int16 | int32 | int64 | int, N int64 | uint64](num N) int {
 	}
 }
 
-func TestOrderedTypeParamComparisonClonesBorrowedOperands(t *testing.T) {
+func TestOrderedTypeParamComparisonUsesRawOperands(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
 type Ordered interface {
@@ -4501,13 +4501,12 @@ func Less[T Ordered](x, y T) bool {
 }
 `)
 
-	if strings.Contains(rust, "(*x.borrow().as_ref().unwrap()) <") ||
-		strings.Contains(rust, "(*x.lock().unwrap().as_ref().unwrap()) <") {
-		t.Fatalf("ordered type-parameter comparison should not move out of borrowed operands:\n%s", rust)
+	if strings.Contains(rust, "x.borrow()") || strings.Contains(rust, "x.lock()") ||
+		strings.Contains(rust, "y.borrow()") || strings.Contains(rust, "y.lock()") {
+		t.Fatalf("ordered type-parameter comparison should use raw operands, not wrapped handles:\n%s", rust)
 	}
-	if !strings.Contains(rust, "(*x.borrow().as_ref().unwrap()).clone()") &&
-		!strings.Contains(rust, "(*x.lock().unwrap().as_ref().unwrap()).clone()") {
-		t.Fatalf("ordered type-parameter comparison should clone borrowed operands:\n%s", rust)
+	if !strings.Contains(rust, "x < y") {
+		t.Fatalf("ordered type-parameter comparison should compare raw operands:\n%s", rust)
 	}
 }
 

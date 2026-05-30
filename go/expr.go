@@ -4774,11 +4774,23 @@ func writeTypeParamComparisonOperand(out *strings.Builder, expr ast.Expr) bool {
 	if call, ok := expr.(*ast.CallExpr); ok && writeIntegerTypeParamConversion(out, call) {
 		return true
 	}
+	if typeParamExprHasOrderedConstraint(expr) {
+		TranspileExpression(out, expr)
+		return true
+	}
 	out.WriteString("(*")
 	TranspileExpressionContext(out, expr, LValue)
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap()).clone()")
 	return true
+}
+
+func typeParamExprHasOrderedConstraint(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || expr == nil {
+		return false
+	}
+	return goTypeParamHasOrderedConstraint(typeInfo.GetType(expr))
 }
 
 func writeSliceElemPointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
@@ -14412,6 +14424,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					continue
 				}
 
+				if writeOrderedTypeParamCallArgument(out, arg, expectedArgType) {
+					continue
+				}
+
 				if writeTypeParamHandleCallArgument(out, arg, expectedArgType) {
 					continue
 				}
@@ -15096,6 +15112,9 @@ func writeTypeParamHandleCallArgument(out *strings.Builder, arg ast.Expr, expect
 	if !ok {
 		return false
 	}
+	if goTypeParamHasOrderedConstraint(expected) {
+		return false
+	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		return false
@@ -15104,6 +15123,16 @@ func writeTypeParamHandleCallArgument(out *strings.Builder, arg ast.Expr, expect
 		return false
 	}
 	return writeTypeParamHandleExpression(out, arg)
+}
+
+func writeOrderedTypeParamCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	if !goTypeParamHasOrderedConstraint(expected) {
+		return false
+	}
+	if !writeOwnedExpressionValue(out, arg) {
+		TranspileExpression(out, arg)
+	}
+	return true
 }
 
 func writeReadOnlyTypeParamSliceCallArgument(out *strings.Builder, call *ast.CallExpr, index int, arg ast.Expr, expected types.Type) bool {

@@ -2363,6 +2363,12 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 							RustType:  rustType,
 							Source:    SourceParam,
 						})
+					} else if typeExprIsOrderedTypeParam(field.Type) {
+						vt.Register(name.Name, &VarInfo{
+							WrapLevel: WrapNone,
+							RustType:  rustType,
+							Source:    SourceParam,
+						})
 					} else {
 						vt.Register(name.Name, &VarInfo{
 							WrapLevel: WrapFull,
@@ -5316,6 +5322,12 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 							Source:    SourceParam,
 						})
 					} else if typeExprIsRegisteredBareStructAlias(field.Type) {
+						vt.Register(name.Name, &VarInfo{
+							WrapLevel: WrapNone,
+							RustType:  rustType,
+							Source:    SourceParam,
+						})
+					} else if typeExprIsOrderedTypeParam(field.Type) {
 						vt.Register(name.Name, &VarInfo{
 							WrapLevel: WrapNone,
 							RustType:  rustType,

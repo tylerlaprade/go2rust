@@ -344,6 +344,50 @@ func Len[S ~[]E, E any](s S) int {
 	}
 }
 
+func TestGenericOrderedSliceConstrainedParameterUsesBareElements(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Ordered interface {
+	~int | ~string
+}
+
+func LessAt[S ~[]E, E Ordered](s S, i int, j int) bool {
+	return s[i] < s[j]
+}
+`)
+
+	if strings.Contains(rust, "Vec<Rc<RefCell<Option<E>>>>") ||
+		strings.Contains(rust, "Vec<Arc<Mutex<Option<E>>>>") {
+		t.Fatalf("ordered slice-constrained type parameter should not wrap ordered elements:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Vec<E>") {
+		t.Fatalf("ordered slice-constrained type parameter should use raw ordered elements:\n%s", rust)
+	}
+}
+
+func TestGenericOrderedTypeParamParameterUsesBareValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Ordered interface {
+	~int | ~string
+}
+
+func Less[T Ordered](x, y T) bool {
+	return x < y
+}
+`)
+
+	if strings.Contains(rust, "x: Rc<RefCell<Option<T>>>") ||
+		strings.Contains(rust, "x: Arc<Mutex<Option<T>>>") ||
+		strings.Contains(rust, "y: Rc<RefCell<Option<T>>>") ||
+		strings.Contains(rust, "y: Arc<Mutex<Option<T>>>") {
+		t.Fatalf("ordered type parameter values should be raw parameters:\n%s", rust)
+	}
+	if !strings.Contains(rust, "x: T") || !strings.Contains(rust, "y: T") {
+		t.Fatalf("ordered type parameter values should use raw Rust type parameters:\n%s", rust)
+	}
+}
+
 func TestGenericPointerConstraintTypeParamUsesCloneBound(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

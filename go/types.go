@@ -415,6 +415,18 @@ func goTypeParamHasOrderedConstraint(t types.Type) bool {
 	return ok && interfaceEmbedsOnlyOrderedTerms(iface)
 }
 
+func typeExprIsOrderedTypeParam(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || expr == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if _, ok := types.Unalias(typ).(*types.TypeParam); !ok {
+		return false
+	}
+	return goTypeParamHasOrderedConstraint(typ)
+}
+
 func interfaceEmbedsOnlyOrderedTerms(iface *types.Interface) bool {
 	if iface == nil || iface.NumEmbeddeds() == 0 {
 		return false
@@ -703,6 +715,9 @@ func lookupAnonymousStructName(structType *types.Struct) string {
 func GoTypeToRustParam(expr ast.Expr) string {
 	if interfaceName, ok := transpiledNamedInterfaceTypeNameFromExpr(expr); ok {
 		return rustLocalInterfaceParam(interfaceName)
+	}
+	if typeExprIsOrderedTypeParam(expr) {
+		return goTypeToRustBase(expr)
 	}
 
 	// For non-interface types, use regular wrapping
@@ -1561,6 +1576,9 @@ func goTypesCollectionElemTypeToRust(t types.Type) string {
 	if isGoErrorType(t) {
 		return goTypesTypeToRustWrapped(t)
 	}
+	if goTypeParamHasOrderedConstraint(t) {
+		return goTypesTypeToRust(t)
+	}
 	if _, ok := types.Unalias(t).(*types.TypeParam); ok {
 		return goTypesTypeToRustWrapped(t)
 	}
@@ -1779,6 +1797,9 @@ func goTypesWrappedRustType(base string) string {
 func goTypesParamTypeToRust(t types.Type) string {
 	if interfaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(t); ok {
 		return rustLocalInterfaceParam(interfaceName)
+	}
+	if goTypeParamHasOrderedConstraint(t) {
+		return goTypesTypeToRust(t)
 	}
 	if rustType, ok := goTypeParamSliceConstraintToRust(t); ok {
 		return goTypesWrappedRustType(rustType)
