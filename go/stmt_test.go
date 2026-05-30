@@ -605,6 +605,27 @@ func runes(s string) []rune {
 	}
 }
 
+func TestStringConstRangeUsesBareString(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func mask() int {
+	const str = "abc"
+	total := 0
+	for i, c := range str {
+		total += i + int(c)
+	}
+	return total
+}
+`)
+
+	if strings.Contains(rust, "str.borrow()") || strings.Contains(rust, "str.lock()") {
+		t.Fatalf("range over string const should not unwrap a string handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "str.char_indices()") {
+		t.Fatalf("range over string const should use the bare string value:\n%s", rust)
+	}
+}
+
 func TestIfInitShortDeclDoesNotLeakPastIf(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

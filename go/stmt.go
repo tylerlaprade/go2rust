@@ -10754,15 +10754,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 		} else if isString {
 			// String iteration - iterate over chars
-			// Check if the range target is a string literal (no wrapping needed)
+			// Check if the range target is already a bare string (no wrapping needed).
 			_, isStringLit := s.X.(*ast.BasicLit)
+			isBareStringRangeSource := isStringLit || isStringConstExpr(s.X)
 			if s.Key != nil && s.Value != nil {
 				// for i, c := range str
 				out.WriteString("(")
 				writeRangeBinding(out, s.Key, keyAssigned)
 				out.WriteString(", ")
 				writeStringRangeValueBinding()
-				if isStringLit {
+				if isBareStringRangeSource {
 					out.WriteString(") in ")
 					TranspileExpression(out, s.X)
 					out.WriteString(".char_indices()")
@@ -10780,7 +10781,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			} else if s.Value != nil {
 				// for _, c := range str
 				writeStringRangeValueBinding()
-				if isStringLit {
+				if isBareStringRangeSource {
 					out.WriteString(" in ")
 					TranspileExpression(out, s.X)
 					out.WriteString(".chars()")
@@ -10800,7 +10801,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString("(")
 				writeRangeBinding(out, s.Key, keyAssigned)
 				out.WriteString(", _) in ")
-				if isStringLit {
+				if isBareStringRangeSource {
 					TranspileExpression(out, s.X)
 					out.WriteString(".char_indices()")
 				} else {
@@ -10816,7 +10817,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			} else {
 				// for range str
 				out.WriteString("_ in ")
-				if isStringLit {
+				if isBareStringRangeSource {
 					TranspileExpression(out, s.X)
 					out.WriteString(".chars()")
 				} else {
