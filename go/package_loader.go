@@ -663,6 +663,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	registerPackageTypeModuleNames(pkgState, pkg.Syntax, moduleNamesByIndex)
 	registerPackageTypeFactsFromFiles(pkg.Syntax)
 	registerFunctionSignaturesFromFiles(pkg.Syntax)
+	registerSliceElemPtrReturnsFromFiles(pkg.Syntax)
 
 	var generatedModules []generatedRustModule
 	var initModules []generatedInitModule

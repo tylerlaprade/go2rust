@@ -27,6 +27,7 @@ type PackageState struct {
 	TypeModuleNames               map[string]string
 	FunctionTypeAliases           map[string]bool
 	FunctionTypeAliasBoxTypes     map[string]string
+	SliceElemPtrReturnFuncs       map[*types.Func]sliceElemPtrReturnInfo
 	MapKeyStructTypes             map[string]bool
 	PackageConstants              map[string]string
 	PackageConstantTypeNames      map[string]string
@@ -122,6 +123,7 @@ func NewPackageState() *PackageState {
 		TypeModuleNames:               make(map[string]string),
 		FunctionTypeAliases:           make(map[string]bool),
 		FunctionTypeAliasBoxTypes:     make(map[string]string),
+		SliceElemPtrReturnFuncs:       make(map[*types.Func]sliceElemPtrReturnInfo),
 		MapKeyStructTypes:             make(map[string]bool),
 		PackageConstants:              make(map[string]string),
 		PackageConstantTypeNames:      make(map[string]string),
@@ -224,6 +226,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		}
 		if ctx.Package.MethodNameOverrides == nil {
 			ctx.Package.MethodNameOverrides = make(map[string]string)
+		}
+		if ctx.Package.SliceElemPtrReturnFuncs == nil {
+			ctx.Package.SliceElemPtrReturnFuncs = make(map[*types.Func]sliceElemPtrReturnInfo)
 		}
 		if ctx.Package.MethodsByType == nil {
 			ctx.Package.MethodsByType = make(map[string][]*ast.FuncDecl)

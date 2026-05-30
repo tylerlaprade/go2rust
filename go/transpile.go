@@ -1835,6 +1835,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	for _, fn := range functions {
 		registerFunctionSignatureDecl(fn)
 	}
+	registerSliceElemPtrReturnsFromFile(file)
 	functionNames := assignFunctionNames(functions)
 	SetFunctionNameOverrides(functionNames)
 	defer SetFunctionNameOverrides(nil)

@@ -14,6 +14,11 @@ type sliceElemPtrCandidate struct {
 }
 
 var currentSliceElemPtrCandidates map[types.Object]string
+var currentSliceElemPtrReturn *sliceElemPtrReturnInfo
+
+type sliceElemPtrReturnInfo struct {
+	elemRustType string
+}
 
 func setSliceElemPtrCandidates(body *ast.BlockStmt) func() {
 	old := currentSliceElemPtrCandidates
@@ -33,6 +38,188 @@ func sliceElemPtrCandidateForDecl(name *ast.Ident) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+func registerSliceElemPtrReturnsFromFiles(files []*ast.File) {
+	for _, file := range files {
+		registerSliceElemPtrReturnsFromFile(file)
+	}
+}
+
+func registerSliceElemPtrReturnsFromFile(file *ast.File) {
+	if file == nil {
+		return
+	}
+	for _, decl := range file.Decls {
+		fn, ok := decl.(*ast.FuncDecl)
+		if !ok {
+			continue
+		}
+		registerSliceElemPtrReturnDecl(fn)
+	}
+}
+
+func registerSliceElemPtrReturnDecl(fn *ast.FuncDecl) {
+	info, ok := sliceElemPtrReturnInfoForDecl(fn)
+	if !ok {
+		return
+	}
+	fnObj, ok := sliceElemPtrReturnFuncObject(fn)
+	if !ok {
+		return
+	}
+	ctx := GetTranspileContext()
+	if ctx == nil || ctx.Package == nil {
+		return
+	}
+	if ctx.Package.SliceElemPtrReturnFuncs == nil {
+		ctx.Package.SliceElemPtrReturnFuncs = make(map[*types.Func]sliceElemPtrReturnInfo)
+	}
+	ctx.Package.SliceElemPtrReturnFuncs[fnObj] = info
+}
+
+func sliceElemPtrReturnFuncObject(fn *ast.FuncDecl) (*types.Func, bool) {
+	typeInfo := GetTypeInfo()
+	if fn == nil || typeInfo == nil || typeInfo.info == nil {
+		return nil, false
+	}
+	obj, ok := typeInfo.info.Defs[fn.Name].(*types.Func)
+	if !ok || obj == nil {
+		return nil, false
+	}
+	return obj, true
+}
+
+func sliceElemPtrReturnInfoForFunc(fn *types.Func) (sliceElemPtrReturnInfo, bool) {
+	ctx := GetTranspileContext()
+	if fn == nil || ctx == nil || ctx.Package == nil {
+		return sliceElemPtrReturnInfo{}, false
+	}
+	info, ok := ctx.Package.SliceElemPtrReturnFuncs[fn]
+	return info, ok
+}
+
+func sliceElemPtrReturnInfoForDeclObject(fn *ast.FuncDecl) (sliceElemPtrReturnInfo, bool) {
+	fnObj, ok := sliceElemPtrReturnFuncObject(fn)
+	if !ok {
+		return sliceElemPtrReturnInfo{}, false
+	}
+	return sliceElemPtrReturnInfoForFunc(fnObj)
+}
+
+func sliceElemPtrReturnInfoForCall(call *ast.CallExpr) (sliceElemPtrReturnInfo, bool) {
+	typeInfo := GetTypeInfo()
+	fn, ok := callFunctionObjectFromTypeInfo(typeInfo, call)
+	if !ok {
+		return sliceElemPtrReturnInfo{}, false
+	}
+	return sliceElemPtrReturnInfoForFunc(fn)
+}
+
+func sliceElemPtrReturnInfoForDecl(fn *ast.FuncDecl) (sliceElemPtrReturnInfo, bool) {
+	if fn == nil || fn.Body == nil || fn.Type == nil || fn.Type.Results == nil {
+		return sliceElemPtrReturnInfo{}, false
+	}
+	if fn.Type.Results.NumFields() != 1 {
+		return sliceElemPtrReturnInfo{}, false
+	}
+	resultType := fn.Type.Results.List[0]
+	if resultType == nil || len(resultType.Names) > 0 || !typeExprIsPointer(resultType.Type) {
+		return sliceElemPtrReturnInfo{}, false
+	}
+
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return sliceElemPtrReturnInfo{}, false
+	}
+	candidates := collectSliceElemPtrCandidates(fn.Body)
+
+	var elemRustType string
+	sawSliceElemReturn := false
+	sawSliceElemLocalReturn := false
+	valid := true
+	ast.Inspect(fn.Body, func(node ast.Node) bool {
+		if !valid {
+			return false
+		}
+		switch n := node.(type) {
+		case *ast.FuncLit:
+			return false
+		case *ast.ReturnStmt:
+			if len(n.Results) != 1 {
+				valid = false
+				return false
+			}
+			result := unwrapParens(n.Results[0])
+			if ident, ok := result.(*ast.Ident); ok && ident.Name == "nil" {
+				return true
+			}
+			if typ, ok := sliceElemPtrAddressElemRustType(result); ok {
+				if elemRustType == "" {
+					elemRustType = typ
+				}
+				if elemRustType != typ {
+					valid = false
+					return false
+				}
+				sawSliceElemReturn = true
+				return true
+			}
+			ident, ok := result.(*ast.Ident)
+			if !ok {
+				valid = false
+				return false
+			}
+			obj := typeInfo.GetObject(ident)
+			typ, ok := candidates[obj]
+			if obj == nil || !ok {
+				valid = false
+				return false
+			}
+			if elemRustType == "" {
+				elemRustType = typ
+			}
+			if elemRustType != typ {
+				valid = false
+				return false
+			}
+			sawSliceElemReturn = true
+			sawSliceElemLocalReturn = true
+		}
+		return true
+	})
+	if !valid || !sawSliceElemReturn || !sawSliceElemLocalReturn || elemRustType == "" {
+		return sliceElemPtrReturnInfo{}, false
+	}
+	return sliceElemPtrReturnInfo{elemRustType: elemRustType}, true
+}
+
+func pushCurrentSliceElemPtrReturn(fn *ast.FuncDecl) func() {
+	prev := currentSliceElemPtrReturn
+	if info, ok := sliceElemPtrReturnInfoForDeclObject(fn); ok {
+		currentSliceElemPtrReturn = &info
+	} else {
+		currentSliceElemPtrReturn = nil
+	}
+	return func() {
+		currentSliceElemPtrReturn = prev
+	}
+}
+
+func currentFunctionReturnsSliceElemPtr() bool {
+	return currentSliceElemPtrReturn != nil
+}
+
+func registerSliceElemPtrVar(name string, elemRustType string) {
+	NeedSliceElemPtr()
+	if vt := GetVarTable(); vt != nil {
+		vt.Register(name, &VarInfo{
+			WrapLevel:   WrapOption,
+			RustType:    "Option<GoSliceElemPtr<" + elemRustType + ">>",
+			Source:      SourceLocal,
+			PointerKind: PointerSliceElem,
+		})
+	}
 }
 
 func collectSliceElemPtrCandidates(body *ast.BlockStmt) map[types.Object]string {
@@ -253,6 +440,17 @@ func unwrapParens(expr ast.Expr) ast.Expr {
 }
 
 func writeSliceElemPtrOptionValue(out *strings.Builder, rhs ast.Expr) bool {
+	if call, ok := unwrapParens(rhs).(*ast.CallExpr); ok {
+		if _, ok := sliceElemPtrReturnInfoForCall(call); ok {
+			TranspileExpression(out, rhs)
+			return true
+		}
+	}
+	if ident, ok := unwrapParens(rhs).(*ast.Ident); ok && isSliceElemPtrVar(ident.Name) {
+		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(".clone()")
+		return true
+	}
 	if ok, _ := isSliceElemPtrAssignmentValue(rhs); !ok {
 		return false
 	}
@@ -265,6 +463,13 @@ func writeSliceElemPtrOptionValue(out *strings.Builder, rhs ast.Expr) bool {
 	TranspileExpression(out, rhs)
 	out.WriteString(")")
 	return true
+}
+
+func writeSliceElemPtrReturnValue(out *strings.Builder, result ast.Expr) bool {
+	if !currentFunctionReturnsSliceElemPtr() {
+		return false
+	}
+	return writeSliceElemPtrOptionValue(out, result)
 }
 
 func writeUnsupportedSliceElemPointerHandleValue(out *strings.Builder, rhs ast.Expr, message string) bool {

@@ -2390,6 +2390,8 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 
 	restoreSliceElemPtrCandidates := setSliceElemPtrCandidates(fn.Body)
 	defer restoreSliceElemPtrCandidates()
+	restoreSliceElemPtrReturn := pushCurrentSliceElemPtrReturn(fn)
+	defer restoreSliceElemPtrReturn()
 
 	// Check if this function uses defer statements
 	hasDefer := checkHasDefer(fn.Body.List)
@@ -5253,6 +5255,8 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 	if fn.Body != nil {
 		restoreSliceElemPtrCandidates := setSliceElemPtrCandidates(fn.Body)
 		defer restoreSliceElemPtrCandidates()
+		restoreSliceElemPtrReturn := pushCurrentSliceElemPtrReturn(fn)
+		defer restoreSliceElemPtrReturn()
 
 		hasDefer := checkHasDefer(fn.Body.List)
 		oldFunctionHasDefer := currentFunctionHasDefer

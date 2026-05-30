@@ -4035,6 +4035,9 @@ func writePointerReturnValue(out *strings.Builder, result ast.Expr, expected ast
 	if !isPointerReturnExpression(result, expected) {
 		return false
 	}
+	if writeSliceElemPtrReturnValue(out, result) {
+		return true
+	}
 	if isSliceElementAddress(result) {
 		out.WriteString(`unimplemented!("slice element pointer return requires pointer representation support")`)
 		return true
@@ -7726,7 +7729,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 
 				if isNil {
-					WriteWrappedNone(out)
+					if !writeSliceElemPtrReturnValue(out, result) {
+						WriteWrappedNone(out)
+					}
 				} else if writeEmptyInterfaceReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
 				} else if writeNamedSliceInnerHandleReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
 				} else if writeNamedSliceWrappedReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
@@ -7849,6 +7854,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						// Function literal - already wrapped by TranspileFuncLit
 						TranspileExpression(out, result)
 					} else if ident, ok := result.(*ast.Ident); ok {
+						if writeSliceElemPtrReturnValue(out, result) {
+							continue
+						}
 						if writeFunctionReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
 							continue
 						}
@@ -9149,14 +9157,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											if rhsOk, sawSliceAddr := isSliceElemPtrAssignmentValue(s.Rhs[0]); rhsOk && sawSliceAddr {
 												isSliceElemPtrShortDecl = true
 												sliceElemPtrRustType = elemType
-												NeedSliceElemPtr()
-												if vt := GetVarTable(); vt != nil {
-													vt.Register(lhsIdent.Name, &VarInfo{
-														WrapLevel:   WrapOption,
-														RustType:    "Option<GoSliceElemPtr<" + sliceElemPtrRustType + ">>",
-														Source:      SourceLocal,
-														PointerKind: PointerSliceElem,
-													})
+												registerSliceElemPtrVar(lhsIdent.Name, sliceElemPtrRustType)
+											}
+										}
+										if !isSliceElemPtrShortDecl {
+											if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
+												if info, ok := sliceElemPtrReturnInfoForCall(call); ok {
+													isSliceElemPtrShortDecl = true
+													sliceElemPtrRustType = info.elemRustType
+													registerSliceElemPtrVar(lhsIdent.Name, sliceElemPtrRustType)
 												}
 											}
 										}
@@ -9532,14 +9541,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString(RustLocalIdent(name.Name))
 							sliceElemPtrRustType, isSliceElemPtr := sliceElemPtrCandidateForDecl(name)
 							if isSliceElemPtr {
-								NeedSliceElemPtr()
-								if vt := GetVarTable(); vt != nil {
-									vt.Register(name.Name, &VarInfo{
-										WrapLevel:   WrapOption,
-										RustType:    "Option<GoSliceElemPtr<" + sliceElemPtrRustType + ">>",
-										Source:      SourceLocal,
-										PointerKind: PointerSliceElem,
-									})
+								registerSliceElemPtrVar(name.Name, sliceElemPtrRustType)
+							} else if valueSpec.Type == nil && len(valueSpec.Values) > i {
+								if call, ok := valueSpec.Values[i].(*ast.CallExpr); ok {
+									if info, ok := sliceElemPtrReturnInfoForCall(call); ok {
+										isSliceElemPtr = true
+										sliceElemPtrRustType = info.elemRustType
+										registerSliceElemPtrVar(name.Name, sliceElemPtrRustType)
+									}
 								}
 							}
 

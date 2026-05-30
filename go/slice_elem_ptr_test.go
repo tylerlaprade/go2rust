@@ -323,7 +323,52 @@ func pick(bucket []entry) *entry {
 		t.Fatalf("slice element pointer return should not emit an incompatible helper value:\n%s", rust)
 	}
 	if !strings.Contains(rust, `unimplemented!("slice element pointer return requires pointer representation support")`) {
-		t.Fatalf("slice element pointer return should fail loudly:\n%s", rust)
+		t.Fatalf("direct slice element pointer return should fail loudly until generic pointer fields can hold it:\n%s", rust)
+	}
+}
+
+func TestSliceElemPointerReturnVariableFlowsThroughCall(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type inst struct {
+	op  int
+	out int
+}
+
+type prog struct {
+	inst []inst
+}
+
+func (p *prog) skip(pc int) *inst {
+	i := &p.inst[pc]
+	for i.op == 0 {
+		i = &p.inst[i.out]
+	}
+	return i
+}
+
+func use(p *prog) int {
+	i := p.skip(0)
+	i = p.skip(i.out)
+	return i.out
+}
+`)
+
+	if !strings.Contains(rust, "fn skip(&self, pc: Rc<RefCell<Option<i32>>>) -> Option<GoSliceElemPtr<inst>>") &&
+		!strings.Contains(rust, "fn skip(&self, pc: Arc<Mutex<Option<i32>>>) -> Option<GoSliceElemPtr<inst>>") {
+		t.Fatalf("slice element pointer method should expose the slice element pointer representation:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut i: Option<GoSliceElemPtr<inst>> =") {
+		t.Fatalf("short declaration from a slice element pointer return should register the local representation:\n%s", rust)
+	}
+	if !strings.Contains(rust, "return i.clone()") {
+		t.Fatalf("returning a slice element pointer local should preserve the handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "i = (*p.") || !strings.Contains(rust, ".skip(") || strings.Contains(rust, "slice element pointer assignment") {
+		t.Fatalf("assignment from a slice element pointer returning call should preserve the handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "i.lock()") {
+		t.Fatalf("call result stored as a slice element pointer should not be treated as a wrapped pointer slot:\n%s", rust)
 	}
 }
 

@@ -269,6 +269,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	packageState.ExternalLocalInterfaceImpls = packageAnalysis.externalLocalInterfaceImpls(collectPackageInterfaceDecls(astFiles))
 	registerPackageTypeFactsFromFiles(astFiles)
 	registerFunctionSignaturesFromFiles(astFiles)
+	registerSliceElemPtrReturnsFromFiles(astFiles)
 
 	nonMainModuleNames := pg.nonMainModuleNames(astFilesByPath)
 	for _, filename := range pg.goFiles {

@@ -200,6 +200,13 @@ func writeFuncDeclResultTypes(out *strings.Builder, fn *ast.FuncDecl) {
 	if fn != nil && fn.Type != nil {
 		registerAnonymousStructTypesInFuncType(fn.Type)
 	}
+	if info, ok := sliceElemPtrReturnInfoForDeclObject(fn); ok {
+		NeedSliceElemPtr()
+		out.WriteString(" -> Option<GoSliceElemPtr<")
+		out.WriteString(info.elemRustType)
+		out.WriteString(">>")
+		return
+	}
 	if sig, ok := funcDeclSignatureFromTypeInfo(fn); ok && writeSignatureResultTypes(out, sig) {
 		return
 	}
