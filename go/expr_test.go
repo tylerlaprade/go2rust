@@ -3327,6 +3327,29 @@ func wrap(words []int) int64 {
 	}
 }
 
+func TestAppendLocalStructAliasCallResultUsesBareValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func wrap() int64 {
+	type score struct {
+		hi int64
+		lo int64
+	}
+	f := []score{{0, 0}}
+	g := func(i int) score {
+		return score{int64(i), 0}
+	}
+	f = append(f, g(1))
+	return f[1].hi
+}
+`)
+
+	if strings.Contains(rust, ".borrow().as_ref().unwrap()).clone())") ||
+		strings.Contains(rust, ".lock().unwrap().as_ref().unwrap()).clone())") {
+		t.Fatalf("append of local struct alias call result should push the bare value:\n%s", rust)
+	}
+}
+
 func TestNamedStructAliasReturnKeepsWrappedAliasHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

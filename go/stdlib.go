@@ -3691,6 +3691,10 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 							return
 						}
 					}
+					if typeIsRegisteredBareStructAlias(elemType) {
+						writeBareStructAliasValue(out, expr)
+						return
+					}
 				}
 				if callExpr, ok := expr.(*ast.CallExpr); ok && typeInfo.ReturnsWrappedValue(callExpr) && !callReturnsBareChannelValue(callExpr) {
 					if compositeLiteralElementKeepsHandle(elemType) {
