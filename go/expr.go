@@ -10530,7 +10530,7 @@ func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Si
 		out.WriteString(boxType)
 		out.WriteString(" }; let __f = unsafe { &mut *__f_ptr }; (*__f)(")
 	} else {
-		out.WriteString(ToSnakeCase(ident.Name))
+		out.WriteString(rustFunctionNameForUse(ident.Name))
 		out.WriteString("(")
 	}
 	for i := 0; i < params.Len(); i++ {

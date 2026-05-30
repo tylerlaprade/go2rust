@@ -524,6 +524,34 @@ func makeMessage(b []byte, n int) Message {
 	}
 }
 
+func TestFunctionValueFieldUsesRenamedFunction(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type mapper struct {
+	mmap func() int
+}
+
+func Mmap() int {
+	return 1
+}
+
+func mmap() int {
+	return 2
+}
+
+func makeMapper() mapper {
+	return mapper{mmap: mmap}
+}
+`)
+
+	if strings.Contains(rust, "{ mmap() }) as Box<dyn FnMut() -> i32>") {
+		t.Fatalf("function value should not call the colliding base Rust name:\n%s", rust)
+	}
+	if !strings.Contains(rust, "{ mmap_1() }) as Box<dyn FnMut() -> i32>") {
+		t.Fatalf("function value should use the renamed Rust function target:\n%s", rust)
+	}
+}
+
 func TestPointerAssertionToStructAliasUsesUnderlyingPointee(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
