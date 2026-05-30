@@ -3466,6 +3466,162 @@ func callParamTypeFromTypeInfo(call *ast.CallExpr, index int) types.Type {
 	return params.At(index).Type()
 }
 
+type sourceFunctionDeclInfo struct {
+	decl *ast.FuncDecl
+	info *types.Info
+}
+
+type sourceFunctionParamKey struct {
+	fn    *types.Func
+	index int
+}
+
+var sourceFunctionDeclsByFunc map[*types.Func]sourceFunctionDeclInfo
+var sourceFunctionReadOnlyParamCache map[sourceFunctionParamKey]bool
+
+func SetSourceFunctionDeclsByFunc(decls map[*types.Func]sourceFunctionDeclInfo) {
+	sourceFunctionDeclsByFunc = decls
+	sourceFunctionReadOnlyParamCache = make(map[sourceFunctionParamKey]bool)
+}
+
+func sourceFunctionObjectForCall(call *ast.CallExpr) *types.Func {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || call == nil {
+		return nil
+	}
+	switch fun := call.Fun.(type) {
+	case *ast.Ident:
+		if fn, ok := typeInfo.info.Uses[fun].(*types.Func); ok {
+			return fn
+		}
+	case *ast.SelectorExpr:
+		if fn, ok := typeInfo.info.Uses[fun.Sel].(*types.Func); ok {
+			return fn
+		}
+	}
+	return nil
+}
+
+func sourceFunctionParamReadOnly(call *ast.CallExpr, index int) bool {
+	fn := sourceFunctionObjectForCall(call)
+	if fn == nil {
+		return false
+	}
+	key := sourceFunctionParamKey{fn: fn, index: index}
+	if sourceFunctionReadOnlyParamCache != nil {
+		if cached, ok := sourceFunctionReadOnlyParamCache[key]; ok {
+			return cached
+		}
+	}
+	readOnly := sourceFunctionParamReadOnlyForObject(fn, index)
+	if sourceFunctionReadOnlyParamCache != nil {
+		sourceFunctionReadOnlyParamCache[key] = readOnly
+	}
+	return readOnly
+}
+
+func sourceFunctionParamReadOnlyForObject(fn *types.Func, index int) bool {
+	info, ok := sourceFunctionDeclsByFunc[fn]
+	if !ok || info.decl == nil || info.decl.Body == nil || info.info == nil {
+		return false
+	}
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok || sig.Params() == nil || index >= sig.Params().Len() {
+		return false
+	}
+	paramObj := sig.Params().At(index)
+	if paramObj == nil {
+		return false
+	}
+	readOnly := true
+	ast.Inspect(info.decl.Body, func(node ast.Node) bool {
+		if !readOnly {
+			return false
+		}
+		switch n := node.(type) {
+		case *ast.AssignStmt:
+			for _, lhs := range n.Lhs {
+				if sourceExprRootedInObject(info.info, lhs, paramObj) {
+					readOnly = false
+					return false
+				}
+			}
+		case *ast.IncDecStmt:
+			if sourceExprRootedInObject(info.info, n.X, paramObj) {
+				readOnly = false
+				return false
+			}
+		case *ast.UnaryExpr:
+			if n.Op == token.AND && sourceExprRootedInObject(info.info, n.X, paramObj) {
+				readOnly = false
+				return false
+			}
+		case *ast.ReturnStmt:
+			for _, result := range n.Results {
+				if sourceExprPassesSliceParam(info.info, result, paramObj) {
+					readOnly = false
+					return false
+				}
+			}
+		case *ast.CallExpr:
+			if sourceCallIsLenOrCapOfParam(info.info, n, paramObj) {
+				return false
+			}
+			for _, arg := range n.Args {
+				if sourceExprPassesSliceParam(info.info, arg, paramObj) {
+					readOnly = false
+					return false
+				}
+			}
+		}
+		return true
+	})
+	return readOnly
+}
+
+func sourceCallIsLenOrCapOfParam(info *types.Info, call *ast.CallExpr, obj types.Object) bool {
+	ident, ok := call.Fun.(*ast.Ident)
+	if !ok || len(call.Args) != 1 || ident.Name != "len" && ident.Name != "cap" {
+		return false
+	}
+	return sourceExprPassesSliceParam(info, call.Args[0], obj)
+}
+
+func sourceExprPassesSliceParam(info *types.Info, expr ast.Expr, obj types.Object) bool {
+	switch e := unwrapParens(expr).(type) {
+	case *ast.Ident:
+		return sourceIdentIsObject(info, e, obj)
+	case *ast.SliceExpr:
+		return sourceExprRootedInObject(info, e.X, obj)
+	default:
+		return false
+	}
+}
+
+func sourceExprRootedInObject(info *types.Info, expr ast.Expr, obj types.Object) bool {
+	switch e := unwrapParens(expr).(type) {
+	case *ast.Ident:
+		return sourceIdentIsObject(info, e, obj)
+	case *ast.IndexExpr:
+		return sourceExprRootedInObject(info, e.X, obj)
+	case *ast.SliceExpr:
+		return sourceExprRootedInObject(info, e.X, obj)
+	case *ast.SelectorExpr:
+		return sourceExprRootedInObject(info, e.X, obj)
+	case *ast.StarExpr:
+		return sourceExprRootedInObject(info, e.X, obj)
+	default:
+		return false
+	}
+}
+
+func sourceIdentIsObject(info *types.Info, ident *ast.Ident, obj types.Object) bool {
+	if info == nil || ident == nil || obj == nil {
+		return false
+	}
+	return info.Uses[ident] == obj || info.Defs[ident] == obj
+}
+
 func callSignatureFromTypeInfo(call *ast.CallExpr) (*types.Signature, bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || call == nil {
@@ -13324,6 +13480,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
 						continue
 					}
+					if writeReadOnlyTypeParamSliceCallArgument(out, call, i, arg, expectedArgType) {
+						continue
+					}
 					if writePointerHandleCallArgument(out, arg, expectedArgType) {
 						continue
 					}
@@ -13963,6 +14122,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					continue
 				}
 				if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
+					continue
+				}
+
+				if writeReadOnlyTypeParamSliceCallArgument(out, call, i, arg, expectedArgType) {
 					continue
 				}
 
@@ -14666,6 +14829,79 @@ func writeTypeParamHandleCallArgument(out *strings.Builder, arg ast.Expr, expect
 		return false
 	}
 	return writeTypeParamHandleExpression(out, arg)
+}
+
+func writeReadOnlyTypeParamSliceCallArgument(out *strings.Builder, call *ast.CallExpr, index int, arg ast.Expr, expected types.Type) bool {
+	if !sourceFunctionParamReadOnly(call, index) {
+		return false
+	}
+	sourceExpected := expected
+	if _, ok := types.Unalias(sourceExpected).(*types.TypeParam); !ok {
+		sourceExpected = sourceFunctionParamType(call, index)
+	}
+	if _, ok := types.Unalias(sourceExpected).(*types.TypeParam); !ok {
+		return false
+	}
+	expectedElem, ok := goTypeParamSliceConstraintElem(sourceExpected)
+	if !ok {
+		return false
+	}
+	if _, ok := types.Unalias(expectedElem).(*types.TypeParam); !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	actual := typeInfo.GetType(arg)
+	if actual == nil {
+		return false
+	}
+	if _, ok := types.Unalias(actual).(*types.TypeParam); ok {
+		return false
+	}
+	actualSlice, ok := types.Unalias(actual).Underlying().(*types.Slice)
+	if !ok || collectionElemRustTypeIsWrappedHandle(actualSlice.Elem()) {
+		return false
+	}
+	writeConcreteSliceAsTypeParamSliceArgument(out, arg)
+	return true
+}
+
+func sourceFunctionParamType(call *ast.CallExpr, index int) types.Type {
+	fn := sourceFunctionObjectForCall(call)
+	if fn == nil {
+		return nil
+	}
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok || sig.Params() == nil || index >= sig.Params().Len() {
+		return nil
+	}
+	return sig.Params().At(index).Type()
+}
+
+func collectionElemRustTypeIsWrappedHandle(elem types.Type) bool {
+	rustType := goTypesCollectionElemTypeToRust(elem)
+	return strings.HasPrefix(rustType, GetOuterWrapperType()+"<"+GetInnerWrapperType()+"<Option<")
+}
+
+func writeConcreteSliceAsTypeParamSliceArgument(out *strings.Builder, arg ast.Expr) {
+	trackWrapperImports()
+	out.WriteString("{ let __slice_holder = ")
+	if !writeNamedSliceInnerHandleClone(out, arg) {
+		TranspileExpressionContext(out, arg, LValue)
+	}
+	out.WriteString("; let __slice_guard = __slice_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; ")
+	out.WriteString(GetOuterWrapperType())
+	out.WriteString("::new(")
+	out.WriteString(GetInnerWrapperType())
+	out.WriteString("::new(__slice_guard.as_ref().map(|__v| __v.iter().cloned().map(|__elem| ")
+	WriteWrapperPrefix(out)
+	out.WriteString("__elem")
+	WriteWrapperSuffix(out)
+	out.WriteString(").collect::<Vec<_>>()))) }")
 }
 
 func writeAlreadyWrappedSelectorCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {

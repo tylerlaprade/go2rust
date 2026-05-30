@@ -210,6 +210,9 @@ go 1.22
 	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
 
 func Search[S ~[]E, E any, T any](x S, target T, cmp func(E, T) int) (int, bool) {
+	if len(x) > 0 {
+		return cmp(x[0], target), false
+	}
 	return 0, false
 }
 `)
@@ -238,6 +241,13 @@ func use(items []item, x int) int {
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
 	if !strings.Contains(mainRS, "example_com_dep::search::<Vec<item>, item, i32>(") {
 		t.Fatalf("imported generic selector call should emit inferred Rust type arguments:\n%s", mainRS)
+	}
+	if strings.Contains(mainRS, "example_com_dep::search::<Vec<item>, item, i32>(items.clone(),") {
+		t.Fatalf("imported generic selector call should not pass a bare concrete slice to a slice-type-param slot:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, ".iter().cloned().map(|__elem| Rc::new(RefCell::new(Some(__elem))))") &&
+		!strings.Contains(mainRS, ".iter().cloned().map(|__elem| Arc::new(Mutex::new(Some(__elem))))") {
+		t.Fatalf("imported generic selector call should adapt concrete slice elements to type-param handles:\n%s", mainRS)
 	}
 }
 

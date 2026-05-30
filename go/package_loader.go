@@ -498,6 +498,7 @@ func (pl *PackageLoader) TranspileAll() error {
 	// interface methods lower to `&mut self` (any implementor mutates through
 	// them). Trait defs, impls, and dispatch call sites all consult this.
 	registerInterfaceMethodMutableReceivers(allPackageTypes)
+	SetSourceFunctionDeclsByFunc(pl.collectSourceFunctionDeclsByFunc())
 
 	// Transpile external packages first
 	for _, pkgPath := range pl.orderedPackagePaths() {
@@ -512,6 +513,32 @@ func (pl *PackageLoader) TranspileAll() error {
 	// but now with full type information available
 
 	return nil
+}
+
+func (pl *PackageLoader) collectSourceFunctionDeclsByFunc() map[*types.Func]sourceFunctionDeclInfo {
+	decls := make(map[*types.Func]sourceFunctionDeclInfo)
+	for _, pkg := range pl.allPackages {
+		if pkg == nil || pkg.TypesInfo == nil {
+			continue
+		}
+		for _, file := range pkg.Syntax {
+			for _, decl := range file.Decls {
+				fnDecl, ok := decl.(*ast.FuncDecl)
+				if !ok {
+					continue
+				}
+				fn, ok := pkg.TypesInfo.Defs[fnDecl.Name].(*types.Func)
+				if !ok || fn == nil {
+					continue
+				}
+				decls[fn] = sourceFunctionDeclInfo{
+					decl: fnDecl,
+					info: pkg.TypesInfo,
+				}
+			}
+		}
+	}
+	return decls
 }
 
 func (pl *PackageLoader) buildWorkspaceConcurrencyDetector() *ConcurrencyDetector {
