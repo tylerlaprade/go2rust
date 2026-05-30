@@ -3379,6 +3379,37 @@ func same(a, b []*Node) bool {
 	}
 }
 
+func TestConcurrentMethodExpressionReceiverUsesPointerTemp(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "slices"
+
+type Node struct {
+	Subs []*Node
+}
+
+func (n *Node) Equal(other *Node) bool {
+	return n == other
+}
+
+func same(a, b []*Node) bool {
+	return slices.EqualFunc(a, b, (*Node).Equal)
+}
+
+func main() {
+	go func() {}()
+}
+`)
+
+	if strings.Contains(rust, "(*__recv.lock().unwrap().as_ref().unwrap()).equal") {
+		t.Fatalf("concurrent method expression receiver should not borrow through the method call:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __recv_ptr: *const Node") ||
+		!strings.Contains(rust, "unsafe { &*__recv_ptr }.equal") {
+		t.Fatalf("concurrent method expression receiver should use a pointer temp:\n%s", rust)
+	}
+}
+
 func TestTypeParamSliceSelectorArgumentClonesFieldHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

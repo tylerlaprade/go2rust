@@ -10069,27 +10069,82 @@ func writeMethodExpressionValueBox(out *strings.Builder, sel *ast.SelectorExpr, 
 	out.WriteString(" { ")
 	if params.Len() == 0 {
 		out.WriteString("/* ERROR: Method expression requires receiver parameter */ unimplemented!(\"method expression requires receiver parameter\")")
-	} else {
-		needsMut := methodCallNeedsMutableReceiver(sel)
-		out.WriteString("{ let __recv = __arg0.clone(); (*__recv")
-		WriteBorrowMethod(out, needsMut)
-		if needsMut {
-			out.WriteString(".as_mut().unwrap()).")
-		} else {
-			out.WriteString(".as_ref().unwrap()).")
-		}
-		out.WriteString(rustMethodSelectorName(sel))
-		out.WriteString("(")
-		for i := 1; i < params.Len(); i++ {
-			if i > 1 {
-				out.WriteString(", ")
+	} else if NeedsConcurrentWrapper() {
+		if recvType, ok := methodExpressionReceiverPointeeRustType(sig); ok {
+			needsMut := methodCallNeedsMutableReceiver(sel)
+			out.WriteString("{ let __recv = __arg0.clone(); let __recv_ptr: ")
+			if needsMut {
+				out.WriteString("*mut ")
+			} else {
+				out.WriteString("*const ")
 			}
-			out.WriteString(fmt.Sprintf("__arg%d", i))
+			out.WriteString(recvType)
+			out.WriteString(" = { ")
+			if needsMut {
+				out.WriteString("let mut __recv_guard = __recv")
+				WriteBorrowMethod(out, true)
+				out.WriteString("; __recv_guard.as_mut().unwrap() as *mut ")
+			} else {
+				out.WriteString("let __recv_guard = __recv")
+				WriteBorrowMethod(out, false)
+				out.WriteString("; __recv_guard.as_ref().unwrap() as *const ")
+			}
+			out.WriteString(recvType)
+			out.WriteString(" }; let __result = unsafe { ")
+			if needsMut {
+				out.WriteString("&mut *__recv_ptr")
+			} else {
+				out.WriteString("&*__recv_ptr")
+			}
+			out.WriteString(" }.")
+			out.WriteString(rustMethodSelectorName(sel))
+			out.WriteString("(")
+			for i := 1; i < params.Len(); i++ {
+				if i > 1 {
+					out.WriteString(", ")
+				}
+				out.WriteString(fmt.Sprintf("__arg%d", i))
+			}
+			out.WriteString("); __result }")
+		} else {
+			writeBorrowedMethodExpressionCall(out, sel, params)
 		}
-		out.WriteString(") }")
+	} else {
+		writeBorrowedMethodExpressionCall(out, sel, params)
 	}
 	out.WriteString(" }) as ")
 	out.WriteString(boxType)
+}
+
+func methodExpressionReceiverPointeeRustType(sig *types.Signature) (string, bool) {
+	if sig == nil || sig.Params() == nil || sig.Params().Len() == 0 {
+		return "", false
+	}
+	ptr, ok := types.Unalias(sig.Params().At(0).Type()).Underlying().(*types.Pointer)
+	if !ok {
+		return "", false
+	}
+	return goTypesTypeToRust(ptr.Elem()), true
+}
+
+func writeBorrowedMethodExpressionCall(out *strings.Builder, sel *ast.SelectorExpr, params *types.Tuple) {
+	needsMut := methodCallNeedsMutableReceiver(sel)
+	out.WriteString("{ let __recv = __arg0.clone(); (*__recv")
+	WriteBorrowMethod(out, needsMut)
+	if needsMut {
+		out.WriteString(".as_mut().unwrap()).")
+	} else {
+		out.WriteString(".as_ref().unwrap()).")
+	}
+	out.WriteString(rustMethodSelectorName(sel))
+	out.WriteString("(")
+	for i := 1; i < params.Len(); i++ {
+		if i > 1 {
+			out.WriteString(", ")
+		}
+		out.WriteString(fmt.Sprintf("__arg%d", i))
+	}
+	out.WriteString(") }")
 }
 
 func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Signature) {
