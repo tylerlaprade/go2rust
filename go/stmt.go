@@ -1454,16 +1454,19 @@ func registerCallTupleResultSyntaxInfo(lhs []ast.Expr, call *ast.CallExpr) {
 		if sig, ok := callSignatureFromTypeInfo(call); ok {
 			results := sig.Results()
 			for i := 0; i < results.Len() && i < len(lhs); i++ {
-				if !signatureResultIsBareScalar(sig, i) {
-					continue
-				}
 				ident, ok := lhs[i].(*ast.Ident)
 				if !ok || ident.Name == "_" {
 					continue
 				}
+				resultType := types.Unalias(results.At(i).Type())
+				registerTypesCollectionInfo(ident.Name, resultType)
+				wrapLevel := WrapFull
+				if signatureResultIsBareScalar(sig, i) {
+					wrapLevel = WrapNone
+				}
 				vt.Register(ident.Name, &VarInfo{
-					WrapLevel: WrapNone,
-					RustType:  goTypesTypeToRust(types.Unalias(results.At(i).Type())),
+					WrapLevel: wrapLevel,
+					RustType:  goTypesTypeToRust(resultType),
 					Source:    SourceLocal,
 				})
 			}
@@ -1487,6 +1490,29 @@ func registerCallTupleResultSyntaxInfo(lhs []ast.Expr, call *ast.CallExpr) {
 			RustType:  rustType,
 			Source:    SourceLocal,
 		})
+	}
+}
+
+func registerTypesCollectionInfo(name string, typ types.Type) {
+	if name == "_" || typ == nil {
+		return
+	}
+	switch ut := types.Unalias(typ).Underlying().(type) {
+	case *types.Slice:
+		localCollectionKinds[name] = "slice"
+		localRangeElemRustTypes[name] = goTypesCollectionElemTypeToRust(ut.Elem())
+	case *types.Array:
+		localCollectionKinds[name] = "array"
+		localRangeElemRustTypes[name] = goTypesCollectionElemTypeToRust(ut.Elem())
+	case *types.Map:
+		localCollectionKinds[name] = "map"
+		localMapKeyRustTypes[name] = goTypesMapKeyToRust(ut.Key())
+		valueRustType := goTypesMapValueToRust(ut.Elem())
+		localMapValueRustTypes[name] = valueRustType
+		localMapValueKeepHandle[name] = mapValueTypeKeepsHandle(ut.Elem()) || rustMapValueTypeKeepsHandle(valueRustType)
+	case *types.Chan:
+		localCollectionKinds[name] = "channel"
+		localRangeElemRustTypes[name] = goTypesCollectionElemTypeToRust(ut.Elem())
 	}
 }
 

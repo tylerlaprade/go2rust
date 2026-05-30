@@ -2690,6 +2690,77 @@ func caller(s string) bool {
 	}
 }
 
+func TestTupleStringResultCallArgumentUsesWrappedLocal(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "strings"
+
+func caller(s string) []string {
+	line, _, _ := strings.Cut(s, ":")
+	return strings.Fields(line)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"strings": "strings"})
+
+	if strings.Contains(rust, "Some(line.clone())") {
+		t.Fatalf("string tuple result should not wrap the returned handle as a String value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__arg_holder = line.clone()") {
+		t.Fatalf("string tuple result should be treated as a wrapped local call argument:\n%s", rust)
+	}
+}
+
+func TestTupleStringResultRegistersWrappedSlot(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "strings"
+
+func caller(s string) bool {
+	line, _, ok := strings.Cut(s, ":")
+	return ok && line != ""
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	fn := file.Decls[len(file.Decls)-1].(*ast.FuncDecl)
+	assign := fn.Body.List[0].(*ast.AssignStmt)
+	call := assign.Rhs[0].(*ast.CallExpr)
+
+	prevTypeInfo := currentTypeInfo
+	prevVarTable := currentVarTable
+	SetTypeInfo(typeInfo)
+	SetVarTable(NewVarTable())
+	defer func() {
+		SetTypeInfo(prevTypeInfo)
+		SetVarTable(prevVarTable)
+	}()
+
+	registerCallTupleResultSyntaxInfo(assign.Lhs, call)
+
+	lineInfo := lookupVarInfo("line")
+	if lineInfo == nil || lineInfo.WrapLevel != WrapFull || lineInfo.RustType != "String" {
+		t.Fatalf("line tuple slot should be registered as wrapped String, got %#v", lineInfo)
+	}
+	okInfo := lookupVarInfo("ok")
+	if okInfo == nil || okInfo.WrapLevel != WrapNone {
+		t.Fatalf("ok tuple slot should stay registered as bare bool, got %#v", okInfo)
+	}
+}
+
 func TestBareScalarAssignmentFromWrappedLocalUnwrapsRHS(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
