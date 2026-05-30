@@ -25,7 +25,7 @@ impl counter {
 
     let mut result: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
 
-        let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
+        let mut result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         { let __rhs = 3; let mut guard = result_defer_captured.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
@@ -46,7 +46,7 @@ pub fn compute() -> i32 {
 
     let mut result: Rc<RefCell<Option<i32>>> = Rc::new(RefCell::new(Some(0)));
 
-    let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
+    let mut result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         { let __rhs = 10; let mut guard = result_defer_captured.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
@@ -66,7 +66,7 @@ pub fn decorate() -> Rc<RefCell<Option<String>>> {
 
     let mut msg: Rc<RefCell<Option<String>>> = Rc::new(RefCell::new(Some(String::new())));
 
-    let msg_defer_captured = msg.clone(); __defer_stack.push(Box::new(move || {
+    let mut msg_defer_captured = msg.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Rc::new(RefCell::new(Some(Box::new(move || {
         { let new_val = format!("{}{}", format!("{}{}", "[".to_string(), (*msg_defer_captured.borrow().as_ref().unwrap())), "]".to_string()); *msg_defer_captured.borrow_mut() = Some(new_val); };
     }) as Box<dyn FnMut() -> ()>))); let __f_ptr: *mut Box<dyn FnMut() -> ()> = { let mut __f_guard = __f_holder.borrow_mut(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> ()> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
