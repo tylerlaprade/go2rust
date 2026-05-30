@@ -1269,6 +1269,30 @@ const (
 	}
 }
 
+func TestNamedStringConstCompositeLiteralUsesConstName(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type ErrorCode string
+
+type Error struct {
+	Code ErrorCode
+}
+
+const ErrInvalid ErrorCode = "invalid"
+
+func makeError() Error {
+	return Error{Code: ErrInvalid}
+}
+`)
+
+	if strings.Contains(rust, "ErrInvalid.borrow()") || strings.Contains(rust, "ErrInvalid.lock()") {
+		t.Fatalf("named string const composite value should not be treated as a wrapped local:\n%s", rust)
+	}
+	if !strings.Contains(rust, "ERR_INVALID.to_string()") {
+		t.Fatalf("named string const composite value should use the registered Rust const:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoNamedIntegerBitwiseClonesSelectorField(t *testing.T) {
 	rust := transpileNoTypeInfoRegression(t, `package main
 

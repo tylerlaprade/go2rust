@@ -11390,6 +11390,11 @@ func writeStringTypeDefinitionInnerValue(out *strings.Builder, arg ast.Expr) boo
 		return true
 	}
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+		if isConstIdent(ident) {
+			out.WriteString(rustConstName(ident.Name))
+			out.WriteString(".to_string()")
+			return true
+		}
 		if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
 			out.WriteString(RustIdentForUse(ident))
 			out.WriteString(".to_string()")
