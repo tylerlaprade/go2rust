@@ -345,7 +345,7 @@ func callResultIsBareScalar(call *ast.CallExpr, index int) bool {
 	if typeInfo == nil || typeInfo.IsTypeConversion(call) {
 		return false
 	}
-	if !callUsesGeneratedReturnSignature(call) {
+	if !callUsesGeneratedReturnSignature(call) && !stdlibHandlerResultUsesBareScalar(call, index) {
 		return false
 	}
 	sig, ok := callSignatureFromTypeInfo(call)
@@ -353,6 +353,21 @@ func callResultIsBareScalar(call *ast.CallExpr, index int) bool {
 		return false
 	}
 	return signatureResultIsBareScalar(sig, index)
+}
+
+func stdlibHandlerResultUsesBareScalar(call *ast.CallExpr, index int) bool {
+	key, ok := stdlibCallKey(call.Fun)
+	if !ok {
+		return false
+	}
+	switch key {
+	case "strconv.Atoi":
+		return index == 0
+	case "strings.Cut":
+		return index == 2
+	default:
+		return false
+	}
 }
 
 func writeBareScalarConstSelectorReturnValue(out *strings.Builder, expr ast.Expr, expectedType ast.Expr) bool {

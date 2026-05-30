@@ -2418,6 +2418,28 @@ func caller(it *iter, seed int) int {
 	}
 }
 
+func TestStringsCutExistingBoolTupleAssignmentUsesBareOkTemp(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "strings"
+
+func caller(s string) bool {
+	var ok bool
+	var after string
+	_, after, ok = strings.Cut(s, ".")
+	return ok && after != ""
+}
+`)
+
+	if strings.Contains(rust, "__tmp_2.lock()") {
+		t.Fatalf("strings.Cut bool tuple slot should be assigned as a bare temp:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*ok.lock().unwrap() = Some(__tmp_2);") &&
+		!strings.Contains(rust, "*ok.borrow_mut() = Some(__tmp_2);") {
+		t.Fatalf("existing bool assignment from strings.Cut should store the bare bool in the wrapped local:\n%s", rust)
+	}
+}
+
 func TestBareScalarAssignmentFromWrappedLocalUnwrapsRHS(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -2979,6 +3001,27 @@ func main() {
 	}
 	if strings.Contains(rust, "format!(\"{}\", (*num.borrow()") || strings.Contains(rust, "format!(\"{}\", (*num.lock()") {
 		t.Fatalf("bare scalar num must not be unwrapped through .borrow()/lock() in fmt printing:\n%s", rust)
+	}
+}
+
+func TestStrconvAtoiExistingIntTupleAssignmentUsesBareNumTemp(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "strconv"
+
+func caller(s string) int {
+	var n int
+	n, _ = strconv.Atoi(s)
+	return n
+}
+`)
+
+	if strings.Contains(rust, "__tmp_0.lock()") {
+		t.Fatalf("strconv.Atoi int tuple slot should be assigned as a bare temp:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*n.lock().unwrap() = Some(__tmp_0);") &&
+		!strings.Contains(rust, "*n.borrow_mut() = Some(__tmp_0);") {
+		t.Fatalf("existing int assignment from strconv.Atoi should store the bare scalar in the wrapped local:\n%s", rust)
 	}
 }
 
