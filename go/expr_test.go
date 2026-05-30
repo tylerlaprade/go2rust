@@ -1064,6 +1064,27 @@ func hasQuote(s string) bool {
 	}
 }
 
+func TestStringRangeRuneComparisonWithRuneLiteralStaysChar(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func validTag(word string) bool {
+	for _, c := range word {
+		if c != '_' && c != '.' {
+			return false
+		}
+	}
+	return true
+}
+`)
+
+	if strings.Contains(rust, "c as i32") {
+		t.Fatalf("comparison with rune literal should keep the Rust char value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "c != '_'") || !strings.Contains(rust, "c != '.'") {
+		t.Fatalf("comparison with rune literal should emit char literals:\n%s", rust)
+	}
+}
+
 func TestAppendNamedIntegerConstToNamedSliceWrapsElement(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

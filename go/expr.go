@@ -679,6 +679,11 @@ func writeIntegerConstantForRangeCharPeer(out *strings.Builder, expr ast.Expr, p
 	return true
 }
 
+func isRuneLiteralExpr(expr ast.Expr) bool {
+	lit, ok := expr.(*ast.BasicLit)
+	return ok && lit.Kind == token.CHAR
+}
+
 func writeRangeIndexForIntegerConstantPeer(out *strings.Builder, expr ast.Expr, peer ast.Expr) bool {
 	ident, ok := expr.(*ast.Ident)
 	if !ok || rangeLoopVars[ident.Name] != "usize" || !isIntegerConstantForRangeIndexPeer(peer) {
@@ -8823,7 +8828,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if writeIntegerConstantForRangeCharPeer(out, expr, other) {
 				return
 			}
-			if typeInfo != nil && writeRangeCharForExpectedType(out, expr, typeInfo.GetType(other)) {
+			if typeInfo != nil && !isRuneLiteralExpr(other) && writeRangeCharForExpectedType(out, expr, typeInfo.GetType(other)) {
 				return
 			}
 			if writeRangeIndexForIntegerConstantPeer(out, expr, other) {
@@ -8966,7 +8971,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// String range rune cast for comparison with integer constants.
 			} else if writeIntegerConstantForRangeCharPeer(out, e.X, e.Y) {
 				// Integer constant cast for comparison with a string range rune.
-			} else if typeInfo != nil && writeRangeCharForExpectedType(out, e.X, typeInfo.GetType(e.Y)) {
+			} else if typeInfo != nil && !isRuneLiteralExpr(e.Y) && writeRangeCharForExpectedType(out, e.X, typeInfo.GetType(e.Y)) {
 				// String range runes are Rust char but Go rune peers are i32.
 			} else if writeRangeIndexForIntegerConstantPeer(out, e.X, e.Y) {
 				// Range indexes are represented as usize but Go binary expressions use int.
@@ -9017,7 +9022,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// String range rune cast for comparison with integer constants.
 			} else if writeIntegerConstantForRangeCharPeer(out, e.Y, e.X) {
 				// Integer constant cast for comparison with a string range rune.
-			} else if typeInfo != nil && writeRangeCharForExpectedType(out, e.Y, typeInfo.GetType(e.X)) {
+			} else if typeInfo != nil && !isRuneLiteralExpr(e.X) && writeRangeCharForExpectedType(out, e.Y, typeInfo.GetType(e.X)) {
 				// String range runes are Rust char but Go rune peers are i32.
 			} else if writeRangeIndexForIntegerConstantPeer(out, e.Y, e.X) {
 				// Range indexes are represented as usize but Go binary expressions use int.
