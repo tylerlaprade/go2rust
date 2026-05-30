@@ -2866,6 +2866,30 @@ func caller(args []string) []string {
 	}
 }
 
+func TestShortDeclFromBareRangeStringClonesValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func caller(lines []string) string {
+	var out string
+	for _, line := range lines {
+		orig := line
+		line = line + "x"
+		out = orig
+	}
+	return out
+}
+`)
+
+	if strings.Contains(rust, "let mut orig = Rc::new(RefCell::new(Some(line)))") ||
+		strings.Contains(rust, "let mut orig = Arc::new(Mutex::new(Some(line)))") {
+		t.Fatalf("short declaration from a bare range string should not move the range value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut orig = Rc::new(RefCell::new(Some(line.clone())))") &&
+		!strings.Contains(rust, "let mut orig = Arc::new(Mutex::new(Some(line.clone())))") {
+		t.Fatalf("short declaration from a bare range string should clone into the wrapper:\n%s", rust)
+	}
+}
+
 func TestBareScalarAssignmentFromWrappedLocalUnwrapsRHS(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

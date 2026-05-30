@@ -3419,6 +3419,21 @@ func writeWrappedReferenceRangeValueCopy(out *strings.Builder, ident *ast.Ident)
 	return true
 }
 
+func writeWrappedBareStringRangeValueCopy(out *strings.Builder, ident *ast.Ident) bool {
+	varType, isRangeVar := rangeLoopVars[ident.Name]
+	if !isRangeVar || varType == "ref_value" || strings.HasPrefix(varType, "&") || isWrappedRangeVarType(varType) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsString(ident) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	writeOwnedRangeValue(out, ident)
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeRangeHandleReturnValue(out *strings.Builder, ident *ast.Ident) bool {
 	if ident == nil {
 		return false
@@ -9631,6 +9646,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												// Range values over stdlib-interface slices are references; clone into the new wrapper.
 											} else if writeWrappedReferenceRangeValueCopy(out, ident) {
 												// Reference-style range values need an owned clone for wrapped short declarations.
+											} else if writeWrappedBareStringRangeValueCopy(out, ident) {
+												// Bare string range values need cloning before storing in a new wrapper.
 											} else if writePackageGlobalMapWrappedValueCopy(out, ident) {
 												// Package-global maps are stored as global values; clone the current map into the local wrapper.
 											} else if writePackageGlobalSliceWrappedValueCopy(out, ident) {
@@ -9936,6 +9953,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										writeWrappedFunctionValueBox(out, ident, sig)
 									} else if writeWrappedStdlibInterfaceRangeValueCopy(out, ident) {
 										// Range values over stdlib-interface slices are references; clone into the new wrapper.
+									} else if writeWrappedBareStringRangeValueCopy(out, ident) {
+										// Bare string range values need cloning before storing in a new wrapper.
 									} else if writePackageGlobalMapWrappedValueCopy(out, ident) {
 										// Package-global maps are stored as global values; clone the current map into the local wrapper.
 									} else if writePackageGlobalSliceWrappedValueCopy(out, ident) {
