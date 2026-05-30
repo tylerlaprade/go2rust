@@ -2758,6 +2758,9 @@ func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr
 		WriteWrappedNone(out)
 		return true
 	}
+	if writePointerDerefLocalInterfaceHandleClone(out, arg, expected) {
+		return true
+	}
 	// If the argument is already a wrapped value of the SAME interface, clone
 	// the handle. The wrapped shape carries identity; cloning is the natural
 	// "pass by value" semantics matching Go's interface assignment.
@@ -3691,23 +3694,44 @@ func localInterfaceExpressionName(expr ast.Expr) (string, bool) {
 	return transpiledNamedInterfaceTypeNameFromTypes(expressionTypeForInterfaceEquality(typeInfo, expr))
 }
 
+func pointerDerefLocalInterfaceExpr(expr ast.Expr) (*ast.StarExpr, types.Type, bool) {
+	star, ok := unwrapParens(expr).(*ast.StarExpr)
+	if !ok {
+		return nil, nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, nil, false
+	}
+	ptr, ok := types.Unalias(typeInfo.GetType(star.X)).Underlying().(*types.Pointer)
+	if !ok {
+		return nil, nil, false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(ptr.Elem()); !ok {
+		return nil, nil, false
+	}
+	return star, ptr.Elem(), true
+}
+
+func writePointerDerefLocalInterfaceHandleClone(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
+	star, ifaceType, ok := pointerDerefLocalInterfaceExpr(expr)
+	if !ok {
+		return false
+	}
+	if expected != nil && !types.AssignableTo(ifaceType, expected) {
+		return false
+	}
+	TranspileExpressionContext(out, star.X, LValue)
+	out.WriteString(".clone()")
+	return true
+}
+
 func writePointerDerefLocalInterfaceNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) bool {
 	if op != token.EQL && op != token.NEQ {
 		return false
 	}
-	star, ok := unwrapParens(expr).(*ast.StarExpr)
+	star, _, ok := pointerDerefLocalInterfaceExpr(expr)
 	if !ok {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
-		return false
-	}
-	ptr, ok := types.Unalias(typeInfo.GetType(star.X)).Underlying().(*types.Pointer)
-	if !ok {
-		return false
-	}
-	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(ptr.Elem()); !ok {
 		return false
 	}
 	out.WriteString("{ let __iface_handle = ")

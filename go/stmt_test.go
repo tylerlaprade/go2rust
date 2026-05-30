@@ -763,6 +763,27 @@ func has(h *Type) bool {
 	}
 }
 
+func TestPointerToLocalInterfaceReturnClonesInterfaceHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type interface {
+	Underlying() Type
+}
+
+func get(h *Type) Type {
+	return *h
+}
+`)
+
+	if strings.Contains(rust, "(*h.borrow_mut().as_mut().unwrap()).clone()") ||
+		strings.Contains(rust, "(*h.lock().unwrap().as_mut().unwrap()).clone()") {
+		t.Fatalf("pointer-to-interface return should not return the bare trait object:\n%s", rust)
+	}
+	if !strings.Contains(rust, "h.clone()") {
+		t.Fatalf("pointer-to-interface return should clone the interface handle:\n%s", rust)
+	}
+}
+
 func TestPointerReceiverNamedMapAssignmentFromUnnamedMakeWrapsNamedValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
