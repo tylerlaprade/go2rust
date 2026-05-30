@@ -1511,7 +1511,7 @@ func writeMethodCallArguments(out *strings.Builder, sel *ast.SelectorExpr, call 
 			out.WriteString(", ")
 		}
 		if externalStdlibStubMethodCall {
-			writeExternalStubCallArgument(out, call.Args[i])
+			writeExternalStubCallArgument(out, call.Args[i], selectedMethodParamType(sel, i))
 		} else if bareArgumentMethodCall {
 			TranspileExpression(out, call.Args[i])
 		} else {
@@ -2683,7 +2683,10 @@ func writeWrappedRangeCharForExpectedType(out *strings.Builder, arg ast.Expr, ex
 	return true
 }
 
-func writeExternalStubCallArgument(out *strings.Builder, arg ast.Expr) {
+func writeExternalStubCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) {
+	if expected != nil && writeGoErrorCallArgument(out, arg, expected) {
+		return
+	}
 	if externalStubCallArgumentNeedsTemp(arg) {
 		var inner strings.Builder
 		writeExternalStubCallArgumentDirect(&inner, arg)
@@ -2767,13 +2770,13 @@ func writeExternalStubCallArguments(out *strings.Builder, call *ast.CallExpr) bo
 		if i > 0 {
 			out.WriteString(", ")
 		}
-		writeExternalStubCallArgument(out, call.Args[i])
+		writeExternalStubCallArgument(out, call.Args[i], params.At(i).Type())
 	}
 	if fixedCount > 0 {
 		out.WriteString(", ")
 	}
 	if call.Ellipsis.IsValid() && len(call.Args) > fixedCount {
-		writeExternalStubCallArgument(out, call.Args[len(call.Args)-1])
+		writeExternalStubCallArgument(out, call.Args[len(call.Args)-1], params.At(fixedCount).Type())
 		return true
 	}
 	variadicCount := len(call.Args) - fixedCount
@@ -2802,7 +2805,7 @@ func writeExternalStubCallArguments(out *strings.Builder, call *ast.CallExpr) bo
 		if i > fixedCount {
 			out.WriteString(", ")
 		}
-		writeExternalStubCallArgument(out, call.Args[i])
+		writeExternalStubCallArgument(out, call.Args[i], params.At(fixedCount).Type())
 		variadicCount++
 	}
 	if variadicCount == 1 {
@@ -14331,11 +14334,11 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				if i > 0 {
 					out.WriteString(", ")
 				}
+				expectedArgType := callParamTypeFromTypeInfo(call, i)
 				if isExternalStdlibStubCall {
-					writeExternalStubCallArgument(out, arg)
+					writeExternalStubCallArgument(out, arg, expectedArgType)
 					continue
 				}
-				expectedArgType := callParamTypeFromTypeInfo(call, i)
 				if expectedArgType != nil {
 					if _, ok := transpiledNamedInterfaceTypeNameFromTypes(expectedArgType); ok {
 						if writeLocalInterfaceReferenceCallArgument(out, arg, expectedArgType) {
@@ -14656,7 +14659,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					out.WriteString(", ")
 				}
 				if externalStdlibStubMethodCall {
-					writeExternalStubCallArgument(out, arg)
+					writeExternalStubCallArgument(out, arg, selectedMethodParamType(sel, i))
 				} else if bareArgumentMethodCall {
 					TranspileExpression(out, arg)
 				} else {

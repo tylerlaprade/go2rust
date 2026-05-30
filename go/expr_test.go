@@ -837,6 +837,65 @@ func wrap(errno Errno) *PathError {
 	}
 }
 
+func TestErrorStructFieldClonesInterfaceHandle(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "io/fs"
+
+type PathError = fs.PathError
+
+func wrap(err error) *PathError {
+	return &PathError{Err: err}
+}
+`)
+
+	if strings.Contains(rust, "err.lock().unwrap().as_ref().unwrap()).clone()") {
+		t.Fatalf("error interface struct field should not clone the boxed trait object:\n%s", rust)
+	}
+	if !strings.Contains(rust, "err: err.clone()") {
+		t.Fatalf("error interface struct field should clone the error handle:\n%s", rust)
+	}
+}
+
+func TestErrorsIsSelectorErrorArgumentKeepsHandle(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import (
+	"errors"
+	"io"
+)
+
+func check(err error) bool {
+	return errors.Is(err, io.EOF)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	prevConcurrencyDetector := globalConcurrencyDetector
+	cd := NewConcurrencyDetector()
+	cd.AnalyzeProject([]*ast.File{file})
+	SetConcurrencyDetector(cd)
+	t.Cleanup(func() {
+		SetConcurrencyDetector(prevConcurrencyDetector)
+	})
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"io": "io"})
+
+	if strings.Contains(rust, "io::EOF.lock().unwrap().as_ref().unwrap()).clone()") ||
+		strings.Contains(rust, "io::EOF.borrow().as_ref().unwrap()).clone()") {
+		t.Fatalf("errors.Is selector error argument should not clone the boxed trait object:\n%s", rust)
+	}
+	if !strings.Contains(rust, "errors::is(err.clone(), { let __field = io::EOF.clone(); __field })") {
+		t.Fatalf("errors.Is selector error argument should pass the error handle:\n%s", rust)
+	}
+}
+
 func TestAppendCurrentReceiverToInterfaceSliceBoxesSelf(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
