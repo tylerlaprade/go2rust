@@ -186,6 +186,41 @@ var Skip error = fs.SkipDir
 	}
 }
 
+func TestPackageGlobalNamedIntegerErrorConstInitBoxesNamedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Errno uintptr
+
+const EINVAL = Errno(22)
+
+func (e Errno) Error() string { return "" }
+
+var errEINVAL error = EINVAL
+`)
+
+	if strings.Contains(rust, "Some(E_I_N_V_A_L)") {
+		t.Fatalf("package global error const init should not store the raw const:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some(Box::new(Errno(") {
+		t.Fatalf("package global error const init should box the named error value:\n%s", rust)
+	}
+}
+
+func TestPackageGlobalExplicitNilErrorInitStaysNone(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+var errGlobal error = nil
+`)
+
+	if strings.Contains(rust, "Some(nil)") {
+		t.Fatalf("package global error nil init should not store nil as a payload:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*errGlobal.borrow_mut() = None;") &&
+		!strings.Contains(rust, "*errGlobal.lock().unwrap() = None;") {
+		t.Fatalf("package global error nil init should leave the slot empty:\n%s", rust)
+	}
+}
+
 func TestPackageGlobalFunctionSelectorInitBoxesFunctionObject(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

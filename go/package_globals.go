@@ -859,19 +859,39 @@ func writePackageGlobalErrorHandleInit(out *strings.Builder, global packageGloba
 	if !isGoErrorType(global.typ) {
 		return false
 	}
+	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" {
+		out.WriteString("    *")
+		out.WriteString(rustPackageGlobalName(global.name))
+		WriteBorrowMethod(out, true)
+		out.WriteString(" = None;\n")
+		return true
+	}
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !isGoErrorType(typeInfo.GetType(expr)) {
+	if typeInfo == nil {
 		return false
 	}
-	out.WriteString("    { let __rhs_holder = ")
-	TranspileExpressionContext(out, expr, LValue)
-	out.WriteString(".clone(); let new_val = { let mut guard = __rhs_holder")
-	WriteBorrowMethod(out, true)
-	out.WriteString("; guard.take() }; *")
-	out.WriteString(rustPackageGlobalName(global.name))
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = new_val; }\n")
-	return true
+	exprType := typeInfo.GetType(expr)
+	if isGoErrorType(exprType) {
+		out.WriteString("    { let __rhs_holder = ")
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(".clone(); let new_val = { let mut guard = __rhs_holder")
+		WriteBorrowMethod(out, true)
+		out.WriteString("; guard.take() }; *")
+		out.WriteString(rustPackageGlobalName(global.name))
+		WriteBorrowMethod(out, true)
+		out.WriteString(" = new_val; }\n")
+		return true
+	}
+	if isConcreteGoErrorValue(exprType) {
+		out.WriteString("    *")
+		out.WriteString(rustPackageGlobalName(global.name))
+		WriteBorrowMethod(out, true)
+		out.WriteString(" = Some(")
+		writeConcreteErrorBox(out, expr)
+		out.WriteString(");\n")
+		return true
+	}
+	return false
 }
 
 func isPointerGlobalType(typ types.Type) bool {
