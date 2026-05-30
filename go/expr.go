@@ -2704,12 +2704,12 @@ func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr
 		typeInfo := GetTypeInfo()
 		if typeInfo != nil {
 			argType := typeInfo.GetType(arg)
-			if argIface, argOK := localNamedInterfaceTypeNameFromTypes(argType); argOK && argIface != ifaceName {
-				writeLocalInterfaceSubtraitUpcast(out, arg, ifaceName)
-				return true
-			}
 			if argIface, argOK := transpiledNamedInterfaceTypeNameFromTypes(argType); argOK && argIface != ifaceName {
-				writeLocalInterfaceWrappedConstruction(out, arg, ifaceName, expected)
+				if localInterfaceCanRustTraitUpcast(argIface, ifaceName) {
+					writeLocalInterfaceSubtraitUpcast(out, arg, ifaceName)
+				} else {
+					writeLocalInterfaceWrappedConstruction(out, arg, ifaceName, expected)
+				}
 				return true
 			}
 		}
@@ -2751,7 +2751,11 @@ func writeLocalInterfaceSliceLiteralElement(out *strings.Builder, arg ast.Expr, 
 	}
 	if argIface, argOK := transpiledNamedInterfaceTypeNameFromTypes(argType); argOK {
 		if argIface != ifaceName {
-			writeLocalInterfaceSubtraitUpcast(out, arg, ifaceName)
+			if localInterfaceCanRustTraitUpcast(argIface, ifaceName) {
+				writeLocalInterfaceSubtraitUpcast(out, arg, ifaceName)
+			} else {
+				writeLocalInterfaceWrappedConstruction(out, arg, ifaceName, elemType)
+			}
 			return true
 		}
 		if ident, ok := arg.(*ast.Ident); ok {

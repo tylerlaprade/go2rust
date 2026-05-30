@@ -7,6 +7,7 @@ import (
 	"go/token"
 	"go/types"
 	"math"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -1385,23 +1386,60 @@ func packageLocalInterfaceNames(fileInterfaces map[string]*ast.InterfaceType) []
 // localInterfaceTypesByName looks up the go/types interface for a top-level
 // type name in the current package.
 func localInterfaceTypesByName(name string) *types.Interface {
+	_, iface := localInterfaceNamedTypeByName(name)
+	return iface
+}
+
+func localInterfaceNamedTypeByName(name string) (*types.Named, *types.Interface) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.pkg == nil {
-		return nil
+		return nil, nil
 	}
 	obj := typeInfo.pkg.Scope().Lookup(name)
 	if obj == nil {
-		return nil
+		return nil, nil
 	}
-	named, ok := obj.Type().(*types.Named)
+	typeName, ok := obj.(*types.TypeName)
 	if !ok {
-		return nil
+		return nil, nil
+	}
+	named, ok := typeName.Type().(*types.Named)
+	if !ok {
+		return nil, nil
 	}
 	iface, ok := named.Underlying().(*types.Interface)
 	if !ok {
-		return nil
+		return nil, nil
 	}
-	return iface
+	return named, iface
+}
+
+func localInterfaceCanRustTraitUpcast(sourceName, targetName string) bool {
+	if sourceName == "" || targetName == "" || sourceName == targetName {
+		return false
+	}
+	source := localInterfaceTypesByName(sourceName)
+	return localInterfaceEmbedsNamed(source, targetName)
+}
+
+func localInterfaceEmbedsNamed(iface *types.Interface, targetName string) bool {
+	if iface == nil || targetName == "" {
+		return false
+	}
+	for i := 0; i < iface.NumEmbeddeds(); i++ {
+		named, ok := types.Unalias(iface.EmbeddedType(i)).(*types.Named)
+		if !ok || named.Obj() == nil {
+			continue
+		}
+		if named.Obj().Name() == targetName {
+			return true
+		}
+		embedded, _ := named.Underlying().(*types.Interface)
+		if localInterfaceEmbedsNamed(embedded, targetName) {
+			return true
+		}
+	}
+	return false
 }
 
 // embeddedLocalInterfaceNames returns the Rust trait names of named local
@@ -1505,6 +1543,39 @@ func writeEmbeddedTraitObjectAdapters(out *strings.Builder, ifaceName string, em
 			continue
 		}
 		writeEmbeddedTraitObjectAdapter(out, ifaceName, embeddedName, embeddedIface)
+	}
+}
+
+func writeAssignableInterfaceObjectAdapters(out *strings.Builder, ifaceName string) {
+	sourceNamed, _ := localInterfaceNamedTypeByName(ifaceName)
+	if sourceNamed == nil {
+		return
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil || typeInfo.pkg.Scope() == nil {
+		return
+	}
+	scope := typeInfo.pkg.Scope()
+	var targetNames []string
+	for _, name := range scope.Names() {
+		if name == ifaceName {
+			continue
+		}
+		targetNamed, targetIface := localInterfaceNamedTypeByName(name)
+		if targetNamed == nil || targetIface == nil || targetIface.NumMethods() == 0 {
+			continue
+		}
+		if !types.AssignableTo(sourceNamed, targetNamed) {
+			continue
+		}
+		if localInterfaceCanRustTraitUpcast(ifaceName, name) {
+			continue
+		}
+		targetNames = append(targetNames, name)
+	}
+	sort.Strings(targetNames)
+	for _, targetName := range targetNames {
+		writeEmbeddedTraitObjectAdapter(out, ifaceName, targetName, localInterfaceTypesByName(targetName))
 	}
 }
 
@@ -2666,6 +2737,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		out.WriteString("    }\n")
 		out.WriteString("}")
 		writeEmbeddedTraitObjectAdapters(out, rustTypeName, embeddedTraits)
+		writeAssignableInterfaceObjectAdapters(out, rustTypeName)
 
 	default:
 		// Handle type aliases and type definitions

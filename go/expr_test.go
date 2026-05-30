@@ -190,6 +190,51 @@ func TestLocalInterfaceReferenceCallArgumentUsesCurrentReceiver(t *testing.T) {
 	}
 }
 
+func TestLocalInterfaceSupersetArgumentUsesTraitObjectAdapter(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type positioner interface {
+	Pos() int
+}
+
+type object interface {
+	Pos() int
+	Name() string
+}
+
+func add(p positioner) {}
+
+func declare(obj object) {
+	add(obj)
+}
+`)
+
+	if strings.Contains(rust, "let __inner: Box<dyn positioner") {
+		t.Fatalf("interface argument with a structural method superset should not use a Rust trait upcast:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl positioner for Box<dyn object") {
+		t.Fatalf("structural interface argument should have a trait-object adapter:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new((*obj.borrow().as_ref().unwrap()).clone()) as Box<dyn positioner") {
+		t.Fatalf("structural interface argument should box the source trait object through the adapter:\n%s", rust)
+	}
+}
+
+func TestLocalInterfaceAdaptersIgnoreInterfaceTypedPackageVars(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type interface {
+	String() string
+}
+
+var universeBool Type
+`)
+
+	if strings.Contains(rust, "impl universeBool for Box<dyn Type") {
+		t.Fatalf("interface adapter generation should ignore interface-typed package vars:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceConcreteAssertionUsesTraitAny(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
