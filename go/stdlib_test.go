@@ -103,6 +103,34 @@ func build(s string) string {
 	}
 }
 
+func TestSourceMappedRegexpMustCompileCallsGeneratedFunction(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "regexp"
+
+func compile(pattern string) *regexp.Regexp {
+	return regexp.MustCompile(pattern)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"regexp": "regexp"})
+
+	if strings.Contains(rust, "GoRegexp") {
+		t.Fatalf("source-mapped regexp.MustCompile should not use the GoRegexp bridge:\n%s", rust)
+	}
+	if !strings.Contains(rust, "regexp::must_compile(") {
+		t.Fatalf("source-mapped regexp.MustCompile should call the generated regexp package:\n%s", rust)
+	}
+}
+
 func TestFmtFprintlnStringsBuilderWritesToBuilder(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

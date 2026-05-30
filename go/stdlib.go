@@ -14,7 +14,7 @@ type StdlibHandler func(*strings.Builder, *ast.CallExpr)
 func GetStdlibHandler(call *ast.CallExpr) StdlibHandler {
 	// Handle selector expressions like fmt.Println
 	if key, ok := stdlibCallKey(call.Fun); ok {
-		if handler, exists := stdlibMappings[key]; exists {
+		if handler, exists := stdlibMappings[key]; exists && !stdlibCallUsesSourceMappedPackage(call.Fun) {
 			return handler
 		}
 	}
@@ -27,6 +27,25 @@ func GetStdlibHandler(call *ast.CallExpr) StdlibHandler {
 	}
 
 	return nil
+}
+
+func stdlibCallUsesSourceMappedPackage(expr ast.Expr) bool {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	current := sel.X
+	for {
+		if x, ok := current.(*ast.SelectorExpr); ok {
+			current = x.X
+			continue
+		}
+		ident, ok := current.(*ast.Ident)
+		if !ok {
+			return false
+		}
+		return isSourceMappedPackagePath(resolveStdlibPackageName(ident.Name))
+	}
 }
 
 func stdlibCallKey(expr ast.Expr) (string, bool) {
