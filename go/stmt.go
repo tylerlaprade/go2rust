@@ -1451,8 +1451,7 @@ func registerCallTupleResultSyntaxInfo(lhs []ast.Expr, call *ast.CallExpr) {
 		return
 	}
 	if len(resultTypes) == 0 {
-		if sig, ok := callSignatureFromTypeInfo(call); ok {
-			results := sig.Results()
+		if results, ok := callResultTupleFromTypeInfo(call); ok {
 			for i := 0; i < results.Len() && i < len(lhs); i++ {
 				ident, ok := lhs[i].(*ast.Ident)
 				if !ok || ident.Name == "_" {
@@ -1461,7 +1460,7 @@ func registerCallTupleResultSyntaxInfo(lhs []ast.Expr, call *ast.CallExpr) {
 				resultType := types.Unalias(results.At(i).Type())
 				registerTypesCollectionInfo(ident.Name, resultType)
 				wrapLevel := WrapFull
-				if signatureResultIsBareScalar(sig, i) {
+				if typeIsPredeclaredCopyScalar(resultType) {
 					wrapLevel = WrapNone
 				}
 				vt.Register(ident.Name, &VarInfo{
@@ -1491,6 +1490,19 @@ func registerCallTupleResultSyntaxInfo(lhs []ast.Expr, call *ast.CallExpr) {
 			Source:    SourceLocal,
 		})
 	}
+}
+
+func callResultTupleFromTypeInfo(call *ast.CallExpr) (*types.Tuple, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && call != nil {
+		if results, ok := typeInfo.GetType(call).(*types.Tuple); ok {
+			return results, true
+		}
+	}
+	if sig, ok := callSignatureFromTypeInfo(call); ok {
+		return sig.Results(), true
+	}
+	return nil, false
 }
 
 func registerTypesCollectionInfo(name string, typ types.Type) {

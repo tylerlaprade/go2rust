@@ -2378,7 +2378,7 @@ func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 	if isCurrentReceiverIdent(ident) {
 		return writeCurrentReceiverClone(out, ident)
 	}
-	if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+	if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && !identShadowsRangeVar(ident) {
 		return writeOwnedRangeValue(out, ident)
 	}
 	if isLocalConstantIdent(ident) {
@@ -2492,7 +2492,7 @@ func writeRangeStringValue(out *strings.Builder, arg ast.Expr) bool {
 		return false
 	}
 	varType, isRangeVar := rangeLoopVars[ident.Name]
-	if !isRangeVar {
+	if !isRangeVar || identShadowsRangeVar(ident) {
 		return false
 	}
 	argName := RustIdentForUse(ident)
@@ -7440,6 +7440,17 @@ func writeOwnedRangeValue(out *strings.Builder, ident *ast.Ident) bool {
 		return true
 	}
 	return false
+}
+
+func identShadowsRangeVar(ident *ast.Ident) bool {
+	if ident == nil {
+		return false
+	}
+	if _, ok := rangeLoopVars[ident.Name]; !ok {
+		return false
+	}
+	info := lookupVarInfo(ident.Name)
+	return info != nil && info.Source != SourceRangeKey && info.Source != SourceRangeVal
 }
 
 func bareRangeVarNeedsClone(varType string) bool {
@@ -14608,7 +14619,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 
 				// Bare scalar locals still need a Go value handle when the callee
 				// parameter is emitted as wrapped. Channels are the bare exception.
-				if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar && isVarBare(ident.Name) {
+				_, isRangeVar := rangeLoopVars[ident.Name]
+				activeRangeVar := isRangeVar && !identShadowsRangeVar(ident)
+				if !activeRangeVar && isVarBare(ident.Name) {
 					typeInfo := GetTypeInfo()
 					if (typeInfo != nil && typeInfo.IsChannel(ident)) || isChannelFieldType(expectedArgType) || isChannelFieldExpr(paramTypeForArg) {
 						out.WriteString(argVarName)
@@ -14622,7 +14635,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 
 				// Check if this is a variable (not a constant)
-				if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+				if !activeRangeVar {
 					if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
 						// It's a variable
 						if needsInterfaceBoxing {

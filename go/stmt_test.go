@@ -396,7 +396,6 @@ func build(parts []string, sep string) string {
 	if err != nil {
 		t.Fatalf("NewTypeInfo() error = %v", err)
 	}
-
 	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"strings": "strings"})
 
 	if strings.Contains(rust, ".push_str(") {
@@ -2708,6 +2707,7 @@ func caller(s string) []string {
 	if err != nil {
 		t.Fatalf("NewTypeInfo() error = %v", err)
 	}
+
 	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"strings": "strings"})
 
 	if strings.Contains(rust, "Some(line.clone())") {
@@ -2758,6 +2758,83 @@ func caller(s string) bool {
 	okInfo := lookupVarInfo("ok")
 	if okInfo == nil || okInfo.WrapLevel != WrapNone {
 		t.Fatalf("ok tuple slot should stay registered as bare bool, got %#v", okInfo)
+	}
+}
+
+func TestTupleStringResultShadowingBareRangeVarRegistersWrappedLocal(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "strings"
+
+func caller(s string) []string {
+	var out []string
+	for _, line := range strings.Split(s, "\n") {
+		line, _, _ := strings.Cut(line, ":")
+		out = strings.Fields(line)
+	}
+	return out
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"strings": "strings"})
+
+	if strings.Contains(rust, "strings::fields(Rc::new(RefCell::new(Some(line.clone()))") ||
+		strings.Contains(rust, "strings::fields(Arc::new(Mutex::new(Some(line.clone()))") {
+		t.Fatalf("shadowed string tuple result should override the bare range-var metadata:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__arg_holder = line.clone()") {
+		t.Fatalf("shadowed string tuple result should be treated as the wrapped tuple local:\n%s", rust)
+	}
+}
+
+func TestTupleResultRegistrationOverridesRangeVarInfo(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "strings"
+
+func caller(s string) {
+	for _, line := range strings.Split(s, "\n") {
+		line, _, _ := strings.Cut(line, ":")
+		_ = line
+	}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	fn := file.Decls[len(file.Decls)-1].(*ast.FuncDecl)
+	rangeStmt := fn.Body.List[0].(*ast.RangeStmt)
+	assign := rangeStmt.Body.List[0].(*ast.AssignStmt)
+	call := assign.Rhs[0].(*ast.CallExpr)
+
+	prevTypeInfo := currentTypeInfo
+	prevVarTable := currentVarTable
+	SetTypeInfo(typeInfo)
+	vt := NewVarTable()
+	vt.Register("line", &VarInfo{WrapLevel: WrapNone, RustType: "String", Source: SourceRangeVal})
+	SetVarTable(vt)
+	defer func() {
+		SetTypeInfo(prevTypeInfo)
+		SetVarTable(prevVarTable)
+	}()
+
+	registerCallTupleResultSyntaxInfo(assign.Lhs, call)
+
+	lineInfo := lookupVarInfo("line")
+	if lineInfo == nil || lineInfo.WrapLevel != WrapFull || lineInfo.Source != SourceLocal {
+		t.Fatalf("tuple result registration should override the shadowed range var, got %#v", lineInfo)
 	}
 }
 
