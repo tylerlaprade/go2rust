@@ -4834,6 +4834,53 @@ func (Dead) Drop() {}
 	}
 }
 
+func TestSourceStdlibPruningSkipsImportedInterfaceImplForPrunedInterface(t *testing.T) {
+	prevReachable := sourceStdlibReachable
+	defer SetSourceStdlibReachable(prevReachable)
+
+	fset := token.NewFileSet()
+	fsPkg := parsePackageForReachabilityTest(t, fset, "example.com/fs", "fs.go", `package fs
+
+type File interface {
+	Close() error
+}
+`)
+	osPkg := parsePackageForReachabilityTest(t, fset, "example.com/os", "os.go", `package os
+
+import "example.com/fs"
+
+type File struct{}
+
+func (File) Close() error { return nil }
+
+func use(sink func(fs.File), f File) {
+	sink(f)
+}
+`)
+	loader := &PackageLoader{
+		fileSet: fset,
+		mainPkg: osPkg,
+		allPackages: map[string]*packages.Package{
+			"example.com/fs": fsPkg,
+			"example.com/os": osPkg,
+		},
+		packageMapping: map[string]string{"example.com/fs": "example_com_fs"},
+	}
+	if err := loader.typeCheckLocalPackage(fsPkg, loader.projectImporter()); err != nil {
+		t.Fatalf("typeCheckLocalPackage(example.com/fs) error = %v", err)
+	}
+	if err := loader.typeCheckLocalPackage(osPkg, loader.projectImporter()); err != nil {
+		t.Fatalf("typeCheckLocalPackage(example.com/os) error = %v", err)
+	}
+	SetSourceStdlibReachable(map[types.Object]bool{})
+
+	typeInfo := &TypeInfo{info: osPkg.TypesInfo, pkg: osPkg.Types}
+	rust, _, _ := TranspileWithMapping(osPkg.Syntax[0], fset, typeInfo, map[string]string{"example.com/fs": "example_com_fs"})
+	if strings.Contains(rust, "impl example_com_fs::File for File") {
+		t.Fatalf("pruned imported interface should not get an impl block:\n%s", rust)
+	}
+}
+
 func TestCollectGoFilesSkipsTestFilesForDirectoryInput(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "main.go"), "package main\nfunc main() {}\n")

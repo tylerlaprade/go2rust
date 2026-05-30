@@ -834,6 +834,9 @@ func importedTranspiledInterfaceFromType(typ types.Type) (string, *types.Interfa
 	if isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
 		return "", nil, false
 	}
+	if sourceMappedDeclIsPruned(named.Obj()) {
+		return "", nil, false
+	}
 	return goTypesNamedTypeToRust(named), intf, true
 }
 
