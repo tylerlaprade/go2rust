@@ -2790,6 +2790,9 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		out.WriteString("}")
 		writeEmbeddedTraitObjectAdapters(out, rustTypeName, embeddedTraits)
 		writeAssignableInterfaceObjectAdapters(out, rustTypeName)
+		if iface := localInterfaceTypesByName(typeSpec.Name.Name); interfaceEmbedsOnlyOrderedTerms(iface) {
+			writeOrderedPrimitiveInterfaceImpls(out, rustTypeName)
+		}
 
 	default:
 		// Handle type aliases and type definitions
@@ -2935,6 +2938,45 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				}
 			}
 		}
+	}
+}
+
+func writeOrderedPrimitiveInterfaceImpls(out *strings.Builder, rustTypeName string) {
+	traitSnake := traitMethodSuffix(rustTypeName)
+	traitObject := rustLocalInterfaceTraitObject(rustTypeName)
+	paramBare := rustLocalInterfaceParamBare(rustTypeName)
+	for _, primitive := range []string{"i8", "i16", "i32", "i64", "isize", "u8", "u16", "u32", "u64", "usize", "f32", "f64", "String"} {
+		out.WriteString("\n\nimpl ")
+		out.WriteString(rustTypeName)
+		out.WriteString(" for ")
+		out.WriteString(primitive)
+		out.WriteString(" {\n")
+		out.WriteString("    fn __go_clone_box_")
+		out.WriteString(traitSnake)
+		out.WriteString("(&self) -> ")
+		out.WriteString(traitObject)
+		out.WriteString(" {\n")
+		out.WriteString("        Box::new(self.clone()) as ")
+		out.WriteString(traitObject)
+		out.WriteString("\n")
+		out.WriteString("    }\n")
+		out.WriteString("    fn __go_as_any(&self) -> &dyn Any {\n")
+		out.WriteString("        self\n")
+		out.WriteString("    }\n")
+		out.WriteString("    fn __go_eq_")
+		out.WriteString(traitSnake)
+		out.WriteString("(&self, other: ")
+		out.WriteString(paramBare)
+		out.WriteString(") -> bool {\n")
+		out.WriteString("        if let Some(__other) = other.__go_as_any().downcast_ref::<")
+		out.WriteString(primitive)
+		out.WriteString(">() {\n")
+		out.WriteString("            self == __other\n")
+		out.WriteString("        } else {\n")
+		out.WriteString("            false\n")
+		out.WriteString("        }\n")
+		out.WriteString("    }\n")
+		out.WriteString("}")
 	}
 }
 

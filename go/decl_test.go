@@ -321,6 +321,9 @@ func Less[T Ordered](x, y T) bool {
 	if !strings.Contains(rust, "pub fn less<T: Ordered + Clone") || !strings.Contains(rust, "PartialOrd") {
 		t.Fatalf("named ordered constraint should emit clone and ordering bounds:\n%s", rust)
 	}
+	if !strings.Contains(rust, "impl Ordered for i32") {
+		t.Fatalf("named ordered constraint should be implemented for primitive ordered Rust types:\n%s", rust)
+	}
 }
 
 func TestGenericSliceConstrainedParameterUsesSliceRepresentation(t *testing.T) {
