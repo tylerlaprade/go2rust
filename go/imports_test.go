@@ -24,7 +24,7 @@ func TestGoRWMutexHelperExportsLockMethods(t *testing.T) {
 	ht := &HelperTracker{needsGoRWMutex: true}
 	helper := ht.GenerateHelperModule()
 
-	for _, want := range []string{"pub fn r_lock(&self)", "pub fn r_unlock(&self)"} {
+	for _, want := range []string{"pub struct GoRWMutex", "pub fn r_lock(&self)", "pub fn r_unlock(&self)"} {
 		if !strings.Contains(helper, want) {
 			t.Fatalf("GoRWMutex helper should export %q for cross-crate ForkLock users:\n%s", want, helper)
 		}

@@ -1414,7 +1414,7 @@ impl std::fmt::Debug for GoMutex {
 func generateGoRWMutexHelper(out *strings.Builder) {
 	code := `
 #[derive(Clone, Debug, Default)]
-struct GoRWMutex;
+pub struct GoRWMutex;
 
 impl GoRWMutex {
     pub fn new() -> Self {
@@ -1433,9 +1433,6 @@ impl std::fmt::Display for GoRWMutex {
     }
 }
 `
-	if generatingPublicHelpers {
-		code = strings.ReplaceAll(code, "struct GoRWMutex", "pub struct GoRWMutex")
-	}
 	out.WriteString(code)
 }
 
