@@ -265,6 +265,24 @@ type RegArgs struct {
 	}
 }
 
+func TestNamedMapTypeDefinitionUsesFormatMapDisplay(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Node struct{}
+
+type nodeSet map[*Node]bool
+
+type graphNode struct {
+	pred nodeSet
+}
+`)
+
+	if !strings.Contains(rust, "impl Display for nodeSet") ||
+		!strings.Contains(rust, "format_map(&self.0)") {
+		t.Fatalf("displayable named map definitions should implement Display through format_map:\n%s", rust)
+	}
+}
+
 func TestSyncMapStructFieldUsesWrappedHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

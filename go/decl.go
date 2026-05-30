@@ -2851,6 +2851,18 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				out.WriteString("        write!(f, \"{}\", format_slice(&self.0))\n")
 				out.WriteString("    }\n")
 				out.WriteString("}\n")
+			} else if typeDefinitionMapUnderlyingDisplayable(typeSpec) {
+				TrackImport("Display")
+				TrackImport("Formatter")
+				NeedFormatMap()
+
+				out.WriteString("\nimpl Display for ")
+				out.WriteString(rustTypeName)
+				out.WriteString(" {\n")
+				out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
+				out.WriteString("        write!(f, \"{}\", format_map(&self.0))\n")
+				out.WriteString("    }\n")
+				out.WriteString("}\n")
 			} else if typeDefinitionScalarUnderlyingDisplayable(typeSpec) {
 				// Track necessary imports
 				TrackImport("Display")
@@ -2902,6 +2914,57 @@ func typeDefinitionScalarUnderlyingDisplayable(typeSpec *ast.TypeSpec) bool {
 		}
 	}
 	return false
+}
+
+func typeDefinitionMapUnderlyingDisplayable(typeSpec *ast.TypeSpec) bool {
+	if typeSpec == nil || typeSpec.Name == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName)
+	if !ok {
+		return false
+	}
+	named, ok := types.Unalias(obj.Type()).(*types.Named)
+	if !ok {
+		return false
+	}
+	mapType, ok := types.Unalias(named.Underlying()).(*types.Map)
+	if !ok {
+		return false
+	}
+	return mapKeyTypeDisplayable(mapType.Key()) && mapValueTypeDisplayable(mapType.Elem())
+}
+
+func mapKeyTypeDisplayable(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	if _, ok := types.Unalias(typ).Underlying().(*types.Pointer); ok {
+		return true
+	}
+	if _, ok := types.Unalias(typ).Underlying().(*types.Interface); ok {
+		return true
+	}
+	return goTypeBasicDisplayable(typ)
+}
+
+func mapValueTypeDisplayable(typ types.Type) bool {
+	return goTypeBasicDisplayable(typ)
+}
+
+func goTypeBasicDisplayable(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	basic, ok := types.Unalias(typ).Underlying().(*types.Basic)
+	if !ok {
+		return false
+	}
+	return basic.Info()&(types.IsBoolean|types.IsInteger|types.IsFloat|types.IsString) != 0
 }
 
 func registerStructDef(name string, structType *ast.StructType) {
