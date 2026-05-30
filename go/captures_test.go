@@ -432,6 +432,26 @@ func (check *Checker) run(pos Pos) {
 	}
 }
 
+func TestFuncLitRangeUsesCapturedRangeTargetClone(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func makeIter(values []int) func() {
+	return func() {
+		for _, value := range values {
+			_ = value
+		}
+	}
+}
+`)
+
+	if strings.Contains(rust, "__range_holder = values.clone()") {
+		t.Fatalf("range over captured slice should not use the outer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__range_holder = values_closure_clone.clone()") {
+		t.Fatalf("range over captured slice should use the closure clone:\n%s", rust)
+	}
+}
+
 func TestIfConditionFuncLitAssignedCaptureCloneIsMutable(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

@@ -1882,7 +1882,11 @@ func writeWrappedHandleExpression(out *strings.Builder, expr ast.Expr) {
 		if writeCurrentReceiverStorage(out, ident) {
 			return
 		}
-		out.WriteString(EscapeRustIdent(ident.Name))
+		name := RustIdentForUse(ident)
+		if renamed, exists := captureRenameForIdent(ident); exists {
+			name = RustLocalIdent(renamed)
+		}
+		out.WriteString(name)
 		return
 	}
 	TranspileExpressionContext(out, expr, LValue)
