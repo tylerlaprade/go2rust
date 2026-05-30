@@ -3327,6 +3327,29 @@ func wrap(words []int) int64 {
 	}
 }
 
+func TestNamedStructAliasReturnKeepsWrappedAliasHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type inner struct {
+	n int
+}
+
+type alias = inner
+
+func makeAlias() (alias, string) {
+	v := alias{n: 1}
+	return v, ""
+}
+`)
+
+	if strings.Contains(rust, "return v,") {
+		t.Fatalf("named struct alias return should not treat the alias as a bare anonymous struct:\n%s", rust)
+	}
+	if !strings.Contains(rust, "v.clone()") && !strings.Contains(rust, "__owned") {
+		t.Fatalf("named struct alias return should keep a wrapped handle/value copy:\n%s", rust)
+	}
+}
+
 func TestFindStructFieldExprUsesRustCasedFallback(t *testing.T) {
 	structType := &ast.StructType{Fields: &ast.FieldList{List: []*ast.Field{
 		{

@@ -160,6 +160,14 @@ func IsTypeAlias(name string) bool {
 	return currentTypeAliases()[name]
 }
 
+func RegisterBareStructAlias(name string) {
+	bareStructAliases[name] = true
+}
+
+func IsBareStructAlias(name string) bool {
+	return bareStructAliases[name]
+}
+
 func RegisterFunctionTypeAlias(name string) {
 	currentFunctionTypeAliases()[name] = true
 }

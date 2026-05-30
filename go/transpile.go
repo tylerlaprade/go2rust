@@ -120,6 +120,10 @@ var typeDefinitionUnderlyingTypes = make(map[string]types.Type)
 // typeAliases tracks which types are type aliases
 var typeAliases = make(map[string]bool)
 
+// bareStructAliases tracks local struct type aliases emitted as bare Rust
+// aliases to generated anonymous struct types.
+var bareStructAliases = make(map[string]bool)
+
 // functionTypeAliases tracks named Go function types that are emitted as Rust aliases.
 var functionTypeAliases = make(map[string]bool)
 

@@ -1428,11 +1428,13 @@ func pushFunctionLocalSyntaxInfo() func() {
 	prevMapKeyRustTypes := localMapKeyRustTypes
 	prevMapValueRustTypes := localMapValueRustTypes
 	prevMapValueKeepHandle := localMapValueKeepHandle
+	prevBareStructAliases := bareStructAliases
 	localRangeElemRustTypes = make(map[string]string)
 	localCollectionKinds = make(map[string]string)
 	localMapKeyRustTypes = make(map[string]string)
 	localMapValueRustTypes = make(map[string]string)
 	localMapValueKeepHandle = make(map[string]bool)
+	bareStructAliases = make(map[string]bool)
 	for name := range packageGlobalNames {
 		if rustType, ok := prevRangeElemRustTypes[name]; ok {
 			localRangeElemRustTypes[name] = rustType
@@ -1456,6 +1458,7 @@ func pushFunctionLocalSyntaxInfo() func() {
 		localMapKeyRustTypes = prevMapKeyRustTypes
 		localMapValueRustTypes = prevMapValueRustTypes
 		localMapValueKeepHandle = prevMapValueKeepHandle
+		bareStructAliases = prevBareStructAliases
 	}
 }
 
@@ -9783,6 +9786,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 							structDefs[typeSpec.Name.Name] = structDef
 							RegisterTypeAlias(typeSpec.Name.Name)
+							RegisterBareStructAlias(typeSpec.Name.Name)
 							out.WriteString("type ")
 							out.WriteString(RustTypeNameForUse(typeSpec.Name.Name))
 							out.WriteString(" = ")

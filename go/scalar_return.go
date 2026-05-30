@@ -102,7 +102,7 @@ func typeIsRegisteredBareStructAlias(t types.Type) bool {
 	default:
 		return false
 	}
-	if !IsTypeAlias(name) {
+	if !IsBareStructAlias(name) {
 		return false
 	}
 	_, ok := underlying.(*types.Struct)
