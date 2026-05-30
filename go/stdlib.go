@@ -2377,20 +2377,28 @@ func transpileSlicesContains(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(".clone(); let __slice_guard = __slice_holder")
 			WriteBorrowMethod(out, false)
 			out.WriteString("; let __slice = __slice_guard.as_ref().unwrap(); ")
-			if isBareLocalInterfaceValue(call.Args[1]) {
+			if ident, ok := call.Args[1].(*ast.Ident); ok && ident.Name == "nil" {
+				out.WriteString("__slice.iter().any(|__item| { let __item_guard = __item")
+				WriteBorrowMethod(out, false)
+				out.WriteString("; __item_guard.as_ref().is_none() }) }")
+			} else if isBareLocalInterfaceValue(call.Args[1]) {
 				out.WriteString("let __value = ")
 				TranspileExpression(out, call.Args[1])
-				out.WriteString("; __slice.iter().any(|__item| __item.__go_eq_")
+				out.WriteString("; __slice.iter().any(|__item| { let __item_guard = __item")
+				WriteBorrowMethod(out, false)
+				out.WriteString("; if let Some(__left) = __item_guard.as_ref() { __left.as_ref().__go_eq_")
 				out.WriteString(elemSnake)
-				out.WriteString("(__value)) }")
+				out.WriteString("(__value) } else { false } }) }")
 			} else {
 				out.WriteString("let __value_holder = ")
 				TranspileExpressionContext(out, call.Args[1], LValue)
 				out.WriteString(".clone(); let __value_guard = __value_holder")
 				WriteBorrowMethod(out, false)
-				out.WriteString("; let __value = __value_guard.as_ref().unwrap().as_ref(); __slice.iter().any(|__item| __item.__go_eq_")
+				out.WriteString("; let __value_option = __value_guard.as_ref().map(|__value| __value.clone()); drop(__value_guard); __slice.iter().any(|__item| { let __item_guard = __item")
+				WriteBorrowMethod(out, false)
+				out.WriteString("; match (__item_guard.as_ref(), __value_option.as_ref()) { (Some(__left), Some(__right)) => __left.as_ref().__go_eq_")
 				out.WriteString(elemSnake)
-				out.WriteString("(__value)) }")
+				out.WriteString("(__right.as_ref()), (None, None) => true, _ => false } }) }")
 			}
 			WriteWrapperSuffix(out)
 			return

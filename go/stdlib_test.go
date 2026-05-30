@@ -349,7 +349,7 @@ func use() int {
 	}
 }
 
-func TestSlicesContainsKeywordInterfaceUsesSafeEqualitySuffix(t *testing.T) {
+func TestSlicesContainsKeywordInterfaceNilChecksElementSlots(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
 import "slices"
@@ -363,10 +363,36 @@ func hasNil(list []Type) bool {
 }
 `)
 
+	if strings.Contains(rust, "None.clone()") ||
+		strings.Contains(rust, "__item.__go_eq_type_(") {
+		t.Fatalf("slices.Contains over named-interface nil should inspect nullable element slots:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__item_guard.as_ref().is_none()") {
+		t.Fatalf("slices.Contains over named-interface nil should check element slots for None:\n%s", rust)
+	}
+}
+
+func TestSlicesContainsKeywordInterfaceUsesSafeEqualitySuffix(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "slices"
+
+type Type interface {
+	String() string
+}
+
+func has(list []Type, needle Type) bool {
+	return slices.Contains(list, needle)
+}
+`)
+
 	if strings.Contains(rust, "__go_eq_r#type") {
 		t.Fatalf("slices.Contains over keyword-named interface should not use raw identifier suffix:\n%s", rust)
 	}
-	if !strings.Contains(rust, "__go_eq_type_(") {
+	if strings.Contains(rust, "__item.__go_eq_type_(") {
+		t.Fatalf("slices.Contains over named-interface values should unwrap element handles before equality:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__left.as_ref().__go_eq_type_(__right.as_ref())") {
 		t.Fatalf("slices.Contains over keyword-named interface should use identifier-safe equality suffix:\n%s", rust)
 	}
 }
