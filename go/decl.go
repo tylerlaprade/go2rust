@@ -1356,6 +1356,22 @@ func rustFunctionTypeParam(name *ast.Ident) string {
 		bounds = append(bounds, "'static")
 		return rustName + ": " + strings.Join(bounds, " + ")
 	}
+	if traitName, ok := goTypeParamOrderedTraitConstraintName(obj.Type()); ok {
+		bounds := []string{traitName, "Clone", "PartialOrd"}
+		if NeedsConcurrentWrapper() {
+			bounds = append(bounds, "Send", "Sync")
+		}
+		bounds = append(bounds, "'static")
+		return rustName + ": " + strings.Join(bounds, " + ")
+	}
+	if goTypeParamHasOrderedConstraint(obj.Type()) {
+		bounds := []string{"Clone", "PartialOrd"}
+		if NeedsConcurrentWrapper() {
+			bounds = append(bounds, "Send", "Sync")
+		}
+		bounds = append(bounds, "'static")
+		return rustName + ": " + strings.Join(bounds, " + ")
+	}
 	if goTypeParamHasPointerConstraint(obj.Type()) {
 		bounds := []string{"Clone"}
 		if NeedsConcurrentWrapper() {

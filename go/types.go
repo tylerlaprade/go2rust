@@ -390,6 +390,78 @@ func goTypeParamHasIntegerConstraint(t types.Type) bool {
 	return hasTerm
 }
 
+func goTypeParamOrderedTraitConstraintName(t types.Type) (string, bool) {
+	tp, ok := types.Unalias(t).(*types.TypeParam)
+	if !ok || tp.Constraint() == nil {
+		return "", false
+	}
+	named, ok := types.Unalias(tp.Constraint()).(*types.Named)
+	if !ok || named.Obj() == nil {
+		return "", false
+	}
+	iface, ok := named.Underlying().(*types.Interface)
+	if !ok || !interfaceEmbedsOnlyOrderedTerms(iface) {
+		return "", false
+	}
+	return goTypesNamedTypeToRust(named), true
+}
+
+func goTypeParamHasOrderedConstraint(t types.Type) bool {
+	tp, ok := types.Unalias(t).(*types.TypeParam)
+	if !ok || tp.Constraint() == nil {
+		return false
+	}
+	iface, ok := tp.Constraint().Underlying().(*types.Interface)
+	return ok && interfaceEmbedsOnlyOrderedTerms(iface)
+}
+
+func interfaceEmbedsOnlyOrderedTerms(iface *types.Interface) bool {
+	if iface == nil || iface.NumEmbeddeds() == 0 {
+		return false
+	}
+	for i := 0; i < iface.NumEmbeddeds(); i++ {
+		if !constraintTermIsOrderedOnly(iface.EmbeddedType(i)) {
+			return false
+		}
+	}
+	return true
+}
+
+func constraintTermIsOrderedOnly(t types.Type) bool {
+	if t == nil {
+		return false
+	}
+	switch u := types.Unalias(t).(type) {
+	case *types.Union:
+		if u.Len() == 0 {
+			return false
+		}
+		for i := 0; i < u.Len(); i++ {
+			if !isGoOrderedType(u.Term(i).Type()) {
+				return false
+			}
+		}
+		return true
+	default:
+		if iface, ok := types.Unalias(t).Underlying().(*types.Interface); ok {
+			return interfaceEmbedsOnlyOrderedTerms(iface)
+		}
+		return isGoOrderedType(t)
+	}
+}
+
+func isGoOrderedType(t types.Type) bool {
+	if t == nil {
+		return false
+	}
+	basic, ok := types.Unalias(t).Underlying().(*types.Basic)
+	if !ok {
+		return false
+	}
+	info := basic.Info()
+	return info&types.IsInteger != 0 || info&types.IsFloat != 0 || info&types.IsString != 0
+}
+
 func goTypeParamHasPointerConstraint(t types.Type) bool {
 	tp, ok := types.Unalias(t).(*types.TypeParam)
 	if !ok || tp.Constraint() == nil {
