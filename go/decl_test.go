@@ -1254,6 +1254,40 @@ func TestGeneratePromotedMethodEscapesKeywordParams(t *testing.T) {
 	}
 }
 
+func TestGeneratePromotedMethodNamesAndForwardsUnnamedParams(t *testing.T) {
+	method := &ast.FuncDecl{
+		Name: ast.NewIdent("ReadFrom"),
+		Recv: &ast.FieldList{List: []*ast.Field{{
+			Names: []*ast.Ident{ast.NewIdent("n")},
+			Type:  ast.NewIdent("noReadFrom"),
+		}}},
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{List: []*ast.Field{{
+				Type: ast.NewIdent("Reader"),
+			}}},
+			Results: &ast.FieldList{List: []*ast.Field{
+				{Type: ast.NewIdent("int64")},
+				{Type: ast.NewIdent("error")},
+			}},
+		},
+		Body: &ast.BlockStmt{},
+	}
+
+	var out strings.Builder
+	generatePromotedMethod(&out, method, "File")
+
+	got := out.String()
+	if strings.Contains(got, "read_from()") {
+		t.Fatalf("promoted method with unnamed parameter should not drop the forwarded arg:\n%s", got)
+	}
+	if !strings.Contains(got, "__arg0: Rc<RefCell<Option<Reader>>>") {
+		t.Fatalf("promoted method with unnamed parameter should synthesize an argument name:\n%s", got)
+	}
+	if !strings.Contains(got, "embedded_ref.read_from(__arg0)") {
+		t.Fatalf("promoted method should forward synthesized unnamed parameter:\n%s", got)
+	}
+}
+
 func TestExternalEmbeddedInterfacePromotesMethods(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

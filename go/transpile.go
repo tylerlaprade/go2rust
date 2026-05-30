@@ -1508,6 +1508,7 @@ func writeEmbeddedGoErrorMethod(out *strings.Builder) {
 // generatePromotedMethod generates a forwarding method that delegates to an embedded type's method
 func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, embeddedTypeName string) {
 	mutableReceiver := methodRequiresMutableReceiver(method)
+	params := promotedMethodParamBindings(method.Type.Params)
 
 	out.WriteString("    pub fn ")
 	out.WriteString(rustMethodName(method))
@@ -1522,26 +1523,19 @@ func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, embedded
 		}
 
 		// Add comma if there are more parameters
-		if method.Type.Params != nil && len(method.Type.Params.List) > 0 {
+		if len(params) > 0 {
 			out.WriteString(", ")
 		}
 	}
 
 	// Other parameters
-	if method.Type.Params != nil {
-		for i, field := range method.Type.Params.List {
-			if i > 0 {
-				out.WriteString(", ")
-			}
-			for j, name := range field.Names {
-				if j > 0 {
-					out.WriteString(", ")
-				}
-				out.WriteString(RustLocalIdent(name.Name))
-				out.WriteString(": ")
-				out.WriteString(GoTypeToRust(field.Type))
-			}
+	for i, param := range params {
+		if i > 0 {
+			out.WriteString(", ")
 		}
+		out.WriteString(param.name)
+		out.WriteString(": ")
+		out.WriteString(GoTypeToRust(param.typ))
 	}
 
 	out.WriteString(")")
@@ -1569,22 +1563,46 @@ func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, embedded
 	out.WriteString("(")
 
 	// Pass through parameters
-	if method.Type.Params != nil {
-		for i, field := range method.Type.Params.List {
-			if i > 0 {
-				out.WriteString(", ")
-			}
-			for j, name := range field.Names {
-				if j > 0 {
-					out.WriteString(", ")
-				}
-				out.WriteString(RustLocalIdent(name.Name))
-			}
+	for i, param := range params {
+		if i > 0 {
+			out.WriteString(", ")
 		}
+		out.WriteString(param.name)
 	}
 
 	out.WriteString(")\n")
 	out.WriteString("    }\n")
+}
+
+type promotedMethodParamBinding struct {
+	name string
+	typ  ast.Expr
+}
+
+func promotedMethodParamBindings(params *ast.FieldList) []promotedMethodParamBinding {
+	if params == nil {
+		return nil
+	}
+	var bindings []promotedMethodParamBinding
+	paramIndex := 0
+	for _, field := range params.List {
+		if len(field.Names) == 0 {
+			bindings = append(bindings, promotedMethodParamBinding{
+				name: fmt.Sprintf("__arg%d", paramIndex),
+				typ:  field.Type,
+			})
+			paramIndex++
+			continue
+		}
+		for _, name := range field.Names {
+			bindings = append(bindings, promotedMethodParamBinding{
+				name: RustLocalIdent(name.Name),
+				typ:  field.Type,
+			})
+			paramIndex++
+		}
+	}
+	return bindings
 }
 
 func generateExternalPromotedMethod(out *strings.Builder, method externalPromotedMethod) {
