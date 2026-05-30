@@ -4538,6 +4538,36 @@ func lookup(m map[string]token.Pos, key string) atPos {
 	}
 }
 
+func TestPointerToSliceIndexUsesDerefValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+var _ sync.Mutex
+
+type Pos int
+
+type iface struct {
+	embedPos *[]Pos
+}
+
+func pick(ityp *iface, i int) Pos {
+	var pos Pos
+	if ityp.embedPos != nil {
+		pos = (*ityp.embedPos)[i]
+	}
+	return pos
+}
+`)
+
+	if strings.Contains(rust, "__seq_guard") && strings.Contains(rust, "embed_pos") {
+		t.Fatalf("pointer-to-slice index should not lock the cloned Vec as a handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __seq =") || !strings.Contains(rust, "__seq[") {
+		t.Fatalf("pointer-to-slice index should index the dereferenced slice value:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoAssignedNestedStringRangeUsesBareValue(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	prevRangeVars := rangeLoopVars

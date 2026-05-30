@@ -1020,6 +1020,31 @@ func writeGoByteSequenceIndex(out *strings.Builder, expr ast.Expr, index ast.Exp
 	out.WriteString(")")
 }
 
+func writePointerDerefSequenceIndexValue(out *strings.Builder, expr ast.Expr, index ast.Expr) bool {
+	if _, ok := unwrapParens(expr).(*ast.StarExpr); !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	switch coreUnderlyingType(typ).(type) {
+	case *types.Array, *types.Slice:
+	default:
+		return false
+	}
+	out.WriteString("{ let __seq = ")
+	TranspileExpression(out, expr)
+	out.WriteString("; __seq[")
+	writeExpressionAsUsize(out, index)
+	out.WriteString("].clone() }")
+	return true
+}
+
 func writeGoByteSequenceToString(out *strings.Builder, expr ast.Expr) {
 	NeedGoByteSequence()
 	writeGoByteSequenceReceiver(out, expr)
@@ -8306,6 +8331,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 			} else if writeNamedSliceIndexValue(out, e.X, e.Index) {
 				// Named slice element emitted by helper.
+			} else if writePointerDerefSequenceIndexValue(out, e.X, e.Index) {
+				// Pointer-to-slice/array dereference yields a bare sequence value.
 			} else {
 				// Array/slice indexing
 				if isExpressionResultBare(e.X) {
