@@ -3448,6 +3448,28 @@ func appendCallReturnsBareIndexedSlice(call *ast.CallExpr) bool {
 	}
 }
 
+func appendPointerToSliceDerefTarget(expr ast.Expr) (*ast.StarExpr, bool) {
+	star, ok := unwrapParens(expr).(*ast.StarExpr)
+	if !ok {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, false
+	}
+	if _, ok := coreUnderlyingType(typeInfo.GetType(star)).(*types.Slice); !ok {
+		return nil, false
+	}
+	ptr, ok := types.Unalias(typeInfo.GetType(star.X)).Underlying().(*types.Pointer)
+	if !ok {
+		return nil, false
+	}
+	if _, ok := coreUnderlyingType(ptr.Elem()).(*types.Slice); !ok {
+		return nil, false
+	}
+	return star, true
+}
+
 func writeNilSliceAppendTarget(out *strings.Builder, expr ast.Expr) bool {
 	call, ok := expr.(*ast.CallExpr)
 	if !ok || len(call.Args) != 1 {
@@ -3683,6 +3705,10 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 		}
 		writeAppendTarget := func(expr ast.Expr) {
 			if writeNilSliceAppendTarget(out, expr) {
+				return
+			}
+			if star, ok := appendPointerToSliceDerefTarget(expr); ok {
+				TranspileExpressionContext(out, star.X, LValue)
 				return
 			}
 			if ident, ok := expr.(*ast.Ident); ok {

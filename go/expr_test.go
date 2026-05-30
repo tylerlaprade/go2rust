@@ -987,6 +987,32 @@ func withNil(nodes []Node) []Node {
 	}
 }
 
+func TestAppendThroughPointerToSliceFieldUsesHandleTarget(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Pos int
+
+type Interface struct {
+	embedPos *[]Pos
+}
+
+func addEmbedded(ityp *Interface, pos Pos) {
+	if ityp.embedPos == nil {
+		ityp.embedPos = new([]Pos)
+	}
+	*ityp.embedPos = append(*ityp.embedPos, pos)
+}
+`)
+
+	if strings.Contains(rust, "let __append_target = { let __v = (*") {
+		t.Fatalf("append through pointer-to-slice field should not unwrap the target to a bare Vec:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".embed_pos.clone(); (*__append_target.borrow_mut()).get_or_insert_with(Vec::new).push") &&
+		!strings.Contains(rust, ".embed_pos.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push") {
+		t.Fatalf("append through pointer-to-slice field should mutate the slice handle:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceSliceLiteralBoxesConcretePointerElements(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
