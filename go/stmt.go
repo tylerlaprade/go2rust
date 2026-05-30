@@ -5880,7 +5880,17 @@ func writeParallelInterfaceHandleTempValue(out *strings.Builder, rhs ast.Expr) b
 
 func writeParallelHandleTempValue(out *strings.Builder, rhs ast.Expr) bool {
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !parallelTempTypeKeepsHandle(typeInfo.GetType(rhs)) {
+	if typeInfo == nil {
+		return false
+	}
+	rhsType := typeInfo.GetType(rhs)
+	if writeParallelNamedCollectionTempValue(out, rhs, rhsType) {
+		return true
+	}
+	if parallelTempTypeIsNamedCollection(rhsType) {
+		return false
+	}
+	if !parallelTempTypeKeepsHandle(rhsType) {
 		return false
 	}
 	switch expr := rhs.(type) {
@@ -5888,7 +5898,7 @@ func writeParallelHandleTempValue(out *strings.Builder, rhs ast.Expr) bool {
 		if expr.Name == "nil" || expr.Name == "_" {
 			return false
 		}
-		if _, ok := types.Unalias(typeInfo.GetType(rhs)).Underlying().(*types.Pointer); ok {
+		if _, ok := types.Unalias(rhsType).Underlying().(*types.Pointer); ok {
 			writePointerShortDeclRhsValue(out, rhs)
 			return true
 		}
@@ -5902,6 +5912,36 @@ func writeParallelHandleTempValue(out *strings.Builder, rhs ast.Expr) bool {
 		return false
 	}
 	return true
+}
+
+func writeParallelNamedCollectionTempValue(out *strings.Builder, rhs ast.Expr, rhsType types.Type) bool {
+	if !parallelTempTypeIsNamedCollection(rhsType) {
+		return false
+	}
+	ident, ok := rhs.(*ast.Ident)
+	if !ok || ident.Name == "nil" || ident.Name == "_" {
+		return false
+	}
+	if isCurrentReceiverIdent(ident) {
+		WriteWrapperPrefix(out)
+		out.WriteString(currentReceiverRustName())
+		out.WriteString(".clone()")
+		WriteWrapperSuffix(out)
+		return true
+	}
+	TranspileExpressionContext(out, rhs, LValue)
+	out.WriteString(".clone()")
+	return true
+}
+
+func parallelTempTypeIsNamedCollection(typ types.Type) bool {
+	if _, _, ok := namedSliceTypeFromType(typ); ok {
+		return true
+	}
+	if _, _, ok := namedMapTypeFromType(typ); ok {
+		return true
+	}
+	return false
 }
 
 func parallelTempTypeKeepsHandle(typ types.Type) bool {

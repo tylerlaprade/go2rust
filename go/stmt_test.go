@@ -2156,6 +2156,28 @@ func swap(z *Rat) {
 	}
 }
 
+func TestParallelNamedSliceReceiverAssignmentUsesNamedTemps(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func (z nat) swap(zz nat) nat {
+	zz, z = z, zz
+	return z
+}
+`)
+
+	if strings.Contains(rust, "let __tmp_0 = __self.0.clone();") ||
+		strings.Contains(rust, "let __tmp_1 = __self.0.clone();") {
+		t.Fatalf("parallel named-slice receiver assignment should not capture the inner slice handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __tmp_0 = Rc::new(RefCell::new(Some(__self.clone())));") &&
+		!strings.Contains(rust, "let __tmp_0 = Arc::new(Mutex::new(Some(__self.clone())));") {
+		t.Fatalf("parallel named-slice receiver assignment should capture the named receiver value:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerSliceRangeUsesClonedValues(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
