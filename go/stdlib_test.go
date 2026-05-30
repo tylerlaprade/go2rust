@@ -371,6 +371,28 @@ func hasNil(list []Type) bool {
 	}
 }
 
+func TestSlicesContainsPointerSliceUsesPointerIdentity(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "slices"
+
+type Var struct {
+	name string
+}
+
+func has(lhs []*Var, obj *Var) bool {
+	return slices.Contains(lhs, obj)
+}
+`)
+
+	if strings.Contains(rust, "__slice.contains(&__value)") {
+		t.Fatalf("slices.Contains over pointer slices should not compare pointee values:\n%s", rust)
+	}
+	if !strings.Contains(rust, "::ptr_eq(__item, &__value)") || !strings.Contains(rust, "__both_nil") {
+		t.Fatalf("slices.Contains over pointer slices should use handle identity with nil handling:\n%s", rust)
+	}
+}
+
 func TestBuiltinNewSliceUsesTurbofishDefault(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

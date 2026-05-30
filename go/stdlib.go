@@ -2366,6 +2366,9 @@ func transpileSlicesContains(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if writeSlicesContainsPointerIdentity(out, call, typeInfo) {
+			return
+		}
 		if elemName, ok := localInterfaceSliceElemName(typeInfo.GetType(call.Args[0])); ok {
 			elemSnake := traitMethodSuffix(elemName)
 			WriteWrapperPrefix(out)
@@ -2402,6 +2405,43 @@ func transpileSlicesContains(out *strings.Builder, call *ast.CallExpr) {
 	writeMaybeUnwrappedExpression(out, call.Args[1])
 	out.WriteString("; __slice.contains(&__value) }")
 	WriteWrapperSuffix(out)
+}
+
+func writeSlicesContainsPointerIdentity(out *strings.Builder, call *ast.CallExpr, typeInfo *TypeInfo) bool {
+	if len(call.Args) < 2 || typeInfo == nil {
+		return false
+	}
+	sliceType := typeInfo.GetType(call.Args[0])
+	valueType := typeInfo.GetType(call.Args[1])
+	if sliceType == nil || valueType == nil {
+		return false
+	}
+	slice, ok := types.Unalias(sliceType).Underlying().(*types.Slice)
+	if !ok {
+		return false
+	}
+	if _, ok := types.Unalias(slice.Elem()).(*types.Pointer); !ok {
+		return false
+	}
+	if _, ok := types.Unalias(valueType).(*types.Pointer); !ok || !types.AssignableTo(valueType, slice.Elem()) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __slice_holder = ")
+	TranspileExpressionContext(out, call.Args[0], LValue)
+	out.WriteString(".clone(); let __slice_guard = __slice_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __slice = __slice_guard.as_ref().unwrap(); let __value = ")
+	writePointerHandleExpression(out, call.Args[1])
+	out.WriteString("; __slice.iter().any(|__item| { let __both_nil = (*__item")
+	WriteBorrowMethod(out, false)
+	out.WriteString(").is_none() && (*__value")
+	WriteBorrowMethod(out, false)
+	out.WriteString(").is_none(); __both_nil || ")
+	out.WriteString(GetOuterWrapperType())
+	out.WriteString("::ptr_eq(__item, &__value) }) }")
+	WriteWrapperSuffix(out)
+	return true
 }
 
 func transpileSlicesClone(out *strings.Builder, call *ast.CallExpr) {
