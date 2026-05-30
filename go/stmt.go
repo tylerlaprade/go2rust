@@ -5044,7 +5044,8 @@ func tempHoldsWrappedValue(rhs ast.Expr) bool {
 		// variable (v.field).
 		return false
 	}
-	return false
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && parallelTempTypeKeepsHandle(typeInfo.GetType(rhs))
 }
 
 func isErrorAssignment(lhs ast.Expr, rhs ast.Expr) bool {
@@ -5855,6 +5856,9 @@ func writeParallelAssignmentTempValue(out *strings.Builder, rhs ast.Expr) {
 	if writeParallelInterfaceHandleTempValue(out, rhs) {
 		return
 	}
+	if writeParallelHandleTempValue(out, rhs) {
+		return
+	}
 	if writeOwnedExpressionValue(out, rhs) {
 		return
 	}
@@ -5872,6 +5876,44 @@ func writeParallelInterfaceHandleTempValue(out *strings.Builder, rhs ast.Expr) b
 	TranspileExpressionContext(out, rhs, LValue)
 	out.WriteString(".clone()")
 	return true
+}
+
+func writeParallelHandleTempValue(out *strings.Builder, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !parallelTempTypeKeepsHandle(typeInfo.GetType(rhs)) {
+		return false
+	}
+	switch expr := rhs.(type) {
+	case *ast.Ident:
+		if expr.Name == "nil" || expr.Name == "_" {
+			return false
+		}
+		if _, ok := types.Unalias(typeInfo.GetType(rhs)).Underlying().(*types.Pointer); ok {
+			writePointerShortDeclRhsValue(out, rhs)
+			return true
+		}
+		TranspileExpressionContext(out, rhs, LValue)
+		out.WriteString(".clone()")
+	case *ast.SelectorExpr:
+		writeSelectorHandleClone(out, expr)
+	case *ast.IndexExpr, *ast.TypeAssertExpr:
+		TranspileExpression(out, rhs)
+	default:
+		return false
+	}
+	return true
+}
+
+func parallelTempTypeKeepsHandle(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	switch types.Unalias(typ).Underlying().(type) {
+	case *types.Pointer, *types.Slice, *types.Map, *types.Chan, *types.Signature:
+		return true
+	default:
+		return false
+	}
 }
 
 func parallelTempNamedIntegerWrap(lhs ast.Expr, rhs ast.Expr) string {

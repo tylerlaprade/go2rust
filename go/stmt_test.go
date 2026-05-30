@@ -718,6 +718,32 @@ func assign(k Type, e Type) (Type, Type) {
 	}
 }
 
+func TestParallelSlicePointerElementAssignmentUsesHandleTemps(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Node struct {
+	index int
+}
+
+type nodeQueue []*Node
+
+func (a nodeQueue) Swap(i, j int) {
+	x, y := a[i], a[j]
+	a[i], a[j] = y, x
+	x.index, y.index = j, i
+}
+`)
+
+	if strings.Contains(rust, "let __tmp_0 = (*y.borrow().as_ref().unwrap()).clone()") ||
+		strings.Contains(rust, "let __tmp_0 = (*y.lock().unwrap().as_ref().unwrap()).clone()") {
+		t.Fatalf("parallel pointer slice assignment temp should copy the pointer handle, not the pointee:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __tmp_0 = y.clone();") ||
+		!strings.Contains(rust, "let __tmp_1 = x.clone();") {
+		t.Fatalf("parallel pointer slice assignment should capture pointer handles:\n%s", rust)
+	}
+}
+
 func TestReturnLocalInterfaceMapValueKeepsHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
