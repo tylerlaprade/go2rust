@@ -13790,7 +13790,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					if writeFunctionHandleCallArgument(out, arg, expectedArgType) {
 						continue
 					}
-					if writeOrderedTypeParamCallArgument(out, arg, expectedArgType) {
+					if writeOrderedTypeParamCallArgument(out, call, i, arg, expectedArgType) {
 						continue
 					}
 					if writeTypeParamHandleCallArgument(out, arg, expectedArgType) {
@@ -14451,7 +14451,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					continue
 				}
 
-				if writeOrderedTypeParamCallArgument(out, arg, expectedArgType) {
+				if writeOrderedTypeParamCallArgument(out, call, i, arg, expectedArgType) {
 					continue
 				}
 
@@ -15123,6 +15123,9 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 	if writeTypeParamHandleCallArgument(out, arg, expected) {
 		return
 	}
+	if writeOrderedTypeParamCallArgument(out, nil, 0, arg, expected) {
+		return
+	}
 	WriteWrapperPrefix(out)
 	if writeConstExpressionForExpectedGoType(out, arg, expected) {
 		// Constant emitted in the parameter's expected representation.
@@ -15158,8 +15161,8 @@ func writeTypeParamHandleCallArgument(out *strings.Builder, arg ast.Expr, expect
 	return writeTypeParamHandleExpression(out, arg)
 }
 
-func writeOrderedTypeParamCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
-	if !goTypeParamHasOrderedConstraint(expected) {
+func writeOrderedTypeParamCallArgument(out *strings.Builder, call *ast.CallExpr, index int, arg ast.Expr, expected types.Type) bool {
+	if !goTypeParamHasOrderedConstraint(expected) && !sourceFunctionParamHasOrderedConstraint(call, index) {
 		return false
 	}
 	if writeOrderedTypeParamValueClone(out, arg) {
@@ -15169,6 +15172,13 @@ func writeOrderedTypeParamCallArgument(out *strings.Builder, arg ast.Expr, expec
 		TranspileExpression(out, arg)
 	}
 	return true
+}
+
+func sourceFunctionParamHasOrderedConstraint(call *ast.CallExpr, index int) bool {
+	if call == nil {
+		return false
+	}
+	return goTypeParamHasOrderedConstraint(sourceFunctionParamType(call, index))
 }
 
 func writeReadOnlyTypeParamSliceCallArgument(out *strings.Builder, call *ast.CallExpr, index int, arg ast.Expr, expected types.Type) bool {

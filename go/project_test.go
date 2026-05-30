@@ -4276,6 +4276,56 @@ func LessAt[E cmp.Ordered](data []E, i int) bool {
 	}
 }
 
+func TestSourceStdlibOrderedCallUnwrapsSelectorField(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "position.go", `package token
+
+import (
+	"cmp"
+	"slices"
+)
+
+type lineInfo struct {
+	Offset int
+}
+
+func searchLineInfos(a []lineInfo, x int) int {
+	i, _ := slices.BinarySearchFunc(a, x, func(a lineInfo, x int) int {
+		return cmp.Compare(a.Offset, x)
+	})
+	return i
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(position.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"cmp": "cmp", "slices": "slices"})
+	if strings.Contains(rust, "cmp::compare::<i32>({ let __field =") {
+		t.Fatalf("source-mapped ordered selector argument should pass the raw field value, not the field handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "cmp::compare::<i32>({ let __selector_holder =") {
+		t.Fatalf("source-mapped ordered selector argument should unwrap through an owned selector value:\n%s", rust)
+	}
+	compareStart := strings.Index(rust, "cmp::compare::<i32>")
+	if compareStart < 0 {
+		t.Fatalf("source-mapped ordered call should emit cmp::compare:\n%s", rust)
+	}
+	compareEnd := compareStart + 500
+	if compareEnd > len(rust) {
+		compareEnd = len(rust)
+	}
+	compareCall := rust[compareStart:compareEnd]
+	if strings.Contains(compareCall, ", Rc::new(RefCell::new(Some((*x.borrow().as_ref().unwrap()).clone())))") ||
+		strings.Contains(compareCall, ", Arc::new(Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap()).clone())))") {
+		t.Fatalf("source-mapped ordered scalar argument should pass the raw value, not a wrapper:\n%s", rust)
+	}
+}
+
 func TestSourceStdlibImportedInterfaceTypeExprUsesTraitObject(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "parser.go", `package parser
