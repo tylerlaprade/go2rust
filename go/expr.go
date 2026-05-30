@@ -5043,7 +5043,9 @@ func writeSliceElemPtrNewExpression(out *strings.Builder, indexExpr *ast.IndexEx
 	}
 	NeedSliceElemPtr()
 	out.WriteString("GoSliceElemPtr::new(")
-	if _, _, ok := namedSliceTypeForExpr(indexExpr.X); ok {
+	if writeRangeSliceElemPtrSequenceHandle(out, indexExpr.X) {
+		// Range values for slice elements are bare references; wrap a temporary handle.
+	} else if _, _, ok := namedSliceTypeForExpr(indexExpr.X); ok {
 		writeNamedSliceInnerHandleClone(out, indexExpr.X)
 	} else {
 		TranspileExpressionContext(out, indexExpr.X, LValue)
@@ -5052,6 +5054,27 @@ func writeSliceElemPtrNewExpression(out *strings.Builder, indexExpr *ast.IndexEx
 	out.WriteString(", ")
 	writeExpressionAsUsize(out, indexExpr.Index)
 	out.WriteString(")")
+	return true
+}
+
+func writeRangeSliceElemPtrSequenceHandle(out *strings.Builder, expr ast.Expr) bool {
+	ident, ok := unwrapParens(expr).(*ast.Ident)
+	if !ok {
+		return false
+	}
+	rustType, ok := rangeLoopVars[ident.Name]
+	if !ok || !strings.HasPrefix(rustType, "&") {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsSlice(expr) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("(*")
+	out.WriteString(RustLocalIdent(ident.Name))
+	out.WriteString(").clone()")
+	WriteWrapperSuffix(out)
 	return true
 }
 

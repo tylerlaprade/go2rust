@@ -441,6 +441,32 @@ func use(chunks [][]int) int {
 	}
 }
 
+func TestReadOnlyPointerParamAcceptsRangeSliceElemAddress(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+func take(p *byte) byte {
+	return *p
+}
+
+func use(chunks [][]byte) {
+	for _, chunk := range chunks {
+		if len(chunk) == 0 {
+			continue
+		}
+		_ = take(&chunk[0])
+	}
+}
+`)
+
+	if strings.Contains(rust, "GoSliceElemPtr::new(chunk.clone()") {
+		t.Fatalf("range slice element pointer should not pass a bare Vec where a slice handle is required:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoSliceElemPtr::new(Rc::new(RefCell::new(Some((*chunk).clone()))), (0) as usize)") &&
+		!strings.Contains(rust, "GoSliceElemPtr::new(Arc::new(Mutex::new(Some((*chunk).clone()))), (0) as usize)") {
+		t.Fatalf("range slice element pointer should wrap the range slice value in a temporary handle:\n%s", rust)
+	}
+}
+
 func TestWritablePointerParamRejectsSliceElemAddressLoudly(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
