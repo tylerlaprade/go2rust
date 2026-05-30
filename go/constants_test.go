@@ -578,6 +578,24 @@ func within(n int) bool {
 	}
 }
 
+func TestConstStringEqualityUsesPatternMatch(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const GOOS = "darwin"
+const sizeofPtr = 8
+const darwin64Bit = (GOOS == "darwin" || GOOS == "ios") && sizeofPtr == 8
+`)
+
+	if strings.Contains(rust, `G_O_O_S == "darwin"`) ||
+		strings.Contains(rust, `G_O_O_S == "ios"`) {
+		t.Fatalf("const string equality should not use non-const str equality:\n%s", rust)
+	}
+	if !strings.Contains(rust, `matches!(G_O_O_S, "darwin")`) ||
+		!strings.Contains(rust, `matches!(G_O_O_S, "ios")`) {
+		t.Fatalf("const string equality should use pattern matches:\n%s", rust)
+	}
+}
+
 func TestConstTypeConversionCastsWholeBinaryExpression(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

@@ -4166,6 +4166,9 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 			out.WriteString(e.Name)
 		}
 	case *ast.BinaryExpr:
+		if writeConstStringEquality(out, e, iotaValue) {
+			return
+		}
 		// Special handling for string concatenation in const context
 		if e.Op == token.ADD && isStringConstExpr(e.X) && isStringConstExpr(e.Y) {
 			// For string concatenation in const context, try to evaluate at compile time
@@ -4228,6 +4231,34 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 		// Fallback to regular expression transpilation
 		TranspileExpression(out, expr)
 	}
+}
+
+func writeConstStringEquality(out *strings.Builder, expr *ast.BinaryExpr, iotaValue int) bool {
+	if expr == nil || expr.Op != token.EQL && expr.Op != token.NEQ {
+		return false
+	}
+	leftPattern, leftIsPattern := constStringLiteral(expr.X)
+	rightPattern, rightIsPattern := constStringLiteral(expr.Y)
+	var subject ast.Expr
+	pattern := ""
+	if rightIsPattern && isStringConstExpr(expr.X) {
+		subject = expr.X
+		pattern = rightPattern
+	} else if leftIsPattern && isStringConstExpr(expr.Y) {
+		subject = expr.Y
+		pattern = leftPattern
+	} else {
+		return false
+	}
+	if expr.Op == token.NEQ {
+		out.WriteString("!")
+	}
+	out.WriteString("matches!(")
+	TranspileConstExpr(out, subject, iotaValue)
+	out.WriteString(", ")
+	out.WriteString(pattern)
+	out.WriteString(")")
+	return true
 }
 
 func writeConstBinaryOperand(out *strings.Builder, expr ast.Expr, parentOp token.Token, isRight bool, write func()) {
