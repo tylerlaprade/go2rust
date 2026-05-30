@@ -7115,6 +7115,28 @@ func rustPackageSelectorName(sel *ast.SelectorExpr) string {
 	return ToSnakeCase(sel.Sel.Name)
 }
 
+func writeSourceMappedPackageVarSelector(out *strings.Builder, sel *ast.SelectorExpr, crateName string, ctx ExprContext) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	obj, ok := typeInfo.GetObject(sel.Sel).(*types.Var)
+	if !ok || obj.Pkg() == nil || obj.Parent() != obj.Pkg().Scope() {
+		return false
+	}
+	if ctx == RValue {
+		out.WriteString("(*")
+	}
+	out.WriteString(crateName)
+	out.WriteString("::")
+	out.WriteString(rustPackageGlobalName(sel.Sel.Name))
+	if ctx == RValue {
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()")
+	}
+	return true
+}
+
 func isPackageSelectorBaseIdent(ident *ast.Ident) bool {
 	if ident == nil {
 		return false
@@ -7386,12 +7408,15 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if ident, ok := e.X.(*ast.Ident); ok {
 				if pkgPath, exists := goPackageImports[ident.Name]; exists {
 					// Check if we have a mapping for this package
-					ctx := GetTranspileContext()
-					if ctx != nil && ctx.PackageMapping != nil {
-						if crateName, hasCrate := ctx.PackageMapping[pkgPath]; hasCrate {
+					transpileCtx := GetTranspileContext()
+					if transpileCtx != nil && transpileCtx.PackageMapping != nil {
+						if crateName, hasCrate := transpileCtx.PackageMapping[pkgPath]; hasCrate {
 							// Use the mapped crate name directly. Some stdlib packages
 							// are source-transpiled for self-hosting, and those must not
 							// fall back to generated semantic stubs.
+							if writeSourceMappedPackageVarSelector(out, e, crateName, ctx) {
+								break
+							}
 							out.WriteString(crateName)
 							out.WriteString("::")
 							out.WriteString(rustPackageSelectorName(e))

@@ -985,6 +985,10 @@ func main() {
 	if !strings.Contains(mainRS, "example_com_dep::Public") {
 		t.Fatalf("external package global selector should use the generated global name, got:\n%s", mainRS)
 	}
+	if !strings.Contains(mainRS, "(*example_com_dep::Public.lock().unwrap().as_ref().unwrap()).clone()") &&
+		!strings.Contains(mainRS, "(*example_com_dep::Public.borrow().as_ref().unwrap()).clone()") {
+		t.Fatalf("external package global selector should read the stored value, got:\n%s", mainRS)
+	}
 	if strings.Contains(mainRS, "example_com_dep::public") {
 		t.Fatalf("external package global selector should not be snake-cased, got:\n%s", mainRS)
 	}
