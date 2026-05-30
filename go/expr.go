@@ -4940,6 +4940,9 @@ func writeOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool {
 		return true
 	}
 	if sel, ok := expr.(*ast.SelectorExpr); ok {
+		if _, ok := methodExpressionSignature(sel); ok {
+			return false
+		}
 		if writeSyntaxNamedSelectorValue(out, sel) {
 			return true
 		}
@@ -5050,6 +5053,12 @@ func writeFunctionValueHandle(out *strings.Builder, expr ast.Expr) bool {
 		return true
 	}
 	if sel, ok := expr.(*ast.SelectorExpr); ok {
+		if sig, ok := methodExpressionSignature(sel); ok {
+			WriteWrapperPrefix(out)
+			writeMethodExpressionValueBox(out, sel, sig)
+			WriteWrapperSuffix(out)
+			return true
+		}
 		if sig, ok := pointerMethodValueSignature(sel); ok {
 			WriteWrapperPrefix(out)
 			writePointerMethodValueBox(out, sel, sig)
@@ -7482,6 +7491,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		isPackageSelector := false
 		RegisterExternalSelectorField(e)
 
+		if sig, ok := methodExpressionSignature(e); ok {
+			WriteWrapperPrefix(out)
+			writeMethodExpressionValueBox(out, e, sig)
+			WriteWrapperSuffix(out)
+			break
+		}
+
 		if ident, ok := e.X.(*ast.Ident); ok {
 			isPackageSelector = isPackageSelectorBaseIdent(ident)
 		}
@@ -9619,6 +9635,18 @@ func isTypedMethodValueSelector(sel *ast.SelectorExpr) bool {
 	return ok && selection.Kind() == types.MethodVal
 }
 
+func methodExpressionSignature(sel *ast.SelectorExpr) (*types.Signature, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || sel == nil {
+		return nil, false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	if !ok || selection.Kind() != types.MethodExpr {
+		return nil, false
+	}
+	return signatureFromType(typeInfo.GetType(sel))
+}
+
 func pointerMethodValueSignature(expr ast.Expr) (*types.Signature, bool) {
 	sel, ok := expr.(*ast.SelectorExpr)
 	if !ok {
@@ -9697,6 +9725,60 @@ func writePointerMethodValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig
 	out.WriteString(") }) as ")
 	out.WriteString(boxType)
 	out.WriteString(" }")
+}
+
+func writeMethodExpressionValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig *types.Signature) {
+	boxType := signatureToBoxDynFn(sig)
+	out.WriteString("Box::new(move |")
+	params := sig.Params()
+	for i := 0; i < params.Len(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(fmt.Sprintf("__arg%d: %s", i, goTypesParamTypeToRust(params.At(i).Type())))
+	}
+	out.WriteString("|")
+
+	results := sig.Results()
+	if results.Len() > 0 {
+		out.WriteString(" -> ")
+		if results.Len() == 1 {
+			out.WriteString(goTypesReturnTypeToRust(results.At(0).Type()))
+		} else {
+			retTypes := make([]string, 0, results.Len())
+			for i := 0; i < results.Len(); i++ {
+				retTypes = append(retTypes, goTypesReturnTypeToRust(results.At(i).Type()))
+			}
+			out.WriteString("(")
+			out.WriteString(strings.Join(retTypes, ", "))
+			out.WriteString(")")
+		}
+	}
+
+	out.WriteString(" { ")
+	if params.Len() == 0 {
+		out.WriteString("/* ERROR: Method expression requires receiver parameter */ unimplemented!(\"method expression requires receiver parameter\")")
+	} else {
+		needsMut := methodCallNeedsMutableReceiver(sel)
+		out.WriteString("{ let __recv = __arg0.clone(); (*__recv")
+		WriteBorrowMethod(out, needsMut)
+		if needsMut {
+			out.WriteString(".as_mut().unwrap()).")
+		} else {
+			out.WriteString(".as_ref().unwrap()).")
+		}
+		out.WriteString(rustMethodSelectorName(sel))
+		out.WriteString("(")
+		for i := 1; i < params.Len(); i++ {
+			if i > 1 {
+				out.WriteString(", ")
+			}
+			out.WriteString(fmt.Sprintf("__arg%d", i))
+		}
+		out.WriteString(") }")
+	}
+	out.WriteString(" }) as ")
+	out.WriteString(boxType)
 }
 
 func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Signature) {

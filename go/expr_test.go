@@ -3287,6 +3287,32 @@ func main() {
 	}
 }
 
+func TestMethodExpressionFunctionArgumentUsesClosure(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "slices"
+
+type Node struct {
+	Subs []*Node
+}
+
+func (n *Node) Equal(other *Node) bool {
+	return n == other
+}
+
+func same(a, b []*Node) bool {
+	return slices.EqualFunc(a, b, (*Node).Equal)
+}
+`)
+
+	if strings.Contains(rust, "NODE") {
+		t.Fatalf("method expression should not be lowered through an uppercase type value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(move |__arg0:") || !strings.Contains(rust, ".equal(__arg1)") {
+		t.Fatalf("method expression should lower to a function-value closure:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoImmediateFuncLitCallUsesClosureType(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()
