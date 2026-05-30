@@ -527,6 +527,34 @@ func sumIndexes(s string) int {
 	}
 }
 
+func TestAssignedStringRangeRuneUsesGoInt32Binding(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func scan(mapping func(rune) rune, s string) int {
+	total := 0
+	for i, c := range s {
+		r := mapping(c)
+		if r == c {
+			total += i
+		}
+		c = mapping(c)
+		total += int(c)
+	}
+	return total
+}
+`)
+
+	if strings.Contains(rust, "for (i, mut c) in") {
+		t.Fatalf("assigned string range rune should not bind the Rust char directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "for (i, __range_c) in") {
+		t.Fatalf("assigned string range rune should use a temporary char binding:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut c = __range_c as i32;") {
+		t.Fatalf("assigned string range rune should lower to a mutable Go int32 value:\n%s", rust)
+	}
+}
+
 func TestIfInitShortDeclDoesNotLeakPastIf(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

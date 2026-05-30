@@ -9958,6 +9958,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		rangeValuesVar := ""
 		rangePrelude := ""
+		stringRangeValueTemp := ""
 		closeRangeGuard := false
 		needsSliceValues := !(s.Key != nil && s.Value == nil)
 		if needsSliceValues && !isMap && !isString && isSlice && isNamedSliceExpression(s.X) {
@@ -10208,6 +10209,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 				} else if valueAssigned && strings.HasPrefix(valueType, "&") {
 					registeredValueType = strings.TrimPrefix(valueType, "&")
+				} else if isString && valueAssigned && valueName != "_" {
+					registeredValueType = "i32"
+					stringRangeValueTemp = "__range_" + ToSnakeCase(valueName)
+					rangePrelude = fmt.Sprintf("        let mut %s = %s as i32;\n", EscapeRustIdent(valueName), stringRangeValueTemp)
 				} else {
 					registeredValueType = valueType
 				}
@@ -10229,6 +10234,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				return
 			}
 			writeRangeBinding(out, s.Key, keyAssigned)
+		}
+		writeStringRangeValueBinding := func() {
+			if stringRangeValueTemp != "" {
+				out.WriteString(stringRangeValueTemp)
+				return
+			}
+			writeRangeBinding(out, s.Value, valueAssigned)
 		}
 		if (mapKeyNeedsValueBinding || mapKeyNeedsWrappedBinding) && keyName != "" && keyName != "_" {
 			var prelude strings.Builder
@@ -10297,7 +10309,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString("(")
 				writeRangeBinding(out, s.Key, keyAssigned)
 				out.WriteString(", ")
-				writeRangeBinding(out, s.Value, valueAssigned)
+				writeStringRangeValueBinding()
 				if isStringLit {
 					out.WriteString(") in ")
 					TranspileExpression(out, s.X)
@@ -10315,7 +10327,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 			} else if s.Value != nil {
 				// for _, c := range str
-				writeRangeBinding(out, s.Value, valueAssigned)
+				writeStringRangeValueBinding()
 				if isStringLit {
 					out.WriteString(" in ")
 					TranspileExpression(out, s.X)
