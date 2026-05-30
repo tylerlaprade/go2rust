@@ -597,6 +597,8 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 		// (E0308 otherwise). The pointer- and interface-element cases are
 		// already handled by the helpers above this point.
 		needsUnwrap = true
+	} else if _, ok := rhs.(*ast.CompositeLit); ok && arraySliceElementExpectedStoresBareCollection(expected) {
+		needsUnwrap = true
 	} else if call, ok := rhs.(*ast.CallExpr); ok {
 		typeInfo := GetTypeInfo()
 		if appendCallReturnsBareIndexedSlice(call) {
@@ -627,6 +629,18 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 		// Char/int constant cast to the slice element's type (e.g., u8 for []byte).
 	} else {
 		TranspileExpression(out, rhs)
+	}
+}
+
+func arraySliceElementExpectedStoresBareCollection(expected types.Type) bool {
+	if expected == nil {
+		return false
+	}
+	switch types.Unalias(expected).Underlying().(type) {
+	case *types.Slice, *types.Map:
+		return true
+	default:
+		return false
 	}
 }
 

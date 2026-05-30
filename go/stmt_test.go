@@ -1323,6 +1323,22 @@ func reset(chunks [][]int, ns []uint32) {
 	}
 }
 
+func TestSliceElementSliceLiteralAssignmentMovesInnerValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func reset(chunks [][]int) {
+	chunks[0] = []int{}
+}
+`)
+
+	if strings.Contains(rust, "] = Rc::new(") || strings.Contains(rust, "] = Arc::new(") {
+		t.Fatalf("slice element assignment should not store a wrapped slice literal in a raw Vec slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".as_ref().unwrap()).clone()") {
+		t.Fatalf("slice element assignment should unwrap the slice literal before storing it:\n%s", rust)
+	}
+}
+
 func TestMapInterfaceValueAssignmentKeepsHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
