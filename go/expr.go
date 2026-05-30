@@ -2976,6 +2976,14 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 			return
 		}
 	}
+	if comp, ok := arg.(*ast.CompositeLit); ok && expectedIface != nil {
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			if argType := typeInfo.GetType(comp); argType != nil && types.AssignableTo(argType, expectedIface) {
+				TranspileExpression(out, comp)
+				return
+			}
+		}
+	}
 	// A pointer-typed value (*T) boxed as an interface its pointee implements
 	// must be dereferenced to the pointee before boxing — `impl Iface for T` is
 	// on the value T, not the `Rc/Arc<...<Option<T>>>` handle. A bare expression

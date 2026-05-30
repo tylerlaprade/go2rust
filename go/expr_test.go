@@ -235,6 +235,34 @@ var universeBool Type
 	}
 }
 
+func TestLocalInterfaceCompositeLiteralArgumentBoxesBareValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type decl interface {
+	node() int
+}
+
+type importDecl struct {
+	n int
+}
+
+func (d importDecl) node() int {
+	return d.n
+}
+
+func walk(f func(decl)) {
+	f(importDecl{n: 1})
+}
+`)
+
+	if strings.Contains(rust, "importDecl {") && (strings.Contains(rust, "}.borrow()") || strings.Contains(rust, "}.lock().unwrap()")) {
+		t.Fatalf("local interface composite literal argument should not be treated as a wrapper handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(importDecl {") || !strings.Contains(rust, "as Box<dyn decl") {
+		t.Fatalf("local interface composite literal argument should box the bare struct value:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceConcreteAssertionUsesTraitAny(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
