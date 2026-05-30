@@ -6933,8 +6933,13 @@ func transpileIfWithInitAsBlock(out *strings.Builder, stmt *ast.IfStmt, fnType *
 		vt.PushScope()
 		defer vt.PopScope()
 	}
+	restoreRangeLoopVars := func() {}
+	defer func() {
+		restoreRangeLoopVars()
+	}()
 	out.WriteString("{\n        ")
 	TranspileStatementSimple(out, stmt.Init, fnType, fileSet)
+	restoreRangeLoopVars = shadowRangeLoopVars(shortDeclNames(stmt.Init))
 	out.WriteString(";\n        if ")
 	transpileCondition(out, stmt.Cond)
 	out.WriteString(" {\n")

@@ -3977,3 +3977,37 @@ func useReturn(orig Type) genericType {
 		t.Fatalf("interface assertion return should not wrap an existing interface handle again:\n%s", rust)
 	}
 }
+
+func TestPointerAssertionCallArgumentKeepsHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Object interface {
+	object()
+}
+
+type TypeName struct{}
+
+func (*TypeName) object() {}
+
+type Checker struct{}
+
+func (c *Checker) collectMethods(obj *TypeName) {}
+
+func (c *Checker) packageObjects(objects []Object) {
+	for _, obj := range objects {
+		if obj, _ := obj.(*TypeName); obj != nil {
+			c.collectMethods(obj)
+		}
+	}
+}
+`)
+
+	if strings.Contains(rust, "collect_methods((*obj).clone())") ||
+		strings.Contains(rust, "collect_methods((*obj.borrow") ||
+		strings.Contains(rust, "collect_methods((*obj.lock") {
+		t.Fatalf("type-asserted pointer call argument should pass the handle, not clone the pointee slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "collect_methods(obj.clone())") {
+		t.Fatalf("type-asserted pointer call argument should clone the pointer handle:\n%s", rust)
+	}
+}
