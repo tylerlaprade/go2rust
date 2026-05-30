@@ -1180,6 +1180,13 @@ func writeCurrentReceiverPointerMethodCallWithArgTemps(out *strings.Builder, sel
 		variadicElemIsAny = isEmptyInterfaceType(variadicElemType)
 	}
 	out.WriteString("{ ")
+	receiverName := currentReceiverRustName()
+	useReceiverTemp := methodCallFuncLitArgCapturesReceiver(call, ident.Name)
+	if useReceiverTemp {
+		out.WriteString("let mut __recv = ")
+		out.WriteString(receiverName)
+		out.WriteString(".clone(); ")
+	}
 	for i, arg := range call.Args {
 		if variadicStart >= 0 && i >= variadicStart {
 			break
@@ -1190,7 +1197,11 @@ func writeCurrentReceiverPointerMethodCallWithArgTemps(out *strings.Builder, sel
 		writeRegularMethodCallArgument(out, sel, arg, i)
 		out.WriteString("; ")
 	}
-	out.WriteString(currentReceiverRustName())
+	if useReceiverTemp {
+		out.WriteString("__recv")
+	} else {
+		out.WriteString(receiverName)
+	}
 	out.WriteString(".")
 	out.WriteString(rustMethodSelectorName(sel))
 	out.WriteString("(")
@@ -13026,16 +13037,19 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				// Package-global pointer receiver handled above.
 				closeReceiverBlock = shouldClose
 			} else if isCurrentReceiverIdent(ident) {
+				receiverName := currentReceiverRustName()
 				if currentCaptureRenames != nil {
 					if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-						out.WriteString(RustLocalIdent(renamed))
-						out.WriteString(".")
-					} else {
-						out.WriteString(currentReceiverRustName())
-						out.WriteString(".")
+						receiverName = RustLocalIdent(renamed)
 					}
+				}
+				if methodCallFuncLitArgCapturesReceiver(call, ident.Name) {
+					out.WriteString("{ let mut __recv = ")
+					out.WriteString(receiverName)
+					out.WriteString(".clone(); let __result = __recv.")
+					closeReceiverBlock = true
 				} else {
-					out.WriteString(currentReceiverRustName())
+					out.WriteString(receiverName)
 					out.WriteString(".")
 				}
 			} else if isSliceElemPtrVar(ident.Name) {

@@ -452,6 +452,46 @@ func makeIter(values []int) func() {
 	}
 }
 
+func TestReceiverMethodFuncLitArgUsesReceiverTemp(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Decl struct{}
+
+type Checker struct{}
+
+func (check *Checker) walkDecl(fn func(*Decl)) {}
+
+func (check *Checker) handle(d *Decl) {}
+
+func (check *Checker) run() {
+	check.walkDecl(func(d *Decl) {
+		check.handle(d)
+	})
+}
+
+func (check Checker) walkValue(fn func()) {}
+
+func (check Checker) handleValue() {}
+
+func (check Checker) runValue() {
+	check.walkValue(func() {
+		check.handleValue()
+	})
+}
+`)
+
+	if !strings.Contains(rust, "let mut __recv = check_closure_clone.clone();") ||
+		!strings.Contains(rust, "__recv.walk_decl") {
+		t.Fatalf("method call with receiver-capturing function literal should clone receiver before moving closure:\n%s", rust)
+	}
+	if strings.Contains(rust, "check_closure_clone.walk_decl") {
+		t.Fatalf("method call should not use the receiver clone after it is moved into the closure:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__recv.walk_value") {
+		t.Fatalf("value receiver method call with receiver-capturing function literal should use receiver temp:\n%s", rust)
+	}
+}
+
 func TestIfConditionFuncLitAssignedCaptureCloneIsMutable(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
