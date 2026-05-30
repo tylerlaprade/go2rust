@@ -15357,6 +15357,140 @@ func writeConcreteSliceAsTypeParamSliceArgument(out *strings.Builder, arg ast.Ex
 	out.WriteString(").collect::<Vec<_>>()))) }")
 }
 
+func writeSourceTypeParamSliceCallAsConcreteSlice(out *strings.Builder, call *ast.CallExpr) bool {
+	typeInfo := GetTypeInfo()
+	sourceSig, ok := sourceFunctionSignatureForCall(call)
+	if !ok || typeInfo == nil || sourceSig.Params() == nil {
+		return false
+	}
+	trackWrapperImports()
+	out.WriteString("{ let __result = ")
+	if !writeSourceTypeParamSliceCallWithConvertedArgs(out, call, sourceSig) {
+		return false
+	}
+	out.WriteString("; let __result_guard = __result")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; ")
+	out.WriteString(GetOuterWrapperType())
+	out.WriteString("::new(")
+	out.WriteString(GetInnerWrapperType())
+	out.WriteString("::new(__result_guard.as_ref().map(|__v| __v.iter().cloned().map(|__elem| (*__elem")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()).collect::<Vec<_>()))) }")
+	return true
+}
+
+func sourceFunctionSignatureForCall(call *ast.CallExpr) (*types.Signature, bool) {
+	fn := sourceFunctionObjectForCall(call)
+	if fn == nil {
+		return nil, false
+	}
+	return signatureFromType(fn.Type())
+}
+
+func writeSourceTypeParamSliceCallWithConvertedArgs(out *strings.Builder, call *ast.CallExpr, sourceSig *types.Signature) bool {
+	writeSourceTypeParamSliceCallTarget(out, call)
+	out.WriteString("(")
+	params := sourceSig.Params()
+	if sourceSig.Variadic() {
+		variadicStart := params.Len() - 1
+		for i := 0; i < variadicStart && i < len(call.Args); i++ {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			writeSourceTypeParamSliceCallArgument(out, call, i, call.Args[i], params.At(i).Type())
+		}
+		if variadicStart > 0 {
+			out.WriteString(", ")
+		}
+		if call.Ellipsis.IsValid() {
+			writeSourceTypeParamSliceCallArgument(out, call, variadicStart, call.Args[len(call.Args)-1], params.At(variadicStart).Type())
+		} else {
+			variadicType := params.At(variadicStart).Type()
+			variadicElemType := variadicType
+			if slice, ok := types.Unalias(variadicType).Underlying().(*types.Slice); ok {
+				variadicElemType = slice.Elem()
+			}
+			WriteWrapperPrefix(out)
+			out.WriteString("vec![")
+			for i := variadicStart; i < len(call.Args); i++ {
+				if i > variadicStart {
+					out.WriteString(", ")
+				}
+				writeVariadicPackedElementValue(out, call.Args[i], variadicElemType, nil, isEmptyInterfaceType(variadicElemType))
+			}
+			out.WriteString("]")
+			WriteWrapperSuffix(out)
+		}
+		out.WriteString(")")
+		return true
+	}
+	for i, arg := range call.Args {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		var sourceExpected types.Type
+		if i < params.Len() {
+			sourceExpected = params.At(i).Type()
+		}
+		writeSourceTypeParamSliceCallArgument(out, call, i, arg, sourceExpected)
+	}
+	out.WriteString(")")
+	return true
+}
+
+func writeSourceTypeParamSliceCallTarget(out *strings.Builder, call *ast.CallExpr) {
+	switch fun := call.Fun.(type) {
+	case *ast.SelectorExpr:
+		TranspileExpression(out, fun)
+		writeInferredSelectorCallTypeArgs(out, fun)
+	case *ast.Ident:
+		out.WriteString(rustFunctionNameForUse(fun.Name))
+		writeInferredCallTypeArgs(out, fun)
+	default:
+		TranspileExpression(out, fun)
+	}
+}
+
+func writeSourceTypeParamSliceCallArgument(out *strings.Builder, call *ast.CallExpr, index int, arg ast.Expr, sourceExpected types.Type) {
+	if sourceTypeParamSliceArgumentNeedsConcreteConversion(arg, sourceExpected) {
+		writeConcreteSliceAsTypeParamSliceArgument(out, arg)
+		return
+	}
+	writeFunctionSignatureCallArgument(out, arg, callParamTypeFromTypeInfo(call, index))
+}
+
+func sourceTypeParamSliceArgumentNeedsConcreteConversion(arg ast.Expr, sourceExpected types.Type) bool {
+	if !sourceExpectedSliceUsesTypeParamElem(sourceExpected) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	actual := typeInfo.GetType(arg)
+	if actual == nil {
+		return false
+	}
+	actualSlice, ok := types.Unalias(actual).Underlying().(*types.Slice)
+	if !ok {
+		return false
+	}
+	return !collectionElemRustTypeIsWrappedHandle(actualSlice.Elem())
+}
+
+func sourceExpectedSliceUsesTypeParamElem(expected types.Type) bool {
+	if elem, ok := goTypeParamSliceConstraintElem(expected); ok {
+		_, elemIsTypeParam := types.Unalias(elem).(*types.TypeParam)
+		return elemIsTypeParam
+	}
+	if slice, ok := types.Unalias(expected).Underlying().(*types.Slice); ok {
+		_, elemIsTypeParam := types.Unalias(slice.Elem()).(*types.TypeParam)
+		return elemIsTypeParam
+	}
+	return false
+}
+
 func writeAlreadyWrappedSelectorCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
 	if expected == nil {
 		return false

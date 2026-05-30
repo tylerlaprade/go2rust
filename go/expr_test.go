@@ -4540,6 +4540,33 @@ func grow[S ~[]E, E any](s S, i int, n int) S {
 	}
 }
 
+func TestConcreteByteSliceAssignedFromGenericSliceResultConvertsRepresentation(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func Insert[S ~[]E, E any](s S, i int, v ...E) S {
+	return append(s[:i], v...)
+}
+
+type lazybuf struct {
+	buf []byte
+}
+
+func (b *lazybuf) prepend(prefix ...byte) {
+	b.buf = Insert(b.buf, 0, prefix...)
+}
+`)
+
+	if strings.Contains(rust, "insert::<Vec<u8>, u8>({ let __field = self.buf.clone(); __field }") {
+		t.Fatalf("concrete []byte should be converted before calling a generic slice function:\n%s", rust)
+	}
+	if strings.Contains(rust, "prefix.clone())") {
+		t.Fatalf("variadic []byte expansion should be converted before calling a generic slice function:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".map(|__elem|") {
+		t.Fatalf("generic slice result should be converted back to the concrete []byte representation:\n%s", rust)
+	}
+}
+
 func TestNumericTypeParamConversionForLoopUsesConsistentWrapperShape(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

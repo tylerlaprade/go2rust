@@ -3149,6 +3149,9 @@ func writeSliceHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr
 	if typeInfo == nil || !isPlainSliceExpression(lhs) || !isPlainSliceExpression(rhs) {
 		return false
 	}
+	if writeConcreteSliceAssignmentFromSourceTypeParamSliceCall(out, lhs, rhs) {
+		return true
+	}
 	if !sliceAssignmentRHSReturnsHandle(rhs) {
 		return false
 	}
@@ -3167,6 +3170,45 @@ func writeSliceHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr
 		out.WriteString(".clone()")
 	default:
 		TranspileExpression(out, rhs)
+	}
+	out.WriteString("; ")
+	writePointerHandleAssignmentTarget(out, lhs)
+	out.WriteString(" = new_val; }")
+	return true
+}
+
+func writeConcreteSliceAssignmentFromSourceTypeParamSliceCall(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	call, ok := rhs.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	lhsType := typeInfo.GetType(lhs)
+	lhsSlice, ok := types.Unalias(lhsType).Underlying().(*types.Slice)
+	if !ok || collectionElemRustTypeIsWrappedHandle(lhsSlice.Elem()) {
+		return false
+	}
+	rhsType := typeInfo.GetType(rhs)
+	if rhsType == nil || !types.AssignableTo(rhsType, lhsType) {
+		return false
+	}
+	sourceSig, ok := sourceFunctionSignatureForCall(call)
+	if !ok || sourceSig.Results() == nil || sourceSig.Results().Len() != 1 {
+		return false
+	}
+	resultElem, ok := goTypeParamSliceConstraintElem(sourceSig.Results().At(0).Type())
+	if !ok {
+		return false
+	}
+	if _, ok := types.Unalias(resultElem).(*types.TypeParam); !ok {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	if !writeSourceTypeParamSliceCallAsConcreteSlice(out, call) {
+		return false
 	}
 	out.WriteString("; ")
 	writePointerHandleAssignmentTarget(out, lhs)
