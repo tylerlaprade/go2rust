@@ -3600,6 +3600,31 @@ func newType() (T Type) {
 	}
 }
 
+func TestNamedDeferReturnBoxesConcreteError(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type parseError struct {
+	msg string
+}
+
+func (*parseError) Error() string { return "" }
+
+func parse() (ok bool, err error) {
+	defer func() {}()
+	return false, &parseError{msg: "bad"}
+}
+`)
+
+	if strings.Contains(rust, "*err.borrow_mut() = __moved_val") ||
+		strings.Contains(rust, "*err.lock().unwrap() = __moved_val") {
+		t.Fatalf("named error return should not assign a concrete error option into the error slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(parseError") ||
+		!strings.Contains(rust, "as Box<dyn StdError") {
+		t.Fatalf("named error return should box the concrete error value:\n%s", rust)
+	}
+}
+
 func TestAddressOfConcreteReturnBoxesLocalInterface(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

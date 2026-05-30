@@ -5341,7 +5341,7 @@ func isErrorAssignment(lhs ast.Expr, rhs ast.Expr) bool {
 	if typeInfo == nil {
 		return false
 	}
-	return isGoErrorType(typeInfo.GetType(lhs)) && isGoErrorType(typeInfo.GetType(rhs))
+	return isGoErrorType(assignmentTargetType(typeInfo, lhs)) && isGoErrorType(typeInfo.GetType(rhs))
 }
 
 func isConcreteErrorInterfaceAssignment(lhs ast.Expr, rhs ast.Expr) bool {
@@ -5349,10 +5349,25 @@ func isConcreteErrorInterfaceAssignment(lhs ast.Expr, rhs ast.Expr) bool {
 	if typeInfo == nil {
 		return false
 	}
-	if !isGoErrorType(typeInfo.GetType(lhs)) {
+	if !isGoErrorType(assignmentTargetType(typeInfo, lhs)) {
 		return false
 	}
 	return isConcreteGoErrorValue(typeInfo.GetType(rhs))
+}
+
+func assignmentTargetType(typeInfo *TypeInfo, expr ast.Expr) types.Type {
+	if typeInfo == nil || expr == nil {
+		return nil
+	}
+	if typ := typeInfo.GetType(expr); typ != nil {
+		return typ
+	}
+	if ident, ok := expr.(*ast.Ident); ok {
+		if obj := typeInfo.GetObject(ident); obj != nil {
+			return obj.Type()
+		}
+	}
+	return nil
 }
 
 func isConcreteErrorReturnValue(result ast.Expr, expected ast.Expr) bool {
@@ -6836,7 +6851,7 @@ func writeErrorChannelReceiveAssignment(out *strings.Builder, lhs ast.Expr, rhs 
 		return false
 	}
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !isGoErrorType(typeInfo.GetType(lhs)) {
+	if typeInfo == nil || !isGoErrorType(assignmentTargetType(typeInfo, lhs)) {
 		return false
 	}
 	out.WriteString("{ let new_val = ")
