@@ -1361,6 +1361,14 @@ func writeVariadicPackedElementValue(out *strings.Builder, arg ast.Expr, elemTyp
 		if writeConstExpressionForExpectedGoType(out, arg, elemType) {
 			return
 		}
+		if isGoStringType(elemType) {
+			if writeRangeStringValue(out, arg) {
+				return
+			}
+			if writeOwnedExpressionValue(out, arg) {
+				return
+			}
+		}
 		if writeRangeCharForExpectedType(out, arg, elemType) {
 			return
 		}
@@ -2680,7 +2688,8 @@ func writeExternalStubCallArguments(out *strings.Builder, call *ast.CallExpr) bo
 	if !ok || !sig.Variadic() || sig.Params() == nil || sig.Params().Len() == 0 {
 		return false
 	}
-	fixedCount := sig.Params().Len() - 1
+	params := sig.Params()
+	fixedCount := params.Len() - 1
 	for i := 0; i < fixedCount && i < len(call.Args); i++ {
 		if i > 0 {
 			out.WriteString(", ")
@@ -2694,8 +2703,28 @@ func writeExternalStubCallArguments(out *strings.Builder, call *ast.CallExpr) bo
 		writeExternalStubCallArgument(out, call.Args[len(call.Args)-1])
 		return true
 	}
+	variadicCount := len(call.Args) - fixedCount
+	if variadicCount > 0 && externalVariadicStubShouldPackSlice(call, variadicCount) {
+		variadicType := params.At(fixedCount).Type()
+		variadicElemType := variadicType
+		if slice, ok := types.Unalias(variadicType).Underlying().(*types.Slice); ok {
+			variadicElemType = slice.Elem()
+		}
+		variadicElemIsAny := isEmptyInterfaceType(variadicElemType)
+		WriteWrapperPrefix(out)
+		out.WriteString("vec![")
+		for i := fixedCount; i < len(call.Args); i++ {
+			if i > fixedCount {
+				out.WriteString(", ")
+			}
+			writeVariadicPackedElementValue(out, call.Args[i], variadicElemType, nil, variadicElemIsAny)
+		}
+		out.WriteString("]")
+		WriteWrapperSuffix(out)
+		return true
+	}
 	out.WriteString("(")
-	variadicCount := 0
+	variadicCount = 0
 	for i := fixedCount; i < len(call.Args); i++ {
 		if i > fixedCount {
 			out.WriteString(", ")
@@ -2708,6 +2737,49 @@ func writeExternalStubCallArguments(out *strings.Builder, call *ast.CallExpr) bo
 	}
 	out.WriteString(")")
 	return true
+}
+
+func externalVariadicStubShouldPackSlice(call *ast.CallExpr, variadicCount int) bool {
+	if variadicCount <= externalVariadicStubTupleLimit(call) {
+		return false
+	}
+	return externalVariadicStubAcceptsSlice(call)
+}
+
+func externalVariadicStubTupleLimit(call *ast.CallExpr) int {
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return 0
+	}
+	_, pkgPath, ok := externalStdlibPackageSelector(sel)
+	if !ok {
+		return 0
+	}
+	switch pkgPath {
+	case "os/exec":
+		return 6
+	case "path/filepath":
+		return 3
+	default:
+		return 0
+	}
+}
+
+func externalVariadicStubAcceptsSlice(call *ast.CallExpr) bool {
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	_, pkgPath, ok := externalStdlibPackageSelector(sel)
+	if !ok {
+		return false
+	}
+	switch pkgPath {
+	case "os/exec":
+		return sel.Sel.Name == "Command" || sel.Sel.Name == "CommandContext"
+	default:
+		return false
+	}
 }
 
 func writeAlreadyWrappedCallArgument(out *strings.Builder, arg ast.Expr) bool {

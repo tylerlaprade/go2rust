@@ -1827,6 +1827,58 @@ func use(n uint32) {
 	}
 }
 
+func TestVariadicStringArgumentsCloneWrappedValues(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Context struct {
+	GOROOT string
+}
+
+func (c *Context) joinPath(elem ...string) string {
+	return ""
+}
+
+func (c *Context) srcDirs(paths []string) {
+	_ = c.joinPath(c.GOROOT, "src")
+	for _, p := range paths {
+		_ = c.joinPath(p, "src")
+	}
+}
+`)
+
+	if strings.Contains(rust, "vec![self.g_o_r_o_o_t.clone(),") {
+		t.Fatalf("variadic string field should be cloned as a raw String, not packed as a handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "vec![p,") {
+		t.Fatalf("variadic string range ref should be cloned as a raw String, not packed as a reference:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*p).clone()") {
+		t.Fatalf("variadic string range ref should clone the referenced String:\n%s", rust)
+	}
+}
+
+func TestExternalExecCommandLongVariadicArgsPackSlice(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "os/exec"
+
+func run(goCmd, compiler, tags, suffix, path string) {
+	_ = exec.Command(goCmd, "list", "-e", "-compiler="+compiler, "-tags="+tags, "-installsuffix="+suffix, "-f=x", "--", path)
+}
+`)
+
+	if strings.Contains(rust, "exec::command(goCmd.clone(), (") {
+		t.Fatalf("long exec.Command variadic args should not emit an overlarge tuple:\n%s", rust)
+	}
+	if !strings.Contains(rust, "exec::command(goCmd.clone(), Rc::new(RefCell::new(Some(vec![") &&
+		!strings.Contains(rust, "exec::command(goCmd.clone(), Arc::new(Mutex::new(Some(vec![") {
+		t.Fatalf("long exec.Command variadic args should be packed as a wrapped string slice:\n%s", rust)
+	}
+	if strings.Contains(rust, "\"--\".to_string(), path.clone()") {
+		t.Fatalf("exec.Command variadic string ident should be cloned as a raw String in the packed slice:\n%s", rust)
+	}
+}
+
 func TestVariadicAnyArgumentFromExistingAnyClonesDynamicValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
