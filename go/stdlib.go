@@ -4613,18 +4613,37 @@ func transpileComplex(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 
-	// TODO: Determine the type - complex64 or complex128
-	// For now, default to complex128 (f64)
+	componentType := complexBuiltinComponentRustType(call)
 	WriteWrapperPrefix(out)
 	out.WriteString("num::Complex::new(")
-	out.WriteString("*")
-	TranspileExpression(out, call.Args[0])
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap(), ")
-	out.WriteString("*")
-	TranspileExpression(out, call.Args[1])
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()))))")
+	writeNumericConversionValue(out, call.Args[0])
+	out.WriteString(" as ")
+	out.WriteString(componentType)
+	out.WriteString(", ")
+	writeNumericConversionValue(out, call.Args[1])
+	out.WriteString(" as ")
+	out.WriteString(componentType)
+	out.WriteString(")")
+	WriteWrapperSuffix(out)
+}
+
+func complexBuiltinComponentRustType(call *ast.CallExpr) string {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return "f64"
+	}
+	typ := typeInfo.GetType(call)
+	if typ == nil {
+		return "f64"
+	}
+	basic, ok := types.Unalias(typ).Underlying().(*types.Basic)
+	if !ok {
+		return "f64"
+	}
+	if basic.Kind() == types.Complex64 {
+		return "f32"
+	}
+	return "f64"
 }
 
 // transpileReal handles the real() builtin function

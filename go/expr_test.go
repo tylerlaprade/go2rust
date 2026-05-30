@@ -721,6 +721,28 @@ func parts(x complex128) (float64, float64) {
 	}
 }
 
+func TestComplexBuiltinUsesBareTupleScalarArgs(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func floats() (float64, float64) {
+	return 1.25, 2.5
+}
+
+func keyVal() interface{} {
+	r, i := floats()
+	return complex(r, i)
+}
+`)
+
+	if strings.Contains(rust, "r.borrow()") || strings.Contains(rust, "r.lock()") ||
+		strings.Contains(rust, "i.borrow()") || strings.Contains(rust, "i.lock()") {
+		t.Fatalf("complex builtin should use bare tuple scalar arguments directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "num::Complex::new(r as f64, i as f64)") {
+		t.Fatalf("complex builtin should build a complex value from bare scalar arguments:\n%s", rust)
+	}
+}
+
 func TestComplex64ToComplex128ConversionUsesComponents(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
