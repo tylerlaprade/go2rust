@@ -4524,6 +4524,22 @@ func empty[S ~[]E, E any]() S {
 	}
 }
 
+func TestSliceConstrainedTypeParamMakeEmitsSliceRepresentation(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func grow[S ~[]E, E any](s S, i int, n int) S {
+	return append(s[:i], make(S, n-i)...)
+}
+`)
+
+	if strings.Contains(rust, "__slice_holder = .clone()") {
+		t.Fatalf("make(S, n) used as append expansion should emit a slice value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "vec![Default::default();") {
+		t.Fatalf("make(S, n) should use the slice-constrained element representation:\n%s", rust)
+	}
+}
+
 func TestNumericTypeParamConversionForLoopUsesConsistentWrapperShape(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

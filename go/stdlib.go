@@ -4299,6 +4299,12 @@ func writeMakeNamedType(out *strings.Builder, call *ast.CallExpr) bool {
 	if named, ok := unaliased.(*types.Named); ok && named.Obj() != nil {
 		namedName = goTypesNamedTypeToRust(named)
 	}
+	if elemType, ok := goTypeParamSliceConstraintElem(unaliased); ok {
+		WriteWrapperPrefix(out)
+		writeSliceMakeBody(out, call.Args, zeroValueForTypesType(elemType), goTypesCollectionElemTypeToRust(elemType))
+		WriteWrapperSuffix(out)
+		return true
+	}
 	switch ut := unaliased.Underlying().(type) {
 	case *types.Map:
 		WriteWrapperPrefix(out)
