@@ -1176,7 +1176,7 @@ func atom(tok string) Expr {
 	}
 }
 
-func TestLocalInterfaceSelectorArgumentUnwrapsTraitObject(t *testing.T) {
+func TestLocalInterfaceSelectorArgumentPassesHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
 
@@ -1209,15 +1209,68 @@ func (n *NotExpr) String() string {
 	}
 
 	rust, _, _ := Transpile(file, fset, typeInfo)
-	if !strings.Contains(rust, "label(self.x.borrow().as_ref().unwrap().as_ref())") {
-		t.Fatalf("local interface selector argument should unwrap to the trait object:\n%s", rust)
+	if strings.Contains(rust, ".as_ref().unwrap().as_ref()") {
+		t.Fatalf("local interface selector argument should not unwrap to a bare trait object:\n%s", rust)
 	}
-	if strings.Contains(rust, "label(&*self.x.clone())") {
-		t.Fatalf("local interface selector argument should not pass the wrapper handle:\n%s", rust)
+	if !strings.Contains(rust, "label(self.x.clone())") {
+		t.Fatalf("local interface selector argument should pass the wrapper handle:\n%s", rust)
 	}
 }
 
-func TestLocalInterfaceWrappedIdentArgumentUnwrapsTraitObject(t *testing.T) {
+func TestFunctionValueLocalInterfaceSelectorArgumentPassesHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Stmt interface {
+	stmtNode()
+}
+
+type LabeledStmt struct {
+	Stmt Stmt
+}
+
+func walk(fn func(Stmt), s *LabeledStmt) {
+	fn(s.Stmt)
+}
+`)
+
+	if strings.Contains(rust, ".as_ref().unwrap().as_ref()") {
+		t.Fatalf("function value local-interface selector argument should not unwrap to a bare trait object:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".stmt.clone())") {
+		t.Fatalf("function value local-interface selector argument should pass the wrapper handle:\n%s", rust)
+	}
+}
+
+func TestFunctionVariableSourceMappedInterfaceSelectorArgumentPassesHandle(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "labels.go", `package main
+
+import "go/ast"
+
+func walk(s *ast.LabeledStmt) {
+	var stmtBranches func(ast.Stmt)
+	stmtBranches = func(x ast.Stmt) {}
+	stmtBranches(s.Stmt)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(labels.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"go/ast": "go_ast"})
+	if strings.Contains(rust, ".as_ref().unwrap().as_ref()") {
+		t.Fatalf("function variable source-mapped interface selector argument should not unwrap to a bare trait object:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".stmt.clone())") {
+		t.Fatalf("function variable source-mapped interface selector argument should pass the wrapper handle:\n%s", rust)
+	}
+}
+
+func TestLocalInterfaceWrappedIdentArgumentPassesHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
 
@@ -1247,11 +1300,11 @@ func use(x Expr) string {
 	}
 
 	rust, _, _ := Transpile(file, fset, typeInfo)
-	if !strings.Contains(rust, "label(y.borrow().as_ref().unwrap().as_ref())") {
-		t.Fatalf("wrapped local interface argument should unwrap to the trait object:\n%s", rust)
+	if strings.Contains(rust, ".as_ref().unwrap().as_ref()") {
+		t.Fatalf("wrapped local interface argument should not unwrap to a bare trait object:\n%s", rust)
 	}
-	if strings.Contains(rust, "label(y.borrow().as_ref().unwrap())") {
-		t.Fatalf("wrapped local interface argument should not pass Box<dyn Trait> as the trait object:\n%s", rust)
+	if !strings.Contains(rust, "label(y.clone())") {
+		t.Fatalf("wrapped local interface argument should pass the wrapper handle:\n%s", rust)
 	}
 }
 

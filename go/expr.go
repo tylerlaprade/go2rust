@@ -13188,15 +13188,13 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				continue
 			}
 
-			// Interface arguments match the closure/function param shape from
-			// goTypesFunctionParamTypeToRust: an IMPORTED interface in a
-			// closure/function-value call uses a bare cross-crate trait
-			// reference, while a LOCAL interface (and every ordinary function
-			// call) uses the wrapped nilable handle so a `func(Node) bool` value
-			// converts to a named `type T func(Node) bool` and nil lowers to None.
+			// Interface arguments match the closure/function param shape. Function
+			// signatures recovered from an AST type expression use wrapped handles;
+			// go/types-only imported interface params use a bare cross-crate trait
+			// reference via goTypesFunctionParamTypeToRust.
 			if expectsInterfaceParam {
 				_, isLocalIface := localNamedInterfaceTypeNameFromTypes(expectedArgType)
-				if isClosureCall && !isLocalIface && expectedArgType != nil {
+				if isClosureCall && !isLocalIface && expectedArgType != nil && paramTypeForArg == nil && functionCallTargetUsesGoTypesFunctionParamShape(call.Fun) {
 					if writeLocalInterfaceBareReferenceCallArgument(out, arg, expectedArgType) {
 						continue
 					}
@@ -13611,6 +13609,21 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	closeFunctionCall()
 }
 
+func functionCallTargetUsesGoTypesFunctionParamShape(fun ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(fun)
+	switch typ.(type) {
+	case *types.Named, *types.Alias:
+		_, ok := signatureFromType(typ)
+		return ok
+	default:
+		return false
+	}
+}
+
 func writeExplicitGenericFunctionCallTarget(out *strings.Builder, fun ast.Expr) (string, bool) {
 	target, ident, ok := explicitGenericFunctionTarget(fun)
 	if !ok {
@@ -13921,7 +13934,7 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 	if writeGoErrorCallArgument(out, arg, expected) {
 		return
 	}
-	if _, ok := localNamedInterfaceTypeNameFromTypes(expected); ok {
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(expected); ok {
 		if writeLocalInterfaceReferenceCallArgument(out, arg, expected) {
 			return
 		}
