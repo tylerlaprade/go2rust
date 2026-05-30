@@ -1119,6 +1119,12 @@ func transpileFmtFprintln(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString("/* ERROR: fmt.Fprintln requires at least 1 argument */")
 		return
 	}
+	if fmtFprintfTargetIsStringsBuilder(call.Args[0]) {
+		writeStringsBuilderFormattedWrite(out, call.Args[0], func() {
+			writeFmtFprintlnFormatCall(out, call)
+		})
+		return
+	}
 	// Check if writing to stderr
 	if isOsStderr(call.Args[0]) {
 		out.WriteString("eprintln!")
@@ -1163,23 +1169,37 @@ func transpileFmtFprintln(out *strings.Builder, call *ast.CallExpr) {
 	}
 }
 
+func writeFmtFprintlnFormatCall(out *strings.Builder, call *ast.CallExpr) {
+	out.WriteString("format!(")
+	remaining := call.Args[1:]
+	if len(remaining) == 0 {
+		out.WriteString("\"\\n\"")
+	} else {
+		out.WriteString("\"")
+		for i := range remaining {
+			if i > 0 {
+				out.WriteString(" ")
+			}
+			out.WriteString("{}")
+		}
+		out.WriteString("\\n\"")
+		for _, arg := range remaining {
+			out.WriteString(", ")
+			transpilePrintArgString(out, arg)
+		}
+	}
+	out.WriteString(")")
+}
+
 func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) < 2 {
 		out.WriteString("/* ERROR: fmt.Fprintf requires at least 2 arguments */")
 		return
 	}
 	if fmtFprintfTargetIsStringsBuilder(call.Args[0]) {
-		if isStringsBuilderReceiverBare(call.Args[0]) {
-			writeStringsBuilderRawReceiver(out, call.Args[0])
-		} else {
-			out.WriteString("(*")
-			writeStringsBuilderReceiverHandle(out, call.Args[0])
-			WriteBorrowMethod(out, true)
-			out.WriteString(".as_mut().unwrap())")
-		}
-		out.WriteString(".push_str(&")
-		writeFmtMacroCall(out, "format!", call, 1, writeOwnedStringStdlibArg)
-		out.WriteString(")")
+		writeStringsBuilderFormattedWrite(out, call.Args[0], func() {
+			writeFmtMacroCall(out, "format!", call, 1, writeOwnedStringStdlibArg)
+		})
 		return
 	}
 	if fmtFprintfTargetIsByteWriter(call.Args[0]) {
@@ -1198,9 +1218,36 @@ func transpileFmtFprintf(out *strings.Builder, call *ast.CallExpr) {
 	writeFmtMacroCall(out, macro, call, 1, TranspileExpression)
 }
 
+func writeStringsBuilderFormattedWrite(out *strings.Builder, target ast.Expr, writeFormatted func()) {
+	if isStringsBuilderReceiverBare(target) {
+		writeStringsBuilderRawReceiver(out, target)
+	} else {
+		out.WriteString("(*")
+		writeStringsBuilderReceiverHandle(out, target)
+		WriteBorrowMethod(out, true)
+		out.WriteString(".as_mut().unwrap())")
+	}
+	if fmtFprintfTargetIsSourceMappedStringsBuilder(target) {
+		out.WriteString(".write_string(")
+		WriteWrapperPrefix(out)
+		writeFormatted()
+		WriteWrapperSuffix(out)
+		out.WriteString(")")
+		return
+	}
+	out.WriteString(".push_str(&")
+	writeFormatted()
+	out.WriteString(")")
+}
+
 func fmtFprintfTargetIsStringsBuilder(expr ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	return typeInfo != nil && isStringsBuilderReceiverType(typeInfo.GetType(expr))
+}
+
+func fmtFprintfTargetIsSourceMappedStringsBuilder(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && isSourceMappedStringsBuilderReceiverType(typeInfo.GetType(expr))
 }
 
 func fmtFprintfTargetIsByteWriter(expr ast.Expr) bool {

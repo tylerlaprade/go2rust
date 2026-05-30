@@ -50,6 +50,72 @@ func Write(buf *strings.Builder, cmap CommentMap, s string) {
 	}
 }
 
+func TestFmtFprintfSourceMappedStringsBuilderUsesGeneratedWriteString(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import (
+	"fmt"
+	"strings"
+)
+
+func build(s string) string {
+	var buf strings.Builder
+	fmt.Fprintf(&buf, "%s", s)
+	return buf.String()
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"strings": "strings"})
+
+	if strings.Contains(rust, ".push_str(") {
+		t.Fatalf("source-mapped fmt.Fprintf should not use native String::push_str:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".write_string(") {
+		t.Fatalf("source-mapped fmt.Fprintf should call generated Builder.write_string:\n%s", rust)
+	}
+}
+
+func TestFmtFprintlnStringsBuilderWritesToBuilder(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import (
+	"fmt"
+	"strings"
+)
+
+func build() string {
+	var buf strings.Builder
+	fmt.Fprintln(&buf)
+	return buf.String()
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"strings": "strings"})
+
+	if strings.Contains(rust, "println!(") {
+		t.Fatalf("fmt.Fprintln with a Builder target should not print to stdout:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".write_string(") {
+		t.Fatalf("source-mapped fmt.Fprintln should call generated Builder.write_string:\n%s", rust)
+	}
+}
+
 func TestFmtSprintfPrecisionGAndSignedDecimalVerbs(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
