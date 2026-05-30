@@ -4193,12 +4193,12 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 		} else if arrayType, ok := call.Args[0].(*ast.ArrayType); ok && arrayType.Len == nil {
 			// Slice type - check element type
 			elementType := zeroValueForGoType(arrayType.Elt)
-			elementRustType := goTypeToRustBase(arrayType.Elt)
+			elementRustType := goCollectionElemTypeToRust(arrayType.Elt)
 			if typeInfo := GetTypeInfo(); typeInfo != nil {
 				if typ := typeInfo.GetType(call.Args[0]); typ != nil {
 					if sliceType, ok := types.Unalias(typ).Underlying().(*types.Slice); ok {
 						elementType = zeroValueForTypesType(sliceType.Elem())
-						elementRustType = goTypesTypeToRust(sliceType.Elem())
+						elementRustType = goTypesCollectionElemTypeToRust(sliceType.Elem())
 					}
 				}
 			}
@@ -4302,7 +4302,7 @@ func writeMakeNamedType(out *strings.Builder, call *ast.CallExpr) bool {
 			out.WriteString("(")
 			WriteWrapperPrefix(out)
 		}
-		writeSliceMakeBody(out, call.Args, elementType, goTypesTypeToRust(ut.Elem()))
+		writeSliceMakeBody(out, call.Args, elementType, goTypesCollectionElemTypeToRust(ut.Elem()))
 		if namedName != "" {
 			WriteWrapperSuffix(out)
 			out.WriteString(")")

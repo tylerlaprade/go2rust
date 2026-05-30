@@ -3224,6 +3224,30 @@ func makeRunes() []rune {
 	}
 }
 
+func TestMakeZeroLengthInterfaceSliceUsesWrappedElementType(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type interface {
+	Name() string
+}
+
+type named struct{}
+
+func (named) Name() string { return "" }
+
+func makeTypes(n int) []Type {
+	values := make([]Type, 0, n)
+	values = append(values, named{})
+	return values
+}
+`)
+
+	if !(strings.Contains(rust, "Vec::<Rc<RefCell<Option<Box<dyn Type") && strings.Contains(rust, ">::with_capacity")) &&
+		!(strings.Contains(rust, "Vec::<Arc<Mutex<Option<Box<dyn Type + Send + Sync") && strings.Contains(rust, ">::with_capacity")) {
+		t.Fatalf("make([]Type, 0, n) should emit the wrapped interface slice element type:\n%s", rust)
+	}
+}
+
 func TestThreeIndexSliceCapacityUnwrapsSelectorBounds(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
