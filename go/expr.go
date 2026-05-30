@@ -10786,18 +10786,8 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 						} else if basic.Kind() == types.Rune || basic.Kind() == types.Int32 {
 							// []rune to string
 							WriteWrapperPrefix(out)
-							if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
-								out.WriteString("(*")
-								out.WriteString(ident.Name)
-								WriteBorrowMethod(out, false)
-								out.WriteString(".as_ref().unwrap())")
-							} else {
-								out.WriteString("(*")
-								TranspileExpression(out, arg)
-								WriteBorrowMethod(out, false)
-								out.WriteString(".as_ref().unwrap())")
-							}
-							out.WriteString(".iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>())))")
+							writeRuneSliceStringValue(out, arg)
+							WriteWrapperSuffix(out)
 							return
 						}
 					}
@@ -11671,6 +11661,36 @@ func writeUnwrappedSliceClone(out *strings.Builder, arg ast.Expr) {
 	out.WriteString(".as_ref().unwrap()).clone()")
 }
 
+func writeRuneSliceStringValue(out *strings.Builder, arg ast.Expr) {
+	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+		out.WriteString("(*")
+		out.WriteString(RustIdentForUse(ident))
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap())")
+		writeRuneSliceIteratorToString(out)
+		return
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.ReturnsWrappedValue(arg) {
+		out.WriteString("{ let __rune_slice_holder = ")
+		TranspileExpressionContext(out, arg, LValue)
+		out.WriteString(".clone(); let __rune_slice_guard = __rune_slice_holder")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; (*__rune_slice_guard.as_ref().unwrap())")
+		writeRuneSliceIteratorToString(out)
+		out.WriteString(" }")
+		return
+	}
+	out.WriteString("(*")
+	TranspileExpression(out, arg)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap())")
+	writeRuneSliceIteratorToString(out)
+}
+
+func writeRuneSliceIteratorToString(out *strings.Builder) {
+	out.WriteString(".iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()")
+}
+
 func writeSliceCloneOrEmpty(out *strings.Builder, arg ast.Expr) {
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
 		out.WriteString("Vec::new()")
@@ -11704,14 +11724,7 @@ func writeStringTypeDefinitionInnerValue(out *strings.Builder, arg ast.Expr) boo
 					out.WriteString(").unwrap()")
 					return true
 				case types.Int32:
-					out.WriteString("(*")
-					if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
-						out.WriteString(RustIdentForUse(ident))
-					} else {
-						TranspileExpression(out, arg)
-					}
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()")
+					writeRuneSliceStringValue(out, arg)
 					return true
 				}
 			}

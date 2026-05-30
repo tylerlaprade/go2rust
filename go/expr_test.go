@@ -2561,6 +2561,30 @@ func tagString(field StructField) string {
 	}
 }
 
+func TestRuneSliceSelectorStringConversionBorrowsFieldHandle(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type inst struct {
+	Rune []rune
+}
+
+func quote(i *inst) string {
+	return string(i.Rune)
+}
+
+func main() {
+	go func() {}()
+}
+`)
+
+	if strings.Contains(rust, ".clone().lock().unwrap().as_ref().unwrap()).iter()") {
+		t.Fatalf("string conversion from a rune slice selector should not relock a cloned Vec:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".iter().map(|&c| char::from_u32(c as u32).unwrap()).collect::<String>()") {
+		t.Fatalf("string conversion from a rune slice selector should iterate rune elements:\n%s", rust)
+	}
+}
+
 func TestPointerFieldStructLiteralUsesPackageGlobalPointerHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
