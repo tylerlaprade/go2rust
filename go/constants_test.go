@@ -1758,6 +1758,24 @@ func shift(ctrls ctrlGroup) ctrlGroup {
 	}
 }
 
+func TestByteCompoundAssignCastsConstantExpression(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func upper(s string) byte {
+	c := s[0]
+	c -= 'a' - 'A'
+	return c
+}
+`)
+
+	if strings.Contains(rust, "let __rhs = { let __tmp_x = ('a' as i32); let __tmp_y = ('A' as i32); __tmp_x - __tmp_y }") {
+		t.Fatalf("byte compound assignment should not use an i32 RHS constant expression:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __rhs = ") || !strings.Contains(rust, " as u8") {
+		t.Fatalf("byte compound assignment should cast the RHS constant expression to u8:\n%s", rust)
+	}
+}
+
 func TestShiftLeftUntypedConstantDoesNotUseCountType(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

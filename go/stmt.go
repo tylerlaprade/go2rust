@@ -5674,10 +5674,8 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 	if writeBareStringSliceValue(out, expr, expected) {
 		return
 	}
-	if _, ok := expr.(*ast.SelectorExpr); ok && isConstantExpression(expr) {
-		if writeConstExpressionForExpectedGoType(out, expr, expected) {
-			return
-		}
+	if writeConstExpressionForExpectedGoType(out, expr, expected) {
+		return
 	}
 	if writeBareValueForWrappedSlot(out, expr) {
 		return
