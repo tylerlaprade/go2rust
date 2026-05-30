@@ -413,6 +413,36 @@ func build(parts []string, sep string) string {
 	}
 }
 
+func TestForwardGotoPreservesPreGotoVariableScope(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func trim(s string) string {
+	i := 0
+	for ; i < len(s); i++ {
+		if s[i] > 127 {
+			goto slow
+		}
+	}
+	return s
+
+slow:
+	return s[i:]
+}
+`)
+
+	iDecl := strings.Index(rust, "let mut i =")
+	label := strings.Index(rust, "'slow: {")
+	if iDecl < 0 {
+		t.Fatalf("forward goto fixture should declare i:\n%s", rust)
+	}
+	if label < 0 {
+		t.Fatalf("forward goto fixture should emit the slow label block:\n%s", rust)
+	}
+	if iDecl > label {
+		t.Fatalf("variable declared before a forward goto must stay in scope at the label:\n%s", rust)
+	}
+}
+
 func TestMultiShortDeclLenCapWrapsGoInt(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

@@ -111,12 +111,18 @@ func TranspileGotoStatementList(out *strings.Builder, stmts []ast.Stmt, fnType *
 		if nextForwardLabel >= 0 {
 			labeled := stmts[nextForwardLabel].(*ast.LabeledStmt)
 			label := ToSnakeCase(labeled.Label.Name)
-			writeBlankLineBetweenGotoStatements(out, prevStmt, stmt, fileSet)
+			blockStart := findFirstGotoToLabel(stmts, label, i, nextForwardLabel)
+			for j := i; j < blockStart; j++ {
+				writeBlankLineBetweenGotoStatements(out, prevStmt, stmts[j], fileSet)
+				emitGotoStatement(out, stmts[j], fnType, fileSet, comments, lastPos, indent)
+				prevStmt = stmts[j]
+			}
+			writeBlankLineBetweenGotoStatements(out, prevStmt, stmts[blockStart], fileSet)
 			out.WriteString(indent)
 			out.WriteString("'")
 			out.WriteString(label)
 			out.WriteString(": {\n")
-			for j := i; j < nextForwardLabel; j++ {
+			for j := blockStart; j < nextForwardLabel; j++ {
 				emitGotoStatement(out, stmts[j], fnType, fileSet, comments, lastPos, indent+"    ")
 				prevStmt = stmts[j]
 			}
@@ -151,6 +157,34 @@ func findNextForwardLabel(stmts []ast.Stmt, plan gotoPlan, start int) int {
 		}
 	}
 	return -1
+}
+
+func findFirstGotoToLabel(stmts []ast.Stmt, label string, start, end int) int {
+	for i := start; i < end; i++ {
+		if stmtContainsGotoToLabel(stmts[i], label) {
+			return i
+		}
+	}
+	return start
+}
+
+func stmtContainsGotoToLabel(stmt ast.Stmt, label string) bool {
+	found := false
+	ast.Inspect(stmt, func(node ast.Node) bool {
+		if found {
+			return false
+		}
+		branch, ok := node.(*ast.BranchStmt)
+		if !ok || branch.Tok != token.GOTO || branch.Label == nil {
+			return true
+		}
+		if ToSnakeCase(branch.Label.Name) == label {
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
 }
 
 func writeBlankLineBetweenGotoStatements(out *strings.Builder, prevStmt, stmt ast.Stmt, fileSet *token.FileSet) {

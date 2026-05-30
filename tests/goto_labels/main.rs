@@ -13,10 +13,11 @@ fn main() {
         break 'r#loop;
     }
 
+    println!("{}", format!("{}", "First loop done".to_string()));
+
+        // Goto to skip code
+    let mut x = Rc::new(RefCell::new(Some(1)));
     'skip: {
-        println!("{}", format!("{}", "First loop done".to_string()));
-                // Goto to skip code
-        let mut x = Rc::new(RefCell::new(Some(1)));
         if (*x.borrow().as_ref().unwrap()) > 0 {
         break 'skip
     }
