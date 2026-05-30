@@ -1246,6 +1246,29 @@ const (
 	}
 }
 
+func TestConstIotaBinaryWithNamedIntegerPeer(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Op uint8
+
+const (
+	opPseudo Op = 128 + iota
+	opLeftParen = opPseudo + iota
+	opVerticalBar
+)
+`)
+
+	if strings.Contains(rust, "iota") {
+		t.Fatalf("const expressions should substitute iota through named integer peers:\n%s", rust)
+	}
+	if !strings.Contains(rust, "OP_LEFT_PAREN: u8 = OP_PSEUDO as u8 + 1 as u8") {
+		t.Fatalf("opLeftParen should use the const block iota value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "OP_VERTICAL_BAR: u8 = OP_PSEUDO as u8 + 2 as u8") {
+		t.Fatalf("opVerticalBar should reuse the const expression with its own iota value:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoNamedIntegerBitwiseClonesSelectorField(t *testing.T) {
 	rust := transpileNoTypeInfoRegression(t, `package main
 

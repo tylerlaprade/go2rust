@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"go/ast"
 	"go/constant"
 	"go/token"
@@ -973,12 +974,20 @@ func writeConstExpressionForBinaryPeer(out *strings.Builder, expr ast.Expr, othe
 	return writeConstExpressionForExpectedInteger(out, expr, expected)
 }
 
-func writePrimitiveConstExpressionForBinaryPeer(out *strings.Builder, expr ast.Expr, other ast.Expr) bool {
+func writePrimitiveConstExpressionForBinaryPeer(out *strings.Builder, expr ast.Expr, other ast.Expr, iotaValue int) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		return false
 	}
 	expected := typeInfo.GetType(other)
+	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "iota" {
+		rustType, ok := rustIntegerCastTypeForExpected(expected)
+		if !ok {
+			return false
+		}
+		out.WriteString(fmt.Sprintf("%d as %s", iotaValue, rustType))
+		return true
+	}
 	if writeConstExpressionForExpectedFloat(out, expr, expected) {
 		return true
 	}

@@ -4057,7 +4057,7 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 				})
 			} else {
 				writeConstBinaryOperand(out, e.X, e.Op, false, func() {
-					if _, isCall := e.X.(*ast.CallExpr); isCall || !writePrimitiveConstExpressionForBinaryPeer(out, e.X, e.Y) {
+					if _, isCall := e.X.(*ast.CallExpr); isCall || !writePrimitiveConstExpressionForBinaryPeer(out, e.X, e.Y, iotaValue) {
 						TranspileConstExpr(out, e.X, iotaValue)
 					}
 				})
@@ -4065,7 +4065,7 @@ func TranspileConstExpr(out *strings.Builder, expr ast.Expr, iotaValue int) {
 				out.WriteString(e.Op.String())
 				out.WriteString(" ")
 				writeConstBinaryOperand(out, e.Y, e.Op, true, func() {
-					if _, isCall := e.Y.(*ast.CallExpr); isCall || !writePrimitiveConstExpressionForBinaryPeer(out, e.Y, e.X) {
+					if _, isCall := e.Y.(*ast.CallExpr); isCall || !writePrimitiveConstExpressionForBinaryPeer(out, e.Y, e.X, iotaValue) {
 						TranspileConstExpr(out, e.Y, iotaValue)
 					}
 				})
