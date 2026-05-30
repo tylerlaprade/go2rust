@@ -3661,6 +3661,27 @@ func writeLocalInterfaceNilComparison(out *strings.Builder, expr ast.Expr, op to
 	return true
 }
 
+func writeNamedMapNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) bool {
+	if op != token.EQL && op != token.NEQ {
+		return false
+	}
+	if !isNamedMapExpression(expr) {
+		return false
+	}
+	out.WriteString("{ let __map_holder = ")
+	writeNamedMapInnerHandleClone(out, expr)
+	out.WriteString("; let __map_guard = __map_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; (*__map_guard).")
+	if op == token.EQL {
+		out.WriteString("is_none()")
+	} else {
+		out.WriteString("is_some()")
+	}
+	out.WriteString(" }")
+	return true
+}
+
 func writeBareStdlibInterfaceNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) bool {
 	if op != token.EQL && op != token.NEQ {
 		return false
@@ -7667,6 +7688,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 
 			if writeLocalInterfaceNilComparison(out, e.X, e.Op) {
+				return
+			}
+			if writeNamedMapNilComparison(out, e.X, e.Op) {
 				return
 			}
 			if writeBareStdlibInterfaceNilComparison(out, e.X, e.Op) {

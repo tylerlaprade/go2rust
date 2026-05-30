@@ -609,6 +609,38 @@ func init() {
 	}
 }
 
+func TestPointerReceiverNamedMapNilMakeAssignmentUsesNamedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Node struct{}
+
+type nodeSet map[*Node]bool
+
+func (s *nodeSet) add(p *Node) {
+	if *s == nil {
+		*s = make(nodeSet)
+	}
+	(*s)[p] = true
+}
+`)
+
+	if strings.Contains(rust, "(*(*self.0.borrow_mut().unwrap()).borrow()).is_none()") ||
+		strings.Contains(rust, "(*(*self.0.lock().unwrap().as_mut().unwrap()).lock().unwrap()).is_none()") {
+		t.Fatalf("named map nil comparison should inspect the named map handle, not the raw map value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __map_holder = self.0.clone(); let __map_guard = __map_holder.borrow(); (*__map_guard).is_none()") &&
+		!strings.Contains(rust, "let __map_holder = self.0.clone(); let __map_guard = __map_holder.lock().unwrap(); (*__map_guard).is_none()") {
+		t.Fatalf("named map nil comparison should borrow the inner map handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "*self = new_val;") {
+		t.Fatalf("pointer receiver named map assignment should store the named value, not the wrapped slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*self = new_val.borrow_mut().take().unwrap_or_default();") &&
+		!strings.Contains(rust, "*self = new_val.lock().unwrap().take().unwrap_or_default();") {
+		t.Fatalf("pointer receiver named map assignment should unwrap make(nodeSet) to a named map value:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceAssignmentCopiesWrappedHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

@@ -2149,6 +2149,19 @@ func writeCurrentReceiverDerefAssignment(out *strings.Builder, star *ast.StarExp
 		out.WriteString("; *self = new_val; }")
 		return true
 	}
+	if isNamedMapExpression(star) {
+		out.WriteString("{ let new_val = ")
+		TranspileExpression(out, rhs)
+		out.WriteString("; *self = ")
+		if typeInfo != nil && typeInfo.ReturnsWrappedValue(rhs) {
+			out.WriteString("new_val")
+			WriteBorrowMethod(out, true)
+			out.WriteString(".take().unwrap_or_default(); }")
+		} else {
+			out.WriteString("new_val; }")
+		}
+		return true
+	}
 	out.WriteString("{ let new_val = ")
 	TranspileExpression(out, rhs)
 	out.WriteString("; *self = new_val; }")
