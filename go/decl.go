@@ -2850,7 +2850,8 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			// Type definition: type A B
 			// Create a newtype wrapper in Rust
 			registerTypeDefinitionForTypeExpr(typeSpec.Name.Name, t)
-			if typeDefinitionCanDeriveDebug(typeSpec) {
+			canDeriveDebug := typeDefinitionCanDeriveDebug(typeSpec)
+			if canDeriveDebug {
 				out.WriteString("#[derive(Debug, Clone, Default)]\n")
 			} else {
 				out.WriteString("#[derive(Clone, Default)]\n")
@@ -2886,6 +2887,9 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				out.WriteString(".as_ref().unwrap()))\n")
 				out.WriteString("    }\n")
 				out.WriteString("}\n")
+				if !canDeriveDebug {
+					generateStructDebug(out, typeSpec.Name.Name)
+				}
 			} else if array, ok := t.(*ast.ArrayType); ok && arrayTypeDefinitionElemDisplayable(array) {
 				TrackImport("Display")
 				TrackImport("Formatter")

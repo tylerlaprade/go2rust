@@ -305,6 +305,35 @@ type nodeQueue []*graphNode
 	}
 }
 
+func TestNamedSliceErrorTypeDefinitionWithoutDeriveDebugImplementsDebug(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type detail interface {
+	String() string
+}
+
+type item struct {
+	d detail
+}
+
+type itemList []*item
+
+func (p itemList) Error() string {
+	return "items"
+}
+`)
+
+	if strings.Contains(rust, "#[derive(Debug, Clone, Default)]\npub struct itemList") {
+		t.Fatalf("named error slice over non-Debug element should not derive Debug:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl std::fmt::Debug for itemList") {
+		t.Fatalf("named error slice without derived Debug should implement Debug manually:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl StdError for itemList") {
+		t.Fatalf("named error slice should still implement StdError:\n%s", rust)
+	}
+}
+
 func TestSyncMapStructFieldUsesWrappedHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
