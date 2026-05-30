@@ -240,6 +240,26 @@ func render(w Word) string {
 	}
 }
 
+func TestStrconvItoaParenthesizesConvertedNamedInteger(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "strconv"
+
+type Kind uint
+
+func render(k Kind) string {
+	return strconv.Itoa(int(k))
+}
+`)
+
+	if strings.Contains(rust, "as i32.to_string()") {
+		t.Fatalf("strconv.Itoa should parenthesize converted operands before to_string:\n%s", rust)
+	}
+	if !strings.Contains(rust, " as i32).to_string()") {
+		t.Fatalf("strconv.Itoa should call to_string on the converted value:\n%s", rust)
+	}
+}
+
 func TestBuiltinPrintUsesRustStderrMacro(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
