@@ -12097,6 +12097,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 }
 
 func writeStringAppendExpression(out *strings.Builder, rhs ast.Expr) {
+	if writeBareStringSliceValue(out, rhs, types.Typ[types.String]) {
+		return
+	}
 	if call, ok := rhs.(*ast.CallExpr); ok {
 		typeInfo := GetTypeInfo()
 		if typeInfo != nil && typeInfo.IsString(call) && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) {

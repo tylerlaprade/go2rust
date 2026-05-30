@@ -2533,6 +2533,24 @@ func upper(s string) string {
 	}
 }
 
+func TestStringCompoundAssignFromSliceUsesBareStringSlice(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func add(path string, start int, end int) string {
+	dest := ""
+	dest += path[start:end]
+	return dest
+}
+`)
+
+	if strings.Contains(rust, "push_str(&Rc::new") || strings.Contains(rust, "push_str(&Arc::new") {
+		t.Fatalf("string += string slice should pass a bare String to push_str:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__s[__low..__high].to_string()") {
+		t.Fatalf("string += string slice should use the raw string-slice helper:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoStringConcatUsesSyntaxStringOperand(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()
