@@ -5736,6 +5736,13 @@ func writeConcreteLocalInterfaceBox(out *strings.Builder, value ast.Expr, interf
 		out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
 		return true
 	}
+	if globalIdent, ok := packageGlobalPointerIdent(value); ok {
+		out.WriteString("Box::new(")
+		writePackageGlobalPointerPointeeClone(out, globalIdent)
+		out.WriteString(") as ")
+		out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
+		return true
+	}
 	if !typeInfo.IsPointer(value) {
 		if ident, ok := value.(*ast.Ident); ok && ident.Name != "_" {
 			out.WriteString("Box::new((*")

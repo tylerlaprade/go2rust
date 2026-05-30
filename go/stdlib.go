@@ -3522,6 +3522,8 @@ func writeConcreteLocalInterfaceValue(out *strings.Builder, expr ast.Expr, expec
 	if ident, ok := expr.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
 		out.WriteString(currentReceiverRustName())
 		out.WriteString(".clone()")
+	} else if globalIdent, ok := packageGlobalPointerIdent(expr); ok {
+		writePackageGlobalPointerPointeeClone(out, globalIdent)
 	} else if ident, ok := expr.(*ast.Ident); ok && ident.Name != "_" && ident.Name != "nil" && !isVarBare(ident.Name) {
 		out.WriteString("(*")
 		TranspileExpressionContext(out, expr, LValue)

@@ -414,6 +414,14 @@ func writePackageGlobalPointerHandleClone(out *strings.Builder, ident *ast.Ident
 	out.WriteString(".as_ref().unwrap()).clone()")
 }
 
+func writePackageGlobalPointerPointeeClone(out *strings.Builder, ident *ast.Ident) {
+	out.WriteString("{ let __global_ptr = ")
+	writePackageGlobalPointerHandleClone(out, ident)
+	out.WriteString("; let __global_guard = __global_ptr")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; (*__global_guard.as_ref().unwrap()).clone() }")
+}
+
 func collectPackageGlobals(globalVars []*ast.GenDecl) []packageGlobal {
 	typeInfo := GetTypeInfo()
 	globals := make([]packageGlobal, 0)

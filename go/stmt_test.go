@@ -277,6 +277,37 @@ func (d importDecl) node() Node {
 	}
 }
 
+func TestLocalInterfaceReturnBoxesPackageGlobalPointer(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Object interface {
+	Name() string
+}
+
+type TypeName struct{}
+
+func (*TypeName) Name() string { return "" }
+
+var global *TypeName
+
+func lookup() Object {
+	return global
+}
+`)
+
+	if strings.Contains(rust, "Box::new((*global.borrow().as_ref().unwrap()).clone()) as Box<dyn Object") ||
+		strings.Contains(rust, "Box::new((*global.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Object") {
+		t.Fatalf("package-global pointer returned as local interface should not box the pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __global_ptr = (*global.borrow().as_ref().unwrap()).clone()") &&
+		!strings.Contains(rust, "let __global_ptr = (*global.lock().unwrap().as_ref().unwrap()).clone()") {
+		t.Fatalf("package-global pointer returned as local interface should clone the pointer handle before boxing the pointee:\n%s", rust)
+	}
+	if !strings.Contains(rust, "as Box<dyn Object") {
+		t.Fatalf("package-global pointer returned as local interface should box the pointee as the interface:\n%s", rust)
+	}
+}
+
 func TestMultiShortDeclLenCapWrapsGoInt(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
