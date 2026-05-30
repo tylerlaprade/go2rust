@@ -5821,6 +5821,9 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 		writeTranspiledInterfaceHandleAssignmentTarget(out, lhs, tmpName)
 		return
 	}
+	if writeParallelNilAssignmentTarget(out, lhs, tmpName, rhs) {
+		return
+	}
 	if ident, ok := lhs.(*ast.Ident); ok && isVarBare(ident.Name) {
 		out.WriteString(" ")
 		out.WriteString(RustIdentForUse(ident))
@@ -5870,6 +5873,32 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 		}
 		out.WriteString(");")
 	}
+}
+
+func writeParallelNilAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string, rhs ast.Expr) bool {
+	ident, ok := rhs.(*ast.Ident)
+	if !ok || ident.Name != "nil" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString(" /* ERROR: Type information required for parallel nil assignment */ unimplemented!(\"type info required for parallel nil assignment\");")
+		return true
+	}
+	lhsType := typeInfo.GetType(lhs)
+	if lhsType == nil {
+		out.WriteString(" /* ERROR: Type information required for parallel nil assignment target */ unimplemented!(\"type info required for parallel nil assignment target\");")
+		return true
+	}
+	if !tupleTempAssignsHandleToElement(lhsType) {
+		return false
+	}
+	out.WriteString(" *")
+	writeTempAssignmentTargetRef(out, lhs)
+	out.WriteString(" = ")
+	out.WriteString(tmpName)
+	out.WriteString(";")
+	return true
 }
 
 func writeParallelCurrentReceiverAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string, tmpWrapped bool) bool {

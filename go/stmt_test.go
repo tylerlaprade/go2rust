@@ -779,6 +779,37 @@ func assign(k Type, e Type) (Type, Type) {
 	}
 }
 
+func TestParallelNilAssignmentClearsNilableHandles(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Object interface {
+	object()
+}
+
+func reset() (obj Object, index []int, indirect bool) {
+	obj, index, indirect = nil, nil, false
+	return
+}
+`)
+
+	if strings.Contains(rust, "*obj.borrow_mut() = Some(__tmp_0);") ||
+		strings.Contains(rust, "*obj.lock().unwrap() = Some(__tmp_0);") {
+		t.Fatalf("parallel nil assignment to interface result should clear the handle slot, not store Some(None):\n%s", rust)
+	}
+	if strings.Contains(rust, "*index.borrow_mut() = Some(__tmp_1);") ||
+		strings.Contains(rust, "*index.lock().unwrap() = Some(__tmp_1);") {
+		t.Fatalf("parallel nil assignment to slice result should clear the handle slot, not store Some(None):\n%s", rust)
+	}
+	if !strings.Contains(rust, "*obj.borrow_mut() = __tmp_0;") &&
+		!strings.Contains(rust, "*obj.lock().unwrap() = __tmp_0;") {
+		t.Fatalf("parallel nil assignment to interface result should move the nil temp directly into the slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*index.borrow_mut() = __tmp_1;") &&
+		!strings.Contains(rust, "*index.lock().unwrap() = __tmp_1;") {
+		t.Fatalf("parallel nil assignment to slice result should move the nil temp directly into the slot:\n%s", rust)
+	}
+}
+
 func TestParallelSlicePointerElementAssignmentUsesHandleTemps(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
