@@ -336,6 +336,7 @@ func (ut *UnifiedTranspiler) transpilePackage(pkg *PackageInfo) error {
 	parentCtx := GetTranspileContext()
 	pkgState := NewPackageState()
 	pkgState.FunctionNameOverrides = assignPackageFunctionNames(pkg.ASTFiles)
+	pkgState.GlobalNameOverrides = assignPackageGlobalNameOverrides(pkg.ASTFiles, pkgState.FunctionNameOverrides)
 	pkgState.MethodNameOverrides = assignPackageMethodNames(pkg.ASTFiles, ut.globalTypeInfo)
 	pkgState.ConstantNameOverrides = assignPackageConstantNames(pkg.ASTFiles)
 	pkgState.MethodsByType = collectPackageMethods(pkg.ASTFiles)

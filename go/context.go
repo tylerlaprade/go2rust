@@ -16,6 +16,7 @@ type TranspileSession struct {
 type PackageState struct {
 	FunctionSignatures            map[string]*FunctionSignature
 	FunctionNameOverrides         map[string]string
+	GlobalNameOverrides           map[string]string
 	MethodNameOverrides           map[string]string
 	MethodsByType                 map[string][]*ast.FuncDecl
 	ErrorImplTypes                map[string]bool
@@ -114,6 +115,7 @@ func NewPackageState() *PackageState {
 	return &PackageState{
 		FunctionSignatures:            make(map[string]*FunctionSignature),
 		FunctionNameOverrides:         make(map[string]string),
+		GlobalNameOverrides:           make(map[string]string),
 		MethodNameOverrides:           make(map[string]string),
 		MethodsByType:                 make(map[string][]*ast.FuncDecl),
 		ErrorImplTypes:                make(map[string]bool),
@@ -227,6 +229,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		}
 		if ctx.Package.FunctionNameOverrides == nil {
 			ctx.Package.FunctionNameOverrides = make(map[string]string)
+		}
+		if ctx.Package.GlobalNameOverrides == nil {
+			ctx.Package.GlobalNameOverrides = make(map[string]string)
 		}
 		if ctx.Package.MethodNameOverrides == nil {
 			ctx.Package.MethodNameOverrides = make(map[string]string)
@@ -407,6 +412,7 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 	if ctx.Package != nil {
 		ctx.Package.FunctionSignatures = functionSignatures
 		ctx.Package.FunctionNameOverrides = packageFunctionNameOverrides
+		ctx.Package.GlobalNameOverrides = packageGlobalNameOverrides
 		ctx.Package.MethodNameOverrides = packageMethodNameOverrides
 		ctx.Package.ErrorImplTypes = errorImplTypes
 		ctx.Package.StringerImplTypes = stringerImplTypes
@@ -481,6 +487,7 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 	if ctx.Package != nil {
 		functionSignatures = ctx.Package.FunctionSignatures
 		packageFunctionNameOverrides = ctx.Package.FunctionNameOverrides
+		packageGlobalNameOverrides = ctx.Package.GlobalNameOverrides
 		packageMethodNameOverrides = ctx.Package.MethodNameOverrides
 		errorImplTypes = ctx.Package.ErrorImplTypes
 		stringerImplTypes = ctx.Package.StringerImplTypes

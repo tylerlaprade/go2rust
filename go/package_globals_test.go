@@ -245,3 +245,27 @@ var lstat = os.Lstat
 		t.Fatalf("package global function selector should initialize with Box::new:\n%s", rust)
 	}
 }
+
+func TestPackageGlobalNameCollisionWithFunctionRenamesGlobal(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+var logger int
+
+func Logger() int {
+	return logger
+}
+`)
+
+	if !strings.Contains(rust, "static logger_1:") {
+		t.Fatalf("package global should be renamed away from colliding function:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn logger(") {
+		t.Fatalf("exported function should keep the base Rust function name:\n%s", rust)
+	}
+	if !strings.Contains(rust, "logger_1.borrow()") && !strings.Contains(rust, "logger_1.lock().unwrap()") {
+		t.Fatalf("function body should read the renamed package global:\n%s", rust)
+	}
+	if strings.Contains(rust, "static logger:") {
+		t.Fatalf("package global should not keep the colliding Rust name:\n%s", rust)
+	}
+}

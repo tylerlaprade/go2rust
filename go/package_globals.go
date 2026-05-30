@@ -13,6 +13,7 @@ var functionNameOverrides map[*ast.FuncDecl]string
 var functionNameOverridesByGoName map[string]string
 var packageFunctionNameOverrides map[string]string
 var packageMethodNameOverrides map[string]string
+var packageGlobalNameOverrides map[string]string
 var packageGlobalNames = make(map[string]bool)
 
 func SetFunctionNameOverrides(overrides map[*ast.FuncDecl]string) {
@@ -239,6 +240,66 @@ func assignPackageFunctionNames(files []*ast.File) map[string]string {
 	return overrides
 }
 
+func assignPackageGlobalNameOverrides(files []*ast.File, functionOverrides map[string]string) map[string]string {
+	usedRustNames := make(map[string]bool)
+	seenFunctions := make(map[string]bool)
+	for _, file := range files {
+		for _, decl := range file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Recv != nil || fn.Name.Name == "init" || seenFunctions[fn.Name.Name] {
+				continue
+			}
+			seenFunctions[fn.Name.Name] = true
+			rustName := RustFunctionName(fn.Name.Name)
+			if functionOverrides != nil {
+				if override, ok := functionOverrides[fn.Name.Name]; ok {
+					rustName = override
+				}
+			}
+			usedRustNames[rustName] = true
+		}
+	}
+
+	overrides := make(map[string]string)
+	seenGlobals := make(map[string]bool)
+	for _, file := range files {
+		for _, decl := range file.Decls {
+			genDecl, ok := decl.(*ast.GenDecl)
+			if !ok || genDecl.Tok != token.VAR {
+				continue
+			}
+			for _, spec := range genDecl.Specs {
+				valueSpec, ok := spec.(*ast.ValueSpec)
+				if !ok {
+					continue
+				}
+				for _, name := range valueSpec.Names {
+					if name.Name == "_" || seenGlobals[name.Name] {
+						continue
+					}
+					seenGlobals[name.Name] = true
+					base := EscapeRustIdent(name.Name)
+					rustName := base
+					if usedRustNames[rustName] {
+						for suffix := 1; ; suffix++ {
+							candidate := fmt.Sprintf("%s_%d", base, suffix)
+							if !usedRustNames[candidate] {
+								rustName = candidate
+								break
+							}
+						}
+					}
+					usedRustNames[rustName] = true
+					if rustName != base {
+						overrides[name.Name] = rustName
+					}
+				}
+			}
+		}
+	}
+	return overrides
+}
+
 func assignPackageMethodNames(files []*ast.File, typeInfo *TypeInfo) map[string]string {
 	byReceiverRustName := make(map[string][]packageMethodName)
 	seenMethodKeys := make(map[string]bool)
@@ -319,7 +380,16 @@ func registerPackageGlobalNames(globalVars []*ast.GenDecl) {
 }
 
 func rustPackageGlobalName(name string) string {
+	if packageGlobalNameOverrides != nil {
+		if rustName, ok := packageGlobalNameOverrides[name]; ok {
+			return rustName
+		}
+	}
 	return EscapeRustIdent(name)
+}
+
+func SetPackageGlobalNameOverrides(overrides map[string]string) {
+	packageGlobalNameOverrides = overrides
 }
 
 func packageGlobalVisibility(name string) string {

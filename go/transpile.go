@@ -1837,6 +1837,22 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	}
 	registerSliceElemPtrReturnsFromFiles([]*ast.File{file})
 	functionNames := assignFunctionNames(functions)
+	if parentCtx == nil && currentContext != nil && currentContext.Package != nil {
+		functionOverrideNames := currentContext.Package.FunctionNameOverrides
+		if len(functionNames) > 0 {
+			functionOverrideNames = make(map[string]string, len(currentContext.Package.FunctionNameOverrides)+len(functionNames))
+			for goName, rustName := range currentContext.Package.FunctionNameOverrides {
+				functionOverrideNames[goName] = rustName
+			}
+			for fn, rustName := range functionNames {
+				if fn.Name.Name != "init" {
+					functionOverrideNames[fn.Name.Name] = rustName
+				}
+			}
+		}
+		currentContext.Package.GlobalNameOverrides = assignPackageGlobalNameOverrides([]*ast.File{file}, functionOverrideNames)
+		packageGlobalNameOverrides = currentContext.Package.GlobalNameOverrides
+	}
 	SetFunctionNameOverrides(functionNames)
 	defer SetFunctionNameOverrides(nil)
 

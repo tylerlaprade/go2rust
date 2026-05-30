@@ -972,6 +972,7 @@ func transpileParsedRegression(t *testing.T, file *ast.File, fset *token.FileSet
 	prevFunctionNameOverrides := functionNameOverrides
 	prevFunctionNameOverridesByGoName := functionNameOverridesByGoName
 	prevPackageFunctionNameOverrides := packageFunctionNameOverrides
+	prevPackageGlobalNameOverrides := packageGlobalNameOverrides
 	prevPackageMethodNameOverrides := packageMethodNameOverrides
 	prevLocalConstants := localConstants
 	prevRangeLoopVars := rangeLoopVars
@@ -993,6 +994,7 @@ func transpileParsedRegression(t *testing.T, file *ast.File, fset *token.FileSet
 		functionNameOverrides = prevFunctionNameOverrides
 		functionNameOverridesByGoName = prevFunctionNameOverridesByGoName
 		packageFunctionNameOverrides = prevPackageFunctionNameOverrides
+		packageGlobalNameOverrides = prevPackageGlobalNameOverrides
 		packageMethodNameOverrides = prevPackageMethodNameOverrides
 		localConstants = prevLocalConstants
 		rangeLoopVars = prevRangeLoopVars

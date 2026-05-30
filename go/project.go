@@ -257,6 +257,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		UsePackageHelpers:       pg.usePackageHelpers,
 	}
 	runCtx.Package.FunctionNameOverrides = assignPackageFunctionNames(astFiles)
+	runCtx.Package.GlobalNameOverrides = assignPackageGlobalNameOverrides(astFiles, runCtx.Package.FunctionNameOverrides)
 	runCtx.Package.MethodNameOverrides = assignPackageMethodNames(astFiles, pg.typeInfo)
 	runCtx.Package.ConstantNameOverrides = assignPackageConstantNames(astFiles)
 	runCtx.Package.MethodsByType = collectPackageMethods(astFiles)

@@ -620,6 +620,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	parentCtx := GetTranspileContext()
 	pkgState := NewPackageState()
 	pkgState.FunctionNameOverrides = assignPackageFunctionNames(pkg.Syntax)
+	pkgState.GlobalNameOverrides = assignPackageGlobalNameOverrides(pkg.Syntax, pkgState.FunctionNameOverrides)
 	pkgState.MethodNameOverrides = assignPackageMethodNames(pkg.Syntax, pkgTypeInfo)
 	pkgState.ConstantNameOverrides = assignPackageConstantNames(pkg.Syntax)
 	pkgState.MethodsByType = collectPackageMethods(pkg.Syntax)
