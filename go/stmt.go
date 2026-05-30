@@ -11499,10 +11499,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		// Check if this is a range variable from an interface{} slice
 		isRangeVar := false
+		rangeVarType := ""
 		isStdlibRangeRef := isStdlibInterfaceReferenceRangeValue(expr)
 		if ident, ok := expr.(*ast.Ident); ok {
 			if varType, exists := rangeLoopVars[ident.Name]; exists && strings.Contains(varType, "dyn Any") {
 				isRangeVar = true
+				rangeVarType = varType
 				subjectUsesAny = true
 				TrackImport("Any")
 			}
@@ -11512,6 +11514,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		out.WriteString("{\n")
 		if isRangeVar {
 			out.WriteString("    let _ts_ref = ")
+			if !strings.HasPrefix(rangeVarType, "&") {
+				out.WriteString("&")
+			}
 			TranspileExpression(out, expr)
 			out.WriteString(";\n")
 			out.WriteString("    let _ts_is_nil = false;\n")

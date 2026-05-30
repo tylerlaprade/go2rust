@@ -201,6 +201,8 @@ func rewrite(args []any) []any {
 		switch arg.(type) {
 		case nil:
 			arg = "<nil>"
+		case string:
+			arg = "string"
 		}
 		args[i] = arg
 	}
@@ -213,6 +215,12 @@ func rewrite(args []any) []any {
 	}
 	if !strings.Contains(rust, `Box::new("<nil>".to_string()) as Box<dyn Any`) {
 		t.Fatalf("bare any range assignment should box the concrete string:\n%s", rust)
+	}
+	if strings.Contains(rust, "let _ts_ref = arg;") {
+		t.Fatalf("type switch on bare any range value should not move the subject before later uses:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let _ts_ref = &arg;") {
+		t.Fatalf("type switch on bare any range value should borrow the subject for downcasts:\n%s", rust)
 	}
 }
 
