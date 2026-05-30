@@ -950,6 +950,22 @@ func add(valueStart []int, steps []string) []int {
 	}
 }
 
+func TestIntSliceLiteralCastsLenElementToGoInt(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func seq(words []string) []int {
+	return []int{0, len(words)}
+}
+`)
+
+	if !strings.Contains(rust, " as i32") {
+		t.Fatalf("[]int literal len element should cast Rust usize to Go int:\n%s", rust)
+	}
+	if strings.Contains(rust, "len()).unwrap_or(0)]") {
+		t.Fatalf("[]int literal len element should not keep Rust usize inference:\n%s", rust)
+	}
+}
+
 func TestAppendRangeIndexToIntSliceCastsToGoInt(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

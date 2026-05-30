@@ -5280,6 +5280,9 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 			}
 		}
 	}
+	if writeLenCapCallArgumentForExpectedType(out, expr, elemType) {
+		return true
+	}
 	if isConstantExpression(expr) && writeExpressionForExpectedTypesType(out, expr, elemType) {
 		return true
 	}
