@@ -1993,6 +1993,68 @@ func main() {}
 	}
 }
 
+func TestImportedInterfaceImplUsesSiblingFileMethods(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+type Mapper interface {
+	Find() int
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "event.go"), `package main
+
+type Event struct{}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "methods.go"), `package main
+
+func (Event) Find() int {
+	return 1
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "export.go"), `package main
+
+import "example.com/dep"
+
+type Exporter func(Event, dep.Mapper)
+
+func Deliver(exporter Exporter, ev Event) {
+	exporter(ev, ev)
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+func main() {}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "event.go"),
+		filepath.Join(tempDir, "methods.go"),
+		filepath.Join(tempDir, "export.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	eventRS := mustReadFile(t, filepath.Join(tempDir, "event.rs"))
+	if !strings.Contains(eventRS, "impl example_com_dep::Mapper for Event") {
+		t.Fatalf("imported interface impl should use methods declared in sibling files, got:\n%s", eventRS)
+	}
+}
+
 func TestUnsafePointerToNamedFunctionTypeConversionEmitsUnsupportedTypedPointer(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

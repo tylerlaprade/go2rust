@@ -2290,9 +2290,13 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 				importedIfaceNames = append(importedIfaceNames, ifaceName)
 			}
 			slices.Sort(importedIfaceNames)
+			importedTraitMethods := packageMethods[typeName]
+			if importedTraitMethods == nil {
+				importedTraitMethods = typeMethods
+			}
 			for _, ifaceName := range importedIfaceNames {
 				ifaceType := importedInterfaceImpls[typeName][ifaceName]
-				if !typeMethodsImplementTypesInterface(methods[typeName], ifaceType) {
+				if !typeMethodsImplementTypesInterface(importedTraitMethods, ifaceType) {
 					continue
 				}
 				body.WriteString("\n\n")
@@ -2301,11 +2305,14 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 				body.WriteString(" for ")
 				body.WriteString(rustTypeName)
 				body.WriteString(" {\n")
+				previousTraitTypeMethods := currentTypeMethods
+				currentTypeMethods = importedTraitMethods
 				for i := 0; i < ifaceType.NumMethods(); i++ {
-					if method := methodDeclByName(methods[typeName], ifaceType.Method(i).Name()); method != nil {
+					if method := methodDeclByName(importedTraitMethods, ifaceType.Method(i).Name()); method != nil {
 						TranspileTraitMethodImpl(&body, method, interfaceMethodRequiresMutableReceiver(ifaceType.Method(i)), fileSet, file.Comments)
 					}
 				}
+				currentTypeMethods = previousTraitTypeMethods
 				writeLocalInterfaceSupportImpl(&body, ifaceName, typeName, ifaceType)
 				body.WriteString("}")
 			}
