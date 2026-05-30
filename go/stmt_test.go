@@ -216,6 +216,37 @@ func rewrite(args []any) []any {
 	}
 }
 
+func TestTypeSwitchInterfaceCaseUnimplementedBindingIsTyped(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Positioner interface {
+	Pos() int
+}
+
+type A struct{}
+func (A) Pos() int { return 0 }
+
+type B struct{}
+func (B) Pos() int { return 0 }
+
+func use(Positioner) {}
+
+func visit(x any) {
+	switch a := x.(type) {
+	case Positioner:
+		use(a)
+	}
+}
+`)
+
+	if strings.Contains(rust, `let a = unimplemented!("type info required: type switch on interface case with 2 concrete implementors`) {
+		t.Fatalf("unimplemented interface case binding should carry an explicit Rust type:\n%s", rust)
+	}
+	if !strings.Contains(rust, `let a: Rc<RefCell<Option<Box<dyn Positioner>>>> = unimplemented!`) {
+		t.Fatalf("unimplemented interface case binding should be typed as the case interface:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceReturnBoxesSelectorPointer(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

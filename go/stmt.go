@@ -1971,11 +1971,16 @@ func writeTypeSwitchInterfaceCaseBinding(out *strings.Builder, typeInfo *TypeInf
 	candidates := localInterfaceAssertionCandidates(iface, subjectType)
 	out.WriteString("        let ")
 	out.WriteString(varName)
-	out.WriteString(" = ")
 	if len(candidates) != 1 {
+		if typ := typeInfo.GetType(typeExpr); typ != nil {
+			out.WriteString(": ")
+			out.WriteString(goTypesTypeToRustWrapped(typ))
+		}
+		out.WriteString(" = ")
 		out.WriteString(fmt.Sprintf("unimplemented!(\"type info required: type switch on interface case with %d concrete implementors needs a synthesized trait object\");\n", len(candidates)))
 		return true
 	}
+	out.WriteString(" = ")
 	WriteWrapperPrefix(out)
 	out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
 	out.WriteString(candidates[0].rustType)
