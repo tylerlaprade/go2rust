@@ -3788,3 +3788,44 @@ func use(e *env) {
 		t.Fatalf("source-mapped interface selector short declaration should pass the cloned handle:\n%s", rust)
 	}
 }
+
+func TestInterfaceAssertionShortDeclKeepsHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type interface {
+	typeNode()
+}
+
+type genericType interface {
+	Type
+	TypeParams() int
+}
+
+type Alias struct{}
+
+func (Alias) typeNode() {}
+func (Alias) TypeParams() int { return 1 }
+
+func use(orig Type) int {
+	orig_ := orig.(genericType)
+	return orig_.TypeParams()
+}
+
+func useReturn(orig Type) genericType {
+	return orig.(genericType)
+}
+`)
+
+	if !strings.Contains(rust, "Box::new(typed_val.clone()) as Box<dyn genericType") {
+		t.Fatalf("interface assertion should box the asserted concrete value as the target interface:\n%s", rust)
+	}
+	rcHandle := "Rc::new(RefCell::new(Some(Box::new(typed_val.clone()) as Box<dyn genericType"
+	arcHandle := "Arc::new(Mutex::new(Some(Box::new(typed_val.clone()) as Box<dyn genericType"
+	if !strings.Contains(rust, rcHandle) && !strings.Contains(rust, arcHandle) {
+		t.Fatalf("interface assertion short declaration should keep the normal interface handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "return Rc::new(RefCell::new(Some(({") ||
+		strings.Contains(rust, "return Arc::new(Mutex::new(Some(({") {
+		t.Fatalf("interface assertion return should not wrap an existing interface handle again:\n%s", rust)
+	}
+}

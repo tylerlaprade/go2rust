@@ -1715,16 +1715,12 @@ func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result as
 		return true
 	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(result)); ok {
-			if typeInfo.ReturnsWrappedValue(result) {
-				TranspileExpressionContext(out, result, LValue)
-				out.WriteString(".clone()")
-			} else {
-				WriteWrapperPrefix(out)
-				TranspileExpression(out, result)
-				WriteWrapperSuffix(out)
+		resultType := typeInfo.GetType(result)
+		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(resultType); ok {
+			targetType := expectedTypeFromParamExpr(expected)
+			if targetType != nil && types.AssignableTo(resultType, targetType) {
+				return writeLocalInterfaceReferenceCallArgument(out, result, targetType)
 			}
-			return true
 		}
 		if funcTypeName, ok := functionTypeAliasNameFromTypes(typeInfo.GetType(result)); ok {
 			writeFunctionTypeAliasWrappedReturn(out, result, funcTypeName, interfaceName)

@@ -11901,8 +11901,8 @@ func writeLocalInterfaceAssertionValue(out *strings.Builder, e *ast.TypeAssertEx
 		}
 		writeLocalInterfaceAssertionDowncast(out, sourceTrait, candidate.rustType)
 		out.WriteString(" {\n")
-		out.WriteString("                Box::new(typed_val.clone()) as ")
-		out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+		out.WriteString("                ")
+		writeLocalInterfaceAssertionWrappedSuccess(out, ifaceName)
 		out.WriteString("\n")
 		out.WriteString("            }")
 	}
