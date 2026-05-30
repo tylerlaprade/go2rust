@@ -5549,6 +5549,18 @@ func compoundAssignUsesOwnedNamedIntegerValue(lhs ast.Expr, op token.Token) bool
 	return true
 }
 
+func compoundAssignRHSExpectedType(lhs ast.Expr, expected types.Type) types.Type {
+	ident, ok := lhs.(*ast.Ident)
+	if !ok || !isCurrentReceiverIdent(ident) || !currentReceiverScalarTypeDefinition() {
+		return expected
+	}
+	named, ok := types.Unalias(expected).(*types.Named)
+	if !ok {
+		return expected
+	}
+	return named.Underlying()
+}
+
 func compoundAssignConstCanUseNamedInteger(expr ast.Expr, named *types.Named) bool {
 	if expr == nil || named == nil || !isConstantExpression(expr) {
 		return false
@@ -8148,6 +8160,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					if typeInfo != nil {
 						expected = typeInfo.GetType(s.Lhs[0])
 					}
+					expected = compoundAssignRHSExpectedType(s.Lhs[0], expected)
 					writeBareCompoundAssignValueForOp(out, s.Rhs[0], expected, s.Tok)
 					out.WriteString("; let mut guard = ")
 					writeWrappedMutationTargetRef(out, s.Lhs[0], true)

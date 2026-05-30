@@ -3169,6 +3169,25 @@ func add(as asciiSet, c byte) asciiSet {
 	}
 }
 
+func TestNamedIntegerReceiverCompoundAssignUsesUnderlyingRHS(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Accuracy int8
+
+func (i Accuracy) String() string {
+	i -= -1
+	return ""
+}
+`)
+
+	if strings.Contains(rust, "let __rhs = Accuracy(") {
+		t.Fatalf("named integer receiver compound assignment should use underlying RHS:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __rhs = -1") || !strings.Contains(rust, " as i8") {
+		t.Fatalf("named integer receiver compound assignment should cast RHS to int8:\n%s", rust)
+	}
+}
+
 func TestRangeIndexReturnedFromBareScalarTupleSlotCastsToI32(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
