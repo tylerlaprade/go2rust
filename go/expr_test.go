@@ -1857,6 +1857,31 @@ func (c *Context) srcDirs(paths []string) {
 	}
 }
 
+func TestVariadicStringSliceExprUsesRawElement(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func join(elem ...string) string {
+	return ""
+}
+
+func caller(srcDir string, args []string) string {
+	var out string
+	for _, arg := range args {
+		out = join(srcDir, arg[2:])
+	}
+	return out
+}
+`)
+
+	if strings.Contains(rust, "Rc::new(RefCell::new(Some({ let __s = &(arg);") ||
+		strings.Contains(rust, "Arc::new(Mutex::new(Some({ let __s = &(arg);") {
+		t.Fatalf("variadic string slice expression should be packed as a raw String element:\n%s", rust)
+	}
+	if !strings.Contains(rust, "vec![(*srcDir") || !strings.Contains(rust, "{ let __s = &(arg);") {
+		t.Fatalf("variadic string slice expression should stay inside the raw string vector:\n%s", rust)
+	}
+}
+
 func TestExternalExecCommandLongVariadicArgsPackSlice(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

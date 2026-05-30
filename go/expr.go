@@ -1362,6 +1362,9 @@ func writeVariadicPackedElementValue(out *strings.Builder, arg ast.Expr, elemTyp
 			return
 		}
 		if isGoStringType(elemType) {
+			if writeStringSliceVariadicElementValue(out, arg) {
+				return
+			}
 			if writeRangeStringValue(out, arg) {
 				return
 			}
@@ -1400,6 +1403,19 @@ func writeVariadicPackedElementValue(out *strings.Builder, arg ast.Expr, elemTyp
 		}
 	}
 	TranspileExpression(out, arg)
+}
+
+func writeStringSliceVariadicElementValue(out *strings.Builder, arg ast.Expr) bool {
+	slice, ok := unwrapParens(arg).(*ast.SliceExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsString(arg) {
+		return false
+	}
+	writeStringSliceValue(out, slice.X, slice.Low, slice.High)
+	return true
 }
 
 func writeExistingAnyVariadicElementValue(out *strings.Builder, arg ast.Expr) bool {
