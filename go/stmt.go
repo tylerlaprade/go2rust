@@ -5704,6 +5704,9 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 	if writeNamedIntegerConstCompoundAssignValue(out, expr, expected, op) {
 		return
 	}
+	if writeNamedIntegerCompoundAssignUnderlyingValue(out, expr, expected) {
+		return
+	}
 	if writeBareStringSliceValue(out, expr, expected) {
 		return
 	}
@@ -5812,6 +5815,41 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 		return
 	}
 	TranspileExpression(out, expr)
+}
+
+func writeNamedIntegerCompoundAssignUnderlyingValue(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
+	if expr == nil || expected == nil {
+		return false
+	}
+	switch expr.(type) {
+	case *ast.BasicLit, *ast.Ident:
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil {
+		return false
+	}
+	expectedNamed, ok := types.Unalias(expected).(*types.Named)
+	if !ok || expectedNamed.Obj() == nil || expectedNamed.Obj().Pkg() != typeInfo.pkg {
+		return false
+	}
+	if _, ok := types.Unalias(expectedNamed.Underlying()).(*types.Basic); !ok {
+		return false
+	}
+	actualNamed, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
+	if !ok || !sameNamedTypeDefinition(actualNamed, expectedNamed) {
+		return false
+	}
+	var value strings.Builder
+	TranspileExpression(&value, expr)
+	out.WriteString("(*")
+	out.WriteString("(")
+	out.WriteString(value.String())
+	out.WriteString(")")
+	out.WriteString(".0")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()")
+	return true
 }
 
 func writeNamedIntegerConstCompoundAssignValue(out *strings.Builder, expr ast.Expr, expected types.Type, op token.Token) bool {

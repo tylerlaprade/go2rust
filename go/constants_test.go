@@ -1805,6 +1805,25 @@ func shift(ctrls ctrlGroup) ctrlGroup {
 	}
 }
 
+func TestNamedIntegerPointerReceiverXorShiftAssignStoresUnderlyingValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type xorshift uint64
+
+func (r *xorshift) Next() uint64 {
+	*r ^= *r << 13
+	return uint64(*r)
+}
+`)
+
+	if strings.Contains(rust, "let __rhs = (*self).clone() <<") {
+		t.Fatalf("named integer pointer receiver compound assignment should not keep the named RHS value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __rhs = (*((*self).clone() <<") {
+		t.Fatalf("named integer pointer receiver compound assignment should unwrap the named RHS value:\n%s", rust)
+	}
+}
+
 func TestByteCompoundAssignCastsConstantExpression(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
