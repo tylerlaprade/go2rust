@@ -53,6 +53,33 @@ var sink any
 	}
 }
 
+func TestPackageGlobalInterfaceHandleAssignmentWritesSlot(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Object interface {
+	Name() string
+}
+
+var sink Object
+var ch chan int
+
+func lookup() Object {
+	return nil
+}
+
+func init() {
+	sink = lookup()
+}
+`)
+
+	if strings.Contains(rust, "sink = lookup().clone()") {
+		t.Fatalf("package-global interface assignment should not replace the global handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*sink.lock().unwrap() = (*__iface_guard).clone()") {
+		t.Fatalf("package-global interface assignment should write through the global slot:\n%s", rust)
+	}
+}
+
 func TestPackageGlobalAnyAssignmentBoxesGenericValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

@@ -3654,6 +3654,11 @@ func writeLocalInterfaceHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs
 		return false
 	}
 
+	if lhsIdent, ok := lhs.(*ast.Ident); ok && isPackageGlobalIdent(lhsIdent) {
+		writePackageGlobalInterfaceHandleAssignment(out, lhsIdent, rhs, lhsType)
+		return true
+	}
+
 	if sel, ok := lhs.(*ast.SelectorExpr); ok && writePointerHandleSelectorTarget(out, sel) {
 		// Selector handle fields need the outer struct borrowed mutably so the
 		// field handle itself can be replaced.
@@ -3661,11 +3666,16 @@ func writeLocalInterfaceHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs
 		TranspileExpressionContext(out, lhs, LValue)
 	}
 	out.WriteString(" = ")
+	writeLocalInterfaceHandleAssignmentValue(out, lhs, rhs, lhsType, true)
+	return true
+}
+
+func writeLocalInterfaceHandleAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.Expr, lhsType types.Type, allowSelfCallClone bool) {
 	if isBareLocalInterfaceValue(rhs) {
 		WriteWrapperPrefix(out)
 		writeLocalInterfaceBareClone(out, rhs)
 		WriteWrapperSuffix(out)
-	} else if writeLocalInterfaceAssignedCallHandleClone(out, lhs, rhs) {
+	} else if allowSelfCallClone && writeLocalInterfaceAssignedCallHandleClone(out, lhs, rhs) {
 		// RHS emitted by helper.
 	} else if writeLocalInterfaceReferenceCallArgument(out, rhs, lhsType) {
 		// Interface-to-interface assignment may need re-boxing when the Rust
@@ -3673,7 +3683,17 @@ func writeLocalInterfaceHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs
 	} else {
 		writeLocalInterfaceHandleClone(out, rhs)
 	}
-	return true
+}
+
+func writePackageGlobalInterfaceHandleAssignment(out *strings.Builder, lhs *ast.Ident, rhs ast.Expr, lhsType types.Type) {
+	out.WriteString("{ let __iface_handle = ")
+	writeLocalInterfaceHandleAssignmentValue(out, lhs, rhs, lhsType, false)
+	out.WriteString("; let __iface_guard = __iface_handle")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; *")
+	out.WriteString(rustPackageGlobalName(lhs.Name))
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = (*__iface_guard).clone(); }")
 }
 
 func transpiledInterfaceHandleAssignmentTypes(lhs ast.Expr, rhs ast.Expr) bool {
