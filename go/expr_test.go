@@ -3211,6 +3211,19 @@ func use() int {
 	}
 }
 
+func TestMakeZeroLengthSliceIncludesElementType(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func makeRunes() []rune {
+	return make([]rune, 0)
+}
+`)
+
+	if !strings.Contains(rust, "Vec::<i32>::with_capacity(0)") {
+		t.Fatalf("make([]rune, 0) should emit a typed empty Vec:\n%s", rust)
+	}
+}
+
 func TestThreeIndexSliceCapacityUnwrapsSelectorBounds(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

@@ -4193,10 +4193,12 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 		} else if arrayType, ok := call.Args[0].(*ast.ArrayType); ok && arrayType.Len == nil {
 			// Slice type - check element type
 			elementType := zeroValueForGoType(arrayType.Elt)
+			elementRustType := goTypeToRustBase(arrayType.Elt)
 			if typeInfo := GetTypeInfo(); typeInfo != nil {
 				if typ := typeInfo.GetType(call.Args[0]); typ != nil {
 					if sliceType, ok := types.Unalias(typ).Underlying().(*types.Slice); ok {
 						elementType = zeroValueForTypesType(sliceType.Elem())
+						elementRustType = goTypesTypeToRust(sliceType.Elem())
 					}
 				}
 			}
@@ -4218,7 +4220,9 @@ func transpileMake(out *strings.Builder, call *ast.CallExpr) {
 				// Check if size is 0
 				if lit, ok := call.Args[1].(*ast.BasicLit); ok && lit.Value == "0" {
 					// Empty vector with capacity
-					out.WriteString("Vec::with_capacity(")
+					out.WriteString("Vec::<")
+					out.WriteString(elementRustType)
+					out.WriteString(">::with_capacity(")
 					if len(call.Args) >= 3 {
 						writeExpressionAsUsize(out, call.Args[2])
 					} else {
@@ -4298,7 +4302,7 @@ func writeMakeNamedType(out *strings.Builder, call *ast.CallExpr) bool {
 			out.WriteString("(")
 			WriteWrapperPrefix(out)
 		}
-		writeSliceMakeBody(out, call.Args, elementType)
+		writeSliceMakeBody(out, call.Args, elementType, goTypesTypeToRust(ut.Elem()))
 		if namedName != "" {
 			WriteWrapperSuffix(out)
 			out.WriteString(")")
@@ -4324,13 +4328,15 @@ func writeMakeNamedType(out *strings.Builder, call *ast.CallExpr) bool {
 
 // writeSliceMakeBody emits the inner Vec expression for make([]T, ...) variants.
 // Caller wraps with WriteWrapperPrefix/Suffix.
-func writeSliceMakeBody(out *strings.Builder, args []ast.Expr, elementType string) {
+func writeSliceMakeBody(out *strings.Builder, args []ast.Expr, elementType string, elementRustType string) {
 	if len(args) < 2 {
 		out.WriteString("Vec::new()")
 		return
 	}
 	if lit, ok := args[1].(*ast.BasicLit); ok && lit.Value == "0" {
-		out.WriteString("Vec::with_capacity(")
+		out.WriteString("Vec::<")
+		out.WriteString(elementRustType)
+		out.WriteString(">::with_capacity(")
 		if len(args) >= 3 {
 			writeExpressionAsUsize(out, args[2])
 		} else {
