@@ -260,6 +260,32 @@ func builtin(id int) bool {
 	}
 }
 
+func TestIfConditionFuncLitAssignedCaptureCloneIsMutable(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func under(fn func(int) bool) bool {
+	return fn(1)
+}
+
+func builtin(key int) int {
+	if under(func(u int) bool {
+		key = u
+		return true
+	}) {
+		return key
+	}
+	return key
+}
+`)
+
+	if strings.Contains(rust, "let key_closure_clone = key.clone();") {
+		t.Fatalf("assigned if-condition closure capture should not be immutable:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut key_closure_clone = key.clone();") {
+		t.Fatalf("assigned if-condition closure capture should be mutable:\n%s", rust)
+	}
+}
+
 func TestSyntaxClosurePredeclaredConversionsAreNotCaptured(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()

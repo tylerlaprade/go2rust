@@ -9784,12 +9784,13 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 		inlineCaptures = append(inlineCaptures, varName)
 	}
 	sort.Strings(inlineCaptures)
+	assignedInlineCaptures := directlyAssignedCapturedVarsForFuncLit(funcLit, captured)
 	if len(inlineCaptures) > 0 {
 		out.WriteString("{ ")
 		for _, varName := range inlineCaptures {
 			capturesReceiver := currentReceiver != "" && varName == currentReceiver && funcLitCapturesCurrentReceiver(funcLit)
 			out.WriteString("let ")
-			if capturesReceiver {
+			if capturesReceiver || assignedInlineCaptures[varName] {
 				out.WriteString("mut ")
 			}
 			out.WriteString(RustLocalIdent(captureRenames[varName]))
