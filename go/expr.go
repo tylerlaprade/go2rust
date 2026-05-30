@@ -9852,7 +9852,11 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 		for _, field := range funcLit.Type.Params.List {
 			paramType := GoTypeToRustParam(field.Type)
 			for _, name := range field.Names {
-				params = append(params, RustLocalIdent(name.Name)+": "+paramType)
+				paramName := RustLocalIdent(name.Name)
+				if blockIdentAssigned(funcLit.Body, name.Name) {
+					paramName = "mut " + paramName
+				}
+				params = append(params, paramName+": "+paramType)
 			}
 			// Handle unnamed parameters
 			if len(field.Names) == 0 {

@@ -562,6 +562,27 @@ func core(single *int) *int {
 	}
 }
 
+func TestFuncLitAssignedParameterIsMutable(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func use(fn func(*int) *int) {}
+
+func core(next *int) {
+	use(func(res *int) *int {
+		res = next
+		return res
+	})
+}
+`)
+
+	if strings.Contains(rust, "move |res:") {
+		t.Fatalf("assigned closure parameter should not be immutable:\n%s", rust)
+	}
+	if !strings.Contains(rust, "move |mut res:") {
+		t.Fatalf("assigned closure parameter should be mutable:\n%s", rust)
+	}
+}
+
 func TestReceiverMethodFuncLitArgUsesReceiverTemp(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
