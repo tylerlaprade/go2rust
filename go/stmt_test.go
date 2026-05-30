@@ -1339,6 +1339,29 @@ func reset(chunks [][]int) {
 	}
 }
 
+func TestIndexedStructSliceFieldAssignmentMutatesElement(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type inst struct {
+	rune []int
+}
+
+func apply(insts []inst, chunks [][]int) {
+	for i := range insts {
+		insts[i].rune = chunks[i]
+	}
+}
+`)
+
+	if strings.Contains(rust, ".clone() }.rune = new_val") {
+		t.Fatalf("indexed struct field assignment should not assign to a cloned element:\n%s", rust)
+	}
+	if !strings.Contains(rust, "].rune.borrow_mut() = Some(new_val)") &&
+		!strings.Contains(rust, "].rune.lock().unwrap() = Some(new_val)") {
+		t.Fatalf("indexed struct field assignment should mutate the field handle on the indexed element:\n%s", rust)
+	}
+}
+
 func TestMapInterfaceValueAssignmentKeepsHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

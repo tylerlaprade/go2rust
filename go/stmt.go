@@ -990,6 +990,50 @@ func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.Inde
 	return true
 }
 
+func writeIndexedSequenceCollectionFieldAssignment(out *strings.Builder, sel *ast.SelectorExpr, rhs ast.Expr) bool {
+	indexExpr, ok := sel.X.(*ast.IndexExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.IsMap(indexExpr.X) {
+		return false
+	}
+	if typeInfo.GetArrayOrSliceElemType(indexExpr.X) == nil {
+		return false
+	}
+	fieldType := typeInfo.GetType(sel)
+	if !arraySliceElementExpectedStoresBareCollection(fieldType) {
+		return false
+	}
+	fieldInfo := selectorFieldAccessInfo(sel)
+	if fieldInfo.IsPromoted {
+		return false
+	}
+
+	out.WriteString("{ let new_val = ")
+	writeArraySliceElementAssignmentValue(out, rhs, fieldType)
+	out.WriteString("; *")
+	writeIndexedSequenceElementFieldHandle(out, indexExpr, fieldInfo)
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(new_val); }")
+	return true
+}
+
+func writeIndexedSequenceElementFieldHandle(out *strings.Builder, indexExpr *ast.IndexExpr, fieldInfo FieldAccessInfo) {
+	out.WriteString("(*")
+	if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
+		writeNamedSliceInnerHandleClone(out, subj)
+	} else {
+		TranspileExpressionContext(out, indexExpr.X, LValue)
+	}
+	WriteBorrowMethod(out, true)
+	out.WriteString(".as_mut().unwrap())[")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("].")
+	out.WriteString(fieldInfo.FieldName)
+}
+
 // writeUnwrappedRangeTarget writes a range target expression unwrapped for iteration.
 // For CompositeLits (inline slices), generates the bare vec![...] without Rc wrapping.
 // For identifiers (variables), delegates to TranspileExpressionContext which already unwraps.
@@ -8866,6 +8910,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									}
 									writeArraySliceElementAssignmentValue(out, s.Rhs[0], elemType)
 								}
+							} else if sel, ok := s.Lhs[0].(*ast.SelectorExpr); ok && writeIndexedSequenceCollectionFieldAssignment(out, sel, s.Rhs[0]) {
+								// Collection field on an indexed struct element mutates that element in place.
 							} else {
 								// Direct assignment: x = value
 								noteMutexGuardAliasAssignment(s.Lhs[0], s.Rhs[0])
