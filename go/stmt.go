@@ -11733,6 +11733,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 	case *ast.LabeledStmt:
 		label := ToSnakeCase(s.Label.Name)
+		switch s.Stmt.(type) {
+		case *ast.SwitchStmt, *ast.TypeSwitchStmt:
+			out.WriteString("'")
+			out.WriteString(label)
+			out.WriteString(": {\n")
+			out.WriteString(indent)
+			out.WriteString("    ")
+			TranspileStatement(out, s.Stmt, fnType, fileSet, comments, lastPos, indent+"    ")
+			out.WriteString("\n")
+			out.WriteString(indent)
+			out.WriteString("}")
+			return
+		}
 		// Set the pending label for the next loop statement to consume
 		pendingLoopLabel = label
 		// Transpile the inner statement (usually a for/range loop)

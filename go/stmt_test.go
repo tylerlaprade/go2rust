@@ -3632,6 +3632,30 @@ outer:
 	}
 }
 
+func TestLabeledBreakToSwitchEmitsLabeledBlock(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func scan(x int) int {
+Switch:
+	switch x {
+	case 1:
+		for {
+			break Switch
+		}
+		return 10
+	}
+	return 20
+}
+`)
+
+	if !strings.Contains(rust, "'switch: {") {
+		t.Fatalf("labeled switch should emit a Rust labeled block:\n%s", rust)
+	}
+	if !strings.Contains(rust, "break 'switch") {
+		t.Fatalf("break to switch label should target the emitted block:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceAssignmentFromOwnMethodCallClonesReceiver(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
