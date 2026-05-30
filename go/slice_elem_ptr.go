@@ -480,6 +480,19 @@ func writeReadOnlySliceElemPtrPointerCallArgument(out *strings.Builder, call *as
 	if !ok {
 		return false
 	}
+	if elemRustType, ok := sliceElemPtrAddressElemRustType(arg); ok {
+		if elemRustType != goTypesTypeToRust(ptr.Elem()) {
+			return false
+		}
+		trackWrapperImports()
+		out.WriteString(GetOuterWrapperType())
+		out.WriteString("::new(")
+		out.WriteString(GetInnerWrapperType())
+		out.WriteString("::new((*")
+		TranspileExpression(out, arg)
+		out.WriteString(".borrow()).clone()))")
+		return true
+	}
 	ident, ok := unwrapParens(arg).(*ast.Ident)
 	if !ok {
 		return false
