@@ -3864,6 +3864,9 @@ func writeInterfaceEqualityReferenceBinding(out *strings.Builder, name string, e
 }
 
 func writePointerConcreteInterfaceHandle(out *strings.Builder, expr ast.Expr) {
+	if writeCurrentPointerReceiverHandleClone(out, expr) {
+		return
+	}
 	if sel, ok := expr.(*ast.SelectorExpr); ok && isPackageVarSelector(sel) {
 		TranspileExpressionContext(out, expr, LValue)
 		WriteBorrowMethod(out, false)

@@ -190,6 +190,37 @@ func TestLocalInterfaceReferenceCallArgumentUsesCurrentReceiver(t *testing.T) {
 	}
 }
 
+func TestLocalInterfaceEqualityWithCurrentPointerReceiverWrapsSelf(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type interface {
+	typeNode()
+}
+
+type Named struct{}
+
+func (*Named) typeNode() {}
+
+func id(t Type) Type {
+	return t
+}
+
+func (t *Named) same(orig Type) bool {
+	rbase := id(orig)
+	return rbase == t
+}
+`)
+
+	if strings.Contains(rust, "let __right_holder = self.clone(); let __right_guard = __right_holder.borrow()") ||
+		strings.Contains(rust, "let __right_holder = self.clone(); let __right_guard = __right_holder.lock()") {
+		t.Fatalf("interface equality against current pointer receiver should not treat self as an existing handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __right_holder = Rc::new(RefCell::new(Some(self.clone())))") &&
+		!strings.Contains(rust, "let __right_holder = Arc::new(Mutex::new(Some(self.clone())))") {
+		t.Fatalf("interface equality against current pointer receiver should wrap self as a pointer handle:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceSupersetArgumentUsesTraitObjectAdapter(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
