@@ -4486,6 +4486,27 @@ func count[T int8 | int16 | int32 | int64 | int, N int64 | uint64](num N) int {
 	}
 }
 
+func TestIntegerTypeParamConversionInClosureUsesRawCapture(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func rangeNum[T int8 | int16 | int32 | int64 | int, N int64 | uint64](num N) func() bool {
+	return func() bool {
+		return T(0) < T(num)
+	}
+}
+`)
+
+	if strings.Contains(rust, "num.borrow()") || strings.Contains(rust, "num.lock()") {
+		t.Fatalf("integer type-parameter conversion should not unwrap raw type-param values:\n%s", rust)
+	}
+	if strings.Contains(rust, "num_closure_clone.borrow()") || strings.Contains(rust, "num_closure_clone.lock()") {
+		t.Fatalf("integer type-parameter conversion should not unwrap captured raw type-param values:\n%s", rust)
+	}
+	if !strings.Contains(rust, "go_integer_cast::<T, _>(num_closure_clone.clone())") {
+		t.Fatalf("integer type-parameter conversion should use the raw closure capture:\n%s", rust)
+	}
+}
+
 func TestOrderedTypeParamComparisonUsesRawOperands(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

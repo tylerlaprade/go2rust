@@ -12070,6 +12070,7 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 	}
 
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+		argName := rustIdentForUseWithCapture(ident)
 		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
 			if varType == "char" {
 				out.WriteString("(")
@@ -12092,13 +12093,21 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 			writeExternalIntegerTupleField(out, argType)
 			return
 		}
+		if isVarBare(ident.Name) && goTypeParamHasIntegerConstraint(argType) {
+			out.WriteString(argName)
+			if !isCopyTypeExpression(ident) {
+				out.WriteString(".clone()")
+			}
+			writeExternalIntegerTupleField(out, argType)
+			return
+		}
 		if isVarBare(ident.Name) && typeIsPredeclaredMutableBareScalar(argType) {
-			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(argName)
 			writeExternalIntegerTupleField(out, argType)
 			return
 		}
 		out.WriteString("(*")
-		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(argName)
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap())")
 		writeExternalIntegerTupleField(out, argType)
