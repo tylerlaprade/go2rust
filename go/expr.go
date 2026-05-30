@@ -5489,6 +5489,10 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 	}
 
 	if (fieldExpr != nil && isFunctionSignatureTypeExpr(fieldExpr)) || isFunctionSignatureType(expectedFieldType) {
+		if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" {
+			out.WriteString("Default::default()")
+			return
+		}
 		if _, ok := value.(*ast.FuncLit); ok {
 			TranspileExpression(out, value)
 			return

@@ -4568,6 +4568,31 @@ func pick(ityp *iface, i int) Pos {
 	}
 }
 
+func TestNilFunctionFieldCompositeLiteralUsesEmptyHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Package struct{}
+
+type Qualifier func(*Package) string
+
+type writer struct {
+	qf Qualifier
+}
+
+func newWriter() *writer {
+	return &writer{qf: nil}
+}
+`)
+
+	if strings.Contains(rust, "qf: Rc::new(RefCell::new(Some(None)))") ||
+		strings.Contains(rust, "qf: Arc::new(Mutex::new(Some(None)))") {
+		t.Fatalf("nil function field should clear the function handle, not store Some(None):\n%s", rust)
+	}
+	if !strings.Contains(rust, "qf: Default::default()") {
+		t.Fatalf("nil function field should use an empty function handle:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoAssignedNestedStringRangeUsesBareValue(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	prevRangeVars := rangeLoopVars
