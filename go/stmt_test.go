@@ -641,6 +641,35 @@ func (s *nodeSet) add(p *Node) {
 	}
 }
 
+func TestPointerReceiverNamedMapAssignmentFromUnnamedMakeWrapsNamedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Object interface {
+	Id() string
+}
+
+type objset map[string]Object
+
+func (s *objset) init() {
+	if *s == nil {
+		*s = make(map[string]Object)
+	}
+}
+`)
+
+	if strings.Contains(rust, "*self = new_val.borrow_mut().take().unwrap_or_default();") ||
+		strings.Contains(rust, "*self = new_val.lock().unwrap().take().unwrap_or_default();") {
+		t.Fatalf("pointer receiver named map assignment from unnamed make should not store the raw map value:\n%s", rust)
+	}
+	if strings.Contains(rust, "*self = objset(new_val.borrow_mut().take().unwrap_or_default());") ||
+		strings.Contains(rust, "*self = objset(new_val.lock().unwrap().take().unwrap_or_default());") {
+		t.Fatalf("pointer receiver named map assignment from unnamed make should not pass the raw map into the named type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*self = objset(new_val);") {
+		t.Fatalf("pointer receiver named map assignment from unnamed make should wrap the map handle in the named type:\n%s", rust)
+	}
+}
+
 func TestValueReceiverNamedMapAssignmentUpdatesLocalCopy(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

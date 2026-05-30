@@ -2146,15 +2146,41 @@ func writeCurrentReceiverDerefAssignment(out *strings.Builder, star *ast.StarExp
 		return true
 	}
 	if isNamedMapExpression(star) {
+		var targetNamed *types.Named
+		rhsIsNamedMap := false
+		if typeInfo != nil {
+			lhsType := typeInfo.GetType(star)
+			rhsType := typeInfo.GetType(rhs)
+			targetNamed, _, _ = namedMapTypeFromType(lhsType)
+			_, _, rhsIsNamedMap = namedMapTypeFromType(rhsType)
+		}
+		wrapUnnamedMap := targetNamed != nil && !rhsIsNamedMap
 		out.WriteString("{ let new_val = ")
 		TranspileExpression(out, rhs)
 		out.WriteString("; *self = ")
 		if typeInfo != nil && typeInfo.ReturnsWrappedValue(rhs) {
+			if wrapUnnamedMap {
+				out.WriteString(goTypesNamedTypeToRust(targetNamed))
+				out.WriteString("(")
+				out.WriteString("new_val")
+				out.WriteString(")")
+				out.WriteString("; }")
+				return true
+			}
 			out.WriteString("new_val")
 			WriteBorrowMethod(out, true)
-			out.WriteString(".take().unwrap_or_default(); }")
+			out.WriteString(".take().unwrap_or_default()")
+			out.WriteString("; }")
 		} else {
-			out.WriteString("new_val; }")
+			if wrapUnnamedMap {
+				out.WriteString(goTypesNamedTypeToRust(targetNamed))
+				out.WriteString("(")
+			}
+			out.WriteString("new_val")
+			if wrapUnnamedMap {
+				out.WriteString(")")
+			}
+			out.WriteString("; }")
 		}
 		return true
 	}
