@@ -4166,6 +4166,28 @@ func parse() (ok bool, err error) {
 	}
 }
 
+func TestNamedIntegerErrorConstReturnConstructsNamedError(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Errno uintptr
+
+const EINVAL = Errno(22)
+
+func (e Errno) Error() string { return "" }
+
+func setenv() error {
+	return EINVAL
+}
+`)
+
+	if strings.Contains(rust, "Box::new(EINVAL)") {
+		t.Fatalf("typed error const return should not box the raw const:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(Errno(") {
+		t.Fatalf("typed error const return should construct the named error before boxing:\n%s", rust)
+	}
+}
+
 func TestAddressOfConcreteReturnBoxesLocalInterface(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

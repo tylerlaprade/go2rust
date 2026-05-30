@@ -5692,6 +5692,13 @@ func writeConcreteErrorValue(out *strings.Builder, expr ast.Expr) {
 			return
 		}
 	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && isConstantExpression(expr) {
+		if named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named); ok && isNamedIntegerType(named) {
+			if writeExpressionForExpectedTypesType(out, expr, named) {
+				return
+			}
+		}
+	}
 	if !writeOwnedExpressionValue(out, expr) {
 		TranspileExpression(out, expr)
 	}
