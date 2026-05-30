@@ -2005,6 +2005,45 @@ func writeNamedMapCompositeLiteral(out *strings.Builder, lit *ast.CompositeLit) 
 	return true
 }
 
+func writeTypeParamSliceCompositeLiteral(out *strings.Builder, lit *ast.CompositeLit) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || lit == nil {
+		return false
+	}
+	elemType, ok := goTypeParamSliceConstraintElem(typeInfo.GetType(lit))
+	if !ok {
+		return false
+	}
+	elemRust := goTypesCollectionElemTypeToRust(elemType)
+	WriteWrapperPrefix(out)
+	if len(lit.Elts) == 0 {
+		out.WriteString("Vec::<")
+		out.WriteString(elemRust)
+		out.WriteString(">::new()")
+		WriteWrapperSuffix(out)
+		return true
+	}
+	out.WriteString("Vec::<")
+	out.WriteString(elemRust)
+	out.WriteString(">::from([")
+	values := orderedArrayLiteralValues(lit.Elts)
+	for i, elt := range values {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		if elt == nil {
+			out.WriteString(zeroValueForTypesType(elemType))
+			continue
+		}
+		if !writeArraySliceLiteralElementValue(out, elt, elemType) {
+			TranspileExpression(out, elt)
+		}
+	}
+	out.WriteString("])")
+	WriteWrapperSuffix(out)
+	return true
+}
+
 // writeNamedMapInnerHandleClone emits an expression yielding the inner wrapped
 // BTreeMap handle from a named-map variable. The result is the same shape as
 // would be produced by an unwrapped map variable (Arc<Mutex<Option<BTreeMap>>>
@@ -8762,6 +8801,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 	case *ast.CompositeLit:
 		if writeNamedMapCompositeLiteral(out, e) {
+			return
+		}
+		if writeTypeParamSliceCompositeLiteral(out, e) {
 			return
 		}
 		// When Type is nil, try to infer from TypeInfo

@@ -4204,6 +4204,23 @@ func check[S ~[]E, E int | string](data S, i int) bool {
 	}
 }
 
+func TestSliceConstrainedTypeParamCompositeLiteralUsesSliceRepresentation(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func empty[S ~[]E, E any]() S {
+	return S{}
+}
+`)
+
+	if strings.Contains(rust, "S::default()") {
+		t.Fatalf("slice-constrained type parameter composite literal should not use a Rust type-parameter default:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Vec::<Rc<RefCell<Option<E>>>>::new()") &&
+		!strings.Contains(rust, "Vec::<Arc<Mutex<Option<E>>>>::new()") {
+		t.Fatalf("slice-constrained type parameter composite literal should emit an empty slice representation:\n%s", rust)
+	}
+}
+
 func TestNumericTypeParamConversionForLoopUsesConsistentWrapperShape(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
