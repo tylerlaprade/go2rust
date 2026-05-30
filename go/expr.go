@@ -4100,6 +4100,67 @@ func writePointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	return true
 }
 
+func writeTypeParamHandleEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
+	if expr == nil || expr.Op != token.EQL && expr.Op != token.NEQ {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	leftParam, leftOK := types.Unalias(typeInfo.GetType(expr.X)).(*types.TypeParam)
+	rightParam, rightOK := types.Unalias(typeInfo.GetType(expr.Y)).(*types.TypeParam)
+	if !leftOK || !rightOK || leftParam.Obj() != rightParam.Obj() {
+		return false
+	}
+	var left, right strings.Builder
+	if !writeTypeParamHandleExpression(&left, expr.X) || !writeTypeParamHandleExpression(&right, expr.Y) {
+		return false
+	}
+	trackWrapperImports()
+	out.WriteString("{ let __left = ")
+	out.WriteString(left.String())
+	out.WriteString("; let __right = ")
+	out.WriteString(right.String())
+	out.WriteString("; let __both_nil = (*__left")
+	WriteBorrowMethod(out, false)
+	out.WriteString(").is_none() && (*__right")
+	WriteBorrowMethod(out, false)
+	out.WriteString(").is_none(); let __eq = __both_nil || ")
+	out.WriteString(GetOuterWrapperType())
+	out.WriteString("::ptr_eq(&__left, &__right); ")
+	if expr.Op == token.NEQ {
+		out.WriteString("!")
+	}
+	out.WriteString("__eq }")
+	return true
+}
+
+func writeTypeParamHandleExpression(out *strings.Builder, expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	if !ok || ident.Name == "_" || ident.Name == "nil" || isConstIdent(ident) {
+		return false
+	}
+	name := rustIdentForUseWithCapture(ident)
+	if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && isWrappedRangeVarType(varType) {
+		if strings.HasPrefix(varType, "&") {
+			out.WriteString("(*")
+			out.WriteString(name)
+			out.WriteString(").clone()")
+		} else {
+			out.WriteString(name)
+			out.WriteString(".clone()")
+		}
+		return true
+	}
+	if isVarBare(ident.Name) {
+		return false
+	}
+	out.WriteString(name)
+	out.WriteString(".clone()")
+	return true
+}
+
 func writeSliceElemPointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	if expr == nil || expr.Op != token.EQL && expr.Op != token.NEQ {
 		return false
@@ -7797,6 +7858,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			return
 		}
 		if writeLocalInterfaceEquality(out, e.X, e.Y, e.Op) {
+			return
+		}
+		if writeTypeParamHandleEquality(out, e) {
 			return
 		}
 		if writeTimeDurationBinaryExpression(out, e) {

@@ -308,7 +308,16 @@ func goTypeParamHasAnyConstraint(t types.Type) bool {
 		return false
 	}
 	iface, ok := tp.Constraint().Underlying().(*types.Interface)
-	return ok && iface.NumMethods() == 0 && iface.NumEmbeddeds() == 0
+	return ok && !iface.IsComparable() && iface.NumMethods() == 0 && iface.NumEmbeddeds() == 0
+}
+
+func goTypeParamHasComparableConstraint(t types.Type) bool {
+	tp, ok := types.Unalias(t).(*types.TypeParam)
+	if !ok || tp.Constraint() == nil {
+		return false
+	}
+	iface, ok := tp.Constraint().Underlying().(*types.Interface)
+	return ok && iface.IsComparable() && iface.NumMethods() == 0 && iface.NumEmbeddeds() == 0
 }
 
 func goTypeParamHasStringByteSliceConstraint(t types.Type) bool {

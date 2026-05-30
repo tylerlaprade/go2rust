@@ -205,6 +205,13 @@ func substList[T comparable](in []T, subst func(T) T) []T {
 	if !strings.Contains(rust, "Vec<Rc<RefCell<Option<T>>>>") {
 		t.Fatalf("generic []T should store wrapped element handles:\n%s", rust)
 	}
+	if !strings.Contains(rust, "pub fn subst_list<T: Any + Clone + 'static>") ||
+		strings.Contains(rust, "PartialEq") {
+		t.Fatalf("generic comparable type parameter should not require raw Rust PartialEq:\n%s", rust)
+	}
+	if !strings.Contains(rust, "::ptr_eq(&__left, &__right)") {
+		t.Fatalf("generic comparable handle values should compare handles:\n%s", rust)
+	}
 	if strings.Contains(rust, "Vec<T>") {
 		t.Fatalf("generic []T should not store bare type parameters:\n%s", rust)
 	}

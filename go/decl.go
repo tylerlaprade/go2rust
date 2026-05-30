@@ -1338,6 +1338,15 @@ func rustFunctionTypeParam(name *ast.Ident) string {
 	if !ok {
 		return rustName
 	}
+	if goTypeParamHasComparableConstraint(obj.Type()) {
+		TrackImport("Any")
+		bounds := []string{"Any", "Clone"}
+		if NeedsConcurrentWrapper() {
+			bounds = append(bounds, "Send", "Sync")
+		}
+		bounds = append(bounds, "'static")
+		return rustName + ": " + strings.Join(bounds, " + ")
+	}
 	if goTypeParamHasAnyConstraint(obj.Type()) {
 		TrackImport("Any")
 		bounds := []string{"Any", "Clone"}
