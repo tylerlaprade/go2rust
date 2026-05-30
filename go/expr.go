@@ -1382,6 +1382,9 @@ func writeVariadicPackedElementValue(out *strings.Builder, arg ast.Expr, elemTyp
 			TranspileExpression(out, call)
 			WriteBorrowMethod(out, false)
 			out.WriteString(".as_ref().unwrap())")
+			if !isCopyTypeExpression(call) {
+				out.WriteString(".clone()")
+			}
 			return
 		}
 	}

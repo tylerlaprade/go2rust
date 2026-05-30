@@ -1787,6 +1787,28 @@ func use(hash uint32) uint32 {
 	}
 }
 
+func TestVariadicStringCallResultClonesWrappedString(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func sink(args ...string) {}
+
+func label(n uint32) string {
+	return ""
+}
+
+func use(n uint32) {
+	sink("value: ", label(n))
+}
+`)
+
+	if strings.Contains(rust, ".as_ref().unwrap())]") {
+		t.Fatalf("variadic string call result should clone the wrapped String before packing:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".as_ref().unwrap()).clone()") {
+		t.Fatalf("variadic string call result should clone the wrapped String before packing:\n%s", rust)
+	}
+}
+
 func TestVariadicAnyArgumentFromExistingAnyClonesDynamicValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
