@@ -178,6 +178,13 @@ func rustLocalInterfaceTraitObject(name string) string {
 	return "Box<dyn " + name + ">"
 }
 
+func rustLocalInterfaceDynType(name string) string {
+	if NeedsConcurrentWrapper() {
+		return "dyn " + name + " + Send + Sync"
+	}
+	return "dyn " + name
+}
+
 // rustLocalInterfaceParam returns the Rust type used at a function parameter
 // boundary for a named Go interface. Named interface params are wrapped in the
 // same Arc<Mutex<Option<Box<dyn T>>>> / Rc<RefCell<Option<Box<dyn T>>>> shape

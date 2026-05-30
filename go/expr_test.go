@@ -299,10 +299,12 @@ func tagName(x Expr) string {
 	}
 
 	rust, _, _ := Transpile(file, fset, typeInfo)
-	if !strings.Contains(rust, "let any_val = x.__go_as_any();") || !strings.Contains(rust, "any_val.downcast_ref::<TagExpr>()") {
+	if !strings.Contains(rust, "__go_as_any(any_val.as_ref()).downcast_ref::<TagExpr>()") &&
+		!strings.Contains(rust, "any_val.__go_as_any().downcast_ref::<TagExpr>()") &&
+		(!strings.Contains(rust, "let any_val = x.__go_as_any();") || !strings.Contains(rust, "any_val.downcast_ref::<TagExpr>()")) {
 		t.Fatalf("local interface concrete assertion should downcast through __go_as_any:\n%s", rust)
 	}
-	if strings.Contains(rust, "let val = x.clone();") || strings.Contains(rust, "typed_val) = val.downcast_ref::<TagExpr>()") {
+	if strings.Contains(rust, "typed_val) = val.downcast_ref::<TagExpr>()") {
 		t.Fatalf("local interface concrete assertion should not treat the trait object as bare Any:\n%s", rust)
 	}
 }
@@ -428,6 +430,41 @@ func isTag(n *NotExpr) bool {
 	}
 	if !strings.Contains(rust, ".x.clone()") {
 		t.Fatalf("type assertion on local interface field should clone the field handle:\n%s", rust)
+	}
+}
+
+func TestEmbeddedLocalInterfaceFieldConcreteAssertionQualifiesAsAny(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Object interface {
+	Name() string
+}
+
+type dependency interface {
+	Object
+	isDependency()
+}
+
+type Var struct{}
+
+func (*Var) Name() string { return "v" }
+func (*Var) isDependency() {}
+
+type node struct {
+	obj dependency
+}
+
+func asVar(n *node) (*Var, bool) {
+	v, ok := n.obj.(*Var)
+	return v, ok
+}
+`)
+
+	if strings.Contains(rust, "any_val.__go_as_any().downcast_ref::<Var>()") {
+		t.Fatalf("embedded local interface assertion should not use ambiguous __go_as_any method lookup:\n%s", rust)
+	}
+	if !strings.Contains(rust, "<dyn dependency>::__go_as_any(any_val.as_ref()).downcast_ref::<Var>()") {
+		t.Fatalf("embedded local interface assertion should use trait-qualified __go_as_any:\n%s", rust)
 	}
 }
 

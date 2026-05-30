@@ -11476,18 +11476,23 @@ func writeTypedWrappedNone(out *strings.Builder, innerType string) {
 	out.WriteString(">))")
 }
 
-func localInterfaceAssertionUsesTraitSource(sourceType types.Type) bool {
-	_, ok := transpiledNamedInterfaceTypeNameFromTypes(sourceType)
-	return ok
+func localInterfaceAssertionSourceTrait(sourceType types.Type) string {
+	if ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(sourceType); ok {
+		return ifaceName
+	}
+	return ""
 }
 
 func typeAssertionSourceUsesTraitObject(expr ast.Expr) bool {
+	return typeAssertionSourceTraitObject(expr) != ""
+}
+
+func typeAssertionSourceTraitObject(expr ast.Expr) string {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
-		return false
+		return ""
 	}
-	_, ok := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(expr))
-	return ok
+	return localInterfaceAssertionSourceTrait(typeInfo.GetType(expr))
 }
 
 func typeAssertionSourceIsTraitObjectRef(expr ast.Expr) bool {
@@ -11502,12 +11507,24 @@ func writeTraitObjectAssertionSourceRef(out *strings.Builder, expr ast.Expr) {
 	TranspileExpression(out, expr)
 }
 
-func writeLocalInterfaceAssertionDowncast(out *strings.Builder, usesTraitSource bool, rustType string) {
-	if usesTraitSource {
-		out.WriteString("any_val.__go_as_any().downcast_ref::<")
+func writeTraitObjectBoxDowncast(out *strings.Builder, sourceTrait string, rustType string) {
+	if sourceTrait != "" {
+		out.WriteString("<")
+		out.WriteString(rustLocalInterfaceDynType(sourceTrait))
+		out.WriteString(">::__go_as_any(any_val.as_ref()).downcast_ref::<")
 	} else {
-		out.WriteString("any_val.downcast_ref::<")
+		out.WriteString("any_val.__go_as_any().downcast_ref::<")
 	}
+	out.WriteString(rustType)
+	out.WriteString(">()")
+}
+
+func writeLocalInterfaceAssertionDowncast(out *strings.Builder, sourceTrait string, rustType string) {
+	if sourceTrait != "" {
+		writeTraitObjectBoxDowncast(out, sourceTrait, rustType)
+		return
+	}
+	out.WriteString("any_val.downcast_ref::<")
 	out.WriteString(rustType)
 	out.WriteString(">()")
 }
@@ -11538,6 +11555,7 @@ func writeTypeAssertionFailureWrappedValue(out *strings.Builder, rustType string
 }
 
 func writeTraitObjectConcreteAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, rustType string, defaultValue string, targetIsPointer bool, targetIsError bool) {
+	sourceTrait := typeAssertionSourceTraitObject(e.X)
 	out.WriteString("({\n")
 	if typeAssertionSourceIsTraitObjectRef(e.X) {
 		out.WriteString("        let any_val = ")
@@ -11554,9 +11572,9 @@ func writeTraitObjectConcreteAssertionCommaOk(out *strings.Builder, e *ast.TypeA
 		WriteBorrowMethod(out, false)
 		out.WriteString(";\n")
 		out.WriteString("        if let Some(ref any_val) = *guard {\n")
-		out.WriteString("            if let Some(typed_val) = any_val.__go_as_any().downcast_ref::<")
-		out.WriteString(rustType)
-		out.WriteString(">() {\n")
+		out.WriteString("            if let Some(typed_val) = ")
+		writeTraitObjectBoxDowncast(out, sourceTrait, rustType)
+		out.WriteString(" {\n")
 	}
 	out.WriteString("            (")
 	writeTypeAssertionSuccessWrappedValue(out, rustType, targetIsError)
@@ -11599,6 +11617,7 @@ func writeTraitObjectConcreteAssertionCommaOk(out *strings.Builder, e *ast.TypeA
 }
 
 func writeTraitObjectConcreteAssertionValue(out *strings.Builder, e *ast.TypeAssertExpr, rustType string, assertionReturnsPointer bool) {
+	sourceTrait := typeAssertionSourceTraitObject(e.X)
 	out.WriteString("({\n")
 	if typeAssertionSourceIsTraitObjectRef(e.X) {
 		out.WriteString("        let any_val = ")
@@ -11615,9 +11634,9 @@ func writeTraitObjectConcreteAssertionValue(out *strings.Builder, e *ast.TypeAss
 		WriteBorrowMethod(out, false)
 		out.WriteString(";\n")
 		out.WriteString("        if let Some(ref any_val) = *guard {\n")
-		out.WriteString("            if let Some(typed_val) = any_val.__go_as_any().downcast_ref::<")
-		out.WriteString(rustType)
-		out.WriteString(">() {\n")
+		out.WriteString("            if let Some(typed_val) = ")
+		writeTraitObjectBoxDowncast(out, sourceTrait, rustType)
+		out.WriteString(" {\n")
 	}
 	out.WriteString("            ")
 	if assertionReturnsPointer {
@@ -11664,7 +11683,7 @@ func writeAnonInterfaceAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertE
 		out.WriteString(fmt.Sprintf("unimplemented!(\"type info required: comma-ok assertion to anonymous interface with %d concrete implementors needs a synthesized trait object\")", len(candidates)))
 		return
 	}
-	usesTraitSource := localInterfaceAssertionUsesTraitSource(sourceType)
+	sourceTrait := localInterfaceAssertionSourceTrait(sourceType)
 	out.WriteString("({\n")
 	out.WriteString("        let val = ")
 	writeTypeAssertionInputClone(out, e.X)
@@ -11674,7 +11693,7 @@ func writeAnonInterfaceAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertE
 	out.WriteString(";\n")
 	out.WriteString("        if let Some(ref any_val) = *guard {\n")
 	out.WriteString("            if let Some(typed_val) = ")
-	writeLocalInterfaceAssertionDowncast(out, usesTraitSource, candidates[0].rustType)
+	writeLocalInterfaceAssertionDowncast(out, sourceTrait, candidates[0].rustType)
 	out.WriteString(" {\n")
 	out.WriteString("                (")
 	WriteWrapperPrefix(out)
@@ -11715,7 +11734,7 @@ func writeAnonInterfaceAssertionValue(out *strings.Builder, e *ast.TypeAssertExp
 		out.WriteString(fmt.Sprintf("unimplemented!(\"type info required: assertion to anonymous interface with %d concrete implementors needs a synthesized trait object\")", len(candidates)))
 		return
 	}
-	usesTraitSource := localInterfaceAssertionUsesTraitSource(sourceType)
+	sourceTrait := localInterfaceAssertionSourceTrait(sourceType)
 	out.WriteString("({\n")
 	out.WriteString("        let val = ")
 	writeTypeAssertionInputClone(out, e.X)
@@ -11725,7 +11744,7 @@ func writeAnonInterfaceAssertionValue(out *strings.Builder, e *ast.TypeAssertExp
 	out.WriteString(";\n")
 	out.WriteString("        if let Some(ref any_val) = *guard {\n")
 	out.WriteString("            if let Some(typed_val) = ")
-	writeLocalInterfaceAssertionDowncast(out, usesTraitSource, candidates[0].rustType)
+	writeLocalInterfaceAssertionDowncast(out, sourceTrait, candidates[0].rustType)
 	out.WriteString(" {\n")
 	out.WriteString("                ")
 	WriteWrapperPrefix(out)
@@ -11768,7 +11787,7 @@ func writeUnsupportedAnonInterfaceAssertionMethodCall(out *strings.Builder, call
 }
 
 func writeLocalInterfaceAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, ifaceName string, sourceType types.Type, candidates []localInterfaceAssertionCandidate) {
-	usesTraitSource := localInterfaceAssertionUsesTraitSource(sourceType)
+	sourceTrait := localInterfaceAssertionSourceTrait(sourceType)
 	out.WriteString("({\n")
 	out.WriteString("        let val = ")
 	writeTypeAssertionInputClone(out, e.X)
@@ -11792,7 +11811,7 @@ func writeLocalInterfaceAssertionCommaOk(out *strings.Builder, e *ast.TypeAssert
 			} else {
 				out.WriteString(" else if let Some(typed_val) = ")
 			}
-			writeLocalInterfaceAssertionDowncast(out, usesTraitSource, candidate.rustType)
+			writeLocalInterfaceAssertionDowncast(out, sourceTrait, candidate.rustType)
 			out.WriteString(" {\n")
 			out.WriteString("                (")
 			writeLocalInterfaceAssertionWrappedSuccess(out, ifaceName)
@@ -11826,7 +11845,7 @@ func writeLocalInterfaceAssertionCommaOk(out *strings.Builder, e *ast.TypeAssert
 }
 
 func writeLocalInterfaceAssertionValue(out *strings.Builder, e *ast.TypeAssertExpr, ifaceName string, sourceType types.Type, candidates []localInterfaceAssertionCandidate) {
-	usesTraitSource := localInterfaceAssertionUsesTraitSource(sourceType)
+	sourceTrait := localInterfaceAssertionSourceTrait(sourceType)
 	out.WriteString("({\n")
 	out.WriteString("        let val = ")
 	writeTypeAssertionInputClone(out, e.X)
@@ -11841,7 +11860,7 @@ func writeLocalInterfaceAssertionValue(out *strings.Builder, e *ast.TypeAssertEx
 		} else {
 			out.WriteString(" else if let Some(typed_val) = ")
 		}
-		writeLocalInterfaceAssertionDowncast(out, usesTraitSource, candidate.rustType)
+		writeLocalInterfaceAssertionDowncast(out, sourceTrait, candidate.rustType)
 		out.WriteString(" {\n")
 		out.WriteString("                Box::new(typed_val.clone()) as ")
 		out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
