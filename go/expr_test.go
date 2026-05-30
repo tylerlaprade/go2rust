@@ -4517,6 +4517,27 @@ func f() { _ = handlers["inc"] }`, 0)
 	}
 }
 
+func TestSelectorNamedIntegerMapValueConversionUnwrapsValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "go/token"
+
+type atPos token.Pos
+
+func lookup(m map[string]token.Pos, key string) atPos {
+	return atPos(m[key])
+}
+`)
+
+	if strings.Contains(rust, ".map(|__v| __v.clone()).unwrap_or_else(|| Default::default())") {
+		t.Fatalf("selector-named integer map value should not keep the map value handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".map(|__v| __v.borrow().as_ref().unwrap().clone())") &&
+		!strings.Contains(rust, ".map(|__v| __v.lock().unwrap().as_ref().unwrap().clone())") {
+		t.Fatalf("selector-named integer map value should unwrap the stored value:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoAssignedNestedStringRangeUsesBareValue(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	prevRangeVars := rangeLoopVars

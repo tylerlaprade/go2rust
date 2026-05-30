@@ -6544,6 +6544,12 @@ func writeMapLookupValueWithHandle(out *strings.Builder, valueType types.Type, d
 }
 
 func mapValueSyntaxKeepsHandle(expr ast.Expr) bool {
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		_, valueType := typeInfo.GetMapTypes(expr)
+		if valueType != nil {
+			return mapValueTypeKeepsHandle(valueType)
+		}
+	}
 	if localMapValueSyntaxKeepsHandle(expr) {
 		return true
 	}
