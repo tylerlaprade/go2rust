@@ -3379,6 +3379,67 @@ func same(a, b []*Node) bool {
 	}
 }
 
+func TestTypeParamSliceSelectorArgumentClonesFieldHandle(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type re struct {
+	Rune []rune
+}
+
+func (x *re) Equal(y *re) bool {
+	_ = x.Rune
+	_ = y.Rune
+	return true
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	var receiverSelector *ast.SelectorExpr
+	ast.Inspect(file, func(n ast.Node) bool {
+		sel, ok := n.(*ast.SelectorExpr)
+		if !ok || sel.Sel.Name != "Rune" {
+			return true
+		}
+		if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == "x" {
+			receiverSelector = sel
+			return false
+		}
+		return true
+	})
+	if receiverSelector == nil {
+		t.Fatal("did not find x.Rune selector")
+	}
+
+	prevTypeInfo := currentTypeInfo
+	prevReceiver := currentReceiver
+	prevReceiverType := currentReceiverType
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		currentReceiver = prevReceiver
+		currentReceiverType = prevReceiverType
+	}()
+	SetTypeInfo(typeInfo)
+	currentReceiver = "x"
+	currentReceiverType = "re"
+
+	var out strings.Builder
+	writeConcreteSliceAsTypeParamSliceArgument(&out, receiverSelector)
+	got := out.String()
+	if strings.Contains(got, "let __slice_holder = self.rune;") {
+		t.Fatalf("type-param slice selector argument should clone the field handle before borrowing:\n%s", got)
+	}
+	if !strings.Contains(got, "self.rune.clone()") {
+		t.Fatalf("type-param slice selector argument should clone receiver field handle:\n%s", got)
+	}
+}
+
 func TestNoTypeInfoImmediateFuncLitCallUsesClosureType(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()

@@ -14946,6 +14946,7 @@ func writeConcreteSliceAsTypeParamSliceArgument(out *strings.Builder, arg ast.Ex
 	out.WriteString("{ let __slice_holder = ")
 	if !writeNamedSliceInnerHandleClone(out, arg) {
 		TranspileExpressionContext(out, arg, LValue)
+		out.WriteString(".clone()")
 	}
 	out.WriteString("; let __slice_guard = __slice_holder")
 	WriteBorrowMethod(out, false)
