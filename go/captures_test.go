@@ -302,6 +302,50 @@ func clear(x *operand) bool {
 	}
 }
 
+func TestFuncLitTupleAssignUsesCaptureClones(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Code int
+type term struct{}
+
+func each(fn func(*term) bool) {}
+
+func assign(*term) (bool, Code) {
+	return true, 0
+}
+
+func core() (bool, Code) {
+	ok := false
+	code := Code(1)
+	each(func(t *term) bool {
+		ok, code = assign(t)
+		if !ok {
+			return false
+		}
+		return true
+	})
+	return ok, code
+}
+`)
+
+	if strings.Contains(rust, "*ok.borrow_mut() = Some(__tmp_0);") ||
+		strings.Contains(rust, "*ok.lock().unwrap() = Some(__tmp_0);") {
+		t.Fatalf("captured tuple assignment should not move the outer ok handle into the closure:\n%s", rust)
+	}
+	if strings.Contains(rust, "*code.borrow_mut() = __moved_tmp_1;") ||
+		strings.Contains(rust, "*code.lock().unwrap() = __moved_tmp_1;") {
+		t.Fatalf("captured tuple assignment should not move the outer code handle into the closure:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*ok_closure_clone.borrow_mut() = Some(__tmp_0);") &&
+		!strings.Contains(rust, "*ok_closure_clone.lock().unwrap() = Some(__tmp_0);") {
+		t.Fatalf("captured tuple assignment should write ok through its closure clone:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*code_closure_clone.borrow_mut() = __moved_tmp_1;") &&
+		!strings.Contains(rust, "*code_closure_clone.lock().unwrap() = __moved_tmp_1;") {
+		t.Fatalf("captured tuple assignment should write code through its closure clone:\n%s", rust)
+	}
+}
+
 func TestFuncLitUsesCapturedInterfaceArgClone(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

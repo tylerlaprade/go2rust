@@ -4809,7 +4809,7 @@ func writeTupleAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName st
 	}
 	if ident, ok := lhs.(*ast.Ident); ok && isVarBare(ident.Name) {
 		out.WriteString(" ")
-		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(rustIdentForUseWithCapture(ident))
 		out.WriteString(" = ")
 		out.WriteString(tmpName)
 		out.WriteString(";")
@@ -4833,7 +4833,7 @@ func writeTempAssignmentTargetRef(out *strings.Builder, lhs ast.Expr) {
 		return
 	}
 	if ident, ok := lhs.(*ast.Ident); ok {
-		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(rustIdentForUseWithCapture(ident))
 		WriteBorrowMethod(out, true)
 		return
 	}
@@ -6037,7 +6037,7 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 	}
 	if ident, ok := lhs.(*ast.Ident); ok && isVarBare(ident.Name) {
 		out.WriteString(" ")
-		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(rustIdentForUseWithCapture(ident))
 		out.WriteString(" = ")
 		if tmpWrapped {
 			out.WriteString("(*")
