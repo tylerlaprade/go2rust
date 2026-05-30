@@ -657,6 +657,35 @@ func assignFromIndex(nodes []Node) Node {
 	}
 }
 
+func TestParallelLocalInterfaceAssignmentCopiesHandles(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type interface {
+	isType()
+}
+
+type Basic struct{}
+func (*Basic) isType() {}
+
+func assign(k Type, e Type) (Type, Type) {
+	var key Type
+	var elem Type
+	key, elem = k, e
+	return key, elem
+}
+`)
+
+	if strings.Contains(rust, "let __tmp_0 = (*k.borrow().as_ref().unwrap()).clone()") ||
+		strings.Contains(rust, "let __tmp_0 = (*k.lock().unwrap().as_ref().unwrap()).clone()") {
+		t.Fatalf("parallel interface assignment temp should copy the interface handle, not the boxed value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __tmp_0 = k.clone();") ||
+		!strings.Contains(rust, "key = __tmp_0;") ||
+		!strings.Contains(rust, "elem = __tmp_1;") {
+		t.Fatalf("parallel interface assignment should replace interface handles from temps:\n%s", rust)
+	}
+}
+
 func TestReturnLocalInterfaceMapValueKeepsHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

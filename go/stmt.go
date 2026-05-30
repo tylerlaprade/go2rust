@@ -5839,10 +5839,26 @@ func writeParallelCurrentReceiverAssignmentTarget(out *strings.Builder, lhs ast.
 }
 
 func writeParallelAssignmentTempValue(out *strings.Builder, rhs ast.Expr) {
+	if writeParallelInterfaceHandleTempValue(out, rhs) {
+		return
+	}
 	if writeOwnedExpressionValue(out, rhs) {
 		return
 	}
 	TranspileExpression(out, rhs)
+}
+
+func writeParallelInterfaceHandleTempValue(out *strings.Builder, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(rhs)); !ok {
+		return false
+	}
+	TranspileExpressionContext(out, rhs, LValue)
+	out.WriteString(".clone()")
+	return true
 }
 
 func parallelTempNamedIntegerWrap(lhs ast.Expr, rhs ast.Expr) string {
