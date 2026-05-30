@@ -15235,6 +15235,13 @@ func writeReadOnlyTypeParamSliceCallArgument(out *strings.Builder, call *ast.Cal
 	if !ok || collectionElemRustTypeIsWrappedHandle(actualSlice.Elem()) {
 		return false
 	}
+	if goTypeParamHasOrderedConstraint(expectedElem) {
+		if !writeNamedSliceInnerHandleClone(out, arg) {
+			TranspileExpressionContext(out, arg, LValue)
+			out.WriteString(".clone()")
+		}
+		return true
+	}
 	writeConcreteSliceAsTypeParamSliceArgument(out, arg)
 	return true
 }

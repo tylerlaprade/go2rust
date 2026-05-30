@@ -4276,6 +4276,31 @@ func LessAt[E cmp.Ordered](data []E, i int) bool {
 	}
 }
 
+func TestSourceStdlibOrderedBinarySearchUsesRawSlice(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "cmp"
+
+func Search[S ~[]E, E cmp.Ordered](x S, target E) (int, bool) {
+	return 0, false
+}
+
+var stdPkgs = []string{"bytes", "fmt"}
+
+func isStdPkg(path string) bool {
+	_, ok := Search(stdPkgs, path)
+	return ok
+}
+`)
+	if strings.Contains(rust, "map(|__elem| Rc::new(RefCell::new(Some(__elem))))") ||
+		strings.Contains(rust, "map(|__elem| Arc::new(Mutex::new(Some(__elem))))") {
+		t.Fatalf("source-mapped ordered binary search should not wrap raw string slice elements:\n%s", rust)
+	}
+	if !strings.Contains(rust, "search::<Vec<String>, String>") {
+		t.Fatalf("source-mapped ordered binary search should use raw String slice elements:\n%s", rust)
+	}
+}
+
 func TestSourceStdlibOrderedCallUnwrapsSelectorField(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "position.go", `package token
