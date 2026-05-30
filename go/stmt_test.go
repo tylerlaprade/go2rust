@@ -723,6 +723,33 @@ func use(f *Field) positioner {
 	}
 }
 
+func TestLocalInterfaceRangeVarAssignmentFromCallKeepsHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Object interface {
+	Name() string
+}
+
+func resolve(name string, obj Object) Object {
+	return obj
+}
+
+func use(all map[string]Object) {
+	for name, obj := range all {
+		obj = resolve(name, obj)
+		_ = obj
+	}
+}
+`)
+
+	if strings.Contains(rust, "let new_val = (*resolve(") {
+		t.Fatalf("interface range var assignment from call should not unwrap the returned handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "obj = resolve(") || !strings.Contains(rust, ".clone()") {
+		t.Fatalf("interface range var assignment from call should replace the handle:\n%s", rust)
+	}
+}
+
 func TestParallelLocalInterfaceAssignmentCopiesHandles(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

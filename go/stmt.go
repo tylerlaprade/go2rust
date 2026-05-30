@@ -4694,6 +4694,9 @@ func writeBareRangeVarAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Exp
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		expected = typeInfo.GetType(lhs)
 	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(expected); ok {
+		return false
+	}
 	if isEmptyInterfaceType(expected) && !isEmptyInterfaceValueExpr(rhs) {
 		out.WriteString("{ let new_val = ")
 		writeBareAnyBox(out, rhs)
@@ -8346,12 +8349,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Reassigned Go value receivers are mutable Rust local copies, not wrapper slots.
 								} else if writeCapturedCurrentReceiverAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Captured value receivers are bare closure-local copies, not wrapper slots.
+								} else if writeLocalInterfaceHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// Local interface assignment copies the existing interface handle.
 								} else if writeBareRangeVarAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Assigned range variables are local bare Rust bindings, not wrapper handles.
 								} else if writeBareScalarAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Bare scalar locals stay bare when reassigned.
-								} else if writeLocalInterfaceHandleAssignment(out, s.Lhs[0], s.Rhs[0]) {
-									// Local interface assignment copies the existing interface handle.
 								} else if writeStdlibInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Converted concrete stdlib values assigned through a stdlib interface handle.
 								} else if isConcreteErrorInterfaceAssignment(s.Lhs[0], s.Rhs[0]) {
