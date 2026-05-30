@@ -4510,6 +4510,51 @@ func Less[T Ordered](x, y T) bool {
 	}
 }
 
+func TestOrderedTypeParamConcurrentComparisonClonesRawTemps(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Ordered interface {
+	~int | ~string
+}
+
+func Less[T Ordered](x, y T) bool {
+	go func() {}()
+	return x < y || x != x
+}
+`)
+
+	if strings.Contains(rust, "let __tmp_x = x;") || strings.Contains(rust, "let __tmp_y = y;") {
+		t.Fatalf("concurrent ordered type-parameter comparison should not move raw operands into temps:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __tmp_x = x.clone(); let __tmp_y = y.clone(); __tmp_x < __tmp_y") {
+		t.Fatalf("concurrent ordered type-parameter comparison should clone raw temp operands:\n%s", rust)
+	}
+}
+
+func TestOrderedTypeParamCallArgumentClonesRawValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Ordered interface {
+	~int | ~string
+}
+
+func isNaN[T Ordered](x T) bool {
+	return x != x
+}
+
+func Less[T Ordered](x, y T) bool {
+	return isNaN(x) || x < y
+}
+`)
+
+	if strings.Contains(rust, "is_na_n::<T>(x)") {
+		t.Fatalf("ordered type-parameter call argument should not move a raw value that can be reused:\n%s", rust)
+	}
+	if !strings.Contains(rust, "is_na_n::<T>(x.clone())") {
+		t.Fatalf("ordered type-parameter call argument should clone raw values:\n%s", rust)
+	}
+}
+
 func TestExternalStdlibScalarCallStaysBareInComparison(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

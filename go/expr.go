@@ -4785,6 +4785,15 @@ func writeTypeParamComparisonOperand(out *strings.Builder, expr ast.Expr) bool {
 	return true
 }
 
+func writeOrderedTypeParamValueClone(out *strings.Builder, expr ast.Expr) bool {
+	if !typeParamExprHasOrderedConstraint(expr) || !isExpressionResultBare(expr) {
+		return false
+	}
+	TranspileExpression(out, expr)
+	out.WriteString(".clone()")
+	return true
+}
+
 func typeParamExprHasOrderedConstraint(expr ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || expr == nil {
@@ -8797,6 +8806,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if lit, ok := expr.(*ast.BasicLit); ok && lit.Kind == token.INT && isFloatExpression(other) {
 					out.WriteString(lit.Value)
 					out.WriteString(".0")
+					return
+				}
+				if isComparison && writeOrderedTypeParamValueClone(out, expr) {
 					return
 				}
 				writeOperand(expr, other, isStringLit, needsUnwrap)
@@ -15128,6 +15140,9 @@ func writeTypeParamHandleCallArgument(out *strings.Builder, arg ast.Expr, expect
 func writeOrderedTypeParamCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
 	if !goTypeParamHasOrderedConstraint(expected) {
 		return false
+	}
+	if writeOrderedTypeParamValueClone(out, arg) {
+		return true
 	}
 	if !writeOwnedExpressionValue(out, arg) {
 		TranspileExpression(out, arg)
