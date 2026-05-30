@@ -488,6 +488,24 @@ func plain(x Text) string {
 	}
 }
 
+func TestStringFieldCompositeLiteralUsesInnerStringValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Error struct {
+	Expr string
+}
+
+func makeError(s string, n int) Error {
+	return Error{Expr: s[:n]}
+}
+`)
+
+	if strings.Contains(rust, "expr: Rc::new(RefCell::new(Some(Rc::new") ||
+		strings.Contains(rust, "expr: Arc::new(Mutex::new(Some(Arc::new") {
+		t.Fatalf("string field composite value should store the inner string, not a wrapped handle:\n%s", rust)
+	}
+}
+
 func TestPointerAssertionToStructAliasUsesUnderlyingPointee(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
