@@ -990,6 +990,58 @@ func main() {
 	}
 }
 
+func TestTranspiledExternalPackageGlobalPromotedFieldUnwrapsStoredValue(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+type Flags struct {
+	AliasTypeParams bool
+}
+
+type ExperimentFlags struct {
+	Flags
+}
+
+var Experiment ExperimentFlags
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+func enabled() bool {
+	return dep.Experiment.AliasTypeParams
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "example_com_dep::Experiment.flags") {
+		t.Fatalf("external package global promoted field should not access fields on the global handle:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "example_com_dep::Experiment.borrow().as_ref().unwrap()).flags") &&
+		!strings.Contains(mainRS, "example_com_dep::Experiment.lock().unwrap().as_ref().unwrap()).flags") {
+		t.Fatalf("external package global promoted field should unwrap the stored struct before field access:\n%s", mainRS)
+	}
+}
+
 func TestTranspiledExternalPackageConstSelectorUsesConstName(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

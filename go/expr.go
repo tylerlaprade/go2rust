@@ -4374,6 +4374,90 @@ func writePackageGlobalPointerFieldSelector(out *strings.Builder, ident *ast.Ide
 	writeSelectorRValueClose(out, sel)
 }
 
+func packageVarSelectorUsesMappedCrate(sel *ast.SelectorExpr) bool {
+	ident, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	pkgPath, ok := goPackageImports[ident.Name]
+	if !ok {
+		return false
+	}
+	ctx := GetTranspileContext()
+	if ctx == nil || ctx.PackageMapping == nil {
+		return false
+	}
+	_, ok = ctx.PackageMapping[pkgPath]
+	return ok
+}
+
+func writePackageGlobalStructFieldSelector(out *strings.Builder, base *ast.SelectorExpr, fieldInfo FieldAccessInfo, sel *ast.SelectorExpr, ctx ExprContext) {
+	if fieldInfo.IsPromoted {
+		if ctx == LValue || ctx == AddressOf {
+			out.WriteString("(*(*")
+			TranspileExpressionContext(out, base, LValue)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).")
+			for i, embedded := range fieldInfo.EmbeddedPath {
+				out.WriteString(ToSnakeCase(embedded))
+				WriteBorrowMethod(out, false)
+				if i < len(fieldInfo.EmbeddedPath)-1 {
+					out.WriteString(".as_ref().unwrap().")
+				} else {
+					out.WriteString(".as_ref().unwrap()).")
+				}
+			}
+			out.WriteString(fieldInfo.FieldName)
+			return
+		}
+		out.WriteString("(*(*(*")
+		TranspileExpressionContext(out, base, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).")
+		for i, embedded := range fieldInfo.EmbeddedPath {
+			out.WriteString(ToSnakeCase(embedded))
+			WriteBorrowMethod(out, false)
+			if i < len(fieldInfo.EmbeddedPath)-1 {
+				out.WriteString(".as_ref().unwrap().")
+			} else {
+				out.WriteString(".as_ref().unwrap()).")
+			}
+		}
+		out.WriteString(fieldInfo.FieldName)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()")
+		writeSelectorRValueClose(out, sel)
+		return
+	}
+
+	if ctx == LValue || ctx == AddressOf {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, base, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).")
+		out.WriteString(fieldInfo.FieldName)
+		return
+	}
+	out.WriteString("(*")
+	if NeedsConcurrentWrapper() {
+		out.WriteString("{ let __field = (*")
+		TranspileExpressionContext(out, base, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).")
+		out.WriteString(fieldInfo.FieldName)
+		out.WriteString(".clone(); __field }")
+	} else {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, base, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).")
+		out.WriteString(fieldInfo.FieldName)
+	}
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()")
+	writeSelectorRValueClose(out, sel)
+}
+
 func syntaxStructTypeNameForSelectorBase(expr ast.Expr) (string, bool) {
 	ident, ok := expr.(*ast.Ident)
 	if !ok {
@@ -7267,6 +7351,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		} else {
 			// Complex expression for X (not just an identifier)
 			fieldInfo := selectorFieldAccessInfo(e)
+			if base, ok := e.X.(*ast.SelectorExpr); ok && isPackageVarSelector(base) && packageVarSelectorUsesMappedCrate(base) {
+				writePackageGlobalStructFieldSelector(out, base, fieldInfo, e, ctx)
+				break
+			}
 
 			if fieldInfo.IsPromoted {
 				// Accessing promoted field through embedded struct(s)
