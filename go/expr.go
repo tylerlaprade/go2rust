@@ -303,8 +303,12 @@ func writeNamedIntegerDefinedNamedValueForExpected(out *strings.Builder, expr as
 
 func writeNamedIntegerNamedStorageValue(out *strings.Builder, expr ast.Expr, typeInfo *TypeInfo) {
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name != "nil" && !isVarBare(ident.Name) {
+		varName := RustIdentForUse(ident)
+		if renamed, exists := captureRenameForIdent(ident); exists {
+			varName = RustLocalIdent(renamed)
+		}
 		out.WriteString("(*")
-		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(varName)
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()).clone()")
 		return

@@ -367,9 +367,21 @@ func deleteLike(m *Map) {
 func TestStatementFuncLitUsesInnerClonesForOuterCallChainCaptures(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
+type positioner interface {
+	Pos() Pos
+}
+
+type Pos int
+
+type atPos Pos
+
+func (p atPos) Pos() Pos {
+	return Pos(p)
+}
+
 type action struct{}
 
-func (a *action) describef(pos int) {}
+func (a *action) describef(pos positioner) {}
 
 type Checker struct{}
 
@@ -377,12 +389,15 @@ func (check *Checker) later(fn func()) *action {
 	return &action{}
 }
 
-func (check *Checker) verify(pos int) {}
+func (check *Checker) verify(pos Pos) {}
 
-func (check *Checker) run(pos int) {
+func (check *Checker) soft(pos positioner) {}
+
+func (check *Checker) run(pos Pos) {
 	check.later(func() {
 		check.verify(pos)
-	}).describef(pos)
+		check.soft(atPos(pos))
+	}).describef(atPos(pos))
 }
 `)
 
@@ -395,6 +410,25 @@ func (check *Checker) run(pos int) {
 	if strings.Contains(rust, "Box::new(move || {\n        check_closure_clone.verify") ||
 		strings.Contains(rust, "Box::new(move || {\n        let __method_arg0 = pos_closure_clone.clone()") {
 		t.Fatalf("moved closure should use inner clones, not the outer call-chain clones:\n%s", rust)
+	}
+
+	bodyStart := strings.Index(rust, "Box::new(move ||")
+	if bodyStart < 0 {
+		t.Fatalf("closure body not found:\n%s", rust)
+	}
+	body := rust[bodyStart:]
+	bodyEnd := strings.Index(body, "}) as Box<dyn")
+	if bodyEnd < 0 {
+		t.Fatalf("closure body end not found:\n%s", rust)
+	}
+	body = body[:bodyEnd]
+	if strings.Contains(body, "atPos(Rc::new(RefCell::new(Some((*pos.borrow()") ||
+		strings.Contains(body, "atPos(Arc::new(Mutex::new(Some((*pos.lock()") {
+		t.Fatalf("named integer conversion inside moved closure should not read the outer capture:\n%s", rust)
+	}
+	if !strings.Contains(body, "atPos(Rc::new(RefCell::new(Some((*pos_closure_clone_closure_clone.borrow()") &&
+		!strings.Contains(body, "atPos(Arc::new(Mutex::new(Some((*pos_closure_clone_closure_clone.lock()") {
+		t.Fatalf("named integer conversion inside moved closure should read the inner capture clone:\n%s", rust)
 	}
 }
 
