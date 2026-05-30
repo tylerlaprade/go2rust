@@ -4958,6 +4958,9 @@ func indexedSequenceElementKeepsHandle(elemType types.Type) bool {
 	if elemType == nil {
 		return false
 	}
+	if _, ok := types.Unalias(elemType).Underlying().(*types.Pointer); ok {
+		return true
+	}
 	return rustMapValueTypeKeepsHandle(goTypesCollectionElemTypeToRust(elemType))
 }
 

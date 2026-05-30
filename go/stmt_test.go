@@ -1280,6 +1280,28 @@ func (a nodeQueue) Swap(i, j int) {
 	}
 }
 
+func TestParallelPointerSliceElementSwapKeepsHandles(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Node struct {
+	index int
+}
+
+type nodeQueue []*Node
+
+func (a nodeQueue) Swap(i, j int) {
+	a[i], a[j] = a[j], a[i]
+}
+`)
+
+	if strings.Contains(rust, ".take().unwrap_or_default()") {
+		t.Fatalf("parallel pointer slice element swap should keep pointer handles, not move pointees:\n%s", rust)
+	}
+	if !strings.Contains(rust, "] = __tmp_0;") || !strings.Contains(rust, "] = __tmp_1;") {
+		t.Fatalf("parallel pointer slice element swap should assign pointer handles back into slice slots:\n%s", rust)
+	}
+}
+
 func TestTupleSliceElementSliceAssignmentMovesInnerValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
