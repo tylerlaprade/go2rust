@@ -1503,6 +1503,64 @@ func methodCallFuncLitArgCapturesReceiver(call *ast.CallExpr, receiver string) b
 	return false
 }
 
+func callFuncLitSiblingCaptureNames(call *ast.CallExpr) map[string]bool {
+	if call == nil || currentCaptureRenames == nil {
+		return nil
+	}
+	capturedByFuncLit := make(map[string]bool)
+	for _, arg := range call.Args {
+		funcLit, ok := arg.(*ast.FuncLit)
+		if !ok {
+			continue
+		}
+		for name := range capturedVarsForFuncLit(funcLit) {
+			if _, renamed := currentCaptureRenames[name]; renamed {
+				capturedByFuncLit[name] = true
+			}
+		}
+	}
+	if len(capturedByFuncLit) == 0 {
+		return nil
+	}
+
+	shared := make(map[string]bool)
+	for _, arg := range call.Args {
+		if _, ok := arg.(*ast.FuncLit); ok {
+			continue
+		}
+		ast.Inspect(arg, func(n ast.Node) bool {
+			switch node := n.(type) {
+			case *ast.FuncLit:
+				return false
+			case *ast.Ident:
+				if capturedByFuncLit[node.Name] {
+					shared[node.Name] = true
+				}
+			}
+			return true
+		})
+	}
+	if len(shared) == 0 {
+		return nil
+	}
+	return shared
+}
+
+func pushCallFuncLitSiblingCaptureClones(call *ast.CallExpr) func() {
+	names := callFuncLitSiblingCaptureNames(call)
+	if len(names) == 0 {
+		return func() {}
+	}
+	prevForce := forceInnerFuncLitCaptureClones
+	prevNames := forceInnerFuncLitCaptureCloneNames
+	forceInnerFuncLitCaptureClones = true
+	forceInnerFuncLitCaptureCloneNames = names
+	return func() {
+		forceInnerFuncLitCaptureClones = prevForce
+		forceInnerFuncLitCaptureCloneNames = prevNames
+	}
+}
+
 type syncOnceReceiverInfo struct {
 	expr   ast.Expr
 	fields []string
@@ -9787,7 +9845,11 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 		// This allows statement-level handlers to pre-configure renames
 		if currentCaptureRenames != nil {
 			if existingRename, exists := currentCaptureRenames[varName]; exists && existingRename != "" {
-				if forceInnerFuncLitCaptureClones && existingRename != varName {
+				forceInnerClone := forceInnerFuncLitCaptureClones
+				if forceInnerClone && forceInnerFuncLitCaptureCloneNames != nil && !forceInnerFuncLitCaptureCloneNames[varName] {
+					forceInnerClone = false
+				}
+				if forceInnerClone && existingRename != varName {
 					captureRenames[varName] = existingRename + "_closure_clone"
 					inlineCaptureSources[varName] = existingRename
 					inlineCaptures = append(inlineCaptures, varName)
@@ -12840,6 +12902,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	if writeSyncOnceDoFunctionValueCall(out, call) {
 		return
 	}
+
+	restoreCallInnerClones := pushCallFuncLitSiblingCaptureClones(call)
+	defer restoreCallInnerClones()
 
 	if len(call.Args) == 1 {
 		if target, ok := pointerTypeConversionTargetFromCall(call); ok {

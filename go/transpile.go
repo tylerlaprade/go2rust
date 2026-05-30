@@ -66,6 +66,10 @@ var currentCaptureRenames map[string]string
 // statement-level capture clones before moving them into the closure.
 var forceInnerFuncLitCaptureClones bool
 
+// forceInnerFuncLitCaptureCloneNames narrows forced inner clones to the named
+// captures when non-nil.
+var forceInnerFuncLitCaptureCloneNames map[string]bool
+
 func snapshotCaptureRenames() map[string]string {
 	if currentCaptureRenames == nil {
 		return nil

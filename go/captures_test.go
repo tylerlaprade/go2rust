@@ -583,6 +583,40 @@ func core(next *int) {
 	}
 }
 
+func TestFuncLitUsesInnerCloneForCaptureSharedWithSiblingArg(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Set struct {
+	list []int
+}
+
+func search(n int, fn func(int) bool) int { return 0 }
+
+func (s *Set) lookup(key int) int {
+	return search(len(s.list), func(i int) bool {
+		return s.list[i] >= key
+	})
+}
+`)
+
+	if !strings.Contains(rust, "let mut s_closure_clone_closure_clone = s_closure_clone.clone();") {
+		t.Fatalf("closure should take an inner clone for a capture also used by a sibling call argument:\n%s", rust)
+	}
+	bodyStart := strings.Index(rust, "Box::new(move |")
+	if bodyStart < 0 {
+		t.Fatalf("closure body not found:\n%s", rust)
+	}
+	body := rust[bodyStart:]
+	bodyEnd := strings.Index(body, "}) as Box<dyn")
+	if bodyEnd < 0 {
+		t.Fatalf("closure body end not found:\n%s", rust)
+	}
+	body = body[:bodyEnd]
+	if strings.Contains(body, "s_closure_clone.list") {
+		t.Fatalf("closure body should not move the statement-level capture clone:\n%s", rust)
+	}
+}
+
 func TestReceiverMethodFuncLitArgUsesReceiverTemp(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
