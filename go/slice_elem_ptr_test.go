@@ -548,6 +548,30 @@ func run(p []inst) int {
 	}
 }
 
+func TestSliceElemPointerMapKeyUsesSliceIdentity(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type cache struct {
+	active map[*byte][]byte
+}
+
+func remember(c *cache, data []byte) []byte {
+	p := &data[len(data)-1]
+	c.active[p] = data
+	got := c.active[p]
+	delete(c.active, p)
+	return got
+}
+`)
+
+	if strings.Contains(rust, "GoLocalPtrKey::new(p.clone())") {
+		t.Fatalf("slice element pointer map key should not use local pointer handle identity:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoLocalPtrKey::from_slice_elem(p.clone())") {
+		t.Fatalf("slice element pointer map key should preserve backing slice identity and index:\n%s", rust)
+	}
+}
+
 func transpileTypedSliceElemPtrRegression(t *testing.T, src string) string {
 	t.Helper()
 

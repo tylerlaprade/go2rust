@@ -465,6 +465,24 @@ func writeSliceElemPtrOptionValue(out *strings.Builder, rhs ast.Expr) bool {
 	return true
 }
 
+func writeSliceElemPtrMapKeyExpression(out *strings.Builder, expr ast.Expr) bool {
+	if ident, ok := unwrapParens(expr).(*ast.Ident); ok && isSliceElemPtrVar(ident.Name) {
+		NeedGoPtrKey()
+		out.WriteString("GoLocalPtrKey::from_slice_elem(")
+		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(".clone())")
+		return true
+	}
+	if _, ok := sliceElemPtrAddressElemRustType(expr); ok {
+		NeedGoPtrKey()
+		out.WriteString("GoLocalPtrKey::from_slice_elem(Some(")
+		TranspileExpression(out, expr)
+		out.WriteString("))")
+		return true
+	}
+	return false
+}
+
 func writeSliceElemPtrReturnValue(out *strings.Builder, result ast.Expr) bool {
 	if !currentFunctionReturnsSliceElemPtr() {
 		return false

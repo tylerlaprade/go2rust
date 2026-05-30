@@ -1416,7 +1416,7 @@ func GenerateExternalStubModuleImports() string {
 	out.WriteString("use std::any::Any;\n")
 	out.WriteString("use std::collections::BTreeMap;\n")
 	out.WriteString("use std::error::Error as StdError;\n")
-	generateGoPtrKeyHelper(&out, "GoPtrKey")
+	generateGoPtrKeyHelper(&out, "GoPtrKey", false)
 	return out.String()
 }
 

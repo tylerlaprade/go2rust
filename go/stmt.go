@@ -3694,6 +3694,9 @@ func writeMapKeyExpressionWithType(out *strings.Builder, expr ast.Expr, keyType 
 			return
 		}
 	}
+	if writeSliceElemPtrMapKeyExpression(out, expr) {
+		return
+	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(expr) {
 		out.WriteString(goPtrKeyHelperNameForType(typeInfo.GetType(expr)))
 		out.WriteString("::new(")
@@ -3735,6 +3738,9 @@ func writeMapAssignmentKeyExpressionWithRustType(out *strings.Builder, key ast.E
 	keyHelper, ok := mapPointerKeyHelperFromRustType(keyRustType)
 	if !ok {
 		return false
+	}
+	if keyHelper == "GoLocalPtrKey" && writeSliceElemPtrMapKeyExpression(out, key) {
+		return true
 	}
 	out.WriteString(keyHelper)
 	out.WriteString("::new(")

@@ -333,7 +333,7 @@ func (ht *HelperTracker) GenerateHelpers() string {
 	}
 
 	if ht.needsGoPtrKey {
-		generateGoPtrKeyHelper(&result, "GoLocalPtrKey")
+		generateGoPtrKeyHelper(&result, "GoLocalPtrKey", ht.needsSliceElemPtr)
 	}
 
 	return result.String()
@@ -565,8 +565,84 @@ func (ht *HelperTracker) ImportNames() []string {
 	return names
 }
 
-func generateGoPtrKeyHelper(out *strings.Builder, name string) {
+func generateGoPtrKeyHelper(out *strings.Builder, name string, includeSliceElemPtr bool) {
 	if NeedsConcurrentWrapper() {
+		if includeSliceElemPtr {
+			out.WriteString(`
+enum ` + name + `Repr<T> {
+    Nil,
+    Local(Arc<Mutex<Option<T>>>),
+    SliceElem(Arc<Mutex<Option<Vec<T>>>>, usize),
+}
+
+pub struct ` + name + `<T>(` + name + `Repr<T>);
+
+impl<T> Clone for ` + name + `<T> {
+    fn clone(&self) -> Self {
+        match &self.0 {
+            ` + name + `Repr::Nil => ` + name + `(` + name + `Repr::Nil),
+            ` + name + `Repr::Local(value) => ` + name + `(` + name + `Repr::Local(value.clone())),
+            ` + name + `Repr::SliceElem(slice, index) => ` + name + `(` + name + `Repr::SliceElem(slice.clone(), *index)),
+        }
+    }
+}
+
+impl<T> ` + name + `<T> {
+    pub fn new(value: Arc<Mutex<Option<T>>>) -> Self {
+        if value.lock().unwrap().is_none() {
+            ` + name + `(` + name + `Repr::Nil)
+        } else {
+            ` + name + `(` + name + `Repr::Local(value))
+        }
+    }
+
+    pub fn value(&self) -> Arc<Mutex<Option<T>>> {
+        match &self.0 {
+            ` + name + `Repr::Nil => Arc::new(Mutex::new(None)),
+            ` + name + `Repr::Local(value) => value.clone(),
+            ` + name + `Repr::SliceElem(_, _) => panic!("pointer map key from slice element cannot be converted to a local pointer handle"),
+        }
+    }
+
+    fn identity(&self) -> (u8, usize, usize) {
+        match &self.0 {
+            ` + name + `Repr::Nil => (0, 0, 0),
+            ` + name + `Repr::Local(value) => (1, Arc::as_ptr(value) as usize, 0),
+            ` + name + `Repr::SliceElem(slice, index) => (2, Arc::as_ptr(slice) as usize, *index),
+        }
+    }
+
+    fn addr(&self) -> usize { let (_, addr, index) = self.identity(); addr ^ index }
+}
+
+impl<T: Clone> ` + name + `<T> {
+    pub fn from_slice_elem(value: Option<GoSliceElemPtr<T>>) -> Self {
+        match value {
+            Some(ptr) => ` + name + `(` + name + `Repr::SliceElem(ptr.slice.clone(), ptr.index)),
+            None => ` + name + `(` + name + `Repr::Nil),
+        }
+    }
+}
+
+impl<T> PartialEq for ` + name + `<T> {
+    fn eq(&self, other: &Self) -> bool { self.identity() == other.identity() }
+}
+impl<T> Eq for ` + name + `<T> {}
+impl<T> PartialOrd for ` + name + `<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }
+}
+impl<T> Ord for ` + name + `<T> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering { self.identity().cmp(&other.identity()) }
+}
+impl<T> std::fmt::Debug for ` + name + `<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
+}
+impl<T> std::fmt::Display for ` + name + `<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
+}
+`)
+			return
+		}
 		out.WriteString(`
 pub struct ` + name + `<T>(pub Arc<Mutex<Option<T>>>);
 
@@ -598,6 +674,82 @@ impl<T> std::fmt::Display for ` + name + `<T> {
 }
 `)
 	} else {
+		if includeSliceElemPtr {
+			out.WriteString(`
+enum ` + name + `Repr<T> {
+    Nil,
+    Local(Rc<RefCell<Option<T>>>),
+    SliceElem(Rc<RefCell<Option<Vec<T>>>>, usize),
+}
+
+pub struct ` + name + `<T>(` + name + `Repr<T>);
+
+impl<T> Clone for ` + name + `<T> {
+    fn clone(&self) -> Self {
+        match &self.0 {
+            ` + name + `Repr::Nil => ` + name + `(` + name + `Repr::Nil),
+            ` + name + `Repr::Local(value) => ` + name + `(` + name + `Repr::Local(value.clone())),
+            ` + name + `Repr::SliceElem(slice, index) => ` + name + `(` + name + `Repr::SliceElem(slice.clone(), *index)),
+        }
+    }
+}
+
+impl<T> ` + name + `<T> {
+    pub fn new(value: Rc<RefCell<Option<T>>>) -> Self {
+        if value.borrow().is_none() {
+            ` + name + `(` + name + `Repr::Nil)
+        } else {
+            ` + name + `(` + name + `Repr::Local(value))
+        }
+    }
+
+    pub fn value(&self) -> Rc<RefCell<Option<T>>> {
+        match &self.0 {
+            ` + name + `Repr::Nil => Rc::new(RefCell::new(None)),
+            ` + name + `Repr::Local(value) => value.clone(),
+            ` + name + `Repr::SliceElem(_, _) => panic!("pointer map key from slice element cannot be converted to a local pointer handle"),
+        }
+    }
+
+    fn identity(&self) -> (u8, usize, usize) {
+        match &self.0 {
+            ` + name + `Repr::Nil => (0, 0, 0),
+            ` + name + `Repr::Local(value) => (1, Rc::as_ptr(value) as usize, 0),
+            ` + name + `Repr::SliceElem(slice, index) => (2, Rc::as_ptr(slice) as usize, *index),
+        }
+    }
+
+    fn addr(&self) -> usize { let (_, addr, index) = self.identity(); addr ^ index }
+}
+
+impl<T: Clone> ` + name + `<T> {
+    pub fn from_slice_elem(value: Option<GoSliceElemPtr<T>>) -> Self {
+        match value {
+            Some(ptr) => ` + name + `(` + name + `Repr::SliceElem(ptr.slice.clone(), ptr.index)),
+            None => ` + name + `(` + name + `Repr::Nil),
+        }
+    }
+}
+
+impl<T> PartialEq for ` + name + `<T> {
+    fn eq(&self, other: &Self) -> bool { self.identity() == other.identity() }
+}
+impl<T> Eq for ` + name + `<T> {}
+impl<T> PartialOrd for ` + name + `<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }
+}
+impl<T> Ord for ` + name + `<T> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering { self.identity().cmp(&other.identity()) }
+}
+impl<T> std::fmt::Debug for ` + name + `<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
+}
+impl<T> std::fmt::Display for ` + name + `<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
+}
+`)
+			return
+		}
 		out.WriteString(`
 pub struct ` + name + `<T>(pub Rc<RefCell<Option<T>>>);
 

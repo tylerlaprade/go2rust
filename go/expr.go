@@ -7316,6 +7316,14 @@ func writeMapLookupKeyWithRustType(out *strings.Builder, index ast.Expr, keyRust
 	if !ok {
 		return false
 	}
+	if keyHelper == "GoLocalPtrKey" {
+		var key strings.Builder
+		if writeSliceElemPtrMapKeyExpression(&key, index) {
+			out.WriteString("&")
+			out.WriteString(key.String())
+			return true
+		}
+	}
 	out.WriteString("&")
 	out.WriteString(keyHelper)
 	out.WriteString("::new(")
@@ -7378,6 +7386,9 @@ func writeMapLookupKeyWithType(out *strings.Builder, index ast.Expr, keyType typ
 	if typeInfoIsPointerExpr(index) {
 		out.WriteString("&")
 		typeInfo := GetTypeInfo()
+		if writeSliceElemPtrMapKeyExpression(out, index) {
+			return
+		}
 		out.WriteString(goPtrKeyHelperNameForType(typeInfo.GetType(index)))
 		out.WriteString("::new(")
 		TranspileExpressionContext(out, index, LValue)
@@ -7651,6 +7662,9 @@ func writeMapLiteralKeyWithType(out *strings.Builder, key ast.Expr, keyType type
 	}
 	if typeInfoIsPointerExpr(key) {
 		typeInfo := GetTypeInfo()
+		if writeSliceElemPtrMapKeyExpression(out, key) {
+			return
+		}
 		out.WriteString(goPtrKeyHelperNameForType(typeInfo.GetType(key)))
 		out.WriteString("::new(")
 		TranspileExpressionContext(out, key, LValue)
