@@ -15379,6 +15379,10 @@ func writeIdentFunctionCallWithExpandedMultiResultArg(out *strings.Builder, call
 	if !ok || isBuiltinCallTarget(ident) {
 		return false
 	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsFunction(ident) {
+		return false
+	}
 	inner, outerSig, innerSig, ok := singleMultiResultCallArgument(call)
 	if !ok {
 		return false
@@ -15423,7 +15427,7 @@ func singleMultiResultCallArgumentForParams(call *ast.CallExpr, params *types.Tu
 		return nil, nil, false
 	}
 	results := innerSig.Results()
-	if params.Len() == 0 || params.Len() != results.Len() {
+	if results.Len() <= 1 || params.Len() == 0 || params.Len() != results.Len() {
 		return nil, nil, false
 	}
 	for i := 0; i < params.Len(); i++ {

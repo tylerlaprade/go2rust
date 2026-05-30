@@ -2935,6 +2935,49 @@ func caller() (int, error) {
 	}
 }
 
+func TestSingleResultCallArgumentDoesNotUseMultiResultExpansion(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func inner() int {
+	return 1
+}
+
+func outer(n int) int {
+	return n
+}
+
+func caller() int {
+	return outer(inner())
+}
+`)
+
+	if strings.Contains(rust, "__multi_arg_0") {
+		t.Fatalf("single-result call argument should not use multi-result expansion:\n%s", rust)
+	}
+}
+
+func TestFunctionValueCallWithCallArgumentUsesClosureHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func inner() int {
+	return 1
+}
+
+func walk(yield func(int) bool) {
+	if !yield(inner()) {
+		return
+	}
+}
+`)
+
+	if strings.Contains(rust, "yield(__multi_arg_0)") {
+		t.Fatalf("function value call should not be lowered as a direct function call:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*mut Box<dyn FnMut") {
+		t.Fatalf("function value call should invoke the closure handle:\n%s", rust)
+	}
+}
+
 func TestTupleStringResultRegistersWrappedSlot(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
