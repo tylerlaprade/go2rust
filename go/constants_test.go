@@ -544,6 +544,24 @@ const n = len(dots)
 	}
 }
 
+func TestLenOfStringConstUsesConstValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const repeated = "xxxxxxxx"
+
+func within(n int) bool {
+	return n <= len(repeated)
+}
+`)
+
+	if strings.Contains(rust, "REPEATED.borrow()") || strings.Contains(rust, "REPEATED.lock()") {
+		t.Fatalf("len(string const) should not treat the const as a wrapped handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "REPEATED.len() as i32") {
+		t.Fatalf("len(string const) should use the Rust const string length as Go int:\n%s", rust)
+	}
+}
+
 func TestConstTypeConversionCastsWholeBinaryExpression(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

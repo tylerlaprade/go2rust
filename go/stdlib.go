@@ -3996,6 +3996,10 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 
+		if writeConstStringLen(out, call.Args[0]) {
+			return
+		}
+
 		typeInfo := GetTypeInfo()
 		if typeInfo != nil && typeInfo.IsChannel(call.Args[0]) {
 			writeChannelExpression(out, call.Args[0])
@@ -4036,6 +4040,15 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(".as_ref().unwrap()).len()")
 		}
 	}
+}
+
+func writeConstStringLen(out *strings.Builder, expr ast.Expr) bool {
+	if _, ok := constStringLiteral(expr); !ok {
+		return false
+	}
+	TranspileExpression(out, expr)
+	out.WriteString(".len()")
+	return true
 }
 
 func transpileMake(out *strings.Builder, call *ast.CallExpr) {
