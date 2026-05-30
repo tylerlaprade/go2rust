@@ -892,6 +892,35 @@ func lockCache() {
 	}
 }
 
+func TestMethodReceiverEmbeddedMutexPromotedLockUsesMutexField(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "sync"
+
+type mmapper struct {
+	sync.Mutex
+	active int
+}
+
+func (m *mmapper) lock() {
+	m.Lock()
+	defer m.Unlock()
+	m.active = 1
+}
+`)
+
+	if strings.Contains(rust, "self.lock().unwrap()") ||
+		strings.Contains(rust, "self.borrow().unwrap()") {
+		t.Fatalf("promoted sync.Mutex methods on method receivers should not unwrap self as a handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "self.mutex.clone(); let __mutex_guard_") {
+		t.Fatalf("promoted sync.Mutex Lock should acquire the receiver's embedded mutex field:\n%s", rust)
+	}
+	if !strings.Contains(rust, "// mu.Unlock() handled by RAII guard") {
+		t.Fatalf("promoted sync.Mutex deferred Unlock should be handled by the active guard:\n%s", rust)
+	}
+}
+
 func TestTranspileConstDeclUsesPackageVisibility(t *testing.T) {
 	var out strings.Builder
 	TranspileConstDecl(&out, &ast.GenDecl{

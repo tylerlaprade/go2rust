@@ -7031,10 +7031,14 @@ func writeMutexReceiver(out *strings.Builder, receiver mutexReceiverInfo) {
 		TranspileExpressionContext(out, receiver.expr, LValue)
 		return
 	}
-	out.WriteString("(*")
-	TranspileExpressionContext(out, receiver.expr, LValue)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap())")
+	if ident, ok := unwrapParens(receiver.expr).(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
+		out.WriteString(currentReceiverRustName())
+	} else {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, receiver.expr, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap())")
+	}
 	for _, field := range receiver.fields {
 		out.WriteString(".")
 		out.WriteString(field)
