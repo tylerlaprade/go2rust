@@ -14278,6 +14278,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 
+	if writeIdentFunctionCallWithExpandedMultiResultArg(out, call) {
+		return
+	}
+
 	restoreCallInnerClones := pushCallFuncLitSiblingCaptureClones(call)
 	defer restoreCallInnerClones()
 
@@ -15368,6 +15372,81 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		}
 	}
 	closeFunctionCall()
+}
+
+func writeIdentFunctionCallWithExpandedMultiResultArg(out *strings.Builder, call *ast.CallExpr) bool {
+	ident, ok := call.Fun.(*ast.Ident)
+	if !ok || isBuiltinCallTarget(ident) {
+		return false
+	}
+	inner, outerSig, innerSig, ok := singleMultiResultCallArgument(call)
+	if !ok {
+		return false
+	}
+
+	out.WriteString("{ let (")
+	results := innerSig.Results()
+	for i := 0; i < results.Len(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(fmt.Sprintf("__multi_arg_%d", i))
+	}
+	out.WriteString(") = ")
+	TranspileExpression(out, inner)
+	out.WriteString("; ")
+	out.WriteString(rustFunctionNameForUse(ident.Name))
+	writeInferredCallTypeArgs(out, ident)
+	out.WriteString("(")
+	params := outerSig.Params()
+	for i := 0; i < params.Len(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		writeExpandedMultiResultArgSlot(out, inner, i, params.At(i).Type())
+	}
+	out.WriteString(") }")
+	return true
+}
+
+func singleMultiResultCallArgument(call *ast.CallExpr) (*ast.CallExpr, *types.Signature, *types.Signature, bool) {
+	if call == nil || len(call.Args) != 1 {
+		return nil, nil, nil, false
+	}
+	inner, ok := unwrapParens(call.Args[0]).(*ast.CallExpr)
+	if !ok {
+		return nil, nil, nil, false
+	}
+	outerSig, ok := callSignatureFromTypeInfo(call)
+	if !ok || outerSig == nil || outerSig.Params() == nil || outerSig.Variadic() {
+		return nil, nil, nil, false
+	}
+	innerSig, ok := callSignatureFromTypeInfo(inner)
+	if !ok || innerSig == nil || innerSig.Results() == nil {
+		return nil, nil, nil, false
+	}
+	params := outerSig.Params()
+	results := innerSig.Results()
+	if params.Len() == 0 || params.Len() != results.Len() {
+		return nil, nil, nil, false
+	}
+	for i := 0; i < params.Len(); i++ {
+		if !types.AssignableTo(results.At(i).Type(), params.At(i).Type()) {
+			return nil, nil, nil, false
+		}
+	}
+	return inner, outerSig, innerSig, true
+}
+
+func writeExpandedMultiResultArgSlot(out *strings.Builder, inner *ast.CallExpr, index int, expected types.Type) {
+	slotName := fmt.Sprintf("__multi_arg_%d", index)
+	if typeIsPredeclaredCopyScalar(expected) && callResultIsBareScalar(inner, index) {
+		WriteWrapperPrefix(out)
+		out.WriteString(slotName)
+		WriteWrapperSuffix(out)
+		return
+	}
+	out.WriteString(slotName)
 }
 
 func functionCallTargetUsesGoTypesFunctionParamShape(fun ast.Expr) bool {

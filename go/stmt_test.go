@@ -2907,6 +2907,34 @@ func caller(s string) []string {
 	}
 }
 
+func TestSingleMultiResultCallExpandsIntoFunctionArguments(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func pair() (int, error) {
+	return 1, nil
+}
+
+func fix(n int, err error) (int, error) {
+	return n, err
+}
+
+func caller() (int, error) {
+	return fix(pair())
+}
+`)
+
+	if strings.Contains(rust, "fix(pair())") {
+		t.Fatalf("single multi-result call should not be passed as one Rust argument:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let (__multi_arg_0, __multi_arg_1) = pair()") {
+		t.Fatalf("single multi-result call should be bound once before argument expansion:\n%s", rust)
+	}
+	if !strings.Contains(rust, "fix(Rc::new(RefCell::new(Some(__multi_arg_0))), __multi_arg_1)") &&
+		!strings.Contains(rust, "fix(Arc::new(Mutex::new(Some(__multi_arg_0))), __multi_arg_1)") {
+		t.Fatalf("expanded scalar result slot should be wrapped for the matching parameter:\n%s", rust)
+	}
+}
+
 func TestTupleStringResultRegistersWrappedSlot(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
