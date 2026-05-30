@@ -258,6 +258,9 @@ func clear(files []*File) {
 	if strings.Contains(rust, "let new_val = None; *last.as_ref().unwrap().borrow_mut() = Some(new_val)") {
 		t.Fatalf("nil assignment through a pointer-valued slice element should not store raw None:\n%s", rust)
 	}
+	if strings.Contains(rust, "let __dst = last.clone()") {
+		t.Fatalf("nil assignment through a slice element pointer should use GoSliceElemPtr directly, not pointer-slot lowering:\n%s", rust)
+	}
 	if !strings.Contains(rust, "let new_val = Rc::new(RefCell::new(None))") {
 		t.Fatalf("nil assignment through a pointer-valued slice element should store a nil pointer handle:\n%s", rust)
 	}

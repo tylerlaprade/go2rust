@@ -5110,6 +5110,18 @@ func writeEmptyInterfaceHandleClone(out *strings.Builder, expr ast.Expr) bool {
 	return true
 }
 
+func writePointerSlotAddress(out *strings.Builder, expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsPointer(expr) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	TranspileExpressionContext(out, expr, AddressOf)
+	out.WriteString(".clone()")
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeEmptyInterfacePointerConversionDerefHandle(out *strings.Builder, expr ast.Expr) bool {
 	star, ok := unwrapParens(expr).(*ast.StarExpr)
 	if !ok {
@@ -7526,6 +7538,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				WriteWrapperPrefix(out)
 				TranspileExpressionContext(out, compositeLit, AddressOf)
 				WriteWrapperSuffix(out)
+			} else if writePointerSlotAddress(out, e.X) {
+				// Addressing a pointer variable or field produces a slot that stores the pointer handle.
 			} else {
 				// Taking address of existing value just clones the Arc
 				TranspileExpressionContext(out, e.X, AddressOf)

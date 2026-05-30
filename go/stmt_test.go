@@ -715,6 +715,46 @@ func rotate(a, b, c *Int) {
 	}
 }
 
+func TestPointerToPointerParamWritesThroughPointerSlot(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type List struct{}
+
+type Alias struct {
+	tparams *List
+}
+
+func bind() *List {
+	return &List{}
+}
+
+func collect(dst **List) {
+	*dst = bind()
+}
+
+func use(alias *Alias) {
+	collect(&alias.tparams)
+}
+`)
+
+	if !strings.Contains(rust, "pub fn collect(dst: Rc<RefCell<Option<Rc<RefCell<Option<List>>>>>>)") &&
+		!strings.Contains(rust, "pub fn collect(dst: Arc<Mutex<Option<Arc<Mutex<Option<List>>>>>>)") {
+		t.Fatalf("pointer-to-pointer parameter should preserve the nested pointer slot shape:\n%s", rust)
+	}
+	if strings.Contains(rust, "*dst.borrow_mut() = Some(new_val);") ||
+		strings.Contains(rust, "*dst.lock().unwrap() = Some(new_val);") {
+		t.Fatalf("pointer-to-pointer assignment should not store a pointee value in the outer pointer slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*__dst_guard.as_ref().unwrap().borrow_mut() = (*new_val.borrow()).clone();") &&
+		!strings.Contains(rust, "*__dst_guard.as_ref().unwrap().lock().unwrap() = (*new_val.lock().unwrap()).clone();") {
+		t.Fatalf("pointer-to-pointer assignment should write through the pointee handle stored in the slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "collect(Rc::new(RefCell::new(Some((*alias.borrow().as_ref().unwrap()).tparams.clone()))))") &&
+		!strings.Contains(rust, "collect(Arc::new(Mutex::new(Some((*alias.lock().unwrap().as_ref().unwrap()).tparams.clone()))))") {
+		t.Fatalf("address-of pointer field should pass a pointer slot containing the field handle:\n%s", rust)
+	}
+}
+
 func TestCopyScalarReturnBoundariesUseBareRustTypes(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

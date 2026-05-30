@@ -701,6 +701,63 @@ func writePointerDerefAssignmentValue(out *strings.Builder, rhs ast.Expr, expect
 	return false
 }
 
+func writePointerDerefPointerHandleAssignment(out *strings.Builder, star *ast.StarExpr, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || star == nil {
+		return false
+	}
+	expected := typeInfo.GetType(star)
+	if expected == nil {
+		return false
+	}
+	if _, ok := types.Unalias(expected).Underlying().(*types.Pointer); !ok {
+		return false
+	}
+	operandType := typeInfo.GetType(star.X)
+	if operandType == nil {
+		return false
+	}
+	operandPtr, ok := types.Unalias(operandType).Underlying().(*types.Pointer)
+	if !ok || !types.AssignableTo(expected, operandPtr.Elem()) {
+		return false
+	}
+
+	rhsIsNil := false
+	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
+		rhsIsNil = true
+	} else {
+		actual := typeInfo.GetType(rhs)
+		if actual == nil || !types.AssignableTo(actual, expected) {
+			return false
+		}
+	}
+
+	out.WriteString("{ ")
+	if rhsIsNil {
+		out.WriteString("let new_val = None; ")
+	} else {
+		out.WriteString("let new_val = ")
+		writePointerHandleValueClone(out, rhs)
+		out.WriteString("; ")
+	}
+	out.WriteString("let __dst = ")
+	TranspileExpressionContext(out, star.X, LValue)
+	out.WriteString(".clone(); let __dst_guard = __dst")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; *__dst_guard.as_ref().unwrap()")
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = ")
+	if rhsIsNil {
+		out.WriteString("new_val")
+	} else {
+		out.WriteString("(*new_val")
+		WriteBorrowMethod(out, false)
+		out.WriteString(").clone()")
+	}
+	out.WriteString("; }")
+	return true
+}
+
 func writeGoErrorPointerDerefAssignmentValue(out *strings.Builder, rhs ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
@@ -7991,6 +8048,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString("; *")
 									out.WriteString(RustIdentForUse(ident))
 									out.WriteString(".as_ref().unwrap().borrow_mut() = Some(new_val); }")
+								} else if writePointerDerefPointerHandleAssignment(out, star, s.Rhs[0]) {
+									// Pointer-to-pointer assignment writes through the pointer handle stored in the slot.
 								} else if isUnsafePointerDerefAssignmentTarget(star) {
 									out.WriteString("{ ")
 									if ident, ok := s.Rhs[0].(*ast.Ident); !ok || ident.Name != "nil" {
