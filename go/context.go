@@ -28,6 +28,8 @@ type PackageState struct {
 	FunctionTypeAliases           map[string]bool
 	FunctionTypeAliasBoxTypes     map[string]string
 	SliceElemPtrReturnFuncs       map[*types.Func]sliceElemPtrReturnInfo
+	SliceElemPtrSliceReturnFuncs  map[*types.Func]sliceElemPtrSliceReturnInfo
+	SliceElemPtrSliceParamFuncs   map[*types.Func]map[int]string
 	MapKeyStructTypes             map[string]bool
 	PackageConstants              map[string]string
 	PackageConstantTypeNames      map[string]string
@@ -124,6 +126,8 @@ func NewPackageState() *PackageState {
 		FunctionTypeAliases:           make(map[string]bool),
 		FunctionTypeAliasBoxTypes:     make(map[string]string),
 		SliceElemPtrReturnFuncs:       make(map[*types.Func]sliceElemPtrReturnInfo),
+		SliceElemPtrSliceReturnFuncs:  make(map[*types.Func]sliceElemPtrSliceReturnInfo),
+		SliceElemPtrSliceParamFuncs:   make(map[*types.Func]map[int]string),
 		MapKeyStructTypes:             make(map[string]bool),
 		PackageConstants:              make(map[string]string),
 		PackageConstantTypeNames:      make(map[string]string),
@@ -229,6 +233,12 @@ func (ctx *TranspileContext) ensureDefaults() {
 		}
 		if ctx.Package.SliceElemPtrReturnFuncs == nil {
 			ctx.Package.SliceElemPtrReturnFuncs = make(map[*types.Func]sliceElemPtrReturnInfo)
+		}
+		if ctx.Package.SliceElemPtrSliceReturnFuncs == nil {
+			ctx.Package.SliceElemPtrSliceReturnFuncs = make(map[*types.Func]sliceElemPtrSliceReturnInfo)
+		}
+		if ctx.Package.SliceElemPtrSliceParamFuncs == nil {
+			ctx.Package.SliceElemPtrSliceParamFuncs = make(map[*types.Func]map[int]string)
 		}
 		if ctx.Package.MethodsByType == nil {
 			ctx.Package.MethodsByType = make(map[string][]*ast.FuncDecl)

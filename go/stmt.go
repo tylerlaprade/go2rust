@@ -8113,7 +8113,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					isNil = true
 				}
 
-				if isNil {
+				if writeSliceElemPtrSliceReturnValue(out, result, i) {
+					// Pointer-slice return slot preserves slice-element pointer values.
+				} else if isNil {
 					if !writeSliceElemPtrReturnValue(out, result) {
 						WriteWrappedNone(out)
 					}
@@ -8239,6 +8241,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						// Function literal - already wrapped by TranspileFuncLit
 						TranspileExpression(out, result)
 					} else if ident, ok := result.(*ast.Ident); ok {
+						if writeSliceElemPtrSliceReturnValue(out, result, i) {
+							continue
+						}
 						if writeSliceElemPtrReturnValue(out, result) {
 							continue
 						}
@@ -9188,7 +9193,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									if typeInfo := GetTypeInfo(); typeInfo != nil {
 										elemType = typeInfo.GetArrayOrSliceElemTypePreservingTypeParam(indexExpr.X)
 									}
-									writeArraySliceElementAssignmentValue(out, s.Rhs[0], elemType)
+									if elemRustType, ok := sliceElemPtrSliceCandidateForExpr(indexExpr.X); ok {
+										if !writeSliceElemPtrSliceSlotValue(out, s.Rhs[0], elemRustType) {
+											out.WriteString(`unimplemented!("type info required to lower pointer slice assignment")`)
+										}
+									} else {
+										writeArraySliceElementAssignmentValue(out, s.Rhs[0], elemType)
+									}
 								}
 							} else if sel, ok := s.Lhs[0].(*ast.SelectorExpr); ok && writeIndexedSequenceCollectionFieldAssignment(out, sel, s.Rhs[0]) {
 								// Collection field on an indexed struct element mutates that element in place.
@@ -9595,7 +9606,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString(">>")
 									} else if s.Tok == token.DEFINE && len(s.Lhs) == 1 && len(s.Rhs) == 1 {
 										if ident, ok := lhs.(*ast.Ident); ok && ident.Name != "_" {
-											if rustType, ok := arrayElemAddressPointerRustType(s.Rhs[0]); ok {
+											if elemRustType, ok := sliceElemPtrSliceCandidateForDecl(ident); ok {
+												out.WriteString(": ")
+												out.WriteString(sliceElemPtrSliceRustType(elemRustType))
+											} else if rustType, ok := arrayElemAddressPointerRustType(s.Rhs[0]); ok {
 												out.WriteString(": ")
 												out.WriteString(rustType)
 											} else if rustType, ok := localMakeSliceTypeAnnotation(s.Rhs[0]); ok {
@@ -9630,6 +9644,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										} else if callExpr, isCall := rhs.(*ast.CallExpr); isCall {
 											if i < len(s.Lhs) {
 												registerCallResultSyntaxInfo(s.Lhs[i], callExpr)
+											}
+											if i < len(s.Lhs) {
+												if lhsIdent, ok := s.Lhs[i].(*ast.Ident); ok {
+													if elemRustType, ok := sliceElemPtrSliceCandidateForDecl(lhsIdent); ok && isBuiltinCallNamed(callExpr, "make") {
+														writeSliceElemPtrSliceMake(out, callExpr, elemRustType)
+														continue
+													}
+												}
 											}
 											if len(s.Lhs) == 1 && writeBareBuiltinShortDeclInitializer(out, callExpr, s.Lhs[0]) {
 												continue
@@ -9968,6 +9990,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString("Option<GoSliceElemPtr<")
 									out.WriteString(sliceElemPtrRustType)
 									out.WriteString(">>")
+								} else if elemRustType, ok := sliceElemPtrSliceCandidateForDecl(name); ok {
+									out.WriteString(sliceElemPtrSliceRustType(elemRustType))
 								} else {
 									out.WriteString(GoTypeToRust(valueSpec.Type))
 								}
@@ -10005,7 +10029,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									}
 								} else if call, isCall := valueSpec.Values[i].(*ast.CallExpr); isCall {
 									registerCallResultSyntaxInfo(name, call)
-									if valueSpec.Type == nil && callReturnsBareScalar(call) {
+									if elemRustType, ok := sliceElemPtrSliceCandidateForDecl(name); ok && isBuiltinCallNamed(call, "make") {
+										writeSliceElemPtrSliceMake(out, call, elemRustType)
+									} else if valueSpec.Type == nil && callReturnsBareScalar(call) {
 										registerBareShortDecl(name)
 										TranspileExpression(out, call)
 									} else if writeBareBuiltinShortDeclInitializer(out, call, name) {

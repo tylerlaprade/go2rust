@@ -2325,9 +2325,13 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 		vt.PushScope()
 		defer vt.PopScope()
 		if fn.Type.Params != nil {
+			paramIndex := 0
 			for _, field := range fn.Type.Params.List {
 				for _, name := range field.Names {
 					rustType := goTypeToRustBase(field.Type)
+					if elemRustType, ok := sliceElemPtrSliceParamInfoForDeclObject(fn, paramIndex); ok {
+						rustType = "Vec<GoPtr<" + elemRustType + ">>"
+					}
 					if functionRustType, ok := functionTypeRustNameFromTypeExpr(field.Type); ok {
 						rustType = functionRustType
 					}
@@ -2376,6 +2380,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 							Source:    SourceParam,
 						})
 					}
+					paramIndex++
 				}
 			}
 		}
@@ -2394,7 +2399,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 		return
 	}
 
-	restoreSliceElemPtrCandidates := setSliceElemPtrCandidates(fn.Body)
+	restoreSliceElemPtrCandidates := setSliceElemPtrCandidatesForFunc(fn)
 	defer restoreSliceElemPtrCandidates()
 	restoreSliceElemPtrReturn := pushCurrentSliceElemPtrReturn(fn)
 	defer restoreSliceElemPtrReturn()
@@ -2560,7 +2565,7 @@ func writeFuncDeclParams(out *strings.Builder, fn *ast.FuncDecl) {
 			if !first {
 				out.WriteString(", ")
 			}
-			writeFuncDeclParam(out, fmt.Sprintf("__arg%d", paramIndex), field.Type, false)
+			writeFuncDeclParam(out, fn, paramIndex, fmt.Sprintf("__arg%d", paramIndex), field.Type, false)
 			paramIndex++
 			first = false
 			continue
@@ -2569,19 +2574,23 @@ func writeFuncDeclParams(out *strings.Builder, fn *ast.FuncDecl) {
 			if !first {
 				out.WriteString(", ")
 			}
-			writeFuncDeclParam(out, name.Name, field.Type, blockIdentAssigned(fn.Body, name.Name))
+			writeFuncDeclParam(out, fn, paramIndex, name.Name, field.Type, blockIdentAssigned(fn.Body, name.Name))
 			paramIndex++
 			first = false
 		}
 	}
 }
 
-func writeFuncDeclParam(out *strings.Builder, name string, typ ast.Expr, mutable bool) {
+func writeFuncDeclParam(out *strings.Builder, fn *ast.FuncDecl, paramIndex int, name string, typ ast.Expr, mutable bool) {
 	if mutable {
 		out.WriteString("mut ")
 	}
 	out.WriteString(RustLocalIdent(name))
 	out.WriteString(": ")
+	if elemRustType, ok := sliceElemPtrSliceParamInfoForDeclObject(fn, paramIndex); ok {
+		out.WriteString(sliceElemPtrSliceRustType(elemRustType))
+		return
+	}
 	out.WriteString(GoTypeToRustParam(typ))
 }
 
@@ -5324,7 +5333,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 	out.WriteString(" {\n")
 
 	if fn.Body != nil {
-		restoreSliceElemPtrCandidates := setSliceElemPtrCandidates(fn.Body)
+		restoreSliceElemPtrCandidates := setSliceElemPtrCandidatesForFunc(fn)
 		defer restoreSliceElemPtrCandidates()
 		restoreSliceElemPtrReturn := pushCurrentSliceElemPtrReturn(fn)
 		defer restoreSliceElemPtrReturn()

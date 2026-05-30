@@ -441,6 +441,26 @@ func use(chunks [][]int) int {
 	}
 }
 
+func TestWritablePointerParamRejectsSliceElemAddressLoudly(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+func mutate(p *byte) {
+	*p = 1
+}
+
+func use(buf []byte) {
+	mutate(&buf[0])
+}
+`)
+
+	if strings.Contains(rust, "mutate(GoSliceElemPtr::new") {
+		t.Fatalf("writable pointer parameter should not receive an incompatible slice element pointer helper:\n%s", rust)
+	}
+	if !strings.Contains(rust, `unimplemented!("slice element pointer cannot pass to writable pointer parameter")`) {
+		t.Fatalf("writable pointer parameter should fail loudly until pointer params can hold slice element identity:\n%s", rust)
+	}
+}
+
 func TestReadOnlyPointerParamThroughFuncLitAcceptsSliceElemAddress(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
@@ -569,6 +589,89 @@ func remember(c *cache, data []byte) []byte {
 	}
 	if !strings.Contains(rust, "GoLocalPtrKey::from_slice_elem(p.clone())") {
 		t.Fatalf("slice element pointer map key should preserve backing slice identity and index:\n%s", rust)
+	}
+}
+
+func TestPointerSliceStoresSliceElemPointerSlots(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+func collect(parts []string) []*byte {
+	out := make([]*byte, len(parts)+2)
+	first := new(byte)
+	buf := make([]byte, 4)
+	out[0] = first
+	out[1] = &buf[1]
+	return out
+}
+`)
+
+	if strings.Contains(rust, "Vec<Rc<RefCell<Option<u8>>>>") ||
+		strings.Contains(rust, "Vec<Arc<Mutex<Option<u8>>>>") {
+		t.Fatalf("pointer slice storing slice element addresses should not use local pointer handles:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Vec<GoPtr<u8>>") {
+		t.Fatalf("pointer slice storing slice element addresses should use pointer slots that preserve slice identity:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoPtr::local(first.clone())") {
+		t.Fatalf("pointer slice assignment should preserve ordinary pointer handles:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoPtr::slice_elem(GoSliceElemPtr::new(buf.clone(), (1) as usize))") {
+		t.Fatalf("pointer slice assignment should preserve backing slice identity and index:\n%s", rust)
+	}
+}
+
+func TestPointerSliceFromSpecializedReturnKeepsSlotRepresentation(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+func collect() []*byte {
+	out := make([]*byte, 1)
+	buf := make([]byte, 1)
+	out[0] = &buf[0]
+	return out
+}
+
+func use() []*byte {
+	p := new(byte)
+	out := collect()
+	out[0] = p
+	return out
+}
+`)
+
+	if strings.Contains(rust, "] = p.clone()") {
+		t.Fatalf("pointer slice returned with slice element slots should not receive ordinary pointer handles directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoPtr::local(p.clone())") {
+		t.Fatalf("pointer slice returned with slice element slots should wrap ordinary pointer handles:\n%s", rust)
+	}
+}
+
+func TestPointerSliceSpecializedReturnPropagatesToParam(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+func collect() []*byte {
+	out := make([]*byte, 1)
+	buf := make([]byte, 1)
+	out[0] = &buf[0]
+	return out
+}
+
+func consume(items []*byte) {
+}
+
+func use() {
+	items := collect()
+	consume(items)
+}
+`)
+
+	if strings.Contains(rust, "fn consume(items: Rc<RefCell<Option<Vec<Rc<RefCell<Option<u8") ||
+		strings.Contains(rust, "fn consume(items: Arc<Mutex<Option<Vec<Arc<Mutex<Option<u8") {
+		t.Fatalf("callee receiving a specialized pointer slice should not keep ordinary pointer-slice params:\n%s", rust)
+	}
+	if !strings.Contains(rust, "fn consume(items: Rc<RefCell<Option<Vec<GoPtr<u8>>>>>") &&
+		!strings.Contains(rust, "fn consume(items: Arc<Mutex<Option<Vec<GoPtr<u8>>>>>") {
+		t.Fatalf("callee receiving a specialized pointer slice should use GoPtr slots:\n%s", rust)
 	}
 }
 

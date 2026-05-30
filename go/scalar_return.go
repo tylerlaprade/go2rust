@@ -207,6 +207,33 @@ func writeFuncDeclResultTypes(out *strings.Builder, fn *ast.FuncDecl) {
 		out.WriteString(">>")
 		return
 	}
+	if info, ok := sliceElemPtrSliceReturnInfoForDeclObject(fn); ok {
+		if sig, ok := funcDeclSignatureFromTypeInfo(fn); ok && sig.Results() != nil && sig.Results().Len() > 0 {
+			results := sig.Results()
+			out.WriteString(" -> ")
+			if results.Len() == 1 {
+				if elemRustType, ok := info.resultElemRustTypes[0]; ok {
+					out.WriteString(sliceElemPtrSliceRustType(elemRustType))
+				} else {
+					out.WriteString(goTypesReturnTypeToRust(results.At(0).Type()))
+				}
+				return
+			}
+			out.WriteString("(")
+			for i := 0; i < results.Len(); i++ {
+				if i > 0 {
+					out.WriteString(", ")
+				}
+				if elemRustType, ok := info.resultElemRustTypes[i]; ok {
+					out.WriteString(sliceElemPtrSliceRustType(elemRustType))
+				} else {
+					out.WriteString(goTypesReturnTypeToRust(results.At(i).Type()))
+				}
+			}
+			out.WriteString(")")
+			return
+		}
+	}
 	if sig, ok := funcDeclSignatureFromTypeInfo(fn); ok && writeSignatureResultTypes(out, sig) {
 		return
 	}

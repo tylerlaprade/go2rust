@@ -2937,6 +2937,9 @@ func writePointerHandleCallArgument(out *strings.Builder, arg ast.Expr, expected
 	} else if !types.AssignableTo(actual, expected) {
 		return false
 	}
+	if writeUnsupportedSliceElemPointerHandleValue(out, arg, "slice element pointer cannot pass to writable pointer parameter") {
+		return true
+	}
 
 	switch e := arg.(type) {
 	case *ast.Ident:

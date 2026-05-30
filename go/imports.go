@@ -527,7 +527,7 @@ func (ht *HelperTracker) ImportNames() []string {
 		add("GoFile")
 	}
 	if ht.needsSliceElemPtr {
-		add("GoSliceElemPtr", "GoSliceElemRef", "GoSliceElemMutRef")
+		add("GoPtr", "GoSliceElemPtr", "GoSliceElemRef", "GoSliceElemMutRef")
 	}
 	if ht.needsGoTime {
 		add("GoTime", "go_time_civil_from_days")
@@ -2404,6 +2404,38 @@ impl<T: Clone> Drop for GoSliceElemMutRef<T> {
         }
     }
 }
+
+#[derive(Clone)]
+enum GoPtr<T: Clone> {
+    Nil,
+    Local(Arc<Mutex<Option<T>>>),
+    SliceElem(GoSliceElemPtr<T>),
+}
+
+impl<T: Clone> GoPtr<T> {
+    fn nil() -> Self {
+        GoPtr::Nil
+    }
+
+    fn local(value: Arc<Mutex<Option<T>>>) -> Self {
+        if value.lock().unwrap().is_none() {
+            GoPtr::Nil
+        } else {
+            GoPtr::Local(value)
+        }
+    }
+
+    fn slice_elem(value: GoSliceElemPtr<T>) -> Self {
+        GoPtr::SliceElem(value)
+    }
+
+    fn slice_elem_opt(value: Option<GoSliceElemPtr<T>>) -> Self {
+        match value {
+            Some(value) => GoPtr::SliceElem(value),
+            None => GoPtr::Nil,
+        }
+    }
+}
 `)
 	} else {
 		TrackImport("Rc")
@@ -2475,6 +2507,38 @@ impl<T: Clone> Drop for GoSliceElemMutRef<T> {
             if let Some(values) = self.slice.borrow_mut().as_mut() {
                 values[self.index] = value;
             }
+        }
+    }
+}
+
+#[derive(Clone)]
+enum GoPtr<T: Clone> {
+    Nil,
+    Local(Rc<RefCell<Option<T>>>),
+    SliceElem(GoSliceElemPtr<T>),
+}
+
+impl<T: Clone> GoPtr<T> {
+    fn nil() -> Self {
+        GoPtr::Nil
+    }
+
+    fn local(value: Rc<RefCell<Option<T>>>) -> Self {
+        if value.borrow().is_none() {
+            GoPtr::Nil
+        } else {
+            GoPtr::Local(value)
+        }
+    }
+
+    fn slice_elem(value: GoSliceElemPtr<T>) -> Self {
+        GoPtr::SliceElem(value)
+    }
+
+    fn slice_elem_opt(value: Option<GoSliceElemPtr<T>>) -> Self {
+        match value {
+            Some(value) => GoPtr::SliceElem(value),
+            None => GoPtr::Nil,
         }
     }
 }
