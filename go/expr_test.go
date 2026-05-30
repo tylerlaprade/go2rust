@@ -4258,6 +4258,29 @@ func (o *outer) mark() {
 	}
 }
 
+func TestPackageGlobalSyncOnceDoUnwrapsGlobal(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+var once sync.Once
+var count int
+
+func initOnce() {
+	once.Do(func() {
+		count++
+	})
+}
+`)
+
+	if strings.Contains(rust, "let __once = once.clone(); __once.r#do") {
+		t.Fatalf("package global sync.Once should not call Do on the wrapper handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __once = (*once.borrow().as_ref().unwrap()).clone(); __once.r#do") {
+		t.Fatalf("package global sync.Once should clone the stored GoOnce value before Do:\n%s", rust)
+	}
+}
+
 func TestStructLiteralFunctionFieldUsesMethodValueClosure(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

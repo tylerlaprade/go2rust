@@ -1670,6 +1670,13 @@ func isSyncOnceDoFuncLitCall(call *ast.CallExpr) bool {
 
 func writeSyncOnceReceiverClone(out *strings.Builder, receiver syncOnceReceiverInfo) {
 	if len(receiver.fields) == 0 {
+		if ident, ok := receiver.expr.(*ast.Ident); ok && isPackageGlobalObjectIdent(ident) {
+			out.WriteString("(*")
+			out.WriteString(rustPackageGlobalName(ident.Name))
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).clone()")
+			return
+		}
 		TranspileExpressionContext(out, receiver.expr, LValue)
 		out.WriteString(".clone()")
 		return
