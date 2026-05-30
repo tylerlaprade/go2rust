@@ -462,6 +462,72 @@ func isGoOrderedType(t types.Type) bool {
 	return info&types.IsInteger != 0 || info&types.IsFloat != 0 || info&types.IsString != 0
 }
 
+func goTypeParamSliceConstraintToRust(t types.Type) (string, bool) {
+	elem, ok := goTypeParamSliceConstraintElem(t)
+	if !ok {
+		return "", false
+	}
+	return "Vec<" + goTypesCollectionElemTypeToRust(elem) + ">", true
+}
+
+func goTypeParamSliceConstraintElem(t types.Type) (types.Type, bool) {
+	tp, ok := types.Unalias(t).(*types.TypeParam)
+	if !ok || tp.Constraint() == nil {
+		return nil, false
+	}
+	return constraintSliceElem(tp.Constraint())
+}
+
+func constraintSliceElem(t types.Type) (types.Type, bool) {
+	if t == nil {
+		return nil, false
+	}
+	switch u := types.Unalias(t).(type) {
+	case *types.Union:
+		var elem types.Type
+		for i := 0; i < u.Len(); i++ {
+			termElem, ok := constraintSliceElem(u.Term(i).Type())
+			if !ok {
+				return nil, false
+			}
+			if elem == nil {
+				elem = termElem
+				continue
+			}
+			if !types.Identical(types.Unalias(elem), types.Unalias(termElem)) {
+				return nil, false
+			}
+		}
+		if elem == nil {
+			return nil, false
+		}
+		return elem, true
+	case *types.Slice:
+		return types.Unalias(u.Elem()), true
+	default:
+		if iface, ok := types.Unalias(t).Underlying().(*types.Interface); ok {
+			var elem types.Type
+			for i := 0; i < iface.NumEmbeddeds(); i++ {
+				embeddedElem, ok := constraintSliceElem(iface.EmbeddedType(i))
+				if !ok {
+					return nil, false
+				}
+				if elem == nil {
+					elem = embeddedElem
+					continue
+				}
+				if !types.Identical(types.Unalias(elem), types.Unalias(embeddedElem)) {
+					return nil, false
+				}
+			}
+			if elem != nil {
+				return elem, true
+			}
+		}
+		return nil, false
+	}
+}
+
 func goTypeParamHasPointerConstraint(t types.Type) bool {
 	tp, ok := types.Unalias(t).(*types.TypeParam)
 	if !ok || tp.Constraint() == nil {
@@ -644,6 +710,12 @@ func GoTypeToRustParam(expr ast.Expr) string {
 }
 
 func GoTypeToRust(expr ast.Expr) string {
+	if typ, ok := typeInfoTypeForTypeExpr(expr); ok {
+		if rustType, ok := goTypeParamSliceConstraintToRust(typ); ok {
+			return goTypesWrappedRustType(rustType)
+		}
+	}
+
 	baseType := goTypeToRustBase(expr)
 
 	// Determine wrapper types based on concurrency needs
@@ -1560,6 +1632,9 @@ func goTypesConstTypeToRust(t types.Type) string {
 }
 
 func goTypesReturnTypeToRust(t types.Type) string {
+	if rustType, ok := goTypeParamSliceConstraintToRust(t); ok {
+		return goTypesWrappedRustType(rustType)
+	}
 	if typeIsPredeclaredCopyScalar(t) {
 		return goTypesTypeToRust(types.Unalias(t))
 	}
@@ -1691,6 +1766,10 @@ func rustTypeNameForImportedPackagePath(pkgPath, name string) (string, bool) {
 // goTypesTypeToRustWrapped converts a go/types.Type to the wrapped Rust type string
 func goTypesTypeToRustWrapped(t types.Type) string {
 	base := goTypesTypeToRust(t)
+	return goTypesWrappedRustType(base)
+}
+
+func goTypesWrappedRustType(base string) string {
 	outerWrapper := GetOuterWrapperType()
 	innerWrapper := GetInnerWrapperType()
 	trackWrapperImports()
@@ -1700,6 +1779,9 @@ func goTypesTypeToRustWrapped(t types.Type) string {
 func goTypesParamTypeToRust(t types.Type) string {
 	if interfaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(t); ok {
 		return rustLocalInterfaceParam(interfaceName)
+	}
+	if rustType, ok := goTypeParamSliceConstraintToRust(t); ok {
+		return goTypesWrappedRustType(rustType)
 	}
 	if _, ok := types.Unalias(t).Underlying().(*types.Pointer); ok {
 		return goTypesTypeToRust(t)

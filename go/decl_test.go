@@ -323,6 +323,24 @@ func Less[T Ordered](x, y T) bool {
 	}
 }
 
+func TestGenericSliceConstrainedParameterUsesSliceRepresentation(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func Len[S ~[]E, E any](s S) int {
+	return len(s)
+}
+`)
+
+	if strings.Contains(rust, "s: Rc<RefCell<Option<S>>>") ||
+		strings.Contains(rust, "s: Arc<Mutex<Option<S>>>") {
+		t.Fatalf("slice-constrained type parameter should not stay opaque in value parameter slots:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Vec<Rc<RefCell<Option<E>>>>") &&
+		!strings.Contains(rust, "Vec<Arc<Mutex<Option<E>>>>") {
+		t.Fatalf("slice-constrained type parameter should use the slice representation:\n%s", rust)
+	}
+}
+
 func TestGenericPointerConstraintTypeParamUsesCloneBound(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
