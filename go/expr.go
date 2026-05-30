@@ -1284,6 +1284,9 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 		if writeFunctionHandleCallArgument(out, arg, expectedArgType) {
 			return
 		}
+		if writeBareStructAliasCallArgument(out, arg, expectedArgType) {
+			return
+		}
 		if writeNamedSliceInnerHandleCallArgument(out, arg, expectedArgType) {
 			return
 		}
@@ -2720,6 +2723,14 @@ func writeFunctionHandleCallArgument(out *strings.Builder, arg ast.Expr, expecte
 		return false
 	}
 	return writeFunctionValueHandle(out, arg)
+}
+
+func writeBareStructAliasCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	if !typeIsRegisteredBareStructAlias(expected) {
+		return false
+	}
+	writeBareStructAliasValue(out, arg)
+	return true
 }
 
 func writePointerHandleCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
@@ -10073,6 +10084,12 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 							RustType:  rustType,
 							Source:    SourceParam,
 						})
+					} else if typeExprIsRegisteredBareStructAlias(field.Type) {
+						vt.Register(name.Name, &VarInfo{
+							WrapLevel: WrapNone,
+							RustType:  rustType,
+							Source:    SourceParam,
+						})
 					} else {
 						vt.Register(name.Name, &VarInfo{
 							WrapLevel: WrapFull,
@@ -13137,6 +13154,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					if writePointerHandleCallArgument(out, arg, expectedArgType) {
 						continue
 					}
+					if writeBareStructAliasCallArgument(out, arg, expectedArgType) {
+						continue
+					}
 					if writeNamedSliceInnerHandleCallArgument(out, arg, expectedArgType) {
 						continue
 					}
@@ -13775,6 +13795,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 
 				if writeFunctionHandleCallArgument(out, arg, expectedArgType) {
+					continue
+				}
+
+				if writeBareStructAliasCallArgument(out, arg, expectedArgType) {
 					continue
 				}
 

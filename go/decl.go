@@ -2337,6 +2337,12 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 							RustType:  rustType,
 							Source:    SourceParam,
 						})
+					} else if typeExprIsRegisteredBareStructAlias(field.Type) {
+						vt.Register(name.Name, &VarInfo{
+							WrapLevel: WrapNone,
+							RustType:  rustType,
+							Source:    SourceParam,
+						})
 					} else {
 						vt.Register(name.Name, &VarInfo{
 							WrapLevel: WrapFull,
@@ -5218,6 +5224,12 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 						})
 					} else if isSyncParam(field.Type) {
 						// sync.WaitGroup / sync.Mutex parameters are bare
+						vt.Register(name.Name, &VarInfo{
+							WrapLevel: WrapNone,
+							RustType:  rustType,
+							Source:    SourceParam,
+						})
+					} else if typeExprIsRegisteredBareStructAlias(field.Type) {
 						vt.Register(name.Name, &VarInfo{
 							WrapLevel: WrapNone,
 							RustType:  rustType,

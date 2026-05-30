@@ -3519,6 +3519,13 @@ func returnResultTypeExpr(fnType *ast.FuncType, index int) ast.Expr {
 	return nil
 }
 
+func writeBareStructAliasValue(out *strings.Builder, expr ast.Expr) {
+	if writeOwnedExpressionValue(out, expr) {
+		return
+	}
+	TranspileExpression(out, expr)
+}
+
 func writeNamedSliceInnerHandleReturnValue(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
 	return writeNamedSliceInnerHandleForExpectedType(out, result, expectedTypeFromParamExpr(expected))
 }
@@ -7605,6 +7612,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				} else if writeEmptyInterfaceReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
 				} else if writeNamedSliceInnerHandleReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
 				} else if writeNamedSliceWrappedReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
+				} else if resultType := returnResultTypeExpr(fnType, i); typeExprIsRegisteredBareStructAlias(resultType) {
+					writeBareStructAliasValue(out, result)
 				} else if resultType := returnResultTypeExpr(fnType, i); resultTypeExprIsBareScalar(resultType) {
 					writeBareScalarReturnValue(out, result, resultType)
 				} else {

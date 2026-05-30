@@ -3295,6 +3295,38 @@ func main() {
 	}
 }
 
+func TestLocalStructAliasFuncLiteralUsesBareParamsReturnsAndArgs(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func wrap(words []int) int64 {
+	type score struct {
+		hi int64
+		lo int64
+	}
+	add := func(s, t score) score {
+		return score{s.hi + t.hi, s.lo + t.lo}
+	}
+	f := []score{{0, 0}}
+	g := func(i int) score {
+		return add(f[i], score{1, 2})
+	}
+	return g(0).hi
+}
+`)
+
+	if strings.Contains(rust, "s.borrow()") || strings.Contains(rust, "s.lock()") {
+		t.Fatalf("local struct alias closure params should be bare struct values:\n%s", rust)
+	}
+	if strings.Contains(rust, "Rc::new(RefCell::new(Some(score") ||
+		strings.Contains(rust, "Arc::new(Mutex::new(Some(score") {
+		t.Fatalf("local struct alias closure returns should not wrap bare score values:\n%s", rust)
+	}
+	if strings.Contains(rust, "Rc::new(RefCell::new(Some({ let __seq") ||
+		strings.Contains(rust, "Arc::new(Mutex::new(Some({ let __seq") {
+		t.Fatalf("local struct alias function arguments should pass indexed score values bare:\n%s", rust)
+	}
+}
+
 func TestFindStructFieldExprUsesRustCasedFallback(t *testing.T) {
 	structType := &ast.StructType{Fields: &ast.FieldList{List: []*ast.Field{
 		{

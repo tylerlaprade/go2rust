@@ -72,6 +72,43 @@ func resultTypeExprIsBareScalar(expr ast.Expr) bool {
 	return typeIsPredeclaredCopyScalar(t)
 }
 
+func typeExprIsRegisteredBareStructAlias(expr ast.Expr) bool {
+	t, ok := resultTypeExprType(expr)
+	if !ok {
+		return false
+	}
+	return typeIsRegisteredBareStructAlias(t)
+}
+
+func typeIsRegisteredBareStructAlias(t types.Type) bool {
+	if t == nil {
+		return false
+	}
+	var name string
+	var underlying types.Type
+	switch typ := t.(type) {
+	case *types.Named:
+		if typ.Obj() == nil {
+			return false
+		}
+		name = typ.Obj().Name()
+		underlying = typ.Underlying()
+	case *types.Alias:
+		if typ.Obj() == nil {
+			return false
+		}
+		name = typ.Obj().Name()
+		underlying = types.Unalias(typ).Underlying()
+	default:
+		return false
+	}
+	if !IsTypeAlias(name) {
+		return false
+	}
+	_, ok := underlying.(*types.Struct)
+	return ok
+}
+
 // GoReturnTypeToRust emits the Rust type used at a function return boundary.
 // This differs from GoTypeToRust for predeclared Copy scalars: internally the
 // variable may still be a wrapper slot, but callers receive the scalar value.
