@@ -321,6 +321,13 @@ func (sp *StatementPreprocessor) GenerateCloneStatements(out *strings.Builder, i
 	sort.Strings(varNames)
 
 	// Generate clone statements
+	assignedCaptured := make(map[string]bool)
+	for _, closure := range info.Closures {
+		captured := sp.CapturedVarsForFuncLit(closure)
+		for name := range directlyAssignedCapturedVarsForFuncLit(closure, captured) {
+			assignedCaptured[name] = true
+		}
+	}
 	for _, varName := range varNames {
 		cloneName := info.CapturedVars[varName]
 		sourceName := varName
@@ -334,7 +341,7 @@ func (sp *StatementPreprocessor) GenerateCloneStatements(out *strings.Builder, i
 		}
 
 		out.WriteString("let ")
-		if capturesReceiver {
+		if capturesReceiver || assignedCaptured[varName] {
 			out.WriteString("mut ")
 		}
 		out.WriteString(RustLocalIdent(cloneName))

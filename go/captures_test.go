@@ -491,6 +491,77 @@ func infer(u *unifier, tparams []*TypeParam) int {
 	}
 }
 
+func TestFuncLitAssignedPointerCaptureCloneIsMutable(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func use(fn func(*int) bool) {}
+
+func core(single *int) *int {
+	use(func(t *int) bool {
+		single = t
+		return true
+	})
+	return single
+}
+`)
+
+	if strings.Contains(rust, "let single_closure_clone = single.clone();") {
+		t.Fatalf("assigned captured pointer clone should not be immutable:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut single_closure_clone = single.clone();") {
+		t.Fatalf("assigned captured pointer clone should be mutable:\n%s", rust)
+	}
+}
+
+func TestDirectlyAssignedCapturedVarsIncludesPointerAssignment(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+func use(fn func(*int) bool) {}
+
+func core(single *int) *int {
+	use(func(t *int) bool {
+		single = t
+		return true
+	})
+	return single
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	SetTypeInfo(typeInfo)
+	defer SetTypeInfo(nil)
+
+	var funcLit *ast.FuncLit
+	ast.Inspect(file, func(n ast.Node) bool {
+		if funcLit != nil {
+			return false
+		}
+		if node, ok := n.(*ast.FuncLit); ok {
+			funcLit = node
+			return false
+		}
+		return true
+	})
+	if funcLit == nil {
+		t.Fatal("did not find closure")
+	}
+
+	captured := capturedVarsForFuncLit(funcLit)
+	if !captured["single"] {
+		t.Fatalf("closure should capture single, got %#v", captured)
+	}
+	assigned := directlyAssignedCapturedVarsForFuncLit(funcLit, captured)
+	if !assigned["single"] {
+		t.Fatalf("closure should mark single as directly assigned, got %#v", assigned)
+	}
+}
+
 func TestReceiverMethodFuncLitArgUsesReceiverTemp(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
