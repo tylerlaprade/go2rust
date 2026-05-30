@@ -9765,13 +9765,20 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 	// Build capture renames but don't generate clones here
 	// The clones need to be generated at the statement level
 	captureRenames := make(map[string]string)
+	inlineCaptureSources := make(map[string]string)
+	var inlineCaptures []string
 	for varName := range captured {
 		// Check if we already have renames set up (e.g., from defer)
 		// This allows statement-level handlers to pre-configure renames
 		if currentCaptureRenames != nil {
 			if existingRename, exists := currentCaptureRenames[varName]; exists && existingRename != "" {
-				// Use the existing rename
-				captureRenames[varName] = existingRename
+				if forceInnerFuncLitCaptureClones && existingRename != varName {
+					captureRenames[varName] = existingRename + "_closure_clone"
+					inlineCaptureSources[varName] = existingRename
+					inlineCaptures = append(inlineCaptures, varName)
+				} else {
+					captureRenames[varName] = existingRename
+				}
 			} else {
 				// No existing rename for this variable, use identity
 				captureRenames[varName] = varName
@@ -9782,8 +9789,10 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 		}
 	}
 
-	var inlineCaptures []string
 	for varName := range captured {
+		if _, exists := inlineCaptureSources[varName]; exists {
+			continue
+		}
 		rename := captureRenames[varName]
 		if rename != "" && rename != varName {
 			continue
@@ -9803,7 +9812,9 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 			}
 			out.WriteString(RustLocalIdent(captureRenames[varName]))
 			out.WriteString(" = ")
-			if capturesReceiver {
+			if sourceName, exists := inlineCaptureSources[varName]; exists {
+				out.WriteString(RustLocalIdent(sourceName))
+			} else if capturesReceiver {
 				out.WriteString("(*self)")
 			} else {
 				out.WriteString(RustLocalIdent(varName))
@@ -13164,7 +13175,16 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		} else if methodReceiverExpressionNeedsUnwrap(sel.X) {
 			needsMut := methodCallNeedsMutableReceiver(sel)
 			out.WriteString("{ let __recv = ")
+			restoreForceInnerClones := func() {}
+			if _, ok := sel.X.(*ast.CallExpr); ok {
+				prevForceInnerClones := forceInnerFuncLitCaptureClones
+				forceInnerFuncLitCaptureClones = true
+				restoreForceInnerClones = func() {
+					forceInnerFuncLitCaptureClones = prevForceInnerClones
+				}
+			}
 			TranspileExpression(out, sel.X)
+			restoreForceInnerClones()
 			out.WriteString("; let __result = (*__recv")
 			WriteBorrowMethod(out, needsMut)
 			if needsMut {

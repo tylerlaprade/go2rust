@@ -62,6 +62,10 @@ var currentLoopDepth int
 // currentCaptureRenames tracks variable renames for captured variables in closures
 var currentCaptureRenames map[string]string
 
+// forceInnerFuncLitCaptureClones tells function literals to clone existing
+// statement-level capture clones before moving them into the closure.
+var forceInnerFuncLitCaptureClones bool
+
 func snapshotCaptureRenames() map[string]string {
 	if currentCaptureRenames == nil {
 		return nil

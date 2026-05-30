@@ -364,6 +364,40 @@ func deleteLike(m *Map) {
 	}
 }
 
+func TestStatementFuncLitUsesInnerClonesForOuterCallChainCaptures(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type action struct{}
+
+func (a *action) describef(pos int) {}
+
+type Checker struct{}
+
+func (check *Checker) later(fn func()) *action {
+	return &action{}
+}
+
+func (check *Checker) verify(pos int) {}
+
+func (check *Checker) run(pos int) {
+	check.later(func() {
+		check.verify(pos)
+	}).describef(pos)
+}
+`)
+
+	if !strings.Contains(rust, "let mut check_closure_clone_closure_clone = check_closure_clone.clone();") {
+		t.Fatalf("statement function literal should clone receiver capture for the moved closure:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let pos_closure_clone_closure_clone = pos_closure_clone.clone();") {
+		t.Fatalf("statement function literal should clone parameter capture for the moved closure:\n%s", rust)
+	}
+	if strings.Contains(rust, "Box::new(move || {\n        check_closure_clone.verify") ||
+		strings.Contains(rust, "Box::new(move || {\n        let __method_arg0 = pos_closure_clone.clone()") {
+		t.Fatalf("moved closure should use inner clones, not the outer call-chain clones:\n%s", rust)
+	}
+}
+
 func TestIfConditionFuncLitAssignedCaptureCloneIsMutable(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
