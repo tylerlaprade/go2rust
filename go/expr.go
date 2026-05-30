@@ -3904,7 +3904,18 @@ func writeGoErrorEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 		return false
 	}
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !isGoErrorType(typeInfo.GetType(expr.X)) || !isGoErrorType(typeInfo.GetType(expr.Y)) {
+	if typeInfo == nil {
+		return false
+	}
+	leftType := typeInfo.GetType(expr.X)
+	rightType := typeInfo.GetType(expr.Y)
+	if isGoErrorType(leftType) && isConcreteGoErrorValue(rightType) {
+		return writeGoErrorConcreteEquality(out, expr.X, expr.Y, rightType, expr.Op)
+	}
+	if isConcreteGoErrorValue(leftType) && isGoErrorType(rightType) {
+		return writeGoErrorConcreteEquality(out, expr.Y, expr.X, leftType, expr.Op)
+	}
+	if !isGoErrorType(leftType) || !isGoErrorType(rightType) {
 		return false
 	}
 	writeGoErrorNilState(out, expr.X)
@@ -3914,6 +3925,49 @@ func writeGoErrorEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 		out.WriteString(" != ")
 	}
 	writeGoErrorNilState(out, expr.Y)
+	return true
+}
+
+func writeGoErrorConcreteEquality(out *strings.Builder, errorExpr ast.Expr, concreteExpr ast.Expr, concreteType types.Type, op token.Token) bool {
+	if op != token.EQL && op != token.NEQ {
+		return false
+	}
+	if !isConstantExpression(concreteExpr) {
+		return false
+	}
+	named, ok := types.Unalias(concreteType).(*types.Named)
+	if !ok || !isNamedIntegerType(named) {
+		return false
+	}
+	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
+	if !ok || !isIntegerBasicKind(basic.Kind()) {
+		return false
+	}
+	rustType, ok := rustCastTypeForDefinedUnderlying(basic.Name())
+	if !ok {
+		return false
+	}
+	out.WriteString("{ let __err_holder = ")
+	TranspileExpressionContext(out, errorExpr, LValue)
+	out.WriteString(".clone(); let __err_guard = __err_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __matched = __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<")
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString(">()).map(|__e| *__e.0")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap() == (")
+	if !writeConstExpressionWithRustIntegerOperands(out, concreteExpr, rustType) {
+		TranspileConstExpr(out, concreteExpr, 0)
+	}
+	out.WriteString(" as ")
+	out.WriteString(rustType)
+	out.WriteString(")).unwrap_or(false); ")
+	if op == token.NEQ {
+		out.WriteString("!__matched")
+	} else {
+		out.WriteString("__matched")
+	}
+	out.WriteString(" }")
 	return true
 }
 

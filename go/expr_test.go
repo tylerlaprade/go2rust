@@ -4429,6 +4429,31 @@ func main() {
 	}
 }
 
+func TestErrorComparedWithNamedIntegerConstDowncastsConcreteError(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Errno uintptr
+
+const EINTR = Errno(4)
+
+func (e Errno) Error() string { return "" }
+
+func retry(err error) bool {
+	return err != EINTR
+}
+`)
+
+	if strings.Contains(rust, "!= E_I_N_T_R") {
+		t.Fatalf("error comparison should not compare boxed error directly with raw const:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".downcast_ref::<Errno>()") {
+		t.Fatalf("error comparison should downcast to the concrete named error type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "!__matched") {
+		t.Fatalf("not-equal error comparison should negate the downcast match:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoTrackedSliceIndexDoesNotUseStringPath(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
