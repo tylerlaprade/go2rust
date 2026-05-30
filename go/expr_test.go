@@ -4240,6 +4240,11 @@ func count[T int8 | int16 | int32 | int64 | int, N int64 | uint64](num N) int {
 		strings.Contains(rust, "(*(*num.lock().unwrap().as_ref().unwrap()).lock()") {
 		t.Fatalf("type-parameter conversion in comparison should not double-unwrap the converted value:\n%s", rust)
 	}
+	if strings.Contains(rust, "go_integer_cast::<T, _>(") &&
+		(strings.Contains(rust, "go_integer_cast::<T, _>((*num.borrow().as_ref().unwrap())).borrow()") ||
+			strings.Contains(rust, "go_integer_cast::<T, _>((*num.lock().unwrap().as_ref().unwrap())).lock()")) {
+		t.Fatalf("type-parameter conversion in comparison should be used as a raw converted value:\n%s", rust)
+	}
 }
 
 func TestNumericTypeParamConversionForLoopUsesIntegerTrait(t *testing.T) {

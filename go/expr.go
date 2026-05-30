@@ -4462,6 +4462,9 @@ func writeTypeParamComparisonOperand(out *strings.Builder, expr ast.Expr) bool {
 	if !isTypeParamExpression(expr) {
 		return false
 	}
+	if call, ok := expr.(*ast.CallExpr); ok && writeIntegerTypeParamConversion(out, call) {
+		return true
+	}
 	out.WriteString("(*")
 	TranspileExpressionContext(out, expr, LValue)
 	WriteBorrowMethod(out, false)
