@@ -13486,6 +13486,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					if writePointerHandleCallArgument(out, arg, expectedArgType) {
 						continue
 					}
+					if writeFunctionHandleCallArgument(out, arg, expectedArgType) {
+						continue
+					}
 					if writeTypeParamHandleCallArgument(out, arg, expectedArgType) {
 						continue
 					}

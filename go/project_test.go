@@ -251,6 +251,62 @@ func use(items []item, x int) int {
 	}
 }
 
+func TestImportedGenericSelectorCallWrapsFunctionIdentifierArgument(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+func Search[S ~[]E, E any, T any](x S, target T, cmp func(E, T) int) (int, bool) {
+	if len(x) > 0 {
+		return cmp(x[0], target), false
+	}
+	return 0, false
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+type item struct {
+	offset int
+}
+
+func compare(a item, x int) int {
+	return a.offset - x
+}
+
+func use(items []item, x int) int {
+	i, _ := dep.Search(items, x, compare)
+	return i
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "Some(compare)") {
+		t.Fatalf("function identifier argument should be boxed as a function value, not stored as a raw function item:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "Box::new(move |__arg0:") || !strings.Contains(mainRS, "compare(__arg0, __arg1)") {
+		t.Fatalf("function identifier argument should lower through a boxed closure:\n%s", mainRS)
+	}
+}
+
 func TestExternalInterfaceCaseImplementsLocalInterfaceForTraitObject(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
