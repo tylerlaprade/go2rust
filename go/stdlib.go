@@ -5435,6 +5435,9 @@ func transpileTimeNow(out *strings.Builder, call *ast.CallExpr) {
 
 func transpileTimeUnix(out *strings.Builder, call *ast.CallExpr) {
 	NeedGoTime()
+	if writeTimeUnixExpandedMultiResult(out, call) {
+		return
+	}
 	WriteWrapperPrefix(out)
 	out.WriteString("GoTime::from_unix(")
 	if len(call.Args) > 0 {
@@ -5450,6 +5453,24 @@ func transpileTimeUnix(out *strings.Builder, call *ast.CallExpr) {
 	}
 	out.WriteString(" as i64)")
 	out.WriteString(")))")
+}
+
+func writeTimeUnixExpandedMultiResult(out *strings.Builder, call *ast.CallExpr) bool {
+	sig, ok := callSignatureFromTypeInfo(call)
+	if !ok || sig == nil || sig.Params() == nil || sig.Variadic() || sig.Params().Len() != 2 {
+		return false
+	}
+	inner, innerSig, ok := singleMultiResultCallArgumentForParams(call, sig.Params())
+	if !ok || innerSig == nil || innerSig.Results() == nil || innerSig.Results().Len() != 2 {
+		return false
+	}
+
+	WriteWrapperPrefix(out)
+	out.WriteString("{ ")
+	writeExpandedMultiResultArgBinding(out, inner, innerSig.Results())
+	out.WriteString("GoTime::from_unix(__multi_arg_0 as i64, __multi_arg_1 as i64) }")
+	out.WriteString(")))")
+	return true
 }
 
 func transpileTimeAfter(out *strings.Builder, call *ast.CallExpr) {

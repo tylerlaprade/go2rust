@@ -15384,17 +15384,9 @@ func writeIdentFunctionCallWithExpandedMultiResultArg(out *strings.Builder, call
 		return false
 	}
 
-	out.WriteString("{ let (")
 	results := innerSig.Results()
-	for i := 0; i < results.Len(); i++ {
-		if i > 0 {
-			out.WriteString(", ")
-		}
-		out.WriteString(fmt.Sprintf("__multi_arg_%d", i))
-	}
-	out.WriteString(") = ")
-	TranspileExpression(out, inner)
-	out.WriteString("; ")
+	out.WriteString("{ ")
+	writeExpandedMultiResultArgBinding(out, inner, results)
 	out.WriteString(rustFunctionNameForUse(ident.Name))
 	writeInferredCallTypeArgs(out, ident)
 	out.WriteString("(")
@@ -15410,32 +15402,49 @@ func writeIdentFunctionCallWithExpandedMultiResultArg(out *strings.Builder, call
 }
 
 func singleMultiResultCallArgument(call *ast.CallExpr) (*ast.CallExpr, *types.Signature, *types.Signature, bool) {
-	if call == nil || len(call.Args) != 1 {
-		return nil, nil, nil, false
-	}
-	inner, ok := unwrapParens(call.Args[0]).(*ast.CallExpr)
-	if !ok {
-		return nil, nil, nil, false
-	}
 	outerSig, ok := callSignatureFromTypeInfo(call)
 	if !ok || outerSig == nil || outerSig.Params() == nil || outerSig.Variadic() {
 		return nil, nil, nil, false
 	}
+	inner, innerSig, ok := singleMultiResultCallArgumentForParams(call, outerSig.Params())
+	return inner, outerSig, innerSig, ok
+}
+
+func singleMultiResultCallArgumentForParams(call *ast.CallExpr, params *types.Tuple) (*ast.CallExpr, *types.Signature, bool) {
+	if call == nil || params == nil || len(call.Args) != 1 {
+		return nil, nil, false
+	}
+	inner, ok := unwrapParens(call.Args[0]).(*ast.CallExpr)
+	if !ok {
+		return nil, nil, false
+	}
 	innerSig, ok := callSignatureFromTypeInfo(inner)
 	if !ok || innerSig == nil || innerSig.Results() == nil {
-		return nil, nil, nil, false
+		return nil, nil, false
 	}
-	params := outerSig.Params()
 	results := innerSig.Results()
 	if params.Len() == 0 || params.Len() != results.Len() {
-		return nil, nil, nil, false
+		return nil, nil, false
 	}
 	for i := 0; i < params.Len(); i++ {
 		if !types.AssignableTo(results.At(i).Type(), params.At(i).Type()) {
-			return nil, nil, nil, false
+			return nil, nil, false
 		}
 	}
-	return inner, outerSig, innerSig, true
+	return inner, innerSig, true
+}
+
+func writeExpandedMultiResultArgBinding(out *strings.Builder, inner *ast.CallExpr, results *types.Tuple) {
+	out.WriteString("let (")
+	for i := 0; i < results.Len(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(fmt.Sprintf("__multi_arg_%d", i))
+	}
+	out.WriteString(") = ")
+	TranspileExpression(out, inner)
+	out.WriteString("; ")
 }
 
 func writeExpandedMultiResultArgSlot(out *strings.Builder, inner *ast.CallExpr, index int, expected types.Type) {

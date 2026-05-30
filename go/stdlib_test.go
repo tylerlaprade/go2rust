@@ -164,6 +164,33 @@ func build() string {
 	}
 }
 
+func TestTimeUnixExpandsMultiResultArgument(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "time"
+
+type stamp struct{}
+
+func (stamp) Unix() (int64, int64) {
+	return 7, 9
+}
+
+func convert(s stamp) time.Time {
+	return time.Unix(s.Unix())
+}
+`)
+
+	if strings.Contains(rust, ".unix().borrow()") || strings.Contains(rust, ".unix().lock()") {
+		t.Fatalf("time.Unix should not unwrap a multi-result call as a single wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let (__multi_arg_0, __multi_arg_1) =") {
+		t.Fatalf("time.Unix should bind the multi-result argument before expansion:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoTime::from_unix(__multi_arg_0 as i64, __multi_arg_1 as i64)") {
+		t.Fatalf("time.Unix should pass expanded result slots as scalar arguments:\n%s", rust)
+	}
+}
+
 func TestFmtSprintfPrecisionGAndSignedDecimalVerbs(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
