@@ -214,7 +214,7 @@ impl Ord for ast_Expr {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct ExprList(pub Arc<Mutex<Option<Vec<ast_Expr>>>>);
 
 
