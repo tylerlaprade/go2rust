@@ -3562,11 +3562,11 @@ func writeLocalInterfaceHandleClone(out *strings.Builder, expr ast.Expr) {
 	out.WriteString(".clone()")
 }
 
-func writeLocalInterfaceSliceElementValue(out *strings.Builder, expr ast.Expr, elemType types.Type) bool {
-	if elemType == nil {
+func writeLocalInterfaceWrappedValue(out *strings.Builder, expr ast.Expr, expectedType types.Type) bool {
+	if expectedType == nil {
 		return false
 	}
-	ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(elemType)
+	ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(expectedType)
 	if !ok {
 		return false
 	}
@@ -3592,15 +3592,19 @@ func writeLocalInterfaceSliceElementValue(out *strings.Builder, expr ast.Expr, e
 		writeLocalInterfaceHandleClone(out, expr)
 		return true
 	}
-	if types.AssignableTo(exprType, elemType) {
+	if types.AssignableTo(exprType, expectedType) {
 		WriteWrapperPrefix(out)
-		if !writeConcreteLocalInterfaceValue(out, expr, elemType, ifaceName) {
+		if !writeConcreteLocalInterfaceValue(out, expr, expectedType, ifaceName) {
 			return false
 		}
 		WriteWrapperSuffix(out)
 		return true
 	}
 	return false
+}
+
+func writeLocalInterfaceSliceElementValue(out *strings.Builder, expr ast.Expr, elemType types.Type) bool {
+	return writeLocalInterfaceWrappedValue(out, expr, elemType)
 }
 
 func transpileAppend(out *strings.Builder, call *ast.CallExpr) {

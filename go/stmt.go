@@ -3202,6 +3202,9 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 	if writeStdlibInterfaceCallArgumentConversion(out, expr, valueType) {
 		return
 	}
+	if writeLocalInterfaceWrappedValue(out, expr, valueType) {
+		return
+	}
 	if writeFunctionMapValue(out, expr, nil, valueType) {
 		return
 	}

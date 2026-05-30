@@ -1034,6 +1034,39 @@ func (a nodeQueue) Swap(i, j int) {
 	}
 }
 
+func TestMapInterfaceValueAssignmentKeepsHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type interface {
+	typ()
+}
+
+type Expr interface {
+	expr()
+}
+
+type basic struct{}
+func (*basic) typ() {}
+
+type ident struct{}
+func (*ident) expr() {}
+
+func remember(seen map[Type]Expr, typ Type, nodes []Expr) {
+	for _, node := range nodes {
+		seen[typ] = node
+	}
+}
+`)
+
+	if strings.Contains(rust, "Some((*node).clone())") {
+		t.Fatalf("interface map value assignment should not wrap an existing interface handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __map_value = node.clone();") &&
+		!strings.Contains(rust, "let __map_value = (*node).clone();") {
+		t.Fatalf("interface map value assignment should store the existing interface handle:\n%s", rust)
+	}
+}
+
 func TestReturnLocalInterfaceMapValueKeepsHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
