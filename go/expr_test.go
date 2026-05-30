@@ -1042,6 +1042,28 @@ func runes(s string) []rune {
 	}
 }
 
+func TestStringRangeRuneComparisonWithRuneVariableCastsToGoRune(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func hasQuote(s string) bool {
+	var quote rune
+	for _, c := range s {
+		if c == quote {
+			return true
+		}
+	}
+	return false
+}
+`)
+
+	if strings.Contains(rust, "let __tmp_x = c;") || strings.Contains(rust, "if c == (*quote") {
+		t.Fatalf("comparison with rune variable should not compare Rust char directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "c as i32") {
+		t.Fatalf("comparison with rune variable should cast string range char to Go rune:\n%s", rust)
+	}
+}
+
 func TestAppendNamedIntegerConstToNamedSliceWrapsElement(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

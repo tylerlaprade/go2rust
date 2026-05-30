@@ -563,6 +563,48 @@ func scan(mapping func(rune) rune, s string) int {
 	}
 }
 
+func TestStringRangeRuneAssignmentToRuneVariableCastsToGoRune(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func lastRune(s string) rune {
+	var out rune
+	for _, c := range s {
+		out = c
+	}
+	return out
+}
+`)
+
+	if strings.Contains(rust, "let new_val = c;") {
+		t.Fatalf("assignment to rune variable should not store Rust char directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = c as i32;") {
+		t.Fatalf("assignment to rune variable should cast string range char to Go rune:\n%s", rust)
+	}
+}
+
+func TestStringRangeRuneAssignmentToRuneSliceElementCastsToGoRune(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func runes(s string) []rune {
+	out := make([]rune, len(s))
+	i := 0
+	for _, c := range s {
+		out[i] = c
+		i++
+	}
+	return out
+}
+`)
+
+	if strings.Contains(rust, "] = c") && !strings.Contains(rust, "] = c as i32") {
+		t.Fatalf("assignment to []rune element should not store Rust char directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "] = c as i32") {
+		t.Fatalf("assignment to []rune element should cast string range char to Go rune:\n%s", rust)
+	}
+}
+
 func TestIfInitShortDeclDoesNotLeakPastIf(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

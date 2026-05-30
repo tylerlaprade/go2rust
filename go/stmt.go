@@ -571,6 +571,9 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 			return
 		}
 	}
+	if expected != nil && writeRangeCharForExpectedType(out, rhs, expected) {
+		return
+	}
 
 	if ident, ok := rhs.(*ast.Ident); ok {
 		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && varType == "usize" {
@@ -879,6 +882,14 @@ func writeRangeIndexAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.
 		}
 	}
 	return writeRangeIndexForExpectedType(out, rhs, expected)
+}
+
+func writeRangeCharAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	return writeRangeCharForExpectedType(out, rhs, assignmentTargetType(typeInfo, lhs))
 }
 
 func writePointerArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, expected types.Type) bool {
@@ -9226,6 +9237,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												// Byte constants assigned to byte slots need the same go/types context as call arguments.
 											} else if writeRangeIndexAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
 												// Range indexes emit usize, but Go int assignment targets use i32.
+											} else if writeRangeCharAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
+												// String range runes are Rust char but Go rune targets are i32.
 											} else if writeOwnedRangeValue(out, rhsIdent) {
 												// Reference-style range values must be cloned into ordinary wrapped assignment targets.
 											} else {
@@ -9357,6 +9370,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											// Byte constants assigned to byte slots need the same go/types context as call arguments.
 										} else if writeRangeIndexAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
 											// Range indexes emit usize, but Go int assignment targets use i32.
+										} else if writeRangeCharAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
+											// String range runes are Rust char but Go rune targets are i32.
 										} else if rhsIdent, ok := s.Rhs[0].(*ast.Ident); ok && writeOwnedRangeValue(out, rhsIdent) {
 											// Reference-style range values must be cloned into ordinary wrapped assignment targets.
 										} else if writeOwnedExpressionValue(out, s.Rhs[0]) {
