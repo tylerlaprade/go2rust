@@ -5047,7 +5047,11 @@ func writeTupleAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName st
 		out.WriteString(" ")
 		out.WriteString(rustIdentForUseWithCapture(ident))
 		out.WriteString(" = ")
-		out.WriteString(tmpName)
+		if tupleTempNeedsUnwrapForBareAssignment(lhs, tmpBareScalar) {
+			writeClonedTupleTempInner(out, tmpName)
+		} else {
+			out.WriteString(tmpName)
+		}
 		out.WriteString(";")
 		return
 	}
@@ -5060,6 +5064,22 @@ func writeTupleAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName st
 		return
 	}
 	writeMoveWrappedInnerAssignmentFromTemp(out, lhs, tmpName)
+}
+
+func tupleTempNeedsUnwrapForBareAssignment(lhs ast.Expr, tmpBareScalar bool) bool {
+	if tmpBareScalar {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && typeInfo.IsString(lhs)
+}
+
+func writeClonedTupleTempInner(out *strings.Builder, tmpName string) {
+	out.WriteString("{ let __tmp_holder = ")
+	out.WriteString(tmpName)
+	out.WriteString(".clone(); let __tmp_guard = __tmp_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; (*__tmp_guard.as_ref().unwrap()).clone() }")
 }
 
 func writeTempAssignmentTargetRef(out *strings.Builder, lhs ast.Expr) {

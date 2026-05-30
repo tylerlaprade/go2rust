@@ -2838,6 +2838,34 @@ func caller(s string) {
 	}
 }
 
+func TestTupleAssignmentToBareRangeStringUnwrapsWrappedTemp(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func expand(s string) (string, bool) {
+	return s, true
+}
+
+func caller(args []string) []string {
+	ok := true
+	for i, arg := range args {
+		arg, ok = expand(arg)
+		if !ok {
+			return args
+		}
+		args[i] = arg
+	}
+	return args
+}
+`)
+
+	if strings.Contains(rust, "arg = __tmp_0;") {
+		t.Fatalf("tuple assignment to a bare range string should not store the wrapped temp handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "arg = { let __tmp_holder = __tmp_0.clone();") {
+		t.Fatalf("tuple assignment to a bare range string should unwrap the temp into the bare local:\n%s", rust)
+	}
+}
+
 func TestBareScalarAssignmentFromWrappedLocalUnwrapsRHS(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
