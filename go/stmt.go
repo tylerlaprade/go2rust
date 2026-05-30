@@ -3363,16 +3363,39 @@ func writeSliceHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr
 		}
 	}
 	out.WriteString("{ let new_val = ")
-	switch rhs.(type) {
-	case *ast.Ident, *ast.SelectorExpr:
-		TranspileExpressionContext(out, rhs, LValue)
-		out.WriteString(".clone()")
-	default:
-		TranspileExpression(out, rhs)
+	if writePointerDerefSliceHandleClone(out, rhs, typeInfo) {
+		// Pointer-to-slice dereference is represented by the same slice handle.
+	} else {
+		switch rhs.(type) {
+		case *ast.Ident, *ast.SelectorExpr:
+			TranspileExpressionContext(out, rhs, LValue)
+			out.WriteString(".clone()")
+		default:
+			TranspileExpression(out, rhs)
+		}
 	}
 	out.WriteString("; ")
 	writePointerHandleAssignmentTarget(out, lhs)
 	out.WriteString(" = new_val; }")
+	return true
+}
+
+func writePointerDerefSliceHandleClone(out *strings.Builder, rhs ast.Expr, typeInfo *TypeInfo) bool {
+	star, ok := unwrapParens(rhs).(*ast.StarExpr)
+	if !ok {
+		return false
+	}
+	starType := typeInfo.GetType(star)
+	operandType := typeInfo.GetType(star.X)
+	if starType == nil || operandType == nil {
+		out.WriteString(`unimplemented!("type info required for pointer slice assignment")`)
+		return true
+	}
+	if !pointerDerefTargetsSequence(starType, operandType) {
+		return false
+	}
+	TranspileExpressionContext(out, star.X, LValue)
+	out.WriteString(".clone()")
 	return true
 }
 

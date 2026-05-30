@@ -3132,6 +3132,32 @@ func load(v any) []*Type {
 	}
 }
 
+func TestSliceAssignmentFromPointerDerefClonesPointeeHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Iovec struct{}
+
+type file struct {
+	iovecs *[]Iovec
+}
+
+func use(f *file) {
+	var iovecs []Iovec
+	if f.iovecs != nil {
+		iovecs = *f.iovecs
+	}
+	_ = iovecs
+}
+`)
+
+	if strings.Contains(rust, "let __v = (*") && strings.Contains(rust, "iovecs = new_val") {
+		t.Fatalf("slice assignment from pointer dereference should not assign a raw Vec into the slice handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".iovecs.clone(); iovecs = new_val") {
+		t.Fatalf("slice assignment from pointer dereference should clone the pointee slice handle:\n%s", rust)
+	}
+}
+
 func TestNamedSliceFieldSliceAssignmentStoresNamedValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
