@@ -399,6 +399,39 @@ func use(p []inst) int {
 	}
 }
 
+func TestReadOnlyMethodPointerParamAcceptsSliceElemPointerLocal(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type inst struct {
+	out int
+}
+
+type machine struct{}
+type thread struct {
+	inst *inst
+}
+
+func (m *machine) alloc(i *inst) *thread {
+	t := new(thread)
+	t.inst = i
+	return t
+}
+
+func use(m *machine, p []inst) *thread {
+	i := &p[0]
+	return m.alloc(i)
+}
+`)
+
+	if strings.Contains(rust, ".alloc(i.clone())") {
+		t.Fatalf("read-only method pointer parameter should not receive the slice element pointer option directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".alloc(Rc::new(RefCell::new((*i.as_ref().unwrap().borrow()).clone())))") &&
+		!strings.Contains(rust, ".alloc(Arc::new(Mutex::new((*i.as_ref().unwrap().borrow()).clone())))") {
+		t.Fatalf("read-only method pointer parameter should receive a cloned pointee handle:\n%s", rust)
+	}
+}
+
 func transpileTypedSliceElemPtrRegression(t *testing.T, src string) string {
 	t.Helper()
 

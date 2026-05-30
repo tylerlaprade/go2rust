@@ -1194,7 +1194,7 @@ func writeCurrentReceiverPointerMethodCallWithArgTemps(out *strings.Builder, sel
 		out.WriteString("let __method_arg")
 		out.WriteString(strconv.Itoa(i))
 		out.WriteString(" = ")
-		writeRegularMethodCallArgument(out, sel, arg, i)
+		writeRegularMethodCallArgument(out, sel, call, arg, i)
 		out.WriteString("; ")
 	}
 	if useReceiverTemp {
@@ -1235,7 +1235,7 @@ func writeCurrentReceiverPointerMethodCallWithArgTemps(out *strings.Builder, sel
 	return true
 }
 
-func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr, arg ast.Expr, index int) {
+func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr, arg ast.Expr, index int) {
 	typeInfo := GetTypeInfo()
 	expectedArgType := selectedMethodParamType(sel, index)
 	expectedArgExpr := selectedMethodParamExpr(sel, index)
@@ -1276,6 +1276,9 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 			return
 		}
 		if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
+			return
+		}
+		if writeReadOnlySliceElemPtrPointerCallArgument(out, call, index, arg, expectedArgType) {
 			return
 		}
 		if writePointerHandleCallArgument(out, arg, expectedArgType) {
@@ -1438,7 +1441,7 @@ func writeMethodCallArguments(out *strings.Builder, sel *ast.SelectorExpr, call 
 		} else if bareArgumentMethodCall {
 			TranspileExpression(out, call.Args[i])
 		} else {
-			writeRegularMethodCallArgument(out, sel, call.Args[i], i)
+			writeRegularMethodCallArgument(out, sel, call, call.Args[i], i)
 		}
 	}
 
@@ -13714,7 +13717,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 						if i > 0 {
 							out.WriteString(", ")
 						}
-						writeRegularMethodCallArgument(out, sel, arg, i)
+						writeRegularMethodCallArgument(out, sel, call, arg, i)
 					}
 				}
 				out.WriteString(")")
@@ -13925,7 +13928,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				} else if bareArgumentMethodCall {
 					TranspileExpression(out, arg)
 				} else {
-					writeRegularMethodCallArgument(out, sel, arg, i)
+					writeRegularMethodCallArgument(out, sel, call, arg, i)
 				}
 			}
 		}
