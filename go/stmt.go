@@ -4927,7 +4927,7 @@ func writeIndexedSequenceAssignmentFromTemp(out *strings.Builder, indexExpr *ast
 			return false
 		}
 	}
-	elemKeepsHandle := tupleTempAssignsHandleToElement(elemType)
+	elemKeepsHandle := indexedSequenceElementKeepsHandle(elemType)
 	if !elemKeepsHandle {
 		elemKeepsHandle = tupleTempAssignsHandleToElementBySyntax(indexExpr.X)
 	}
@@ -4952,6 +4952,13 @@ func writeIndexedSequenceAssignmentFromTemp(out *strings.Builder, indexExpr *ast
 	}
 	out.WriteString(";")
 	return true
+}
+
+func indexedSequenceElementKeepsHandle(elemType types.Type) bool {
+	if elemType == nil {
+		return false
+	}
+	return rustMapValueTypeKeepsHandle(goTypesCollectionElemTypeToRust(elemType))
 }
 
 func tupleTempAssignsHandleToElementBySyntax(expr ast.Expr) bool {

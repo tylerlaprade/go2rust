@@ -1280,6 +1280,27 @@ func (a nodeQueue) Swap(i, j int) {
 	}
 }
 
+func TestTupleSliceElementSliceAssignmentMovesInnerValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func merge(xs []int, ns []uint32) ([]int, []uint32) {
+	return xs, ns
+}
+
+func reset(chunks [][]int, ns []uint32) {
+	chunks[0], ns = merge(chunks[1], ns)
+	_ = ns
+}
+`)
+
+	if strings.Contains(rust, "] = new_val;") {
+		t.Fatalf("slice element assignment should not store a wrapped slice handle in a raw Vec slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".take().unwrap_or_default()") {
+		t.Fatalf("slice element assignment should move the wrapped slice inner value into the raw Vec slot:\n%s", rust)
+	}
+}
+
 func TestMapInterfaceValueAssignmentKeepsHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
