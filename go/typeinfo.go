@@ -432,6 +432,9 @@ func (ti *TypeInfo) GetArrayOrSliceElemTypePreservingTypeParam(expr ast.Expr) ty
 	if typ == nil {
 		return nil
 	}
+	if elem, ok := goTypeParamSliceConstraintElem(typ); ok {
+		return types.Unalias(elem)
+	}
 	switch t := types.Unalias(typ).Underlying().(type) {
 	case *types.Slice:
 		return types.Unalias(t.Elem())

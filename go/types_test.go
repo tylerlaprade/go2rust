@@ -111,6 +111,10 @@ func Join[S ~[]T, T ~string](s S) {
 	if elem != types.Typ[types.String] {
 		t.Fatalf("range elem type = %v, want string", elem)
 	}
+	preservedElem := typeInfo.GetArrayOrSliceElemTypePreservingTypeParam(rangeStmt.X)
+	if _, ok := types.Unalias(preservedElem).(*types.TypeParam); !ok {
+		t.Fatalf("preserved range elem type = %v, want type parameter", preservedElem)
+	}
 }
 
 func TestTypeInfoPreservesDirectSliceTypeParamElem(t *testing.T) {

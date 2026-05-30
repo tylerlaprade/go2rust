@@ -13279,6 +13279,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					if writePointerHandleCallArgument(out, arg, expectedArgType) {
 						continue
 					}
+					if writeTypeParamHandleCallArgument(out, arg, expectedArgType) {
+						continue
+					}
 					if writeBareStructAliasCallArgument(out, arg, expectedArgType) {
 						continue
 					}
@@ -13920,6 +13923,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 
 				if writeFunctionHandleCallArgument(out, arg, expectedArgType) {
+					continue
+				}
+
+				if writeTypeParamHandleCallArgument(out, arg, expectedArgType) {
 					continue
 				}
 
@@ -14567,7 +14574,7 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 	if writeAlreadyWrappedCallArgument(out, arg) {
 		return
 	}
-	if writeTypeParamRangeHandleCallArgument(out, arg, expected) {
+	if writeTypeParamHandleCallArgument(out, arg, expected) {
 		return
 	}
 	WriteWrapperPrefix(out)
@@ -14587,28 +14594,19 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 	WriteWrapperSuffix(out)
 }
 
-func writeTypeParamRangeHandleCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
-	if _, ok := types.Unalias(expected).(*types.TypeParam); !ok {
-		return false
-	}
-	ident, ok := arg.(*ast.Ident)
+func writeTypeParamHandleCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	_, ok := types.Unalias(expected).(*types.TypeParam)
 	if !ok {
 		return false
 	}
-	varType, ok := rangeLoopVars[ident.Name]
-	if !ok || !isWrappedRangeVarType(varType) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
 		return false
 	}
-	name := RustIdentForUse(ident)
-	if strings.HasPrefix(varType, "&") {
-		out.WriteString("(*")
-		out.WriteString(name)
-		out.WriteString(").clone()")
-	} else {
-		out.WriteString(name)
-		out.WriteString(".clone()")
+	if _, ok := types.Unalias(typeInfo.GetType(arg)).(*types.TypeParam); !ok {
+		return false
 	}
-	return true
+	return writeTypeParamHandleExpression(out, arg)
 }
 
 func writeAlreadyWrappedSelectorCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {

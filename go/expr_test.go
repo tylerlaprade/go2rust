@@ -4160,6 +4160,50 @@ func same[S ~[]E, E comparable](left, right S, i int) bool {
 	}
 }
 
+func TestTypeParamClosureCallUsesHandleArguments(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func same[S1 ~[]E1, S2 ~[]E2, E1, E2 any](left S1, right S2, eq func(E1, E2) bool) bool {
+	for i, v := range left {
+		if !eq(v, right[i]) {
+			return false
+		}
+	}
+	return true
+}
+`)
+
+	if strings.Contains(rust, "Some(v)") {
+		t.Fatalf("type-parameter range value should be passed as its existing handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "Some({ let __seq") {
+		t.Fatalf("type-parameter slice element should be passed as its existing handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*v).clone()") {
+		t.Fatalf("type-parameter range value should clone the range handle:\n%s", rust)
+	}
+}
+
+func TestTypeParamGenericCallUsesHandleArguments(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func less[E int | string](a, b E) bool {
+	return a < b
+}
+
+func check[S ~[]E, E int | string](data S, i int) bool {
+	return less(data[i], data[i-1])
+}
+`)
+
+	if strings.Contains(rust, "Some({ let __seq") {
+		t.Fatalf("type-parameter slice elements should not be double-wrapped as generic call arguments:\n%s", rust)
+	}
+	if !strings.Contains(rust, "less::<E>(") {
+		t.Fatalf("generic helper call should retain inferred type arguments:\n%s", rust)
+	}
+}
+
 func TestNumericTypeParamConversionForLoopUsesConsistentWrapperShape(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
