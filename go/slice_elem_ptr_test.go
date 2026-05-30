@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"go/types"
 	"strings"
 	"testing"
 )
@@ -372,14 +373,44 @@ func use(p *prog) int {
 	}
 }
 
+func TestReadOnlyPointerParamAcceptsSliceElemPointerLocal(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type inst struct {
+	out int
+}
+
+func dump(i *inst) int {
+	return i.out
+}
+
+func use(p []inst) int {
+	i := &p[0]
+	return dump(i)
+}
+`)
+
+	if strings.Contains(rust, "dump(i.clone())") {
+		t.Fatalf("read-only pointer parameter should not receive the slice element pointer option directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "dump(Rc::new(RefCell::new((*i.as_ref().unwrap().borrow()).clone())))") &&
+		!strings.Contains(rust, "dump(Arc::new(Mutex::new((*i.as_ref().unwrap().borrow()).clone())))") {
+		t.Fatalf("read-only pointer parameter should receive a cloned pointee handle:\n%s", rust)
+	}
+}
+
 func transpileTypedSliceElemPtrRegression(t *testing.T, src string) string {
 	t.Helper()
 
 	prevTypeInfo := currentTypeInfo
 	prevContext := currentContext
+	prevSourceFunctionDecls := sourceFunctionDeclsByFunc
+	prevSourceFunctionReadOnlyCache := sourceFunctionReadOnlyParamCache
 	t.Cleanup(func() {
 		currentTypeInfo = prevTypeInfo
 		currentContext = prevContext
+		sourceFunctionDeclsByFunc = prevSourceFunctionDecls
+		sourceFunctionReadOnlyParamCache = prevSourceFunctionReadOnlyCache
 	})
 
 	fset := token.NewFileSet()
@@ -391,6 +422,19 @@ func transpileTypedSliceElemPtrRegression(t *testing.T, src string) string {
 	if err != nil {
 		t.Fatalf("NewTypeInfo() error = %v", err)
 	}
+	sourceDecls := make(map[*types.Func]sourceFunctionDeclInfo)
+	for _, decl := range file.Decls {
+		fnDecl, ok := decl.(*ast.FuncDecl)
+		if !ok {
+			continue
+		}
+		fn, ok := typeInfo.info.Defs[fnDecl.Name].(*types.Func)
+		if !ok || fn == nil {
+			continue
+		}
+		sourceDecls[fn] = sourceFunctionDeclInfo{decl: fnDecl, info: typeInfo.info}
+	}
+	SetSourceFunctionDeclsByFunc(sourceDecls)
 	rust, _, _ := Transpile(file, fset, typeInfo)
 	return rust
 }

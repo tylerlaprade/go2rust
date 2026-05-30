@@ -472,6 +472,35 @@ func writeSliceElemPtrReturnValue(out *strings.Builder, result ast.Expr) bool {
 	return writeSliceElemPtrOptionValue(out, result)
 }
 
+func writeReadOnlySliceElemPtrPointerCallArgument(out *strings.Builder, call *ast.CallExpr, index int, arg ast.Expr, expected types.Type) bool {
+	if !sourceFunctionParamReadOnly(call, index) {
+		return false
+	}
+	ptr, ok := types.Unalias(expected).Underlying().(*types.Pointer)
+	if !ok {
+		return false
+	}
+	ident, ok := unwrapParens(arg).(*ast.Ident)
+	if !ok {
+		return false
+	}
+	info, ok := sliceElemPtrVarInfo(ident.Name)
+	if !ok {
+		return false
+	}
+	if info.RustType != "Option<GoSliceElemPtr<"+goTypesTypeToRust(ptr.Elem())+">>" {
+		return false
+	}
+	trackWrapperImports()
+	out.WriteString(GetOuterWrapperType())
+	out.WriteString("::new(")
+	out.WriteString(GetInnerWrapperType())
+	out.WriteString("::new((*")
+	writeSliceElemPtrBorrow(out, ident, false)
+	out.WriteString(").clone()))")
+	return true
+}
+
 func writeUnsupportedSliceElemPointerHandleValue(out *strings.Builder, rhs ast.Expr, message string) bool {
 	if _, ok := sliceElemPtrAddressElemRustType(rhs); !ok {
 		return false

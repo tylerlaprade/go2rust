@@ -3489,15 +3489,8 @@ func sourceFunctionObjectForCall(call *ast.CallExpr) *types.Func {
 	if typeInfo == nil || typeInfo.info == nil || call == nil {
 		return nil
 	}
-	switch fun := call.Fun.(type) {
-	case *ast.Ident:
-		if fn, ok := typeInfo.info.Uses[fun].(*types.Func); ok {
-			return fn
-		}
-	case *ast.SelectorExpr:
-		if fn, ok := typeInfo.info.Uses[fun.Sel].(*types.Func); ok {
-			return fn
-		}
+	if fn, ok := callFunctionObjectFromTypeInfo(typeInfo, call); ok {
+		return fn
 	}
 	return nil
 }
@@ -13520,6 +13513,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					if writeReadOnlyTypeParamSliceCallArgument(out, call, i, arg, expectedArgType) {
 						continue
 					}
+					if writeReadOnlySliceElemPtrPointerCallArgument(out, call, i, arg, expectedArgType) {
+						continue
+					}
 					if writePointerHandleCallArgument(out, arg, expectedArgType) {
 						continue
 					}
@@ -14166,6 +14162,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 
 				if writeReadOnlyTypeParamSliceCallArgument(out, call, i, arg, expectedArgType) {
+					continue
+				}
+
+				if writeReadOnlySliceElemPtrPointerCallArgument(out, call, i, arg, expectedArgType) {
 					continue
 				}
 
