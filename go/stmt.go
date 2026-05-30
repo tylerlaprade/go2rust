@@ -2235,6 +2235,107 @@ func nextSwitchBreakLabel() string {
 	return fmt.Sprintf("__go_switch_%d", switchBreakLabelCounter)
 }
 
+func switchTagNamedInterface(tag ast.Expr) (types.Type, string, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, "", false
+	}
+	tagType := typeInfo.GetType(tag)
+	if tagType == nil {
+		return nil, "", false
+	}
+	ifaceName, ok := namedInterfaceForTraitEquality(tagType)
+	if !ok || ifaceName == "" {
+		return nil, "", false
+	}
+	return tagType, ifaceName, true
+}
+
+func writeSwitchInterfaceTagHandle(out *strings.Builder, tag ast.Expr, tagType types.Type) {
+	var value strings.Builder
+	if !writeLocalInterfaceReferenceCallArgument(&value, tag, tagType) {
+		out.WriteString(`unimplemented!("type info required for interface switch tag")`)
+		return
+	}
+	out.WriteString(value.String())
+}
+
+type switchInterfaceCaseKind int
+
+const (
+	switchInterfaceCaseWrappedInterface switchInterfaceCaseKind = iota
+	switchInterfaceCaseConcretePointer
+)
+
+func switchInterfaceCaseKindFor(caseExpr ast.Expr, tagType types.Type) (switchInterfaceCaseKind, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || tagType == nil {
+		return 0, false
+	}
+	caseType := typeInfo.GetType(caseExpr)
+	if caseType == nil {
+		return 0, false
+	}
+	if _, ok := types.Unalias(caseType).Underlying().(*types.Interface); ok && types.AssignableTo(caseType, tagType) {
+		return switchInterfaceCaseWrappedInterface, true
+	}
+	if concreteAssignableToInterface(caseType, tagType) {
+		return switchInterfaceCaseConcretePointer, true
+	}
+	if types.AssignableTo(caseType, tagType) {
+		return switchInterfaceCaseWrappedInterface, true
+	}
+	return 0, false
+}
+
+func writeSwitchInterfaceCaseComparison(out *strings.Builder, switchVal string, caseExpr ast.Expr, tagType types.Type, ifaceName string) {
+	if ident, ok := caseExpr.(*ast.Ident); ok && ident.Name == "nil" {
+		out.WriteString("(*")
+		out.WriteString(switchVal)
+		WriteBorrowMethod(out, false)
+		out.WriteString(").is_none()")
+		return
+	}
+
+	caseKind, ok := switchInterfaceCaseKindFor(caseExpr, tagType)
+	if !ok {
+		out.WriteString(`unimplemented!("type info required for interface switch case")`)
+		return
+	}
+
+	var right strings.Builder
+	if caseKind == switchInterfaceCaseConcretePointer {
+		writePointerConcreteInterfaceHandle(&right, caseExpr)
+	} else {
+		if !writeLocalInterfaceReferenceCallArgument(&right, caseExpr, tagType) {
+			out.WriteString(`unimplemented!("type info required for interface switch case")`)
+			return
+		}
+	}
+
+	out.WriteString("{ let __left_holder = ")
+	out.WriteString(switchVal)
+	out.WriteString(".clone(); let __left_guard = __left_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __right_holder = ")
+	out.WriteString(right.String())
+	out.WriteString("; let __right_guard = __right_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (Some(__left), Some(__right)) => ")
+	if caseKind == switchInterfaceCaseConcretePointer {
+		out.WriteString("{ let __right_trait: ")
+		out.WriteString(rustLocalInterfaceParamBare(ifaceName))
+		out.WriteString(" = __right; __left.as_ref().__go_eq_")
+		out.WriteString(traitMethodSuffix(ifaceName))
+		out.WriteString("(__right_trait) }")
+	} else {
+		out.WriteString("__left.as_ref().__go_eq_")
+		out.WriteString(traitMethodSuffix(ifaceName))
+		out.WriteString("(__right.as_ref())")
+	}
+	out.WriteString(", (None, None) => true, _ => false }; __eq }")
+}
+
 func stmtContainsBreakForCurrentSwitch(stmt ast.Stmt) bool {
 	switch s := stmt.(type) {
 	case *ast.BranchStmt:
@@ -10424,13 +10525,24 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 		}
 
+		var switchTagInterfaceType types.Type
+		var switchTagInterfaceName string
+		switchTagIsInterface := false
+		if s.Tag != nil {
+			switchTagInterfaceType, switchTagInterfaceName, switchTagIsInterface = switchTagNamedInterface(s.Tag)
+		}
+
 		if hasFallthrough {
 			// Rust match doesn't support fallthrough — use if-chain with flags
 			out.WriteString("{\n")
 
 			if s.Tag != nil {
 				out.WriteString("        let _switch_val = ")
-				writeSwitchTagValue(out, s.Tag)
+				if switchTagIsInterface {
+					writeSwitchInterfaceTagHandle(out, s.Tag, switchTagInterfaceType)
+				} else {
+					writeSwitchTagValue(out, s.Tag)
+				}
 				out.WriteString(";\n")
 			}
 			out.WriteString("        let mut _fallthrough = false;\n")
@@ -10449,8 +10561,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								out.WriteString(" || ")
 							}
 							if s.Tag != nil {
-								out.WriteString("_switch_val == ")
-								writeSwitchCaseValueForTag(out, expr, s.Tag)
+								if switchTagIsInterface {
+									writeSwitchInterfaceCaseComparison(out, "_switch_val", expr, switchTagInterfaceType, switchTagInterfaceName)
+								} else {
+									out.WriteString("_switch_val == ")
+									writeSwitchCaseValueForTag(out, expr, s.Tag)
+								}
 							} else {
 								writeSwitchCaseValue(out, expr)
 							}
@@ -10576,7 +10692,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// non-pattern values, so explicit comparisons are the general form.
 				if s.Tag != nil {
 					out.WriteString("{ let _switch_val = ")
-					writeSwitchTagValue(out, s.Tag)
+					if switchTagIsInterface {
+						writeSwitchInterfaceTagHandle(out, s.Tag, switchTagInterfaceType)
+					} else {
+						writeSwitchTagValue(out, s.Tag)
+					}
 					out.WriteString(";\n    ")
 				}
 
@@ -10597,9 +10717,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								out.WriteString(" || ")
 							}
 							if s.Tag != nil {
-								out.WriteString("_switch_val == (")
-								writeSwitchCaseValueForTag(out, expr, s.Tag)
-								out.WriteString(")")
+								if switchTagIsInterface {
+									writeSwitchInterfaceCaseComparison(out, "_switch_val", expr, switchTagInterfaceType, switchTagInterfaceName)
+								} else {
+									out.WriteString("_switch_val == (")
+									writeSwitchCaseValueForTag(out, expr, s.Tag)
+									out.WriteString(")")
+								}
 							} else {
 								transpileCondition(out, expr)
 							}

@@ -481,6 +481,48 @@ func pick(v int) (res int) {
 	}
 }
 
+func TestExpressionSwitchOnNamedInterfaceUsesTraitEquality(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type interface {
+	Underlying() Type
+}
+
+type Basic struct{}
+
+func (b *Basic) Underlying() Type {
+	return b
+}
+
+var Invalid = &Basic{}
+
+func classify(t Type) string {
+	switch t {
+	case nil, Invalid:
+		return "invalid"
+	default:
+		return "other"
+	}
+}
+`)
+
+	if strings.Contains(rust, "_switch_val == (None)") {
+		t.Fatalf("interface switch nil case should test the wrapped interface handle, not compare against None:\n%s", rust)
+	}
+	if strings.Contains(rust, "_switch_val == (") {
+		t.Fatalf("interface switch cases should not use raw trait-object equality:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*_switch_val") || !strings.Contains(rust, ").is_none()") {
+		t.Fatalf("interface switch nil case should test the handle none state:\n%s", rust)
+	}
+	if strings.Contains(rust, "Box::new((*Invalid.borrow().as_ref().unwrap()).clone())") {
+		t.Fatalf("interface switch concrete case should compare the pointed-to value, not box the pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__go_eq_type_(") {
+		t.Fatalf("interface switch concrete case should use the interface equality helper:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoConcurrentPointerMapCommaOkKeepsSliceHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
