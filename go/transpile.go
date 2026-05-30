@@ -559,16 +559,38 @@ func fieldAccessInfoFromSelection(sel *ast.SelectorExpr, typeInfo *TypeInfo) (Fi
 		return FieldAccessInfo{}, false
 	}
 	selection, ok := typeInfo.info.Selections[sel]
-	if !ok || selection.Kind() != types.FieldVal {
+	if !ok {
+		return fieldAccessInfoFromLookup(sel, typeInfo)
+	}
+	if selection.Kind() != types.FieldVal {
 		return FieldAccessInfo{}, false
 	}
-	index := selection.Index()
+	return fieldAccessInfoFromTypeIndex(selection.Recv(), selection.Index())
+}
+
+func fieldAccessInfoFromLookup(sel *ast.SelectorExpr, typeInfo *TypeInfo) (FieldAccessInfo, bool) {
+	if sel == nil || typeInfo == nil || sel.X == nil {
+		return FieldAccessInfo{}, false
+	}
+	recv := typeInfo.GetType(sel.X)
+	if recv == nil {
+		return FieldAccessInfo{}, false
+	}
+	obj, index, _ := types.LookupFieldOrMethod(recv, true, typeInfo.pkg, sel.Sel.Name)
+	field, ok := obj.(*types.Var)
+	if !ok || field == nil || !field.IsField() {
+		return FieldAccessInfo{}, false
+	}
+	return fieldAccessInfoFromTypeIndex(recv, index)
+}
+
+func fieldAccessInfoFromTypeIndex(recv types.Type, index []int) (FieldAccessInfo, bool) {
 	if len(index) == 0 {
 		return FieldAccessInfo{}, false
 	}
 
 	embeddedPath := make([]string, 0, len(index)-1)
-	currentType := selection.Recv()
+	currentType := recv
 	for i, fieldIndex := range index {
 		structType, ok := structUnderlyingThroughPointers(currentType)
 		if !ok || fieldIndex < 0 || fieldIndex >= structType.NumFields() {

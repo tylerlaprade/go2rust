@@ -5968,6 +5968,77 @@ func line(w *wrapped) int {
 	}
 }
 
+func TestPromotedPointerFieldDoesNotUseReceiverMethodName(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type File struct {
+	*file
+}
+
+type file struct {
+	name string
+}
+
+func (f *File) Name() string {
+	return f.name
+}`)
+
+	methodIndex := strings.Index(rust, "pub fn name(&self)")
+	if methodIndex < 0 {
+		t.Fatalf("missing generated Name method:\n%s", rust)
+	}
+	methodBody := rust[methodIndex:]
+	if strings.Contains(methodBody, "self.name") {
+		t.Fatalf("promoted field should not lower to receiver method-name field access:\n%s", rust)
+	}
+	if !strings.Contains(methodBody, "self.file") || !strings.Contains(methodBody, ".name") {
+		t.Fatalf("promoted field should traverse the embedded pointer field:\n%s", rust)
+	}
+}
+
+func TestFieldAccessInfoFromSelectionUsesPromotedPointerPath(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type File struct {
+	*file
+}
+
+type file struct {
+	name string
+}
+
+func (f *File) Name() string {
+	return f.name
+}`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	var selector *ast.SelectorExpr
+	ast.Inspect(file, func(n ast.Node) bool {
+		if sel, ok := n.(*ast.SelectorExpr); ok && sel.Sel.Name == "name" {
+			selector = sel
+			return false
+		}
+		return true
+	})
+	if selector == nil {
+		t.Fatal("missing f.name selector")
+	}
+	fieldInfo, ok := fieldAccessInfoFromSelection(selector, typeInfo)
+	if !ok {
+		t.Fatal("fieldAccessInfoFromSelection did not resolve f.name")
+	}
+	if !fieldInfo.IsPromoted || len(fieldInfo.EmbeddedPath) != 1 || fieldInfo.EmbeddedPath[0] != "file" || fieldInfo.FieldName != "name" {
+		t.Fatalf("field info = %+v, want promoted file.name path", fieldInfo)
+	}
+}
+
 func TestReturnStructSliceRangeValueClonesReference(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

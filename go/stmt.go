@@ -8322,10 +8322,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if isFunctionSignatureExpression(result) && writeFunctionValueHandle(out, result) {
 							// Function selector values are represented by cloneable handles or boxed method values.
 						} else if ident, ok := sel.X.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
-							// Returning self.field - just clone it, don't double-wrap
-							out.WriteString(currentReceiverRustName())
-							out.WriteString(".")
-							out.WriteString(ToSnakeCase(sel.Sel.Name))
+							// Returning a receiver field clones the handle. Route through
+							// typed selector lowering so promoted fields traverse embeds.
+							TranspileExpressionContext(out, result, LValue)
 							out.WriteString(".clone()")
 						} else if selectorExpressionKeepsHandle(result) {
 							TranspileExpressionContext(out, result, LValue)
