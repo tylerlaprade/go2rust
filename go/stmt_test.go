@@ -3253,6 +3253,34 @@ func get(i int) Type {
 	}
 }
 
+func TestNamedDeferReturnBoxesConcreteLocalInterface(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type interface {
+	Underlying() Type
+}
+
+type Slice struct{}
+
+func (*Slice) Underlying() Type { return nil }
+
+func newType() (T Type) {
+	defer func() {}()
+	typ := new(Slice)
+	return typ
+}
+`)
+
+	if strings.Contains(rust, "*T.borrow_mut() = Some(new_val)") ||
+		strings.Contains(rust, "*T.lock().unwrap() = Some(new_val)") {
+		t.Fatalf("named local-interface return should not assign a concrete value into the interface slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new((*typ.borrow().as_ref().unwrap()).clone()) as Box<dyn Type") &&
+		!strings.Contains(rust, "Box::new((*typ.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Type") {
+		t.Fatalf("named local-interface return should box the concrete pointer value:\n%s", rust)
+	}
+}
+
 func TestAddressOfConcreteReturnBoxesLocalInterface(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

@@ -3611,6 +3611,25 @@ func writeStdlibInterfaceNamedReturnAssignment(out *strings.Builder, name *ast.I
 	return true
 }
 
+func writeLocalInterfaceNamedReturnAssignment(out *strings.Builder, name *ast.Ident, resultType ast.Expr, rhs ast.Expr) bool {
+	if name == nil || name.Name == "_" {
+		return false
+	}
+	var converted strings.Builder
+	if !writeLocalInterfaceConcreteReturnConversion(&converted, rhs, resultType) {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	out.WriteString(converted.String())
+	out.WriteString("; let __moved_val = { let mut __guard = new_val")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; __guard.take() }; *")
+	out.WriteString(RustLocalIdent(name.Name))
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = __moved_val; }")
+	return true
+}
+
 func writeLocalInterfaceHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || lhs == nil || rhs == nil {
@@ -7423,6 +7442,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString("        ")
 				resultType := returnResultTypeExpr(fnType, i)
 				if !writeStdlibInterfaceNamedReturnAssignment(out, names[i], resultType, result) &&
+					!writeLocalInterfaceNamedReturnAssignment(out, names[i], resultType, result) &&
 					!writeErrorChannelNamedReturnAssignment(out, names[i], resultType, result) &&
 					!writeFunctionNamedReturnAssignment(out, names[i], resultType, result) &&
 					!writePointerNamedReturnAssignment(out, names[i], resultType, result) {
