@@ -230,6 +230,36 @@ func (check *Checker) builtin() bool {
 	}
 }
 
+func TestIfConditionFuncLitCapturesParameterClone(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func under(fn func(int) bool) bool {
+	return fn(1)
+}
+
+func builtin(id int) bool {
+	if under(func(u int) bool {
+		return u == id
+	}) {
+		return true
+	}
+	return id == 0
+}
+`)
+
+	if strings.Contains(rust, "(*id.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y") ||
+		strings.Contains(rust, "(*id.borrow().as_ref().unwrap()).clone(); let __tmp_y") {
+		t.Fatalf("if-condition closure should not capture the original parameter by move:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let id_closure_clone = id.clone();") {
+		t.Fatalf("if-condition closure should clone the captured parameter inline:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*id_closure_clone.lock().unwrap().as_ref().unwrap())") &&
+		!strings.Contains(rust, "(*id_closure_clone.borrow().as_ref().unwrap())") {
+		t.Fatalf("if-condition closure should read through the captured parameter clone:\n%s", rust)
+	}
+}
+
 func TestSyntaxClosurePredeclaredConversionsAreNotCaptured(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()

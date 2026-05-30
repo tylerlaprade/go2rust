@@ -9774,16 +9774,32 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 		}
 	}
 
-	inlineReceiverCapture := false
-	if currentReceiver != "" && captured[currentReceiver] && funcLitCapturesCurrentReceiver(funcLit) {
-		rename := captureRenames[currentReceiver]
-		if rename == "" || rename == currentReceiver {
-			cloneName := currentReceiver + "_closure_clone"
-			captureRenames[currentReceiver] = cloneName
-			inlineReceiverCapture = true
-			out.WriteString("{ let mut ")
-			out.WriteString(RustLocalIdent(cloneName))
-			out.WriteString(" = (*self).clone(); ")
+	var inlineCaptures []string
+	for varName := range captured {
+		rename := captureRenames[varName]
+		if rename != "" && rename != varName {
+			continue
+		}
+		captureRenames[varName] = varName + "_closure_clone"
+		inlineCaptures = append(inlineCaptures, varName)
+	}
+	sort.Strings(inlineCaptures)
+	if len(inlineCaptures) > 0 {
+		out.WriteString("{ ")
+		for _, varName := range inlineCaptures {
+			capturesReceiver := currentReceiver != "" && varName == currentReceiver && funcLitCapturesCurrentReceiver(funcLit)
+			out.WriteString("let ")
+			if capturesReceiver {
+				out.WriteString("mut ")
+			}
+			out.WriteString(RustLocalIdent(captureRenames[varName]))
+			out.WriteString(" = ")
+			if capturesReceiver {
+				out.WriteString("(*self)")
+			} else {
+				out.WriteString(RustLocalIdent(varName))
+			}
+			out.WriteString(".clone(); ")
 		}
 	}
 
@@ -9910,7 +9926,7 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 	// Cast to the right type and close wrappers
 	out.WriteString(" as ")
 	out.WriteString(generateClosureType(funcLit.Type))
-	if inlineReceiverCapture {
+	if len(inlineCaptures) > 0 {
 		out.WriteString(" }")
 	}
 }
