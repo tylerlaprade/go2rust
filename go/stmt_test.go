@@ -641,6 +641,31 @@ func (s *nodeSet) add(p *Node) {
 	}
 }
 
+func TestValueReceiverNamedMapAssignmentUpdatesLocalCopy(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type methodSet map[string]int
+
+func (s methodSet) addOne(key string) methodSet {
+	return s
+}
+
+func (s methodSet) add(list []string) methodSet {
+	for _, key := range list {
+		s = s.addOne(key)
+	}
+	return s
+}
+`)
+
+	if strings.Contains(rust, "__self.0 = new_val") {
+		t.Fatalf("named map value receiver assignment should not store the returned handle in the receiver map field:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__self = __moved_val") {
+		t.Fatalf("named map value receiver assignment should replace the mutable receiver copy:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceAssignmentCopiesWrappedHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

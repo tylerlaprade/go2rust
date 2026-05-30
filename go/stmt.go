@@ -2723,6 +2723,9 @@ func writeMapHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) 
 		out.WriteString(" = new_val; }")
 		return true
 	}
+	if ident, ok := lhs.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && currentReceiverRustAlias != "" {
+		return false
+	}
 	if !typeInfo.IsMap(rhs) {
 		return false
 	}
