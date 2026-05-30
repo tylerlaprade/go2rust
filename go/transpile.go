@@ -1950,6 +1950,27 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		}
 	}
 
+	ifaceNamesForDeclaredTypes := packageLocalInterfaceNames(interfaces)
+	for _, t := range types {
+		typeName := t.spec.Name.Name
+		if typesWithImpls[typeName] {
+			continue
+		}
+		if _, iface := localInterfaceNamedTypeByName(typeName); iface != nil {
+			continue
+		}
+		for _, ifaceName := range ifaceNamesForDeclaredTypes {
+			if prunedTypeNames[ifaceName] {
+				continue
+			}
+			if currentPackageTypeImplementsInterface(typeName, localInterfaceTypesByName(ifaceName)) {
+				typeNames = append(typeNames, typeName)
+				typesWithImpls[typeName] = true
+				break
+			}
+		}
+	}
+
 	packageMethods := methods
 	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.MethodsByType) > 0 {
 		packageMethods = currentContext.Package.MethodsByType

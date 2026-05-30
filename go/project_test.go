@@ -3038,6 +3038,54 @@ func main() {
 	}
 }
 
+func TestCrossFileInterfaceImplEmitsWhenDeclarationFileHasNoMethods(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "defs.go"), `package main
+
+type Node interface {
+	A() int
+}
+
+type item struct{}
+
+func Box(v *item) Node {
+	return v
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "methods.go"), `package main
+
+func (i *item) A() int {
+	return 1
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+func main() {
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "defs.go"),
+		filepath.Join(tempDir, "methods.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	defsRS := mustReadFile(t, filepath.Join(tempDir, "defs.rs"))
+	if !strings.Contains(defsRS, "impl Node for item") {
+		t.Fatalf("interface impl should be emitted with the type declaration even when methods are in sibling files:\n%s", defsRS)
+	}
+	if !strings.Contains(defsRS, "self.a()") {
+		t.Fatalf("interface impl should delegate to the inherent sibling-file method:\n%s", defsRS)
+	}
+}
+
 func TestAppendPointerReturnKeepsHandle(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
