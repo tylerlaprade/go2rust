@@ -1051,6 +1051,10 @@ func currentPackageTypeImplementsInterface(typeName string, iface *types.Interfa
 	return types.Implements(types.NewPointer(named), iface)
 }
 
+func typeAliasSkipsLocalImpl(typeName string) bool {
+	return IsTypeAlias(typeName) && !IsFunctionTypeAlias(typeName)
+}
+
 func explicitInterfaceMethods(iface *types.Interface) []*types.Func {
 	if iface == nil {
 		return nil
@@ -2010,6 +2014,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 
 	for _, typeName := range typeNames {
 		if prunedTypeNames[typeName] {
+			continue
+		}
+		if typeAliasSkipsLocalImpl(typeName) {
 			continue
 		}
 		typeMethods := methods[typeName] // May be nil if type has no methods

@@ -1109,6 +1109,26 @@ func (Outer) common() int { return 2 }
 	}
 }
 
+func TestImportedTypeAliasDoesNotGetLocalImplBlock(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "io/fs"
+
+type timeout interface {
+	Timeout() bool
+}
+
+type PathError = fs.PathError
+`)
+
+	if strings.Contains(rust, "impl PathError {") {
+		t.Fatalf("imported type alias should not get an inherent impl block:\n%s", rust)
+	}
+	if strings.Contains(rust, "impl timeout for PathError") {
+		t.Fatalf("imported type alias should not get a local trait impl under the alias name:\n%s", rust)
+	}
+}
+
 func TestGeneratePromotedMethodKeepsMutatingPointerReceiverMutable(t *testing.T) {
 	method := &ast.FuncDecl{
 		Name: ast.NewIdent("Set"),
