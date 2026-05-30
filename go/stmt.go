@@ -3432,6 +3432,8 @@ func writePointerDerefSequenceHandleAssignment(out *strings.Builder, star *ast.S
 	out.WriteString("let new_val = ")
 	if writePointerDerefSliceHandleClone(out, rhs, typeInfo) {
 		// Pointer-to-slice dereference is represented by the same slice handle.
+	} else if writePlainSliceHandleClone(out, rhs) {
+		// Existing slice values are represented by handles; copy the handle before reading its option.
 	} else {
 		TranspileExpression(out, rhs)
 	}
@@ -3442,6 +3444,20 @@ func writePointerDerefSequenceHandleAssignment(out *strings.Builder, star *ast.S
 	WriteBorrowMethod(out, true)
 	out.WriteString(" = __cloned_val; }")
 	return true
+}
+
+func writePlainSliceHandleClone(out *strings.Builder, expr ast.Expr) bool {
+	if !isPlainSliceExpression(expr) {
+		return false
+	}
+	switch expr.(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(".clone()")
+		return true
+	default:
+		return false
+	}
 }
 
 func writeConcreteSliceAssignmentFromSourceTypeParamSliceCall(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {

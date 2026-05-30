@@ -3158,6 +3158,31 @@ func use(f *file) {
 	}
 }
 
+func TestPointerToSliceDerefAssignmentFromLocalSliceClonesHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Iovec struct{}
+
+type file struct {
+	iovecs *[]Iovec
+}
+
+func store(f *file, iovecs []Iovec) {
+	if f.iovecs == nil {
+		f.iovecs = new([]Iovec)
+	}
+	*f.iovecs = iovecs
+}
+`)
+
+	if strings.Contains(rust, "let __v = (*iovecs.") && strings.Contains(rust, "new_val.borrow") {
+		t.Fatalf("pointer-to-slice assignment from local slice should not unwrap the RHS handle before copying:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = iovecs.clone(); let __cloned_val") {
+		t.Fatalf("pointer-to-slice assignment from local slice should clone the RHS slice handle:\n%s", rust)
+	}
+}
+
 func TestNamedSliceFieldSliceAssignmentStoresNamedValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
