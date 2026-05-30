@@ -795,6 +795,29 @@ func (s methodSet) add(list []string) methodSet {
 	}
 }
 
+func TestAppendToNamedMapValueUsesInnerMapHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type entry struct {
+	Pos int
+}
+
+type valueMap map[int][]entry
+
+func add(seen valueMap, key int, pos int) {
+	seen[key] = append(seen[key], entry{Pos: pos})
+}
+`)
+
+	if strings.Contains(rust, "let __slice = { let __map_holder = seen.clone();") {
+		t.Fatalf("append to a named map value should borrow the named map inner handle, not the named value slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __named_map = (*seen.borrow().as_ref().unwrap()).0.clone(); __named_map") &&
+		!strings.Contains(rust, "let __named_map = (*seen.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map") {
+		t.Fatalf("append to a named map value should unwrap the named map handle:\n%s", rust)
+	}
+}
+
 func TestMapPointerValueNilAssignmentStoresNilHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

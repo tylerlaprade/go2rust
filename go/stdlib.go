@@ -3811,16 +3811,17 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			if _, ok := types.Unalias(valueType).Underlying().(*types.Slice); !ok {
 				return false
 			}
-			writeMapHandle := func() {
-				if ident, ok := indexExpr.X.(*ast.Ident); ok {
-					out.WriteString(rustIdentForUseWithCapture(ident))
-				} else {
-					TranspileExpressionContext(out, indexExpr.X, LValue)
+			writeMapHandleClone := func() {
+				if isNamedMapExpression(indexExpr.X) {
+					writeNamedMapInnerHandleClone(out, indexExpr.X)
+					return
 				}
+				writeMapHandleForOp(out, indexExpr.X)
+				out.WriteString(".clone()")
 			}
 			out.WriteString("{ let __slice = { let __map_holder = ")
-			writeMapHandle()
-			out.WriteString(".clone(); let __map_guard = __map_holder")
+			writeMapHandleClone()
+			out.WriteString("; let __map_guard = __map_holder")
 			WriteBorrowMethod(out, false)
 			out.WriteString("; __map_guard.as_ref().unwrap().get(")
 			writeMapLookupKeyWithType(out, indexExpr.Index, keyType)
