@@ -3729,8 +3729,14 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 					if writeConstExpressionForExpectedGoType(out, expr, elemType) {
 						return
 					}
-					if basic, ok := types.Unalias(elemType).Underlying().(*types.Basic); ok && basic.Kind() == types.String && writeRangeStringValue(out, expr) {
-						return
+					if basic, ok := types.Unalias(elemType).Underlying().(*types.Basic); ok && basic.Kind() == types.String {
+						if sliceExpr, ok := expr.(*ast.SliceExpr); ok && typeInfo.IsString(expr) {
+							writeStringSliceValue(out, sliceExpr.X, sliceExpr.Low, sliceExpr.High)
+							return
+						}
+						if writeRangeStringValue(out, expr) {
+							return
+						}
 					}
 					if writeWrappedRangeValueForExpectedType(out, expr, elemType) {
 						return

@@ -636,6 +636,24 @@ func appendName(name string) []byte {
 	}
 }
 
+func TestAppendStringSliceToStringSliceUsesBareString(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func substrings(s string, beg int, end int) []string {
+	var out []string
+	out = append(out, s[beg:end])
+	return out
+}
+`)
+
+	if strings.Contains(rust, ".push(Rc::new(") || strings.Contains(rust, ".push(Arc::new(") {
+		t.Fatalf("append string slice to []string should not push a wrapped String handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".push({ let __s = &(") || !strings.Contains(rust, "].to_string() }") {
+		t.Fatalf("append string slice to []string should push the bare String value:\n%s", rust)
+	}
+}
+
 func TestAppendConcreteLocalInterfaceAssertionBoxesValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
