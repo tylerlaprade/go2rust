@@ -1829,6 +1829,70 @@ func isNamedSliceExpression(expr ast.Expr) bool {
 	return ok
 }
 
+func namedArrayTypeFromType(typ types.Type) (*types.Named, *types.Array, bool) {
+	if typ == nil {
+		return nil, nil, false
+	}
+	typ = types.Unalias(typ)
+	named, ok := typ.(*types.Named)
+	if !ok || named.Obj() == nil {
+		return nil, nil, false
+	}
+	arrayType, ok := named.Underlying().(*types.Array)
+	if !ok {
+		return nil, nil, false
+	}
+	return named, arrayType, true
+}
+
+func namedArrayTypeForExpr(expr ast.Expr) (*types.Named, *types.Array, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, nil, false
+	}
+	return namedArrayTypeFromType(typeInfo.GetType(expr))
+}
+
+func isNamedArrayExpression(expr ast.Expr) bool {
+	_, _, ok := namedArrayTypeForExpr(expr)
+	return ok
+}
+
+func writeNamedArrayInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
+	if _, _, ok := namedArrayTypeForExpr(expr); !ok {
+		return false
+	}
+	inner := unwrapParens(expr)
+	if ident, ok := inner.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
+		out.WriteString(currentReceiverRustName())
+		out.WriteString(".0.clone()")
+		return true
+	}
+	if star, ok := inner.(*ast.StarExpr); ok {
+		if ident, ok := unwrapParens(star.X).(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
+			out.WriteString(currentReceiverRustName())
+			out.WriteString(".0.clone()")
+			return true
+		}
+		out.WriteString("{ let __named_array = (*")
+		TranspileExpressionContext(out, star.X, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).0.clone(); __named_array }")
+		return true
+	}
+	if isExpressionResultBare(inner) {
+		out.WriteString("{ let __named_array = ")
+		TranspileExpression(out, expr)
+		out.WriteString("; __named_array.0.clone() }")
+		return true
+	}
+	out.WriteString("{ let __named_array = (*")
+	TranspileExpressionContext(out, expr, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).0.clone(); __named_array }")
+	return true
+}
+
 func writeNamedSliceInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
 	if _, _, ok := namedSliceTypeForExpr(expr); !ok {
 		return false

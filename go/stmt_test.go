@@ -3149,6 +3149,26 @@ func f() {
 	}
 }
 
+func TestNamedArrayIndexedCompoundAssignMutatesInnerArray(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type asciiSet [8]uint32
+
+func add(as asciiSet, c byte) asciiSet {
+	as[c/32] |= 1 << (c % 32)
+	return as
+}
+`)
+
+	if strings.Contains(rust, "let mut __seq_guard = as.borrow_mut()") ||
+		strings.Contains(rust, "let mut __seq_guard = as.lock().unwrap()") {
+		t.Fatalf("named array indexed compound assignment should not index the wrapper struct:\n%s", rust)
+	}
+	if !strings.Contains(rust, ").0.clone()") {
+		t.Fatalf("named array indexed compound assignment should mutate the inner array handle:\n%s", rust)
+	}
+}
+
 func TestRangeIndexReturnedFromBareScalarTupleSlotCastsToI32(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

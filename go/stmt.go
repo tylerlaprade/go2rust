@@ -5961,6 +5961,13 @@ func writeIndexedCompoundAssign(out *strings.Builder, indexExpr *ast.IndexExpr, 
 }
 
 func writeIndexedSequenceMutationGuard(out *strings.Builder, expr ast.Expr) {
+	if subj := unwrapParens(expr); isNamedArrayExpression(subj) {
+		out.WriteString("let __seq_holder = ")
+		writeNamedArrayInnerHandleClone(out, subj)
+		out.WriteString("; let mut __seq_guard = __seq_holder")
+		WriteBorrowMethod(out, true)
+		return
+	}
 	if subj := unwrapParens(expr); isNamedSliceExpression(subj) {
 		out.WriteString("let __seq_holder = ")
 		writeNamedSliceInnerHandleClone(out, subj)
