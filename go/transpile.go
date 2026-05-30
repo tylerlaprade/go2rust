@@ -234,6 +234,8 @@ func (analysis *transpileFileAnalysis) inspect(file *ast.File, typeInfo *TypeInf
 			analysis.inspectMapType(n, typeInfo, mapKeyTypeInfo)
 		case *ast.CallExpr:
 			analysis.inspectCallExpr(n, typeInfo)
+		case *ast.ReturnStmt:
+			analysis.inspectReturnStmt(n, enclosingFuncType(stack), typeInfo)
 		case *ast.GenDecl:
 			if funcDeclDepth > 0 {
 				analysis.inspectFunctionGenDecl(n)
@@ -247,6 +249,18 @@ func (analysis *transpileFileAnalysis) inspect(file *ast.File, typeInfo *TypeInf
 		}
 		return true
 	})
+}
+
+func enclosingFuncType(stack []ast.Node) *ast.FuncType {
+	for i := len(stack) - 1; i >= 0; i-- {
+		switch n := stack[i].(type) {
+		case *ast.FuncDecl:
+			return n.Type
+		case *ast.FuncLit:
+			return n.Type
+		}
+	}
+	return nil
 }
 
 func (analysis *transpileFileAnalysis) inspectPackageGenDecl(genDecl *ast.GenDecl, typeInfo *TypeInfo) {
@@ -313,6 +327,31 @@ func (analysis *transpileFileAnalysis) inspectCallExpr(call *ast.CallExpr, typeI
 	}
 }
 
+func (analysis *transpileFileAnalysis) inspectReturnStmt(ret *ast.ReturnStmt, fnType *ast.FuncType, typeInfo *TypeInfo) {
+	if ret == nil || fnType == nil || typeInfo == nil || typeInfo.info == nil {
+		return
+	}
+	if len(ret.Results) == 1 && fnHasMultipleResultSlots(fnType) {
+		call, ok := ret.Results[0].(*ast.CallExpr)
+		if ok && callReturnsMultipleResults(call) {
+			sig, ok := callSignatureFromTypeInfo(call)
+			if !ok || sig.Results() == nil {
+				return
+			}
+			results := sig.Results()
+			for i := 0; i < results.Len(); i++ {
+				expected := expectedTypeFromParamExpr(returnResultTypeExpr(fnType, i))
+				analysis.recordImportedInterfaceImplForType(expected, results.At(i).Type())
+			}
+			return
+		}
+	}
+	for i, result := range ret.Results {
+		expected := expectedTypeFromParamExpr(returnResultTypeExpr(fnType, i))
+		analysis.recordImportedInterfaceImpl(expected, result, typeInfo)
+	}
+}
+
 func (analysis *transpileFileAnalysis) inspectFunctionGenDecl(genDecl *ast.GenDecl) {
 	if genDecl.Tok != token.TYPE {
 		return
@@ -329,15 +368,21 @@ func (analysis *transpileFileAnalysis) inspectFunctionGenDecl(genDecl *ast.GenDe
 }
 
 func (analysis *transpileFileAnalysis) recordImportedInterfaceImpl(expected types.Type, arg ast.Expr, typeInfo *TypeInfo) {
-	if expected == nil || arg == nil {
+	if arg == nil || typeInfo == nil {
+		return
+	}
+	analysis.recordImportedInterfaceImplForType(expected, typeInfo.GetType(arg))
+}
+
+func (analysis *transpileFileAnalysis) recordImportedInterfaceImplForType(expected, argType types.Type) {
+	if expected == nil || argType == nil {
 		return
 	}
 	ifaceName, ifaceType, ok := importedTranspiledInterfaceFromType(expected)
 	if !ok {
 		return
 	}
-	argType := typeInfo.GetType(arg)
-	if argType == nil || !types.Implements(argType, ifaceType) {
+	if !types.Implements(argType, ifaceType) {
 		return
 	}
 	typeName, ok := currentPackageConcreteTypeName(argType)

@@ -316,6 +316,56 @@ func lookup() Object {
 	}
 }
 
+func TestSourceMappedInterfaceMultiResultCallReturnBoxesConcretePointer(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "syscall"
+
+type rawConn struct{}
+
+func (*rawConn) Control(func(uintptr)) error { return nil }
+func (*rawConn) Read(func(uintptr) bool) error { return nil }
+func (*rawConn) Write(func(uintptr) bool) error { return nil }
+
+func newRawConn() (*rawConn, error) {
+	return &rawConn{}, nil
+}
+
+func syscallConn() (syscall.RawConn, error) {
+	return newRawConn()
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"syscall": "syscall"})
+	if strings.Contains(rust, "return new_raw_conn();") {
+		t.Fatalf("multi-result call returned directly without source-mapped interface slot conversion:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let (__return_tmp_0, __return_tmp_1) = new_raw_conn();") {
+		t.Fatalf("multi-result call should be captured before slot conversion:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __return_slot_0 =") {
+		t.Fatalf("converted multi-result slots should be bound before the final tuple:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __return_slot_0 = Rc::new(RefCell::new(Some(Box::new((*__return_tmp_0.borrow().as_ref().unwrap()).clone()) as Box<dyn syscall::RawConn") &&
+		!strings.Contains(rust, "let __return_slot_0 = Arc::new(Mutex::new(Some(Box::new((*__return_tmp_0.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn syscall::RawConn") {
+		t.Fatalf("concrete pointer result should be boxed into the source-mapped interface slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(__return_slot_0, __return_tmp_1)") {
+		t.Fatalf("final tuple should use the converted source-mapped interface slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl syscall::RawConn for rawConn") {
+		t.Fatalf("source-mapped interface return should register the concrete trait impl:\n%s", rust)
+	}
+}
+
 func TestPackageGlobalPointerCallArgumentBoxesPointee(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

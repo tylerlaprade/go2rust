@@ -345,7 +345,10 @@ func call() (int, error) {
 	if !strings.Contains(rust, "let (__return_tmp_0, __return_tmp_1) = pair();") {
 		t.Fatalf("multi-result call should be captured before generic return-slot conversion:\n%s", rust)
 	}
-	if !strings.Contains(rust, "(Rc::new(RefCell::new(Some(__return_tmp_0))), __return_tmp_1)") {
+	if !strings.Contains(rust, "let __return_slot_0 = Rc::new(RefCell::new(Some(__return_tmp_0)));") {
+		t.Fatalf("bare scalar multi-result slot should be bound before the final tuple:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(__return_slot_0, __return_tmp_1)") {
 		t.Fatalf("bare scalar multi-result slot should be wrapped for the generic T return ABI:\n%s", rust)
 	}
 }

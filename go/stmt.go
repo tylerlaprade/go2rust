@@ -29,10 +29,6 @@ func returnSlotForcesWrappedValue(index int) bool {
 	return currentForceWrappedReturnSlots[index]
 }
 
-func anyReturnSlotForcesWrappedValue() bool {
-	return len(currentForceWrappedReturnSlots) > 0
-}
-
 func TranspileTailStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet, comments []*ast.CommentGroup, lastPos *token.Pos, indent string) {
 	// Only flag the immediate return-as-tail position. A loop, type switch,
 	// or if statement that happens to be the last body statement contains
@@ -8260,13 +8256,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString("(")
 			}
 
-			// `return multiResultCall(...)` keeps a single Result expression
-			// whose tuple already matches the function's multi-slot signature.
-			// Emit the call directly so its tuple becomes the return value;
-			// the per-slot wrap/unwrap helpers below assume one value per slot.
+			// `return multiResultCall(...)` keeps a single Result expression.
+			// Capture it only when a slot needs typed conversion; otherwise the
+			// call's tuple can become the return value directly.
 			if len(s.Results) == 1 && fnHasMultipleResultSlots(fnType) {
 				if call, ok := s.Results[0].(*ast.CallExpr); ok && callReturnsMultipleResults(call) {
-					if !writeMultiResultCallReturnWithForcedWrappedSlots(out, call) {
+					if !writeMultiResultCallReturnWithSlotConversions(out, call, fnType) {
 						TranspileExpression(out, call)
 					}
 					if currentFunctionHasDefer {
@@ -12527,15 +12522,45 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	}
 }
 
-func writeMultiResultCallReturnWithForcedWrappedSlots(out *strings.Builder, call *ast.CallExpr) bool {
-	if !anyReturnSlotForcesWrappedValue() {
-		return false
-	}
+type multiResultReturnSlotConversion int
+
+const (
+	multiResultReturnSlotNoConversion multiResultReturnSlotConversion = iota
+	multiResultReturnSlotWrapBareScalar
+	multiResultReturnSlotBoxTranspiledInterface
+)
+
+type multiResultReturnSlotPlan struct {
+	conversion multiResultReturnSlotConversion
+	ifaceName  string
+}
+
+func writeMultiResultCallReturnWithSlotConversions(out *strings.Builder, call *ast.CallExpr, fnType *ast.FuncType) bool {
 	sig, ok := callSignatureFromTypeInfo(call)
 	if !ok || sig.Results() == nil || sig.Results().Len() == 0 {
 		return false
 	}
 	results := sig.Results()
+	plans := make([]multiResultReturnSlotPlan, results.Len())
+	needsConversion := false
+	for i := 0; i < results.Len(); i++ {
+		actualType := results.At(i).Type()
+		if ifaceName, ok := multiResultReturnSlotInterfaceConversion(returnResultTypeExpr(fnType, i), actualType); ok {
+			plans[i] = multiResultReturnSlotPlan{
+				conversion: multiResultReturnSlotBoxTranspiledInterface,
+				ifaceName:  ifaceName,
+			}
+			needsConversion = true
+			continue
+		}
+		if returnSlotForcesWrappedValue(i) && callResultIsBareScalar(call, i) {
+			plans[i] = multiResultReturnSlotPlan{conversion: multiResultReturnSlotWrapBareScalar}
+			needsConversion = true
+		}
+	}
+	if !needsConversion {
+		return false
+	}
 	out.WriteString("{ let (")
 	for i := 0; i < results.Len(); i++ {
 		if i > 0 {
@@ -12545,22 +12570,66 @@ func writeMultiResultCallReturnWithForcedWrappedSlots(out *strings.Builder, call
 	}
 	out.WriteString(") = ")
 	TranspileExpression(out, call)
+	for i := 0; i < results.Len(); i++ {
+		if plans[i].conversion == multiResultReturnSlotNoConversion {
+			continue
+		}
+		out.WriteString("; let ")
+		out.WriteString(fmt.Sprintf("__return_slot_%d", i))
+		out.WriteString(" = ")
+		writeMultiResultReturnSlotConversion(out, fmt.Sprintf("__return_tmp_%d", i), plans[i])
+	}
 	out.WriteString("; (")
 	for i := 0; i < results.Len(); i++ {
 		if i > 0 {
 			out.WriteString(", ")
 		}
 		tmpName := fmt.Sprintf("__return_tmp_%d", i)
-		if returnSlotForcesWrappedValue(i) && callResultIsBareScalar(call, i) {
-			WriteWrapperPrefix(out)
+		if plans[i].conversion == multiResultReturnSlotNoConversion {
 			out.WriteString(tmpName)
-			WriteWrapperSuffix(out)
 		} else {
-			out.WriteString(tmpName)
+			out.WriteString(fmt.Sprintf("__return_slot_%d", i))
 		}
 	}
 	out.WriteString(") }")
 	return true
+}
+
+func writeMultiResultReturnSlotConversion(out *strings.Builder, tmpName string, plan multiResultReturnSlotPlan) {
+	switch plan.conversion {
+	case multiResultReturnSlotWrapBareScalar:
+		WriteWrapperPrefix(out)
+		out.WriteString(tmpName)
+		WriteWrapperSuffix(out)
+	case multiResultReturnSlotBoxTranspiledInterface:
+		writeTranspiledInterfaceBoxedReturnTemp(out, tmpName, plan.ifaceName)
+	default:
+		out.WriteString(tmpName)
+	}
+}
+
+func multiResultReturnSlotInterfaceConversion(expected ast.Expr, actualType types.Type) (string, bool) {
+	expectedType := expectedTypeFromParamExpr(expected)
+	if expectedType == nil || actualType == nil {
+		return "", false
+	}
+	if _, actualIsInterface := transpiledNamedInterfaceTypeNameFromTypes(actualType); actualIsInterface {
+		return "", false
+	}
+	if !types.AssignableTo(actualType, expectedType) {
+		return "", false
+	}
+	return transpiledNamedInterfaceTypeNameFromTypes(expectedType)
+}
+
+func writeTranspiledInterfaceBoxedReturnTemp(out *strings.Builder, tmpName string, ifaceName string) {
+	WriteWrapperPrefix(out)
+	out.WriteString("Box::new((*")
+	out.WriteString(tmpName)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()) as ")
+	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+	WriteWrapperSuffix(out)
 }
 
 func writeStringAppendExpression(out *strings.Builder, rhs ast.Expr) {
