@@ -1119,6 +1119,12 @@ func rustConstTypeForDefinedUnderlying(underlying string) (string, bool) {
 }
 
 func rustConstTypeForGoTypesType(typ types.Type) (string, bool) {
+	if typ == nil {
+		return "", false
+	}
+	if unaliased := types.Unalias(typ); unaliased != typ {
+		return rustConstTypeForGoTypesType(unaliased)
+	}
 	switch t := typ.(type) {
 	case *types.Named:
 		if _, ok := externalIntegerRustTypeForNamed(t); ok && t.Obj() != nil && t.Obj().Pkg() != nil && !isKnownStdlibHelperType(t.Obj().Pkg().Path(), t.Obj().Name()) {
@@ -1270,7 +1276,9 @@ func writeNamedIntegerConstForExpected(out *strings.Builder, value ast.Expr, nam
 	out.WriteString(goTypesNamedTypeToRust(named))
 	out.WriteString("(")
 	WriteWrapperPrefix(out)
-	if isConstantExpression(value) && !isNamedIntegerConversionCall(value) {
+	if writeNamedIntegerUnaryConstPrimitiveForExpected(out, value, rustType) {
+		// The unary operation was emitted against the primitive operand.
+	} else if isConstantExpression(value) && !isNamedIntegerConversionCall(value) {
 		if writeConstExpressionWithRustIntegerOperands(out, value, rustType) {
 			// Constant operands were emitted in the target primitive type.
 		} else if constTypeConversionArgNeedsParens(value) {
@@ -1287,6 +1295,24 @@ func writeNamedIntegerConstForExpected(out *strings.Builder, value ast.Expr, nam
 	out.WriteString(rustType)
 	WriteWrapperSuffix(out)
 	out.WriteString(")")
+	return true
+}
+
+func writeNamedIntegerUnaryConstPrimitiveForExpected(out *strings.Builder, value ast.Expr, rustType string) bool {
+	unary, ok := unwrapParens(value).(*ast.UnaryExpr)
+	if !ok || unary.Op != token.XOR {
+		return false
+	}
+	call, ok := unwrapParens(unary.X).(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	_, conversionRustType, ok := namedIntegerConversionTarget(call)
+	if !ok || conversionRustType != rustType {
+		return false
+	}
+	out.WriteString("!")
+	writeNumericConversionValue(out, call.Args[0])
 	return true
 }
 

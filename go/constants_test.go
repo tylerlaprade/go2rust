@@ -2009,6 +2009,28 @@ func methodFlag(i int) flag {
 	}
 }
 
+func TestNamedIntegerAliasUnaryNotConversionUsesPrimitiveValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type fileMode uint32
+type FileMode = fileMode
+
+func unknown() FileMode {
+	return ^FileMode(0)
+}
+`)
+
+	if strings.Contains(rust, "!fileMode(") {
+		t.Fatalf("unary-not of named integer alias conversion should not apply ! to the named wrapper:\n%s", rust)
+	}
+	if strings.Contains(rust, " as u32) as u32") {
+		t.Fatalf("unary-not of named integer alias conversion should not cast a wrapped named value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some(!0 as u32)") {
+		t.Fatalf("unary-not of named integer alias conversion should operate on the primitive value:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerAssignmentUsesRawNamedValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
