@@ -537,6 +537,9 @@ func scan(mapping func(rune) rune, s string) int {
 		if r == c {
 			total += i
 		}
+		if c == '\n' {
+			c = ' '
+		}
 		c = mapping(c)
 		total += int(c)
 	}
@@ -552,6 +555,12 @@ func scan(mapping func(rune) rune, s string) int {
 	}
 	if !strings.Contains(rust, "let mut c = __range_c as i32;") {
 		t.Fatalf("assigned string range rune should lower to a mutable Go int32 value:\n%s", rust)
+	}
+	if strings.Contains(rust, "let new_val = ' '; c = new_val;") {
+		t.Fatalf("assigned string range rune should cast rune literals to Go int32:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = (' ' as i32); c = new_val;") {
+		t.Fatalf("assigned string range rune should assign rune literals as i32:\n%s", rust)
 	}
 }
 

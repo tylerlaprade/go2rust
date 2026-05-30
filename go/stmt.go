@@ -5081,6 +5081,13 @@ func writeBareRangeVarAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Exp
 	var expected types.Type
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		expected = typeInfo.GetType(lhs)
+		if expected == nil {
+			if ident, ok := lhs.(*ast.Ident); ok {
+				if obj := typeInfo.GetObject(ident); obj != nil {
+					expected = obj.Type()
+				}
+			}
+		}
 	}
 	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(expected); ok {
 		return false
@@ -5866,6 +5873,9 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 	if writeBareStringSliceValue(out, expr, expected) {
 		return
 	}
+	if writeRuneLiteralAssignmentValue(out, expr, expected) {
+		return
+	}
 	if writeConstExpressionForExpectedGoType(out, expr, expected) {
 		return
 	}
@@ -5971,6 +5981,21 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 		return
 	}
 	TranspileExpression(out, expr)
+}
+
+func writeRuneLiteralAssignmentValue(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
+	lit, ok := expr.(*ast.BasicLit)
+	if !ok || lit.Kind != token.CHAR || expected == nil {
+		return false
+	}
+	basic, ok := types.Unalias(expected).Underlying().(*types.Basic)
+	if !ok || basic.Kind() != types.Int32 {
+		return false
+	}
+	out.WriteString("(")
+	out.WriteString(RustCharLiteral(lit.Value))
+	out.WriteString(" as i32)")
+	return true
 }
 
 func writeNamedIntegerCompoundAssignUnderlyingValue(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
