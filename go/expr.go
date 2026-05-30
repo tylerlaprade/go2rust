@@ -4403,6 +4403,26 @@ func writeTypeParamHandleExpression(out *strings.Builder, expr ast.Expr) bool {
 	return true
 }
 
+func isTypeParamExpression(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || expr == nil {
+		return false
+	}
+	_, ok := types.Unalias(typeInfo.GetType(expr)).(*types.TypeParam)
+	return ok
+}
+
+func writeTypeParamComparisonOperand(out *strings.Builder, expr ast.Expr) bool {
+	if !isTypeParamExpression(expr) {
+		return false
+	}
+	out.WriteString("(*")
+	TranspileExpressionContext(out, expr, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()")
+	return true
+}
+
 func writeSliceElemPointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	if expr == nil || expr.Op != token.EQL && expr.Op != token.NEQ {
 		return false
@@ -8322,6 +8342,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if isComparison && writeRangeStringValue(out, expr) {
 				return
 			}
+			if isComparison && writeTypeParamComparisonOperand(out, expr) {
+				return
+			}
 			if needsUnwrap && isBareBuiltinCall(expr) {
 				needsUnwrap = false
 			}
@@ -8330,7 +8353,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				writeExpressionForBorrow(out, expr)
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap())")
-				if isCloneableNonPointerExpr(expr) && !isCopyTypeExpression(expr) {
+				if isTypeParamExpression(expr) || (isCloneableNonPointerExpr(expr) && !isCopyTypeExpression(expr)) {
 					out.WriteString(".clone()")
 				}
 			} else if isStringLit {
@@ -8436,6 +8459,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Reference-style range value cloned or copied for comparison.
 			} else if isComparison && writeRangeStringValue(out, e.X) {
 				// Range string reference cloned for comparison.
+			} else if isComparison && writeTypeParamComparisonOperand(out, e.X) {
+				// Generic operands are cloned from their wrapped storage before comparison.
 			} else if lit, ok := e.X.(*ast.BasicLit); ok && lit.Kind == token.INT {
 				// Check if the other operand might be a float
 				if isFloatExpression(e.Y) {
@@ -8481,6 +8506,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Reference-style range value cloned or copied for comparison.
 			} else if isComparison && writeRangeStringValue(out, e.Y) {
 				// Range string reference cloned for comparison.
+			} else if isComparison && writeTypeParamComparisonOperand(out, e.Y) {
+				// Generic operands are cloned from their wrapped storage before comparison.
 			} else if lit, ok := e.Y.(*ast.BasicLit); ok && lit.Kind == token.INT {
 				// Check if the other operand might be a float
 				if isFloatExpression(e.X) {

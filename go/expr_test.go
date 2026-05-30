@@ -4191,6 +4191,31 @@ func count[T int8 | int16 | int32 | int64 | int, N int64 | uint64](num N) int {
 	}
 }
 
+func TestOrderedTypeParamComparisonClonesBorrowedOperands(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Ordered interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64 |
+		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr |
+		~float32 | ~float64 |
+		~string
+}
+
+func Less[T Ordered](x, y T) bool {
+	return x < y
+}
+`)
+
+	if strings.Contains(rust, "(*x.borrow().as_ref().unwrap()) <") ||
+		strings.Contains(rust, "(*x.lock().unwrap().as_ref().unwrap()) <") {
+		t.Fatalf("ordered type-parameter comparison should not move out of borrowed operands:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*x.borrow().as_ref().unwrap()).clone()") &&
+		!strings.Contains(rust, "(*x.lock().unwrap().as_ref().unwrap()).clone()") {
+		t.Fatalf("ordered type-parameter comparison should clone borrowed operands:\n%s", rust)
+	}
+}
+
 func TestExternalStdlibScalarCallStaysBareInComparison(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
