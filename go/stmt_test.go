@@ -741,6 +741,28 @@ func (s *nodeSet) add(p *Node) {
 	}
 }
 
+func TestPointerToLocalInterfaceNilComparisonChecksInterfaceSlot(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type interface {
+	Underlying() Type
+}
+
+func has(h *Type) bool {
+	return *h != nil
+}
+`)
+
+	if strings.Contains(rust, "as_mut().unwrap()).borrow") ||
+		strings.Contains(rust, "as_mut().unwrap()).lock") {
+		t.Fatalf("pointer-to-interface nil comparison should not borrow a bare trait object as a handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __iface_handle = h.clone(); let __iface_guard = __iface_handle.borrow(); (*__iface_guard).is_some()") &&
+		!strings.Contains(rust, "let __iface_handle = h.clone(); let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some()") {
+		t.Fatalf("pointer-to-interface nil comparison should inspect the pointed-to interface slot:\n%s", rust)
+	}
+}
+
 func TestPointerReceiverNamedMapAssignmentFromUnnamedMakeWrapsNamedValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

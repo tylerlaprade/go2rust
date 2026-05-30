@@ -3691,6 +3691,39 @@ func localInterfaceExpressionName(expr ast.Expr) (string, bool) {
 	return transpiledNamedInterfaceTypeNameFromTypes(expressionTypeForInterfaceEquality(typeInfo, expr))
 }
 
+func writePointerDerefLocalInterfaceNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) bool {
+	if op != token.EQL && op != token.NEQ {
+		return false
+	}
+	star, ok := unwrapParens(expr).(*ast.StarExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	ptr, ok := types.Unalias(typeInfo.GetType(star.X)).Underlying().(*types.Pointer)
+	if !ok {
+		return false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(ptr.Elem()); !ok {
+		return false
+	}
+	out.WriteString("{ let __iface_handle = ")
+	TranspileExpressionContext(out, star.X, LValue)
+	out.WriteString(".clone(); let __iface_guard = __iface_handle")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; (*__iface_guard).is_")
+	if op == token.EQL {
+		out.WriteString("none()")
+	} else {
+		out.WriteString("some()")
+	}
+	out.WriteString(" }")
+	return true
+}
+
 func writeLocalInterfaceNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) bool {
 	if op != token.EQL && op != token.NEQ {
 		return false
@@ -7833,6 +7866,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				return
 			}
 
+			if writePointerDerefLocalInterfaceNilComparison(out, e.X, e.Op) {
+				return
+			}
 			if writeLocalInterfaceNilComparison(out, e.X, e.Op) {
 				return
 			}
