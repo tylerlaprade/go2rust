@@ -198,6 +198,9 @@ func SanitizeRustModuleName(s string) string {
 	}
 
 	resultStr := string(result)
+	if resultStr == "std" {
+		return "std_"
+	}
 	if isRustPathKeyword(resultStr) {
 		return resultStr + "_"
 	}

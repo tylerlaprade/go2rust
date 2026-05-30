@@ -2563,6 +2563,43 @@ func main() {
 	}
 }
 
+func TestStdGoFileModuleDoesNotShadowRustStd(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/stdfile
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "std.go"), `package stdfile
+
+const value = 1
+`)
+	writeTestFile(t, filepath.Join(tempDir, "use.go"), `package stdfile
+
+func Use() int {
+	return value
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "std.go"),
+		filepath.Join(tempDir, "use.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	libRS := mustReadFile(t, filepath.Join(tempDir, "lib.rs"))
+	if strings.Contains(libRS, "pub mod std;") || strings.Contains(libRS, "pub use std::*;") {
+		t.Fatalf("std.go should not generate a crate-root module named std:\n%s", libRS)
+	}
+	if !strings.Contains(libRS, "pub mod std_;") || !strings.Contains(libRS, "pub use std_::*;") {
+		t.Fatalf("std.go should generate a non-shadowing std_ module:\n%s", libRS)
+	}
+	if _, err := os.Stat(filepath.Join(tempDir, "std_.rs")); err != nil {
+		t.Fatalf("std.go should write std_.rs: %v", err)
+	}
+}
+
 func TestTypeNameHelperDoesNotCollideWithPackageGoTypeNameFunction(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

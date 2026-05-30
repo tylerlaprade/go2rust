@@ -280,10 +280,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		if baseName == "main" && file.Name.Name == "main" {
 			continue
 		}
-		outputName := baseName
-		if pg.hasMainFile() && strings.HasPrefix(baseName, "lib") && strings.TrimLeft(baseName[3:], "_") == "" {
-			outputName = baseName + "_"
-		}
+		outputName := pg.moduleNameForBase(baseName)
 		registerPackageTypeModuleNamesForFile(packageState, file, outputName)
 	}
 
@@ -308,7 +305,6 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		}
 
 		baseName := strings.TrimSuffix(filepath.Base(filename), ".go")
-		rustFilename := strings.TrimSuffix(filename, ".go") + ".rs"
 
 		// Check if this is main.go
 		if baseName == "main" && file.Name.Name == "main" {
@@ -317,12 +313,8 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 			continue
 		}
 
-		// For lib.go in a binary crate, rename to avoid Rust warnings
-		outputName := baseName
-		if pg.hasMainFile() && strings.HasPrefix(baseName, "lib") && strings.TrimLeft(baseName[3:], "_") == "" {
-			outputName = baseName + "_"
-			rustFilename = strings.TrimSuffix(filename, ".go") + "_.rs"
-		}
+		outputName := pg.moduleNameForBase(baseName)
+		rustFilename := pg.moduleFilePath(filename, outputName)
 
 		var rustCode string
 		var fileImports *ImportTracker
@@ -469,14 +461,23 @@ func (pg *ProjectGenerator) nonMainModuleNames(astFilesByPath map[string]*ast.Fi
 		if baseName == "main" && file.Name.Name == "main" {
 			continue
 		}
-		outputName := baseName
-		if pg.hasMainFile() && strings.HasPrefix(baseName, "lib") && strings.TrimLeft(baseName[3:], "_") == "" {
-			outputName = baseName + "_"
-		}
+		outputName := pg.moduleNameForBase(baseName)
 		moduleNames = append(moduleNames, outputName)
 	}
 	sort.Strings(moduleNames)
 	return moduleNames
+}
+
+func (pg *ProjectGenerator) moduleNameForBase(baseName string) string {
+	outputName := baseName
+	if pg.hasMainFile() && strings.HasPrefix(baseName, "lib") && strings.TrimLeft(baseName[3:], "_") == "" {
+		outputName = baseName + "_"
+	}
+	return SanitizeRustModuleName(outputName)
+}
+
+func (pg *ProjectGenerator) moduleFilePath(filename, moduleName string) string {
+	return filepath.Join(filepath.Dir(filename), SanitizeRustModuleFileName(moduleName)+".rs")
 }
 
 // prefixDotImportedCrateUses emits a glob `use <crate>::*;` for every

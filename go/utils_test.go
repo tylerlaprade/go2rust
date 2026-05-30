@@ -12,6 +12,15 @@ func TestSanitizeRustModuleFileName(t *testing.T) {
 	if fileName != "mod" {
 		t.Fatalf("SanitizeRustModuleFileName(%q) = %q, want mod", moduleName, fileName)
 	}
+
+	stdModuleName := SanitizeRustModuleName("std")
+	if stdModuleName != "std_" {
+		t.Fatalf("SanitizeRustModuleName(\"std\") = %q, want std_", stdModuleName)
+	}
+	stdFileName := SanitizeRustModuleFileName(stdModuleName)
+	if stdFileName != "std_" {
+		t.Fatalf("SanitizeRustModuleFileName(%q) = %q, want std_", stdModuleName, stdFileName)
+	}
 }
 
 func TestSanitizeRustCrateName(t *testing.T) {
