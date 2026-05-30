@@ -308,6 +308,27 @@ func setName(n *Name, b []byte) {
 	}
 }
 
+func TestSliceElemPointerLocalFieldAssignmentFailsLoudly(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type Name struct {
+	Bytes *byte
+}
+
+func setName(n *Name, b []byte) {
+	p := &b[0]
+	n.Bytes = p
+}
+`)
+
+	if strings.Contains(rust, "let new_val = p.clone();") {
+		t.Fatalf("slice element pointer local field assignment should not emit an incompatible helper value:\n%s", rust)
+	}
+	if !strings.Contains(rust, `unimplemented!("slice element pointer cannot assign to pointer field")`) {
+		t.Fatalf("slice element pointer local field assignment should fail loudly:\n%s", rust)
+	}
+}
+
 func TestSliceElemPointerReturnFailsLoudlyInsteadOfInvalidHelper(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

@@ -502,6 +502,14 @@ func writeReadOnlySliceElemPtrPointerCallArgument(out *strings.Builder, call *as
 }
 
 func writeUnsupportedSliceElemPointerHandleValue(out *strings.Builder, rhs ast.Expr, message string) bool {
+	if ident, ok := unwrapParens(rhs).(*ast.Ident); ok && isSliceElemPtrVar(ident.Name) {
+		WriteWrapperPrefix(out)
+		out.WriteString(`unimplemented!("`)
+		out.WriteString(message)
+		out.WriteString(`")`)
+		WriteWrapperSuffix(out)
+		return true
+	}
 	if _, ok := sliceElemPtrAddressElemRustType(rhs); !ok {
 		return false
 	}
