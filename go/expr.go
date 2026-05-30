@@ -2542,11 +2542,11 @@ func writeAlreadyWrappedCallArgument(out *strings.Builder, arg ast.Expr) bool {
 							out.WriteString(".clone()")
 							return true
 						}
-						out.WriteString(RustIdentForUse(ident))
+						out.WriteString(rustIdentForUseWithCapture(ident))
 						out.WriteString(".clone()")
 						return true
 					case *types.Slice, *types.Map:
-						out.WriteString(RustIdentForUse(ident))
+						out.WriteString(rustIdentForUseWithCapture(ident))
 						out.WriteString(".clone()")
 						return true
 					}

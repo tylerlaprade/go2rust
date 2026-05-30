@@ -452,6 +452,45 @@ func makeIter(values []int) func() {
 	}
 }
 
+func TestFuncLitMethodArgUsesCapturedSliceClone(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type TypeParam struct{}
+
+type unifier struct{}
+
+func (u *unifier) inferred(tparams []*TypeParam) []*TypeParam {
+	return tparams
+}
+
+func use(fn func()) {}
+
+func infer(u *unifier, tparams []*TypeParam) int {
+	use(func() {
+		_ = u.inferred(tparams)
+	})
+	return len(tparams)
+}
+`)
+
+	bodyStart := strings.Index(rust, "Box::new(move ||")
+	if bodyStart < 0 {
+		t.Fatalf("closure body not found:\n%s", rust)
+	}
+	body := rust[bodyStart:]
+	bodyEnd := strings.Index(body, "}) as Box<dyn")
+	if bodyEnd < 0 {
+		t.Fatalf("closure body end not found:\n%s", rust)
+	}
+	body = body[:bodyEnd]
+	if strings.Contains(body, "inferred(tparams.clone())") {
+		t.Fatalf("captured slice method argument should not use the outer handle:\n%s", rust)
+	}
+	if !strings.Contains(body, "inferred(tparams_closure_clone.clone())") {
+		t.Fatalf("captured slice method argument should use the closure clone:\n%s", rust)
+	}
+}
+
 func TestReceiverMethodFuncLitArgUsesReceiverTemp(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
