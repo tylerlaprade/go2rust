@@ -426,6 +426,18 @@ func callResultIsBareScalar(call *ast.CallExpr, index int) bool {
 	return signatureResultIsBareScalar(sig, index)
 }
 
+func callResultNeedsBareScalarUnwrapFromGeneratedWrapper(call *ast.CallExpr, index int) bool {
+	if !callResultIsBareScalar(call, index) {
+		return false
+	}
+	sourceSig, ok := sourceFunctionSignatureForCall(call)
+	if !ok || sourceSig.Results() == nil || index < 0 || index >= sourceSig.Results().Len() {
+		return false
+	}
+	_, isTypeParam := types.Unalias(sourceSig.Results().At(index).Type()).(*types.TypeParam)
+	return isTypeParam
+}
+
 func stdlibHandlerResultUsesBareScalar(call *ast.CallExpr, index int) bool {
 	key, ok := stdlibCallKey(call.Fun)
 	if !ok {

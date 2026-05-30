@@ -2952,7 +2952,7 @@ func writeFunctionHandleCallArgument(out *strings.Builder, arg ast.Expr, expecte
 	if expected == nil || !isFunctionSignatureType(expected) {
 		return false
 	}
-	return writeFunctionValueHandle(out, arg)
+	return writeFunctionValueHandleForExpected(out, arg, expected)
 }
 
 func writeBareStructAliasCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
@@ -3680,6 +3680,14 @@ func callParamTypeFromTypeInfo(call *ast.CallExpr, index int) types.Type {
 		return nil
 	}
 	return params.At(index).Type()
+}
+
+func generatedFunctionParamTypeForCall(call *ast.CallExpr, index int, fallback types.Type) types.Type {
+	source := sourceFunctionParamType(call, index)
+	if source != nil && isFunctionSignatureType(source) {
+		return source
+	}
+	return fallback
 }
 
 type sourceFunctionDeclInfo struct {
@@ -5725,6 +5733,14 @@ func writeFunctionValueHandle(out *strings.Builder, expr ast.Expr) bool {
 		return true
 	}
 	return false
+}
+
+func writeFunctionValueHandleForExpected(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
+	if funcLit, ok := expr.(*ast.FuncLit); ok {
+		TranspileFuncLitWithExpected(out, funcLit, expected)
+		return true
+	}
+	return writeFunctionValueHandle(out, expr)
 }
 
 func isFunctionSignatureExpression(expr ast.Expr) bool {
@@ -10858,7 +10874,26 @@ func TranspileFuncLit(out *strings.Builder, funcLit *ast.FuncLit) {
 	WriteWrapperSuffix(out)
 }
 
+func TranspileFuncLitWithExpected(out *strings.Builder, funcLit *ast.FuncLit, expected types.Type) {
+	WriteWrapperPrefix(out)
+	TranspileFuncLitBoxWithExpected(out, funcLit, expected)
+	WriteWrapperSuffix(out)
+}
+
 func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
+	transpileFuncLitBox(out, funcLit, nil)
+}
+
+func TranspileFuncLitBoxWithExpected(out *strings.Builder, funcLit *ast.FuncLit, expected types.Type) {
+	transpileFuncLitBox(out, funcLit, funcLitReturnOverridesForExpected(funcLit, expected))
+}
+
+type funcLitReturnOverride struct {
+	rustType     string
+	forceWrapped bool
+}
+
+func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverrides map[int]funcLitReturnOverride) {
 	hasClosureDefer := false
 	if funcLit.Body != nil {
 		hasClosureDefer = checkHasDefer(funcLit.Body.List)
@@ -10969,18 +11004,19 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 		out.WriteString("-> ")
 		if len(funcLit.Type.Results.List) == 1 && len(funcLit.Type.Results.List[0].Names) == 0 {
 			// Single unnamed return
-			out.WriteString(GoReturnTypeToRust(funcLit.Type.Results.List[0].Type))
+			out.WriteString(funcLitReturnTypeForSlot(funcLit.Type.Results.List[0].Type, 0, resultOverrides))
 		} else {
 			// Multiple returns
 			var retTypes []string
+			slot := 0
 			for _, field := range funcLit.Type.Results.List {
-				retType := GoReturnTypeToRust(field.Type)
 				count := len(field.Names)
 				if count == 0 {
 					count = 1
 				}
 				for i := 0; i < count; i++ {
-					retTypes = append(retTypes, retType)
+					retTypes = append(retTypes, funcLitReturnTypeForSlot(field.Type, slot, resultOverrides))
+					slot++
 				}
 			}
 			out.WriteString("(" + strings.Join(retTypes, ", ") + ")")
@@ -11042,6 +11078,18 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 		restoreSliceElemPtrCandidates := setSliceElemPtrCandidates(funcLit.Body)
 		defer restoreSliceElemPtrCandidates()
 	}
+	if len(resultOverrides) > 0 {
+		forced := make(map[int]bool)
+		for index, override := range resultOverrides {
+			if override.forceWrapped {
+				forced[index] = true
+			}
+		}
+		if len(forced) > 0 {
+			restore := pushForceWrappedReturnSlots(forced)
+			defer restore()
+		}
+	}
 	prevReturnTail := currentReturnStatementIsTail
 	currentReturnStatementIsTail = false
 	defer func() { currentReturnStatementIsTail = prevReturnTail }()
@@ -11071,10 +11119,128 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 
 	// Cast to the right type and close wrappers
 	out.WriteString(" as ")
-	out.WriteString(generateClosureType(funcLit.Type))
+	out.WriteString(generateClosureTypeWithResultOverrides(funcLit.Type, resultOverrides))
 	if len(inlineCaptures) > 0 {
 		out.WriteString(" }")
 	}
+}
+
+func funcLitReturnTypeForSlot(defaultType ast.Expr, slot int, overrides map[int]funcLitReturnOverride) string {
+	if override, ok := overrides[slot]; ok && override.rustType != "" {
+		return override.rustType
+	}
+	return GoReturnTypeToRust(defaultType)
+}
+
+func funcLitReturnOverridesForExpected(funcLit *ast.FuncLit, expected types.Type) map[int]funcLitReturnOverride {
+	expectedSig, ok := signatureFromType(expected)
+	if !ok || expectedSig.Results() == nil || expectedSig.Results().Len() == 0 {
+		return nil
+	}
+	actualResults := funcLitResultTypes(funcLit)
+	if len(actualResults) == 0 {
+		return nil
+	}
+	overrides := make(map[int]funcLitReturnOverride)
+	results := expectedSig.Results()
+	for i := 0; i < results.Len() && i < len(actualResults); i++ {
+		if _, ok := types.Unalias(results.At(i).Type()).(*types.TypeParam); !ok {
+			continue
+		}
+		actual := actualResults[i]
+		if actual == nil {
+			continue
+		}
+		overrides[i] = funcLitReturnOverride{
+			rustType:     goTypesTypeToRustWrapped(actual),
+			forceWrapped: true,
+		}
+	}
+	if len(overrides) == 0 {
+		return nil
+	}
+	return overrides
+}
+
+func funcLitResultTypes(funcLit *ast.FuncLit) []types.Type {
+	if funcLit == nil {
+		return nil
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil {
+		if sig, ok := signatureFromType(typeInfo.GetType(funcLit)); ok && sig.Results() != nil {
+			results := sig.Results()
+			typesList := make([]types.Type, 0, results.Len())
+			for i := 0; i < results.Len(); i++ {
+				typesList = append(typesList, results.At(i).Type())
+			}
+			return typesList
+		}
+	}
+	if funcLit.Type == nil || funcLit.Type.Results == nil {
+		return nil
+	}
+	var typesList []types.Type
+	for _, field := range funcLit.Type.Results.List {
+		typ, ok := resultTypeExprType(field.Type)
+		if !ok {
+			return nil
+		}
+		count := len(field.Names)
+		if count == 0 {
+			count = 1
+		}
+		for i := 0; i < count; i++ {
+			typesList = append(typesList, typ)
+		}
+	}
+	return typesList
+}
+
+func generateClosureTypeWithResultOverrides(funcType *ast.FuncType, overrides map[int]funcLitReturnOverride) string {
+	if len(overrides) == 0 {
+		return generateClosureType(funcType)
+	}
+	var paramTypes []string
+	if funcType.Params != nil {
+		for _, field := range funcType.Params.List {
+			paramType := GoTypeToRustParam(field.Type)
+			count := len(field.Names)
+			if count == 0 {
+				count = 1
+			}
+			for i := 0; i < count; i++ {
+				paramTypes = append(paramTypes, paramType)
+			}
+		}
+	}
+
+	var returnType string
+	if funcType.Results == nil || len(funcType.Results.List) == 0 {
+		returnType = "()"
+	} else if len(funcType.Results.List) == 1 && len(funcType.Results.List[0].Names) == 0 {
+		returnType = funcLitReturnTypeForSlot(funcType.Results.List[0].Type, 0, overrides)
+	} else {
+		var retTypes []string
+		slot := 0
+		for _, field := range funcType.Results.List {
+			count := len(field.Names)
+			if count == 0 {
+				count = 1
+			}
+			for i := 0; i < count; i++ {
+				retTypes = append(retTypes, funcLitReturnTypeForSlot(field.Type, slot, overrides))
+				slot++
+			}
+		}
+		returnType = "(" + strings.Join(retTypes, ", ") + ")"
+	}
+
+	paramsStr := strings.Join(paramTypes, ", ")
+	if NeedsConcurrentWrapper() {
+		return fmt.Sprintf("Box<dyn FnMut(%s) -> %s + Send + Sync>", paramsStr, returnType)
+	}
+	return fmt.Sprintf("Box<dyn FnMut(%s) -> %s>", paramsStr, returnType)
 }
 
 func functionBoxTypeForCallTarget(expr ast.Expr) string {
@@ -14196,7 +14362,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					if writePointerHandleCallArgument(out, arg, expectedArgType) {
 						continue
 					}
-					if writeFunctionHandleCallArgument(out, arg, expectedArgType) {
+					if writeFunctionHandleCallArgument(out, arg, generatedFunctionParamTypeForCall(call, i, expectedArgType)) {
 						continue
 					}
 					if writeOrderedTypeParamCallArgument(out, call, i, arg, expectedArgType) {
@@ -14856,7 +15022,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					continue
 				}
 
-				if writeFunctionHandleCallArgument(out, arg, expectedArgType) {
+				if writeFunctionHandleCallArgument(out, arg, generatedFunctionParamTypeForCall(call, i, expectedArgType)) {
 					continue
 				}
 

@@ -12,6 +12,26 @@ import (
 )
 
 var currentReturnStatementIsTail bool
+var currentForceWrappedReturnSlots map[int]bool
+
+func pushForceWrappedReturnSlots(slots map[int]bool) func() {
+	prev := currentForceWrappedReturnSlots
+	currentForceWrappedReturnSlots = slots
+	return func() {
+		currentForceWrappedReturnSlots = prev
+	}
+}
+
+func returnSlotForcesWrappedValue(index int) bool {
+	if currentForceWrappedReturnSlots == nil {
+		return false
+	}
+	return currentForceWrappedReturnSlots[index]
+}
+
+func anyReturnSlotForcesWrappedValue() bool {
+	return len(currentForceWrappedReturnSlots) > 0
+}
 
 func TranspileTailStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet, comments []*ast.CommentGroup, lastPos *token.Pos, indent string) {
 	// Only flag the immediate return-as-tail position. A loop, type switch,
@@ -5337,7 +5357,13 @@ func tupleTempNeedsUnwrapForBareAssignment(lhs ast.Expr, tmpBareScalar bool) boo
 		return false
 	}
 	typeInfo := GetTypeInfo()
-	return typeInfo != nil && typeInfo.IsString(lhs)
+	if typeInfo == nil {
+		return false
+	}
+	if typeInfo.IsString(lhs) {
+		return true
+	}
+	return typeIsPredeclaredCopyScalar(typeInfo.GetType(lhs))
 }
 
 func writeClonedTupleTempInner(out *strings.Builder, tmpName string) {
@@ -8240,7 +8266,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// the per-slot wrap/unwrap helpers below assume one value per slot.
 			if len(s.Results) == 1 && fnHasMultipleResultSlots(fnType) {
 				if call, ok := s.Results[0].(*ast.CallExpr); ok && callReturnsMultipleResults(call) {
-					TranspileExpression(out, call)
+					if !writeMultiResultCallReturnWithForcedWrappedSlots(out, call) {
+						TranspileExpression(out, call)
+					}
 					if currentFunctionHasDefer {
 						out.WriteString(";\n    }")
 					} else if !tailReturn {
@@ -8272,7 +8300,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				} else if writeNamedSliceWrappedReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
 				} else if resultType := returnResultTypeExpr(fnType, i); typeExprIsRegisteredBareStructAlias(resultType) {
 					writeBareStructAliasValue(out, result)
-				} else if resultType := returnResultTypeExpr(fnType, i); resultTypeExprIsBareScalar(resultType) {
+				} else if resultType := returnResultTypeExpr(fnType, i); resultTypeExprIsBareScalar(resultType) && !returnSlotForcesWrappedValue(i) {
 					writeBareScalarReturnValue(out, result, resultType)
 				} else {
 					// Check if this is a field access on self (already wrapped)
@@ -9091,11 +9119,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			} else if needsTupleUnpack {
 				if s.Tok == token.DEFINE {
 					existingShortDeclLHS := make([]bool, len(s.Lhs))
+					wrappedScalarTempLHS := make([]bool, len(s.Lhs))
 					anyExistingShortDeclLHS := false
+					anyWrappedScalarTempLHS := false
+					var tupleCall *ast.CallExpr
+					if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
+						tupleCall = call
+					}
 					for i, lhs := range s.Lhs {
 						if shortDeclLHSUsesExistingBinding(lhs) {
 							existingShortDeclLHS[i] = true
 							anyExistingShortDeclLHS = true
+							continue
+						}
+						if tupleCall != nil && callResultNeedsBareScalarUnwrapFromGeneratedWrapper(tupleCall, i) {
+							wrappedScalarTempLHS[i] = true
+							anyWrappedScalarTempLHS = true
 						}
 					}
 					out.WriteString("let ")
@@ -9104,7 +9143,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if i > 0 {
 							out.WriteString(", ")
 						}
-						if existingShortDeclLHS[i] {
+						if existingShortDeclLHS[i] || wrappedScalarTempLHS[i] {
 							out.WriteString(fmt.Sprintf("__tmp_%d", i))
 							continue
 						}
@@ -9121,7 +9160,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					TranspileExpression(out, s.Rhs[0])
 					if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
 						registrationLHS := s.Lhs
-						if anyExistingShortDeclLHS {
+						if anyExistingShortDeclLHS || anyWrappedScalarTempLHS {
 							registrationLHS = append([]ast.Expr(nil), s.Lhs...)
 							for i := range registrationLHS {
 								if existingShortDeclLHS[i] {
@@ -9130,14 +9169,23 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 						}
 						registerCallTupleResultSyntaxInfo(registrationLHS, call)
-						if anyExistingShortDeclLHS {
+						if anyExistingShortDeclLHS || anyWrappedScalarTempLHS {
 							out.WriteString(";")
 						}
 						for i, lhs := range s.Lhs {
-							if !existingShortDeclLHS[i] {
+							if existingShortDeclLHS[i] {
+								writeTupleAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i), callResultIsBareScalar(call, i))
 								continue
 							}
-							writeTupleAssignmentFromTemp(out, lhs, fmt.Sprintf("__tmp_%d", i), callResultIsBareScalar(call, i))
+							if wrappedScalarTempLHS[i] {
+								if ident, ok := lhs.(*ast.Ident); ok && ident.Name != "_" {
+									out.WriteString(" let mut ")
+									out.WriteString(RustLocalIdent(ident.Name))
+									out.WriteString(" = ")
+									writeClonedTupleTempInner(out, fmt.Sprintf("__tmp_%d", i))
+									out.WriteString(";")
+								}
+							}
 						}
 					}
 				} else {
@@ -12478,6 +12526,42 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 	default:
 		out.WriteString("// TODO: Unhandled statement type: " + strings.TrimPrefix(fmt.Sprintf("%T", s), "*ast."))
 	}
+}
+
+func writeMultiResultCallReturnWithForcedWrappedSlots(out *strings.Builder, call *ast.CallExpr) bool {
+	if !anyReturnSlotForcesWrappedValue() {
+		return false
+	}
+	sig, ok := callSignatureFromTypeInfo(call)
+	if !ok || sig.Results() == nil || sig.Results().Len() == 0 {
+		return false
+	}
+	results := sig.Results()
+	out.WriteString("{ let (")
+	for i := 0; i < results.Len(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(fmt.Sprintf("__return_tmp_%d", i))
+	}
+	out.WriteString(") = ")
+	TranspileExpression(out, call)
+	out.WriteString("; (")
+	for i := 0; i < results.Len(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		tmpName := fmt.Sprintf("__return_tmp_%d", i)
+		if returnSlotForcesWrappedValue(i) && callResultIsBareScalar(call, i) {
+			WriteWrapperPrefix(out)
+			out.WriteString(tmpName)
+			WriteWrapperSuffix(out)
+		} else {
+			out.WriteString(tmpName)
+		}
+	}
+	out.WriteString(") }")
+	return true
 }
 
 func writeStringAppendExpression(out *strings.Builder, rhs ast.Expr) {

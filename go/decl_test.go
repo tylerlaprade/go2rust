@@ -286,6 +286,70 @@ func Identity[T any](x T) T {
 	}
 }
 
+func TestGenericFunctionValueTypeParamReturnKeepsGenericWrapperABI(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func retry[T any](fn func() (T, error)) (T, error) {
+	return fn()
+}
+
+func call() (int, error) {
+	v, err := retry(func() (int, error) {
+		return 1, nil
+	})
+	return v, err
+}
+`)
+
+	if !strings.Contains(rust, "Box<dyn FnMut() -> (Rc<RefCell<Option<T>>>, Rc<RefCell<Option<Box<dyn StdError>>>>)") {
+		t.Fatalf("generic func parameter should keep the generic wrapped T return ABI:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box<dyn FnMut() -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>)") {
+		t.Fatalf("instantiated func literal should be coerced to the wrapped generic return ABI:\n%s", rust)
+	}
+	if strings.Contains(rust, "Box<dyn FnMut() -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>)") {
+		t.Fatalf("func literal passed to generic func parameter should not keep a bare scalar return ABI:\n%s", rust)
+	}
+	if strings.Contains(rust, "let (mut v, mut err) = retry::<i32>") {
+		t.Fatalf("scalar result from wrapped generic return should be unpacked through a temp before binding:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let (__tmp_0, mut err) = retry::<i32>") {
+		t.Fatalf("wrapped generic return should bind scalar result through a temp:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut v = { let __tmp_holder = __tmp_0.clone(); let __tmp_guard = __tmp_holder.borrow(); (*__tmp_guard.as_ref().unwrap()).clone() };") {
+		t.Fatalf("wrapped generic scalar result temp should be unwrapped into the bare scalar local:\n%s", rust)
+	}
+}
+
+func TestGenericFunctionValueTypeParamReturnWrapsMultiResultCall(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func pair() (int, error) {
+	return 1, nil
+}
+
+func retry[T any](fn func() (T, error)) (T, error) {
+	return fn()
+}
+
+func call() (int, error) {
+	return retry(func() (int, error) {
+		return pair()
+	})
+}
+`)
+
+	if strings.Contains(rust, "return pair();") || strings.Contains(rust, "\n        pair()\n") {
+		t.Fatalf("multi-result call in wrapped generic func literal should not bypass slot conversion:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let (__return_tmp_0, __return_tmp_1) = pair();") {
+		t.Fatalf("multi-result call should be captured before generic return-slot conversion:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(Rc::new(RefCell::new(Some(__return_tmp_0))), __return_tmp_1)") {
+		t.Fatalf("bare scalar multi-result slot should be wrapped for the generic T return ABI:\n%s", rust)
+	}
+}
+
 func TestGenericUnionTypeParamParameterUsesTypeParam(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
