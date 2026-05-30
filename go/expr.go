@@ -4380,7 +4380,14 @@ func writeTypeParamHandleEquality(out *strings.Builder, expr *ast.BinaryExpr) bo
 
 func writeTypeParamHandleExpression(out *strings.Builder, expr ast.Expr) bool {
 	ident, ok := expr.(*ast.Ident)
-	if !ok || ident.Name == "_" || ident.Name == "nil" || isConstIdent(ident) {
+	if !ok {
+		if !isTypeParamExpression(expr) {
+			return false
+		}
+		TranspileExpressionContext(out, expr, LValue)
+		return true
+	}
+	if ident.Name == "_" || ident.Name == "nil" || isConstIdent(ident) {
 		return false
 	}
 	name := rustIdentForUseWithCapture(ident)

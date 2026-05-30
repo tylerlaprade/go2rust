@@ -4144,6 +4144,22 @@ func use[T string | []byte](sep T) uint32 {
 	}
 }
 
+func TestTypeParamSliceElementEqualityUsesHandleComparison(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func same[S ~[]E, E comparable](left, right S, i int) bool {
+	return left[i] != right[i]
+}
+`)
+
+	if strings.Contains(rust, "__tmp_x != __tmp_y") {
+		t.Fatalf("type-parameter slice element equality should not compare raw generic values:\n%s", rust)
+	}
+	if !strings.Contains(rust, "::ptr_eq(&__left, &__right)") {
+		t.Fatalf("type-parameter slice element equality should use handle comparison:\n%s", rust)
+	}
+}
+
 func TestNumericTypeParamConversionForLoopUsesConsistentWrapperShape(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
