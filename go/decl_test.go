@@ -236,6 +236,21 @@ func Keep[N int64 | uint64](num N) N {
 	}
 }
 
+func TestGenericPointerConstraintTypeParamUsesCloneBound(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func clone[P *T, T any](p P) P {
+	c := *p
+	return &c
+}
+`)
+
+	want := "pub fn clone<P: Clone + 'static, T: Any + Clone + 'static>(p: Rc<RefCell<Option<P>>>) -> Rc<RefCell<Option<P>>>"
+	if !strings.Contains(rust, want) {
+		t.Fatalf("generic pointer-constrained type parameter should get a clone bound, want %q:\n%s", want, rust)
+	}
+}
+
 func TestStructDefaultWrapsNamedArrayFieldZeroValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

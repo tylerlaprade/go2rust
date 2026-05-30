@@ -381,6 +381,55 @@ func goTypeParamHasIntegerConstraint(t types.Type) bool {
 	return hasTerm
 }
 
+func goTypeParamHasPointerConstraint(t types.Type) bool {
+	tp, ok := types.Unalias(t).(*types.TypeParam)
+	if !ok || tp.Constraint() == nil {
+		return false
+	}
+	return constraintEmbedsOnlyPointerTypes(tp.Constraint())
+}
+
+func constraintEmbedsOnlyPointerTypes(t types.Type) bool {
+	if t == nil {
+		return false
+	}
+	iface, ok := types.Unalias(t).Underlying().(*types.Interface)
+	if !ok || iface.NumEmbeddeds() == 0 {
+		return false
+	}
+	for i := 0; i < iface.NumEmbeddeds(); i++ {
+		if !constraintTermIsPointerOnly(iface.EmbeddedType(i)) {
+			return false
+		}
+	}
+	return true
+}
+
+func constraintTermIsPointerOnly(t types.Type) bool {
+	if t == nil {
+		return false
+	}
+	switch u := types.Unalias(t).(type) {
+	case *types.Pointer:
+		return true
+	case *types.Union:
+		if u.Len() == 0 {
+			return false
+		}
+		for i := 0; i < u.Len(); i++ {
+			if !constraintTermIsPointerOnly(u.Term(i).Type()) {
+				return false
+			}
+		}
+		return true
+	default:
+		if _, ok := types.Unalias(t).Underlying().(*types.Interface); ok {
+			return constraintEmbedsOnlyPointerTypes(t)
+		}
+		return false
+	}
+}
+
 func isGoIntegerType(t types.Type) bool {
 	if t == nil {
 		return false
