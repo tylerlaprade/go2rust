@@ -2465,6 +2465,16 @@ impl atomic_Uint64 {
     pub fn load(&self) -> u64 {
         self.__go_value.load(std::sync::atomic::Ordering::SeqCst)
     }
+
+    pub fn store<T0: 'static>(&self, arg0: T0) {
+        self.__go_value.store(__go_atomic_u64_arg(&arg0), std::sync::atomic::Ordering::SeqCst);
+    }
+
+    pub fn compare_and_swap<T0: 'static, T1: 'static>(&self, old: T0, new: T1) -> bool {
+        let old = __go_atomic_u64_arg(&old);
+        let new = __go_atomic_u64_arg(&new);
+        self.__go_value.compare_exchange(old, new, std::sync::atomic::Ordering::SeqCst, std::sync::atomic::Ordering::SeqCst).is_ok()
+    }
 }
 `)
 }

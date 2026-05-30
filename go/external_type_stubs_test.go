@@ -198,6 +198,23 @@ func TestTypesBridgeSupportGatedOnConfigCheck(t *testing.T) {
 	}
 }
 
+func TestAtomicUint64StubSupportsStoreAndCompareAndSwap(t *testing.T) {
+	got := generateExternalStubs(
+		map[string]bool{"atomic_Uint64": true},
+		nil, nil, nil, nil, nil, nil, nil,
+	)
+
+	for _, want := range []string{
+		"pub fn store<T0: 'static>(&self, arg0: T0)",
+		"pub fn compare_and_swap<T0: 'static, T1: 'static>(&self, old: T0, new: T1) -> bool",
+		"self.__go_value.compare_exchange(old, new, std::sync::atomic::Ordering::SeqCst, std::sync::atomic::Ordering::SeqCst).is_ok()",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("atomic.Uint64 helper should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestParserStubUsesGoAstShapesForCalls(t *testing.T) {
 	var out strings.Builder
 	writeParserParseFileFunction(&out, externalPackageStubFunction{

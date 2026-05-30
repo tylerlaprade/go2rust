@@ -193,6 +193,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ `sync.Once.Do` receiver-field initialization callbacks - callbacks such as `r.once.Do(func(){ r.ch = make(chan struct{}, n) })` inline as `FnMut`-capable helper calls and mutate the real receiver, not a cloned receiver (sync_once_receiver_init added, 2026-05-10)
 - ✅ Zero-value WaitGroup struct fields - `WaitGroup` implements Default/Debug for derived source structs (waitgroup_sync expanded, 2026-05-07)
 - ✅ Basic sync/atomic int64 operations - AddInt64 and LoadInt64 (atomic_operations promoted, 2026-05-06)
+- ✅ `atomic.Uint64` helper methods - source-generated calls to `Load`, `Store`, and `CompareAndSwap` use the runtime-backed Rust atomic helper (2026-05-29)
 - ✅ Worker pool pattern with goroutines and channels (worker_pools promoted, 2026-05-06)
 - ✅ Rate limiting with `time.Tick` periodic channels (rate_limiting promoted, 2026-05-06)
 - ✅ Method receiver goroutine captures - moved receiver closures clone receivers, keep channel args bare, unwrap receiver fields for sends, and maintain local defer stacks (method_receiver_goroutine_capture promoted, 2026-05-07)
