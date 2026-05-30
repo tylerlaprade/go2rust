@@ -193,6 +193,29 @@ func walk(specs []Spec) {
 	}
 }
 
+func TestTypeSwitchAssignsConcreteToBareAnyRangeVar(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func rewrite(args []any) []any {
+	for i, arg := range args {
+		switch arg.(type) {
+		case nil:
+			arg = "<nil>"
+		}
+		args[i] = arg
+	}
+	return args
+}
+`)
+
+	if strings.Contains(rust, `let new_val = "<nil>"; arg = new_val`) {
+		t.Fatalf("bare any range assignment should not store a raw string:\n%s", rust)
+	}
+	if !strings.Contains(rust, `Box::new("<nil>".to_string()) as Box<dyn Any`) {
+		t.Fatalf("bare any range assignment should box the concrete string:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceReturnBoxesSelectorPointer(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

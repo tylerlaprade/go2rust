@@ -4655,6 +4655,14 @@ func writeBareRangeVarAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Exp
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		expected = typeInfo.GetType(lhs)
 	}
+	if isEmptyInterfaceType(expected) && !isEmptyInterfaceValueExpr(rhs) {
+		out.WriteString("{ let new_val = ")
+		writeBareAnyBox(out, rhs)
+		out.WriteString("; ")
+		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(" = new_val; }")
+		return true
+	}
 
 	out.WriteString("{ let new_val = ")
 	writeBareCompoundAssignValue(out, rhs, expected)
