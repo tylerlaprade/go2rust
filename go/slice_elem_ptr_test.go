@@ -441,6 +441,30 @@ func use(chunks [][]int) int {
 	}
 }
 
+func TestReadOnlyPointerParamThroughFuncLitAcceptsSliceElemAddress(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+func dump(values *[]int) int {
+	read := func(p *[]int) int {
+		return len(*p)
+	}
+	return read(values)
+}
+
+func use(chunks [][]int) int {
+	return dump(&chunks[0])
+}
+`)
+
+	if strings.Contains(rust, "dump(GoSliceElemPtr::new") {
+		t.Fatalf("read-only pointer parameter passed through a function literal should not receive a direct helper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "dump(Rc::new(RefCell::new((*GoSliceElemPtr::new(chunks.clone(), (0) as usize).borrow()).clone())))") &&
+		!strings.Contains(rust, "dump(Arc::new(Mutex::new((*GoSliceElemPtr::new(chunks.clone(), (0) as usize).borrow()).clone())))") {
+		t.Fatalf("read-only pointer parameter passed through a function literal should receive a cloned pointee handle:\n%s", rust)
+	}
+}
+
 func TestReadOnlyMethodPointerParamAcceptsSliceElemPointerLocal(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

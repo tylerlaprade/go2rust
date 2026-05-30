@@ -3572,42 +3572,53 @@ func sourceFunctionParamReadOnlyForObject(fn *types.Func, index int) bool {
 	if paramObj == nil {
 		return false
 	}
+	return sourceBlockParamReadOnly(info.info, info.decl.Body, paramObj)
+}
+
+func sourceBlockParamReadOnly(info *types.Info, body *ast.BlockStmt, paramObj types.Object) bool {
+	if info == nil || body == nil || paramObj == nil {
+		return false
+	}
+	localFuncLits := sourceLocalFuncLitsByObject(info, body)
 	readOnly := true
-	ast.Inspect(info.decl.Body, func(node ast.Node) bool {
+	ast.Inspect(body, func(node ast.Node) bool {
 		if !readOnly {
 			return false
 		}
 		switch n := node.(type) {
 		case *ast.AssignStmt:
 			for _, lhs := range n.Lhs {
-				if sourceExprRootedInObject(info.info, lhs, paramObj) {
+				if sourceExprRootedInObject(info, lhs, paramObj) {
 					readOnly = false
 					return false
 				}
 			}
 		case *ast.IncDecStmt:
-			if sourceExprRootedInObject(info.info, n.X, paramObj) {
+			if sourceExprRootedInObject(info, n.X, paramObj) {
 				readOnly = false
 				return false
 			}
 		case *ast.UnaryExpr:
-			if n.Op == token.AND && sourceExprRootedInObject(info.info, n.X, paramObj) {
+			if n.Op == token.AND && sourceExprRootedInObject(info, n.X, paramObj) {
 				readOnly = false
 				return false
 			}
 		case *ast.ReturnStmt:
 			for _, result := range n.Results {
-				if sourceExprPassesSliceParam(info.info, result, paramObj) {
+				if sourceExprPassesSliceParam(info, result, paramObj) {
 					readOnly = false
 					return false
 				}
 			}
 		case *ast.CallExpr:
-			if sourceCallIsLenOrCapOfParam(info.info, n, paramObj) {
+			if sourceCallIsLenOrCapOfParam(info, n, paramObj) {
 				return false
 			}
-			for _, arg := range n.Args {
-				if sourceExprPassesSliceParam(info.info, arg, paramObj) {
+			for i, arg := range n.Args {
+				if sourceExprPassesSliceParam(info, arg, paramObj) {
+					if sourceCallArgReadOnly(info, localFuncLits, n, i) {
+						continue
+					}
 					readOnly = false
 					return false
 				}
@@ -3616,6 +3627,109 @@ func sourceFunctionParamReadOnlyForObject(fn *types.Func, index int) bool {
 		return true
 	})
 	return readOnly
+}
+
+func sourceLocalFuncLitsByObject(info *types.Info, body *ast.BlockStmt) map[types.Object]*ast.FuncLit {
+	result := make(map[types.Object]*ast.FuncLit)
+	if info == nil || body == nil {
+		return result
+	}
+	ast.Inspect(body, func(node ast.Node) bool {
+		switch n := node.(type) {
+		case *ast.FuncLit:
+			return false
+		case *ast.AssignStmt:
+			for i, lhs := range n.Lhs {
+				if i >= len(n.Rhs) {
+					continue
+				}
+				ident, ok := lhs.(*ast.Ident)
+				if !ok || ident.Name == "_" {
+					continue
+				}
+				funcLit, ok := unwrapParens(n.Rhs[i]).(*ast.FuncLit)
+				if !ok {
+					continue
+				}
+				if obj := info.Defs[ident]; obj != nil {
+					result[obj] = funcLit
+				} else if obj := info.Uses[ident]; obj != nil {
+					result[obj] = funcLit
+				}
+			}
+		case *ast.ValueSpec:
+			for i, name := range n.Names {
+				if i >= len(n.Values) || name == nil || name.Name == "_" {
+					continue
+				}
+				funcLit, ok := unwrapParens(n.Values[i]).(*ast.FuncLit)
+				if !ok {
+					continue
+				}
+				if obj := info.Defs[name]; obj != nil {
+					result[obj] = funcLit
+				}
+			}
+		}
+		return true
+	})
+	return result
+}
+
+func sourceCallArgReadOnly(info *types.Info, localFuncLits map[types.Object]*ast.FuncLit, call *ast.CallExpr, index int) bool {
+	if info == nil || call == nil {
+		return false
+	}
+	if funcLit, ok := unwrapParens(call.Fun).(*ast.FuncLit); ok {
+		return sourceFuncLitParamReadOnly(info, funcLit, index)
+	}
+	ident, ok := unwrapParens(call.Fun).(*ast.Ident)
+	if !ok {
+		return false
+	}
+	obj := info.Uses[ident]
+	if obj == nil {
+		obj = info.Defs[ident]
+	}
+	funcLit := localFuncLits[obj]
+	if funcLit == nil {
+		return false
+	}
+	return sourceFuncLitParamReadOnly(info, funcLit, index)
+}
+
+func sourceFuncLitParamReadOnly(info *types.Info, funcLit *ast.FuncLit, index int) bool {
+	paramObj := sourceFuncLitParamObject(info, funcLit, index)
+	if paramObj == nil || funcLit == nil {
+		return false
+	}
+	return sourceBlockParamReadOnly(info, funcLit.Body, paramObj)
+}
+
+func sourceFuncLitParamObject(info *types.Info, funcLit *ast.FuncLit, index int) types.Object {
+	if info == nil || funcLit == nil || funcLit.Type == nil || funcLit.Type.Params == nil || index < 0 {
+		return nil
+	}
+	seen := 0
+	for _, field := range funcLit.Type.Params.List {
+		if field == nil {
+			continue
+		}
+		count := len(field.Names)
+		if count == 0 {
+			count = 1
+		}
+		for i := 0; i < count; i++ {
+			if seen == index {
+				if i < len(field.Names) {
+					return info.Defs[field.Names[i]]
+				}
+				return nil
+			}
+			seen++
+		}
+	}
+	return nil
 }
 
 func sourceCallIsLenOrCapOfParam(info *types.Info, call *ast.CallExpr, obj types.Object) bool {
