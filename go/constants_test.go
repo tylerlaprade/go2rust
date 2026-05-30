@@ -2066,6 +2066,24 @@ func nanos(t time.Time) int64 {
 	}
 }
 
+func TestTimeDurationConversionFromIntegerUsesFromNanos(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "time"
+
+func duration(n int64) time.Duration {
+	return time.Duration(n) * time.Nanosecond
+}
+`)
+
+	if strings.Contains(rust, "std::time::Duration(") {
+		t.Fatalf("time.Duration conversion should not call std::time::Duration as a tuple struct:\n%s", rust)
+	}
+	if !strings.Contains(rust, "std::time::Duration::from_nanos(") {
+		t.Fatalf("time.Duration conversion from integer should use from_nanos:\n%s", rust)
+	}
+}
+
 func TestCompoundAssignSelectorConstCastsToExpectedUintptr(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

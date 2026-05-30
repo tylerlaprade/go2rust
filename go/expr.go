@@ -11153,6 +11153,10 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		writeReflectStructTagConversion(out, call.Args[0])
 		return
 	}
+	if isTimeDurationConversionCall(call) {
+		writeTimeDurationFromIntegerConversion(out, call.Args[0])
+		return
+	}
 
 	// Check for []byte(string) and []rune(string) conversions
 	if compLit, ok := call.Fun.(*ast.ArrayType); ok {
@@ -11538,6 +11542,31 @@ func writeComplexConversionSourceValue(out *strings.Builder, arg ast.Expr) {
 		return
 	}
 	TranspileExpression(out, arg)
+}
+
+func isTimeDurationConversionCall(call *ast.CallExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || call == nil || len(call.Args) != 1 || !typeInfo.IsTypeConversion(call) {
+		return false
+	}
+	return isTimeDurationType(typeInfo.GetType(call))
+}
+
+func writeTimeDurationFromIntegerConversion(out *strings.Builder, arg ast.Expr) {
+	out.WriteString("std::time::Duration::from_nanos(")
+	writeNumericConversionValue(out, arg)
+	out.WriteString(" as u64)")
+}
+
+func writeTimeDurationConversionMultiplier(out *strings.Builder, expr ast.Expr) bool {
+	call, ok := expr.(*ast.CallExpr)
+	if !ok || !isTimeDurationConversionCall(call) {
+		return false
+	}
+	out.WriteString("(")
+	writeNumericConversionValue(out, call.Args[0])
+	out.WriteString(" as u64)")
+	return true
 }
 
 func typedNilConversionType(call *ast.CallExpr) (types.Type, bool) {

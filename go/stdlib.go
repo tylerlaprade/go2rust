@@ -5550,31 +5550,31 @@ func transpileDurationArg(out *strings.Builder, arg ast.Expr) {
 			switch unit {
 			case "Hour":
 				out.WriteString("from_secs(3600 * ")
-				TranspileExpression(out, multiplier)
+				writeTimeDurationUnitMultiplier(out, multiplier)
 				out.WriteString(")")
 			case "Minute":
 				out.WriteString("from_secs(60 * ")
-				TranspileExpression(out, multiplier)
+				writeTimeDurationUnitMultiplier(out, multiplier)
 				out.WriteString(")")
 			case "Second":
 				out.WriteString("from_secs(")
-				TranspileExpression(out, multiplier)
+				writeTimeDurationUnitMultiplier(out, multiplier)
 				out.WriteString(")")
 			case "Millisecond":
 				out.WriteString("from_millis(")
-				TranspileExpression(out, multiplier)
+				writeTimeDurationUnitMultiplier(out, multiplier)
 				out.WriteString(")")
 			case "Microsecond":
 				out.WriteString("from_micros(")
-				TranspileExpression(out, multiplier)
+				writeTimeDurationUnitMultiplier(out, multiplier)
 				out.WriteString(")")
 			case "Nanosecond":
 				out.WriteString("from_nanos(")
-				TranspileExpression(out, multiplier)
+				writeTimeDurationUnitMultiplier(out, multiplier)
 				out.WriteString(")")
 			default:
 				out.WriteString("from_millis(")
-				TranspileExpression(out, multiplier)
+				writeTimeDurationUnitMultiplier(out, multiplier)
 				out.WriteString(")")
 			}
 			return
@@ -5582,6 +5582,13 @@ func transpileDurationArg(out *strings.Builder, arg ast.Expr) {
 	}
 	// Fallback: treat as raw expression
 	TranspileExpression(out, arg)
+}
+
+func writeTimeDurationUnitMultiplier(out *strings.Builder, multiplier ast.Expr) {
+	if writeTimeDurationConversionMultiplier(out, multiplier) {
+		return
+	}
+	TranspileExpression(out, multiplier)
 }
 
 func writeTimeDurationBinaryExpression(out *strings.Builder, expr *ast.BinaryExpr) bool {
