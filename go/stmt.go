@@ -2314,6 +2314,14 @@ func switchTagNamedInterface(tag ast.Expr) (types.Type, string, bool) {
 	return tagType, ifaceName, true
 }
 
+func switchTagEmptyInterface(tag ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	return isEmptyInterfaceType(typeInfo.GetType(tag))
+}
+
 func writeSwitchInterfaceTagHandle(out *strings.Builder, tag ast.Expr, tagType types.Type) {
 	var value strings.Builder
 	if !writeLocalInterfaceReferenceCallArgument(&value, tag, tagType) {
@@ -2321,6 +2329,12 @@ func writeSwitchInterfaceTagHandle(out *strings.Builder, tag ast.Expr, tagType t
 		return
 	}
 	out.WriteString(value.String())
+}
+
+func writeSwitchEmptyInterfaceTagHandle(out *strings.Builder, tag ast.Expr) {
+	if !writeEmptyInterfaceHandleClone(out, tag) {
+		out.WriteString(`unimplemented!("type info required for empty-interface switch tag")`)
+	}
 }
 
 type switchInterfaceCaseKind int
@@ -2397,6 +2411,23 @@ func writeSwitchInterfaceCaseComparison(out *strings.Builder, switchVal string, 
 		out.WriteString("(__right.as_ref())")
 	}
 	out.WriteString(", (None, None) => true, _ => false }; __eq }")
+}
+
+func writeSwitchEmptyInterfaceCaseComparison(out *strings.Builder, switchVal string, caseExpr ast.Expr) {
+	if ident, ok := caseExpr.(*ast.Ident); ok && ident.Name == "nil" {
+		out.WriteString("(*")
+		out.WriteString(switchVal)
+		WriteBorrowMethod(out, false)
+		out.WriteString(").is_none()")
+		return
+	}
+
+	NeedAnyEq()
+	out.WriteString("{ let __right_holder = ")
+	writeEmptyInterfaceCallArgumentValue(out, caseExpr)
+	out.WriteString("; go_any_eq(&")
+	out.WriteString(switchVal)
+	out.WriteString(", &__right_holder) }")
 }
 
 func stmtContainsBreakForCurrentSwitch(stmt ast.Stmt) bool {
@@ -10810,8 +10841,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		var switchTagInterfaceType types.Type
 		var switchTagInterfaceName string
 		switchTagIsInterface := false
+		switchTagIsEmptyInterface := false
 		if s.Tag != nil {
 			switchTagInterfaceType, switchTagInterfaceName, switchTagIsInterface = switchTagNamedInterface(s.Tag)
+			switchTagIsEmptyInterface = switchTagEmptyInterface(s.Tag)
 		}
 
 		if hasFallthrough {
@@ -10820,7 +10853,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 			if s.Tag != nil {
 				out.WriteString("        let _switch_val = ")
-				if switchTagIsInterface {
+				if switchTagIsEmptyInterface {
+					writeSwitchEmptyInterfaceTagHandle(out, s.Tag)
+				} else if switchTagIsInterface {
 					writeSwitchInterfaceTagHandle(out, s.Tag, switchTagInterfaceType)
 				} else {
 					writeSwitchTagValue(out, s.Tag)
@@ -10843,7 +10878,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								out.WriteString(" || ")
 							}
 							if s.Tag != nil {
-								if switchTagIsInterface {
+								if switchTagIsEmptyInterface {
+									writeSwitchEmptyInterfaceCaseComparison(out, "_switch_val", expr)
+								} else if switchTagIsInterface {
 									writeSwitchInterfaceCaseComparison(out, "_switch_val", expr, switchTagInterfaceType, switchTagInterfaceName)
 								} else {
 									out.WriteString("_switch_val == ")
@@ -10974,7 +11011,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// non-pattern values, so explicit comparisons are the general form.
 				if s.Tag != nil {
 					out.WriteString("{ let _switch_val = ")
-					if switchTagIsInterface {
+					if switchTagIsEmptyInterface {
+						writeSwitchEmptyInterfaceTagHandle(out, s.Tag)
+					} else if switchTagIsInterface {
 						writeSwitchInterfaceTagHandle(out, s.Tag, switchTagInterfaceType)
 					} else {
 						writeSwitchTagValue(out, s.Tag)
@@ -10999,7 +11038,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								out.WriteString(" || ")
 							}
 							if s.Tag != nil {
-								if switchTagIsInterface {
+								if switchTagIsEmptyInterface {
+									writeSwitchEmptyInterfaceCaseComparison(out, "_switch_val", expr)
+								} else if switchTagIsInterface {
 									writeSwitchInterfaceCaseComparison(out, "_switch_val", expr, switchTagInterfaceType, switchTagInterfaceName)
 								} else {
 									out.WriteString("_switch_val == (")

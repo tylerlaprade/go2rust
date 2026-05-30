@@ -717,6 +717,40 @@ func classify(t Type) string {
 	}
 }
 
+func TestExpressionSwitchOnEmptyInterfaceKeepsHandle(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Code string
+
+const Large Code = "large"
+
+func parse() (err any) {
+	defer func() {
+		switch r := recover(); r {
+		default:
+			panic(r)
+		case nil:
+		case Large:
+			err = r
+		}
+	}()
+	done := make(chan bool)
+	_ = done
+	return nil
+}
+`)
+
+	if strings.Contains(rust, "let _switch_val = (*r.lock().unwrap().as_ref().unwrap()).clone()") {
+		t.Fatalf("empty-interface switch tag should keep the handle, not clone the Box<dyn Any> payload:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let _switch_val = r.clone();") {
+		t.Fatalf("empty-interface switch tag should clone the interface handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "go_any_eq(&_switch_val, &__right_holder)") {
+		t.Fatalf("empty-interface switch case should compare boxed payloads through go_any_eq:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoConcurrentPointerMapCommaOkKeepsSliceHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
