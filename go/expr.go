@@ -2984,6 +2984,10 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 			}
 			return
 		}
+		if globalIdent, ok := packageGlobalPointerIdent(ident); ok {
+			writePackageGlobalPointerPointeeClone(out, globalIdent)
+			return
+		}
 		// Range loop vars over wrapped collections need explicit unwrap
 		// before they can be boxed as the interface trait object —
 		// isVarBare would otherwise short-circuit to a bare identifier.

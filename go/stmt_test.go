@@ -308,6 +308,39 @@ func lookup() Object {
 	}
 }
 
+func TestPackageGlobalPointerCallArgumentBoxesPointee(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Object interface {
+	Name() string
+}
+
+type TypeName struct{}
+
+func (*TypeName) Name() string { return "" }
+
+var global *TypeName
+
+func def(obj Object) {}
+
+func init() {
+	def(global)
+}
+`)
+
+	if strings.Contains(rust, "Box::new((*global.borrow().as_ref().unwrap()).clone()) as Box<dyn Object") ||
+		strings.Contains(rust, "Box::new((*global.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Object") {
+		t.Fatalf("package-global pointer argument should not box the pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __global_ptr = (*global.borrow().as_ref().unwrap()).clone()") &&
+		!strings.Contains(rust, "let __global_ptr = (*global.lock().unwrap().as_ref().unwrap()).clone()") {
+		t.Fatalf("package-global pointer argument should clone the pointer handle before boxing the pointee:\n%s", rust)
+	}
+	if !strings.Contains(rust, "as Box<dyn Object") {
+		t.Fatalf("package-global pointer argument should box the pointee as the interface:\n%s", rust)
+	}
+}
+
 func TestAddressOfStringsBuilderPassedToStdlibWriterMethod(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
