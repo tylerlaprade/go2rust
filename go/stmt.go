@@ -3634,6 +3634,28 @@ func writeTranspiledInterfaceInitializerValue(out *strings.Builder, rhs ast.Expr
 	return writeLocalInterfaceReferenceCallArgument(out, rhs, ifaceType)
 }
 
+func writeTranspiledInterfaceHandleClone(out *strings.Builder, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || rhs == nil {
+		return false
+	}
+	rhsType := typeInfo.GetType(rhs)
+	if rhsType == nil {
+		return false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(rhsType); !ok {
+		return false
+	}
+	if isBareLocalInterfaceValue(rhs) {
+		WriteWrapperPrefix(out)
+		writeLocalInterfaceBareClone(out, rhs)
+		WriteWrapperSuffix(out)
+		return true
+	}
+	writeLocalInterfaceHandleClone(out, rhs)
+	return true
+}
+
 func writeLocalInterfaceAssignedCallHandleClone(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	lhsIdent, ok := lhs.(*ast.Ident)
 	if !ok {
@@ -8871,6 +8893,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 											// Concurrent map fields are map handles; clone the handle.
 										} else if writeSliceSelectorHandleClone(out, rhs) {
 											// Slice fields are already wrapped handles; clone the handle.
+										} else if writeTranspiledInterfaceHandleClone(out, rhs) {
+											// Existing named-interface values are already represented by a handle.
 										} else if writeEmptyInterfaceHandleClone(out, rhs) {
 											// Existing interface values are already represented by a handle.
 										} else if typeInfo := GetTypeInfo(); typeInfo != nil && isGoErrorType(typeInfo.GetType(rhs)) && writeGoErrorHandleValue(out, rhs) {

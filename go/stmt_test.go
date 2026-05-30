@@ -3751,3 +3751,40 @@ func TestImportedTranspiledInterfaceAssignmentCopiesHandle(t *testing.T) {
 		t.Fatalf("parallel interface handle assignment should use the captured RHS handle:\n%s", rust)
 	}
 }
+
+func TestSourceMappedInterfaceSelectorShortDeclKeepsHandle(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "go/constant"
+
+type env struct {
+	iota constant.Value
+}
+
+func take(v constant.Value) {}
+
+func use(e *env) {
+	iota := e.iota
+	take(iota)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"go/constant": "go_constant"})
+	if strings.Contains(rust, "Some((*") && strings.Contains(rust, ".iota.clone()") {
+		t.Fatalf("source-mapped interface selector short declaration should not wrap the field handle inside a new handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut iota =") || !strings.Contains(rust, ".iota.clone();") {
+		t.Fatalf("source-mapped interface selector short declaration should clone the existing field handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "take(iota.clone())") {
+		t.Fatalf("source-mapped interface selector short declaration should pass the cloned handle:\n%s", rust)
+	}
+}
