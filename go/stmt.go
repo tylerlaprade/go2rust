@@ -6899,6 +6899,68 @@ func outputComment(out *strings.Builder, cg *ast.CommentGroup, indent string, is
 	}
 }
 
+func funcLiteralParamType(funcLit *ast.FuncLit, index int) types.Type {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || funcLit == nil {
+		return nil
+	}
+	sig, ok := typeInfo.GetType(funcLit).(*types.Signature)
+	if !ok || sig.Params() == nil || index >= sig.Params().Len() {
+		return nil
+	}
+	return sig.Params().At(index).Type()
+}
+
+func writeDeferFuncLiteralArgumentCapture(out *strings.Builder, arg ast.Expr, expectedType types.Type) {
+	if expectedType != nil && mapValueTypeKeepsHandle(expectedType) {
+		if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
+			WriteWrappedNone(out)
+			return
+		}
+		if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedType) {
+			return
+		}
+		if writeLocalInterfaceWrappedValue(out, arg, expectedType) {
+			return
+		}
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			if argType := typeInfo.GetType(arg); argType != nil && mapValueTypeKeepsHandle(argType) && types.AssignableTo(argType, expectedType) {
+				TranspileExpressionContext(out, arg, LValue)
+				out.WriteString(".clone()")
+				return
+			}
+		}
+	}
+
+	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "_" {
+		if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+			if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
+				WriteWrapperPrefix(out)
+				out.WriteString("(*")
+				out.WriteString(ident.Name)
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()).clone()")
+				WriteWrapperSuffix(out)
+				return
+			}
+			WriteWrapperPrefix(out)
+			TranspileExpression(out, arg)
+			WriteWrapperSuffix(out)
+			return
+		}
+		WriteWrapperPrefix(out)
+		TranspileExpression(out, arg)
+		WriteWrapperSuffix(out)
+		return
+	}
+
+	WriteWrapperPrefix(out)
+	if !writeOwnedExpressionValue(out, arg) {
+		TranspileExpression(out, arg)
+	}
+	WriteWrapperSuffix(out)
+}
+
 // TranspileStatementSimple is a wrapper for backward compatibility
 func TranspileStatementSimple(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet) {
 	var lastPos token.Pos
@@ -11039,42 +11101,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString("let ")
 				out.WriteString(captureVar)
 				out.WriteString(" = ")
-
-				// Check if argument needs wrapping
-				// For defer arguments, we need to capture the VALUE at this moment,
-				// not a reference that could change later
-				if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "_" {
-					// Check if this is a variable (not a constant)
-					if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
-						if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
-							// It's a variable - capture its current value, not the reference
-							// This ensures each defer gets the value at the time of deferring
-							WriteWrapperPrefix(out)
-							out.WriteString("(*")
-							out.WriteString(ident.Name)
-							WriteBorrowMethod(out, false)
-							out.WriteString(".as_ref().unwrap()).clone()")
-							WriteWrapperSuffix(out)
-						} else {
-							// It's a constant, wrap it
-							WriteWrapperPrefix(out)
-							TranspileExpression(out, arg)
-							WriteWrapperSuffix(out)
-						}
-					} else {
-						// Range variable, wrap it
-						WriteWrapperPrefix(out)
-						TranspileExpression(out, arg)
-						WriteWrapperSuffix(out)
-					}
-				} else {
-					// Complex expression or literal, wrap it
-					WriteWrapperPrefix(out)
-					if !writeOwnedExpressionValue(out, arg) {
-						TranspileExpression(out, arg)
-					}
-					WriteWrapperSuffix(out)
-				}
+				writeDeferFuncLiteralArgumentCapture(out, arg, funcLiteralParamType(funcLit, i))
 				out.WriteString("; ")
 			}
 

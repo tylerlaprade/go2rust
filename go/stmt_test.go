@@ -3923,6 +3923,34 @@ func (check *checker) builtin() {
 	}
 }
 
+func TestDeferFuncLiteralPointerSelectorArgumentKeepsHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type scope struct{}
+
+type checker struct {
+	scope *scope
+}
+
+func (check *checker) stmt() {
+	defer func(scope *scope) {
+		if scope == check.scope {
+		}
+	}(check.scope)
+	check.scope = nil
+}
+`)
+
+	if strings.Contains(rust, "Some((*check_defer_captured") && strings.Contains(rust, ".scope.clone())") {
+		t.Fatalf("deferred pointer selector argument should not wrap the pointer handle inside Some:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __defer_arg_0 = (*check_defer_captured.borrow().as_ref().unwrap()).scope.clone();") &&
+		!strings.Contains(rust, "let __defer_arg_0 = (*check_defer_captured.lock().unwrap().as_ref().unwrap()).scope.clone();") &&
+		!strings.Contains(rust, "let __defer_arg_0 = check_defer_captured.scope.clone();") {
+		t.Fatalf("deferred pointer selector argument should capture the pointer handle:\n%s", rust)
+	}
+}
+
 func TestTrailingInfiniteForWithDeferSuppressesFinalDeferDrain(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
