@@ -5720,7 +5720,9 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 			TranspileExpression(out, value)
 		} else {
 			WriteWrapperPrefix(out)
-			if isConstantExpression(value) && (writeExpressionForExpectedType(out, value, fieldExpr) || writeExpressionForExpectedTypesType(out, value, fieldType)) {
+			if writeLenCapCallArgumentForExpectedType(out, value, expectedFieldType) {
+				// len/cap return Rust usize, but Go int fields store i32.
+			} else if isConstantExpression(value) && (writeExpressionForExpectedType(out, value, fieldExpr) || writeExpressionForExpectedTypesType(out, value, fieldType)) {
 				// Constant emitted in the field's expected representation.
 			} else if !isCopyTypeExpression(value) && writeOwnedExpressionValue(out, value) {
 				// Owned non-copy value emitted above.

@@ -1732,6 +1732,27 @@ func makeHolder() Holder {
 	}
 }
 
+func TestStructLiteralLenFieldUsesGoInt(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type span struct {
+	start int
+	end int
+}
+
+func last(s string) span {
+	return span{0, len(s)}
+}
+`)
+
+	if strings.Contains(rust, ".len())))") {
+		t.Fatalf("len field should not leave a usize in a wrapped Go int field:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".len() as i32") {
+		t.Fatalf("len field should cast Rust usize to Go int:\n%s", rust)
+	}
+}
+
 func TestFloatCompoundAssignUntypedIntegerConstantUsesFloatLiteral(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
