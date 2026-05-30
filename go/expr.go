@@ -3359,6 +3359,9 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 			}
 		}
 	}
+	if writeLocalInterfaceConstConcreteValue(out, arg, expectedIface) {
+		return
+	}
 	if ident, ok := arg.(*ast.Ident); ok {
 		varName := RustIdentForUse(ident)
 		if renamed, exists := captureRenameForIdent(ident); exists {
@@ -3586,6 +3589,25 @@ func writeLocalInterfaceReferenceCallArgumentForTypeExpr(out *strings.Builder, a
 		}
 	}
 	return writeLocalInterfaceReferenceCallArgument(out, arg, nil)
+}
+
+func writeLocalInterfaceConstConcreteValue(out *strings.Builder, arg ast.Expr, expectedIface types.Type) bool {
+	if expectedIface == nil || !isConstantExpression(arg) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(arg)).(*types.Named)
+	if !ok {
+		return false
+	}
+	iface, ok := types.Unalias(expectedIface).Underlying().(*types.Interface)
+	if !ok || !types.Implements(named, iface) {
+		return false
+	}
+	return writeExpressionForExpectedTypesType(out, arg, named)
 }
 
 func writeLocalInterfaceConstReferenceCallArgument(out *strings.Builder, ident *ast.Ident, expected types.Type) bool {

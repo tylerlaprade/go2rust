@@ -720,6 +720,9 @@ func transpilePackageGlobalInit(out *strings.Builder, globals []packageGlobal) {
 		if writePackageGlobalErrorHandleInit(out, global, init.Rhs) {
 			continue
 		}
+		if writePackageGlobalInterfaceHandleInit(out, global, init.Rhs) {
+			continue
+		}
 		if writePackageGlobalCompositeInit(out, global, init.Rhs) {
 			continue
 		}
@@ -962,6 +965,48 @@ func writePackageGlobalErrorHandleInit(out *strings.Builder, global packageGloba
 		return true
 	}
 	return false
+}
+
+func writePackageGlobalInterfaceHandleInit(out *strings.Builder, global packageGlobal, expr ast.Expr) bool {
+	if isGoErrorType(global.typ) {
+		return false
+	}
+	ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(global.typ)
+	if !ok {
+		return false
+	}
+	out.WriteString("    *")
+	out.WriteString(rustPackageGlobalName(global.name))
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = ")
+	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" {
+		out.WriteString("None;\n")
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString("unimplemented!(\"type info required to initialize package-global interface\");\n")
+		return true
+	}
+	exprType := typeInfo.GetType(expr)
+	if exprType == nil {
+		out.WriteString("unimplemented!(\"type info required to initialize package-global interface\");\n")
+		return true
+	}
+	out.WriteString("Some(")
+	if _, ok := types.Unalias(exprType).Underlying().(*types.Interface); ok {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, expr, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()")
+	} else {
+		out.WriteString("Box::new(")
+		writeLocalInterfaceWrappedConstructionInnerValue(out, expr, global.typ)
+		out.WriteString(") as ")
+		out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+	}
+	out.WriteString(");\n")
+	return true
 }
 
 func isPointerGlobalType(typ types.Type) bool {

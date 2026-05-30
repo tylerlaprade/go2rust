@@ -237,6 +237,8 @@ func (analysis *transpileFileAnalysis) inspect(file *ast.File, typeInfo *TypeInf
 		case *ast.GenDecl:
 			if funcDeclDepth > 0 {
 				analysis.inspectFunctionGenDecl(n)
+			} else {
+				analysis.inspectPackageGenDecl(n, typeInfo)
 			}
 		case *ast.TypeAssertExpr:
 			analysis.typeAssertExprs = append(analysis.typeAssertExprs, n)
@@ -245,6 +247,29 @@ func (analysis *transpileFileAnalysis) inspect(file *ast.File, typeInfo *TypeInf
 		}
 		return true
 	})
+}
+
+func (analysis *transpileFileAnalysis) inspectPackageGenDecl(genDecl *ast.GenDecl, typeInfo *TypeInfo) {
+	if genDecl.Tok != token.VAR || typeInfo == nil || typeInfo.info == nil {
+		return
+	}
+	for _, spec := range genDecl.Specs {
+		valueSpec, ok := spec.(*ast.ValueSpec)
+		if !ok {
+			continue
+		}
+		for i, name := range valueSpec.Names {
+			if i >= len(valueSpec.Values) {
+				continue
+			}
+			obj, ok := typeInfo.info.Defs[name].(*types.Var)
+			if !ok || obj.Type() == nil {
+				continue
+			}
+			value := valueSpec.Values[i]
+			analysis.recordExternalLocalInterfaceArg(obj.Type(), typeInfo.GetType(value))
+		}
+	}
 }
 
 func (analysis *transpileFileAnalysis) inspectBinaryExpr(expr *ast.BinaryExpr, typeInfo *TypeInfo) {

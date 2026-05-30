@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -77,6 +78,57 @@ func init() {
 	}
 	if !strings.Contains(rust, "*sink.lock().unwrap() = (*__iface_guard).clone()") {
 		t.Fatalf("package-global interface assignment should write through the global slot:\n%s", rust)
+	}
+}
+
+func TestPackageGlobalInterfaceSelectorConstInitBoxesNamedValue(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+type Sig int
+
+const SIGINT Sig = 2
+
+func (Sig) Signal() {}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+type Signal interface {
+	Signal()
+}
+
+var Interrupt Signal = dep.SIGINT
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "= Some(example_com_dep::S_I_G_I_N_T") || strings.Contains(mainRS, "= Some(SIGINT") {
+		t.Fatalf("package-global interface selector const should not store the raw constant:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "Box::new(example_com_dep::Sig(") || !strings.Contains(mainRS, "S_I_G_I_N_T as i32") || !strings.Contains(mainRS, "as Box<dyn Signal") {
+		t.Fatalf("package-global interface selector const should box the named value as the interface:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "impl Signal for example_com_dep::Sig") {
+		t.Fatalf("package-global interface selector const should register the external concrete interface impl:\n%s", mainRS)
 	}
 }
 
