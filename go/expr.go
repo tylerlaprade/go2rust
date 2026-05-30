@@ -9776,6 +9776,9 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	if writeNamedSliceNilConversion(out, call) {
 		return
 	}
+	if writeNamedSliceTypeConversion(out, call) {
+		return
+	}
 	if writeTypedNilConversion(out, call) {
 		return
 	}
@@ -10242,6 +10245,37 @@ func writeNamedSliceNilConversion(out *strings.Builder, call *ast.CallExpr) bool
 	out.WriteString(goTypesNamedTypeToRust(named))
 	out.WriteString("(")
 	writeTypedWrappedNone(out, goTypesTypeToRust(sliceType))
+	out.WriteString(")")
+	return true
+}
+
+func writeNamedSliceTypeConversion(out *strings.Builder, call *ast.CallExpr) bool {
+	if call == nil || len(call.Args) != 1 {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsTypeConversion(call) {
+		return false
+	}
+	targetNamed, _, ok := namedSliceTypeFromType(typeInfo.GetType(call))
+	if !ok {
+		return false
+	}
+	sourceType := typeInfo.GetType(call.Args[0])
+	if sourceType == nil {
+		out.WriteString("unimplemented!(\"type info required for named slice conversion\")")
+		return true
+	}
+	if _, ok := types.Unalias(sourceType).Underlying().(*types.Slice); !ok {
+		return false
+	}
+	out.WriteString(goTypesNamedTypeToRust(targetNamed))
+	out.WriteString("(")
+	if _, _, ok := namedSliceTypeFromType(sourceType); ok {
+		writeNamedSliceInnerHandleClone(out, call.Args[0])
+	} else {
+		TranspileExpression(out, call.Args[0])
+	}
 	out.WriteString(")")
 	return true
 }

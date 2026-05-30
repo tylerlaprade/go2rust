@@ -859,6 +859,30 @@ func push(z nat) nat {
 	}
 }
 
+func TestNamedSliceConversionFromFunctionResultUsesSliceHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Node struct{}
+type nodeQueue []*Node
+
+func dependencyGraph() []*Node {
+	return nil
+}
+
+func use() nodeQueue {
+	return nodeQueue(dependencyGraph())
+}
+`)
+
+	if strings.Contains(rust, "nodeQueue(Rc::new(RefCell::new(Some(dependency_graph())))") ||
+		strings.Contains(rust, "nodeQueue(Arc::new(Mutex::new(Some(dependency_graph())))") {
+		t.Fatalf("named slice conversion should not wrap an existing slice handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "nodeQueue(dependency_graph())") {
+		t.Fatalf("named slice conversion should pass the slice handle into the newtype constructor:\n%s", rust)
+	}
+}
+
 func TestAppendLocalInterfaceHandleKeepsWrappedValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
