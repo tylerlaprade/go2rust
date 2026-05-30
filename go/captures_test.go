@@ -260,6 +260,48 @@ func builtin(id int) bool {
 	}
 }
 
+func TestIfConditionFuncLitBoxesCapturedInterfaceArgThroughClone(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type positioner interface {
+	pos() int
+}
+
+type operand struct {
+	n int
+}
+
+func (*operand) pos() int {
+	return 0
+}
+
+func under(fn func(int) bool) bool {
+	return fn(1)
+}
+
+func report(positioner) {}
+
+func clear(x *operand) bool {
+	if under(func(u int) bool {
+		report(x)
+		return true
+	}) {
+		return true
+	}
+	return false
+}
+`)
+
+	if strings.Contains(rust, "Box::new((*x.borrow()") ||
+		strings.Contains(rust, "Box::new((*x.lock()") {
+		t.Fatalf("captured interface argument should not box through the outer variable:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new((*x_closure_clone.borrow()") &&
+		!strings.Contains(rust, "Box::new((*x_closure_clone.lock()") {
+		t.Fatalf("captured interface argument should box through the closure clone:\n%s", rust)
+	}
+}
+
 func TestIfConditionFuncLitAssignedCaptureCloneIsMutable(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

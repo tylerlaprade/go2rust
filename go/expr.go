@@ -2975,6 +2975,10 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 		}
 	}
 	if ident, ok := arg.(*ast.Ident); ok {
+		varName := RustIdentForUse(ident)
+		if renamed, exists := captureRenameForIdent(ident); exists {
+			varName = RustLocalIdent(renamed)
+		}
 		if isCurrentReceiverIdent(ident) {
 			if currentReceiverRustAlias != "" {
 				out.WriteString(currentReceiverRustAlias)
@@ -2995,24 +2999,24 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 			stripped := strings.TrimPrefix(varType, "&")
 			if strings.HasPrefix(stripped, "Rc<") || strings.HasPrefix(stripped, "Arc<") {
 				out.WriteString("(*")
-				out.WriteString(RustIdentForUse(ident))
+				out.WriteString(varName)
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap()).clone()")
 				return
 			}
 			if strings.HasPrefix(stripped, "Box<dyn ") {
 				out.WriteString("(*")
-				out.WriteString(RustIdentForUse(ident))
+				out.WriteString(varName)
 				out.WriteString(").clone()")
 				return
 			}
 			out.WriteString("(*")
-			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(varName)
 			out.WriteString(").clone()")
 			return
 		}
 		if isVarBare(ident.Name) {
-			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(varName)
 			return
 		}
 		_, isLocalConst := localConstants[ident.Name]
@@ -3036,7 +3040,7 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 			return
 		}
 		out.WriteString("(*")
-		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(varName)
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()).clone()")
 		return
