@@ -4565,6 +4565,9 @@ func (b *lazybuf) prepend(prefix ...byte) {
 	if !strings.Contains(rust, ".map(|__elem|") {
 		t.Fatalf("generic slice result should be converted back to the concrete []byte representation:\n%s", rust)
 	}
+	if strings.Contains(rust, "collect::<Vec<_>()") {
+		t.Fatalf("generic slice conversion should emit valid Rust turbofish syntax:\n%s", rust)
+	}
 }
 
 func TestNumericTypeParamConversionForLoopUsesConsistentWrapperShape(t *testing.T) {

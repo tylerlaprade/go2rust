@@ -15376,7 +15376,7 @@ func writeSourceTypeParamSliceCallAsConcreteSlice(out *strings.Builder, call *as
 	out.WriteString(GetInnerWrapperType())
 	out.WriteString("::new(__result_guard.as_ref().map(|__v| __v.iter().cloned().map(|__elem| (*__elem")
 	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().unwrap()).clone()).collect::<Vec<_>()))) }")
+	out.WriteString(".as_ref().unwrap()).clone()).collect::<Vec<_>>()))) }")
 	return true
 }
 
