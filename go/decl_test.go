@@ -103,6 +103,32 @@ func TestStructWithSourceMappedStdlibFieldDoesNotDeriveDebug(t *testing.T) {
 	}
 }
 
+func TestStructWithForwardNamedNonDebugFieldDoesNotDeriveDebug(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Union struct {
+	terms []*Term
+}
+
+type Term term
+
+type Type interface {
+	Underlying() Type
+}
+
+type term struct {
+	typ Type
+}
+`)
+
+	if strings.Contains(rust, "#[derive(Debug, Clone, Default)]\npub struct Union") {
+		t.Fatalf("struct with forward named non-Debug field should not derive Debug:\n%s", rust)
+	}
+	if !strings.Contains(rust, "#[derive(Clone, Default)]\npub struct Union") {
+		t.Fatalf("struct with forward named non-Debug field should still derive Clone and Default:\n%s", rust)
+	}
+}
+
 func TestConcurrentMapKeyStructWithInterfaceFieldUsesTraitEquality(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

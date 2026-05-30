@@ -1030,8 +1030,11 @@ func typeCanDeriveDebug(expr ast.Expr, seen map[string]bool) bool {
 	}
 
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		if typ := typeInfo.GetType(expr); typ != nil && typeReferencesExternalNamedType(typ) {
-			return false
+		if typ := typeInfo.GetType(expr); typ != nil {
+			if typeReferencesExternalNamedType(typ) {
+				return false
+			}
+			return goTypesTypeCanDeriveDebug(typ, make(map[*types.Named]bool))
 		}
 	}
 
