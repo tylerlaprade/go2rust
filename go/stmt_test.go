@@ -3415,6 +3415,30 @@ func trim(v *[][]byte, n int) {
 	}
 }
 
+func TestPointerToSliceDerefAssignmentCopiesSliceValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sync"
+
+var _ sync.Mutex
+
+func trim(v *[][]byte) {
+	*v = (*v)[1:]
+}
+`)
+
+	if strings.Contains(rust, "((*v.lock().unwrap().as_mut().unwrap())).lock()") ||
+		strings.Contains(rust, "((*v.borrow_mut().as_mut().unwrap())).borrow_mut()") {
+		t.Fatalf("pointer-to-slice deref assignment should not lock the dereferenced Vec as a handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "= Some(new_val)") {
+		t.Fatalf("pointer-to-slice deref assignment should store the RHS slice option, not a wrapped handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __slice_holder = v.clone()") {
+		t.Fatalf("pointer-to-slice deref assignment should slice through the pointer's handle:\n%s", rust)
+	}
+}
+
 func TestParallelNamedSliceFieldAssignmentStoresValues(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

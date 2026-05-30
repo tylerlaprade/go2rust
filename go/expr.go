@@ -1058,6 +1058,47 @@ func writePointerDerefSequenceIndexValue(out *strings.Builder, expr ast.Expr, in
 	return true
 }
 
+func writePointerDerefSequenceSliceExpression(out *strings.Builder, slice *ast.SliceExpr) bool {
+	star, ok := unwrapParens(slice.X).(*ast.StarExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString(`unimplemented!("type info required for pointer sequence slice expression")`)
+		return true
+	}
+	starType := typeInfo.GetType(star)
+	operandType := typeInfo.GetType(star.X)
+	if starType == nil || operandType == nil {
+		out.WriteString(`unimplemented!("type info required for pointer sequence slice expression")`)
+		return true
+	}
+	if _, isNamed := starType.(*types.Named); isNamed {
+		return false
+	}
+	if !pointerDerefTargetsSequence(starType, operandType) {
+		return false
+	}
+
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __slice_holder = ")
+	TranspileExpressionContext(out, star.X, LValue)
+	out.WriteString(".clone(); let __slice_guard = __slice_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); __seq[")
+	if slice.Low != nil {
+		writeExpressionAsUsize(out, slice.Low)
+	}
+	out.WriteString("..")
+	if slice.High != nil {
+		writeExpressionAsUsize(out, slice.High)
+	}
+	out.WriteString("].to_vec() }")
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeGoByteSequenceToString(out *strings.Builder, expr ast.Expr) {
 	NeedGoByteSequence()
 	writeGoByteSequenceReceiver(out, expr)
@@ -9381,6 +9422,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString("].to_vec() }")
 			WriteWrapperSuffix(out)
 			out.WriteString(")")
+		} else if writePointerDerefSequenceSliceExpression(out, e) {
+			// Pointer-to-slice/array dereference is represented by the pointee sequence handle.
 		} else if isExpressionResultBare(e.X) {
 			WriteWrapperPrefix(out)
 			out.WriteString("{ let __seq = ")

@@ -3399,6 +3399,51 @@ func writePointerDerefSliceHandleClone(out *strings.Builder, rhs ast.Expr, typeI
 	return true
 }
 
+func writePointerDerefSequenceHandleAssignment(out *strings.Builder, star *ast.StarExpr, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString(`unimplemented!("type info required for pointer slice assignment")`)
+		return true
+	}
+	starType := typeInfo.GetType(star)
+	operandType := typeInfo.GetType(star.X)
+	if starType == nil || operandType == nil {
+		out.WriteString(`unimplemented!("type info required for pointer slice assignment")`)
+		return true
+	}
+	if _, isNamed := starType.(*types.Named); isNamed {
+		return false
+	}
+	if _, ok := coreUnderlyingType(starType).(*types.Slice); !ok {
+		return false
+	}
+	if !pointerDerefTargetsSequence(starType, operandType) {
+		return false
+	}
+
+	out.WriteString("{ ")
+	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
+		out.WriteString("*")
+		TranspileExpressionContext(out, star.X, LValue)
+		WriteBorrowMethod(out, true)
+		out.WriteString(" = None; }")
+		return true
+	}
+	out.WriteString("let new_val = ")
+	if writePointerDerefSliceHandleClone(out, rhs, typeInfo) {
+		// Pointer-to-slice dereference is represented by the same slice handle.
+	} else {
+		TranspileExpression(out, rhs)
+	}
+	out.WriteString("; let __cloned_val = { let __guard = new_val")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; (*__guard).clone() }; *")
+	TranspileExpressionContext(out, star.X, LValue)
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = __cloned_val; }")
+	return true
+}
+
 func writeConcreteSliceAssignmentFromSourceTypeParamSliceCall(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	call, ok := rhs.(*ast.CallExpr)
 	if !ok {
@@ -9217,6 +9262,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString("; *")
 									out.WriteString(RustIdentForUse(ident))
 									out.WriteString(".as_ref().unwrap().borrow_mut() = Some(new_val); }")
+								} else if writePointerDerefSequenceHandleAssignment(out, star, s.Rhs[0]) {
+									// Pointer-to-slice assignment writes the RHS slice option into the pointee handle.
 								} else if writePointerDerefPointerHandleAssignment(out, star, s.Rhs[0]) {
 									// Pointer-to-pointer assignment writes through the pointer handle stored in the slot.
 								} else if isUnsafePointerDerefAssignmentTarget(star) {
