@@ -80,6 +80,28 @@ func init() {
 	}
 }
 
+func TestPackageGlobalPointerShortDeclCopiesStoredHandle(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Scope struct{}
+
+var Universe *Scope
+var ch chan int
+
+func use() {
+	scope := Universe
+	_ = scope
+}
+`)
+
+	if strings.Contains(rust, "let mut scope = Universe.clone()") {
+		t.Fatalf("short declaration from package-global pointer should not clone the global slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut scope = (*Universe.lock().unwrap().as_ref().unwrap()).clone()") {
+		t.Fatalf("short declaration from package-global pointer should clone the stored pointer handle:\n%s", rust)
+	}
+}
+
 func TestPackageGlobalAnyAssignmentBoxesGenericValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

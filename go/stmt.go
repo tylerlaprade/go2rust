@@ -5235,6 +5235,10 @@ func writePointerShortDeclRhsValue(out *strings.Builder, rhs ast.Expr) {
 	if writeCurrentPointerReceiverHandleClone(out, rhs) {
 		return
 	}
+	if ident, ok := packageGlobalPointerIdent(rhs); ok {
+		writePackageGlobalPointerHandleClone(out, ident)
+		return
+	}
 	TranspileExpressionContext(out, rhs, AddressOf)
 	out.WriteString(".clone()")
 }
