@@ -3679,6 +3679,9 @@ func writeConstExprForRustType(out *strings.Builder, expr ast.Expr, iotaValue in
 	if rustType == "&'static str" && writeConstStringLiteralValue(out, expr) {
 		return
 	}
+	if writeOutOfRangeGoIntConstExprForRustType(out, expr, iotaValue, rustType) {
+		return
+	}
 	if writeIntegerTypedFloatConstLiteral(out, expr, rustType) {
 		return
 	}
@@ -3689,6 +3692,30 @@ func writeConstExprForRustType(out *strings.Builder, expr ast.Expr, iotaValue in
 		return
 	}
 	TranspileConstExpr(out, expr, iotaValue)
+}
+
+func writeOutOfRangeGoIntConstExprForRustType(out *strings.Builder, expr ast.Expr, iotaValue int, rustType string) bool {
+	if rustType != "i32" || expr == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	basic, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Basic)
+	if !ok || basic.Kind() != types.Int {
+		return false
+	}
+	value, ok := constExpressionValue(expr)
+	if !ok || goIntConstFitsRustInt(value) {
+		return false
+	}
+	if literal, ok := goIntBoundaryLiteralForRustModel(value); ok {
+		out.WriteString(literal)
+		return true
+	}
+	TranspileConstExpr(out, expr, iotaValue)
+	return true
 }
 
 func writeIntegerTypedFloatConstLiteral(out *strings.Builder, expr ast.Expr, rustType string) bool {

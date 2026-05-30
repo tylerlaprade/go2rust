@@ -660,6 +660,59 @@ func bigIntForConstInteger(value constant.Value) (*big.Int, bool) {
 	return &n, true
 }
 
+func goIntConstBigInt(value constant.Value) (*big.Int, bool) {
+	if value == nil {
+		return nil, false
+	}
+	intValue := value
+	if intValue.Kind() != constant.Int {
+		intValue = constant.ToInt(value)
+	}
+	return bigIntForConstInteger(intValue)
+}
+
+func goIntConstFitsRustInt(value constant.Value) bool {
+	n, ok := goIntConstBigInt(value)
+	if !ok {
+		return false
+	}
+	return n.Cmp(minSignedBigInt(32)) >= 0 && n.Cmp(maxSignedBigInt(32)) <= 0
+}
+
+func goIntBoundaryLiteralForRustModel(value constant.Value) (string, bool) {
+	n, ok := goIntConstBigInt(value)
+	if !ok {
+		return "", false
+	}
+	if n.Cmp(maxSignedBigInt(uint(strconv.IntSize))) == 0 {
+		return "i32::MAX", true
+	}
+	if n.Cmp(minSignedBigInt(uint(strconv.IntSize))) == 0 {
+		return "i32::MIN", true
+	}
+	return "", false
+}
+
+func writeGoIntConstValueForRustModel(out *strings.Builder, expr ast.Expr, value constant.Value) bool {
+	n, ok := goIntConstBigInt(value)
+	if !ok {
+		return false
+	}
+	if goIntConstFitsRustInt(value) {
+		out.WriteString(n.String())
+		return true
+	}
+	if literal, ok := goIntBoundaryLiteralForRustModel(value); ok {
+		out.WriteString(literal)
+		return true
+	}
+	if expr == nil {
+		return false
+	}
+	TranspileConstExpr(out, expr, 0)
+	return true
+}
+
 func rustIntegerTypeForConstBounds(min *big.Int, max *big.Int) (string, bool) {
 	if min == nil || max == nil {
 		return "", false
@@ -851,8 +904,7 @@ func writeConstExpressionForExpectedGoInt(out *strings.Builder, expr ast.Expr, e
 	if intValue.Kind() != constant.Int {
 		return false
 	}
-	out.WriteString(intValue.String())
-	return true
+	return writeGoIntConstValueForRustModel(out, expr, intValue)
 }
 
 func hasStdlibSelectorMapping(expr ast.Expr) bool {

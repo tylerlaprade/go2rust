@@ -1694,6 +1694,24 @@ func invalid(ln uint32) bool {
 	}
 }
 
+func TestTypedGoIntMaxConstUsesRustIntModel(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const maxInt = int(^uint(0) >> 1)
+
+func over(n int) bool {
+	return n > maxInt-1
+}
+`)
+
+	if !strings.Contains(rust, "const MAX_INT: i32 = i32::MAX;") {
+		t.Fatalf("typed Go int max constant should use the Rust Go-int model:\n%s", rust)
+	}
+	if strings.Contains(rust, "9223372036854775807") {
+		t.Fatalf("typed Go int max constant should not inline host-width literal values:\n%s", rust)
+	}
+}
+
 func TestExpectedUint64ConstBinaryWithNegativeOperandUsesSignedIntermediate(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
