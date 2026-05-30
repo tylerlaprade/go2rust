@@ -324,6 +324,7 @@ func (sp *StatementPreprocessor) GenerateCloneStatements(out *strings.Builder, i
 	for _, varName := range varNames {
 		cloneName := info.CapturedVars[varName]
 		sourceName := varName
+		capturesReceiver := captureInfoCapturesCurrentReceiver(info, varName)
 		if currentCaptureRenames != nil {
 			if renamed, exists := currentCaptureRenames[varName]; exists {
 				sourceName = renamed
@@ -333,12 +334,12 @@ func (sp *StatementPreprocessor) GenerateCloneStatements(out *strings.Builder, i
 		}
 
 		out.WriteString("let ")
-		if currentReceiver != "" && varName == currentReceiver {
+		if capturesReceiver {
 			out.WriteString("mut ")
 		}
 		out.WriteString(RustLocalIdent(cloneName))
 		out.WriteString(" = ")
-		if currentReceiver != "" && varName == currentReceiver && sourceName == varName {
+		if capturesReceiver && sourceName == varName {
 			out.WriteString("(*self)")
 		} else {
 			out.WriteString(RustLocalIdent(sourceName))

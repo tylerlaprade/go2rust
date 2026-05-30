@@ -2780,6 +2780,39 @@ func (t *thing) value(items []*thing) int {
 	}
 }
 
+func TestClosureCaptureOfReceiverShadowShortDeclUsesLocalHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type operand struct {
+	n int
+}
+
+type term struct{}
+
+func (t *term) is(fn func(*term) bool) bool {
+	return fn(t)
+}
+
+func (x *operand) convertible(t *term) bool {
+	if t != nil {
+		x := *x
+		return t.is(func(_ *term) bool {
+			x.n = 1
+			return true
+		})
+	}
+	return false
+}
+`)
+
+	if strings.Contains(rust, "x_closure_clone = (*self).clone()") {
+		t.Fatalf("closure capture of receiver-shadowing local should not clone the receiver:\n%s", rust)
+	}
+	if !strings.Contains(rust, "x_closure_clone = x.clone()") {
+		t.Fatalf("closure capture of receiver-shadowing local should clone the local handle:\n%s", rust)
+	}
+}
+
 func TestMethodReceiverStructLiteralFieldUsesSelf(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

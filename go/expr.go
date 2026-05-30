@@ -9433,7 +9433,7 @@ func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 	}
 
 	inlineReceiverCapture := false
-	if currentReceiver != "" && captured[currentReceiver] {
+	if currentReceiver != "" && captured[currentReceiver] && funcLitCapturesCurrentReceiver(funcLit) {
 		rename := captureRenames[currentReceiver]
 		if rename == "" || rename == currentReceiver {
 			cloneName := currentReceiver + "_closure_clone"

@@ -58,6 +58,57 @@ func capturedVarsForFuncLit(funcLit *ast.FuncLit) map[string]bool {
 	return cloneCapturedVars(findCapturedVars(funcLit))
 }
 
+func funcLitCapturesCurrentReceiver(funcLit *ast.FuncLit) bool {
+	if currentReceiver == "" {
+		return false
+	}
+	if currentReceiverObject == nil {
+		return true
+	}
+	return funcLitCapturesObject(funcLit, currentReceiver, currentReceiverObject)
+}
+
+func captureInfoCapturesCurrentReceiver(info *CaptureInfo, varName string) bool {
+	if currentReceiver == "" || varName != currentReceiver {
+		return false
+	}
+	if currentReceiverObject == nil {
+		return true
+	}
+	for _, closure := range info.Closures {
+		if funcLitCapturesObject(closure, currentReceiver, currentReceiverObject) {
+			return true
+		}
+	}
+	return false
+}
+
+func funcLitCapturesObject(funcLit *ast.FuncLit, name string, obj types.Object) bool {
+	if funcLit == nil || funcLit.Body == nil || name == "" || obj == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	found := false
+	ast.Inspect(funcLit.Body, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		ident, ok := n.(*ast.Ident)
+		if !ok || ident.Name != name {
+			return true
+		}
+		if typeInfo.info.Uses[ident] == obj {
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
+}
+
 func cloneCapturedVars(captured map[string]bool) map[string]bool {
 	clone := make(map[string]bool, len(captured))
 	for name, isCaptured := range captured {
