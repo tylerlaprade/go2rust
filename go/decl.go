@@ -74,6 +74,8 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		nestedSlice        bool
 		nestedSliceWrapped bool
 		ptrSlice           bool
+		ptrToSlice         bool
+		ptrToPtrSlice      bool
 		interfaceSlice     bool
 	}
 	var fields []fieldEntry
@@ -94,6 +96,8 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		nestedSlice := arrayFieldContainsSlice(field.Type)
 		nestedSliceWrapped := arrayFieldNestedInnerIsPointer(field.Type)
 		ptrSlice := arrayFieldContainsPointer(field.Type)
+		ptrToSlice := pointerFieldContainsSlice(field.Type)
+		ptrToPtrSlice := pointerFieldContainsPointerSlice(field.Type)
 		interfaceSlice := arrayFieldContainsLocalInterface(field.Type)
 		if isChannel {
 			continue
@@ -114,6 +118,8 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 					nestedSlice:        nestedSlice,
 					nestedSliceWrapped: nestedSliceWrapped,
 					ptrSlice:           ptrSlice,
+					ptrToSlice:         ptrToSlice,
+					ptrToPtrSlice:      ptrToPtrSlice,
 					interfaceSlice:     interfaceSlice,
 				})
 			}
@@ -134,6 +140,8 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 				nestedSlice:        nestedSlice,
 				nestedSliceWrapped: nestedSliceWrapped,
 				ptrSlice:           ptrSlice,
+				ptrToSlice:         ptrToSlice,
+				ptrToPtrSlice:      ptrToPtrSlice,
 				interfaceSlice:     interfaceSlice,
 			})
 		}
@@ -179,6 +187,16 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		} else if f.nestedSlice {
 			NeedFormatNestedSlice()
 			out.WriteString("format_nested_slice(&self.")
+			out.WriteString(ToSnakeCase(f.name))
+			out.WriteString(")")
+		} else if f.ptrToPtrSlice {
+			NeedFormatSlice()
+			out.WriteString("format_slice_wrapped(&self.")
+			out.WriteString(ToSnakeCase(f.name))
+			out.WriteString(")")
+		} else if f.ptrToSlice {
+			NeedFormatSlice()
+			out.WriteString("format_slice(&self.")
 			out.WriteString(ToSnakeCase(f.name))
 			out.WriteString(")")
 		} else if f.ptrSlice {
@@ -241,6 +259,32 @@ func arrayFieldContainsPointer(expr ast.Expr) bool {
 	}
 	_, ok = arrayType.Elt.(*ast.StarExpr)
 	return ok
+}
+
+func pointerFieldContainsSlice(expr ast.Expr) bool {
+	_, ok := pointerFieldSliceElem(expr)
+	return ok
+}
+
+func pointerFieldContainsPointerSlice(expr ast.Expr) bool {
+	elem, ok := pointerFieldSliceElem(expr)
+	if !ok {
+		return false
+	}
+	_, ok = elem.(*ast.StarExpr)
+	return ok
+}
+
+func pointerFieldSliceElem(expr ast.Expr) (ast.Expr, bool) {
+	star, ok := expr.(*ast.StarExpr)
+	if !ok {
+		return nil, false
+	}
+	arrayType, ok := star.X.(*ast.ArrayType)
+	if !ok {
+		return nil, false
+	}
+	return arrayType.Elt, true
 }
 
 // arrayFieldNestedInnerIsPointer reports whether expr is a nested slice ([][]X)

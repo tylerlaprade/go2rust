@@ -416,6 +416,22 @@ type graphNode struct {
 	}
 }
 
+func TestStructDisplayPointerToSliceFieldUsesSliceFormatter(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type ranges struct {
+	p *[]rune
+}
+`)
+
+	if strings.Contains(rust, "(*self.p") {
+		t.Fatalf("pointer-to-slice struct display should not format the raw Vec with Display:\n%s", rust)
+	}
+	if !strings.Contains(rust, "format_slice(&self.p)") {
+		t.Fatalf("pointer-to-slice struct display should use the slice formatter:\n%s", rust)
+	}
+}
+
 func TestNamedMapWithInterfaceValueDefinitionUsesFormatMapDisplay(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
