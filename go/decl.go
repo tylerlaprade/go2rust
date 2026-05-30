@@ -4237,6 +4237,10 @@ func writeConstStringEquality(out *strings.Builder, expr *ast.BinaryExpr, iotaVa
 	if expr == nil || expr.Op != token.EQL && expr.Op != token.NEQ {
 		return false
 	}
+	if value, ok := constBoolValueForStubBackedStringSelectorEquality(expr); ok {
+		out.WriteString(strconv.FormatBool(value))
+		return true
+	}
 	leftPattern, leftIsPattern := constStringLiteral(expr.X)
 	rightPattern, rightIsPattern := constStringLiteral(expr.Y)
 	var subject ast.Expr
@@ -4259,6 +4263,36 @@ func writeConstStringEquality(out *strings.Builder, expr *ast.BinaryExpr, iotaVa
 	out.WriteString(pattern)
 	out.WriteString(")")
 	return true
+}
+
+func constBoolValueForStubBackedStringSelectorEquality(expr *ast.BinaryExpr) (bool, bool) {
+	if expr == nil || !constStringEqualityHasStubBackedSelector(expr.X) && !constStringEqualityHasStubBackedSelector(expr.Y) {
+		return false, false
+	}
+	value, ok := constExpressionValue(expr)
+	if !ok || value.Kind() != constant.Bool {
+		return false, false
+	}
+	return constant.BoolVal(value), true
+}
+
+func constStringEqualityHasStubBackedSelector(expr ast.Expr) bool {
+	switch e := expr.(type) {
+	case *ast.SelectorExpr:
+		typeInfo := GetTypeInfo()
+		if typeInfo == nil {
+			return false
+		}
+		obj, ok := typeInfo.GetObject(e.Sel).(*types.Const)
+		if !ok || obj.Pkg() == nil || obj.Val() == nil || obj.Val().Kind() != constant.String {
+			return false
+		}
+		return isStubBackedStdlibPackagePath(obj.Pkg().Path())
+	case *ast.ParenExpr:
+		return constStringEqualityHasStubBackedSelector(e.X)
+	default:
+		return false
+	}
 }
 
 func writeConstBinaryOperand(out *strings.Builder, expr ast.Expr, parentOp token.Token, isRight bool, write func()) {

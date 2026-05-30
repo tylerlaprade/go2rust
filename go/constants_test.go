@@ -596,6 +596,24 @@ const darwin64Bit = (GOOS == "darwin" || GOOS == "ios") && sizeofPtr == 8
 	}
 }
 
+func TestStubBackedStdlibStringConstEqualityUsesTypeInfoValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "runtime"
+
+const hostDarwin = runtime.GOOS == "darwin"
+`)
+
+	if strings.Contains(rust, `matches!(runtime::G_O_O_S`) ||
+		strings.Contains(rust, `runtime::G_O_O_S ==`) {
+		t.Fatalf("stub-backed stdlib string const equality should not use the unusable generated selector:\n%s", rust)
+	}
+	if !strings.Contains(rust, "const HOST_DARWIN: bool = true;") &&
+		!strings.Contains(rust, "const HOST_DARWIN: bool = false;") {
+		t.Fatalf("stub-backed stdlib string const equality should use the go/types value:\n%s", rust)
+	}
+}
+
 func TestConstTypeConversionCastsWholeBinaryExpression(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
