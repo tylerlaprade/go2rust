@@ -860,6 +860,11 @@ func goTypeToRustBase(expr ast.Expr) string {
 	case *ast.SelectorExpr:
 		// Package-qualified types like sync.WaitGroup, sync.Mutex
 		if ident, ok := t.X.(*ast.Ident); ok {
+			if isSourceMappedPackagePath(goPackageImports[ident.Name]) {
+				if rustName, ok := rustTypeNameForImportedPackagePath(goPackageImports[ident.Name], t.Sel.Name); ok {
+					return rustName
+				}
+			}
 			if ident.Name == "sync" {
 				switch t.Sel.Name {
 				case "WaitGroup":
@@ -1053,7 +1058,7 @@ func zeroValueForGoType(expr ast.Expr) string {
 		}
 	case *ast.SelectorExpr:
 		if ident, ok := t.X.(*ast.Ident); ok {
-			if ident.Name == "strings" && t.Sel.Name == "Builder" {
+			if ident.Name == "strings" && t.Sel.Name == "Builder" && !isSourceMappedPackagePath(goPackageImports[ident.Name]) {
 				return "String::new()"
 			}
 		}
@@ -1525,6 +1530,9 @@ func goTypesKnownStdlibNamedTypeToRust(t types.Type) (string, bool) {
 		return "", false
 	}
 	obj := named.Obj()
+	if isSourceMappedPackagePath(obj.Pkg().Path()) {
+		return "", false
+	}
 	switch obj.Pkg().Path() {
 	case "sync":
 		switch obj.Name() {

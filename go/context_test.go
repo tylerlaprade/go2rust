@@ -244,6 +244,46 @@ func TestExternalPackageTypesUseMappedCratePaths(t *testing.T) {
 	}
 }
 
+func TestSourceMappedStdlibTypesUseMappedCratePaths(t *testing.T) {
+	savedTypeInfo := currentTypeInfo
+	savedGoImports := goPackageImports
+	savedExternalPackages := externalPackages
+	defer func() {
+		currentTypeInfo = savedTypeInfo
+		goPackageImports = savedGoImports
+		externalPackages = savedExternalPackages
+		SetTranspileContext(nil)
+	}()
+
+	mainPkg := gotypes.NewPackage("example.com/main", "main")
+	stringsPkg := gotypes.NewPackage("strings", "strings")
+	typeName := gotypes.NewTypeName(token.NoPos, stringsPkg, "Builder", nil)
+	named := gotypes.NewNamed(typeName, gotypes.NewStruct(nil, nil), nil)
+
+	SetTranspileContext(&TranspileContext{
+		Session: NewTranspileSession(&TypeInfo{pkg: mainPkg}, map[string]string{
+			"strings": "strings",
+		}),
+		Package: NewPackageState(),
+		File:    NewFileState(NewImportTracker(), &HelperTracker{}, nil),
+	})
+	SetPackageImports(map[string]string{"strings": "strings"})
+
+	if got := goTypesNamedTypeToRust(named); got != "strings::Builder" {
+		t.Fatalf("goTypesNamedTypeToRust(source-mapped strings.Builder) = %q, want strings::Builder", got)
+	}
+	selector := &ast.SelectorExpr{
+		X:   ast.NewIdent("strings"),
+		Sel: ast.NewIdent("Builder"),
+	}
+	if got := goTypeToRustBase(selector); got != "strings::Builder" {
+		t.Fatalf("goTypeToRustBase(source-mapped strings.Builder) = %q, want strings::Builder", got)
+	}
+	if got := zeroValueForGoType(selector); got != "Default::default()" {
+		t.Fatalf("zeroValueForGoType(source-mapped strings.Builder) = %q, want Default::default()", got)
+	}
+}
+
 func TestPackageTypeMetadataPrefersContextState(t *testing.T) {
 	savedInterfaceTypes := interfaceTypes
 	savedTypeAliases := typeAliases
