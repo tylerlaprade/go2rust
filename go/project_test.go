@@ -4102,6 +4102,39 @@ func Use() {
 	}
 }
 
+func TestSourceStdlibImportedInterfaceTypeExprUsesTraitObject(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "parser.go", `package parser
+
+import "go/ast"
+
+type field struct {
+	typ ast.Expr
+}
+
+func parseExprList() []ast.Expr {
+	var list []ast.Expr
+	return list
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(parser.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"go/ast": "go_ast"})
+
+	if strings.Contains(rust, "Option<go_ast::Expr>") {
+		t.Fatalf("source-mapped interface type expression should not be emitted as a bare trait type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Option<Box<dyn go_ast::Expr") {
+		t.Fatalf("source-mapped interface type expression should use a trait object:\n%s", rust)
+	}
+}
+
 func TestSourceStdlibReachabilityPrunesUnusedDeclarations(t *testing.T) {
 	t.Setenv(sourceStdlibPackagesEnv, "go/token")
 	prevCtx := GetTranspileContext()

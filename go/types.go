@@ -860,6 +860,9 @@ func goTypeToRustBase(expr ast.Expr) string {
 	case *ast.SelectorExpr:
 		// Package-qualified types like sync.WaitGroup, sync.Mutex
 		if ident, ok := t.X.(*ast.Ident); ok {
+			if ifaceName, ok := transpiledNamedInterfaceTypeNameFromExpr(t); ok {
+				return rustLocalInterfaceTraitObject(ifaceName)
+			}
 			if isSourceMappedPackagePath(goPackageImports[ident.Name]) {
 				if rustName, ok := rustTypeNameForImportedPackagePath(goPackageImports[ident.Name], t.Sel.Name); ok {
 					return rustName
