@@ -4852,6 +4852,23 @@ func lookup(s string) group {
 	}
 }
 
+func TestStringTypeAssertionMapLookupKeyStaysBare(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func lookup(did map[string]bool, name any) bool {
+	return did[name.(string)]
+}
+`)
+
+	if strings.Contains(rust, "__map_key_holder.lock()") ||
+		strings.Contains(rust, "__map_key_holder.borrow()") {
+		t.Fatalf("string type assertion map key should stay bare:\n%s", rust)
+	}
+	if !strings.Contains(rust, "downcast_ref::<String>()") {
+		t.Fatalf("string type assertion map key should use the asserted string value:\n%s", rust)
+	}
+}
+
 func TestPointerToSliceIndexUsesDerefValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
