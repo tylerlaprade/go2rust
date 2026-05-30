@@ -201,6 +201,7 @@ func analyzeTranspileFiles(files []*ast.File, mapKeyTypeInfo *TypeInfo) *transpi
 	for _, file := range files {
 		analysis.inspect(file, typeInfo, mapKeyTypeInfo)
 	}
+	analysis.recordImportedOrderedConstraintImpls(typeInfo)
 	return analysis
 }
 
@@ -322,6 +323,68 @@ func (analysis *transpileFileAnalysis) recordImportedInterfaceImpl(expected type
 		analysis.importedInterfaceImpls[typeName] = make(map[string]*types.Interface)
 	}
 	analysis.importedInterfaceImpls[typeName][ifaceName] = ifaceType
+}
+
+func (analysis *transpileFileAnalysis) recordImportedOrderedConstraintImpls(typeInfo *TypeInfo) {
+	if typeInfo == nil || typeInfo.pkg == nil || typeInfo.pkg.Scope() == nil {
+		return
+	}
+	orderedIfaces := importedOrderedConstraintInterfaces(typeInfo)
+	if len(orderedIfaces) == 0 {
+		return
+	}
+	scope := typeInfo.pkg.Scope()
+	for _, name := range scope.Names() {
+		typeName, ok := scope.Lookup(name).(*types.TypeName)
+		if !ok {
+			continue
+		}
+		named, ok := types.Unalias(typeName.Type()).(*types.Named)
+		if !ok || named.Obj() == nil || named.Obj().Pkg() != typeInfo.pkg {
+			continue
+		}
+		if _, isInterface := types.Unalias(named.Underlying()).(*types.Interface); isInterface {
+			continue
+		}
+		for ifaceName, ifaceType := range orderedIfaces {
+			if !types.Satisfies(named, ifaceType) {
+				continue
+			}
+			if analysis.importedInterfaceImpls[name] == nil {
+				analysis.importedInterfaceImpls[name] = make(map[string]*types.Interface)
+			}
+			analysis.importedInterfaceImpls[name][ifaceName] = ifaceType
+		}
+	}
+}
+
+func importedOrderedConstraintInterfaces(typeInfo *TypeInfo) map[string]*types.Interface {
+	if typeInfo == nil || typeInfo.pkg == nil {
+		return nil
+	}
+	interfaces := make(map[string]*types.Interface)
+	for _, pkg := range typeInfo.pkg.Imports() {
+		if pkg == nil || pkg.Scope() == nil || isStubBackedStdlibPackagePath(pkg.Path()) {
+			continue
+		}
+		for _, name := range pkg.Scope().Names() {
+			typeName, ok := pkg.Scope().Lookup(name).(*types.TypeName)
+			if !ok {
+				continue
+			}
+			named, ok := types.Unalias(typeName.Type()).(*types.Named)
+			if !ok || named.Obj() == nil {
+				continue
+			}
+			iface, ok := named.Underlying().(*types.Interface)
+			if !ok || !interfaceEmbedsOnlyOrderedTerms(iface) {
+				continue
+			}
+			iface.Complete()
+			interfaces[goTypesNamedTypeToRust(named)] = iface
+		}
+	}
+	return interfaces
 }
 
 func (analysis *transpileFileAnalysis) recordExternalLocalInterfaceArg(expected, argType types.Type) {
@@ -1874,6 +1937,13 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	// Add types that have embedded types (even if they don't have their own methods)
 	for typeName, structDef := range structDefs {
 		if declaredTypeNames[typeName] && len(structDef.EmbeddedTypes) > 0 && !typesWithImpls[typeName] {
+			typeNames = append(typeNames, typeName)
+			typesWithImpls[typeName] = true
+		}
+	}
+
+	for typeName := range importedInterfaceImpls {
+		if declaredTypeNames[typeName] && !typesWithImpls[typeName] {
 			typeNames = append(typeNames, typeName)
 			typesWithImpls[typeName] = true
 		}

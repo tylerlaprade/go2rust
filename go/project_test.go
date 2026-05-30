@@ -4160,6 +4160,34 @@ func Use() {
 	}
 }
 
+func TestSourceStdlibImportedOrderedConstraintImplForNamedScalar(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "token.go", `package token
+
+import "cmp"
+
+type Pos int
+
+func ComparePos(a, b Pos) int {
+	return cmp.Compare(a, b)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(token.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	SetTypeInfo(typeInfo)
+	defer SetTypeInfo(nil)
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"cmp": "cmp"})
+	if !strings.Contains(rust, "impl cmp::Ordered for Pos") {
+		t.Fatalf("source-mapped ordered constraint should be implemented by named scalar types, got:\n%s", rust)
+	}
+}
+
 func TestSourceStdlibImportedInterfaceTypeExprUsesTraitObject(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "parser.go", `package parser
