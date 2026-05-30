@@ -13283,6 +13283,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			_, _, isExternalStdlibStubCall := externalStdlibPackageSelector(sel)
 			RegisterExternalPackageFunctionFallback(sel, len(call.Args))
 			TranspileExpression(out, sel)
+			if !isExternalStdlibStubCall {
+				writeInferredSelectorCallTypeArgs(out, sel)
+			}
 			out.WriteString("(")
 			if isExternalStdlibStubCall && writeExternalStubCallArguments(out, call) {
 				out.WriteString(")")
@@ -14333,6 +14336,17 @@ func genericFunctionInstance(ident *ast.Ident) (types.Instance, bool) {
 
 func writeInferredCallTypeArgs(out *strings.Builder, ident *ast.Ident) {
 	instance, ok := genericFunctionInstance(ident)
+	if !ok {
+		return
+	}
+	writeTypeArgsFromInstance(out, instance)
+}
+
+func writeInferredSelectorCallTypeArgs(out *strings.Builder, sel *ast.SelectorExpr) {
+	if sel == nil {
+		return
+	}
+	instance, ok := genericFunctionInstance(sel.Sel)
 	if !ok {
 		return
 	}

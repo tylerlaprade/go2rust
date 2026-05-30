@@ -193,6 +193,54 @@ func Use() int {
 	}
 }
 
+func TestImportedGenericSelectorCallEmitsInferredTypeArgs(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+func Search[S ~[]E, E any, T any](x S, target T, cmp func(E, T) int) (int, bool) {
+	return 0, false
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+type item struct {
+	offset int
+}
+
+func use(items []item, x int) int {
+	i, _ := dep.Search(items, x, func(a item, x int) int {
+		return a.offset - x
+	})
+	return i
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "example_com_dep::search::<Vec<item>, item, i32>(") {
+		t.Fatalf("imported generic selector call should emit inferred Rust type arguments:\n%s", mainRS)
+	}
+}
+
 func TestExternalInterfaceCaseImplementsLocalInterfaceForTraitObject(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
