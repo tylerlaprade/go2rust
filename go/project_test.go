@@ -4244,6 +4244,38 @@ func ComparePos(a, b Pos) int {
 	}
 }
 
+func TestSourceStdlibOrderedSliceCallUsesRawElements(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "sort.go", `package slices
+
+import "cmp"
+
+func LessAt[E cmp.Ordered](data []E, i int) bool {
+	return cmp.Less(data[i], data[0])
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(sort.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"cmp": "cmp"})
+	if strings.Contains(rust, "Vec<Rc<RefCell<Option<E>>>>") ||
+		strings.Contains(rust, "Vec<Arc<Mutex<Option<E>>>>") {
+		t.Fatalf("source-mapped ordered slice should store raw elements:\n%s", rust)
+	}
+	if strings.Contains(rust, "cmp::less::<E>(Rc::new") ||
+		strings.Contains(rust, "cmp::less::<E>(Arc::new") {
+		t.Fatalf("source-mapped ordered call should pass raw elements, not wrappers:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Vec<E>") || !strings.Contains(rust, "cmp::less::<E>(") {
+		t.Fatalf("source-mapped ordered call should use raw Vec<E> and cmp::less:\n%s", rust)
+	}
+}
+
 func TestSourceStdlibImportedInterfaceTypeExprUsesTraitObject(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "parser.go", `package parser

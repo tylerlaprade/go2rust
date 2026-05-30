@@ -13781,6 +13781,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					if writeFunctionHandleCallArgument(out, arg, expectedArgType) {
 						continue
 					}
+					if writeOrderedTypeParamCallArgument(out, arg, expectedArgType) {
+						continue
+					}
 					if writeTypeParamHandleCallArgument(out, arg, expectedArgType) {
 						continue
 					}
@@ -13802,6 +13805,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 				if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
 					WriteWrappedNone(out)
+					continue
+				}
+				if writeOrderedTypeParamValueClone(out, arg) {
 					continue
 				}
 				// Wrap arguments in Rc<RefCell<Option<>>>
@@ -14513,6 +14519,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					}
 				}
 
+				if writeOrderedTypeParamValueClone(out, ident) {
+					continue
+				}
+
 				// Bare scalar locals still need a Go value handle when the callee
 				// parameter is emitted as wrapped. Channels are the bare exception.
 				if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar && isVarBare(ident.Name) {
@@ -14652,6 +14662,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			} else if _, isSliceExpr := arg.(*ast.SliceExpr); isSliceExpr {
 				// Slice expressions already wrap themselves
 				TranspileExpression(out, arg)
+			} else if writeOrderedTypeParamValueClone(out, arg) {
+				// Raw ordered type-parameter value emitted above.
 			} else if callArg, isCallArg := arg.(*ast.CallExpr); isCallArg {
 				typeInfo := GetTypeInfo()
 				if expectedArgType != nil && writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {

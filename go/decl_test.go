@@ -365,6 +365,27 @@ func LessAt[S ~[]E, E Ordered](s S, i int, j int) bool {
 	}
 }
 
+func TestGenericOrderedSliceParameterUsesBareElements(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Ordered interface {
+	~int | ~string
+}
+
+func Sort[E Ordered](data []E) {
+	_ = data[0]
+}
+`)
+
+	if strings.Contains(rust, "Vec<Rc<RefCell<Option<E>>>>") ||
+		strings.Contains(rust, "Vec<Arc<Mutex<Option<E>>>>") {
+		t.Fatalf("ordered slice parameter should not wrap ordered elements:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Vec<E>") {
+		t.Fatalf("ordered slice parameter should use raw ordered elements:\n%s", rust)
+	}
+}
+
 func TestGenericOrderedTypeParamParameterUsesBareValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

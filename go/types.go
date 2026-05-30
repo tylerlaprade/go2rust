@@ -1388,7 +1388,11 @@ func goCollectionElemTypeToRust(expr ast.Expr) string {
 		return GoTypeToRust(expr)
 	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		if _, ok := types.Unalias(typeInfo.GetType(expr)).(*types.TypeParam); ok {
+		typ := typeInfo.GetType(expr)
+		if goTypeParamHasOrderedConstraint(typ) {
+			return goTypeToRustBase(expr)
+		}
+		if _, ok := types.Unalias(typ).(*types.TypeParam); ok {
 			return GoTypeToRust(expr)
 		}
 	}
