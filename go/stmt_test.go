@@ -193,6 +193,36 @@ func walk(specs []Spec) {
 	}
 }
 
+func TestLocalInterfaceReturnBoxesSelectorPointer(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Node interface {
+	Pos() int
+}
+
+type ImportSpec struct{}
+
+func (*ImportSpec) Pos() int { return 0 }
+
+type importDecl struct {
+	spec *ImportSpec
+}
+
+func (d importDecl) node() Node {
+	return d.spec
+}
+`)
+
+	if strings.Contains(rust, "return self.spec.clone();") ||
+		strings.Contains(rust, "return d.spec.clone();") {
+		t.Fatalf("selector pointer returned as a local interface should not return the concrete handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new((*self.spec.borrow().as_ref().unwrap()).clone()) as Box<dyn Node") &&
+		!strings.Contains(rust, "Box::new((*self.spec.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Node") {
+		t.Fatalf("selector pointer returned as a local interface should box the selected pointee:\n%s", rust)
+	}
+}
+
 func TestMultiShortDeclLenCapWrapsGoInt(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

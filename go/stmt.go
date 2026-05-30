@@ -7062,6 +7062,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						writeConcreteErrorBox(out, result)
 						WriteWrapperSuffix(out)
 					} else if sel, ok := result.(*ast.SelectorExpr); ok {
+						if writeLocalInterfaceConcreteReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
+							continue
+						}
 						selectorTemp := needsTuple
 						selectorTempName := fmt.Sprintf("__return_value_%d", i)
 						if selectorTemp {
