@@ -10224,6 +10224,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Complex type - use the base type
 				rustType = goTypeToRustBase(e.Type)
 			}
+			if aliasRustType, ok := typeAssertionAliasConcreteRustType(e.Type); ok {
+				rustType = aliasRustType
+			}
 
 			// Generate type assertion that panics on failure (for single-value context)
 			// The comma-ok form is handled specially in assignment statements
@@ -13345,6 +13348,25 @@ func pointerAssertionPointeeRustType(star *ast.StarExpr) string {
 	return goTypeToRustBase(star.X)
 }
 
+func typeAssertionAliasConcreteRustType(expr ast.Expr) (string, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || expr == nil {
+		return "", false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return "", false
+	}
+	if _, ok := typ.(*types.Alias); !ok {
+		return "", false
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok {
+		return "", false
+	}
+	return goTypesNamedTypeToRust(named), true
+}
+
 // TranspileTypeAssertionCommaOk generates code for type assertion with comma-ok form
 func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) {
 	if e.Type == nil {
@@ -13465,6 +13487,9 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		// Complex type - use the base type
 		rustType = goTypeToRustBase(e.Type)
 		defaultValue = "Default::default()"
+	}
+	if aliasRustType, ok := typeAssertionAliasConcreteRustType(e.Type); ok {
+		rustType = aliasRustType
 	}
 
 	if indexExpr, ok := e.X.(*ast.IndexExpr); ok {

@@ -5238,6 +5238,37 @@ func useReturn(orig Type) genericType {
 	}
 }
 
+func TestConcreteErrorAssertionMethodCallUnwrapsReceiver(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Errno uintptr
+
+func (e Errno) Error() string { return "" }
+func (e Errno) Is(target error) bool { return false }
+
+type syscallErrorType = Errno
+
+func underlyingErrorIs(err, target error) bool {
+	e, ok := err.(syscallErrorType)
+	return ok && e.Is(target)
+}
+`)
+
+	if strings.Contains(rust, "e.is(target.clone())") {
+		t.Fatalf("asserted concrete error method call should not call through the wrapper handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "downcast_ref::<syscallErrorType>()") {
+		t.Fatalf("type assertion to an error alias should downcast to the underlying concrete value, not the alias handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "downcast_ref::<Errno>()") {
+		t.Fatalf("type assertion to an error alias should downcast to the underlying concrete error:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*e.borrow().as_ref().unwrap()).is(target.clone())") &&
+		!strings.Contains(rust, "(*e.lock().unwrap().as_ref().unwrap()).is(target.clone())") {
+		t.Fatalf("asserted concrete error method call should unwrap the receiver:\n%s", rust)
+	}
+}
+
 func TestPointerAssertionCallArgumentKeepsHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
