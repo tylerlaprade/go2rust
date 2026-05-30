@@ -113,6 +113,28 @@ func Join[S ~[]T, T ~string](s S) {
 	}
 }
 
+func TestTypeInfoPreservesDirectSliceTypeParamElem(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+func Each[T comparable](in []T) {
+	for _, v := range in { _ = v }
+}`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	fn := file.Decls[0].(*ast.FuncDecl)
+	rangeStmt := fn.Body.List[0].(*ast.RangeStmt)
+
+	elem := typeInfo.GetArrayOrSliceElemTypePreservingTypeParam(rangeStmt.X)
+	if _, ok := types.Unalias(elem).(*types.TypeParam); !ok {
+		t.Fatalf("direct []T elem type = %v, want type parameter", elem)
+	}
+}
+
 // Bug: types.Config.Check used to be invoked as `pkg, _ := config.Check(...)`,
 // and a later refactor swallowed partial errors onto stderr without ever
 // returning them. Downstream code-gen then ran on partial type info as if it

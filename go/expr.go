@@ -14004,6 +14004,9 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 	if writeAlreadyWrappedCallArgument(out, arg) {
 		return
 	}
+	if writeTypeParamRangeHandleCallArgument(out, arg, expected) {
+		return
+	}
 	WriteWrapperPrefix(out)
 	if writeConstExpressionForExpectedGoType(out, arg, expected) {
 		// Constant emitted in the parameter's expected representation.
@@ -14019,6 +14022,30 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 		TranspileExpression(out, arg)
 	}
 	WriteWrapperSuffix(out)
+}
+
+func writeTypeParamRangeHandleCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	if _, ok := types.Unalias(expected).(*types.TypeParam); !ok {
+		return false
+	}
+	ident, ok := arg.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	varType, ok := rangeLoopVars[ident.Name]
+	if !ok || !isWrappedRangeVarType(varType) {
+		return false
+	}
+	name := RustIdentForUse(ident)
+	if strings.HasPrefix(varType, "&") {
+		out.WriteString("(*")
+		out.WriteString(name)
+		out.WriteString(").clone()")
+	} else {
+		out.WriteString(name)
+		out.WriteString(".clone()")
+	}
+	return true
 }
 
 func writeAlreadyWrappedSelectorCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {

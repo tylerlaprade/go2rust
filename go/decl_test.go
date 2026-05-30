@@ -186,6 +186,40 @@ func VisitAll[N Node](list []N) {
 	}
 }
 
+func TestGenericComparableSliceFunctionUsesWrappedElements(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func substList[T comparable](in []T, subst func(T) T) []T {
+	for i, t := range in {
+		if u := subst(t); u != t {
+			out := make([]T, len(in))
+			copy(out, in)
+			out[i] = u
+			return out
+		}
+	}
+	return nil
+}
+`)
+
+	if !strings.Contains(rust, "Vec<Rc<RefCell<Option<T>>>>") {
+		t.Fatalf("generic []T should store wrapped element handles:\n%s", rust)
+	}
+	if strings.Contains(rust, "Vec<T>") {
+		t.Fatalf("generic []T should not store bare type parameters:\n%s", rust)
+	}
+	if strings.Contains(rust, "Some(t)") || strings.Contains(rust, "Some(t.clone())") {
+		t.Fatalf("range value passed to func(T) should not be wrapped again:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*__f)(t.clone())") &&
+		!strings.Contains(rust, "(*__f)((*t).clone())") {
+		t.Fatalf("range value passed to func(T) should pass the element handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "Box::new((*u.borrow().as_ref().unwrap()).clone()) as Box<dyn Any") {
+		t.Fatalf("generic []T assignment should not box the replacement value as Any:\n%s", rust)
+	}
+}
+
 func TestInterfaceMethodSignatureNamesUnnamedParams(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

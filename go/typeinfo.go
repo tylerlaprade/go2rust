@@ -425,6 +425,26 @@ func (ti *TypeInfo) GetArrayOrSliceElemType(expr ast.Expr) types.Type {
 	}
 }
 
+// GetArrayOrSliceElemTypePreservingTypeParam returns the element type without
+// reducing direct []T elements to their constraint core type.
+func (ti *TypeInfo) GetArrayOrSliceElemTypePreservingTypeParam(expr ast.Expr) types.Type {
+	typ := ti.GetType(expr)
+	if typ == nil {
+		return nil
+	}
+	switch t := types.Unalias(typ).Underlying().(type) {
+	case *types.Slice:
+		return types.Unalias(t.Elem())
+	case *types.Array:
+		return types.Unalias(t.Elem())
+	case *types.Pointer:
+		if array, ok := types.Unalias(t.Elem()).Underlying().(*types.Array); ok {
+			return types.Unalias(array.Elem())
+		}
+	}
+	return ti.GetArrayOrSliceElemType(expr)
+}
+
 // GetMapValueType returns the value type of a map, or nil if not a map
 func (ti *TypeInfo) GetMapValueType(expr ast.Expr) types.Type {
 	typ := ti.GetType(expr)

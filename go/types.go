@@ -1211,6 +1211,11 @@ func goCollectionElemTypeToRust(expr ast.Expr) string {
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "error" {
 		return GoTypeToRust(expr)
 	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if _, ok := types.Unalias(typeInfo.GetType(expr)).(*types.TypeParam); ok {
+			return GoTypeToRust(expr)
+		}
+	}
 	if _, ok := goTypeParamTraitConstraintNameFromExpr(expr); ok {
 		return GoTypeToRust(expr)
 	}
@@ -1393,6 +1398,9 @@ func goTypesCollectionElemTypeToRust(t types.Type) string {
 		return goTypesTypeToRustWrapped(t)
 	}
 	if isGoErrorType(t) {
+		return goTypesTypeToRustWrapped(t)
+	}
+	if _, ok := types.Unalias(t).(*types.TypeParam); ok {
 		return goTypesTypeToRustWrapped(t)
 	}
 	// Mirror the syntax-side rule in goCollectionElemTypeToRust: local named

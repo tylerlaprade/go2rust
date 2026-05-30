@@ -544,6 +544,9 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 	if isGoErrorType(expected) && writeGoErrorHandleValue(out, rhs) {
 		return
 	}
+	if writeTypeParamArraySliceElementAssignmentValue(out, rhs, expected) {
+		return
+	}
 	// A []any element slot stores a bare Box<dyn Any>; box a concrete value into
 	// it. (A value already of interface type is handled by the local/stdlib
 	// interface paths or the generic clone below.)
@@ -625,6 +628,31 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 	} else {
 		TranspileExpression(out, rhs)
 	}
+}
+
+func writeTypeParamArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, expected types.Type) bool {
+	if _, ok := types.Unalias(expected).(*types.TypeParam); !ok {
+		return false
+	}
+	ident, ok := rhs.(*ast.Ident)
+	if !ok || ident.Name == "_" || ident.Name == "nil" || isConstIdent(ident) {
+		return false
+	}
+	name := RustIdentForUse(ident)
+	if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && isWrappedRangeVarType(varType) {
+		if strings.HasPrefix(varType, "&") {
+			out.WriteString("(*")
+			out.WriteString(name)
+			out.WriteString(").clone()")
+		} else {
+			out.WriteString(name)
+			out.WriteString(".clone()")
+		}
+		return true
+	}
+	out.WriteString(name)
+	out.WriteString(".clone()")
+	return true
 }
 
 func writeNamedSliceSliceExprShortDeclInitializer(out *strings.Builder, rhs ast.Expr) bool {
@@ -916,7 +944,7 @@ func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.Inde
 	out.WriteString("][")
 	writeExpressionAsUsize(out, indexExpr.Index)
 	out.WriteString("] = ")
-	writeArraySliceElementAssignmentValue(out, rhs, typeInfo.GetArrayOrSliceElemType(indexExpr.X))
+	writeArraySliceElementAssignmentValue(out, rhs, typeInfo.GetArrayOrSliceElemTypePreservingTypeParam(indexExpr.X))
 	return true
 }
 
@@ -7276,7 +7304,7 @@ func rangeArrayOrSliceElemType(expr ast.Expr) types.Type {
 	if typeInfo == nil {
 		return nil
 	}
-	return typeInfo.GetArrayOrSliceElemType(expr)
+	return typeInfo.GetArrayOrSliceElemTypePreservingTypeParam(expr)
 }
 
 func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet, comments []*ast.CommentGroup, lastPos *token.Pos, indent string) {
@@ -8568,7 +8596,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 									var elemType types.Type
 									if typeInfo := GetTypeInfo(); typeInfo != nil {
-										elemType = typeInfo.GetArrayOrSliceElemType(indexExpr.X)
+										elemType = typeInfo.GetArrayOrSliceElemTypePreservingTypeParam(indexExpr.X)
 									}
 									writeArraySliceElementAssignmentValue(out, s.Rhs[0], elemType)
 								}
@@ -10003,6 +10031,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if elemType != nil {
 				if isGoErrorType(elemType) {
 					valueType = goTypesTypeToRustWrapped(elemType)
+				} else if _, ok := types.Unalias(elemType).(*types.TypeParam); ok {
+					valueType = "&" + goTypesTypeToRustWrapped(elemType)
 				} else if isStdlibNamedInterfaceValueType(elemType) {
 					valueType = "&" + goTypesTypeToRust(elemType)
 				} else if _, ok := elemType.Underlying().(*types.Pointer); ok {
