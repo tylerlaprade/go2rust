@@ -12607,6 +12607,19 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 		return
 	}
 
+	if paren, ok := arg.(*ast.ParenExpr); ok {
+		out.WriteString("(")
+		writeNumericConversionValue(out, paren.X)
+		out.WriteString(")")
+		writeExternalIntegerTupleField(out, argType)
+		return
+	}
+
+	if call, ok := arg.(*ast.CallExpr); ok && writeBareBasicNumericConversionValue(out, call) {
+		writeExternalIntegerTupleField(out, argType)
+		return
+	}
+
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
 		argName := rustIdentForUseWithCapture(ident)
 		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
@@ -12688,6 +12701,32 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 
 	TranspileExpression(out, arg)
 	writeExternalIntegerTupleField(out, argType)
+}
+
+func writeBareBasicNumericConversionValue(out *strings.Builder, call *ast.CallExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || call == nil || len(call.Args) != 1 || !typeInfo.IsTypeConversion(call) {
+		return false
+	}
+	basic, ok := types.Unalias(typeInfo.GetType(call)).Underlying().(*types.Basic)
+	if !ok {
+		return false
+	}
+	rustType, ok := rustCastTypeForDefinedUnderlying(basic.Name())
+	if !ok {
+		return false
+	}
+	needsParens := numericConversionCastNeedsParens(call.Args[0])
+	if needsParens {
+		out.WriteString("(")
+	}
+	writeNumericConversionValue(out, call.Args[0])
+	if needsParens {
+		out.WriteString(")")
+	}
+	out.WriteString(" as ")
+	out.WriteString(rustType)
+	return true
 }
 
 func writeTimeDurationNumericConversionValue(out *strings.Builder, arg ast.Expr) bool {

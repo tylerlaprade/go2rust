@@ -2485,6 +2485,22 @@ func impossible() EmptyOp {
 	}
 }
 
+func TestUintptrUnaryNotReturnUsesBareConversionValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func invalid() uintptr {
+	return ^(uintptr(0))
+}
+`)
+
+	if strings.Contains(rust, "!(Rc::new") || strings.Contains(rust, "!(Arc::new") {
+		t.Fatalf("uintptr unary-not return should not complement a wrapped conversion:\n%s", rust)
+	}
+	if !strings.Contains(rust, "!(0 as usize)") {
+		t.Fatalf("uintptr unary-not return should complement the bare usize conversion:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerReturnCallAssignedToSliceElementPreservesCall(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
