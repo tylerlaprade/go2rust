@@ -709,6 +709,29 @@ var Holder struct {
 	}
 }
 
+func TestPackageGlobalOsArgsUsesSharedHelper(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"os"
+	"strings"
+)
+
+var inTest = len(os.Args) > 0 && strings.HasSuffix(strings.TrimSuffix(os.Args[0], ".exe"), ".test")
+
+func main() {
+	_ = inTest
+}
+`)
+
+	if !strings.Contains(rust, "fn go_os_args()") {
+		t.Fatalf("package global os.Args should use a shared helper:\n%s", rust)
+	}
+	if strings.Contains(rust, "__go_os_args") {
+		t.Fatalf("package global os.Args should not reference a function-local binding:\n%s", rust)
+	}
+}
+
 func TestAnonymousStructEmbeddedMutexPromotedLockUsesMutexField(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

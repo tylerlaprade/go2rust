@@ -44,10 +44,17 @@ where
     }
 }
 
-fn main() {
-    let __go_os_args = Rc::new(RefCell::new(Some(std::env::args().collect::<Vec<String>>())));
+thread_local! {
+    static __GO_OS_ARGS: std::rc::Rc<std::cell::RefCell<Option<Vec<String>>>> =
+        std::rc::Rc::new(std::cell::RefCell::new(Some(std::env::args().collect::<Vec<String>>())));
+}
 
-    println!("{} {}", format!("{}", "Program name present:".to_string()), format!("{}", (*__go_os_args.clone().borrow().as_ref().unwrap())[(0) as usize].clone() != ""));
-    println!("{} {}", format!("{}", "Arguments:".to_string()), format!("{}", format_slice(&Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = __go_os_args.clone().clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize..].to_vec() }))))));
-    println!("{} {}", format!("{}", "Total args:".to_string()), format!("{}", (*__go_os_args.clone().borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+fn go_os_args() -> std::rc::Rc<std::cell::RefCell<Option<Vec<String>>>> {
+    __GO_OS_ARGS.with(|args| args.clone())
+}
+
+fn main() {
+    println!("{} {}", format!("{}", "Program name present:".to_string()), format!("{}", (*go_os_args().borrow().as_ref().unwrap())[(0) as usize].clone() != "".to_string()));
+    println!("{} {}", format!("{}", "Arguments:".to_string()), format!("{}", format_slice(&Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = go_os_args().clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize..].to_vec() }))))));
+    println!("{} {}", format!("{}", "Total args:".to_string()), format!("{}", (*go_os_args().borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
 }

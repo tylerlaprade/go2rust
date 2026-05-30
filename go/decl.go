@@ -1292,27 +1292,6 @@ func checkHasDeferClauses(body *ast.BlockStmt) bool {
 	return false
 }
 
-func isOsArgsSelector(sel *ast.SelectorExpr) bool {
-	if sel.Sel.Name != "Args" {
-		return false
-	}
-
-	ident, ok := sel.X.(*ast.Ident)
-	if !ok {
-		return false
-	}
-
-	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
-		if obj, ok := typeInfo.info.Uses[ident]; ok {
-			if pkgName, ok := obj.(*types.PkgName); ok {
-				return pkgName.Imported().Path() == "os"
-			}
-		}
-	}
-
-	return resolveStdlibPackageName(ident.Name) == "os"
-}
-
 func writeFunctionTypeParams(out *strings.Builder, fnType *ast.FuncType) {
 	if fnType == nil || fnType.TypeParams == nil || len(fnType.TypeParams.List) == 0 {
 		return
@@ -1395,25 +1374,6 @@ func rustFunctionTypeParam(name *ast.Ident) string {
 	}
 	bounds = append(bounds, "'static")
 	return rustName + ": " + strings.Join(bounds, " + ")
-}
-
-func functionUsesOsArgs(fn *ast.FuncDecl) bool {
-	if fn.Body == nil {
-		return false
-	}
-
-	usesOsArgs := false
-	ast.Inspect(fn.Body, func(node ast.Node) bool {
-		if usesOsArgs {
-			return false
-		}
-		if sel, ok := node.(*ast.SelectorExpr); ok && isOsArgsSelector(sel) {
-			usesOsArgs = true
-			return false
-		}
-		return true
-	})
-	return usesOsArgs
 }
 
 // localInterfaceTypesFromTypeSpec returns the go/types representation of the
@@ -2360,13 +2320,6 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 		out.WriteString("    __go_init_all();\n")
 	}
 
-	if functionUsesOsArgs(fn) {
-		out.WriteString("    let __go_os_args = ")
-		WriteWrapperPrefix(out)
-		out.WriteString("std::env::args().collect::<Vec<String>>()")
-		WriteWrapperSuffix(out)
-		out.WriteString(";\n\n")
-	}
 	writeAssignedInterfaceParamShadows(out, fn, "    ")
 
 	if fn.Body == nil {

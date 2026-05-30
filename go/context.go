@@ -820,6 +820,13 @@ func NeedOsFile() {
 	}
 }
 
+// NeedOsArgs marks that we need the os.Args helper.
+func NeedOsArgs() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsOsArgs = true
+	}
+}
+
 // NeedSliceElemPtr marks that we need slice element pointer helpers.
 func NeedSliceElemPtr() {
 	if helpers := activeHelperTracker(); helpers != nil {

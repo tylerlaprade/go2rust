@@ -93,6 +93,15 @@ fn go_strconv_format_float(value: f64, fmt: char, precision: i32) -> String {
     }
 }
 
+thread_local! {
+    static __GO_OS_ARGS: std::rc::Rc<std::cell::RefCell<Option<Vec<String>>>> =
+        std::rc::Rc::new(std::cell::RefCell::new(Some(std::env::args().collect::<Vec<String>>())));
+}
+
+fn go_os_args() -> std::rc::Rc<std::cell::RefCell<Option<Vec<String>>>> {
+    __GO_OS_ARGS.with(|args| args.clone())
+}
+
 #[derive(Clone, Debug, Default)]
 struct GoTime {
     seconds: i64,
@@ -191,8 +200,6 @@ impl std::fmt::Display for GoTime {
 }
 
 fn main() {
-    let __go_os_args = Rc::new(RefCell::new(Some(std::env::args().collect::<Vec<String>>())));
-
         // Testing multiple standard library imports
     println!("{}", format!("{}", "=== Testing multiple stdlib imports ===".to_string()));
 
@@ -216,7 +223,7 @@ fn main() {
     let mut str = Rc::new(RefCell::new(Some((*num.borrow().as_ref().unwrap()).to_string())));
     println!("{} {}", format!("{}", "Number as string:".to_string()), format!("{}", { let __v = (*str.borrow().as_ref().unwrap()).clone(); __v }));
 
-    let (mut parsed, mut err) = { let __atoi_input = "123".to_string().clone(); match __atoi_input.parse::<i32>() { Ok(n) => (n, Rc::new(RefCell::new(None))), Err(_) => (0 as i32, Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("strconv.Atoi: parsing \"{}\": invalid syntax", __atoi_input)))))) } };
+    let (mut parsed, mut err) = { let __atoi_input = "123".to_string(); match __atoi_input.parse::<i32>() { Ok(n) => (n, Rc::new(RefCell::new(None))), Err(_) => (0 as i32, Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(format!("strconv.Atoi: parsing \"{}\": invalid syntax", __atoi_input)))))) } };
     if (*err.borrow()).is_some() {
         println!("{} {}", format!("{}", "Parse error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
     } else {
@@ -245,7 +252,7 @@ fn main() {
 
         // os package
     println!("{}", format!("{}", "\n--- os package ---".to_string()));
-    println!("{} {}", format!("{}", "Argument count:".to_string()), format!("{}", (*__go_os_args.clone().borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
+    println!("{} {}", format!("{}", "Argument count:".to_string()), format!("{}", (*go_os_args().borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)));
 
         // Combined usage
     println!("{}", format!("{}", "\n--- Combined usage ---".to_string()));

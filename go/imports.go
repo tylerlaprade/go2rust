@@ -144,6 +144,7 @@ type HelperTracker struct {
 	needsRegexp                     bool
 	needsJsonEscape                 bool
 	needsOsFile                     bool
+	needsOsArgs                     bool
 	needsSliceElemPtr               bool
 	needsGoTime                     bool
 	needsGoTimer                    bool
@@ -286,6 +287,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	if ht.needsOsFile {
 		generateOsFileHelper(&result)
+	}
+
+	if ht.needsOsArgs {
+		generateOsArgsHelper(&result)
 	}
 
 	if ht.needsSliceElemPtr {
@@ -2850,6 +2855,31 @@ fn go_rand_intn(n: i32) -> i32 {
 
 fn go_rand_float64() -> f64 {
     ((go_rand_next_u64() >> 11) as f64) / ((1u64 << 53) as f64)
+}
+`)
+}
+
+func generateOsArgsHelper(out *strings.Builder) {
+	if NeedsConcurrentWrapper() {
+		out.WriteString(`
+static __GO_OS_ARGS: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>>> =
+    std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(Some(std::env::args().collect::<Vec<String>>()))));
+
+fn go_os_args() -> std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>> {
+    __GO_OS_ARGS.clone()
+}
+`)
+		return
+	}
+
+	out.WriteString(`
+thread_local! {
+    static __GO_OS_ARGS: std::rc::Rc<std::cell::RefCell<Option<Vec<String>>>> =
+        std::rc::Rc::new(std::cell::RefCell::new(Some(std::env::args().collect::<Vec<String>>())));
+}
+
+fn go_os_args() -> std::rc::Rc<std::cell::RefCell<Option<Vec<String>>>> {
+    __GO_OS_ARGS.with(|args| args.clone())
 }
 `)
 }

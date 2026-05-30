@@ -5332,7 +5332,6 @@ func transpileClose(out *strings.Builder, call *ast.CallExpr) {
 var stdlibSelectorMappings = map[string]string{
 	"math.E":           "std::f64::consts::E",
 	"math.Pi":          "std::f64::consts::PI",
-	"os.Args":          "__go_os_args.clone()",
 	"time.Hour":        "std::time::Duration::from_secs(3600)",
 	"time.Minute":      "std::time::Duration::from_secs(60)",
 	"time.Second":      "std::time::Duration::from_secs(1)",
@@ -5345,6 +5344,10 @@ var stdlibSelectorMappings = map[string]string{
 // or empty string if no mapping exists.
 func GetStdlibSelectorMapping(pkgName, selName string) string {
 	key := pkgName + "." + selName
+	if key == "os.Args" {
+		NeedOsArgs()
+		return "go_os_args()"
+	}
 	if rustExpr, ok := stdlibSelectorMappings[key]; ok {
 		return rustExpr
 	}
