@@ -883,6 +883,30 @@ func use() nodeQueue {
 	}
 }
 
+func TestNamedSliceConversionFromSliceParameterUsesSliceHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Word uint
+type nat []Word
+
+func (z nat) norm() nat {
+	return z
+}
+
+func setBits(abs []Word) nat {
+	return nat(abs).norm()
+}
+`)
+
+	if strings.Contains(rust, "nat({ let __v = (*abs.borrow().as_ref().unwrap()).clone(); __v })") ||
+		strings.Contains(rust, "nat({ let __v = (*abs.lock().unwrap().as_ref().unwrap()).clone(); __v })") {
+		t.Fatalf("named slice conversion should not unwrap a slice parameter to a bare Vec:\n%s", rust)
+	}
+	if !strings.Contains(rust, "nat(abs.clone()).norm()") {
+		t.Fatalf("named slice conversion should clone the slice handle for a slice parameter:\n%s", rust)
+	}
+}
+
 func TestAppendLocalInterfaceHandleKeepsWrappedValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

@@ -10274,10 +10274,20 @@ func writeNamedSliceTypeConversion(out *strings.Builder, call *ast.CallExpr) boo
 	if _, _, ok := namedSliceTypeFromType(sourceType); ok {
 		writeNamedSliceInnerHandleClone(out, call.Args[0])
 	} else {
-		TranspileExpression(out, call.Args[0])
+		writePlainSliceHandleForNamedSliceConversion(out, call.Args[0])
 	}
 	out.WriteString(")")
 	return true
+}
+
+func writePlainSliceHandleForNamedSliceConversion(out *strings.Builder, expr ast.Expr) {
+	switch unwrapParens(expr).(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+		TranspileExpressionContext(out, unwrapParens(expr), LValue)
+		out.WriteString(".clone()")
+	default:
+		TranspileExpression(out, expr)
+	}
 }
 
 func writeChannelNilDefault(out *strings.Builder, rustType string) {
