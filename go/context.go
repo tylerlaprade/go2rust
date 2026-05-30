@@ -746,6 +746,9 @@ func NeedGoRWMutex() {
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsGoRWMutex = true
 	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsGoRWMutex = true
+	})
 }
 
 // NeedGoOnce marks that we need the GoOnce helper struct

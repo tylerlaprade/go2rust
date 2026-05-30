@@ -1605,6 +1605,54 @@ func (s *Set) Use() {
 	}
 }
 
+func TestSharedStdlibStubVariableReturningRWMutexIncludesHelper(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/lockdep v0.0.0
+
+replace example.com/lockdep => ./lockdep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "lockdep", "go.mod"), `module example.com/lockdep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "lockdep", "lockdep.go"), `package lockdep
+
+import "syscall"
+
+func Lock() {
+	syscall.ForkLock.RLock()
+	syscall.ForkLock.RUnlock()
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/lockdep"
+
+func main() {
+	lockdep.Lock()
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	stubsRS := mustReadFile(t, filepath.Join(tempDir, "vendor", sharedStdlibStubCrateName, "lib.rs"))
+	if !strings.Contains(stubsRS, "pub struct GoRWMutex") {
+		t.Fatalf("shared stdlib stubs should export GoRWMutex for RWMutex-returning vars, got:\n%s", stubsRS)
+	}
+	if !strings.Contains(stubsRS, "pub fn ForkLock() -> Rc<RefCell<Option<GoRWMutex>>>") &&
+		!strings.Contains(stubsRS, "pub fn ForkLock() -> Arc<Mutex<Option<GoRWMutex>>>") {
+		t.Fatalf("shared stdlib stubs should preserve the RWMutex variable type, got:\n%s", stubsRS)
+	}
+}
+
 func TestNamedFunctionTypeConversionDoesNotCallConstant(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

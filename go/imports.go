@@ -182,6 +182,9 @@ func (ht *HelperTracker) sharedStdlibHelpersOnly() *HelperTracker {
 	if ht.needsGoContext {
 		helperCopy.needsGoContext = true
 	}
+	if ht.needsGoRWMutex {
+		helperCopy.needsGoRWMutex = true
+	}
 	return helperCopy
 }
 
@@ -1257,7 +1260,7 @@ impl std::fmt::Debug for GoMutex {
 }
 
 func generateGoRWMutexHelper(out *strings.Builder) {
-	out.WriteString(`
+	code := `
 #[derive(Clone, Debug, Default)]
 struct GoRWMutex;
 
@@ -1277,7 +1280,16 @@ impl std::fmt::Display for GoRWMutex {
         write!(f, "RWMutex")
     }
 }
-`)
+`
+	if generatingPublicHelpers {
+		code = strings.ReplaceAll(code, "struct GoRWMutex", "pub struct GoRWMutex")
+		code = strings.ReplaceAll(code, "    fn new(", "    pub fn new(")
+		code = strings.ReplaceAll(code, "    fn lock(", "    pub fn lock(")
+		code = strings.ReplaceAll(code, "    fn unlock(", "    pub fn unlock(")
+		code = strings.ReplaceAll(code, "    fn r_lock(", "    pub fn r_lock(")
+		code = strings.ReplaceAll(code, "    fn r_unlock(", "    pub fn r_unlock(")
+	}
+	out.WriteString(code)
 }
 
 func generateGoOnceHelper(out *strings.Builder) {
