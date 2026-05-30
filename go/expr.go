@@ -5461,6 +5461,39 @@ func writeStringConstForExpectedBasicType(out *strings.Builder, expr ast.Expr, e
 	return true
 }
 
+func writeStringValueForExpectedBasicType(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
+	if expected == nil {
+		return false
+	}
+	basic, ok := types.Unalias(expected).Underlying().(*types.Basic)
+	if !ok || basic.Kind() != types.String {
+		return false
+	}
+	if writeStringConstForExpectedBasicType(out, expr, expected) {
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	valueBasic, ok := types.Unalias(typeInfo.GetType(expr)).Underlying().(*types.Basic)
+	if !ok || valueBasic.Kind() != types.String {
+		return false
+	}
+	if isExpressionResultBare(expr) {
+		TranspileExpression(out, expr)
+		return true
+	}
+	if writeOwnedExpressionValue(out, expr) {
+		return true
+	}
+	if isCloneableNonPointerExpr(expr) && !isCopyTypeExpression(expr) {
+		writeClonedWrappedExpression(out, expr, "__map_key_holder", "__map_key_guard")
+		return true
+	}
+	return false
+}
+
 func sliceLiteralNeedsExplicitElemType(elemType types.Type) bool {
 	return elemType != nil && isStdlibNamedInterfaceValueType(types.Unalias(elemType))
 }
@@ -6789,7 +6822,7 @@ func findTypesStructFieldType(structType *types.Struct, fieldName string) types.
 }
 
 func writeMapKeyForExpectedType(out *strings.Builder, key ast.Expr, keyType types.Type) bool {
-	if writeStringConstForExpectedBasicType(out, key, keyType) {
+	if writeStringValueForExpectedBasicType(out, key, keyType) {
 		return true
 	}
 	if writeStdlibInterfaceMapKeyValue(out, key, keyType) {

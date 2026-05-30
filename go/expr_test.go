@@ -4827,6 +4827,31 @@ func lookup(m map[string]token.Pos, key string) atPos {
 	}
 }
 
+func TestStringSliceMapLookupKeyUsesOwnedString(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type group struct {
+	sign int
+}
+
+var groups = map[string]group{
+	"ab": {sign: 1},
+}
+
+func lookup(s string) group {
+	return groups[s[0:2]]
+}
+`)
+
+	if strings.Contains(rust, ".get(&Rc::new(RefCell::new(Some(") ||
+		strings.Contains(rust, ".get(&Arc::new(Mutex::new(Some(") {
+		t.Fatalf("string map lookup key should not pass a wrapped string handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".get(&{ let __") {
+		t.Fatalf("string map lookup key should pass an owned string value:\n%s", rust)
+	}
+}
+
 func TestPointerToSliceIndexUsesDerefValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
