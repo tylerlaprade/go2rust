@@ -6173,6 +6173,9 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 		writeTranspiledInterfaceHandleAssignmentTarget(out, lhs, tmpName)
 		return
 	}
+	if writeParallelSliceElemPtrAssignmentTarget(out, lhs, tmpName, rhs) {
+		return
+	}
 	if writeParallelNilAssignmentTarget(out, lhs, tmpName, rhs) {
 		return
 	}
@@ -6225,6 +6228,44 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 		}
 		out.WriteString(");")
 	}
+}
+
+func writeParallelSliceElemPtrAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string, rhs ast.Expr) bool {
+	ident, ok := lhs.(*ast.Ident)
+	if !ok || !isSliceElemPtrVar(ident.Name) {
+		return false
+	}
+	out.WriteString(" ")
+	out.WriteString(RustIdentForUse(ident))
+	out.WriteString(" = ")
+	if rhsIdent, ok := unwrapParens(rhs).(*ast.Ident); ok {
+		if rhsIdent.Name == "nil" {
+			out.WriteString("None")
+			out.WriteString(";")
+			return true
+		}
+		if isSliceElemPtrVar(rhsIdent.Name) {
+			out.WriteString(tmpName)
+			out.WriteString(";")
+			return true
+		}
+	}
+	if _, sawSliceAddr := isSliceElemPtrAssignmentValue(rhs); sawSliceAddr {
+		out.WriteString("Some(")
+		out.WriteString(tmpName)
+		out.WriteString(");")
+		return true
+	}
+	if call, ok := unwrapParens(rhs).(*ast.CallExpr); ok {
+		if _, ok := sliceElemPtrReturnInfoForCall(call); ok {
+			out.WriteString(tmpName)
+			out.WriteString(";")
+			return true
+		}
+	}
+	out.WriteString("/* ERROR: slice element pointer assignment requires nil or &slice[index] */ unimplemented!(\"slice element pointer assignment\")")
+	out.WriteString(";")
+	return true
 }
 
 func writeParallelNilAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string, rhs ast.Expr) bool {

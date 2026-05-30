@@ -453,6 +453,29 @@ func use(m *machine, p []inst) *thread {
 	}
 }
 
+func TestParallelAssignmentUpdatesSliceElemPointerLocal(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type inst struct {
+	out int
+}
+
+func walk(p []inst, start int) int {
+	i := &p[start]
+	pc := start
+	pc, i = i.out, &p[i.out]
+	return pc + i.out
+}
+`)
+
+	if strings.Contains(rust, "*i.borrow") || strings.Contains(rust, "*i.lock") {
+		t.Fatalf("parallel assignment to slice element pointer local should not treat it as a wrapped pointer slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "i = Some(__tmp_1);") {
+		t.Fatalf("parallel assignment should store the new slice element pointer option directly:\n%s", rust)
+	}
+}
+
 func transpileTypedSliceElemPtrRegression(t *testing.T, src string) string {
 	t.Helper()
 
