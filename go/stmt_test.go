@@ -666,6 +666,27 @@ func (s methodSet) add(list []string) methodSet {
 	}
 }
 
+func TestMapPointerValueNilAssignmentStoresNilHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Selection struct{}
+type methodSet map[string]*Selection
+
+func assign(s methodSet, key string) methodSet {
+	s[key] = nil
+	return s
+}
+`)
+
+	if strings.Contains(rust, "Some(None)") {
+		t.Fatalf("nil assigned to a pointer map value should store a nil handle, not Some(None):\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __map_value = Rc::new(RefCell::new(None))") &&
+		!strings.Contains(rust, "let __map_value = Arc::new(Mutex::new(None))") {
+		t.Fatalf("nil assigned to a pointer map value should create an empty handle:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceAssignmentCopiesWrappedHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

@@ -6153,15 +6153,7 @@ func writeFunctionMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.E
 }
 
 func isNilableWrappedMapValueType(valueType types.Type) bool {
-	if valueType == nil {
-		return false
-	}
-	switch types.Unalias(valueType).Underlying().(type) {
-	case *types.Slice, *types.Map, *types.Chan:
-		return true
-	default:
-		return false
-	}
+	return mapValueTypeKeepsHandle(valueType)
 }
 
 func isGoErrorTypeExpr(expr ast.Expr) bool {
