@@ -15169,8 +15169,29 @@ func writeOrderedTypeParamCallArgument(out *strings.Builder, call *ast.CallExpr,
 		return true
 	}
 	if !writeOwnedExpressionValue(out, arg) {
-		TranspileExpression(out, arg)
+		if !writeOrderedCallResultValue(out, arg) {
+			TranspileExpression(out, arg)
+		}
 	}
+	return true
+}
+
+func writeOrderedCallResultValue(out *strings.Builder, arg ast.Expr) bool {
+	call, ok := arg.(*ast.CallExpr)
+	if !ok || isExpressionResultBare(arg) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.ReturnsWrappedValue(call) || callReturnsBareChannelValue(call) {
+		return false
+	}
+	if !isGoOrderedType(typeInfo.GetType(arg)) {
+		return false
+	}
+	out.WriteString("(*")
+	TranspileExpression(out, arg)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()")
 	return true
 }
 

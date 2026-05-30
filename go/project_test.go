@@ -4326,6 +4326,59 @@ func searchLineInfos(a []lineInfo, x int) int {
 	}
 }
 
+func TestSourceStdlibOrderedCallUnwrapsCallResult(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "comment.go", `package ast
+
+import "cmp"
+
+type Pos int
+
+type CommentGroup struct {
+	Slash Pos
+}
+
+func (g *CommentGroup) Pos() Pos {
+	return g.Slash
+}
+
+func CompareGroups(a, b *CommentGroup) int {
+	return cmp.Compare(a.Pos(), b.Pos())
+}
+
+func importComment(g *CommentGroup) string {
+	return ""
+}
+
+func CompareComments(a, b *CommentGroup) int {
+	return cmp.Compare(importComment(a), importComment(b))
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(comment.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"cmp": "cmp"})
+	if strings.Contains(rust, "cmp::compare::<Pos>({ let __recv = a.clone()") {
+		t.Fatalf("source-mapped ordered call should pass the raw method result, not the result handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".pos().borrow().as_ref().unwrap()).clone()") &&
+		!strings.Contains(rust, ".pos().lock().unwrap().as_ref().unwrap()).clone()") {
+		t.Fatalf("source-mapped ordered call should unwrap method results before comparing:\n%s", rust)
+	}
+	if strings.Contains(rust, "cmp::compare::<String>(import_comment(a.clone()),") {
+		t.Fatalf("source-mapped ordered call should pass the raw function result, not the result handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "cmp::compare::<String>((*import_comment(a.clone()).borrow().as_ref().unwrap()).clone()") &&
+		!strings.Contains(rust, "cmp::compare::<String>((*import_comment(a.clone()).lock().unwrap().as_ref().unwrap()).clone()") {
+		t.Fatalf("source-mapped ordered call should unwrap function results before comparing:\n%s", rust)
+	}
+}
+
 func TestSourceStdlibImportedInterfaceTypeExprUsesTraitObject(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "parser.go", `package parser
