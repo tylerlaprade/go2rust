@@ -2101,11 +2101,51 @@ func writeMapHandleForOp(out *strings.Builder, expr ast.Expr) {
 		writeNamedMapInnerHandleClone(out, expr)
 		return
 	}
+	if target, ok := pointerToMapDerefTarget(expr); ok {
+		TranspileExpressionContext(out, target, LValue)
+		return
+	}
 	if ident, ok := expr.(*ast.Ident); ok {
 		out.WriteString(rustIdentForUseWithCapture(ident))
 		return
 	}
 	TranspileExpressionContext(out, expr, LValue)
+}
+
+func pointerToMapDerefTarget(expr ast.Expr) (ast.Expr, bool) {
+	star, ok := unwrapParens(expr).(*ast.StarExpr)
+	if !ok {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, false
+	}
+	ptr, ok := types.Unalias(typeInfo.GetType(star.X)).Underlying().(*types.Pointer)
+	if !ok {
+		return nil, false
+	}
+	if _, ok := types.Unalias(ptr.Elem()).Underlying().(*types.Map); !ok {
+		return nil, false
+	}
+	return star.X, true
+}
+
+func writePointerToMapNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) bool {
+	target, ok := pointerToMapDerefTarget(expr)
+	if !ok {
+		return false
+	}
+	out.WriteString("(*")
+	TranspileExpressionContext(out, target, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(")")
+	if op == token.NEQ {
+		out.WriteString(".is_some()")
+	} else {
+		out.WriteString(".is_none()")
+	}
+	return true
 }
 
 func writeNamedSliceLen(out *strings.Builder, expr ast.Expr) bool {
@@ -8365,6 +8405,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				return
 			}
 			if writeNamedMapNilComparison(out, e.X, e.Op) {
+				return
+			}
+			if writePointerToMapNilComparison(out, e.X, e.Op) {
 				return
 			}
 			if writeBareStdlibInterfaceNilComparison(out, e.X, e.Op) {

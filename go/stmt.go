@@ -5539,11 +5539,7 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 	}
 
 	out.WriteString("{ let mut __map_guard = ")
-	if ident, ok := indexExpr.X.(*ast.Ident); ok {
-		out.WriteString(rustIdentForUseWithCapture(ident))
-	} else {
-		TranspileExpressionContext(out, indexExpr.X, LValue)
-	}
+	writeMapHandleForOp(out, indexExpr.X)
 	WriteBorrowMethod(out, true)
 	out.WriteString("; let __map = __map_guard.as_mut().unwrap(); let __entry = __map.entry(")
 	writeMapAssignmentKeyExpression(out, indexExpr.Index, keyType, rhs)
@@ -5553,7 +5549,7 @@ func writeMapElementUpdate(out *strings.Builder, indexExpr *ast.IndexExpr, op to
 	WriteWrapperSuffix(out)
 	out.WriteString("); let mut __value = __entry")
 	WriteBorrowMethod(out, true)
-	out.WriteString("; * __value = Some(__value.as_ref().unwrap() ")
+	out.WriteString("; * __value = Some((*__value.as_ref().unwrap()).clone() ")
 	switch op {
 	case token.INC, token.ADD_ASSIGN:
 		out.WriteString("+")

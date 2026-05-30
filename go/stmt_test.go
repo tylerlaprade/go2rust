@@ -815,6 +815,39 @@ func forceConcurrent() {
 	}
 }
 
+func TestPointerToMapOperationsUseMapHandle(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type node struct{}
+type flag uint8
+
+func addSpan(start, last *node, f flag, flags *map[*node]flag) {
+	if *flags == nil {
+		*flags = make(map[*node]flag)
+	}
+	(*flags)[start] = f
+	(*flags)[last] |= 8
+}
+
+func main() {
+	go func() {}()
+}
+`)
+
+	if strings.Contains(rust, ".as_ref().unwrap()).lock()") ||
+		strings.Contains(rust, ".as_mut().unwrap()).lock()") {
+		t.Fatalf("pointer-to-map operations should use the map handle, not relock a raw BTreeMap:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*flags.lock().unwrap()).is_none()") ||
+		!strings.Contains(rust, "flags.lock().unwrap().as_mut().unwrap()).insert") ||
+		!strings.Contains(rust, "let mut __map_guard = flags.lock().unwrap()") {
+		t.Fatalf("pointer-to-map operations should borrow through the pointer map handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "__value.as_ref().unwrap() |") {
+		t.Fatalf("map compound assignment should own the stored value before applying |:\n%s", rust)
+	}
+}
+
 func TestInterfaceMapRangeKeyUsesStoredInterfaceHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
