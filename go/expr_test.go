@@ -558,6 +558,42 @@ func record(t *target) operand {
 	}
 }
 
+func TestLocalInterfaceStructFieldBoxesIndexedPointerValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type interface {
+	String() string
+}
+
+type Basic struct{}
+
+func (*Basic) String() string { return "" }
+
+var Typ = []*Basic{{}}
+
+type operand struct {
+	typ Type
+}
+
+func record() operand {
+	return operand{typ: Typ[0]}
+}
+`)
+
+	if strings.Contains(rust, "typ: Rc::new(RefCell::new(Some({ let __seq") ||
+		strings.Contains(rust, "typ: Arc::new(Mutex::new(Some({ let __seq") {
+		t.Fatalf("local interface struct field should not store the indexed pointer handle:\n%s", rust)
+	}
+	boxedBlockIndex := strings.Contains(rust, "Box::new((*{ let __seq =") &&
+		(strings.Contains(rust, "}[0 as usize].clone() }.borrow().as_ref().unwrap()).clone()) as Box<dyn Type") ||
+			strings.Contains(rust, "}[0 as usize].clone() }.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Type"))
+	boxedPackageIndex := strings.Contains(rust, "Box::new((*(*Typ.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap()).clone()) as Box<dyn Type") ||
+		strings.Contains(rust, "Box::new((*(*Typ.lock().unwrap().as_ref().unwrap())[(0) as usize].clone().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Type")
+	if !boxedBlockIndex && !boxedPackageIndex {
+		t.Fatalf("local interface struct field should box the indexed pointer pointee:\n%s", rust)
+	}
+}
+
 func TestAppendCurrentReceiverToInterfaceSliceBoxesSelf(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

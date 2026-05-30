@@ -5718,58 +5718,9 @@ func writeLocalInterfaceFieldValue(out *strings.Builder, value ast.Expr, fieldEx
 			out.WriteString(".clone()")
 			return true
 		}
-	}
-	if _, ok := value.(*ast.SelectorExpr); ok {
-		var boxed strings.Builder
-		if writeConcreteLocalInterfaceBox(&boxed, value, interfaceName) {
-			WriteWrapperPrefix(out)
-			out.WriteString(boxed.String())
-			WriteWrapperSuffix(out)
-			return true
-		}
-	}
-	if ident, ok := value.(*ast.Ident); ok && ident.Name != "_" {
-		WriteWrapperPrefix(out)
-		if !writeConcreteLocalInterfaceBox(out, value, interfaceName) {
-			out.WriteString("Box::new((*")
-			out.WriteString(RustIdentForUse(ident))
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()).clone()) as ")
-			out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
-		}
-		WriteWrapperSuffix(out)
-		return true
-	}
-	if unary, ok := value.(*ast.UnaryExpr); ok && unary.Op == token.AND {
-		if composite, ok := unary.X.(*ast.CompositeLit); ok {
-			WriteWrapperPrefix(out)
-			out.WriteString("Box::new(")
-			TranspileExpressionContext(out, composite, AddressOf)
-			out.WriteString(") as ")
-			out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
-			WriteWrapperSuffix(out)
-			return true
-		}
-	}
-	if composite, ok := value.(*ast.CompositeLit); ok {
-		if _, isStructType := composite.Type.(*ast.Ident); isStructType {
-			WriteWrapperPrefix(out)
-			out.WriteString("Box::new(")
-			TranspileExpressionContext(out, composite, AddressOf)
-			out.WriteString(") as ")
-			out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
-			WriteWrapperSuffix(out)
-			return true
-		}
-	}
-	// A conversion/constructor call producing a concrete value that implements
-	// the interface field (e.g. complexVal{im: int64Val(0)}) must be boxed.
-	if _, ok := value.(*ast.CallExpr); ok {
 		expected := fieldType
 		if expected == nil && fieldExpr != nil {
-			if typeInfo := GetTypeInfo(); typeInfo != nil {
-				expected = typeInfo.GetType(fieldExpr)
-			}
+			expected = typeInfo.GetType(fieldExpr)
 		}
 		if expected != nil {
 			var boxed strings.Builder
