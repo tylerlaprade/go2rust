@@ -833,6 +833,82 @@ func (info *Info) Set(imp *ImportSpec) {
 	}
 }
 
+func TestSubinterfaceMapLookupKeyConvertsToExpectedInterface(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Object interface {
+	Name() string
+}
+
+type dependency interface {
+	Object
+	isDependency()
+}
+
+type Var struct{}
+
+func (*Var) Name() string { return "v" }
+func (*Var) isDependency() {}
+
+type Info struct {
+	Objects map[Object]int
+}
+
+type declInfo struct {
+	deps map[Object]bool
+}
+
+func lookup(info *Info, d dependency) int {
+	return info.Objects[d]
+}
+
+func lookupParam(objMap map[Object]*declInfo, obj dependency) bool {
+	return objMap[obj].deps[obj]
+}
+`)
+
+	if strings.Contains(rust, "GoLocalPtrKey::new(d.clone())") {
+		t.Fatalf("subinterface map lookup key should not pass the subinterface handle directly:\n%s", rust)
+	}
+	if strings.Contains(rust, "GoLocalPtrKey::new(obj.clone())") {
+		t.Fatalf("subinterface parameter-map lookup key should not pass the subinterface handle directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "as Box<dyn Object") {
+		t.Fatalf("subinterface map lookup key should convert to the expected interface handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __inner: Box<dyn Object") {
+		t.Fatalf("subinterface map lookup key should use the typed embedded-interface upcast:\n%s", rust)
+	}
+}
+
+func TestStructuralInterfaceMapLookupKeyUsesAdapter(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type positioner interface {
+	Pos() int
+}
+
+type object interface {
+	Pos() int
+	Name() string
+}
+
+func lookup(m map[positioner]int, obj object) int {
+	return m[obj]
+}
+`)
+
+	if strings.Contains(rust, "let __inner: Box<dyn positioner") {
+		t.Fatalf("structural interface map lookup should not use Rust trait upcasting:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl positioner for Box<dyn object") {
+		t.Fatalf("structural interface map lookup should emit a boxed trait-object adapter:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new((*obj.borrow().as_ref().unwrap()).clone()) as Box<dyn positioner") {
+		t.Fatalf("structural interface map lookup should convert through the adapter:\n%s", rust)
+	}
+}
+
 func TestPointerAssignmentFromRangeStructScalarFieldKeepsBareValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

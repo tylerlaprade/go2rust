@@ -6283,9 +6283,16 @@ func writeLocalInterfaceMapKeyHandle(out *strings.Builder, key ast.Expr, keyType
 	if keyValueType == nil {
 		return false
 	}
-	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(keyValueType); ok && types.AssignableTo(keyValueType, keyType) {
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(keyValueType); ok && types.Identical(keyValueType, keyType) {
 		TranspileExpressionContext(out, key, LValue)
 		out.WriteString(".clone()")
+		return true
+	} else if keyIfaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(keyValueType); ok && types.AssignableTo(keyValueType, keyType) {
+		if localInterfaceCanRustTraitUpcast(keyIfaceName, ifaceName) {
+			writeLocalInterfaceSubtraitUpcast(out, key, ifaceName)
+		} else {
+			writeLocalInterfaceWrappedConstruction(out, key, ifaceName, keyType)
+		}
 		return true
 	}
 	iface, ok := types.Unalias(keyType).Underlying().(*types.Interface)
@@ -6315,7 +6322,15 @@ func mapPointerKeyHelperFromRustType(rustType string) (string, bool) {
 	}
 }
 
-func writeMapLookupKeyWithRustType(out *strings.Builder, index ast.Expr, keyRustType string) bool {
+func writeMapLookupKeyWithRustType(out *strings.Builder, index ast.Expr, keyRustType string, keyType types.Type) bool {
+	if keyType != nil {
+		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(keyType); ok {
+			return false
+		}
+		if isEmptyInterfaceType(keyType) {
+			return false
+		}
+	}
 	keyHelper, ok := mapPointerKeyHelperFromRustType(keyRustType)
 	if !ok {
 		return false
@@ -8118,7 +8133,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Use RValue context to get the bare map value, then .get() directly
 				TranspileExpression(out, e.X)
 				out.WriteString(".get(")
-				if !writeMapLookupKeyWithRustType(out, e.Index, keyRustType) {
+				if !writeMapLookupKeyWithRustType(out, e.Index, keyRustType, keyType) {
 					writeMapLookupKeyWithType(out, e.Index, keyType)
 				}
 				out.WriteString(")")
@@ -8135,7 +8150,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					writeClonedWrappedExpression(out, e.X, "__map_holder", "__map_guard")
 				}
 				out.WriteString("; __map.get(")
-				if !writeMapLookupKeyWithRustType(out, e.Index, keyRustType) {
+				if !writeMapLookupKeyWithRustType(out, e.Index, keyRustType, keyType) {
 					writeMapLookupKeyWithType(out, e.Index, keyType)
 				}
 				out.WriteString(")")
@@ -8146,7 +8161,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				writeMapHandleForOp(out, e.X)
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap()).get(")
-				if !writeMapLookupKeyWithRustType(out, e.Index, keyRustType) {
+				if !writeMapLookupKeyWithRustType(out, e.Index, keyRustType, keyType) {
 					writeMapLookupKeyWithType(out, e.Index, keyType)
 				}
 				out.WriteString(")")
