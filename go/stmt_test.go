@@ -689,6 +689,40 @@ func assignFromIndex(nodes []Node) Node {
 	}
 }
 
+func TestLocalInterfaceVarInitializerConvertsStructuralInterface(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type positioner interface {
+	Pos() int
+}
+
+type Expr interface {
+	Pos() int
+	End() int
+}
+
+type Field struct {
+	X Expr
+}
+
+func use(f *Field) positioner {
+	var at positioner = f.X
+	return at
+}
+`)
+
+	if strings.Contains(rust, "Some((*{ let __field =") {
+		t.Fatalf("structural interface var initializer should not store the source trait object directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl positioner for Box<dyn Expr") {
+		t.Fatalf("structural interface var initializer should emit a boxed trait-object adapter:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new((*(*f.borrow().as_ref().unwrap()).x.borrow().as_ref().unwrap()).clone()) as Box<dyn positioner") &&
+		!strings.Contains(rust, "Box::new((*(*f.lock().unwrap().as_ref().unwrap()).x.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn positioner") {
+		t.Fatalf("structural interface var initializer should convert through the adapter:\n%s", rust)
+	}
+}
+
 func TestParallelLocalInterfaceAssignmentCopiesHandles(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

@@ -3613,6 +3613,27 @@ func writeConcreteToTranspiledInterfaceValue(out *strings.Builder, rhs ast.Expr,
 	return true
 }
 
+func writeTranspiledInterfaceInitializerValue(out *strings.Builder, rhs ast.Expr, ifaceType types.Type) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || rhs == nil || ifaceType == nil {
+		return false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(ifaceType); !ok {
+		return false
+	}
+	rhsType := typeInfo.GetType(rhs)
+	if rhsType == nil {
+		return false
+	}
+	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
+		return false
+	}
+	if !types.AssignableTo(rhsType, ifaceType) {
+		return false
+	}
+	return writeLocalInterfaceReferenceCallArgument(out, rhs, ifaceType)
+}
+
 func writeLocalInterfaceAssignedCallHandleClone(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	lhsIdent, ok := lhs.(*ast.Ident)
 	if !ok {
@@ -9084,6 +9105,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								} else if ident, ok := valueSpec.Values[i].(*ast.Ident); ok && ident.Name == "nil" {
 									// Initializing with nil
 									WriteWrappedNone(out)
+								} else if valueSpec.Type != nil && writeTranspiledInterfaceInitializerValue(out, valueSpec.Values[i], expectedTypeFromParamExpr(valueSpec.Type)) {
+									// Values assigned into a transpiled named interface variable may need re-boxing.
 								} else if valueSpec.Type != nil && writeConcreteToTranspiledInterfaceValue(out, valueSpec.Values[i], expectedTypeFromParamExpr(valueSpec.Type)) {
 									// Concrete value boxed into a transpiled named interface variable.
 								} else if valueSpec.Type != nil && writeStdlibInterfaceCallArgumentConversion(out, valueSpec.Values[i], expectedTypeFromParamExpr(valueSpec.Type)) {
