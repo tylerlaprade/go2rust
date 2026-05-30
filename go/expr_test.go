@@ -1004,6 +1004,26 @@ func indexes(values []string) []int {
 	}
 }
 
+func TestAppendStringRangeRuneToRuneSliceCastsToGoRune(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func runes(s string) []rune {
+	var out []rune
+	for _, c := range s {
+		out = append(out, c)
+	}
+	return out
+}
+`)
+
+	if strings.Contains(rust, ".push(c)") {
+		t.Fatalf("append string range rune to []rune should not push Rust char directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".push(c as i32)") {
+		t.Fatalf("append string range rune to []rune should cast char to Go rune:\n%s", rust)
+	}
+}
+
 func TestAppendNamedIntegerConstToNamedSliceWrapsElement(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
