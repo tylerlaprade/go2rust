@@ -529,6 +529,32 @@ func First(cmap CommentMap) int {
 	}
 }
 
+func TestPackageGlobalNamedMapLiteralAssignmentStoresNamedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type buckets map[int]int
+
+var global buckets
+
+func init() {
+	global = buckets{1: 2}
+}
+`)
+
+	if strings.Contains(rust, "buckets {") {
+		t.Fatalf("named map literal should not be emitted as a struct literal:\n%s", rust)
+	}
+	if strings.Contains(rust, "__collection_holder = buckets(") {
+		t.Fatalf("package-global named map assignment should store the named value, not borrow it as a map handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "GoGlobal<BTreeMap<") {
+		t.Fatalf("package-global named map slot should keep the named type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some(buckets(") {
+		t.Fatalf("package-global named map assignment should store an optional named map value:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceAssignmentCopiesWrappedHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

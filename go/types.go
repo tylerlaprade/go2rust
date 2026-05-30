@@ -1226,6 +1226,9 @@ func goTypesTypeToRust(t types.Type) string {
 		if _, isSlice := types.Unalias(named.Underlying()).(*types.Slice); isSlice {
 			return goTypesNamedTypeToRust(named)
 		}
+		if _, isMap := types.Unalias(named.Underlying()).(*types.Map); isMap {
+			return goTypesNamedTypeToRust(named)
+		}
 	}
 	switch ut := t.Underlying().(type) {
 	case *types.Basic:

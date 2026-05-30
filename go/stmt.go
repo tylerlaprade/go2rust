@@ -2726,6 +2726,64 @@ func writeMapHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) 
 	return true
 }
 
+func writeNamedMapOptionClone(out *strings.Builder, rhs ast.Expr) {
+	out.WriteString("{ let __named_map_holder = ")
+	TranspileExpression(out, rhs)
+	out.WriteString("; let __named_map_guard = __named_map_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; (*__named_map_guard).clone() }")
+}
+
+func writeNamedMapAssignmentOptionValue(out *strings.Builder, targetNamed *types.Named, rhs ast.Expr, rhsType types.Type) {
+	if _, _, rhsIsNamedMap := namedMapTypeFromType(rhsType); rhsIsNamedMap {
+		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.ReturnsWrappedValue(rhs) {
+			writeNamedMapOptionClone(out, rhs)
+			return
+		}
+		out.WriteString("Some(")
+		if !writeOwnedExpressionValue(out, rhs) {
+			TranspileExpression(out, rhs)
+		}
+		out.WriteString(")")
+		return
+	}
+
+	out.WriteString("Some(")
+	out.WriteString(goTypesNamedTypeToRust(targetNamed))
+	out.WriteString("(")
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.ReturnsWrappedValue(rhs) {
+		TranspileExpression(out, rhs)
+	} else {
+		switch rhs.(type) {
+		case *ast.Ident, *ast.SelectorExpr:
+			TranspileExpressionContext(out, rhs, LValue)
+			out.WriteString(".clone()")
+		default:
+			TranspileExpression(out, rhs)
+		}
+	}
+	out.WriteString("))")
+}
+
+func writePackageGlobalNamedMapAssignment(out *strings.Builder, lhsIdent *ast.Ident, rhs ast.Expr, typeInfo *TypeInfo) bool {
+	lhsType := typeInfo.GetType(lhsIdent)
+	lhsNamed, _, ok := namedMapTypeFromType(lhsType)
+	if !ok {
+		return false
+	}
+	rhsType := typeInfo.GetType(rhs)
+	if rhsType == nil || underlyingMapType(rhsType) == nil || !types.AssignableTo(rhsType, lhsType) {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	writeNamedMapAssignmentOptionValue(out, lhsNamed, rhs, rhsType)
+	out.WriteString("; *")
+	out.WriteString(rustPackageGlobalName(lhsIdent.Name))
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = new_val; }")
+	return true
+}
+
 func writePackageGlobalCollectionAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	lhsIdent, ok := lhs.(*ast.Ident)
 	if !ok || !isPackageGlobalIdent(lhsIdent) {
@@ -2745,6 +2803,9 @@ func writePackageGlobalCollectionAssignment(out *strings.Builder, lhs ast.Expr, 
 		out.WriteString(rustPackageGlobalName(lhsIdent.Name))
 		WriteBorrowMethod(out, true)
 		out.WriteString(" = new_val; }")
+		return true
+	}
+	if lhsIsMap && writePackageGlobalNamedMapAssignment(out, lhsIdent, rhs, typeInfo) {
 		return true
 	}
 	if lhsIsMap && !typeInfo.IsMap(rhs) || lhsIsSlice && !typeInfo.IsSlice(rhs) {

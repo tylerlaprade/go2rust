@@ -1801,6 +1801,45 @@ func isNamedMapExpression(expr ast.Expr) bool {
 	return ok
 }
 
+func writeTypedMapLiteralHandle(out *strings.Builder, mapType *types.Map, elts []ast.Expr) {
+	TrackImport("BTreeMap")
+	WriteWrapperPrefix(out)
+	out.WriteString("BTreeMap::<")
+	out.WriteString(goTypesMapKeyToRust(mapType.Key()))
+	out.WriteString(", ")
+	out.WriteString(goTypesMapValueToRust(mapType.Elem()))
+	out.WriteString(">::from([")
+	for i, elt := range elts {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		kv, ok := elt.(*ast.KeyValueExpr)
+		if !ok {
+			out.WriteString("(/* ERROR: Type information required for map literal element */ unimplemented!(), unimplemented!())")
+			continue
+		}
+		out.WriteString("(")
+		writeMapLiteralKeyWithType(out, kv.Key, mapType.Key())
+		out.WriteString(", ")
+		writeWrappedMapValue(out, kv.Value, nil, mapType.Elem())
+		out.WriteString(")")
+	}
+	out.WriteString("])")
+	WriteWrapperSuffix(out)
+}
+
+func writeNamedMapCompositeLiteral(out *strings.Builder, lit *ast.CompositeLit) bool {
+	named, mapType, ok := namedMapTypeForExpr(lit)
+	if !ok {
+		return false
+	}
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("(")
+	writeTypedMapLiteralHandle(out, mapType, lit.Elts)
+	out.WriteString(")")
+	return true
+}
+
 // writeNamedMapInnerHandleClone emits an expression yielding the inner wrapped
 // BTreeMap handle from a named-map variable. The result is the same shape as
 // would be produced by an unwrapped map variable (Arc<Mutex<Option<BTreeMap>>>
@@ -8243,6 +8282,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		}
 
 	case *ast.CompositeLit:
+		if writeNamedMapCompositeLiteral(out, e) {
+			return
+		}
 		// When Type is nil, try to infer from TypeInfo
 		if e.Type == nil {
 			typeInfo := GetTypeInfo()
