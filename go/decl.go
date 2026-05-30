@@ -3012,6 +3012,12 @@ func mapKeyTypeDisplayable(typ types.Type) bool {
 }
 
 func mapValueTypeDisplayable(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	if intf, ok := types.Unalias(typ).Underlying().(*types.Interface); ok {
+		return intf.NumMethods() > 0
+	}
 	return goTypeBasicDisplayable(typ)
 }
 

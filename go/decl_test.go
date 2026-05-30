@@ -298,6 +298,28 @@ type graphNode struct {
 	}
 }
 
+func TestNamedMapWithInterfaceValueDefinitionUsesFormatMapDisplay(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type TypeParam struct{}
+
+type Type interface {
+	String() string
+}
+
+type substMap map[*TypeParam]Type
+
+type subster struct {
+	smap substMap
+}
+`)
+
+	if !strings.Contains(rust, "impl Display for substMap") ||
+		!strings.Contains(rust, "format_map(&self.0)") {
+		t.Fatalf("named map definitions with interface values should implement Display through format_map:\n%s", rust)
+	}
+}
+
 func TestNamedSliceTypeDefinitionOverNonDebugStructDoesNotDeriveDebug(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
