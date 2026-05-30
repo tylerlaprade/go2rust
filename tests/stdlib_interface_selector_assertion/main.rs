@@ -209,6 +209,10 @@ impl io_Writer {
         if let Some(file) = self.downcast_ref::<os_File>() {
             file.__go_write_bytes(data);
         }
+        if let Some(builder) = self.downcast_ref::<Rc<RefCell<Option<String>>>>() {
+            let mut guard = builder.borrow_mut();
+            guard.get_or_insert_with(String::new).push_str(&String::from_utf8_lossy(data));
+        }
     }
 
     pub fn write<T0: 'static>(&self, arg0: T0) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {

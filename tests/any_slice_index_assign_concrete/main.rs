@@ -114,6 +114,76 @@ impl std::ops::Sub<Pos> for i32 {
     }
 }
 
+impl std::ops::Mul for Pos {
+    type Output = Pos;
+    fn mul(self, other: Self) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i32> for Pos {
+    type Output = Pos;
+    fn mul(self, other: i32) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<Pos> for i32 {
+    type Output = Pos;
+    fn mul(self, other: Pos) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(self * *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for Pos {
+    type Output = Pos;
+    fn div(self, other: Self) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i32> for Pos {
+    type Output = Pos;
+    fn div(self, other: i32) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<Pos> for i32 {
+    type Output = Pos;
+    fn div(self, other: Pos) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(self / *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for Pos {
+    type Output = Pos;
+    fn neg(self) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(-*self.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for Pos {
+    type Output = Pos;
+    fn rem(self, other: Self) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i32> for Pos {
+    type Output = Pos;
+    fn rem(self, other: i32) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(*self.0.borrow().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<Pos> for i32 {
+    type Output = Pos;
+    fn rem(self, other: Pos) -> Pos {
+        Pos(Rc::new(RefCell::new(Some(self % *other.0.borrow().as_ref().unwrap()))))
+    }
+}
+
 impl std::ops::BitAnd for Pos {
     type Output = Pos;
     fn bitand(self, other: Self) -> Pos {

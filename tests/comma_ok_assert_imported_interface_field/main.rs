@@ -12,7 +12,7 @@ pub fn describe(f: Rc<RefCell<Option<example_com_commaok_ast::Field>>>) -> Rc<Re
         let val = (*f.borrow().as_ref().unwrap()).value.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = any_val.__go_as_any().downcast_ref::<example_com_commaok_ast::ChanType>() {
+            if let Some(typed_val) = <dyn example_com_commaok_ast::Expr>::__go_as_any(any_val.as_ref()).downcast_ref::<example_com_commaok_ast::ChanType>() {
             (Rc::new(RefCell::new(Some(typed_val.clone()))), Rc::new(RefCell::new(Some(true))))
             } else {
                 (Rc::new(RefCell::new(None::<example_com_commaok_ast::ChanType>)), Rc::new(RefCell::new(Some(false))))
@@ -31,6 +31,6 @@ pub fn describe(f: Rc<RefCell<Option<example_com_commaok_ast::Field>>>) -> Rc<Re
 fn main() {
     example_com_commaok_ast::__go_init_all();
 
-    println!("{}", format!("{}", (*describe(Rc::new(RefCell::new(Some(example_com_commaok_ast::Field { value: Rc::new(RefCell::new(Some(Box::new(example_com_commaok_ast::ChanType { dir: Rc::new(RefCell::new(Some(3))), ..Default::default() }) as Box<dyn example_com_commaok_ast::Expr>))), ..Default::default() })))).borrow().as_ref().unwrap())));
-    println!("{}", format!("{}", (*describe(Rc::new(RefCell::new(Some(example_com_commaok_ast::Field { value: Rc::new(RefCell::new(Some(Box::new(example_com_commaok_ast::Ident { name: Rc::new(RefCell::new(Some("x".to_string()))), ..Default::default() }) as Box<dyn example_com_commaok_ast::Expr>))), ..Default::default() })))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*describe(Rc::new(RefCell::new(Some(example_com_commaok_ast::Field { value: Rc::new(RefCell::new(Some(Box::new((*Rc::new(RefCell::new(Some(example_com_commaok_ast::ChanType { dir: Rc::new(RefCell::new(Some(3))), ..Default::default() }))).borrow().as_ref().unwrap()).clone()) as Box<dyn example_com_commaok_ast::Expr>))), ..Default::default() })))).borrow().as_ref().unwrap())));
+    println!("{}", format!("{}", (*describe(Rc::new(RefCell::new(Some(example_com_commaok_ast::Field { value: Rc::new(RefCell::new(Some(Box::new((*Rc::new(RefCell::new(Some(example_com_commaok_ast::Ident { name: Rc::new(RefCell::new(Some("x".to_string()))), ..Default::default() }))).borrow().as_ref().unwrap()).clone()) as Box<dyn example_com_commaok_ast::Expr>))), ..Default::default() })))).borrow().as_ref().unwrap())));
 }
