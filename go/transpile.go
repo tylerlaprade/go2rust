@@ -389,10 +389,32 @@ func (analysis *transpileFileAnalysis) recordImportedInterfaceImplForType(expect
 	if !ok {
 		return
 	}
+	analysis.recordImportedInterfaceImplByName(typeName, ifaceName, ifaceType)
+	analysis.recordImportedEmbeddedInterfaceImpls(typeName, ifaceType)
+}
+
+func (analysis *transpileFileAnalysis) recordImportedInterfaceImplByName(typeName, ifaceName string, ifaceType *types.Interface) {
+	if typeName == "" || ifaceName == "" || ifaceType == nil {
+		return
+	}
 	if analysis.importedInterfaceImpls[typeName] == nil {
 		analysis.importedInterfaceImpls[typeName] = make(map[string]*types.Interface)
 	}
 	analysis.importedInterfaceImpls[typeName][ifaceName] = ifaceType
+}
+
+func (analysis *transpileFileAnalysis) recordImportedEmbeddedInterfaceImpls(typeName string, ifaceType *types.Interface) {
+	if ifaceType == nil {
+		return
+	}
+	for i := 0; i < ifaceType.NumEmbeddeds(); i++ {
+		embeddedName, embeddedIface, ok := importedTranspiledInterfaceFromType(ifaceType.EmbeddedType(i))
+		if !ok {
+			continue
+		}
+		analysis.recordImportedInterfaceImplByName(typeName, embeddedName, embeddedIface)
+		analysis.recordImportedEmbeddedInterfaceImpls(typeName, embeddedIface)
+	}
 }
 
 func (analysis *transpileFileAnalysis) recordImportedOrderedConstraintImpls(typeInfo *TypeInfo) {
@@ -2531,9 +2553,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 				body.WriteString(" {\n")
 				previousTraitTypeMethods := currentTypeMethods
 				currentTypeMethods = importedTraitMethods
-				for i := 0; i < ifaceType.NumMethods(); i++ {
-					if method := methodDeclByName(importedTraitMethods, ifaceType.Method(i).Name()); method != nil {
-						TranspileTraitMethodImpl(&body, method, interfaceMethodRequiresMutableReceiver(ifaceType.Method(i)), fileSet, file.Comments)
+				for _, ifaceMethod := range explicitInterfaceMethods(ifaceType) {
+					if method := methodDeclByName(importedTraitMethods, ifaceMethod.Name()); method != nil {
+						TranspileTraitMethodImpl(&body, method, interfaceMethodRequiresMutableReceiver(ifaceMethod), fileSet, file.Comments)
 					}
 				}
 				currentTypeMethods = previousTraitTypeMethods

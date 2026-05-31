@@ -432,6 +432,79 @@ func use(expr dep.Expr) int {
 	}
 }
 
+func TestImportedEmbeddedInterfaceImplEmitsSupertraitImpl(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+type Importer interface {
+	Import(path string) int
+}
+
+type ImporterFrom interface {
+	Importer
+	ImportFrom(path string) int
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+type importer struct{}
+
+func (importer) Import(path string) int {
+	return 1
+}
+
+func (importer) ImportFrom(path string) int {
+	return 2
+}
+
+func NewImporter() dep.ImporterFrom {
+	return importer{}
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "main.go"),
+	})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "impl example_com_dep::Importer for importer") {
+		t.Fatalf("concrete type implementing an imported embedded interface should implement the supertrait separately:\n%s", mainRS)
+	}
+	marker := "impl example_com_dep::ImporterFrom for importer"
+	start := strings.Index(mainRS, marker)
+	if start == -1 {
+		t.Fatalf("missing imported subtrait impl:\n%s", mainRS)
+	}
+	importerFromBlock := mainRS[start:]
+	if end := strings.Index(importerFromBlock, "\n\n"); end != -1 {
+		importerFromBlock = importerFromBlock[:end]
+	}
+	if strings.Contains(importerFromBlock, "fn import(") {
+		t.Fatalf("subtrait impl should not redeclare inherited methods:\n%s", importerFromBlock)
+	}
+	if !strings.Contains(importerFromBlock, "fn import_from(") {
+		t.Fatalf("subtrait impl should include directly declared methods:\n%s", importerFromBlock)
+	}
+}
+
 func TestExternalInterfaceFieldAssignmentBoxesTraitObjectForLocalInterface(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
