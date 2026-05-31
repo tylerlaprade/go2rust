@@ -2346,9 +2346,15 @@ func writeTypeSwitchOriginalBinding(out *strings.Builder, varName string, expr a
 	if isRangeVar {
 		out.WriteString("_ts_val.unwrap();\n")
 		if vt := GetVarTable(); vt != nil {
+			rustType := "&dyn Any"
+			if NeedsConcurrentWrapper() {
+				rustType = "&(dyn Any + Send + Sync)"
+			}
 			vt.Register(varName, &VarInfo{
 				WrapLevel: WrapNone,
+				RustType:  rustType,
 				Source:    SourceLocal,
+				IsRef:     true,
 			})
 		}
 		return
@@ -12444,7 +12450,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			TranspileExpression(out, expr)
 			out.WriteString(";\n")
 			out.WriteString("    let _ts_is_nil = false;\n")
-			out.WriteString("    let _ts_val: Option<&dyn Any> = Some(_ts_ref.as_ref() as &dyn Any);\n")
+			if NeedsConcurrentWrapper() {
+				out.WriteString("    let _ts_val: Option<&(dyn Any + Send + Sync)> = Some(_ts_ref.as_ref() as &(dyn Any + Send + Sync));\n")
+			} else {
+				out.WriteString("    let _ts_val: Option<&dyn Any> = Some(_ts_ref.as_ref() as &dyn Any);\n")
+			}
 		} else if isStdlibRangeRef {
 			out.WriteString("    let _ts_is_nil = false;\n")
 			out.WriteString("    let _ts_val: Option<&")

@@ -224,6 +224,59 @@ func rewrite(args []any) []any {
 	}
 }
 
+func TestTypeSwitchDefaultBareAnyRefPassedToVariadicAny(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func sink(args ...any) {}
+
+func rewrite(args []any) {
+	for _, arg := range args {
+		switch n := arg.(type) {
+		case int:
+			_ = n
+		default:
+			sink(n)
+		}
+	}
+}
+`)
+
+	if strings.Contains(rust, "let __any_holder = n.clone()") ||
+		strings.Contains(rust, "__any_holder.borrow()") ||
+		strings.Contains(rust, "__any_holder.lock().unwrap()") {
+		t.Fatalf("type switch default any ref passed to ...any should not be treated as a wrapped handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "go_any_clone(n)") {
+		t.Fatalf("type switch default any ref passed to ...any should clone the referenced boxed value:\n%s", rust)
+	}
+}
+
+func TestConcurrentTypeSwitchDefaultBareAnyRefPassedToVariadicAny(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func sink(args ...any) {}
+
+func rewrite(args []any) {
+	go func() {}()
+	for _, arg := range args {
+		switch n := arg.(type) {
+		case int:
+			_ = n
+		default:
+			sink(n)
+		}
+	}
+}
+`)
+
+	if strings.Contains(rust, "let _ts_val: Option<&dyn Any>") {
+		t.Fatalf("concurrent type switch on bare any range value should keep Send+Sync on the borrowed trait object:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let _ts_val: Option<&(dyn Any + Send + Sync)>") || !strings.Contains(rust, "go_any_clone(n)") {
+		t.Fatalf("concurrent type switch default any ref passed to ...any should clone the Send+Sync boxed value:\n%s", rust)
+	}
+}
+
 func TestTypeSwitchInterfaceCaseUnimplementedBindingIsTyped(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

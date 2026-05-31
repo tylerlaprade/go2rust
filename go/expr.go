@@ -1473,6 +1473,9 @@ func writeExistingAnyVariadicElementValue(out *strings.Builder, arg ast.Expr) bo
 }
 
 func writeExistingAnyBoxClone(out *strings.Builder, arg ast.Expr) bool {
+	if writeBareAnyReferenceBoxClone(out, arg) {
+		return true
+	}
 	if !isEmptyInterfaceValueExpr(arg) {
 		return false
 	}
@@ -6178,6 +6181,9 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 		out.WriteString(rustAnyTraitObject())
 		return
 	}
+	if writeBareAnyReferenceBoxClone(out, expr) {
+		return
+	}
 	if writeAnySliceCloneValueBox(out, expr) {
 		return
 	}
@@ -6208,6 +6214,45 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 	}
 	out.WriteString(") as ")
 	out.WriteString(rustAnyTraitObject())
+}
+
+func writeBareAnyReferenceWrappedClone(out *strings.Builder, expr ast.Expr) bool {
+	if !isBareAnyReferenceExpr(expr) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	writeBareAnyReferenceBoxClone(out, expr)
+	WriteWrapperSuffix(out)
+	return true
+}
+
+func writeBareAnyReferenceBoxClone(out *strings.Builder, expr ast.Expr) bool {
+	if !isBareAnyReferenceExpr(expr) {
+		return false
+	}
+	ident := unwrapParens(expr).(*ast.Ident)
+	NeedAnyClone()
+	out.WriteString("go_any_clone(")
+	out.WriteString(rustIdentForUseWithCapture(ident))
+	out.WriteString(")")
+	return true
+}
+
+func isBareAnyReferenceExpr(expr ast.Expr) bool {
+	ident, ok := unwrapParens(expr).(*ast.Ident)
+	if !ok || ident.Name == "nil" {
+		return false
+	}
+	vt := GetVarTable()
+	if vt == nil {
+		return false
+	}
+	info := vt.Lookup(ident.Name)
+	if info == nil || !info.IsRef || info.WrapLevel != WrapNone || !strings.Contains(info.RustType, "dyn Any") {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && isEmptyInterfaceType(typeInfo.GetType(ident))
 }
 
 func writeAnySliceCloneValueBox(out *strings.Builder, expr ast.Expr) bool {
@@ -6268,6 +6313,9 @@ func writeEmptyInterfaceHandleClone(out *strings.Builder, expr ast.Expr) bool {
 		return false
 	}
 	if writeEmptyInterfacePointerConversionDerefHandle(out, expr) {
+		return true
+	}
+	if writeBareAnyReferenceWrappedClone(out, expr) {
 		return true
 	}
 	TranspileExpressionContext(out, expr, LValue)
