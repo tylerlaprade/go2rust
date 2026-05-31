@@ -6559,6 +6559,9 @@ func writeBareCompoundAssignValueForOp(out *strings.Builder, expr ast.Expr, expe
 	if writeNamedIntegerCompoundAssignUnderlyingValue(out, expr, expected) {
 		return
 	}
+	if writeNamedIntegerCompoundAssignRHSForUnderlyingSlot(out, expr, expected) {
+		return
+	}
 	if writeBareStringSliceValue(out, expr, expected) {
 		return
 	}
@@ -6720,6 +6723,45 @@ func writeNamedIntegerCompoundAssignUnderlyingValue(out *strings.Builder, expr a
 	out.WriteString(value.String())
 	out.WriteString(")")
 	out.WriteString(".0")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()")
+	return true
+}
+
+func writeNamedIntegerCompoundAssignRHSForUnderlyingSlot(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
+	if expr == nil || expected == nil {
+		return false
+	}
+	if isConstantExpression(expr) {
+		return false
+	}
+	expectedBasic, ok := types.Unalias(expected).Underlying().(*types.Basic)
+	if !ok || !isIntegerBasicKind(expectedBasic.Kind()) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if call, ok := expr.(*ast.CallExpr); ok && typeInfo.ReturnsWrappedValue(call) {
+		return false
+	}
+	actualNamed, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
+	if !ok || !isNamedIntegerType(actualNamed) {
+		return false
+	}
+	if _, ok := externalIntegerRustTypeForNamed(actualNamed); ok {
+		return false
+	}
+	actualBasic, ok := types.Unalias(actualNamed.Underlying()).(*types.Basic)
+	if !ok || actualBasic.Kind() != expectedBasic.Kind() {
+		return false
+	}
+	var value strings.Builder
+	TranspileExpression(&value, expr)
+	out.WriteString("(*(")
+	out.WriteString(value.String())
+	out.WriteString(").0")
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap()).clone()")
 	return true

@@ -4393,6 +4393,32 @@ func (i Accuracy) String() string {
 	}
 }
 
+func TestNamedIntegerReceiverCompoundAssignUnwrapsNamedSelectorRHS(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Mode int
+
+type item struct {
+	mode Mode
+}
+
+func (mode Mode) String() string {
+	for _, item := range []item{{mode: 1}} {
+		mode ^= item.mode
+	}
+	return ""
+}
+`)
+
+	if strings.Contains(rust, "let __rhs = (*item.mode") {
+		t.Fatalf("named integer receiver compound assignment should not keep selector RHS as a named value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "((*item.mode.borrow().as_ref().unwrap()).clone()).0.borrow().as_ref().unwrap()).clone()") &&
+		!strings.Contains(rust, "((*item.mode.lock().unwrap().as_ref().unwrap()).clone()).0.lock().unwrap().as_ref().unwrap()).clone()") {
+		t.Fatalf("named integer receiver compound assignment should use the selector RHS underlying value:\n%s", rust)
+	}
+}
+
 func TestRangeIndexReturnedFromBareScalarTupleSlotCastsToI32(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
