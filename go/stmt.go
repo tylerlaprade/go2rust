@@ -9170,8 +9170,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					WriteBorrowMethod(out, false)
 					out.WriteString(".as_ref().unwrap()).get(")
 				}
-				if !writeMapLookupKeyWithRustType(out, indexExpr.Index, keyRustType, keyType) {
-					writeMapLookupKeyWithType(out, indexExpr.Index, keyType)
+				if !writeMapLookupKeyWithRustType(out, indexExpr.X, indexExpr.Index, keyRustType, keyType) {
+					writeMapLookupKeyWithMapExpr(out, indexExpr.X, indexExpr.Index, keyType)
 				}
 				out.WriteString(") { /* MAP_COMMA_OK */ Some(v) => (v.clone(), ")
 				WriteWrapperPrefix(out)

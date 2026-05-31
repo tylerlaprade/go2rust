@@ -1691,6 +1691,43 @@ func (info *Info) ObjectOf(id *Ident) Object {
 	}
 }
 
+func TestSourceMappedImportedMapFieldLookupQualifiesPointerKeyHelper(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import (
+	"go/ast"
+	"go/types"
+)
+
+func usedIdent(e ast.Expr) *ast.Ident {
+	return nil
+}
+
+func Callee(info *types.Info, call *ast.CallExpr) types.Object {
+	return info.Uses[usedIdent(call.Fun)]
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{
+		"go/ast":   "go_ast",
+		"go/types": "go_types",
+	})
+	if strings.Contains(rust, ".get(&GoLocalPtrKey::new(") {
+		t.Fatalf("source-mapped map field lookup should not use the current crate pointer-key helper:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".get(&go_types::GoLocalPtrKey::new(used_ident(") {
+		t.Fatalf("source-mapped map field lookup should use the owning package pointer-key helper:\n%s", rust)
+	}
+}
+
 func TestConcretePointerMapLookupKeyForLocalInterfaceKeyBoxesValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

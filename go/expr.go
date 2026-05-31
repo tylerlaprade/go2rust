@@ -7445,6 +7445,54 @@ func writeMapLookupKey(out *strings.Builder, index ast.Expr) {
 	writeMapLookupKeyWithType(out, index, nil)
 }
 
+func mapPointerKeyHelperForMapExpr(helper string, mapExpr ast.Expr) string {
+	if helper != "GoLocalPtrKey" {
+		return helper
+	}
+	if qualifier := sourceMappedMapFieldKeyHelperQualifier(mapExpr); qualifier != "" {
+		return qualifier + helper
+	}
+	return helper
+}
+
+func localMapPointerKeyHelperForMapExpr(mapExpr ast.Expr) string {
+	return mapPointerKeyHelperForMapExpr("GoLocalPtrKey", mapExpr)
+}
+
+func sourceMappedMapFieldKeyHelperQualifier(mapExpr ast.Expr) string {
+	sel, ok := mapExpr.(*ast.SelectorExpr)
+	if !ok {
+		return ""
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return ""
+	}
+	var pkgPath string
+	if selection := typeInfo.info.Selections[sel]; selection != nil {
+		if obj := selection.Obj(); obj != nil && obj.Pkg() != nil {
+			pkgPath = obj.Pkg().Path()
+		}
+	} else if obj := typeInfo.GetObject(sel.Sel); obj != nil && obj.Pkg() != nil {
+		pkgPath = obj.Pkg().Path()
+	}
+	if pkgPath == "" {
+		return ""
+	}
+	if typeInfo.pkg != nil && typeInfo.pkg.Path() == pkgPath {
+		return ""
+	}
+	ctx := GetTranspileContext()
+	if ctx == nil || ctx.PackageMapping == nil {
+		return ""
+	}
+	crateName := ctx.PackageMapping[pkgPath]
+	if crateName == "" {
+		return ""
+	}
+	return crateName + "::"
+}
+
 func mapPointerKeyHelperFromRustType(rustType string) (string, bool) {
 	switch {
 	case strings.HasPrefix(rustType, "GoLocalPtrKey<"):
@@ -7456,7 +7504,7 @@ func mapPointerKeyHelperFromRustType(rustType string) (string, bool) {
 	}
 }
 
-func writeMapLookupKeyWithRustType(out *strings.Builder, index ast.Expr, keyRustType string, keyType types.Type) bool {
+func writeMapLookupKeyWithRustType(out *strings.Builder, mapExpr ast.Expr, index ast.Expr, keyRustType string, keyType types.Type) bool {
 	if keyType != nil {
 		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(keyType); ok {
 			return false
@@ -7478,14 +7526,14 @@ func writeMapLookupKeyWithRustType(out *strings.Builder, index ast.Expr, keyRust
 		}
 	}
 	out.WriteString("&")
-	out.WriteString(keyHelper)
+	out.WriteString(mapPointerKeyHelperForMapExpr(keyHelper, mapExpr))
 	out.WriteString("::new(")
 	TranspileExpressionContext(out, index, LValue)
 	out.WriteString(".clone())")
 	return true
 }
 
-func writeInterfaceMapLookupKeyWithType(out *strings.Builder, index ast.Expr, keyType types.Type) bool {
+func writeInterfaceMapLookupKeyWithType(out *strings.Builder, mapExpr ast.Expr, index ast.Expr, keyType types.Type) bool {
 	if keyType == nil {
 		return false
 	}
@@ -7493,7 +7541,9 @@ func writeInterfaceMapLookupKeyWithType(out *strings.Builder, index ast.Expr, ke
 		return false
 	}
 	NeedGoPtrKey()
-	out.WriteString("&GoLocalPtrKey::new(")
+	out.WriteString("&")
+	out.WriteString(localMapPointerKeyHelperForMapExpr(mapExpr))
+	out.WriteString("::new(")
 	if !writeLocalInterfaceMapKeyHandle(out, index, keyType) {
 		TranspileExpressionContext(out, index, LValue)
 		out.WriteString(".clone()")
@@ -7503,12 +7553,16 @@ func writeInterfaceMapLookupKeyWithType(out *strings.Builder, index ast.Expr, ke
 }
 
 func writeMapLookupKeyWithType(out *strings.Builder, index ast.Expr, keyType types.Type) {
+	writeMapLookupKeyWithMapExpr(out, nil, index, keyType)
+}
+
+func writeMapLookupKeyWithMapExpr(out *strings.Builder, mapExpr ast.Expr, index ast.Expr, keyType types.Type) {
 	if keyType != nil && stdlibInterfaceArgumentConversionExists(index, keyType) {
 		out.WriteString("&")
 		writeStdlibInterfaceComparableConversion(out, index, keyType)
 		return
 	}
-	if writeInterfaceMapLookupKeyWithType(out, index, keyType) {
+	if writeInterfaceMapLookupKeyWithType(out, mapExpr, index, keyType) {
 		return
 	}
 	if ident, ok := index.(*ast.Ident); ok {
@@ -7516,7 +7570,7 @@ func writeMapLookupKeyWithType(out *strings.Builder, index ast.Expr, keyType typ
 			if typeInfoIsPointerExpr(index) && !isPointerKeyRangeVarType(varType) {
 				out.WriteString("&")
 				typeInfo := GetTypeInfo()
-				out.WriteString(goPtrKeyHelperNameForType(typeInfo.GetType(index)))
+				out.WriteString(mapPointerKeyHelperForMapExpr(goPtrKeyHelperNameForType(typeInfo.GetType(index)), mapExpr))
 				out.WriteString("::new(")
 				TranspileExpressionContext(out, index, LValue)
 				out.WriteString(".clone())")
@@ -7542,21 +7596,25 @@ func writeMapLookupKeyWithType(out *strings.Builder, index ast.Expr, keyType typ
 		if writeSliceElemPtrMapKeyExpression(out, index) {
 			return
 		}
-		out.WriteString(goPtrKeyHelperNameForType(typeInfo.GetType(index)))
+		out.WriteString(mapPointerKeyHelperForMapExpr(goPtrKeyHelperNameForType(typeInfo.GetType(index)), mapExpr))
 		out.WriteString("::new(")
 		TranspileExpressionContext(out, index, LValue)
 		out.WriteString(".clone())")
 	} else if keyType != nil {
 		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(keyType); ok {
 			NeedGoPtrKey()
-			out.WriteString("&GoLocalPtrKey::new(")
+			out.WriteString("&")
+			out.WriteString(localMapPointerKeyHelperForMapExpr(mapExpr))
+			out.WriteString("::new(")
 			TranspileExpressionContext(out, index, LValue)
 			out.WriteString(".clone())")
 			return
 		}
 		if isEmptyInterfaceType(keyType) {
 			NeedGoPtrKey()
-			out.WriteString("&GoLocalPtrKey::new(")
+			out.WriteString("&")
+			out.WriteString(localMapPointerKeyHelperForMapExpr(mapExpr))
+			out.WriteString("::new(")
 			TranspileExpressionContext(out, index, LValue)
 			out.WriteString(".clone())")
 			return
@@ -9416,8 +9474,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Use RValue context to get the bare map value, then .get() directly
 				TranspileExpression(out, e.X)
 				out.WriteString(".get(")
-				if !writeMapLookupKeyWithRustType(out, e.Index, keyRustType, keyType) {
-					writeMapLookupKeyWithType(out, e.Index, keyType)
+				if !writeMapLookupKeyWithRustType(out, e.X, e.Index, keyRustType, keyType) {
+					writeMapLookupKeyWithMapExpr(out, e.X, e.Index, keyType)
 				}
 				out.WriteString(")")
 				writeMapLookupValueWithHandle(out, valueType, defaultValue, valueKeepsHandle)
@@ -9433,8 +9491,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					writeClonedWrappedExpression(out, e.X, "__map_holder", "__map_guard")
 				}
 				out.WriteString("; __map.get(")
-				if !writeMapLookupKeyWithRustType(out, e.Index, keyRustType, keyType) {
-					writeMapLookupKeyWithType(out, e.Index, keyType)
+				if !writeMapLookupKeyWithRustType(out, e.X, e.Index, keyRustType, keyType) {
+					writeMapLookupKeyWithMapExpr(out, e.X, e.Index, keyType)
 				}
 				out.WriteString(")")
 				writeMapLookupValueWithHandle(out, valueType, defaultValue, valueKeepsHandle)
@@ -9444,8 +9502,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				writeMapHandleForOp(out, e.X)
 				WriteBorrowMethod(out, false)
 				out.WriteString(".as_ref().unwrap()).get(")
-				if !writeMapLookupKeyWithRustType(out, e.Index, keyRustType, keyType) {
-					writeMapLookupKeyWithType(out, e.Index, keyType)
+				if !writeMapLookupKeyWithRustType(out, e.X, e.Index, keyRustType, keyType) {
+					writeMapLookupKeyWithMapExpr(out, e.X, e.Index, keyType)
 				}
 				out.WriteString(")")
 				writeMapLookupValueWithHandle(out, valueType, defaultValue, valueKeepsHandle)
