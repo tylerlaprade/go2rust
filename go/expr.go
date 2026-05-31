@@ -1291,6 +1291,17 @@ func writeCurrentReceiverPointerMethodCallWithArgTemps(out *strings.Builder, sel
 	return true
 }
 
+func writeBareMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr, arg ast.Expr, index int) {
+	expectedArgType := selectedMethodParamType(sel, index)
+	if writeLenCapCallArgumentForExpectedType(out, arg, expectedArgType) {
+		return
+	}
+	if writeRangeIndexForExpectedType(out, arg, expectedArgType) {
+		return
+	}
+	TranspileExpression(out, arg)
+}
+
 func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr, arg ast.Expr, index int) {
 	typeInfo := GetTypeInfo()
 	expectedArgType := selectedMethodParamType(sel, index)
@@ -1522,7 +1533,7 @@ func writeMethodCallArguments(out *strings.Builder, sel *ast.SelectorExpr, call 
 		if externalStdlibStubMethodCall {
 			writeExternalStubCallArgument(out, call.Args[i], selectedMethodParamType(sel, i))
 		} else if bareArgumentMethodCall {
-			TranspileExpression(out, call.Args[i])
+			writeBareMethodCallArgument(out, sel, call.Args[i], i)
 		} else {
 			writeRegularMethodCallArgument(out, sel, call, call.Args[i], i)
 		}
@@ -15195,7 +15206,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				if externalStdlibStubMethodCall {
 					writeExternalStubCallArgument(out, arg, selectedMethodParamType(sel, i))
 				} else if bareArgumentMethodCall {
-					TranspileExpression(out, arg)
+					writeBareMethodCallArgument(out, sel, arg, i)
 				} else {
 					writeRegularMethodCallArgument(out, sel, call, arg, i)
 				}

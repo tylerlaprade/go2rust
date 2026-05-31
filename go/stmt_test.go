@@ -558,6 +558,27 @@ func openFile(name string) (io.ReadCloser, error) {
 	}
 }
 
+func TestSyncWaitGroupAddCastsLenArgument(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "sync"
+
+func wait(files []string) {
+	var wg sync.WaitGroup
+	wg.Add(len(files))
+}
+`)
+
+	if strings.Contains(rust, ".add((*files.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0))") ||
+		strings.Contains(rust, ".add((*files.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0))") {
+		t.Fatalf("sync.WaitGroup.Add should not pass len() as usize:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".add((*files.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)") &&
+		!strings.Contains(rust, ".add((*files.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)") {
+		t.Fatalf("sync.WaitGroup.Add should cast len() to Go int:\n%s", rust)
+	}
+}
+
 func TestSourceMappedStringsBuilderUsesGeneratedMethods(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
