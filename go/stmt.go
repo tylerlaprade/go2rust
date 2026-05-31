@@ -12157,7 +12157,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					for _, field := range funcLit.Type.Params.List {
 						paramType := GoTypeToRust(field.Type)
 						for _, name := range field.Names {
-							params = append(params, name.Name+": "+paramType)
+							params = append(params, RustLocalIdent(name.Name)+": "+paramType)
 						}
 					}
 					out.WriteString(strings.Join(params, ", "))
@@ -12189,14 +12189,23 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					// Wrap arguments appropriately
 					if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "_" {
+						if goStmtImmediateArgIsFunctionHandle(ident) {
+							argName := RustLocalIdent(ident.Name)
+							if captureRenames[ident.Name] != "" {
+								argName = RustLocalIdent(captureRenames[ident.Name])
+							}
+							out.WriteString(argName)
+							out.WriteString(".clone()")
+							continue
+						}
 						// Check if this is a variable (not a constant)
 						if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
 							if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
 								// It's a variable, clone it
 								if captureRenames[ident.Name] != "" {
-									out.WriteString(captureRenames[ident.Name])
+									out.WriteString(RustLocalIdent(captureRenames[ident.Name]))
 								} else {
-									out.WriteString(ident.Name)
+									out.WriteString(RustLocalIdent(ident.Name))
 									out.WriteString(".clone()")
 								}
 							} else {
@@ -12698,6 +12707,14 @@ func isChannelAssignment(s *ast.AssignStmt) bool {
 	}
 	typeInfo := GetTypeInfo()
 	return typeInfo != nil && typeInfo.IsChannel(s.Lhs[0])
+}
+
+func goStmtImmediateArgIsFunctionHandle(ident *ast.Ident) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || ident == nil || typeInfo.IsFunction(ident) {
+		return false
+	}
+	return typeInfo.IsFunctionType(ident)
 }
 
 func isFunctionTypedNameInFunc(name string, fnType *ast.FuncType) bool {

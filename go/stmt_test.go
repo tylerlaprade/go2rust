@@ -4311,6 +4311,53 @@ func keep(values nat) Word {
 	}
 }
 
+func TestGoFuncLiteralArgumentParameterEscapesRustKeyword(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func run(fn func() error) {
+	go func(fn func() error) {
+		_ = fn()
+	}(fn)
+}
+`)
+
+	if strings.Contains(rust, "|fn:") {
+		t.Fatalf("goroutine function literal parameter should escape Rust keywords:\n%s", rust)
+	}
+	if !strings.Contains(rust, "|r#fn:") {
+		t.Fatalf("goroutine function literal parameter should preserve the Go name with Rust escaping:\n%s", rust)
+	}
+	if strings.Contains(rust, "|r#fn: Box<dyn FnMut") {
+		t.Fatalf("goroutine function literal parameter should use the wrapped function parameter shape:\n%s", rust)
+	}
+	if !strings.Contains(rust, "|r#fn: Arc<Mutex<Option<Box<dyn FnMut") {
+		t.Fatalf("goroutine function literal parameter should accept the wrapped function handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__closure(r#fn.clone())") {
+		t.Fatalf("goroutine function literal call should pass the escaped function handle:\n%s", rust)
+	}
+}
+
+func TestGoFuncLiteralRangeFunctionArgumentPassesHandle(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func run(funcs []func() error) {
+	for _, fn := range funcs {
+		go func(fn func() error) {
+			_ = fn()
+		}(fn)
+	}
+}
+`)
+
+	if strings.Contains(rust, "Some(r#fn)") {
+		t.Fatalf("range function value argument should not be wrapped as an inner function box:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__closure(r#fn.clone())") {
+		t.Fatalf("range function value argument should pass the function handle clone:\n%s", rust)
+	}
+}
+
 func TestTripleSlashStatementCommentEmitsRegularRustComment(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
