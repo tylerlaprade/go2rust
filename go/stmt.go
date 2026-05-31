@@ -2828,6 +2828,8 @@ func stmtTerminates(stmt ast.Stmt) bool {
 		return switchStmtTerminates(s)
 	case *ast.TypeSwitchStmt:
 		return typeSwitchStmtTerminates(s)
+	case *ast.SelectStmt:
+		return selectStmtTerminates(s)
 	case *ast.ForStmt:
 		return forStmtTerminates(s)
 	case *ast.LabeledStmt:
@@ -2914,6 +2916,22 @@ func typeSwitchStmtTerminates(s *ast.TypeSwitchStmt) bool {
 		}
 	}
 	return hasDefault
+}
+
+func selectStmtTerminates(s *ast.SelectStmt) bool {
+	if s == nil || s.Body == nil {
+		return false
+	}
+	if len(s.Body.List) == 0 {
+		return true
+	}
+	for _, stmt := range s.Body.List {
+		clause, ok := stmt.(*ast.CommClause)
+		if !ok || !stmtListTerminates(clause.Body) {
+			return false
+		}
+	}
+	return true
 }
 
 func stmtNeedsSeparatorBeforeFollowingStatement(stmt ast.Stmt) bool {
@@ -11937,6 +11955,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		restoreSelectBreakTarget()
 		out.WriteString("    }")
+		if selectStmtTerminates(s) {
+			out.WriteString("\n    unreachable!()")
+		}
 
 	case *ast.DeferStmt:
 		// Check if this is defer mu.Unlock() — suppress it (RAII guard handles unlock)

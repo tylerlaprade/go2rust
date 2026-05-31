@@ -4543,6 +4543,24 @@ func (h *holder) assign() {
 	}
 }
 
+func TestSelectWithReturningCasesEmitsUnreachableTail(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func wait(a <-chan error, b <-chan error) error {
+	select {
+	case err := <-a:
+		return err
+	case err := <-b:
+		return err
+	}
+}
+`)
+
+	if !strings.Contains(rust, "unreachable!()") {
+		t.Fatalf("select with all returning cases should mark the fallthrough unreachable:\n%s", rust)
+	}
+}
+
 func TestAddressOfConcreteReturnBoxesLocalInterface(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
