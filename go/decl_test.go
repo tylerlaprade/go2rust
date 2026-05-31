@@ -475,6 +475,26 @@ func Sort[E Ordered](data []E) {
 	}
 }
 
+func TestGenericStringTypeParamAddsToStringBound(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func Join[S ~[]T, T ~string](s S) []string {
+	strs := make([]string, 0, len(s))
+	for _, v := range s {
+		strs = append(strs, string(v))
+	}
+	return strs
+}
+`)
+
+	if !strings.Contains(rust, "T: Clone + PartialOrd + ToString") {
+		t.Fatalf("string-constrained type parameter should include ToString for string conversion:\n%s", rust)
+	}
+	if !strings.Contains(rust, "v.to_string()") {
+		t.Fatalf("string-constrained type parameter conversion should use ToString:\n%s", rust)
+	}
+}
+
 func TestGenericOrderedTypeParamParameterUsesBareValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

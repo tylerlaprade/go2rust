@@ -1420,6 +1420,9 @@ func rustFunctionTypeParam(name *ast.Ident) string {
 	}
 	if traitName, ok := goTypeParamOrderedTraitConstraintName(obj.Type()); ok {
 		bounds := []string{traitName, "Clone", "PartialOrd"}
+		if goTypeParamHasStringConstraint(obj.Type()) {
+			bounds = append(bounds, "ToString")
+		}
 		if NeedsConcurrentWrapper() {
 			bounds = append(bounds, "Send", "Sync")
 		}
@@ -1428,6 +1431,9 @@ func rustFunctionTypeParam(name *ast.Ident) string {
 	}
 	if goTypeParamHasOrderedConstraint(obj.Type()) {
 		bounds := []string{"Clone", "PartialOrd"}
+		if goTypeParamHasStringConstraint(obj.Type()) {
+			bounds = append(bounds, "ToString")
+		}
 		if NeedsConcurrentWrapper() {
 			bounds = append(bounds, "Send", "Sync")
 		}

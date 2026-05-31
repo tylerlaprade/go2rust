@@ -351,6 +351,39 @@ func goTypeParamHasStringByteSliceConstraint(t types.Type) bool {
 	return hasString && hasByteSlice
 }
 
+func goTypeParamHasStringConstraint(t types.Type) bool {
+	tp, ok := types.Unalias(t).(*types.TypeParam)
+	if !ok || tp.Constraint() == nil {
+		return false
+	}
+	iface, ok := tp.Constraint().Underlying().(*types.Interface)
+	if !ok || iface.NumEmbeddeds() == 0 {
+		return false
+	}
+	for i := 0; i < iface.NumEmbeddeds(); i++ {
+		if !constraintTermIsStringOnly(iface.EmbeddedType(i)) {
+			return false
+		}
+	}
+	return true
+}
+
+func constraintTermIsStringOnly(t types.Type) bool {
+	t = types.Unalias(t)
+	if union, ok := t.(*types.Union); ok {
+		if union.Len() == 0 {
+			return false
+		}
+		for i := 0; i < union.Len(); i++ {
+			if !isGoStringType(union.Term(i).Type()) {
+				return false
+			}
+		}
+		return true
+	}
+	return isGoStringType(t)
+}
+
 func isGoStringType(t types.Type) bool {
 	basic, ok := types.Unalias(t).Underlying().(*types.Basic)
 	return ok && basic.Kind() == types.String
