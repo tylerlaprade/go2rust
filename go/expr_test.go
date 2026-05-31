@@ -4095,6 +4095,58 @@ func use(t Label) {
 	}
 }
 
+func TestFunctionValueSelectorSyntaxDoesNotOverrideTypedMethodNameCollision(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type FileInfo interface {
+	Name() string
+}
+
+type DirEntry interface {
+	Name() string
+	Type() int
+}
+
+func fileInfoToDirEntry(info FileInfo) DirEntry {
+	return nil
+}
+
+type Context struct {
+	ReadDir func(string) ([]FileInfo, error)
+}
+
+func (c *Context) readDir(path string) ([]DirEntry, error) {
+	if f := c.ReadDir; f != nil {
+		fis, err := f(path)
+		if err != nil {
+			return nil, err
+		}
+		des := make([]DirEntry, len(fis))
+		for i, fi := range fis {
+			des[i] = fileInfoToDirEntry(fi)
+		}
+		return des, nil
+	}
+	return nil, nil
+}
+
+func (c *Context) scan() {
+	dirs, err := c.readDir("")
+	_ = err
+	for _, d := range dirs {
+		_ = d.Type()
+	}
+}
+`)
+
+	if strings.Contains(rust, "let __f_holder = self.read_dir.clone()") {
+		t.Fatalf("typed method call should not use same-Rust-name function field:\n%s", rust)
+	}
+	if !strings.Contains(rust, "self.read_dir(Rc::new") && !strings.Contains(rust, "self.read_dir(Arc::new") {
+		t.Fatalf("typed method call should lower through the method receiver:\n%s", rust)
+	}
+}
+
 func TestFunctionValueSelectorSyntaxDoesNotUseUnrelatedFieldForKnownReceiver(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	prevStructDefs := structDefs

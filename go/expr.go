@@ -15726,6 +15726,11 @@ func isFunctionValueSelectorSyntax(sel *ast.SelectorExpr) bool {
 	if sel == nil {
 		return false
 	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
+		if selection, ok := typeInfo.info.Selections[sel]; ok && selection.Kind() != types.FieldVal {
+			return false
+		}
+	}
 	fieldExpr, fieldOK := selectorFieldTypeExpr(sel)
 	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.GetType(sel) != nil {
 		if obj := typeInfo.GetObject(sel.Sel); obj != nil {
