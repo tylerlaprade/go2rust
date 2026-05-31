@@ -440,7 +440,7 @@ func structFieldHasNilZero(typ types.Type) bool {
 		}
 	}
 	switch types.Unalias(typ).Underlying().(type) {
-	case *types.Interface, *types.Pointer, *types.Signature, *types.Slice, *types.Map:
+	case *types.Interface, *types.Pointer, *types.Signature, *types.Slice, *types.Map, *types.Chan:
 		return true
 	default:
 		return false

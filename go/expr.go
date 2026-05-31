@@ -6552,6 +6552,39 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 	}
 }
 
+func writeZeroStructFieldInitializer(out *strings.Builder, fieldExpr ast.Expr, fieldType types.Type) {
+	if isSyncParam(fieldExpr) {
+		out.WriteString(goTypeToRustBase(fieldExpr))
+		out.WriteString("::new()")
+		return
+	}
+	if fieldType != nil {
+		if structFieldHasNilZero(fieldType) {
+			out.WriteString("Default::default()")
+			return
+		}
+		WriteWrapperPrefix(out)
+		out.WriteString(zeroValueForTypesType(fieldType))
+		WriteWrapperSuffix(out)
+		return
+	}
+	if isEmptyInterfaceExpr(fieldExpr) {
+		WriteWrappedNone(out)
+		return
+	}
+	if _, ok := localInterfaceNameFromTypeExpr(fieldExpr); ok {
+		WriteWrappedNone(out)
+		return
+	}
+	if isChannelFieldExpr(fieldExpr) {
+		out.WriteString("Default::default()")
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString(zeroValueForGoType(fieldExpr))
+	WriteWrapperSuffix(out)
+}
+
 func writeUnsupportedSliceElemPointerFieldValue(out *strings.Builder, value ast.Expr, expectedFieldType types.Type) bool {
 	unary, ok := value.(*ast.UnaryExpr)
 	if !ok || unary.Op != token.AND {
@@ -9855,6 +9888,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Empty struct literal — generate explicit zero-value fields
 			if len(e.Elts) == 0 {
 				if sd, exists := structDefs[ident.Name]; exists && sd.ASTType != nil {
+					var typedStructUnder *types.Struct
+					if typeInfo := GetTypeInfo(); typeInfo != nil {
+						if typ := typeInfo.GetType(e); typ != nil {
+							if structUnder, ok := types.Unalias(typ).Underlying().(*types.Struct); ok {
+								typedStructUnder = structUnder
+							}
+						}
+					}
 					out.WriteString(RustTypeNameForUse(ident.Name))
 					out.WriteString(" { ")
 					fieldIdx := 0
@@ -9869,20 +9910,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							}
 							out.WriteString(rustStructFieldName(name, fieldIndex, nameIndex))
 							out.WriteString(": ")
-							if isSyncParam(field.Type) {
-								out.WriteString(goTypeToRustBase(field.Type))
-								out.WriteString("::new()")
-							} else if isEmptyInterfaceExpr(field.Type) {
-								WriteWrappedNone(out)
-							} else if _, ok := localInterfaceNameFromTypeExpr(field.Type); ok {
-								WriteWrappedNone(out)
-							} else if isChannelFieldExpr(field.Type) {
-								out.WriteString("Default::default()")
-							} else {
-								WriteWrapperPrefix(out)
-								out.WriteString(zeroValueForGoType(field.Type))
-								WriteWrapperSuffix(out)
+							var typedFieldType types.Type
+							if typedStructUnder != nil && fieldIdx < typedStructUnder.NumFields() {
+								typedFieldType = typedStructUnder.Field(fieldIdx).Type()
 							}
+							writeZeroStructFieldInitializer(out, field.Type, typedFieldType)
 							fieldIdx++
 						}
 					}

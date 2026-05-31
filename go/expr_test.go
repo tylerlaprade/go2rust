@@ -121,6 +121,33 @@ func zero() Value {
 	}
 }
 
+func TestEmptyStructLiteralUsesNilForPointerAndErrorFields(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "time"
+
+type ctxResult struct {
+	err error
+	timer *time.Timer
+}
+
+func zero() ctxResult {
+	return ctxResult{}
+}
+`)
+
+	if strings.Contains(rust, "Some(Arc::new") || strings.Contains(rust, "Some(Rc::new") {
+		t.Fatalf("empty struct literal should not double-wrap nil error fields:\n%s", rust)
+	}
+	if strings.Contains(rust, "timer: Rc::new(RefCell::new(Some(Default::default())))") ||
+		strings.Contains(rust, "timer: Arc::new(Mutex::new(Some(Default::default())))") {
+		t.Fatalf("empty struct literal should not initialize pointer fields with a default pointee:\n%s", rust)
+	}
+	if !strings.Contains(rust, "err: Default::default()") || !strings.Contains(rust, "timer: Default::default()") {
+		t.Fatalf("empty struct literal should use nil handle defaults for error and pointer fields:\n%s", rust)
+	}
+}
+
 func TestPositionalStructLiteralWrapsBareScalarLocalField(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
