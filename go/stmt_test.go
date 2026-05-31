@@ -4521,6 +4521,28 @@ func recv(ch <-chan error) error {
 	}
 }
 
+func TestChannelFieldAssignmentClonesReusableLocal(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type holder struct {
+	ch chan int
+}
+
+func (h *holder) assign() {
+	ch := make(chan int, 1)
+	h.ch = ch
+	ch <- 1
+}
+`)
+
+	if strings.Contains(rust, "self.ch = ch;") {
+		t.Fatalf("channel field assignment should not move a reusable channel local:\n%s", rust)
+	}
+	if !strings.Contains(rust, "self.ch = ch.clone();") {
+		t.Fatalf("channel field assignment should clone the channel handle:\n%s", rust)
+	}
+}
+
 func TestAddressOfConcreteReturnBoxesLocalInterface(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

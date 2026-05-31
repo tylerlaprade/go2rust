@@ -8807,11 +8807,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		} else if isChannelAssignment(s) {
 			TranspileExpressionContext(out, s.Lhs[0], LValue)
 			out.WriteString(" = ")
-			if ident, ok := s.Rhs[0].(*ast.Ident); ok && ident.Name == "nil" {
-				out.WriteString("Default::default()")
-			} else {
-				TranspileExpression(out, s.Rhs[0])
-			}
+			writeChannelAssignmentValue(out, s.Rhs[0])
 		} else if s.Tok == token.ADD_ASSIGN || s.Tok == token.SUB_ASSIGN ||
 			s.Tok == token.MUL_ASSIGN || s.Tok == token.QUO_ASSIGN || s.Tok == token.REM_ASSIGN ||
 			s.Tok == token.AND_ASSIGN || s.Tok == token.AND_NOT_ASSIGN || s.Tok == token.OR_ASSIGN || s.Tok == token.XOR_ASSIGN ||
@@ -12720,6 +12716,30 @@ func isChannelAssignment(s *ast.AssignStmt) bool {
 	}
 	typeInfo := GetTypeInfo()
 	return typeInfo != nil && typeInfo.IsChannel(s.Lhs[0])
+}
+
+func writeChannelAssignmentValue(out *strings.Builder, rhs ast.Expr) {
+	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
+		out.WriteString("Default::default()")
+		return
+	}
+	TranspileExpression(out, rhs)
+	if channelAssignmentRHSNeedsClone(rhs) {
+		out.WriteString(".clone()")
+	}
+}
+
+func channelAssignmentRHSNeedsClone(rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || rhs == nil || !typeInfo.IsChannel(rhs) {
+		return false
+	}
+	switch unwrapParens(rhs).(type) {
+	case *ast.Ident, *ast.SelectorExpr, *ast.IndexExpr:
+		return true
+	default:
+		return false
+	}
 }
 
 func goStmtImmediateArgIsFunctionHandle(ident *ast.Ident) bool {
