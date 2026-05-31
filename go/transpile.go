@@ -899,6 +899,214 @@ type localInterfaceAssertionCandidate struct {
 	typ      types.Type
 }
 
+type anonymousInterfaceAssertionTrait struct {
+	name       string
+	iface      *types.Interface
+	candidates []localInterfaceAssertionCandidate
+}
+
+var anonymousInterfaceAssertionTraits = make(map[string]anonymousInterfaceAssertionTrait)
+
+func anonymousInterfaceAssertionTypeString(typ types.Type) string {
+	return types.TypeString(typ, func(pkg *types.Package) string {
+		if pkg == nil {
+			return ""
+		}
+		return pkg.Path()
+	})
+}
+
+func anonymousInterfaceAssertionKey(iface *types.Interface, candidates []localInterfaceAssertionCandidate) string {
+	if iface == nil {
+		return ""
+	}
+	iface.Complete()
+	methods := make([]string, 0, iface.NumMethods())
+	for i := 0; i < iface.NumMethods(); i++ {
+		method := iface.Method(i)
+		methods = append(methods, method.Name()+":"+anonymousInterfaceAssertionTypeString(method.Type()))
+	}
+	sort.Strings(methods)
+	candidateTypes := make([]string, 0, len(candidates))
+	for _, candidate := range candidates {
+		candidateTypes = append(candidateTypes, candidate.rustType+":"+anonymousInterfaceAssertionTypeString(candidate.typ))
+	}
+	sort.Strings(candidateTypes)
+	return strings.Join(methods, ";") + "|" + strings.Join(candidateTypes, ";")
+}
+
+func registerAnonymousInterfaceAssertionTrait(iface *types.Interface, candidates []localInterfaceAssertionCandidate) string {
+	key := anonymousInterfaceAssertionKey(iface, candidates)
+	if key == "" {
+		return ""
+	}
+	if anonymousInterfaceAssertionTraits == nil {
+		anonymousInterfaceAssertionTraits = make(map[string]anonymousInterfaceAssertionTrait)
+	}
+	if trait, ok := anonymousInterfaceAssertionTraits[key]; ok {
+		return trait.name
+	}
+	name := fmt.Sprintf("GoAnonymousInterface%d", len(anonymousInterfaceAssertionTraits)+1)
+	anonymousInterfaceAssertionTraits[key] = anonymousInterfaceAssertionTrait{
+		name:       name,
+		iface:      iface,
+		candidates: append([]localInterfaceAssertionCandidate(nil), candidates...),
+	}
+	return name
+}
+
+func writeAnonymousInterfaceAssertionTraits(out *strings.Builder, first *bool) {
+	if len(anonymousInterfaceAssertionTraits) == 0 {
+		return
+	}
+	traits := make([]anonymousInterfaceAssertionTrait, 0, len(anonymousInterfaceAssertionTraits))
+	for _, trait := range anonymousInterfaceAssertionTraits {
+		traits = append(traits, trait)
+	}
+	slices.SortFunc(traits, func(a, b anonymousInterfaceAssertionTrait) int {
+		return strings.Compare(a.name, b.name)
+	})
+	for _, trait := range traits {
+		if !*first {
+			out.WriteString("\n\n")
+		}
+		*first = false
+		writeAnonymousInterfaceAssertionTrait(out, trait)
+	}
+}
+
+func writeAnonymousInterfaceAssertionTrait(out *strings.Builder, trait anonymousInterfaceAssertionTrait) {
+	if trait.name == "" || trait.iface == nil {
+		return
+	}
+	TrackImport("Any")
+	TrackImport("Display")
+	trait.iface.Complete()
+	traitSnake := traitMethodSuffix(trait.name)
+
+	out.WriteString("pub trait ")
+	out.WriteString(trait.name)
+	out.WriteString(": std::fmt::Display + Any {\n")
+	out.WriteString("    fn __go_clone_box_")
+	out.WriteString(traitSnake)
+	out.WriteString("(&self) -> ")
+	out.WriteString(rustLocalInterfaceTraitObject(trait.name))
+	out.WriteString(";\n")
+	out.WriteString("    fn __go_as_any(&self) -> &dyn Any;\n")
+	out.WriteString("    fn __go_eq_")
+	out.WriteString(traitSnake)
+	out.WriteString("(&self, other: ")
+	out.WriteString(rustLocalInterfaceParamBare(trait.name))
+	out.WriteString(") -> bool;\n")
+	for i := 0; i < trait.iface.NumMethods(); i++ {
+		writeAnonymousInterfaceTraitMethodSigFromTypes(out, trait.iface.Method(i))
+	}
+	out.WriteString("}\n\nimpl Clone for ")
+	out.WriteString(rustLocalInterfaceTraitObject(trait.name))
+	out.WriteString(" {\n")
+	out.WriteString("    fn clone(&self) -> Self {\n")
+	out.WriteString("        self.__go_clone_box_")
+	out.WriteString(traitSnake)
+	out.WriteString("()\n")
+	out.WriteString("    }\n")
+	out.WriteString("}")
+
+	for _, candidate := range trait.candidates {
+		out.WriteString("\n\nimpl ")
+		out.WriteString(trait.name)
+		out.WriteString(" for ")
+		out.WriteString(candidate.rustType)
+		out.WriteString(" {\n")
+		for i := 0; i < trait.iface.NumMethods(); i++ {
+			writeLocalInterfaceForwardMethodFromTypes(out, trait.iface.Method(i))
+		}
+		writeAnonymousInterfaceSupportImpl(out, trait.name, candidate.rustType)
+		out.WriteString("}")
+	}
+}
+
+func writeAnonymousInterfaceTraitMethodSigFromTypes(out *strings.Builder, method *types.Func) {
+	if method == nil {
+		return
+	}
+	sig, ok := method.Type().(*types.Signature)
+	if !ok {
+		return
+	}
+	out.WriteString("    fn ")
+	out.WriteString(ToSnakeCase(method.Name()))
+	out.WriteString("(")
+	if interfaceMethodRequiresMutableReceiver(method) {
+		out.WriteString("&mut self")
+	} else {
+		out.WriteString("&self")
+	}
+	params := sig.Params()
+	for j := 0; j < params.Len(); j++ {
+		param := params.At(j)
+		paramName := param.Name()
+		if paramName == "" {
+			paramName = fmt.Sprintf("__arg%d", j)
+		}
+		out.WriteString(", ")
+		out.WriteString(RustLocalIdent(paramName))
+		out.WriteString(": ")
+		out.WriteString(goTypesParamTypeToRust(param.Type()))
+	}
+	out.WriteString(")")
+	res := sig.Results()
+	switch res.Len() {
+	case 0:
+	case 1:
+		out.WriteString(" -> ")
+		out.WriteString(goTypesReturnTypeToRust(res.At(0).Type()))
+	default:
+		out.WriteString(" -> (")
+		for j := 0; j < res.Len(); j++ {
+			if j > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString(goTypesReturnTypeToRust(res.At(j).Type()))
+		}
+		out.WriteString(")")
+	}
+	out.WriteString(";\n")
+}
+
+func writeAnonymousInterfaceSupportImpl(out *strings.Builder, ifaceName, concreteType string) {
+	TrackImport("Any")
+	traitSnake := traitMethodSuffix(ifaceName)
+	out.WriteString("    fn __go_clone_box_")
+	out.WriteString(traitSnake)
+	out.WriteString("(&self) -> ")
+	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+	out.WriteString(" {\n")
+	out.WriteString("        Box::new(self.clone()) as ")
+	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+	out.WriteString("\n")
+	out.WriteString("    }\n")
+	out.WriteString("    fn __go_as_any(&self) -> &dyn Any {\n")
+	out.WriteString("        self\n")
+	out.WriteString("    }\n")
+	out.WriteString("    fn __go_eq_")
+	out.WriteString(traitSnake)
+	out.WriteString("(&self, other: ")
+	out.WriteString(rustLocalInterfaceParamBare(ifaceName))
+	out.WriteString(") -> bool {\n")
+	out.WriteString("        if let Some(__other) = other.__go_as_any().downcast_ref::<")
+	out.WriteString(concreteType)
+	out.WriteString(">() {\n")
+	if localConcreteTypeCanUsePartialEq(concreteType) {
+		out.WriteString("            self == __other\n")
+	} else {
+		out.WriteString("            false\n")
+	}
+	out.WriteString("        } else {\n")
+	out.WriteString("            false\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
 func collectFunctionLocalInterfaces(file *ast.File) map[string]*ast.InterfaceType {
 	if file == nil {
 		return make(map[string]*ast.InterfaceType)
@@ -1076,21 +1284,21 @@ func anonInterfaceMethodSet(typeExpr ast.Expr) (*types.Interface, bool) {
 // to its structural candidates against the source. The named-interface path
 // (localInterfaceAssertionTarget) covers `*types.Named` interfaces; this covers
 // the unnamed method-set form that otherwise lowered to a soft `Unknown`/`Box<dyn Any>`.
-func anonInterfaceAssertionTarget(e *ast.TypeAssertExpr) (sourceType types.Type, candidates []localInterfaceAssertionCandidate, ok bool) {
+func anonInterfaceAssertionTarget(e *ast.TypeAssertExpr) (sourceType types.Type, iface *types.Interface, candidates []localInterfaceAssertionCandidate, ok bool) {
 	if e == nil || e.Type == nil {
-		return nil, nil, false
+		return nil, nil, nil, false
 	}
-	iface, ok := anonInterfaceMethodSet(e.Type)
+	iface, ok = anonInterfaceMethodSet(e.Type)
 	if !ok {
-		return nil, nil, false
+		return nil, nil, nil, false
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
-		return nil, nil, false
+		return nil, nil, nil, false
 	}
 	sourceType = typeInfo.GetType(e.X)
 	candidates = localInterfaceAssertionCandidates(iface, sourceType)
-	return sourceType, candidates, true
+	return sourceType, iface, candidates, true
 }
 
 func collectExternalLocalInterfaceImpls(file *ast.File, interfaces map[string]*ast.InterfaceType) map[string]map[string]externalLocalInterfaceImpl {
@@ -1820,6 +2028,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	packageGlobalNames = make(map[string]bool)
 	prevComparableStructTypes := comparableStructTypes
 	prevLocalInterfaceEqualityTypes := localInterfaceEqualityTypes
+	prevAnonymousInterfaceAssertionTraits := anonymousInterfaceAssertionTraits
 	comparableStructTypes = make(map[string]bool)
 	for name := range fileAnalysis.comparableStructTypes {
 		comparableStructTypes[name] = true
@@ -1833,9 +2042,11 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		}
 	}
 	localInterfaceEqualityTypes = fileAnalysis.localInterfaceEqualityTypes
+	anonymousInterfaceAssertionTraits = make(map[string]anonymousInterfaceAssertionTrait)
 	defer func() {
 		comparableStructTypes = prevComparableStructTypes
 		localInterfaceEqualityTypes = prevLocalInterfaceEqualityTypes
+		anonymousInterfaceAssertionTraits = prevAnonymousInterfaceAssertionTraits
 	}()
 
 	// Collect methods by receiver type
@@ -2350,6 +2561,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	}
 
 	writeAnonymousStructDefinitions(&body, &first, emittedAnonymousStructs)
+	writeAnonymousInterfaceAssertionTraits(&body, &first)
 
 	if hasInitFunction {
 		if !first {

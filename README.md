@@ -266,6 +266,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Variadic `any` arguments | ✅ |
 | └ Interface implementations | ✅ |
 | └ Type assertions | ✅ |
+| └ Anonymous method-set interface assertions with multiple concrete implementors | ✅ |
 | └ `any(x)` conversions feeding type assertions | ✅ |
 | └ Static `any(x).(interface{...})` assertions when TypeInfo proves implementation | ✅ |
 | └ Stdlib concrete pointer literals and values returned as stdlib interface types | ✅ |

@@ -1175,7 +1175,13 @@ func methodReceiverExpressionNeedsUnwrap(expr ast.Expr) bool {
 		return false
 	case *ast.TypeAssertExpr:
 		typeInfo := GetTypeInfo()
-		return typeInfo != nil && typeInfo.IsPointer(e)
+		if typeInfo == nil {
+			return false
+		}
+		if _, _, _, ok := anonInterfaceAssertionTarget(e); ok {
+			return true
+		}
+		return typeInfo.IsPointer(e)
 	case *ast.UnaryExpr:
 		typeInfo := GetTypeInfo()
 		return e.Op == token.AND && typeInfo != nil && typeInfo.IsPointer(e)
@@ -10539,8 +10545,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				writeLocalInterfaceAssertionValue(out, e, ifaceName, sourceType, candidates)
 				return
 			}
-			if sourceType, candidates, ok := anonInterfaceAssertionTarget(e); ok {
-				writeAnonInterfaceAssertionValue(out, e, sourceType, candidates)
+			if sourceType, iface, candidates, ok := anonInterfaceAssertionTarget(e); ok {
+				writeAnonInterfaceAssertionValue(out, e, sourceType, iface, candidates)
 				return
 			}
 			// Get the Rust type for the assertion
@@ -13755,16 +13761,16 @@ func writeLocalInterfaceAssertionWrappedNone(out *strings.Builder, ifaceName str
 }
 
 // writeAnonInterfaceAssertionCommaOk lowers `x.(interface{...})` in comma-ok
-// position. The assertion target is an anonymous method-set interface with no
-// trait object, so a single matching concrete implementor is bound directly.
-// Zero or multiple implementors would require a synthesized trait object to
-// unify the success type, which is not supported yet, so it panics loudly.
-func writeAnonInterfaceAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, sourceType types.Type, candidates []localInterfaceAssertionCandidate) {
+// position. A single matching concrete implementor can bind directly; multiple
+// possible implementors use a synthesized trait object for the anonymous method
+// set so the success arm has one Rust type.
+func writeAnonInterfaceAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, sourceType types.Type, iface *types.Interface, candidates []localInterfaceAssertionCandidate) {
+	sourceTrait := localInterfaceAssertionSourceTrait(sourceType)
 	if len(candidates) != 1 {
-		out.WriteString(fmt.Sprintf("unimplemented!(\"type info required: comma-ok assertion to anonymous interface with %d concrete implementors needs a synthesized trait object\")", len(candidates)))
+		ifaceName := registerAnonymousInterfaceAssertionTrait(iface, candidates)
+		writeAnonInterfaceTraitAssertionCommaOk(out, e, sourceTrait, ifaceName, candidates)
 		return
 	}
-	sourceTrait := localInterfaceAssertionSourceTrait(sourceType)
 	out.WriteString("({\n")
 	out.WriteString("        let val = ")
 	writeTypeAssertionInputClone(out, e.X)
@@ -13807,15 +13813,16 @@ func writeAnonInterfaceAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertE
 }
 
 // writeAnonInterfaceAssertionValue lowers `x.(interface{...})` in value
-// position (panicking on failure), binding the single matching concrete
-// implementor directly. See writeAnonInterfaceAssertionCommaOk for the
-// trait-object limitation on zero/multiple implementors.
-func writeAnonInterfaceAssertionValue(out *strings.Builder, e *ast.TypeAssertExpr, sourceType types.Type, candidates []localInterfaceAssertionCandidate) {
+// position (panicking on failure). A single matching concrete implementor can
+// bind directly; multiple possible implementors use a synthesized trait object
+// for the anonymous method set.
+func writeAnonInterfaceAssertionValue(out *strings.Builder, e *ast.TypeAssertExpr, sourceType types.Type, iface *types.Interface, candidates []localInterfaceAssertionCandidate) {
+	sourceTrait := localInterfaceAssertionSourceTrait(sourceType)
 	if len(candidates) != 1 {
-		out.WriteString(fmt.Sprintf("unimplemented!(\"type info required: assertion to anonymous interface with %d concrete implementors needs a synthesized trait object\")", len(candidates)))
+		ifaceName := registerAnonymousInterfaceAssertionTrait(iface, candidates)
+		writeAnonInterfaceTraitAssertionValue(out, e, sourceTrait, ifaceName, candidates)
 		return
 	}
-	sourceTrait := localInterfaceAssertionSourceTrait(sourceType)
 	out.WriteString("({\n")
 	out.WriteString("        let val = ")
 	writeTypeAssertionInputClone(out, e.X)
@@ -13841,30 +13848,96 @@ func writeAnonInterfaceAssertionValue(out *strings.Builder, e *ast.TypeAssertExp
 	out.WriteString("    })")
 }
 
-func writeUnsupportedAnonInterfaceAssertionMethodCall(out *strings.Builder, call *ast.CallExpr, sel *ast.SelectorExpr) bool {
-	typeAssert, ok := sel.X.(*ast.TypeAssertExpr)
-	if !ok {
-		return false
-	}
-	_, candidates, ok := anonInterfaceAssertionTarget(typeAssert)
-	if !ok || len(candidates) == 1 {
-		return false
-	}
-	message := fmt.Sprintf("type info required: assertion method call on anonymous interface with %d concrete implementors needs a synthesized trait object", len(candidates))
-	if typeInfo := GetTypeInfo(); typeInfo != nil {
-		if resultType := typeInfo.GetType(call); resultType != nil {
-			out.WriteString("({ let __unsupported: ")
-			out.WriteString(goTypesReturnTypeToRust(resultType))
-			out.WriteString(" = unimplemented!(\"")
-			out.WriteString(message)
-			out.WriteString("\"); __unsupported })")
-			return true
+func writeAnonInterfaceTraitAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, sourceTrait string, ifaceName string, candidates []localInterfaceAssertionCandidate) {
+	out.WriteString("({\n")
+	out.WriteString("        let val = ")
+	writeTypeAssertionInputClone(out, e.X)
+	out.WriteString(";\n")
+	out.WriteString("        let guard = val")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString("        if let Some(ref any_val) = *guard {\n")
+	if len(candidates) == 0 {
+		out.WriteString("            (")
+		writeLocalInterfaceAssertionWrappedNone(out, ifaceName)
+		out.WriteString(", ")
+		WriteWrapperPrefix(out)
+		out.WriteString("false")
+		WriteWrapperSuffix(out)
+		out.WriteString(")\n")
+	} else {
+		for i, candidate := range candidates {
+			if i == 0 {
+				out.WriteString("            if let Some(typed_val) = ")
+			} else {
+				out.WriteString(" else if let Some(typed_val) = ")
+			}
+			writeLocalInterfaceAssertionDowncast(out, sourceTrait, candidate.rustType)
+			out.WriteString(" {\n")
+			out.WriteString("                (")
+			writeLocalInterfaceAssertionWrappedSuccess(out, ifaceName)
+			out.WriteString(", ")
+			WriteWrapperPrefix(out)
+			out.WriteString("true")
+			WriteWrapperSuffix(out)
+			out.WriteString(")\n")
+			out.WriteString("            }")
 		}
+		out.WriteString(" else {\n")
+		out.WriteString("                (")
+		writeLocalInterfaceAssertionWrappedNone(out, ifaceName)
+		out.WriteString(", ")
+		WriteWrapperPrefix(out)
+		out.WriteString("false")
+		WriteWrapperSuffix(out)
+		out.WriteString(")\n")
+		out.WriteString("            }\n")
 	}
-	out.WriteString("unimplemented!(\"")
-	out.WriteString(message)
-	out.WriteString("\")")
-	return true
+	out.WriteString("        } else {\n")
+	out.WriteString("            (")
+	writeLocalInterfaceAssertionWrappedNone(out, ifaceName)
+	out.WriteString(", ")
+	WriteWrapperPrefix(out)
+	out.WriteString("false")
+	WriteWrapperSuffix(out)
+	out.WriteString(")\n")
+	out.WriteString("        }\n")
+	out.WriteString("    })")
+}
+
+func writeAnonInterfaceTraitAssertionValue(out *strings.Builder, e *ast.TypeAssertExpr, sourceTrait string, ifaceName string, candidates []localInterfaceAssertionCandidate) {
+	out.WriteString("({\n")
+	out.WriteString("        let val = ")
+	writeTypeAssertionInputClone(out, e.X)
+	out.WriteString(";\n")
+	out.WriteString("        let guard = val")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString("        if let Some(ref any_val) = *guard {\n")
+	for i, candidate := range candidates {
+		if i == 0 {
+			out.WriteString("            if let Some(typed_val) = ")
+		} else {
+			out.WriteString(" else if let Some(typed_val) = ")
+		}
+		writeLocalInterfaceAssertionDowncast(out, sourceTrait, candidate.rustType)
+		out.WriteString(" {\n")
+		out.WriteString("                ")
+		writeLocalInterfaceAssertionWrappedSuccess(out, ifaceName)
+		out.WriteString("\n")
+		out.WriteString("            }")
+	}
+	if len(candidates) > 0 {
+		out.WriteString(" else {\n")
+		out.WriteString("                panic!(\"type assertion failed\")\n")
+		out.WriteString("            }\n")
+	} else {
+		out.WriteString("            panic!(\"type assertion failed\")\n")
+	}
+	out.WriteString("        } else {\n")
+	out.WriteString("            panic!(\"type assertion on nil interface\")\n")
+	out.WriteString("        }\n")
+	out.WriteString("    })")
 }
 
 func writeLocalInterfaceAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, ifaceName string, sourceType types.Type, candidates []localInterfaceAssertionCandidate) {
@@ -14034,8 +14107,8 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		return
 	}
 
-	if sourceType, candidates, ok := anonInterfaceAssertionTarget(e); ok {
-		writeAnonInterfaceAssertionCommaOk(out, e, sourceType, candidates)
+	if sourceType, iface, candidates, ok := anonInterfaceAssertionTarget(e); ok {
+		writeAnonInterfaceAssertionCommaOk(out, e, sourceType, iface, candidates)
 		return
 	}
 
@@ -14738,10 +14811,6 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	// Check if this is a method call (selector expression)
 	if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
 		RegisterExternalSelectorMethod(sel)
-
-		if writeUnsupportedAnonInterfaceAssertionMethodCall(out, call, sel) {
-			return
-		}
 
 		// First check if this is a package function call
 		isPackageCall := false

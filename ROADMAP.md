@@ -94,7 +94,7 @@ Type aliases/definitions, struct tags, embedding, anonymous structs (basic, func
 - ✅ Named integer bitwise operations - local defined integer bitmasks emit `BitXor` alongside `BitAnd`/`BitOr`, bitwise expressions wrap primitive results back into the named newtype, and same-type `^=` updates clone the current named value before assignment (named_integer_bitwise_xor_assign added, 2026-05-10)
 - ✅ Defer statements - fully working with proper LIFO execution, variable capture, and function-literal-local defer state
 - 🚧 Panic and recover - basic panic working, recover emits a nil empty-interface-shaped value, and catch_unwind integration is still needed
-- ✅ Interfaces - empty interface{} and named interfaces working with trait generation (2025-09-04)
+- ✅ Interfaces - empty interface{} and named interfaces working with trait generation, plus anonymous method-set interface assertions through synthesized trait objects when go/types finds multiple concrete implementors (2025-09-04, updated 2026-05-31)
 - ✅ VarTable selective wrapping - scope-aware variable tracking, interface params as bare `&dyn Trait` (2026-03-05)
 - ✅ Local interface trait-object helpers - generated local interface traits now clone boxed values, compare interface values, store concrete values in interface fields, return interface globals, and support `slices.Contains` over interface slices (local_interface_equality_contains promoted, 2026-05-08)
 - ✅ Typed constants as local interface arguments - package constants with named concrete types construct that named type before passing `&dyn Trait` parameters (cross_file_interface_typed_const_argument added, 2026-05-09)

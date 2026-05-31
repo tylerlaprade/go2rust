@@ -367,6 +367,56 @@ func tagName(x Expr) string {
 	}
 }
 
+func TestAnonymousInterfaceAssertionWithMultipleImplementorsSynthesizesTrait(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type reader interface {
+	read() int
+}
+
+type file struct{}
+
+func (file) read() int {
+	return 1
+}
+
+func (file) name() string {
+	return "file"
+}
+
+type buffer struct{}
+
+func (buffer) read() int {
+	return 2
+}
+
+func (buffer) name() string {
+	return "buffer"
+}
+
+func label(rc reader) string {
+	if n, ok := rc.(interface{ name() string }); ok {
+		return n.name()
+	}
+	return ""
+}
+`)
+
+	if strings.Contains(rust, "unimplemented!(\"type info required: comma-ok assertion to anonymous interface") {
+		t.Fatalf("anonymous interface assertion should not fall back to an unimplemented multi-candidate path:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub trait GoAnonymousInterface1") {
+		t.Fatalf("anonymous interface assertion should synthesize a Rust trait:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl GoAnonymousInterface1 for buffer") ||
+		!strings.Contains(rust, "impl GoAnonymousInterface1 for file") {
+		t.Fatalf("anonymous interface assertion should implement the synthetic trait for every typed candidate:\n%s", rust)
+	}
+	if !strings.Contains(rust, "as Box<dyn GoAnonymousInterface1") {
+		t.Fatalf("anonymous interface assertion should box successful candidates as the synthetic trait object:\n%s", rust)
+	}
+}
+
 func TestAnyAssertionToPackageInterfaceUsesConcreteCandidates(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
