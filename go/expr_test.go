@@ -1016,6 +1016,24 @@ func Nodes() []Node {
 	}
 }
 
+func TestAppendConcreteValueToEmptyInterfaceSliceBoxesBareAny(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func add(list []any, n int) []any {
+	return append(list, n)
+}
+`)
+
+	if strings.Contains(rust, ".push((*n.borrow().as_ref().unwrap()).clone())") ||
+		strings.Contains(rust, ".push((*n.lock().unwrap().as_ref().unwrap()).clone())") {
+		t.Fatalf("append of concrete value to []any should not push the concrete value directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".push(Box::new((*n.borrow().as_ref().unwrap()).clone()) as Box<dyn Any") &&
+		!strings.Contains(rust, ".push(Box::new((*n.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any") {
+		t.Fatalf("append of concrete value to []any should box the concrete value:\n%s", rust)
+	}
+}
+
 func TestConcurrentRealImagUseComplexHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

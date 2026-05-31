@@ -3702,6 +3702,12 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 				if writeNilStdlibInterfaceBareValue(out, expr, elemType) {
 					return
 				}
+				if isEmptyInterfaceType(elemType) && !isEmptyInterfaceValueExpr(expr) {
+					if nilIdent, ok := expr.(*ast.Ident); !ok || nilIdent.Name != "nil" {
+						writeBareAnyBox(out, expr)
+						return
+					}
+				}
 				if writeStdlibInterfaceBareConversion(out, expr, elemType) {
 					return
 				}
