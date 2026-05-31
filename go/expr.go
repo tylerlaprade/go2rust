@@ -8107,7 +8107,65 @@ func methodCallNeedsMutableReceiver(sel *ast.SelectorExpr) bool {
 	if mutable, ok := packageMethodReceiverMutabilityForSelector(sel); ok {
 		return mutable
 	}
+	if mutable, ok := concreteAssertionMethodReceiverMutability(sel); ok {
+		return mutable
+	}
 	return typeInfo.HasPointerReceiver(sel)
+}
+
+func concreteAssertionMethodReceiverMutability(sel *ast.SelectorExpr) (bool, bool) {
+	if sel == nil {
+		return false, false
+	}
+	ident, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return false, false
+	}
+	info := lookupVarInfo(ident.Name)
+	if info == nil || info.GoType == nil {
+		return false, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false, false
+	}
+	obj, _, _ := types.LookupFieldOrMethod(info.GoType, true, typeInfo.pkg, sel.Sel.Name)
+	fn, ok := obj.(*types.Func)
+	if !ok {
+		return false, false
+	}
+	if mutable, ok := concreteMethodReceiverMutability(fn); ok {
+		return mutable, true
+	}
+	return methodFuncHasPointerReceiver(fn), true
+}
+
+func concreteMethodReceiverMutability(fn *types.Func) (bool, bool) {
+	key := methodOverrideKey(fn)
+	if key == "" {
+		return false, false
+	}
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.methodMutableReceiverMap != nil {
+		if mutable, ok := typeInfo.methodMutableReceiverMap[key]; ok {
+			return mutable, true
+		}
+	}
+	if mutable, ok := packageMethodReceiverMutability[key]; ok {
+		return mutable, true
+	}
+	return false, false
+}
+
+func methodFuncHasPointerReceiver(fn *types.Func) bool {
+	if fn == nil {
+		return false
+	}
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok || sig.Recv() == nil {
+		return false
+	}
+	_, ok = sig.Recv().Type().(*types.Pointer)
+	return ok
 }
 
 func methodReceiverPointeeRustType(expr ast.Expr) string {

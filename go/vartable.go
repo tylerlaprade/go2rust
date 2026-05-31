@@ -1,5 +1,7 @@
 package main
 
+import "go/types"
+
 // WrapLevel describes how a variable is wrapped in the generated Rust code.
 type WrapLevel int
 
@@ -35,6 +37,7 @@ type VarInfo struct {
 	Source      VarSource
 	IsRef       bool // true for &dyn Trait params
 	PointerKind PointerKind
+	GoType      types.Type
 }
 
 // Scope holds variables at one nesting level.

@@ -5479,6 +5479,34 @@ func useReturn(orig Type) genericType {
 	}
 }
 
+func TestAnonymousInterfaceAssertionPointerMethodCallUsesMutableBorrow(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Alias struct {
+	params []int
+}
+
+func (a *Alias) SetTypeParams(params []int) {
+	a.params = params
+}
+
+func setTypeParams(alias *Alias, params []int) {
+	if alias, ok := any(alias).(interface {
+		SetTypeParams(params []int)
+	}); ok {
+		alias.SetTypeParams(params)
+	}
+}
+`)
+
+	if strings.Contains(rust, ".as_ref().unwrap()).set_type_params") {
+		t.Fatalf("anonymous interface assertion method call should not borrow pointer receiver immutably:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".as_mut().unwrap()).set_type_params") {
+		t.Fatalf("anonymous interface assertion method call should borrow the asserted concrete handle mutably:\n%s", rust)
+	}
+}
+
 func TestConcreteErrorAssertionMethodCallUnwrapsReceiver(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

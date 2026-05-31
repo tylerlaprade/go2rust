@@ -1583,6 +1583,53 @@ func registerCallTupleResultSyntaxInfo(lhs []ast.Expr, call *ast.CallExpr) {
 	}
 }
 
+func varInfoForStaticallyKnownInterfaceAssertionSource(typeAssert *ast.TypeAssertExpr) (*VarInfo, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeAssert == nil {
+		return nil, false
+	}
+	source, ok := staticallyKnownAnyInterfaceAssertionSource(typeAssert)
+	if !ok {
+		source, ok = staticallyKnownInterfaceAssertionSource(typeAssert)
+	}
+	if !ok || source == nil {
+		return nil, false
+	}
+	sourceType := typeInfo.GetType(source)
+	if sourceType == nil {
+		return nil, false
+	}
+	info := &VarInfo{
+		WrapLevel: WrapFull,
+		RustType:  goTypesTypeToRust(sourceType),
+		Source:    SourceLocal,
+		GoType:    sourceType,
+	}
+	if ident, ok := source.(*ast.Ident); ok {
+		if sourceInfo := lookupVarInfo(ident.Name); sourceInfo != nil {
+			clone := *sourceInfo
+			clone.Source = SourceLocal
+			clone.GoType = sourceType
+			info = &clone
+		}
+	}
+	return info, true
+}
+
+func registerTypeAssertionResultInfo(lhs ast.Expr, typeAssert *ast.TypeAssertExpr) {
+	ident, ok := lhs.(*ast.Ident)
+	if !ok || ident.Name == "_" {
+		return
+	}
+	info, ok := varInfoForStaticallyKnownInterfaceAssertionSource(typeAssert)
+	if !ok {
+		return
+	}
+	if vt := GetVarTable(); vt != nil {
+		vt.Register(ident.Name, info)
+	}
+}
+
 func callResultTupleFromTypeInfo(call *ast.CallExpr) (*types.Tuple, bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil && call != nil {
@@ -9058,6 +9105,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 				// Generate type assertion code with comma-ok
 				TranspileTypeAssertionCommaOk(out, typeAssert)
+				if s.Tok == token.DEFINE {
+					registerTypeAssertionResultInfo(s.Lhs[0], typeAssert)
+				}
 			} else if isMapAccess && needsTupleUnpack {
 				// Handle map access with existence check
 				indexExpr := s.Rhs[0].(*ast.IndexExpr)
