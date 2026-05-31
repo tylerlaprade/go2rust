@@ -342,6 +342,7 @@ func (ut *UnifiedTranspiler) transpilePackage(pkg *PackageInfo) error {
 	pkgState.MethodsByType = collectPackageMethods(pkg.ASTFiles)
 	packageAnalysis := analyzeTranspileFiles(pkg.ASTFiles, ut.globalTypeInfo)
 	pkgState.MapKeyStructTypes = packageAnalysis.mapKeyStructTypes
+	pkgState.ComparableStructTypes = packageAnalysis.comparableStructTypes
 	pkgState.ImportedInterfaceImpls = packageAnalysis.importedInterfaceImpls
 	pkgState.ExternalLocalInterfaceImpls = packageAnalysis.externalLocalInterfaceImpls(collectPackageInterfaceDecls(pkg.ASTFiles))
 	runCtx := &TranspileContext{

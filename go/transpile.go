@@ -1820,8 +1820,14 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	packageGlobalNames = make(map[string]bool)
 	prevComparableStructTypes := comparableStructTypes
 	prevLocalInterfaceEqualityTypes := localInterfaceEqualityTypes
-	comparableStructTypes = fileAnalysis.comparableStructTypes
+	comparableStructTypes = make(map[string]bool)
+	for name := range fileAnalysis.comparableStructTypes {
+		comparableStructTypes[name] = true
+	}
 	if currentContext != nil && currentContext.Package != nil {
+		for name := range currentContext.Package.ComparableStructTypes {
+			comparableStructTypes[name] = true
+		}
 		for name := range currentContext.Package.MapKeyStructTypes {
 			comparableStructTypes[name] = true
 		}

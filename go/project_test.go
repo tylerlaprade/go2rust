@@ -3404,6 +3404,46 @@ func lookup(s *scope) int {
 	}
 }
 
+func TestExternalComparableStructUsedByEqualityGetsPartialEq(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+type Type interface {
+	String() string
+}
+
+type Pointer struct {
+	Base Type
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/mainmod/dep"
+
+func used(p *dep.Pointer) bool {
+	go func() {}()
+	return *p != (dep.Pointer{})
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	depRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_mainmod_dep", "mod.rs"))
+	if !strings.Contains(depRS, "impl PartialEq for Pointer") {
+		t.Fatalf("external comparable struct used by equality should get PartialEq in its defining crate, got:\n%s", depRS)
+	}
+	if !strings.Contains(depRS, "__left.as_ref().__go_eq_type_(__right.as_ref())") {
+		t.Fatalf("external comparable struct interface field should use interface equality helper, got:\n%s", depRS)
+	}
+}
+
 func TestConcurrentStructDisplayAnySliceUsesAnyFormatter(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

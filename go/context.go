@@ -32,6 +32,7 @@ type PackageState struct {
 	SliceElemPtrSliceReturnFuncs  map[*types.Func]sliceElemPtrSliceReturnInfo
 	SliceElemPtrSliceParamFuncs   map[*types.Func]map[int]string
 	MapKeyStructTypes             map[string]bool
+	ComparableStructTypes         map[string]bool
 	PackageConstants              map[string]string
 	PackageConstantTypeNames      map[string]string
 	ConstantNameOverrides         map[string]string
@@ -132,6 +133,7 @@ func NewPackageState() *PackageState {
 		SliceElemPtrSliceReturnFuncs:  make(map[*types.Func]sliceElemPtrSliceReturnInfo),
 		SliceElemPtrSliceParamFuncs:   make(map[*types.Func]map[int]string),
 		MapKeyStructTypes:             make(map[string]bool),
+		ComparableStructTypes:         make(map[string]bool),
 		PackageConstants:              make(map[string]string),
 		PackageConstantTypeNames:      make(map[string]string),
 		ConstantNameOverrides:         make(map[string]string),

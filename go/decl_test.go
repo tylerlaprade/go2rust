@@ -195,6 +195,34 @@ func seen(t Node) bool {
 	}
 }
 
+func TestConcurrentComparableStructWithInterfaceFieldGetsCustomPartialEq(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Type interface {
+	String() string
+}
+
+type Pointer struct {
+	base Type
+}
+
+func used(p *Pointer) bool {
+	go func() {}()
+	return *p != (Pointer{})
+}
+`)
+
+	if !strings.Contains(rust, "impl PartialEq for Pointer") {
+		t.Fatalf("comparable struct with interface field should get custom PartialEq:\n%s", rust)
+	}
+	if strings.Contains(rust, "#[derive(Clone, Default, PartialEq)]") {
+		t.Fatalf("comparable struct with interface field should not derive PartialEq over trait fields:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__left.as_ref().__go_eq_type_(__right.as_ref())") {
+		t.Fatalf("comparable struct with interface field should use interface equality helper:\n%s", rust)
+	}
+}
+
 func TestTranspileGenericInterfaceConstrainedFunctionEmitsRustTypeParam(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

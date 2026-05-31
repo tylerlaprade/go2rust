@@ -248,6 +248,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	}
 	packageState := NewPackageState()
 	packageState.MapKeyStructTypes = packageAnalysis.mapKeyStructTypes
+	packageState.ComparableStructTypes = packageAnalysis.comparableStructTypes
 	pg.usePackageHelpers = len(astFiles) > 1
 	runCtx := &TranspileContext{
 		Session:                 NewTranspileSession(pg.typeInfo, pg.packageMapping),

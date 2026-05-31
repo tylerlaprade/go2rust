@@ -543,8 +543,8 @@ func writeStructDerive(out *strings.Builder, structName string, structType *ast.
 	hasTraitField := structHasTraitField(structType)
 	canDeriveDebug := !hasTraitField && structCanDeriveDebug(structType)
 	needsCustomDefault := structNeedsCustomDefault(structType)
-	needsPartialEq := !hasTraitField && structName != "" && comparableStructTypes[structName]
-	derivePartialEq := needsPartialEq && !structNeedsCustomPartialEq(structName, structType)
+	needsPartialEq := structName != "" && comparableStructTypes[structName]
+	derivePartialEq := needsPartialEq && !hasTraitField && !structNeedsCustomPartialEq(structName, structType)
 	deriveOrd := derivePartialEq && structNeedsOrd(structName)
 
 	var traits []string

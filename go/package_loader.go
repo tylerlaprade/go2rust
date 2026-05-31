@@ -21,6 +21,7 @@ type PackageLoader struct {
 	allPackages         map[string]*packages.Package // import path -> package
 	packageMapping      map[string]string            // Go import -> Rust crate name
 	packageStates       map[string]*PackageState
+	comparableByPackage map[string]map[string]bool
 	concurrencyDetector *ConcurrencyDetector
 	fileSet             *token.FileSet
 }
@@ -31,10 +32,11 @@ const sourceStdlibPackagesEnv = "GO2RUST_SOURCE_STDLIB_PACKAGES"
 // NewPackageLoader creates a new package loader
 func NewPackageLoader(workDir string) *PackageLoader {
 	return &PackageLoader{
-		workDir:        workDir,
-		allPackages:    make(map[string]*packages.Package),
-		packageMapping: make(map[string]string),
-		packageStates:  make(map[string]*PackageState),
+		workDir:             workDir,
+		allPackages:         make(map[string]*packages.Package),
+		packageMapping:      make(map[string]string),
+		packageStates:       make(map[string]*PackageState),
+		comparableByPackage: make(map[string]map[string]bool),
 	}
 }
 
@@ -499,6 +501,7 @@ func (pl *PackageLoader) TranspileAll() error {
 	// them). Trait defs, impls, and dispatch call sites all consult this.
 	registerInterfaceMethodMutableReceivers(allPackageTypes)
 	SetSourceFunctionDeclsByFunc(pl.collectSourceFunctionDeclsByFunc())
+	pl.comparableByPackage = pl.collectComparableStructTypesByPackage()
 
 	// Transpile external packages first
 	for _, pkgPath := range pl.orderedPackagePaths() {
@@ -539,6 +542,50 @@ func (pl *PackageLoader) collectSourceFunctionDeclsByFunc() map[*types.Func]sour
 		}
 	}
 	return decls
+}
+
+func (pl *PackageLoader) collectComparableStructTypesByPackage() map[string]map[string]bool {
+	result := make(map[string]map[string]bool)
+	for _, pkgPath := range pl.orderedAllPackagePaths() {
+		pkg := pl.allPackages[pkgPath]
+		if pkg == nil || pkg.TypesInfo == nil || pkg.Types == nil {
+			continue
+		}
+		typeInfo := &TypeInfo{
+			info: pkg.TypesInfo,
+			pkg:  pkg.Types,
+		}
+		for _, file := range pkg.Syntax {
+			ast.Inspect(file, func(n ast.Node) bool {
+				expr, ok := n.(*ast.BinaryExpr)
+				if !ok || expr.Op != token.EQL && expr.Op != token.NEQ {
+					return true
+				}
+				markComparableStructTypeByPackage(result, typeInfo.GetType(expr.X))
+				markComparableStructTypeByPackage(result, typeInfo.GetType(expr.Y))
+				return true
+			})
+		}
+	}
+	return result
+}
+
+func markComparableStructTypeByPackage(result map[string]map[string]bool, typ types.Type) {
+	if typ == nil {
+		return
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return
+	}
+	if _, ok := named.Underlying().(*types.Struct); !ok {
+		return
+	}
+	pkgPath := named.Obj().Pkg().Path()
+	if result[pkgPath] == nil {
+		result[pkgPath] = make(map[string]bool)
+	}
+	result[pkgPath][named.Obj().Name()] = true
 }
 
 func (pl *PackageLoader) buildWorkspaceConcurrencyDetector() *ConcurrencyDetector {
@@ -637,6 +684,13 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	defer SetTypeInfo(parentTypeInfo)
 	packageAnalysis := analyzeTranspileFiles(pkg.Syntax, pkgTypeInfo)
 	pkgState.MapKeyStructTypes = packageAnalysis.mapKeyStructTypes
+	pkgState.ComparableStructTypes = make(map[string]bool)
+	for name := range packageAnalysis.comparableStructTypes {
+		pkgState.ComparableStructTypes[name] = true
+	}
+	for name := range pl.comparableByPackage[pkg.PkgPath] {
+		pkgState.ComparableStructTypes[name] = true
+	}
 
 	// Generate lib.rs with all modules
 	var libRs strings.Builder
