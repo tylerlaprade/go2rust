@@ -1914,6 +1914,27 @@ func writeRangeBinding(out *strings.Builder, expr ast.Expr, mutable bool) {
 	TranspileExpression(out, expr)
 }
 
+func rangeAssignmentTempName(expr ast.Expr, fallback string) string {
+	if expr == nil {
+		return ""
+	}
+	if ident, ok := expr.(*ast.Ident); ok {
+		if ident.Name == "_" {
+			return ""
+		}
+		return "__range_" + ToSnakeCase(ident.Name)
+	}
+	return fallback
+}
+
+func writeRangePatternBinding(out *strings.Builder, expr ast.Expr, mutable bool, tempName string) {
+	if tempName != "" {
+		out.WriteString(tempName)
+		return
+	}
+	writeRangeBinding(out, expr, mutable)
+}
+
 func shortDeclNames(stmt ast.Stmt) []string {
 	assign, ok := stmt.(*ast.AssignStmt)
 	if !ok || assign.Tok != token.DEFINE {
@@ -10908,6 +10929,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		var keyName, valueName string
 		keyAssigned := false
 		valueAssigned := false
+		rangeAssignsExisting := s.Tok == token.ASSIGN
 
 		// Use type information to determine what we're iterating over
 		isMap := false
@@ -11125,6 +11147,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if !isMap {
 			keyRangeVarType = keyType
 		}
+		keyBindingTemp := ""
+		valueBindingTemp := ""
+		if rangeAssignsExisting {
+			keyBindingTemp = rangeAssignmentTempName(s.Key, "__range_key")
+			valueBindingTemp = rangeAssignmentTempName(s.Value, "__range_value")
+		}
 
 		var popRangeVarScope func()
 		if vt := GetVarTable(); vt != nil {
@@ -11132,20 +11160,33 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			popRangeVarScope = vt.PopScope
 		}
 
+		keyRangeRegistered := false
+		keyTempRegistered := false
+		valueRangeRegistered := false
+		valueTempRegistered := false
 		if s.Key != nil {
 			if ident, ok := s.Key.(*ast.Ident); ok {
 				keyName = ident.Name
-				rangeLoopVars[keyName] = keyRangeVarType
-				keyAssigned = rangeLoopIdentAssigned(s.Body, keyName)
-				if keyName != "_" {
-					if vt := GetVarTable(); vt != nil {
-						vt.Register(keyName, &VarInfo{
-							WrapLevel: WrapNone,
-							RustType:  keyRangeVarType,
-							Source:    SourceRangeKey,
-						})
+				keyAssigned = !rangeAssignsExisting && rangeLoopIdentAssigned(s.Body, keyName)
+				if keyBindingTemp != "" {
+					rangeLoopVars[keyBindingTemp] = keyRangeVarType
+					keyTempRegistered = true
+				} else {
+					rangeLoopVars[keyName] = keyRangeVarType
+					keyRangeRegistered = true
+					if keyName != "_" {
+						if vt := GetVarTable(); vt != nil {
+							vt.Register(keyName, &VarInfo{
+								WrapLevel: WrapNone,
+								RustType:  keyRangeVarType,
+								Source:    SourceRangeKey,
+							})
+						}
 					}
 				}
+			} else if keyBindingTemp != "" {
+				rangeLoopVars[keyBindingTemp] = keyRangeVarType
+				keyTempRegistered = true
 			}
 		}
 		// Track whether we need .copied() on the iterator to get owned values
@@ -11154,7 +11195,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		if s.Value != nil {
 			if ident, ok := s.Value.(*ast.Ident); ok {
 				valueName = ident.Name
-				valueAssigned = rangeLoopIdentAssigned(s.Body, valueName)
+				valueAssigned = !rangeAssignsExisting && rangeLoopIdentAssigned(s.Body, valueName)
 				registeredValueType := valueType
 				// When using iter().enumerate(), the value is a reference
 				// For basic/Copy types, use .copied() to get owned values
@@ -11198,40 +11239,63 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 				} else if valueAssigned && strings.HasPrefix(valueType, "&") {
 					registeredValueType = strings.TrimPrefix(valueType, "&")
-				} else if isString && valueAssigned && valueName != "_" {
+				} else if !rangeAssignsExisting && isString && valueAssigned && valueName != "_" {
 					registeredValueType = "i32"
 					stringRangeValueTemp = "__range_" + ToSnakeCase(valueName)
 					rangePrelude = fmt.Sprintf("        let mut %s = %s as i32;\n", RustLocalIdent(valueName), stringRangeValueTemp)
 				} else {
 					registeredValueType = valueType
 				}
-				rangeLoopVars[valueName] = registeredValueType
-				if valueName != "_" {
-					if vt := GetVarTable(); vt != nil {
-						vt.Register(valueName, &VarInfo{
-							WrapLevel: WrapNone,
-							RustType:  registeredValueType,
-							Source:    SourceRangeVal,
-						})
+				if valueBindingTemp != "" {
+					rangeLoopVars[valueBindingTemp] = registeredValueType
+					valueTempRegistered = true
+				} else {
+					rangeLoopVars[valueName] = registeredValueType
+					valueRangeRegistered = true
+					if valueName != "_" {
+						if vt := GetVarTable(); vt != nil {
+							vt.Register(valueName, &VarInfo{
+								WrapLevel: WrapNone,
+								RustType:  registeredValueType,
+								Source:    SourceRangeVal,
+							})
+						}
 					}
 				}
+			} else if valueBindingTemp != "" {
+				rangeLoopVars[valueBindingTemp] = valueType
+				valueTempRegistered = true
 			}
 		}
+		writeRangeKeyBinding := func() {
+			writeRangePatternBinding(out, s.Key, keyAssigned, keyBindingTemp)
+		}
+		writeRangeValueBinding := func() {
+			writeRangePatternBinding(out, s.Value, valueAssigned, valueBindingTemp)
+		}
 		writeMapRangeKeyBinding := func() {
+			if keyBindingTemp != "" {
+				out.WriteString(keyBindingTemp)
+				return
+			}
 			if (mapKeyNeedsValueBinding || mapKeyNeedsWrappedBinding) && keyName != "" && keyName != "_" {
 				out.WriteString("__range_key")
 				return
 			}
-			writeRangeBinding(out, s.Key, keyAssigned)
+			writeRangeKeyBinding()
 		}
 		writeStringRangeValueBinding := func() {
+			if valueBindingTemp != "" {
+				out.WriteString(valueBindingTemp)
+				return
+			}
 			if stringRangeValueTemp != "" {
 				out.WriteString(stringRangeValueTemp)
 				return
 			}
-			writeRangeBinding(out, s.Value, valueAssigned)
+			writeRangeValueBinding()
 		}
-		if (mapKeyNeedsValueBinding || mapKeyNeedsWrappedBinding) && keyName != "" && keyName != "_" {
+		if !rangeAssignsExisting && (mapKeyNeedsValueBinding || mapKeyNeedsWrappedBinding) && keyName != "" && keyName != "_" {
 			var prelude strings.Builder
 			prelude.WriteString("        let ")
 			if keyAssigned {
@@ -11248,6 +11312,29 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 			prelude.WriteString(";\n")
 			rangePrelude = prelude.String()
+		}
+		appendRangeAssignmentPrelude := func(target ast.Expr, tempName string) {
+			if target == nil || tempName == "" {
+				return
+			}
+			var prelude strings.Builder
+			prelude.WriteString("        ")
+			assign := &ast.AssignStmt{
+				Lhs: []ast.Expr{target},
+				Tok: token.ASSIGN,
+				Rhs: []ast.Expr{ast.NewIdent(tempName)},
+			}
+			TranspileStatement(&prelude, assign, fnType, fileSet, comments, nil, "        ")
+			if strings.HasSuffix(strings.TrimSpace(prelude.String()), ";") {
+				prelude.WriteString("\n")
+			} else {
+				prelude.WriteString(";\n")
+			}
+			rangePrelude += prelude.String()
+		}
+		if rangeAssignsExisting {
+			appendRangeAssignmentPrelude(s.Key, keyBindingTemp)
+			appendRangeAssignmentPrelude(s.Value, valueBindingTemp)
 		}
 		writeMapRangeSource := func() {
 			if isExpressionResultBare(s.X) || (!NeedsConcurrentWrapper() && isBareMapSelectorExpression(s.X)) {
@@ -11277,11 +11364,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString("unimplemented!(\"invalid integer range\")")
 			} else {
 				if s.Key != nil {
-					if ident, ok := s.Key.(*ast.Ident); ok {
-						writeRangeBinding(out, ident, keyAssigned)
-					} else {
-						TranspileExpression(out, s.Key)
-					}
+					writeRangeKeyBinding()
 				} else {
 					out.WriteString("_")
 				}
@@ -11297,7 +11380,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if s.Key != nil && s.Value != nil {
 				// for i, c := range str
 				out.WriteString("(")
-				writeRangeBinding(out, s.Key, keyAssigned)
+				writeRangeKeyBinding()
 				out.WriteString(", ")
 				writeStringRangeValueBinding()
 				if isBareStringRangeSource {
@@ -11336,7 +11419,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			} else if s.Key != nil {
 				// for i := range str
 				out.WriteString("(")
-				writeRangeBinding(out, s.Key, keyAssigned)
+				writeRangeKeyBinding()
 				out.WriteString(", _) in ")
 				if isBareStringRangeSource {
 					TranspileExpression(out, s.X)
@@ -11375,13 +11458,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString("(")
 				writeMapRangeKeyBinding()
 				out.WriteString(", ")
-				writeRangeBinding(out, s.Value, valueAssigned)
+				writeRangeValueBinding()
 				out.WriteString(") in ")
 				writeMapRangeSource()
 			} else if s.Value != nil {
 				// for _, v := range map (values only)
 				out.WriteString("(_, ")
-				writeRangeBinding(out, s.Value, valueAssigned)
+				writeRangeValueBinding()
 				out.WriteString(") in ")
 				writeMapRangeSource()
 			} else if s.Key != nil {
@@ -11401,7 +11484,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				// Check if key is blank identifier
 				if keyIdent, ok := s.Key.(*ast.Ident); ok && keyIdent.Name == "_" {
 					// for _, v := range arr - just iterate values
-					writeRangeBinding(out, s.Value, valueAssigned)
+					writeRangeValueBinding()
 					// For numeric/bool (Rust Copy) types, use .iter().copied()
 					// to get owned values instead of &(...) which gives references
 					elemTypeV := rangeArrayOrSliceElemType(s.X)
@@ -11455,9 +11538,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					// for i, v := range arr
 					out.WriteString("(")
 					// Just output the identifier names, don't wrap them
-					writeRangeBinding(out, s.Key, keyAssigned)
+					writeRangeKeyBinding()
 					out.WriteString(", ")
-					writeRangeBinding(out, s.Value, valueAssigned)
+					writeRangeValueBinding()
 					out.WriteString(") in ")
 					// Need to unwrap the collection
 					if rangeValuesVar != "" {
@@ -11477,7 +11560,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 			} else if s.Value != nil {
 				// for _, v := range arr
-				writeRangeBinding(out, s.Value, valueAssigned)
+				writeRangeValueBinding()
 				// For numeric/bool (Rust Copy) types, use .iter().copied()
 				elemTypeV2 := rangeArrayOrSliceElemType(s.X)
 				valCopied2 := rangeElementUsesCopiedForExpr(s.X, elemTypeV2)
@@ -11528,7 +11611,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 			} else if s.Key != nil {
 				// for i := range arr
-				writeRangeBinding(out, s.Key, keyAssigned)
+				writeRangeKeyBinding()
 				out.WriteString(" in 0..(")
 				if rangeValuesVar != "" {
 					out.WriteString(rangeValuesVar)
@@ -11569,11 +11652,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		}
 
 		// Clean up range loop variables
-		if keyName != "" {
+		if keyRangeRegistered && keyName != "" {
 			delete(rangeLoopVars, keyName)
 		}
-		if valueName != "" {
+		if keyTempRegistered && keyBindingTemp != "" {
+			delete(rangeLoopVars, keyBindingTemp)
+		}
+		if valueRangeRegistered && valueName != "" {
 			delete(rangeLoopVars, valueName)
+		}
+		if valueTempRegistered && valueBindingTemp != "" {
+			delete(rangeLoopVars, valueBindingTemp)
 		}
 		if popRangeVarScope != nil {
 			popRangeVarScope()

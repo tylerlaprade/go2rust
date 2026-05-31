@@ -4386,6 +4386,37 @@ func findInSlice(slice []int, target int) (int, bool) {
 	}
 }
 
+func TestAssignedRangeIndexNamedReturnKeepsWrappedResult(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func write(data []byte) (n int, err error) {
+	var b byte
+	for n, b = range data {
+		if b == 0 {
+			return n, err
+		}
+	}
+	return
+}
+`)
+
+	if strings.Contains(rust, "for (n, b) in") {
+		t.Fatalf("range assignment should not shadow existing result and local handles:\n%s", rust)
+	}
+	if !strings.Contains(rust, "for (__range_n, __range_b) in") {
+		t.Fatalf("range assignment should bind loop temporaries before assigning existing variables:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = __range_n as i32; *n.borrow_mut() = Some(new_val);") {
+		t.Fatalf("range assignment should store the usize key into the named result handle as Go int:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = __range_b; *b.borrow_mut() = Some(new_val);") {
+		t.Fatalf("range assignment should store the byte value into the existing local handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "return (n as i32") {
+		t.Fatalf("explicit return should read the named result handle, not a shadowing usize range key:\n%s", rust)
+	}
+}
+
 func TestRangeIndexComparedWithBareScalarCallCastsToI32(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
