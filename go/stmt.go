@@ -5077,6 +5077,24 @@ func assignmentTargetIsEmptyInterface(expr ast.Expr) bool {
 	return isEmptyInterfaceValueExpr(expr)
 }
 
+func writeEmptyInterfaceAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	if !assignmentTargetIsEmptyInterface(lhs) {
+		return false
+	}
+	if writeEmptyInterfaceIdentAssignment(out, lhs, rhs) {
+		return true
+	}
+	out.WriteString("{ ")
+	out.WriteString("let new_val = ")
+	writeInterfaceBoxedValue(out, rhs)
+	out.WriteString("; ")
+	out.WriteString("*")
+	TranspileExpressionContext(out, lhs, LValue)
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(new_val); }")
+	return true
+}
+
 func selectorFieldTypeExpr(sel *ast.SelectorExpr) (ast.Expr, bool) {
 	typeName, ok := selectorBaseSyntaxTypeName(sel.X)
 	if !ok {
@@ -9601,18 +9619,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									} else if isAssignmentSelfWrappingExpression(s.Rhs[0]) {
 										writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
 									} else {
-										if assignmentTargetIsEmptyInterface(s.Lhs[0]) {
-											// Assignment to interface{} - need to box the value
-											if !writeEmptyInterfaceIdentAssignment(out, s.Lhs[0], s.Rhs[0]) {
-												out.WriteString("{ ")
-												out.WriteString("let new_val = ")
-												writeInterfaceBoxedValue(out, s.Rhs[0])
-												out.WriteString("; ")
-												out.WriteString("*")
-												TranspileExpressionContext(out, s.Lhs[0], LValue)
-												WriteBorrowMethod(out, true)
-												out.WriteString(" = Some(new_val); }")
-											}
+										if writeEmptyInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
+											// Assignment to interface{} boxes non-interface values and clones interface handles.
 										} else if writeFunctionTypedIdentFieldAssignment(out, s.Lhs[0], rhsIdent) {
 											// Function-typed values aren't Clone via .as_ref().clone(); share
 											// the outer Arc handle instead.
@@ -9701,7 +9709,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										}
 									}
 
-									if isAppend {
+									if writeEmptyInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
+										// Assignment to interface{} boxes non-interface values before error-call handling.
+									} else if isAppend {
 										if isNamedSliceExpression(s.Rhs[0]) {
 											writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
 										} else {
@@ -9732,18 +9742,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString(" = Some(new_val); }")
 									}
 								} else {
-									if assignmentTargetIsEmptyInterface(s.Lhs[0]) {
-										// Assignment to interface{} - need to box the value
-										if !writeEmptyInterfaceIdentAssignment(out, s.Lhs[0], s.Rhs[0]) {
-											out.WriteString("{ ")
-											out.WriteString("let new_val = ")
-											writeInterfaceBoxedValue(out, s.Rhs[0])
-											out.WriteString("; ")
-											out.WriteString("*")
-											TranspileExpressionContext(out, s.Lhs[0], LValue)
-											WriteBorrowMethod(out, true)
-											out.WriteString(" = Some(new_val); }")
-										}
+									if writeEmptyInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
+										// Assignment to interface{} boxes non-interface values and clones interface handles.
 									} else {
 										// Check if RHS is a wrapped variable - use clone for non-Copy types
 										rhsIsWrappedVar := false

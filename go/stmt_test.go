@@ -5659,6 +5659,37 @@ func underlyingErrorIs(err, target error) bool {
 	}
 }
 
+func TestAnyAssignedErrorThenAssertedErrorUsesAnyBox(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "errors"
+
+func normalize(err any) error {
+	if s, ok := err.(string); ok {
+		err = errors.New(s)
+	}
+	return err.(error)
+}
+`)
+
+	if strings.Contains(rust, "downcast_ref::<error>()") {
+		t.Fatalf("error assertion from any should not use the Go identifier as a Rust type:\n%s", rust)
+	}
+	if strings.Contains(rust, "err = Arc::new(Mutex::new(Some(Box::<dyn std::error::Error") ||
+		strings.Contains(rust, "err = Rc::new(RefCell::new(Some(Box::<dyn std::error::Error") {
+		t.Fatalf("assigning error to any should store a Box<dyn Any>, not an error handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "as Box<dyn Any") {
+		t.Fatalf("assigning error to any should box the dynamic value as any:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::<dyn StdError") {
+		t.Fatalf("asserting any to error should rebuild an error interface value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some(({") || !strings.Contains(rust, "let typed_val = any_val.downcast_ref::<std::string::String>()") {
+		t.Fatalf("error assertion used as an error result should be stored in a wrapped error handle:\n%s", rust)
+	}
+}
+
 func TestPointerAssertionCallArgumentKeepsHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

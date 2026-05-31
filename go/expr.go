@@ -3069,6 +3069,12 @@ func writeGoErrorCallArgument(out *strings.Builder, arg ast.Expr, expected types
 		}
 	}
 	if typeInfo != nil && isGoErrorType(typeInfo.GetType(arg)) {
+		if _, ok := arg.(*ast.TypeAssertExpr); ok {
+			WriteWrapperPrefix(out)
+			TranspileExpression(out, arg)
+			WriteWrapperSuffix(out)
+			return true
+		}
 		TranspileExpression(out, arg)
 		return true
 	}
@@ -10456,10 +10462,15 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Get the Rust type for the assertion
 			rustType := ""
 			assertionReturnsPointer := false
+			targetIsError := false
 			if ident, ok := e.Type.(*ast.Ident); ok {
 				switch ident.Name {
 				case "string":
 					rustType = "String"
+				case "error":
+					TrackImport("Error")
+					rustType = "std::string::String"
+					targetIsError = true
 				case "int":
 					rustType = "i32"
 				case "int8":
@@ -10511,9 +10522,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if assertionReturnsPointer {
 					WriteWrapperPrefix(out)
 				}
-				out.WriteString("val.downcast_ref::<")
-				out.WriteString(rustType)
-				out.WriteString(">().expect(\"type assertion failed\").clone()")
+				writeTypeAssertionExpectBareValue(out, "val", rustType, targetIsError)
 				if assertionReturnsPointer {
 					WriteWrapperSuffix(out)
 				}
@@ -10534,9 +10543,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if assertionReturnsPointer {
 					WriteWrapperPrefix(out)
 				}
-				out.WriteString("val.downcast_ref::<")
-				out.WriteString(rustType)
-				out.WriteString(">().expect(\"type assertion failed\").clone()")
+				writeTypeAssertionExpectBareValue(out, "val", rustType, targetIsError)
 				if assertionReturnsPointer {
 					WriteWrapperSuffix(out)
 				}
@@ -10545,7 +10552,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				return
 			}
 			if typeAssertionSourceUsesTraitObject(e.X) {
-				writeTraitObjectConcreteAssertionValue(out, e, rustType, assertionReturnsPointer)
+				writeTraitObjectConcreteAssertionValue(out, e, rustType, assertionReturnsPointer, targetIsError)
 				return
 			}
 			out.WriteString("({\n")
@@ -10569,9 +10576,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if assertionReturnsPointer {
 				WriteWrapperPrefix(out)
 			}
-			out.WriteString("any_val.downcast_ref::<")
-			out.WriteString(rustType)
-			out.WriteString(">().expect(\"type assertion failed\").clone()")
+			writeTypeAssertionExpectBareValue(out, "any_val", rustType, targetIsError)
 			if assertionReturnsPointer {
 				WriteWrapperSuffix(out)
 			}
@@ -13450,6 +13455,12 @@ func writeLocalInterfaceAssertionDowncast(out *strings.Builder, sourceTrait stri
 
 func writeTypeAssertionSuccessWrappedValue(out *strings.Builder, rustType string, targetIsError bool) {
 	WriteWrapperPrefix(out)
+	writeTypeAssertionSuccessBareValue(out, targetIsError)
+	_ = rustType
+	WriteWrapperSuffix(out)
+}
+
+func writeTypeAssertionSuccessBareValue(out *strings.Builder, targetIsError bool) {
 	if targetIsError {
 		if NeedsConcurrentWrapper() {
 			out.WriteString("Box::<dyn StdError + Send + Sync>::from(typed_val.clone())")
@@ -13459,8 +13470,23 @@ func writeTypeAssertionSuccessWrappedValue(out *strings.Builder, rustType string
 	} else {
 		out.WriteString("typed_val.clone()")
 	}
-	_ = rustType
-	WriteWrapperSuffix(out)
+}
+
+func writeTypeAssertionExpectBareValue(out *strings.Builder, receiver string, rustType string, targetIsError bool) {
+	if targetIsError {
+		out.WriteString("{ let typed_val = ")
+		out.WriteString(receiver)
+		out.WriteString(".downcast_ref::<")
+		out.WriteString(rustType)
+		out.WriteString(">().expect(\"type assertion failed\"); ")
+		writeTypeAssertionSuccessBareValue(out, true)
+		out.WriteString(" }")
+		return
+	}
+	out.WriteString(receiver)
+	out.WriteString(".downcast_ref::<")
+	out.WriteString(rustType)
+	out.WriteString(">().expect(\"type assertion failed\").clone()")
 }
 
 func writeTypeAssertionFailureWrappedValue(out *strings.Builder, rustType string, defaultValue string, targetIsPointer bool) {
@@ -13535,7 +13561,7 @@ func writeTraitObjectConcreteAssertionCommaOk(out *strings.Builder, e *ast.TypeA
 	out.WriteString("    })")
 }
 
-func writeTraitObjectConcreteAssertionValue(out *strings.Builder, e *ast.TypeAssertExpr, rustType string, assertionReturnsPointer bool) {
+func writeTraitObjectConcreteAssertionValue(out *strings.Builder, e *ast.TypeAssertExpr, rustType string, assertionReturnsPointer bool, targetIsError bool) {
 	sourceTrait := typeAssertionSourceTraitObject(e.X)
 	out.WriteString("({\n")
 	if typeAssertionSourceIsTraitObjectRef(e.X) {
@@ -13561,7 +13587,7 @@ func writeTraitObjectConcreteAssertionValue(out *strings.Builder, e *ast.TypeAss
 	if assertionReturnsPointer {
 		WriteWrapperPrefix(out)
 	}
-	out.WriteString("typed_val.clone()")
+	writeTypeAssertionSuccessBareValue(out, targetIsError)
 	if assertionReturnsPointer {
 		WriteWrapperSuffix(out)
 	}
