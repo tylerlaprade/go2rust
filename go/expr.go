@@ -6178,6 +6178,9 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 		out.WriteString(rustAnyTraitObject())
 		return
 	}
+	if writeAnySliceCloneValueBox(out, expr) {
+		return
+	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		RegisterAnyCloneType(typeInfo.GetType(expr))
 	}
@@ -6205,6 +6208,39 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 	}
 	out.WriteString(") as ")
 	out.WriteString(rustAnyTraitObject())
+}
+
+func writeAnySliceCloneValueBox(out *strings.Builder, expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || expr == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	slice, ok := types.Unalias(typ).Underlying().(*types.Slice)
+	if !ok || !isEmptyInterfaceType(slice.Elem()) {
+		return false
+	}
+	NeedAnyClone()
+	out.WriteString("Box::new(")
+	writeAnySliceCloneValue(out, expr)
+	out.WriteString(") as ")
+	out.WriteString(rustAnyTraitObject())
+	return true
+}
+
+func writeAnySliceCloneValue(out *strings.Builder, expr ast.Expr) {
+	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" {
+		out.WriteString("Vec::new()")
+		return
+	}
+	out.WriteString("{ let __slice_holder = ")
+	TranspileExpressionContext(out, expr, LValue)
+	out.WriteString(".clone(); let __slice_guard = __slice_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __slice_guard.as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default() }")
 }
 
 func isEmptyInterfaceValueExpr(expr ast.Expr) bool {

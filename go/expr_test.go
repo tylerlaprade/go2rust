@@ -2140,6 +2140,25 @@ func call(value any) int {
 	}
 }
 
+func TestVariadicAnyArgumentFromAnySliceClonesElements(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func sink(args ...any) int { return len(args) }
+
+func call(values []any) int {
+	return sink(values)
+}
+`)
+
+	if strings.Contains(rust, "Box::new((*values.borrow().as_ref().unwrap()).clone()) as Box<dyn Any") ||
+		strings.Contains(rust, "Box::new((*values.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any") {
+		t.Fatalf("[]any passed as one variadic any argument should not clone the Vec<Box<dyn Any>> directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()") {
+		t.Fatalf("[]any passed as one variadic any argument should clone elements through go_any_clone:\n%s", rust)
+	}
+}
+
 func TestReferenceRangeComparisonDereferencesWithoutTypeInfo(t *testing.T) {
 	expr, err := parser.ParseExpr("num > 6")
 	if err != nil {
