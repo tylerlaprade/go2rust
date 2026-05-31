@@ -4889,6 +4889,9 @@ func writePointerHandleExpression(out *strings.Builder, expr ast.Expr) {
 		TranspileExpressionContext(out, expr, LValue)
 		out.WriteString(".clone()")
 	case *ast.SelectorExpr:
+		if writeSourceMappedPackageGlobalPointerHandleClone(out, e) {
+			return
+		}
 		TranspileExpressionContext(out, expr, LValue)
 		out.WriteString(".clone()")
 	default:
@@ -16444,6 +16447,9 @@ func writeNamedSliceInnerHandleForExpectedType(out *strings.Builder, arg ast.Exp
 }
 
 func writeSelectorHandleClone(out *strings.Builder, sel *ast.SelectorExpr) {
+	if writeSourceMappedPackageGlobalPointerHandleClone(out, sel) {
+		return
+	}
 	out.WriteString("{ let __field = ")
 	TranspileExpressionContext(out, sel, LValue)
 	out.WriteString(".clone(); __field }")

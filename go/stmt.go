@@ -941,6 +941,7 @@ func writePointerArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.
 	case *ast.Ident, *ast.SelectorExpr:
 		if ident, ok := packageGlobalPointerIdent(rhs); ok {
 			writePackageGlobalPointerHandleClone(out, ident)
+		} else if writeSourceMappedPackageGlobalPointerHandleClone(out, rhs) {
 		} else {
 			TranspileExpressionContext(out, rhs, LValue)
 			out.WriteString(".clone()")
@@ -4166,6 +4167,7 @@ func writePointerNamedReturnAssignment(out *strings.Builder, name *ast.Ident, re
 	out.WriteString("{ let new_val = ")
 	if isSliceElementAddress(rhs) {
 		out.WriteString(`unimplemented!("slice element pointer return requires pointer representation support")`)
+	} else if writeSourceMappedPackageGlobalPointerHandleClone(out, rhs) {
 	} else {
 		TranspileExpressionContext(out, rhs, AddressOf)
 		out.WriteString(".clone()")
@@ -4555,6 +4557,9 @@ func writePointerReturnValue(out *strings.Builder, result ast.Expr, expected ast
 	}
 	switch result.(type) {
 	case *ast.Ident, *ast.SelectorExpr:
+		if writeSourceMappedPackageGlobalPointerHandleClone(out, result) {
+			return true
+		}
 		TranspileExpressionContext(out, result, LValue)
 		out.WriteString(".clone()")
 	default:
@@ -5606,6 +5611,9 @@ func writePointerHandleValueClone(out *strings.Builder, rhs ast.Expr) {
 		writePackageGlobalPointerHandleClone(out, ident)
 		return
 	}
+	if writeSourceMappedPackageGlobalPointerHandleClone(out, rhs) {
+		return
+	}
 	TranspileExpressionContext(out, rhs, AddressOf)
 	out.WriteString(".clone()")
 }
@@ -5867,6 +5875,9 @@ func writePointerShortDeclRhsValue(out *strings.Builder, rhs ast.Expr) {
 	}
 	if ident, ok := packageGlobalPointerIdent(rhs); ok {
 		writePackageGlobalPointerHandleClone(out, ident)
+		return
+	}
+	if writeSourceMappedPackageGlobalPointerHandleClone(out, rhs) {
 		return
 	}
 	TranspileExpressionContext(out, rhs, AddressOf)
@@ -8398,13 +8409,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							// typed selector lowering so promoted fields traverse embeds.
 							TranspileExpressionContext(out, result, LValue)
 							out.WriteString(".clone()")
+						} else if writeSourceMappedPackageGlobalPointerHandleClone(out, result) {
 						} else if selectorExpressionKeepsHandle(result) {
 							TranspileExpressionContext(out, result, LValue)
 							out.WriteString(".clone()")
 						} else if writeGoErrorReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
 						} else if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(result) {
-							TranspileExpressionContext(out, result, LValue)
-							out.WriteString(".clone()")
+							if !writeSourceMappedPackageGlobalPointerHandleClone(out, result) {
+								TranspileExpressionContext(out, result, LValue)
+								out.WriteString(".clone()")
+							}
 						} else if typeInfo := GetTypeInfo(); typeInfo != nil && isEmptyInterfaceType(typeInfo.GetType(result)) && isEmptyInterfaceExpr(returnResultTypeExpr(fnType, i)) {
 							TranspileExpressionContext(out, result, LValue)
 							out.WriteString(".clone()")
@@ -9322,8 +9336,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							TranspileExpression(out, rhs)
 						} else if rhsIsPointerType(rhs) {
 							// Pointer identifiers in parallel short declarations copy the handle.
-							TranspileExpressionContext(out, rhs, AddressOf)
-							out.WriteString(".clone()")
+							if !writeSourceMappedPackageGlobalPointerHandleClone(out, rhs) {
+								TranspileExpressionContext(out, rhs, AddressOf)
+								out.WriteString(".clone()")
+							}
 						} else if ident, ok := rhs.(*ast.Ident); ok && writeWrappedValueCopyFromIdent(out, ident) {
 							// Copied by value from an existing wrapped value
 						} else {

@@ -477,11 +477,56 @@ func packageGlobalPointerIdent(expr ast.Expr) (*ast.Ident, bool) {
 	return ident, true
 }
 
+func sourceMappedPackageGlobalPointerSelector(expr ast.Expr) (string, string, bool) {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
+		return "", "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return "", "", false
+	}
+	obj, ok := typeInfo.GetObject(sel.Sel).(*types.Var)
+	if !ok || obj.Pkg() == nil || obj.Parent() != obj.Pkg().Scope() {
+		return "", "", false
+	}
+	pkgPath := obj.Pkg().Path()
+	if !isSourceMappedPackagePath(pkgPath) {
+		return "", "", false
+	}
+	if _, ok := types.Unalias(obj.Type()).Underlying().(*types.Pointer); !ok {
+		return "", "", false
+	}
+	ctx := GetTranspileContext()
+	if ctx == nil || ctx.PackageMapping == nil {
+		return "", "", false
+	}
+	crateName := ctx.PackageMapping[pkgPath]
+	if crateName == "" {
+		return "", "", false
+	}
+	return crateName, rustPackageGlobalName(obj.Name()), true
+}
+
 func writePackageGlobalPointerHandleClone(out *strings.Builder, ident *ast.Ident) {
 	out.WriteString("(*")
 	out.WriteString(rustPackageGlobalName(ident.Name))
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap()).clone()")
+}
+
+func writeSourceMappedPackageGlobalPointerHandleClone(out *strings.Builder, expr ast.Expr) bool {
+	crateName, globalName, ok := sourceMappedPackageGlobalPointerSelector(expr)
+	if !ok {
+		return false
+	}
+	out.WriteString("(*")
+	out.WriteString(crateName)
+	out.WriteString("::")
+	out.WriteString(globalName)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()")
+	return true
 }
 
 func writePackageGlobalPointerPointeeClone(out *strings.Builder, ident *ast.Ident) {

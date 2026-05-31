@@ -154,6 +154,63 @@ func use() {
 	}
 }
 
+func TestSourceMappedPointerGlobalSelectorCopiesStoredHandle(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "go/types"
+
+func unsafePkg() *types.Package {
+	return types.Unsafe
+}
+
+func universeScope(pkg *types.Package) *types.Scope {
+	if pkg != nil {
+		return pkg.Scope()
+	}
+	return types.Universe
+}
+
+func assignUnsafe(path string) *types.Package {
+	var pkg *types.Package
+	if path == "unsafe" {
+		pkg = types.Unsafe
+	}
+	return pkg
+}
+
+func sameUnsafe(pkg *types.Package) bool {
+	return pkg == types.Unsafe
+}
+
+func unsafePair(path string) (pkg *types.Package, err error) {
+	defer func() {}()
+	if path == "unsafe" {
+		return types.Unsafe, nil
+	}
+	return nil, nil
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"go/types": "go_types"})
+	if strings.Contains(rust, "go_types::Unsafe.clone()") || strings.Contains(rust, "go_types::Universe.clone()") {
+		t.Fatalf("source-mapped pointer global selector should not clone the global slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*go_types::Unsafe.borrow().as_ref().unwrap()).clone()") {
+		t.Fatalf("source-mapped pointer global selector should clone the stored pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*go_types::Universe.borrow().as_ref().unwrap()).clone()") {
+		t.Fatalf("source-mapped pointer global selector should clone the stored pointer handle:\n%s", rust)
+	}
+}
+
 func TestPackageGlobalAnyAssignmentBoxesGenericValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
