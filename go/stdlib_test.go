@@ -191,6 +191,32 @@ func convert(s stamp) time.Time {
 	}
 }
 
+func TestTimeNewTimerUnwrapsDurationSelectorArgument(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "time"
+
+type Cmd struct {
+	WaitDelay time.Duration
+}
+
+func (c *Cmd) watch() {
+	_ = time.NewTimer(c.WaitDelay)
+}
+
+func forceConcurrent() {
+	go func() {}()
+}
+`)
+
+	if strings.Contains(rust, "go_new_timer(self.wait_delay.clone())") {
+		t.Fatalf("time.NewTimer should receive the raw duration value, not the wrapped field handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "go_new_timer((*self.wait_delay.lock().unwrap().as_ref().unwrap()).clone())") {
+		t.Fatalf("time.NewTimer should unwrap a duration selector argument:\n%s", rust)
+	}
+}
+
 func TestFmtSprintfPrecisionGAndSignedDecimalVerbs(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

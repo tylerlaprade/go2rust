@@ -5602,6 +5602,9 @@ func transpileDurationArg(out *strings.Builder, arg ast.Expr) {
 			return
 		}
 	}
+	if writeTimeDurationRawValue(out, arg) {
+		return
+	}
 	// Fallback: treat as raw expression
 	TranspileExpression(out, arg)
 }
@@ -5631,6 +5634,9 @@ func writeTimeDurationValue(out *strings.Builder, value ast.Expr) {
 			return
 		}
 	}
+	if writeTimeDurationRawValue(out, value) {
+		return
+	}
 	if hasStdlibSelectorMapping(value) {
 		TranspileExpression(out, value)
 		return
@@ -5642,6 +5648,32 @@ func writeTimeDurationValue(out *strings.Builder, value ast.Expr) {
 		return
 	}
 	TranspileExpression(out, value)
+}
+
+func writeTimeDurationRawValue(out *strings.Builder, value ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isTimeDurationType(typeInfo.GetType(value)) {
+		return false
+	}
+	if hasStdlibSelectorMapping(value) {
+		TranspileExpression(out, value)
+		return true
+	}
+	if isConstantExpression(value) {
+		out.WriteString("std::time::Duration::from_nanos(")
+		writeConstExpressionCastValue(out, value)
+		out.WriteString(" as u64)")
+		return true
+	}
+	if typeInfo.ReturnsWrappedValue(value) {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, value, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()")
+		return true
+	}
+	TranspileExpression(out, value)
+	return true
 }
 
 func isTimeDurationType(typ types.Type) bool {
