@@ -5473,7 +5473,7 @@ func writeMoveWrappedInnerAssignmentFromTemp(out *strings.Builder, lhs ast.Expr,
 	if ident, ok := lhs.(*ast.Ident); ok && ident.Name == "_" {
 		return
 	}
-	if indexExpr, ok := lhs.(*ast.IndexExpr); ok && writeIndexedSequenceAssignmentFromTemp(out, indexExpr, tmpName, true) {
+	if indexExpr, ok := lhs.(*ast.IndexExpr); ok && writeIndexedSequenceAssignmentFromTemp(out, indexExpr, tmpName, true, nil) {
 		return
 	}
 	movedName := "__moved_" + strings.TrimLeft(tmpName, "_")
@@ -5494,7 +5494,7 @@ func writeTupleAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName st
 	if ident, ok := lhs.(*ast.Ident); ok && ident.Name == "_" {
 		return
 	}
-	if indexExpr, ok := lhs.(*ast.IndexExpr); ok && writeIndexedSequenceAssignmentFromTemp(out, indexExpr, tmpName, !tmpBareScalar) {
+	if indexExpr, ok := lhs.(*ast.IndexExpr); ok && writeIndexedSequenceAssignmentFromTemp(out, indexExpr, tmpName, !tmpBareScalar, nil) {
 		return
 	}
 	if writeParallelCurrentReceiverAssignmentTarget(out, lhs, tmpName, !tmpBareScalar) {
@@ -5560,7 +5560,7 @@ func writeTempAssignmentTargetRef(out *strings.Builder, lhs ast.Expr) {
 	WriteBorrowMethod(out, true)
 }
 
-func writeIndexedSequenceAssignmentFromTemp(out *strings.Builder, indexExpr *ast.IndexExpr, tmpName string, tmpWrapped bool) bool {
+func writeIndexedSequenceAssignmentFromTemp(out *strings.Builder, indexExpr *ast.IndexExpr, tmpName string, tmpWrapped bool, rhs ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	var elemType types.Type
 	if typeInfo != nil {
@@ -5569,10 +5569,8 @@ func writeIndexedSequenceAssignmentFromTemp(out *strings.Builder, indexExpr *ast
 		}
 		elemType = typeInfo.GetArrayOrSliceElemType(indexExpr.X)
 	} else {
-		kind, ok := localCollectionKind(indexExpr.X)
-		if !ok || kind != "slice" {
-			return false
-		}
+		out.WriteString(" /* ERROR: Cannot determine indexed assignment target - type information required */ unimplemented!(\"type info required for indexed assignment\")")
+		return true
 	}
 	elemKeepsHandle := indexedSequenceElementKeepsHandle(elemType)
 	if !elemKeepsHandle {
@@ -5594,11 +5592,34 @@ func writeIndexedSequenceAssignmentFromTemp(out *strings.Builder, indexExpr *ast
 		out.WriteString(tmpName)
 		WriteBorrowMethod(out, true)
 		out.WriteString(".take().unwrap_or_default()")
+	} else if rhs != nil {
+		writeIndexedSequenceBareTempValue(out, indexExpr, tmpName, rhs)
 	} else {
 		out.WriteString(tmpName)
 	}
 	out.WriteString(";")
 	return true
+}
+
+func writeIndexedSequenceBareTempValue(out *strings.Builder, indexExpr *ast.IndexExpr, tmpName string, rhs ast.Expr) {
+	if wrapper := parallelTempNamedIntegerWrap(indexExpr, rhs); wrapper != "" {
+		out.WriteString(wrapper)
+		out.WriteString("(")
+		WriteWrapperPrefix(out)
+		out.WriteString(tmpName)
+		if cast := parallelTempNamedIntegerCast(indexExpr); cast != "" {
+			out.WriteString(" as ")
+			out.WriteString(cast)
+		}
+		WriteWrapperSuffix(out)
+		out.WriteString(")")
+		return
+	}
+	out.WriteString(tmpName)
+	if cast := parallelTempBareCast(indexExpr, rhs); cast != "" {
+		out.WriteString(" as ")
+		out.WriteString(cast)
+	}
 }
 
 func indexedSequenceElementKeepsHandle(elemType types.Type) bool {
@@ -6859,7 +6880,7 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 			out.WriteString(" /* ERROR: Cannot determine indexed assignment target - type information required */ ")
 			return
 		}
-		if writeIndexedSequenceAssignmentFromTemp(out, indexExpr, tmpName, tmpWrapped) {
+		if writeIndexedSequenceAssignmentFromTemp(out, indexExpr, tmpName, tmpWrapped, rhs) {
 			return
 		}
 	}

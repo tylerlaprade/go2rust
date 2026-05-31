@@ -1477,6 +1477,53 @@ func params(flag bool) (Token, Token) {
 	}
 }
 
+func TestParallelNamedIntegerConstSliceAssignmentsPreserveNamedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type whiteSpace byte
+
+const (
+	unindent = whiteSpace('<')
+	formfeed = whiteSpace('\f')
+)
+
+type printer struct {
+	wsbuf []whiteSpace
+}
+
+func (p *printer) swap(i int) {
+	p.wsbuf[i], p.wsbuf[i+1] = unindent, formfeed
+}
+`)
+
+	if strings.Contains(rust, "] = __tmp_0;") || strings.Contains(rust, "] = __tmp_1;") {
+		t.Fatalf("parallel named-integer constants should not be stored raw in named slice elements:\n%s", rust)
+	}
+	if !strings.Contains(rust, "] = whiteSpace(") {
+		t.Fatalf("parallel named-integer constants should construct named slice element values:\n%s", rust)
+	}
+}
+
+func TestParallelByteConstSliceAssignmentsCastTemps(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type printer struct {
+	buf []byte
+}
+
+func (p *printer) mark(i int) {
+	p.buf[i], p.buf[i+1] = ' ', '\n'
+}
+`)
+
+	if strings.Contains(rust, "] = __tmp_0;") || strings.Contains(rust, "] = __tmp_1;") {
+		t.Fatalf("parallel byte constants should not be stored as untyped integer temps:\n%s", rust)
+	}
+	if !strings.Contains(rust, "] = __tmp_0 as u8;") || !strings.Contains(rust, "] = __tmp_1 as u8;") {
+		t.Fatalf("parallel byte constants should cast temps to byte element type:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerMixedPrimitiveOpsReturnNamedType(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
