@@ -1768,6 +1768,37 @@ func clear(insts []inst, i int) {
 	}
 }
 
+func TestIndexedPointerStructSliceFieldAssignmentMutatesPointee(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type inst struct {
+	errors []string
+	names []string
+}
+
+type response struct {
+	items []*inst
+}
+
+func repair(r *response, path string) {
+	r.items[0].errors = nil
+	r.items[0].names = []string{path}
+}
+`)
+
+	if strings.Contains(rust, "[(0) as usize].errors") || strings.Contains(rust, "[(0) as usize].names") {
+		t.Fatalf("indexed pointer element field assignment should dereference the pointee before field access:\n%s", rust)
+	}
+	if !strings.Contains(rust, "[(0) as usize].borrow_mut().as_mut().unwrap()).errors.borrow_mut() = None") &&
+		!strings.Contains(rust, "[(0) as usize].lock().unwrap().as_mut().unwrap()).errors.lock().unwrap() = None") {
+		t.Fatalf("nil slice field assignment should clear the pointee field handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "[(0) as usize].borrow_mut().as_mut().unwrap()).names.borrow_mut() = Some(new_val)") &&
+		!strings.Contains(rust, "[(0) as usize].lock().unwrap().as_mut().unwrap()).names.lock().unwrap() = Some(new_val)") {
+		t.Fatalf("slice field assignment should mutate the pointee field handle:\n%s", rust)
+	}
+}
+
 func TestIndexedStructPromotedSliceFieldAssignmentMutatesElement(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

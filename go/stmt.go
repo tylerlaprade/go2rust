@@ -1102,7 +1102,8 @@ func writeIndexedSequenceCollectionFieldAssignment(out *strings.Builder, sel *as
 	if typeInfo == nil || typeInfo.IsMap(indexExpr.X) {
 		return false
 	}
-	if typeInfo.GetArrayOrSliceElemType(indexExpr.X) == nil {
+	elemType := typeInfo.GetArrayOrSliceElemType(indexExpr.X)
+	if elemType == nil {
 		return false
 	}
 	fieldType := typeInfo.GetType(sel)
@@ -1113,7 +1114,7 @@ func writeIndexedSequenceCollectionFieldAssignment(out *strings.Builder, sel *as
 
 	if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
 		out.WriteString("{ *")
-		writeIndexedSequenceElementFieldHandle(out, indexExpr, fieldInfo)
+		writeIndexedSequenceElementFieldHandle(out, indexExpr, fieldInfo, elemType)
 		WriteBorrowMethod(out, true)
 		out.WriteString(" = None; }")
 		return true
@@ -1122,16 +1123,16 @@ func writeIndexedSequenceCollectionFieldAssignment(out *strings.Builder, sel *as
 	out.WriteString("{ let new_val = ")
 	writeArraySliceElementAssignmentValue(out, rhs, fieldType)
 	out.WriteString("; *")
-	writeIndexedSequenceElementFieldHandle(out, indexExpr, fieldInfo)
+	writeIndexedSequenceElementFieldHandle(out, indexExpr, fieldInfo, elemType)
 	WriteBorrowMethod(out, true)
 	out.WriteString(" = Some(new_val); }")
 	return true
 }
 
-func writeIndexedSequenceElementFieldHandle(out *strings.Builder, indexExpr *ast.IndexExpr, fieldInfo FieldAccessInfo) {
+func writeIndexedSequenceElementFieldHandle(out *strings.Builder, indexExpr *ast.IndexExpr, fieldInfo FieldAccessInfo, elemType types.Type) {
 	if fieldInfo.IsPromoted {
 		out.WriteString("(*")
-		writeIndexedSequenceElementValue(out, indexExpr)
+		writeIndexedSequenceElementFieldBase(out, indexExpr, elemType)
 		for i, embedded := range fieldInfo.EmbeddedPath {
 			out.WriteString(".")
 			out.WriteString(ToSnakeCase(embedded))
@@ -1145,9 +1146,20 @@ func writeIndexedSequenceElementFieldHandle(out *strings.Builder, indexExpr *ast
 		out.WriteString(fieldInfo.FieldName)
 		return
 	}
-	writeIndexedSequenceElementValue(out, indexExpr)
+	writeIndexedSequenceElementFieldBase(out, indexExpr, elemType)
 	out.WriteString(".")
 	out.WriteString(fieldInfo.FieldName)
+}
+
+func writeIndexedSequenceElementFieldBase(out *strings.Builder, indexExpr *ast.IndexExpr, elemType types.Type) {
+	if _, ok := types.Unalias(elemType).Underlying().(*types.Pointer); ok {
+		out.WriteString("(*")
+		writeIndexedSequenceElementValue(out, indexExpr)
+		WriteBorrowMethod(out, true)
+		out.WriteString(".as_mut().unwrap())")
+		return
+	}
+	writeIndexedSequenceElementValue(out, indexExpr)
 }
 
 func writeIndexedSequenceElementValue(out *strings.Builder, indexExpr *ast.IndexExpr) {
