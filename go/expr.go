@@ -2054,10 +2054,14 @@ func isNamedMapExpression(expr ast.Expr) bool {
 }
 
 func writeTypedMapLiteralHandle(out *strings.Builder, mapType *types.Map, elts []ast.Expr) {
+	writeTypedMapLiteralHandleForOwnerPackage(out, mapType, elts, "")
+}
+
+func writeTypedMapLiteralHandleForOwnerPackage(out *strings.Builder, mapType *types.Map, elts []ast.Expr, ownerPkgPath string) {
 	TrackImport("BTreeMap")
 	WriteWrapperPrefix(out)
 	out.WriteString("BTreeMap::<")
-	out.WriteString(goTypesMapKeyToRust(mapType.Key()))
+	out.WriteString(goTypesMapKeyToRustForOwnerPackage(mapType.Key(), ownerPkgPath))
 	out.WriteString(", ")
 	out.WriteString(goTypesMapValueToRust(mapType.Elem()))
 	out.WriteString(">::from([")
@@ -2071,7 +2075,7 @@ func writeTypedMapLiteralHandle(out *strings.Builder, mapType *types.Map, elts [
 			continue
 		}
 		out.WriteString("(")
-		writeMapLiteralKeyWithType(out, kv.Key, mapType.Key())
+		writeMapLiteralKeyWithOwnerPackage(out, kv.Key, mapType.Key(), ownerPkgPath)
 		out.WriteString(", ")
 		writeWrappedMapValue(out, kv.Value, nil, mapType.Elem())
 		out.WriteString(")")
@@ -6354,6 +6358,10 @@ func writeEmptyInterfaceIdentAssignment(out *strings.Builder, lhs ast.Expr, rhs 
 }
 
 func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, fieldType types.Type) {
+	writeWrappedStructFieldValueWithOwnerPackage(out, value, fieldExpr, fieldType, "")
+}
+
+func writeWrappedStructFieldValueWithOwnerPackage(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, fieldType types.Type, fieldOwnerPkgPath string) {
 	var expectedFieldType types.Type
 	if fieldType != nil {
 		expectedFieldType = fieldType
@@ -6470,6 +6478,13 @@ func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExp
 
 	if writeSliceExpressionFieldValue(out, value, expectedFieldType) {
 		return
+	}
+
+	if lit, ok := value.(*ast.CompositeLit); ok && expectedFieldType != nil && sourceMappedPackageKeyHelperQualifier(fieldOwnerPkgPath) != "" {
+		if mapType, ok := types.Unalias(expectedFieldType).Underlying().(*types.Map); ok {
+			writeTypedMapLiteralHandleForOwnerPackage(out, mapType, lit.Elts, fieldOwnerPkgPath)
+			return
+		}
 	}
 
 	// Check if the value is an identifier (parameter/variable/constant).
@@ -7167,7 +7182,7 @@ func writeTypesStructCompositeLiteral(out *strings.Builder, structTypeName strin
 			wroteFields = true
 			out.WriteString(ToSnakeCase(field.Name()))
 			out.WriteString(": ")
-			writeWrappedStructFieldValue(out, elt, nil, field.Type())
+			writeWrappedStructFieldValueWithOwnerPackage(out, elt, nil, field.Type(), typesStructFieldOwnerPackagePath(field, structType))
 		}
 	} else {
 		for _, elt := range elts {
@@ -7179,7 +7194,12 @@ func writeTypesStructCompositeLiteral(out *strings.Builder, structTypeName strin
 					wroteFields = true
 					out.WriteString(ToSnakeCase(key.Name))
 					out.WriteString(": ")
-					writeWrappedStructFieldValue(out, kv.Value, nil, findTypesStructFieldType(structUnder, key.Name))
+					field := findTypesStructField(structUnder, key.Name)
+					var fieldType types.Type
+					if field != nil {
+						fieldType = field.Type()
+					}
+					writeWrappedStructFieldValueWithOwnerPackage(out, kv.Value, nil, fieldType, typesStructFieldOwnerPackagePath(field, structType))
 				}
 			}
 		}
@@ -7326,15 +7346,38 @@ func findStructFieldExpr(structType *ast.StructType, fieldName string) ast.Expr 
 }
 
 func findTypesStructFieldType(structType *types.Struct, fieldName string) types.Type {
+	if field := findTypesStructField(structType, fieldName); field != nil {
+		return field.Type()
+	}
+	return nil
+}
+
+func findTypesStructField(structType *types.Struct, fieldName string) *types.Var {
 	if structType == nil {
 		return nil
 	}
 	for i := 0; i < structType.NumFields(); i++ {
 		if structType.Field(i).Name() == fieldName {
-			return structType.Field(i).Type()
+			return structType.Field(i)
 		}
 	}
 	return nil
+}
+
+func typesStructFieldOwnerPackagePath(field *types.Var, structType types.Type) string {
+	if field != nil && field.Pkg() != nil {
+		return field.Pkg().Path()
+	}
+	if structType == nil {
+		return ""
+	}
+	if ptr, ok := types.Unalias(structType).(*types.Pointer); ok {
+		structType = ptr.Elem()
+	}
+	if named, ok := types.Unalias(structType).(*types.Named); ok && named.Obj() != nil && named.Obj().Pkg() != nil {
+		return named.Obj().Pkg().Path()
+	}
+	return ""
 }
 
 func writeMapKeyForExpectedType(out *strings.Builder, key ast.Expr, keyType types.Type) bool {
@@ -7479,7 +7522,15 @@ func sourceMappedMapFieldKeyHelperQualifier(mapExpr ast.Expr) string {
 	if pkgPath == "" {
 		return ""
 	}
-	if typeInfo.pkg != nil && typeInfo.pkg.Path() == pkgPath {
+	return sourceMappedPackageKeyHelperQualifier(pkgPath)
+}
+
+func sourceMappedPackageKeyHelperQualifier(pkgPath string) string {
+	if pkgPath == "" {
+		return ""
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.pkg != nil && typeInfo.pkg.Path() == pkgPath {
 		return ""
 	}
 	ctx := GetTranspileContext()
@@ -7491,6 +7542,29 @@ func sourceMappedMapFieldKeyHelperQualifier(mapExpr ast.Expr) string {
 		return ""
 	}
 	return crateName + "::"
+}
+
+func mapPointerKeyHelperForOwnerPackage(helper string, ownerPkgPath string) string {
+	if helper != "GoLocalPtrKey" {
+		return helper
+	}
+	if qualifier := sourceMappedPackageKeyHelperQualifier(ownerPkgPath); qualifier != "" {
+		return qualifier + helper
+	}
+	return helper
+}
+
+func goTypesMapKeyToRustForOwnerPackage(t types.Type, ownerPkgPath string) string {
+	keyRust := goTypesMapKeyToRust(t)
+	helper, ok := mapPointerKeyHelperFromRustType(keyRust)
+	if !ok {
+		return keyRust
+	}
+	qualifiedHelper := mapPointerKeyHelperForOwnerPackage(helper, ownerPkgPath)
+	if qualifiedHelper == helper {
+		return keyRust
+	}
+	return qualifiedHelper + strings.TrimPrefix(keyRust, helper)
 }
 
 func mapPointerKeyHelperFromRustType(rustType string) (string, bool) {
@@ -7868,6 +7942,10 @@ func writeMapLiteralKey(out *strings.Builder, key ast.Expr) {
 }
 
 func writeMapLiteralKeyWithType(out *strings.Builder, key ast.Expr, keyType types.Type) {
+	writeMapLiteralKeyWithOwnerPackage(out, key, keyType, "")
+}
+
+func writeMapLiteralKeyWithOwnerPackage(out *strings.Builder, key ast.Expr, keyType types.Type, ownerPkgPath string) {
 	if keyType != nil && writeStdlibInterfaceComparableConversion(out, key, keyType) {
 		return
 	}
@@ -7876,7 +7954,7 @@ func writeMapLiteralKeyWithType(out *strings.Builder, key ast.Expr, keyType type
 		if writeSliceElemPtrMapKeyExpression(out, key) {
 			return
 		}
-		out.WriteString(goPtrKeyHelperNameForType(typeInfo.GetType(key)))
+		out.WriteString(mapPointerKeyHelperForOwnerPackage(goPtrKeyHelperNameForType(typeInfo.GetType(key)), ownerPkgPath))
 		out.WriteString("::new(")
 		TranspileExpressionContext(out, key, LValue)
 		out.WriteString(".clone())")
