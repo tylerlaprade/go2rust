@@ -234,6 +234,8 @@ func (analysis *transpileFileAnalysis) inspect(file *ast.File, typeInfo *TypeInf
 			analysis.inspectMapType(n, typeInfo, mapKeyTypeInfo)
 		case *ast.CallExpr:
 			analysis.inspectCallExpr(n, typeInfo)
+		case *ast.CompositeLit:
+			analysis.inspectCompositeLit(n, typeInfo)
 		case *ast.ReturnStmt:
 			analysis.inspectReturnStmt(n, enclosingFuncType(stack), typeInfo)
 		case *ast.GenDecl:
@@ -249,6 +251,45 @@ func (analysis *transpileFileAnalysis) inspect(file *ast.File, typeInfo *TypeInf
 		}
 		return true
 	})
+}
+
+func (analysis *transpileFileAnalysis) inspectCompositeLit(lit *ast.CompositeLit, typeInfo *TypeInfo) {
+	if lit == nil || typeInfo == nil {
+		return
+	}
+	litType := typeInfo.GetType(lit)
+	if litType == nil {
+		return
+	}
+	structType, ok := types.Unalias(litType).Underlying().(*types.Struct)
+	if !ok {
+		return
+	}
+
+	positionalIndex := 0
+	for _, elt := range lit.Elts {
+		if kv, ok := elt.(*ast.KeyValueExpr); ok {
+			fieldType := structFieldTypeForCompositeKey(kv.Key, typeInfo)
+			analysis.recordImportedInterfaceImpl(fieldType, kv.Value, typeInfo)
+			continue
+		}
+		if positionalIndex < structType.NumFields() {
+			analysis.recordImportedInterfaceImpl(structType.Field(positionalIndex).Type(), elt, typeInfo)
+		}
+		positionalIndex++
+	}
+}
+
+func structFieldTypeForCompositeKey(key ast.Expr, typeInfo *TypeInfo) types.Type {
+	ident, ok := key.(*ast.Ident)
+	if !ok || typeInfo == nil || typeInfo.info == nil {
+		return nil
+	}
+	field, ok := typeInfo.info.Uses[ident].(*types.Var)
+	if !ok || field == nil {
+		return nil
+	}
+	return field.Type()
 }
 
 func enclosingFuncType(stack []ast.Node) *ast.FuncType {

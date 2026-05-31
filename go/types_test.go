@@ -483,3 +483,84 @@ func TestCollectImportedInterfaceImplsRecordsCurrentConcreteArgs(t *testing.T) {
 		t.Fatalf("collectImportedInterfaceImpls() = %#v, want Value to implement imported Key", impls)
 	}
 }
+
+func TestCollectImportedInterfaceImplsRecordsStructLiteralInterfaceFields(t *testing.T) {
+	depPkg := types.NewPackage("example.com/dep", "dep")
+	mainPkg := types.NewPackage("example.com/main", "main")
+	stringType := types.Typ[types.String]
+
+	importMethod := types.NewFunc(
+		token.NoPos,
+		depPkg,
+		"Import",
+		types.NewSignatureType(
+			nil,
+			nil,
+			nil,
+			types.NewTuple(types.NewVar(token.NoPos, nil, "path", stringType)),
+			types.NewTuple(types.NewVar(token.NoPos, nil, "", types.Typ[types.Int])),
+			false,
+		),
+	)
+	importerIface := types.NewInterfaceType([]*types.Func{importMethod}, nil).Complete()
+	importerNamed := types.NewNamed(types.NewTypeName(token.NoPos, depPkg, "Importer", nil), importerIface, nil)
+	configNamed := types.NewNamed(
+		types.NewTypeName(token.NoPos, depPkg, "Config", nil),
+		types.NewStruct([]*types.Var{
+			types.NewField(token.NoPos, depPkg, "Importer", importerNamed, false),
+		}, nil),
+		nil,
+	)
+
+	concreteNamed := types.NewNamed(types.NewTypeName(token.NoPos, mainPkg, "Importer", nil), types.NewStruct(nil, nil), nil)
+	concretePtr := types.NewPointer(concreteNamed)
+	concreteNamed.AddMethod(types.NewFunc(
+		token.NoPos,
+		mainPkg,
+		"Import",
+		types.NewSignatureType(
+			types.NewVar(token.NoPos, mainPkg, "", concretePtr),
+			nil,
+			nil,
+			types.NewTuple(types.NewVar(token.NoPos, nil, "path", stringType)),
+			types.NewTuple(types.NewVar(token.NoPos, nil, "", types.Typ[types.Int])),
+			false,
+		),
+	))
+
+	value := ast.NewIdent("p")
+	lit := &ast.CompositeLit{
+		Elts: []ast.Expr{
+			&ast.KeyValueExpr{Key: ast.NewIdent("Importer"), Value: value},
+		},
+	}
+	file := &ast.File{
+		Name: ast.NewIdent("main"),
+		Decls: []ast.Decl{
+			&ast.FuncDecl{
+				Name: ast.NewIdent("use"),
+				Type: &ast.FuncType{},
+				Body: &ast.BlockStmt{List: []ast.Stmt{&ast.ExprStmt{X: lit}}},
+			},
+		},
+	}
+
+	SetTypeInfo(&TypeInfo{
+		info: &types.Info{
+			Types: map[ast.Expr]types.TypeAndValue{
+				lit:   {Type: configNamed},
+				value: {Type: concretePtr},
+			},
+			Uses: map[*ast.Ident]types.Object{
+				lit.Elts[0].(*ast.KeyValueExpr).Key.(*ast.Ident): configNamed.Underlying().(*types.Struct).Field(0),
+			},
+		},
+		pkg: mainPkg,
+	})
+	defer SetTypeInfo(nil)
+
+	impls := collectImportedInterfaceImpls(file)
+	if _, ok := impls["Importer"]["example_com_dep::Importer"]; !ok {
+		t.Fatalf("collectImportedInterfaceImpls() = %#v, want Importer to implement imported struct field interface", impls)
+	}
+}
