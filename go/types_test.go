@@ -309,6 +309,37 @@ func TestGoTypesFunctionParamUsesWrappedLocalInterfaceHandle(t *testing.T) {
 	}
 }
 
+func TestGoTypesNamedFunctionTypeSkipsStubBackedStdlibPackage(t *testing.T) {
+	yieldSig := types.NewSignatureType(
+		nil,
+		nil,
+		nil,
+		types.NewTuple(types.NewVar(token.NoPos, nil, "v", types.Typ[types.Int])),
+		types.NewTuple(types.NewVar(token.NoPos, nil, "", types.Typ[types.Bool])),
+		false,
+	)
+	seqSig := types.NewSignatureType(
+		nil,
+		nil,
+		nil,
+		types.NewTuple(types.NewVar(token.NoPos, nil, "yield", yieldSig)),
+		nil,
+		false,
+	)
+	iterPkg := types.NewPackage("iter", "iter")
+	named := types.NewNamed(types.NewTypeName(token.NoPos, iterPkg, "Seq", nil), seqSig, nil)
+
+	SetTypeInfo(&TypeInfo{pkg: types.NewPackage("example.com/main", "main")})
+	defer SetTypeInfo(nil)
+
+	if got, ok := goTypesNamedFunctionTypeToRust(named); ok {
+		t.Fatalf("stub-backed stdlib function type should not use external stub name, got %q", got)
+	}
+	if got := goTypesReturnTypeToRust(named); got == "iter_Seq" {
+		t.Fatalf("stub-backed stdlib function return should keep the underlying function handle, got %q", got)
+	}
+}
+
 func TestGoTypeToRustParamDoesNotTrustInterfaceRegistryWithoutTypeInfo(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	prevContext := currentContext

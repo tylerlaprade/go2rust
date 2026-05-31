@@ -113,8 +113,13 @@ func typeIsRegisteredBareStructAlias(t types.Type) bool {
 // This differs from GoTypeToRust for predeclared Copy scalars: internally the
 // variable may still be a wrapper slot, but callers receive the scalar value.
 func GoReturnTypeToRust(expr ast.Expr) string {
-	if t, ok := resultTypeExprType(expr); ok && typeIsPredeclaredCopyScalar(t) {
-		return goTypesTypeToRust(types.Unalias(t))
+	if t, ok := resultTypeExprType(expr); ok {
+		if rustType, ok := goTypesNamedFunctionTypeToRust(t); ok {
+			return rustType
+		}
+		if typeIsPredeclaredCopyScalar(t) {
+			return goTypesTypeToRust(types.Unalias(t))
+		}
 	}
 	return GoTypeToRust(expr)
 }

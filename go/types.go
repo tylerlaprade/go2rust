@@ -716,6 +716,11 @@ func GoTypeToRustParam(expr ast.Expr) string {
 	if interfaceName, ok := transpiledNamedInterfaceTypeNameFromExpr(expr); ok {
 		return rustLocalInterfaceParam(interfaceName)
 	}
+	if typ, ok := typeInfoTypeForTypeExpr(expr); ok {
+		if rustType, ok := goTypesNamedFunctionTypeToRust(typ); ok {
+			return rustType
+		}
+	}
 	if typeExprIsOrderedTypeParam(expr) {
 		return goTypeToRustBase(expr)
 	}
@@ -1657,6 +1662,9 @@ func goTypesReturnTypeToRust(t types.Type) string {
 	if rustType, ok := goTypeParamSliceConstraintToRust(t); ok {
 		return goTypesWrappedRustType(rustType)
 	}
+	if rustType, ok := goTypesNamedFunctionTypeToRust(t); ok {
+		return rustType
+	}
 	if typeIsPredeclaredCopyScalar(t) {
 		return goTypesTypeToRust(types.Unalias(t))
 	}
@@ -1802,6 +1810,9 @@ func goTypesParamTypeToRust(t types.Type) string {
 	if interfaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(t); ok {
 		return rustLocalInterfaceParam(interfaceName)
 	}
+	if rustType, ok := goTypesNamedFunctionTypeToRust(t); ok {
+		return rustType
+	}
 	if goTypeParamHasOrderedConstraint(t) {
 		return goTypesTypeToRust(t)
 	}
@@ -1828,6 +1839,20 @@ func goTypesFunctionParamTypeToRust(t types.Type) string {
 		}
 	}
 	return goTypesParamTypeToRust(t)
+}
+
+func goTypesNamedFunctionTypeToRust(t types.Type) (string, bool) {
+	named, ok := types.Unalias(t).(*types.Named)
+	if !ok || named.Obj() == nil {
+		return "", false
+	}
+	if named.Obj().Pkg() != nil && isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
+		return "", false
+	}
+	if _, ok := types.Unalias(named.Underlying()).(*types.Signature); !ok {
+		return "", false
+	}
+	return goTypesNamedTypeToRust(named), true
 }
 
 func isFunctionSignatureType(t types.Type) bool {
