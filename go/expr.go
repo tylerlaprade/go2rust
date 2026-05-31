@@ -14516,6 +14516,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	restoreCallInnerClones := pushCallFuncLitSiblingCaptureClones(call)
 	defer restoreCallInnerClones()
 
+	if writeMutatingSourceTypeParamSliceCallWithConcreteArgs(out, call) {
+		return
+	}
+
 	if len(call.Args) == 1 {
 		if target, ok := pointerTypeConversionTargetFromCall(call); ok {
 			writePointerTypeConversion(out, target, call.Args[0])
@@ -16213,21 +16217,144 @@ func collectionElemRustTypeIsWrappedHandle(elem types.Type) bool {
 func writeConcreteSliceAsTypeParamSliceArgument(out *strings.Builder, arg ast.Expr) {
 	trackWrapperImports()
 	out.WriteString("{ let __slice_holder = ")
-	if !writeNamedSliceInnerHandleClone(out, arg) {
-		TranspileExpressionContext(out, arg, LValue)
-		out.WriteString(".clone()")
+	writeConcreteSliceHandleClone(out, arg)
+	out.WriteString("; ")
+	writeTypeParamSliceHandleFromConcreteHolder(out, "__slice_holder", "__slice_guard")
+	out.WriteString(" }")
+}
+
+func writeConcreteSliceHandleClone(out *strings.Builder, arg ast.Expr) {
+	if writeNamedSliceInnerHandleClone(out, arg) {
+		return
 	}
-	out.WriteString("; let __slice_guard = __slice_holder")
+	TranspileExpressionContext(out, arg, LValue)
+	out.WriteString(".clone()")
+}
+
+func writeTypeParamSliceHandleFromConcreteHolder(out *strings.Builder, holderName string, guardName string) {
+	trackWrapperImports()
+	out.WriteString("{ let ")
+	out.WriteString(guardName)
+	out.WriteString(" = ")
+	out.WriteString(holderName)
 	WriteBorrowMethod(out, false)
 	out.WriteString("; ")
 	out.WriteString(GetOuterWrapperType())
 	out.WriteString("::new(")
 	out.WriteString(GetInnerWrapperType())
-	out.WriteString("::new(__slice_guard.as_ref().map(|__v| __v.iter().cloned().map(|__elem| ")
+	out.WriteString("::new(")
+	out.WriteString(guardName)
+	out.WriteString(".as_ref().map(|__v| __v.iter().cloned().map(|__elem| ")
 	WriteWrapperPrefix(out)
 	out.WriteString("__elem")
 	WriteWrapperSuffix(out)
 	out.WriteString(").collect::<Vec<_>>()))) }")
+}
+
+func writeMutatingSourceTypeParamSliceCallWithConcreteArgs(out *strings.Builder, call *ast.CallExpr) bool {
+	sourceSig, ok := sourceFunctionSignatureForCall(call)
+	if !ok || sourceSig.Params() == nil || sourceSig.Variadic() {
+		return false
+	}
+	if sourceSig.Results() != nil && sourceSig.Results().Len() != 0 {
+		return false
+	}
+
+	params := sourceSig.Params()
+	convertedArgs := make([]bool, len(call.Args))
+	hasConvertedArg := false
+	hasOrderedHandleArg := false
+	for i, arg := range call.Args {
+		if i >= params.Len() || sourceFunctionParamReadOnly(call, i) {
+			continue
+		}
+		sourceExpected := params.At(i).Type()
+		if sourceTypeParamSliceArgumentNeedsConcreteConversion(arg, sourceExpected) {
+			convertedArgs[i] = true
+			hasConvertedArg = true
+			continue
+		}
+		if sourceTypeParamSliceArgumentNeedsOrderedHandle(arg, sourceExpected) {
+			hasOrderedHandleArg = true
+		}
+	}
+	if !hasConvertedArg && !hasOrderedHandleArg {
+		return false
+	}
+	if !hasConvertedArg {
+		writeSourceTypeParamSliceCallWithConvertedArgs(out, call, sourceSig)
+		return true
+	}
+
+	trackWrapperImports()
+	out.WriteString("{ ")
+	for i, arg := range call.Args {
+		if !convertedArgs[i] {
+			continue
+		}
+		index := strconv.Itoa(i)
+		out.WriteString("let __slice_holder_")
+		out.WriteString(index)
+		out.WriteString(" = ")
+		writeConcreteSliceHandleClone(out, arg)
+		out.WriteString("; let __slice_arg_")
+		out.WriteString(index)
+		out.WriteString(" = ")
+		writeTypeParamSliceHandleFromConcreteHolder(out, "__slice_holder_"+index, "__slice_guard_"+index)
+		out.WriteString("; ")
+	}
+
+	writeSourceTypeParamSliceCallWithConcreteArgTemps(out, call, sourceSig, convertedArgs)
+	out.WriteString("; ")
+
+	for i := range call.Args {
+		if !convertedArgs[i] {
+			continue
+		}
+		index := strconv.Itoa(i)
+		out.WriteString("let __converted_values_")
+		out.WriteString(index)
+		out.WriteString(" = { let __converted_guard_")
+		out.WriteString(index)
+		out.WriteString(" = __slice_arg_")
+		out.WriteString(index)
+		WriteBorrowMethod(out, false)
+		out.WriteString("; __converted_guard_")
+		out.WriteString(index)
+		out.WriteString(".as_ref().map(|__v| __v.iter().cloned().map(|__elem| (*__elem")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()).collect::<Vec<_>>()) }; *__slice_holder_")
+		out.WriteString(index)
+		WriteBorrowMethod(out, true)
+		out.WriteString(" = __converted_values_")
+		out.WriteString(index)
+		out.WriteString("; ")
+	}
+	out.WriteString("}")
+	return true
+}
+
+func writeSourceTypeParamSliceCallWithConcreteArgTemps(out *strings.Builder, call *ast.CallExpr, sourceSig *types.Signature, convertedArgs []bool) {
+	writeSourceTypeParamSliceCallTarget(out, call)
+	out.WriteString("(")
+	params := sourceSig.Params()
+	for i, arg := range call.Args {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		if i < len(convertedArgs) && convertedArgs[i] {
+			out.WriteString("__slice_arg_")
+			out.WriteString(strconv.Itoa(i))
+			out.WriteString(".clone()")
+			continue
+		}
+		var sourceExpected types.Type
+		if i < params.Len() {
+			sourceExpected = params.At(i).Type()
+		}
+		writeSourceTypeParamSliceCallArgument(out, call, i, arg, sourceExpected)
+	}
+	out.WriteString(")")
 }
 
 func writeSourceTypeParamSliceCallAsConcreteSlice(out *strings.Builder, call *ast.CallExpr) bool {
@@ -16326,6 +16453,10 @@ func writeSourceTypeParamSliceCallTarget(out *strings.Builder, call *ast.CallExp
 }
 
 func writeSourceTypeParamSliceCallArgument(out *strings.Builder, call *ast.CallExpr, index int, arg ast.Expr, sourceExpected types.Type) {
+	if sourceTypeParamSliceArgumentNeedsOrderedHandle(arg, sourceExpected) {
+		writeConcreteSliceHandleClone(out, arg)
+		return
+	}
 	if sourceTypeParamSliceArgumentNeedsConcreteConversion(arg, sourceExpected) {
 		writeConcreteSliceAsTypeParamSliceArgument(out, arg)
 		return
@@ -16352,12 +16483,55 @@ func sourceTypeParamSliceArgumentNeedsConcreteConversion(arg ast.Expr, sourceExp
 	return !collectionElemRustTypeIsWrappedHandle(actualSlice.Elem())
 }
 
+func sourceTypeParamSliceArgumentNeedsOrderedHandle(arg ast.Expr, sourceExpected types.Type) bool {
+	if !sourceExpectedSliceUsesOrderedTypeParamElem(sourceExpected) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	actual := typeInfo.GetType(arg)
+	if actual == nil {
+		return false
+	}
+	actualSlice, ok := types.Unalias(actual).Underlying().(*types.Slice)
+	if !ok {
+		return false
+	}
+	return !collectionElemRustTypeIsWrappedHandle(actualSlice.Elem())
+}
+
 func sourceExpectedSliceUsesTypeParamElem(expected types.Type) bool {
 	if elem, ok := goTypeParamSliceConstraintElem(expected); ok {
+		if goTypeParamHasOrderedConstraint(elem) {
+			return false
+		}
 		_, elemIsTypeParam := types.Unalias(elem).(*types.TypeParam)
 		return elemIsTypeParam
 	}
 	if slice, ok := types.Unalias(expected).Underlying().(*types.Slice); ok {
+		if goTypeParamHasOrderedConstraint(slice.Elem()) {
+			return false
+		}
+		_, elemIsTypeParam := types.Unalias(slice.Elem()).(*types.TypeParam)
+		return elemIsTypeParam
+	}
+	return false
+}
+
+func sourceExpectedSliceUsesOrderedTypeParamElem(expected types.Type) bool {
+	if elem, ok := goTypeParamSliceConstraintElem(expected); ok {
+		if !goTypeParamHasOrderedConstraint(elem) {
+			return false
+		}
+		_, elemIsTypeParam := types.Unalias(elem).(*types.TypeParam)
+		return elemIsTypeParam
+	}
+	if slice, ok := types.Unalias(expected).Underlying().(*types.Slice); ok {
+		if !goTypeParamHasOrderedConstraint(slice.Elem()) {
+			return false
+		}
 		_, elemIsTypeParam := types.Unalias(slice.Elem()).(*types.TypeParam)
 		return elemIsTypeParam
 	}

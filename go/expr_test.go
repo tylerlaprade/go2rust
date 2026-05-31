@@ -3821,6 +3821,60 @@ func (x *re) Equal(y *re) bool {
 	}
 }
 
+func TestMutatingTypeParamSliceCallWritesConcreteSliceBack(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+func Mutate[S ~[]E, E any](x S, cmp func(a, b E) int) {
+	x[0], x[1] = x[1], x[0]
+}
+
+func compare(a, b string) int {
+	return 0
+}
+
+func sort(list []string) {
+	Mutate(list, compare)
+}
+`)
+
+	if strings.Contains(rust, "mutate::<Vec<String>, String>(list.clone()") {
+		t.Fatalf("mutating type-param slice call should not pass the concrete slice directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __slice_holder_0 = list.clone()") {
+		t.Fatalf("mutating type-param slice call should keep the original slice handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "mutate::<Vec<String>, String>(__slice_arg_0.clone()") {
+		t.Fatalf("mutating type-param slice call should pass the converted element handles:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*__slice_holder_0.borrow_mut() = __converted_values_0") {
+		t.Fatalf("mutating type-param slice call should copy converted elements back:\n%s", rust)
+	}
+}
+
+func TestMutatingOrderedTypeParamSliceCallKeepsRawSlice(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type Ordered interface {
+	~string
+}
+
+func Mutate[S ~[]E, E Ordered](x S) {
+	x[0] = x[0]
+}
+
+func sort(list []string) {
+	Mutate(list)
+}
+`)
+
+	if strings.Contains(rust, "__slice_arg_0") {
+		t.Fatalf("mutating ordered type-param slice call should not convert raw elements:\n%s", rust)
+	}
+	if !strings.Contains(rust, "mutate::<Vec<String>, String>(list.clone())") {
+		t.Fatalf("mutating ordered type-param slice call should pass the raw slice handle:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoImmediateFuncLitCallUsesClosureType(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()

@@ -1099,6 +1099,10 @@ run_xfail_test() {
     run_test "tests/generic_function_type_alias"
 }
 
+@test "generic_mutating_type_param_slice" {
+    run_test "tests/generic_mutating_type_param_slice"
+}
+
 @test "generic_pointer_interface_type_arg" {
     run_test "tests/generic_pointer_interface_type_arg"
 }

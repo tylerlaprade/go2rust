@@ -1,0 +1,8 @@
+[package]
+name = "generic_mutating_type_param_slice"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "generic_mutating_type_param_slice"
+path = "main.rs"
