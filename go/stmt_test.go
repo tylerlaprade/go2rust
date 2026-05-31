@@ -4617,6 +4617,31 @@ func run(funcs []func() error) {
 	}
 }
 
+func TestGoFuncLiteralCapturesLocalFunctionValueHandle(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type holder struct {
+	open func(string) int
+}
+
+func run(h holder, names []string) {
+	open := h.open
+	for _, name := range names {
+		go func(path string) {
+			_ = open(path)
+		}(name)
+	}
+}
+`)
+
+	if strings.Contains(rust, "Some((*open.") {
+		t.Fatalf("goroutine should not clone the inner function box when capturing a local function value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let open_thread = open.clone();") {
+		t.Fatalf("goroutine should capture the local function value handle:\n%s", rust)
+	}
+}
+
 func TestTripleSlashStatementCommentEmitsRegularRustComment(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

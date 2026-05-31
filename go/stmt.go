@@ -12222,7 +12222,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if currentReceiver != "" && varName == currentReceiver {
 				out.WriteString(currentReceiverRustName())
 				out.WriteString(".clone(); ")
-			} else if channelCaptured[varName] || pointerCaptured[varName] || isVarBare(varName) || isFunctionTypedNameInFunc(varName, fnType) {
+			} else if channelCaptured[varName] || pointerCaptured[varName] || isVarBare(varName) || goStmtCapturedNameIsFunctionHandle(s.Call, varName) {
 				// Channel, pointer, bare, and function-typed variables already have handle semantics.
 				out.WriteString(varName)
 				out.WriteString(".clone(); ")
@@ -12942,32 +12942,43 @@ func channelAssignmentRHSNeedsClone(rhs ast.Expr) bool {
 }
 
 func goStmtImmediateArgIsFunctionHandle(ident *ast.Ident) bool {
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || ident == nil || typeInfo.IsFunction(ident) {
-		return false
-	}
-	return typeInfo.IsFunctionType(ident)
+	return isFunctionValueIdent(ident)
 }
 
-func isFunctionTypedNameInFunc(name string, fnType *ast.FuncType) bool {
-	if fnType == nil || fnType.Params == nil {
+func goStmtCapturedNameIsFunctionHandle(call *ast.CallExpr, name string) bool {
+	if call == nil || name == "" {
 		return false
 	}
+	found := false
+	ast.Inspect(call, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		ident, ok := n.(*ast.Ident)
+		if !ok || ident.Name != name {
+			return true
+		}
+		if isFunctionValueIdent(ident) {
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
+}
 
-	for _, field := range fnType.Params.List {
-		for _, paramName := range field.Names {
-			if paramName.Name != name {
-				continue
-			}
-			if _, ok := field.Type.(*ast.FuncType); ok {
-				return true
-			}
-			typeInfo := GetTypeInfo()
-			return typeInfo != nil && typeInfo.IsFunctionType(field.Type)
+func isFunctionValueIdent(ident *ast.Ident) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || ident == nil || ident.Name == "_" || typeInfo.IsFunction(ident) {
+		return false
+	}
+	typ := typeInfo.GetType(ident)
+	if typ == nil {
+		if obj := typeInfo.GetObject(ident); obj != nil {
+			typ = obj.Type()
 		}
 	}
-
-	return false
+	return isFunctionSignatureType(typ)
 }
 
 func suppressCaptureRename(name string) func() {
