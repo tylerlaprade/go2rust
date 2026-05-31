@@ -5544,6 +5544,21 @@ func setTypeParams(alias *Alias, params []int) {
 	}
 }
 
+func TestExternalLocalInterfaceMethodUsesMutableTraitReceiver(t *testing.T) {
+	method := types.NewFunc(token.NoPos, nil, "SetTypeParams", types.NewSignatureType(nil, nil, nil, nil, nil, false))
+	prevInterfaceMethodMutableReceiver := interfaceMethodMutableReceiver
+	interfaceMethodMutableReceiver = map[*types.Func]bool{method: true}
+	t.Cleanup(func() {
+		interfaceMethodMutableReceiver = prevInterfaceMethodMutableReceiver
+	})
+
+	var out strings.Builder
+	writeExternalLocalInterfaceMethod(&out, "SetTypeParams", &ast.FuncType{}, false, method)
+	if !strings.Contains(out.String(), "fn set_type_params(&mut self)") {
+		t.Fatalf("external local-interface impl should match a mutable trait receiver:\n%s", out.String())
+	}
+}
+
 func TestConcreteErrorAssertionMethodCallUnwrapsReceiver(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

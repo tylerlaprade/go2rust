@@ -1188,10 +1188,14 @@ func collectPackageMethods(files []*ast.File) map[string][]*ast.FuncDecl {
 	return methods
 }
 
-func writeExternalLocalInterfaceMethod(out *strings.Builder, methodName string, funcType *ast.FuncType, sourceIsInterface bool) {
+func writeExternalLocalInterfaceMethod(out *strings.Builder, methodName string, funcType *ast.FuncType, sourceIsInterface bool, methodObj *types.Func) {
 	out.WriteString("    fn ")
 	out.WriteString(ToSnakeCase(methodName))
-	out.WriteString("(&self")
+	if interfaceMethodRequiresMutableReceiver(methodObj) {
+		out.WriteString("(&mut self")
+	} else {
+		out.WriteString("(&self")
+	}
 	argNames := make([]string, 0)
 	if funcType.Params != nil {
 		argIndex := 0
@@ -1337,7 +1341,7 @@ func writeExternalLocalInterfaceImpls(out *strings.Builder, first *bool, impls m
 					if !ok {
 						continue
 					}
-					writeExternalLocalInterfaceMethod(out, method.Names[0].Name, funcType, impl.sourceIsInterface)
+					writeExternalLocalInterfaceMethod(out, method.Names[0].Name, funcType, impl.sourceIsInterface, interfaceMethodByName(impl.ifaceType, method.Names[0].Name))
 				}
 			}
 			writeExternalLocalInterfaceSupportImpl(out, ifaceName, concreteType, impl.ifaceType)
