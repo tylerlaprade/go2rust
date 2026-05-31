@@ -2123,6 +2123,53 @@ func f() uintptr {
 	}
 }
 
+func TestSourceMappedSelectorConstAssignToByteFieldIndexCastsToByte(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "unicode/utf8"
+
+type scanner struct {
+	srcBuf []byte
+	srcEnd int
+}
+
+func (s *scanner) init() {
+	s.srcBuf[0] = utf8.RuneSelf
+	s.srcBuf[s.srcEnd] = utf8.RuneSelf
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	ast.Inspect(file, func(node ast.Node) bool {
+		assign, ok := node.(*ast.AssignStmt)
+		if !ok || len(assign.Lhs) != 1 {
+			return true
+		}
+		indexExpr, ok := assign.Lhs[0].(*ast.IndexExpr)
+		if !ok {
+			return true
+		}
+		if typ := typeInfo.GetType(indexExpr); typ == nil {
+			t.Fatalf("go/types did not record byte index expression type for %T", indexExpr.X)
+		}
+		return true
+	})
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"unicode/utf8": "utf8"})
+	if strings.Contains(rust, "= utf8::RUNE_SELF;") {
+		t.Fatalf("source-mapped selector constant assigned to []byte element should not remain uncast:\n%s", rust)
+	}
+	if count := strings.Count(rust, "= utf8::RUNE_SELF as u8;"); count != 2 {
+		t.Fatalf("source-mapped selector constant assigned to []byte element should cast to u8 twice, got %d:\n%s", count, rust)
+	}
+}
+
 func TestCompoundAssignBareScalarLocalUsesRawValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

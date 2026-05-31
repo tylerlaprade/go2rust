@@ -583,6 +583,9 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 	if expected != nil && writeLocalInterfaceFieldValue(out, rhs, nil, expected) {
 		return
 	}
+	if expected != nil && writeConstExpressionForExpectedGoType(out, rhs, expected) {
+		return
+	}
 	if writeBareValueForWrappedSlot(out, rhs) {
 		return
 	}
@@ -648,11 +651,19 @@ func writeArraySliceElementAssignmentValue(out *strings.Builder, rhs ast.Expr, e
 		TranspileExpression(out, rhs)
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()).clone()")
-	} else if expected != nil && writeConstExpressionForExpectedGoType(out, rhs, expected) {
-		// Char/int constant cast to the slice element's type (e.g., u8 for []byte).
 	} else {
 		TranspileExpression(out, rhs)
 	}
+}
+
+func indexedSequenceElementAssignmentType(typeInfo *TypeInfo, indexExpr *ast.IndexExpr) types.Type {
+	if typeInfo == nil || indexExpr == nil {
+		return nil
+	}
+	if elemType := typeInfo.GetArrayOrSliceElemTypePreservingTypeParam(indexExpr.X); elemType != nil {
+		return elemType
+	}
+	return typeInfo.GetType(indexExpr)
 }
 
 func arraySliceElementExpectedStoresBareCollection(expected types.Type) bool {
@@ -785,10 +796,10 @@ func writePointerDerefAssignmentValue(out *strings.Builder, rhs ast.Expr, expect
 			return true
 		}
 	}
-	if writeBareValueForWrappedSlot(out, rhs) {
+	if expected != nil && writeConstExpressionForExpectedGoType(out, rhs, expected) {
 		return true
 	}
-	if expected != nil && writeConstExpressionForExpectedGoType(out, rhs, expected) {
+	if writeBareValueForWrappedSlot(out, rhs) {
 		return true
 	}
 	return false
@@ -1018,7 +1029,7 @@ func writeNestedSliceElementAssignment(out *strings.Builder, indexExpr *ast.Inde
 	out.WriteString("][")
 	writeExpressionAsUsize(out, indexExpr.Index)
 	out.WriteString("] = ")
-	writeArraySliceElementAssignmentValue(out, rhs, typeInfo.GetArrayOrSliceElemTypePreservingTypeParam(indexExpr.X))
+	writeArraySliceElementAssignmentValue(out, rhs, indexedSequenceElementAssignmentType(typeInfo, indexExpr))
 	return true
 }
 
@@ -1052,7 +1063,7 @@ func writePointerDerefSequenceElementAssignment(out *strings.Builder, indexExpr 
 	out.WriteString("; let __slice = __slice_guard.as_mut().unwrap(); __slice[")
 	writeExpressionAsUsize(out, indexExpr.Index)
 	out.WriteString("] = ")
-	elemType := typeInfo.GetArrayOrSliceElemTypePreservingTypeParam(indexExpr.X)
+	elemType := indexedSequenceElementAssignmentType(typeInfo, indexExpr)
 	if elemRustType, ok := sliceElemPtrSliceCandidateForExpr(indexExpr.X); ok {
 		if !writeSliceElemPtrSliceSlotValue(out, rhs, elemRustType) {
 			out.WriteString(`unimplemented!("type info required to lower pointer slice assignment")`)
@@ -9478,7 +9489,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 									var elemType types.Type
 									if typeInfo := GetTypeInfo(); typeInfo != nil {
-										elemType = typeInfo.GetArrayOrSliceElemTypePreservingTypeParam(indexExpr.X)
+										elemType = indexedSequenceElementAssignmentType(typeInfo, indexExpr)
 									}
 									if elemRustType, ok := sliceElemPtrSliceCandidateForExpr(indexExpr.X); ok {
 										if !writeSliceElemPtrSliceSlotValue(out, s.Rhs[0], elemRustType) {
