@@ -4137,6 +4137,13 @@ func stdlibInterfaceArgumentConversion(arg ast.Expr, expectedType types.Type) (t
 	if typeInfo == nil || expectedType == nil {
 		return "", "", false
 	}
+	return stdlibInterfaceConversionForTypes(typeInfo.GetType(arg), expectedType)
+}
+
+func stdlibInterfaceConversionForTypes(sourceType types.Type, expectedType types.Type) (targetRust string, sourceRust string, ok bool) {
+	if sourceType == nil || expectedType == nil {
+		return "", "", false
+	}
 	targetNamed, ok := expectedType.(*types.Named)
 	if !ok || targetNamed.Obj() == nil || targetNamed.Obj().Pkg() == nil {
 		return "", "", false
@@ -4149,10 +4156,6 @@ func stdlibInterfaceArgumentConversion(arg ast.Expr, expectedType types.Type) (t
 		return "", "", false
 	}
 
-	sourceType := typeInfo.GetType(arg)
-	if sourceType == nil {
-		return "", "", false
-	}
 	sourceNamedType := sourceType
 	if ptr, ok := sourceType.(*types.Pointer); ok {
 		sourceNamedType = ptr.Elem()

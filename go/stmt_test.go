@@ -501,6 +501,63 @@ func use() {
 	}
 }
 
+func TestMultiResultCallReturnConvertsStdlibInterfaceSlot(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"io"
+	"os"
+)
+
+func openFile(name string) (io.ReadCloser, error) {
+	return os.Open(name)
+}
+`)
+
+	if strings.Contains(rust, "return os::open(") && !strings.Contains(rust, "__return_slot_0") {
+		t.Fatalf("multi-result return should not return the concrete os.File slot directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let (__return_tmp_0, __return_tmp_1) = os::open") ||
+		!strings.Contains(rust, "let __return_slot_0") ||
+		!strings.Contains(rust, "io_ReadCloser") ||
+		!strings.Contains(rust, "into()") {
+		t.Fatalf("multi-result return should convert the concrete first result into io.ReadCloser:\n%s", rust)
+	}
+}
+
+func TestMultiResultCallReturnConvertsSourceMappedStdlibInterfaceSlot(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import (
+	"io"
+	"os"
+)
+
+func openFile(name string) (io.ReadCloser, error) {
+	return os.Open(name)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"os": "os"})
+
+	if strings.Contains(rust, "return os::open(") && !strings.Contains(rust, "__return_slot_0") {
+		t.Fatalf("source-mapped multi-result return should not return the concrete os.File slot directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let (__return_tmp_0, __return_tmp_1) = os::open") ||
+		!strings.Contains(rust, "let __return_slot_0") ||
+		!strings.Contains(rust, "io_ReadCloser::__go_from") {
+		t.Fatalf("source-mapped multi-result return should box os.File into io.ReadCloser:\n%s", rust)
+	}
+}
+
 func TestSourceMappedStringsBuilderUsesGeneratedMethods(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
