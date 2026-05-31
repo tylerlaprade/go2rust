@@ -367,6 +367,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil && typeInfo.GetType(arg) != nil {
 		argType := typeInfo.GetType(arg)
+		if writeGoErrorFormatArg(out, arg, argType) {
+			return
+		}
 
 		// Check if it's any kind of interface
 		if intf, ok := argType.Underlying().(*types.Interface); ok {
@@ -646,6 +649,21 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 
 	// For other cases, just use regular expression transpilation
 	TranspileExpression(out, arg)
+}
+
+func writeGoErrorFormatArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
+	if !isGoErrorType(argType) {
+		return false
+	}
+	out.WriteString("format!(\"{}\", (*")
+	if ident, ok := arg.(*ast.Ident); ok {
+		out.WriteString(rustIdentForUseWithCapture(ident))
+	} else {
+		TranspileExpressionContext(out, arg, LValue)
+	}
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()))")
+	return true
 }
 
 // convertFormatStringWithSkips converts Go format verbs to Rust format strings

@@ -50,6 +50,38 @@ func Write(buf *strings.Builder, cmap CommentMap, s string) {
 	}
 }
 
+func TestFmtErrorfFormatsPackageGlobalErrorSelectorByHandle(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import (
+	"fmt"
+	"os/exec"
+)
+
+func wrap() error {
+	return fmt.Errorf("missing: %s", exec.ErrNotFound)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"os/exec": "os_exec"})
+
+	if strings.Contains(rust, "ErrNotFound.lock().unwrap().as_ref().unwrap()).clone()).lock()") ||
+		strings.Contains(rust, "ErrNotFound.borrow().as_ref().unwrap()).clone()).borrow()") {
+		t.Fatalf("fmt.Errorf should not clone the boxed error before formatting it:\n%s", rust)
+	}
+	if !strings.Contains(rust, "format!(\"{}\", (*os_exec::ErrNotFound.lock().unwrap().as_ref().unwrap()))") &&
+		!strings.Contains(rust, "format!(\"{}\", (*os_exec::ErrNotFound.borrow().as_ref().unwrap()))") {
+		t.Fatalf("fmt.Errorf should format the package-global error handle directly:\n%s", rust)
+	}
+}
+
 func TestLenOfPointerToSliceDerefUsesSliceHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
