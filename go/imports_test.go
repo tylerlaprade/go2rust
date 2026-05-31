@@ -30,3 +30,26 @@ func TestGoRWMutexHelperExportsLockMethods(t *testing.T) {
 		}
 	}
 }
+
+func TestGoPtrKeyHelperModuleImportsWrapperTypes(t *testing.T) {
+	prevConcurrencyDetector := GetConcurrencyDetector()
+	t.Cleanup(func() {
+		SetConcurrencyDetector(prevConcurrencyDetector)
+	})
+
+	SetConcurrencyDetector(nil)
+	helper := (&HelperTracker{needsGoPtrKey: true}).GenerateHelperModule()
+	for _, want := range []string{"use std::rc::{Rc};", "use std::cell::{RefCell};"} {
+		if !strings.Contains(helper, want) {
+			t.Fatalf("single-threaded GoLocalPtrKey helper should import %q:\n%s", want, helper)
+		}
+	}
+
+	cd := NewConcurrencyDetector()
+	cd.hasChannels = true
+	SetConcurrencyDetector(cd)
+	helper = (&HelperTracker{needsGoPtrKey: true}).GenerateHelperModule()
+	if !strings.Contains(helper, "use std::sync::{Arc, Mutex};") {
+		t.Fatalf("concurrent GoLocalPtrKey helper should import Arc and Mutex:\n%s", helper)
+	}
+}

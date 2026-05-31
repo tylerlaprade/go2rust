@@ -571,6 +571,8 @@ func (ht *HelperTracker) ImportNames() []string {
 
 func generateGoPtrKeyHelper(out *strings.Builder, name string, includeSliceElemPtr bool) {
 	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
 		if includeSliceElemPtr {
 			out.WriteString(`
 enum ` + name + `Repr<T> {
@@ -678,6 +680,8 @@ impl<T> std::fmt::Display for ` + name + `<T> {
 }
 `)
 	} else {
+		TrackImport("Rc")
+		TrackImport("RefCell")
 		if includeSliceElemPtr {
 			out.WriteString(`
 enum ` + name + `Repr<T> {
