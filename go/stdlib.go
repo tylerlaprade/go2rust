@@ -315,6 +315,10 @@ func transpilePrintArgString(out *strings.Builder, arg ast.Expr) {
 func writeFormatAnyPrintArg(out *strings.Builder, arg ast.Expr) {
 	NeedFormatAny()
 	out.WriteString("format_any(")
+	if writeBareAnyPayloadRef(out, arg) {
+		out.WriteString(")")
+		return
+	}
 	if ident, ok := arg.(*ast.Ident); ok {
 		out.WriteString(RustIdentForUse(ident))
 		WriteBorrowMethod(out, false)
@@ -331,6 +335,25 @@ func writeFormatAnyPrintArg(out *strings.Builder, arg ast.Expr) {
 		out.WriteString(".as_ref().unwrap().as_ref()")
 	}
 	out.WriteString(")")
+}
+
+func writeBareAnyPayloadRef(out *strings.Builder, arg ast.Expr) bool {
+	ident, ok := arg.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	rustType := ""
+	if varType, ok := rangeLoopVars[ident.Name]; ok {
+		rustType = strings.TrimPrefix(varType, "&")
+	} else if info := lookupVarInfo(ident.Name); info != nil && info.WrapLevel == WrapNone {
+		rustType = strings.TrimPrefix(info.RustType, "&")
+	}
+	if !strings.Contains(rustType, "Box<dyn Any") {
+		return false
+	}
+	out.WriteString(RustIdentForUse(ident))
+	out.WriteString(".as_ref()")
+	return true
 }
 
 // Helper function to unwrap arguments for print statements
@@ -977,6 +1000,45 @@ func transpilePrintHexArg(out *strings.Builder, arg ast.Expr, formatSpec string)
 	out.WriteString(")")
 }
 
+func writeTypeNameFormatArg(out *strings.Builder, arg ast.Expr) {
+	NeedGoTypeName()
+	out.WriteString(goTypeNameHelperRustName)
+	out.WriteString("(")
+	if writeBareAnyPayloadRef(out, arg) {
+		out.WriteString(")")
+		return
+	}
+	if ident, ok := arg.(*ast.Ident); ok {
+		if isVarBare(ident.Name) {
+			out.WriteString(ident.Name)
+		} else {
+			typeInfo := GetTypeInfo()
+			isEmptyInterface := false
+			if typeInfo != nil {
+				if typ := typeInfo.GetType(ident); typ != nil {
+					if intf, ok := typ.Underlying().(*types.Interface); ok && intf.NumMethods() == 0 {
+						isEmptyInterface = true
+					}
+				}
+			}
+			if isEmptyInterface {
+				out.WriteString("&**")
+				out.WriteString(ident.Name)
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()")
+			} else {
+				out.WriteString(ident.Name)
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap()")
+			}
+		}
+	} else {
+		out.WriteString("&")
+		transpilePrintArg(out, arg)
+	}
+	out.WriteString(")")
+}
+
 func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIndices []int, typeNameIndices []int, unicodeIndices []int, pointerIndices []int, hexFormats map[int]string) {
 	isTypeNameArg := false
 	for _, tnIdx := range typeNameIndices {
@@ -1006,44 +1068,9 @@ func transpileFormatArg(out *strings.Builder, arg ast.Expr, argIndex int, charIn
 			break
 		}
 	}
+
 	if isTypeNameArg {
-		NeedGoTypeName()
-		if ident, ok := arg.(*ast.Ident); ok {
-			if isVarBare(ident.Name) {
-				out.WriteString(goTypeNameHelperRustName)
-				out.WriteString("(")
-				out.WriteString(ident.Name)
-				out.WriteString(")")
-			} else {
-				typeInfo := GetTypeInfo()
-				isEmptyInterface := false
-				if typeInfo != nil {
-					if typ := typeInfo.GetType(ident); typ != nil {
-						if intf, ok := typ.Underlying().(*types.Interface); ok && intf.NumMethods() == 0 {
-							isEmptyInterface = true
-						}
-					}
-				}
-				if isEmptyInterface {
-					out.WriteString(goTypeNameHelperRustName)
-					out.WriteString("(&**")
-					out.WriteString(ident.Name)
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap())")
-				} else {
-					out.WriteString(goTypeNameHelperRustName)
-					out.WriteString("(")
-					out.WriteString(ident.Name)
-					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap())")
-				}
-			}
-		} else {
-			out.WriteString(goTypeNameHelperRustName)
-			out.WriteString("(&")
-			transpilePrintArg(out, arg)
-			out.WriteString(")")
-		}
+		writeTypeNameFormatArg(out, arg)
 	} else if isUnicodeArg {
 		transpilePrintArg(out, arg)
 		out.WriteString(" as u32")

@@ -352,6 +352,44 @@ func main() {
 	}
 }
 
+func TestConcurrentFmtFprintfFormatsBareAnyRangeValue(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import (
+	"fmt"
+	"os"
+)
+
+func log(args ...any) {
+	go func() {}()
+	for _, arg := range args {
+		fmt.Fprintf(os.Stderr, "unsupported %v (%T)\n", arg, arg)
+	}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	prevDetector := GetConcurrencyDetector()
+	detector := NewConcurrencyDetector()
+	detector.AnalyzeFile(file)
+	SetConcurrencyDetector(detector)
+	defer SetConcurrencyDetector(prevDetector)
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "format_any(arg.lock()") || strings.Contains(rust, "format_any(arg.borrow()") {
+		t.Fatalf("fmt.Fprintf should not treat a bare any range value as a wrapper handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "format_any(arg.as_ref())") {
+		t.Fatalf("fmt.Fprintf should format a bare any range value through its boxed payload:\n%s", rust)
+	}
+}
+
 func TestPanicAnyFormatsInterfacePayload(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
