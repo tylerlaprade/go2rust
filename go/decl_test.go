@@ -564,6 +564,24 @@ type ranges struct {
 	}
 }
 
+func TestStructDisplayPointerFieldDoesNotRequirePointeeDisplay(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "time"
+
+type ctxResult struct {
+	timer *time.Timer
+}
+`)
+
+	if strings.Contains(rust, "(*self.timer") {
+		t.Fatalf("pointer struct display should not dereference and require pointee Display:\n%s", rust)
+	}
+	if !strings.Contains(rust, "format!(\"{:p}\", __v as *const _)") {
+		t.Fatalf("pointer struct display should format the pointer value:\n%s", rust)
+	}
+}
+
 func TestNamedMapWithInterfaceValueDefinitionUsesFormatMapDisplay(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

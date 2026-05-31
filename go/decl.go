@@ -76,6 +76,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		ptrSlice           bool
 		ptrToSlice         bool
 		ptrToPtrSlice      bool
+		isPointer          bool
 		interfaceSlice     bool
 	}
 	var fields []fieldEntry
@@ -98,6 +99,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		ptrSlice := arrayFieldContainsPointer(field.Type)
 		ptrToSlice := pointerFieldContainsSlice(field.Type)
 		ptrToPtrSlice := pointerFieldContainsPointerSlice(field.Type)
+		isPointer := structDisplayFieldIsPointer(field.Type)
 		interfaceSlice := arrayFieldContainsLocalInterface(field.Type)
 		if isChannel {
 			continue
@@ -120,6 +122,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 					ptrSlice:           ptrSlice,
 					ptrToSlice:         ptrToSlice,
 					ptrToPtrSlice:      ptrToPtrSlice,
+					isPointer:          isPointer,
 					interfaceSlice:     interfaceSlice,
 				})
 			}
@@ -142,6 +145,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 				ptrSlice:           ptrSlice,
 				ptrToSlice:         ptrToSlice,
 				ptrToPtrSlice:      ptrToPtrSlice,
+				isPointer:          isPointer,
 				interfaceSlice:     interfaceSlice,
 			})
 		}
@@ -214,6 +218,11 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			out.WriteString("format_slice_wrapped_stringer(&self.")
 			out.WriteString(ToSnakeCase(f.name))
 			out.WriteString(")")
+		} else if f.isPointer {
+			out.WriteString("{ let __guard = self.")
+			out.WriteString(ToSnakeCase(f.name))
+			WriteBorrowMethod(out, false)
+			out.WriteString("; match __guard.as_ref() { Some(__v) => format!(\"{:p}\", __v as *const _), None => \"<nil>\".to_string() } }")
 		} else if f.isSlice {
 			NeedFormatSlice()
 			out.WriteString("format_slice(&self.")
@@ -285,6 +294,15 @@ func pointerFieldSliceElem(expr ast.Expr) (ast.Expr, bool) {
 		return nil, false
 	}
 	return arrayType.Elt, true
+}
+
+func structDisplayFieldIsPointer(expr ast.Expr) bool {
+	typ, ok := typeInfoTypeForTypeExpr(expr)
+	if !ok {
+		return false
+	}
+	_, ok = types.Unalias(typ).Underlying().(*types.Pointer)
+	return ok
 }
 
 // arrayFieldNestedInnerIsPointer reports whether expr is a nested slice ([][]X)
