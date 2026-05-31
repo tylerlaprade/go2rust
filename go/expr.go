@@ -13667,8 +13667,8 @@ func writeTypeAssertionExpectBareValue(out *strings.Builder, receiver string, ru
 	out.WriteString(">().expect(\"type assertion failed\").clone()")
 }
 
-func writeTypeAssertionFailureWrappedValue(out *strings.Builder, rustType string, defaultValue string, targetIsPointer bool) {
-	if targetIsPointer {
+func writeTypeAssertionFailureWrappedValue(out *strings.Builder, rustType string, defaultValue string, targetIsPointer bool, targetIsInterface bool) {
+	if targetIsPointer || targetIsInterface {
 		writeTypedWrappedNone(out, rustType)
 		return
 	}
@@ -13677,7 +13677,7 @@ func writeTypeAssertionFailureWrappedValue(out *strings.Builder, rustType string
 	WriteWrapperSuffix(out)
 }
 
-func writeTraitObjectConcreteAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, rustType string, defaultValue string, targetIsPointer bool, targetIsError bool) {
+func writeTraitObjectConcreteAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, rustType string, defaultValue string, targetIsPointer bool, targetIsInterface bool, targetIsError bool) {
 	sourceTrait := typeAssertionSourceTraitObject(e.X)
 	out.WriteString("({\n")
 	if typeAssertionSourceIsTraitObjectRef(e.X) {
@@ -13709,7 +13709,7 @@ func writeTraitObjectConcreteAssertionCommaOk(out *strings.Builder, e *ast.TypeA
 	if typeAssertionSourceIsTraitObjectRef(e.X) {
 		out.WriteString("        } else {\n")
 		out.WriteString("            (")
-		writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer)
+		writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer, targetIsInterface)
 		out.WriteString(", ")
 		WriteWrapperPrefix(out)
 		out.WriteString("false")
@@ -13719,7 +13719,7 @@ func writeTraitObjectConcreteAssertionCommaOk(out *strings.Builder, e *ast.TypeA
 	} else {
 		out.WriteString("            } else {\n")
 		out.WriteString("                (")
-		writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer)
+		writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer, targetIsInterface)
 		out.WriteString(", ")
 		WriteWrapperPrefix(out)
 		out.WriteString("false")
@@ -13728,7 +13728,7 @@ func writeTraitObjectConcreteAssertionCommaOk(out *strings.Builder, e *ast.TypeA
 		out.WriteString("            }\n")
 		out.WriteString("        } else {\n")
 		out.WriteString("            (")
-		writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer)
+		writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer, targetIsInterface)
 		out.WriteString(", ")
 		WriteWrapperPrefix(out)
 		out.WriteString("false")
@@ -13794,6 +13794,14 @@ func writeLocalInterfaceAssertionWrappedSuccess(out *strings.Builder, ifaceName 
 
 func writeLocalInterfaceAssertionWrappedNone(out *strings.Builder, ifaceName string) {
 	writeTypedWrappedNone(out, rustLocalInterfaceTraitObject(ifaceName))
+}
+
+func typeAssertionTargetIsInterface(e *ast.TypeAssertExpr) bool {
+	if e == nil {
+		return false
+	}
+	targetType, ok := typeInfoTypeForTypeExpr(e.Type)
+	return ok && isInterfaceType(targetType)
 }
 
 // writeAnonInterfaceAssertionCommaOk lowers `x.(interface{...})` in comma-ok
@@ -14153,6 +14161,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	defaultValue := ""
 	targetIsError := false
 	targetIsPointer := false
+	targetIsInterface := typeAssertionTargetIsInterface(e)
 	if ident, ok := e.Type.(*ast.Ident); ok {
 		switch ident.Name {
 		case "string":
@@ -14167,6 +14176,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 				defaultValue = "Box::<dyn StdError>::from(std::string::String::new())"
 			}
 			targetIsError = true
+			targetIsInterface = false
 		case "int":
 			rustType = "i32"
 			defaultValue = "0"
@@ -14266,9 +14276,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 			out.WriteString(")\n")
 			out.WriteString("                } else {\n")
 			out.WriteString("                    (")
-			WriteWrapperPrefix(out)
-			out.WriteString(defaultValue)
-			WriteWrapperSuffix(out)
+			writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer, targetIsInterface)
 			out.WriteString(", ")
 			WriteWrapperPrefix(out)
 			out.WriteString("false")
@@ -14277,9 +14285,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 			out.WriteString("                }\n")
 			out.WriteString("            } else {\n")
 			out.WriteString("                (")
-			WriteWrapperPrefix(out)
-			out.WriteString(defaultValue)
-			WriteWrapperSuffix(out)
+			writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer, targetIsInterface)
 			out.WriteString(", ")
 			WriteWrapperPrefix(out)
 			out.WriteString("false")
@@ -14288,9 +14294,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 			out.WriteString("            }\n")
 			out.WriteString("        } else {\n")
 			out.WriteString("            (")
-			WriteWrapperPrefix(out)
-			out.WriteString(defaultValue)
-			WriteWrapperSuffix(out)
+			writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer, targetIsInterface)
 			out.WriteString(", ")
 			WriteWrapperPrefix(out)
 			out.WriteString("false")
@@ -14333,13 +14337,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		out.WriteString(")\n")
 		out.WriteString("            } else {\n")
 		out.WriteString("                (")
-		if targetIsPointer {
-			writeTypedWrappedNone(out, rustType)
-		} else {
-			WriteWrapperPrefix(out)
-			out.WriteString(defaultValue)
-			WriteWrapperSuffix(out)
-		}
+		writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer, targetIsInterface)
 		out.WriteString(", ")
 		WriteWrapperPrefix(out)
 		out.WriteString("false")
@@ -14348,13 +14346,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		out.WriteString("            }\n")
 		out.WriteString("        } else {\n")
 		out.WriteString("            (")
-		if targetIsPointer {
-			writeTypedWrappedNone(out, rustType)
-		} else {
-			WriteWrapperPrefix(out)
-			out.WriteString(defaultValue)
-			WriteWrapperSuffix(out)
-		}
+		writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer, targetIsInterface)
 		out.WriteString(", ")
 		WriteWrapperPrefix(out)
 		out.WriteString("false")
@@ -14396,9 +14388,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		out.WriteString(")\n")
 		out.WriteString("        } else {\n")
 		out.WriteString("            (")
-		WriteWrapperPrefix(out)
-		out.WriteString(defaultValue)
-		WriteWrapperSuffix(out)
+		writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer, targetIsInterface)
 		out.WriteString(", ")
 		WriteWrapperPrefix(out)
 		out.WriteString("false")
@@ -14410,7 +14400,7 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	}
 
 	if typeAssertionSourceUsesTraitObject(e.X) {
-		writeTraitObjectConcreteAssertionCommaOk(out, e, rustType, defaultValue, targetIsPointer, targetIsError)
+		writeTraitObjectConcreteAssertionCommaOk(out, e, rustType, defaultValue, targetIsPointer, targetIsInterface, targetIsError)
 		return
 	}
 
@@ -14442,17 +14432,15 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	out.WriteString("true))))\n")
 	out.WriteString("            } else {\n")
 	out.WriteString("                (")
-	WriteWrapperPrefix(out)
-	out.WriteString(defaultValue)
-	out.WriteString("))), ")
+	writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer, targetIsInterface)
+	out.WriteString(", ")
 	WriteWrapperPrefix(out)
 	out.WriteString("false))))\n")
 	out.WriteString("            }\n")
 	out.WriteString("        } else {\n")
 	out.WriteString("            (")
-	WriteWrapperPrefix(out)
-	out.WriteString(defaultValue)
-	out.WriteString("))), ")
+	writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer, targetIsInterface)
+	out.WriteString(", ")
 	WriteWrapperPrefix(out)
 	out.WriteString("false))))\n")
 	out.WriteString("        }\n")

@@ -1722,6 +1722,34 @@ func walk(s *ast.LabeledStmt) {
 	}
 }
 
+func TestSourceMappedInterfaceAssertionCommaOkFalseBranchIsNil(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "go/ast"
+
+func asNode(node any) (ast.Node, bool) {
+	n, ok := node.(ast.Node)
+	return n, ok
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"go/ast": "go_ast"})
+	if strings.Contains(rust, "Some(Default::default())") {
+		t.Fatalf("comma-ok assertion to source-mapped interface should use nil on the false branch:\n%s", rust)
+	}
+	if !strings.Contains(rust, "None::<Box<dyn go_ast::Node") {
+		t.Fatalf("comma-ok assertion to source-mapped interface should type the nil false branch:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceWrappedIdentArgumentPassesHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
