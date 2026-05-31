@@ -919,12 +919,12 @@ func writeStructDefaultValue(out *strings.Builder, fieldType ast.Expr) {
 	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		if typ := typeInfo.GetType(fieldType); typ != nil {
-			if structFieldHasNilZero(typ) {
-				WriteWrappedNone(out)
-				return
-			}
 			if _, isChan := types.Unalias(typ).Underlying().(*types.Chan); isChan {
 				out.WriteString("Default::default()")
+				return
+			}
+			if structFieldHasNilZero(typ) {
+				WriteWrappedNone(out)
 				return
 			}
 			WriteWrapperPrefix(out)

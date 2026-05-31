@@ -129,6 +129,28 @@ type term struct {
 	}
 }
 
+func TestStructDefaultUsesBareDefaultForChannelField(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type worker struct {
+	done chan int
+	name string
+}
+
+func zero() worker {
+	return worker{}
+}
+`)
+
+	if strings.Contains(rust, "done: Rc::new(RefCell::new(None))") ||
+		strings.Contains(rust, "done: Arc::new(Mutex::new(None))") {
+		t.Fatalf("struct Default should not wrap channel fields in Option handles:\n%s", rust)
+	}
+	if !strings.Contains(rust, "done: Default::default()") {
+		t.Fatalf("struct Default should use the channel default directly:\n%s", rust)
+	}
+}
+
 func TestConcurrentMapKeyStructWithInterfaceFieldUsesTraitEquality(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
