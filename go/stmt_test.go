@@ -895,6 +895,31 @@ func classify(v interface{}) string {
 	}
 }
 
+func TestTypeSwitchAssignedCaseBindingIsMutable(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type BasicLit struct {
+	Value string
+}
+
+func normalizedNumber(x *BasicLit) *BasicLit {
+	return x
+}
+
+func print(arg any) {
+	switch x := arg.(type) {
+	case *BasicLit:
+		x = normalizedNumber(x)
+		_ = x
+	}
+}
+`)
+
+	if !strings.Contains(rust, "let mut x =") {
+		t.Fatalf("assigned type-switch case binding should be mutable:\n%s", rust)
+	}
+}
+
 func TestUnsafeSizeofWithoutTypeInfoEmitsUnimplemented(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

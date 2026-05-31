@@ -2364,13 +2364,16 @@ func writeTypeSwitchLocalInterfaceCaseCondition(out *strings.Builder, typeInfo *
 // out of the subject. With a single candidate this is exact; multiple
 // candidates would need a unifying trait object the anonymous path cannot
 // synthesize yet, so that case panics loudly rather than emitting wrong code.
-func writeTypeSwitchInterfaceCaseBinding(out *strings.Builder, typeInfo *TypeInfo, varName string, typeExpr ast.Expr, subjectType types.Type) bool {
+func writeTypeSwitchInterfaceCaseBinding(out *strings.Builder, typeInfo *TypeInfo, varName string, typeExpr ast.Expr, subjectType types.Type, mutable bool) bool {
 	iface, ok := typeSwitchCaseInterface(typeInfo, typeExpr)
 	if !ok {
 		return false
 	}
 	candidates := localInterfaceAssertionCandidates(iface, subjectType)
 	out.WriteString("        let ")
+	if mutable {
+		out.WriteString("mut ")
+	}
 	out.WriteString(varName)
 	if len(candidates) != 1 {
 		if typ := typeInfo.GetType(typeExpr); typ != nil {
@@ -2409,8 +2412,11 @@ func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, type
 	out.WriteString(">()).is_some()")
 }
 
-func writeTypeSwitchOriginalBinding(out *strings.Builder, varName string, expr ast.Expr, isRangeVar bool, isStdlibRangeRef bool) {
+func writeTypeSwitchOriginalBinding(out *strings.Builder, varName string, expr ast.Expr, isRangeVar bool, isStdlibRangeRef bool, mutable bool) {
 	out.WriteString("        let ")
+	if mutable {
+		out.WriteString("mut ")
+	}
 	out.WriteString(varName)
 	out.WriteString(" = ")
 	if isRangeVar {
@@ -2490,6 +2496,13 @@ func pushTypeSwitchCaseVarScope(varName string, isTypedSingleCase bool) func() {
 		})
 	}
 	return vt.PopScope
+}
+
+func typeSwitchCaseVarAssigned(caseClause *ast.CaseClause, varName string) bool {
+	if caseClause == nil || varName == "" {
+		return false
+	}
+	return blockIdentAssigned(&ast.BlockStmt{List: caseClause.Body}, varName)
 }
 
 func isUnsafePointerDerefAssignmentTarget(expr ast.Expr) bool {
@@ -12601,6 +12614,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					isTypedSingleCase = false
 				}
 			}
+			caseVarAssigned := typeSwitchCaseVarAssigned(caseClause, varName)
 			popCaseVarScope := pushTypeSwitchCaseVarScope(varName, isTypedSingleCase)
 
 			if len(caseClause.List) == 0 {
@@ -12612,7 +12626,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				if varName != "" {
 					// In default case, v is the original interface{} value
-					writeTypeSwitchOriginalBinding(out, varName, expr, isRangeVar, isStdlibRangeRef)
+					writeTypeSwitchOriginalBinding(out, varName, expr, isRangeVar, isStdlibRangeRef, caseVarAssigned)
 				}
 			} else {
 				// Type case(s)
@@ -12631,15 +12645,21 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 					// Create typed variable if needed
 					if varName != "" && isNil {
-						writeTypeSwitchOriginalBinding(out, varName, expr, isRangeVar, isStdlibRangeRef)
-					} else if varName != "" && writeTypeSwitchInterfaceCaseBinding(out, typeInfo, varName, caseClause.List[0], typeSwitchSubjectType) {
+						writeTypeSwitchOriginalBinding(out, varName, expr, isRangeVar, isStdlibRangeRef, caseVarAssigned)
+					} else if varName != "" && writeTypeSwitchInterfaceCaseBinding(out, typeInfo, varName, caseClause.List[0], typeSwitchSubjectType, caseVarAssigned) {
 						// interface case (named or anonymous): bound to matched concrete implementor
 					} else if varName != "" && rustType == "" {
 						out.WriteString("        let ")
+						if caseVarAssigned {
+							out.WriteString("mut ")
+						}
 						out.WriteString(varName)
 						out.WriteString(" = unimplemented!(\"type info required for type switch case\");\n")
 					} else if varName != "" {
 						out.WriteString("        let ")
+						if caseVarAssigned {
+							out.WriteString("mut ")
+						}
 						out.WriteString(varName)
 						out.WriteString(" = ")
 						WriteWrapperPrefix(out)
@@ -12660,7 +12680,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					out.WriteString(" {\n")
 					if varName != "" {
-						writeTypeSwitchOriginalBinding(out, varName, expr, isRangeVar, isStdlibRangeRef)
+						writeTypeSwitchOriginalBinding(out, varName, expr, isRangeVar, isStdlibRangeRef, caseVarAssigned)
 					}
 				}
 			}
