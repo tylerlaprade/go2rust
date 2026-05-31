@@ -16635,6 +16635,28 @@ func writeSourceTypeParamSliceCallAsConcreteSlice(out *strings.Builder, call *as
 	return true
 }
 
+func sourceTypeParamSliceCallReturnsConcreteSlice(call *ast.CallExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	resultType := typeInfo.GetType(call)
+	resultSlice, ok := types.Unalias(resultType).Underlying().(*types.Slice)
+	if !ok || collectionElemRustTypeIsWrappedHandle(resultSlice.Elem()) {
+		return false
+	}
+	sourceSig, ok := sourceFunctionSignatureForCall(call)
+	if !ok || sourceSig.Results() == nil || sourceSig.Results().Len() != 1 {
+		return false
+	}
+	resultElem, ok := goTypeParamSliceConstraintElem(sourceSig.Results().At(0).Type())
+	if !ok {
+		return false
+	}
+	_, elemIsTypeParam := types.Unalias(resultElem).(*types.TypeParam)
+	return elemIsTypeParam
+}
+
 func sourceFunctionSignatureForCall(call *ast.CallExpr) (*types.Signature, bool) {
 	fn := sourceFunctionObjectForCall(call)
 	if fn == nil {

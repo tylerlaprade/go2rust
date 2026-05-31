@@ -1465,6 +1465,34 @@ func addEmbedded(ityp *Interface, pos Pos) {
 	}
 }
 
+func TestAppendFromGenericSliceResultConvertsToConcreteSlice(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func Clip[S ~[]E, E any](s S) S {
+	return s
+}
+
+type Config struct {
+	Env []string
+	Dir string
+}
+
+func buildEnv(cfg *Config) []string {
+	return append(Clip(cfg.Env), "PWD="+cfg.Dir)
+}
+`)
+
+	if strings.Contains(rust, "let __append_target = clip::<Vec<String>, String>({ let __field = (*cfg") {
+		t.Fatalf("append target from generic slice result should convert back to concrete slice representation:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __result = clip::<Vec<String>, String>") {
+		t.Fatalf("append target should call the generic slice function before concrete conversion:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".iter().cloned().map(|__elem| (*__elem") {
+		t.Fatalf("generic slice result should unwrap type-param element handles before append:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceSliceLiteralBoxesConcretePointerElements(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

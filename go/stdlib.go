@@ -3830,6 +3830,10 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 			if writeNilSliceAppendTarget(out, expr) {
 				return
 			}
+			if callExpr, ok := expr.(*ast.CallExpr); ok && sourceTypeParamSliceCallReturnsConcreteSlice(callExpr) {
+				writeSourceTypeParamSliceCallAsConcreteSlice(out, callExpr)
+				return
+			}
 			if star, ok := appendPointerToSliceDerefTarget(expr); ok {
 				TranspileExpressionContext(out, star.X, LValue)
 				return
