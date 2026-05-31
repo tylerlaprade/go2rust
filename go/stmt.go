@@ -7129,14 +7129,12 @@ func parallelTempNamedIntegerWrap(lhs ast.Expr, rhs ast.Expr) string {
 		return ""
 	}
 	// RHS already a named-typed expression of the same type? Then no wrap.
+	// Named constants still emit as primitive const values, so they must be
+	// reconstructed at the assignment target.
 	if rhsType := typeInfo.GetType(rhs); rhsType != nil {
 		if rhsNamed, ok := types.Unalias(rhsType).(*types.Named); ok && rhsNamed.Obj() == named.Obj() {
-			// Still need to check that the RHS emission produced a typed value;
-			// untyped constants emit as primitive literals.
-			if _, isLit := rhs.(*ast.BasicLit); !isLit {
-				if !isUntypedConstSelector(rhs) {
-					return ""
-				}
+			if _, isLit := rhs.(*ast.BasicLit); !isLit && !isConstObjectExpr(rhs) {
+				return ""
 			}
 		}
 	}
@@ -7164,21 +7162,21 @@ func parallelTempNamedIntegerCast(lhs ast.Expr) string {
 	return cast
 }
 
-func isUntypedConstSelector(expr ast.Expr) bool {
-	sel, ok := expr.(*ast.SelectorExpr)
-	if !ok {
-		return false
-	}
+func isConstObjectExpr(expr ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
 		return false
 	}
-	obj, ok := typeInfo.info.Uses[sel.Sel]
-	if !ok {
+	switch e := expr.(type) {
+	case *ast.Ident:
+		_, ok := typeInfo.GetObject(e).(*types.Const)
+		return ok
+	case *ast.SelectorExpr:
+		_, ok := typeInfo.GetObject(e.Sel).(*types.Const)
+		return ok
+	default:
 		return false
 	}
-	_, ok = obj.(*types.Const)
-	return ok
 }
 
 func parallelTempBareCast(lhs ast.Expr, rhs ast.Expr) string {
@@ -9447,6 +9445,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 						} else if ident, ok := rhs.(*ast.Ident); ok && writeWrappedValueCopyFromIdent(out, ident) {
 							// Copied by value from an existing wrapped value
+						} else if writeNamedIntegerWrappedInitializer(out, rhs) {
+							// Typed named integer constants need the named newtype, not the raw const.
 						} else {
 							// Wrap new variables. For an expression that already
 							// yields a wrapped value (e.g. a wrapped struct field

@@ -1448,6 +1448,35 @@ func f(flag bool) StepKind {
 	}
 }
 
+func TestParallelNamedIntegerConstAssignmentsPreserveNamedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Token int
+
+const (
+	LParen Token = iota
+	RParen
+	LBrack
+	RBrack
+)
+
+func params(flag bool) (Token, Token) {
+	open, close := LParen, RParen
+	if flag {
+		open, close = LBrack, RBrack
+	}
+	return open, close
+}
+`)
+
+	if strings.Contains(rust, "Some(L_PAREN)") || strings.Contains(rust, "Some(L_BRACK)") {
+		t.Fatalf("parallel named-integer constants should not be stored as raw const values:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some(Token(") {
+		t.Fatalf("parallel named-integer constants should construct the named value:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerMixedPrimitiveOpsReturnNamedType(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
