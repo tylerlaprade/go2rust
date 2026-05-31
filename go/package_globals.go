@@ -599,6 +599,8 @@ func registerAnonymousStructsForPackageGlobal(valueSpec *ast.ValueSpec, name *as
 				} else {
 					registerAnonymousStructsInTypeExpr(lit.Type)
 				}
+			} else {
+				registerAnonymousStructsInValueExpr(valueSpec.Values[i])
 			}
 		}
 		return
@@ -634,6 +636,48 @@ func registerAnonymousStructsInTypeExpr(expr ast.Expr) {
 		registerAnonymousStructsInFieldList(t.Params)
 		registerAnonymousStructsInFieldList(t.Results)
 	}
+}
+
+func registerAnonymousStructsInValueExpr(expr ast.Expr) {
+	switch t := expr.(type) {
+	case nil:
+		return
+	case *ast.CallExpr:
+		if callIsBuiltinNew(t) && len(t.Args) == 1 {
+			registerAnonymousStructsInTypeExpr(t.Args[0])
+			return
+		}
+		for _, arg := range t.Args {
+			registerAnonymousStructsInValueExpr(arg)
+		}
+	case *ast.UnaryExpr:
+		registerAnonymousStructsInValueExpr(t.X)
+	case *ast.CompositeLit:
+		registerAnonymousStructsInTypeExpr(t.Type)
+		for _, elt := range t.Elts {
+			if kv, ok := elt.(*ast.KeyValueExpr); ok {
+				registerAnonymousStructsInValueExpr(kv.Value)
+			} else {
+				registerAnonymousStructsInValueExpr(elt)
+			}
+		}
+	}
+}
+
+func callIsBuiltinNew(call *ast.CallExpr) bool {
+	if call == nil {
+		return false
+	}
+	ident, ok := call.Fun.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	obj, ok := typeInfo.info.Uses[ident].(*types.Builtin)
+	return ok && obj.Name() == "new"
 }
 
 func registerAnonymousStructsInFieldList(fields *ast.FieldList) {

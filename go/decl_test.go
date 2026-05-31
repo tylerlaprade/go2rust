@@ -968,6 +968,39 @@ var Holder struct {
 	}
 }
 
+func TestPackageGlobalNewAnonymousStructRegistersType(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Type interface {
+	String() string
+}
+
+var reserved = new(struct{ Type })
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "/* unknown struct */") {
+		t.Fatalf("new(struct{ ... }) package global should register the anonymous struct type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "AnonymousStruct1") {
+		t.Fatalf("new(struct{ ... }) package global should use the generated anonymous struct type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl Type for AnonymousStruct1") {
+		t.Fatalf("anonymous struct embedding an interface should implement that interface:\n%s", rust)
+	}
+	if !strings.Contains(rust, "embedded_ref.string()") {
+		t.Fatalf("anonymous struct interface impl should delegate to the embedded interface field:\n%s", rust)
+	}
+}
+
 func TestPackageGlobalOsArgsUsesSharedHelper(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

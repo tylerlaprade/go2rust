@@ -1899,6 +1899,125 @@ func writeLocalInterfaceForwardMethodFromTypes(out *strings.Builder, method *typ
 	out.WriteString("    }\n")
 }
 
+func writeAnonymousStructEmbeddedInterfaceImpls(out *strings.Builder, typeName string, structType *ast.StructType) {
+	if structType == nil || structType.Fields == nil {
+		return
+	}
+	seen := make(map[string]bool)
+	for fieldIndex, field := range structType.Fields.List {
+		if field == nil || len(field.Names) > 0 {
+			continue
+		}
+		ifaceName, ifaceType, ok := embeddedInterfaceTraitForTypeExpr(field.Type)
+		if !ok || seen[ifaceName] {
+			continue
+		}
+		seen[ifaceName] = true
+		fieldName := rustStructFieldName(ast.NewIdent(getEmbeddedFieldName(field.Type)), fieldIndex, 0)
+		out.WriteString("\n\nimpl ")
+		out.WriteString(ifaceName)
+		out.WriteString(" for ")
+		out.WriteString(typeName)
+		out.WriteString(" {\n")
+		for i := 0; i < ifaceType.NumMethods(); i++ {
+			writeEmbeddedInterfaceFieldTraitMethod(out, fieldName, ifaceType.Method(i))
+		}
+		writeLocalInterfaceSupportImpl(out, ifaceName, typeName, ifaceType)
+		out.WriteString("}")
+	}
+}
+
+func embeddedInterfaceTraitForTypeExpr(expr ast.Expr) (string, *types.Interface, bool) {
+	typ, ok := typeInfoTypeForTypeExpr(expr)
+	if !ok {
+		return "", nil, false
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil {
+		return "", nil, false
+	}
+	iface, ok := types.Unalias(named.Underlying()).(*types.Interface)
+	if !ok || iface.NumMethods() == 0 {
+		return "", nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.pkg != nil && named.Obj().Pkg() == typeInfo.pkg {
+		return RustTypeNameForUse(named.Obj().Name()), iface, true
+	}
+	if ifaceName, ifaceType, ok := importedTranspiledInterfaceFromType(named); ok {
+		return ifaceName, ifaceType, true
+	}
+	return "", nil, false
+}
+
+func writeEmbeddedInterfaceFieldTraitMethod(out *strings.Builder, fieldName string, method *types.Func) {
+	if method == nil {
+		return
+	}
+	sig, ok := method.Type().(*types.Signature)
+	if !ok {
+		return
+	}
+	params := sig.Params()
+	results := sig.Results()
+	methodName := rustMethodNameForTypesFunc(method)
+	mutableReceiver := interfaceMethodRequiresMutableReceiver(method)
+
+	out.WriteString("    fn ")
+	out.WriteString(methodName)
+	out.WriteString("(")
+	if mutableReceiver {
+		out.WriteString("&mut self")
+	} else {
+		out.WriteString("&self")
+	}
+	for i := 0; i < params.Len(); i++ {
+		fmt.Fprintf(out, ", _arg%d: %s", i, goTypesParamTypeToRust(params.At(i).Type()))
+	}
+	out.WriteString(")")
+	if results.Len() > 0 {
+		out.WriteString(" -> ")
+		if results.Len() == 1 {
+			out.WriteString(goTypesReturnTypeToRust(results.At(0).Type()))
+		} else {
+			out.WriteString("(")
+			for i := 0; i < results.Len(); i++ {
+				if i > 0 {
+					out.WriteString(", ")
+				}
+				out.WriteString(goTypesReturnTypeToRust(results.At(i).Type()))
+			}
+			out.WriteString(")")
+		}
+	}
+	out.WriteString(" {\n")
+	out.WriteString("        let embedded = self.")
+	out.WriteString(fieldName)
+	out.WriteString(".clone();\n")
+	if mutableReceiver {
+		out.WriteString("        let mut guard = embedded")
+		WriteBorrowMethod(out, true)
+		out.WriteString(";\n")
+		out.WriteString("        let embedded_ref = guard.as_mut().unwrap();\n")
+	} else {
+		out.WriteString("        let guard = embedded")
+		WriteBorrowMethod(out, false)
+		out.WriteString(";\n")
+		out.WriteString("        let embedded_ref = guard.as_ref().unwrap();\n")
+	}
+	out.WriteString("        embedded_ref.")
+	out.WriteString(methodName)
+	out.WriteString("(")
+	for i := 0; i < params.Len(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		fmt.Fprintf(out, "_arg%d", i)
+	}
+	out.WriteString(")\n")
+	out.WriteString("    }\n")
+}
+
 func interfaceParamVarInfo(typeExpr ast.Expr) (*VarInfo, bool) {
 	interfaceName, ok := transpiledNamedInterfaceTypeNameFromExpr(typeExpr)
 	if !ok {

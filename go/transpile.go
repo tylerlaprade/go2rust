@@ -2428,6 +2428,7 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 		body.WriteString("\n")
 		generateStructDisplay(body, typeName, structType)
 		generateStructJsonDecode(body, typeName, structType)
+		writeAnonymousStructEmbeddedInterfaceImpls(body, typeName, structType)
 		emitted[typeName] = true
 	}
 
