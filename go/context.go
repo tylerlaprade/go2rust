@@ -54,6 +54,7 @@ type PackageState struct {
 	ExternalTypeStubConversions   map[string]map[string]bool
 	ExternalPackageStubs          map[string]*externalPackageStub
 	Helpers                       *HelperTracker
+	GeneratedCrateDependencies    map[string]bool
 }
 
 // FileState holds file-scoped scratch state for a single transpilation pass.
@@ -152,6 +153,7 @@ func NewPackageState() *PackageState {
 		ExternalTypeStubConversions:   make(map[string]map[string]bool),
 		ExternalPackageStubs:          make(map[string]*externalPackageStub),
 		Helpers:                       &HelperTracker{},
+		GeneratedCrateDependencies:    make(map[string]bool),
 	}
 }
 
@@ -213,6 +215,20 @@ func isSourceMappedPackagePath(pkgPath string) bool {
 		return false
 	}
 	return ctx.PackageMapping[pkgPath] != ""
+}
+
+func TrackGeneratedCrateDependency(crateName string) {
+	if crateName == "" {
+		return
+	}
+	ctx := GetTranspileContext()
+	if ctx == nil || ctx.Package == nil {
+		return
+	}
+	if ctx.Package.GeneratedCrateDependencies == nil {
+		ctx.Package.GeneratedCrateDependencies = make(map[string]bool)
+	}
+	ctx.Package.GeneratedCrateDependencies[crateName] = true
 }
 
 func isStubBackedStdlibPackagePath(pkgPath string) bool {

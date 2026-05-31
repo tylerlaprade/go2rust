@@ -1817,6 +1817,7 @@ func rustTypeNameForImportedPackagePath(pkgPath, name string) (string, bool) {
 	ctx := GetTranspileContext()
 	if ctx != nil && ctx.PackageMapping != nil {
 		if crateName, ok := ctx.PackageMapping[pkgPath]; ok {
+			TrackGeneratedCrateDependency(crateName)
 			return crateName + "::" + RustTypeNameForUse(name), true
 		}
 	}

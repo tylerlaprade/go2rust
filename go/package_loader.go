@@ -705,7 +705,8 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	}
 
 	helpersNeeded := usePackageHelpers && pkgState.Helpers.HasAnyOmittingSharedStdlibHelpers()
-	dependencyCrates := packageDependencyCrates(pkg.Imports, crateName, pl.packageMapping)
+	initDependencyCrates := packageDependencyCrates(pkg.Imports, crateName, pl.packageMapping)
+	cargoDependencyCrates := addGeneratedCrateDependencies(initDependencyCrates, crateName, pkgState.GeneratedCrateDependencies)
 
 	// Generate lib.rs
 	if helpersNeeded {
@@ -721,7 +722,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 			libRs.WriteString(fmt.Sprintf("pub use %s::*;\n", mod))
 		}
 	}
-	writeLibraryPackageInitAll(&libRs, dependencyCrates, initModules)
+	writeLibraryPackageInitAll(&libRs, initDependencyCrates, initModules)
 
 	// Write lib.rs
 	libRsPath := filepath.Join(outputDir, "lib.rs")
@@ -758,11 +759,11 @@ edition = "2021"
 name = "%s"
 path = "lib.rs"
 `, crateName, crateName)
-	dependencyCrates = addSharedStdlibStubCrateDependency(dependencyCrates)
+	cargoDependencyCrates = addSharedStdlibStubCrateDependency(cargoDependencyCrates)
 	needsNum := packageImports.needs["num::Complex"] || generatedRustModulesContain(generatedModules, "num::Complex")
 	needsSerdeJSON := generatedRustModulesContain(generatedModules, "serde_json::") || generatedRustModulesContain(generatedModules, "pub use serde_json")
 	needsGosyn := generatedRustModulesContain(generatedModules, "gosyn::")
-	if needsNum || needsSerdeJSON || needsGosyn || len(dependencyCrates) > 0 {
+	if needsNum || needsSerdeJSON || needsGosyn || len(cargoDependencyCrates) > 0 {
 		cargoToml += "\n[dependencies]\n"
 		if needsNum {
 			cargoToml += "num = \"0.4\"\n"
@@ -773,7 +774,7 @@ path = "lib.rs"
 		if needsGosyn {
 			cargoToml += "gosyn = \"0.2.9\"\n"
 		}
-		for _, depCrate := range dependencyCrates {
+		for _, depCrate := range cargoDependencyCrates {
 			cargoToml += fmt.Sprintf("%s = { path = \"../%s\" }\n", depCrate, depCrate)
 		}
 	}
@@ -847,6 +848,28 @@ func packageDependencyCrates(imports map[string]*packages.Package, currentCrate 
 	}
 	sort.Strings(crateNames)
 	return crateNames
+}
+
+func addGeneratedCrateDependencies(dependencyCrates []string, currentCrate string, generated map[string]bool) []string {
+	seen := make(map[string]bool, len(dependencyCrates))
+	for _, crateName := range dependencyCrates {
+		if crateName == "" {
+			continue
+		}
+		seen[crateName] = true
+	}
+	for crateName := range generated {
+		if crateName == "" || crateName == currentCrate || seen[crateName] {
+			continue
+		}
+		seen[crateName] = true
+	}
+	result := make([]string, 0, len(seen))
+	for crateName := range seen {
+		result = append(result, crateName)
+	}
+	sort.Strings(result)
+	return result
 }
 
 // goPathToRustCrate converts a Go import path to a Rust-compatible crate name

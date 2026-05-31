@@ -1052,6 +1052,59 @@ func main() {
 	}
 }
 
+func TestTranspiledExternalPackageCargoIncludesGeneratedIndirectTypeDependency(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "fspkg", "fs.go"), `package fspkg
+
+type FileMode uint32
+`)
+	writeTestFile(t, filepath.Join(tempDir, "oslike", "oslike.go"), `package oslike
+
+import "example.com/mainmod/fspkg"
+
+func WriteMode(mode fspkg.FileMode) {}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "caller", "caller.go"), `package caller
+
+import "example.com/mainmod/oslike"
+
+func Nop() {}
+
+func Use() {
+	oslike.WriteMode(0666)
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/mainmod/caller"
+
+func main() {
+	caller.Nop()
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	callerRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_mainmod_caller", "mod.rs"))
+	if !strings.Contains(callerRS, "example_com_mainmod_fspkg::FileMode") {
+		t.Fatalf("caller should reference the indirect type from the callee signature, got:\n%s", callerRS)
+	}
+
+	callerCargo := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_mainmod_caller", "Cargo.toml"))
+	if !strings.Contains(callerCargo, `example_com_mainmod_fspkg = { path = "../example_com_mainmod_fspkg" }`) {
+		t.Fatalf("caller Cargo.toml should include generated indirect type dependency, got:\n%s", callerCargo)
+	}
+}
+
 func TestTranspiledExternalPackageExportedGlobalUsesGoName(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
