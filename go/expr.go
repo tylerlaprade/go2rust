@@ -8129,12 +8129,14 @@ func writePackageGlobalSelectorMethodReceiver(out *strings.Builder, receiver *as
 	typeInfo := GetTypeInfo()
 	needsMut := methodCallNeedsMutableReceiver(method)
 	isStdlibReceiver := false
+	isSourceMappedReceiver := false
 	if ident, ok := receiver.X.(*ast.Ident); ok {
 		if pkgPath, ok := goPackageImports[ident.Name]; ok {
 			isStdlibReceiver = isStdlibPackage(pkgPath)
+			isSourceMappedReceiver = isSourceMappedPackagePath(pkgPath)
 		}
 	}
-	if typeInfo != nil && typeInfo.IsPointer(receiver) && !isStdlibReceiver {
+	if typeInfo != nil && typeInfo.IsPointer(receiver) && (!isStdlibReceiver || isSourceMappedReceiver) {
 		out.WriteString("{ let __recv_holder = ")
 		TranspileExpressionContext(out, receiver, LValue)
 		if needsMut {

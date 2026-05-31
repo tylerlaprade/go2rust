@@ -344,3 +344,35 @@ func Logger() *int {
 		t.Fatalf("method receiver should use the renamed package global:\n%s", rust)
 	}
 }
+
+func TestSourceMappedStdlibPointerGlobalMethodReceiverUsesPointee(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "os"
+
+func log() {
+	os.Stderr.WriteString("x")
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"os": "os"})
+
+	if strings.Contains(rust, "(*os::Stderr.lock().unwrap().as_ref().unwrap()).write_string") ||
+		strings.Contains(rust, "(*os::Stderr.borrow_mut().as_mut().unwrap()).write_string") {
+		t.Fatalf("source-mapped pointer global method receiver should not call the method on the pointer handle:\n%s", rust)
+	}
+	if (!strings.Contains(rust, "let __recv_holder = os::Stderr.lock().unwrap().as_ref().unwrap().clone()") &&
+		!strings.Contains(rust, "let __recv_holder = os::Stderr.borrow().as_ref().unwrap().clone()")) ||
+		(!strings.Contains(rust, "(*__recv_holder.lock().unwrap().as_mut().unwrap()).write_string") &&
+			!strings.Contains(rust, "(*__recv_holder.borrow_mut().as_mut().unwrap()).write_string")) {
+		t.Fatalf("source-mapped pointer global method receiver should unwrap the pointee before the call:\n%s", rust)
+	}
+}
