@@ -90,6 +90,21 @@ func TestJsonSupportHelpersDecodeUnsignedAndFixedArrays(t *testing.T) {
 	}
 }
 
+func TestJsonDecoderMoreMatchesBareBoolSignature(t *testing.T) {
+	var out strings.Builder
+	writeJsonDecoderStub(&out)
+	got := out.String()
+
+	if strings.Contains(got, "pub fn more(&self) -> Arc<") ||
+		strings.Contains(got, "Some::<bool>(has_more)") {
+		t.Fatalf("json.Decoder.More shim should return a bare bool for the generated scalar ABI:\n%s", got)
+	}
+	if !strings.Contains(got, "pub fn more(&self) -> bool") ||
+		!strings.Contains(got, "        has_more\n") {
+		t.Fatalf("json.Decoder.More shim should expose the computed bool directly:\n%s", got)
+	}
+}
+
 func TestSourceMappedStdlibCompositeLiteralDoesNotRegisterStubFields(t *testing.T) {
 	prevContext := currentContext
 	ctx := &TranspileContext{

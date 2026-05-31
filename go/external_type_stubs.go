@@ -1740,7 +1740,7 @@ impl json_Decoder {
         %s
     }
 }
-`, wrappedExternalStubType(errorInnerType), wrappedExternalStubType("bool"), wrappedExternalStubExpr("bool", "has_more"))
+`, wrappedExternalStubType(errorInnerType), "bool", "has_more")
 }
 
 func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool, integerTypes map[string]string, tupleTypes map[string]string, fieldsByType map[string]map[string]string, methodsByType map[string]map[string]externalTypeStubMethod, conversions map[string]map[string]bool, packageStubs map[string]*externalPackageStub) string {
