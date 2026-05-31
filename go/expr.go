@@ -2979,6 +2979,26 @@ func writeBareStructAliasCallArgument(out *strings.Builder, arg ast.Expr, expect
 	return true
 }
 
+func writeBareIdentAddress(out *strings.Builder, expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	if !ok || ident.Name == "_" || ident.Name == "nil" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.GetType(ident) == nil {
+		out.WriteString("/* ERROR: Type information required for address-of identifier */ unimplemented!(\"type info required for address-of identifier\")")
+		return true
+	}
+	if !isVarBare(ident.Name) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString(rustIdentForUseWithCapture(ident))
+	out.WriteString(".clone()")
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writePointerHandleCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
 	if expected == nil {
 		return false
@@ -9058,6 +9078,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				WriteWrapperSuffix(out)
 			} else if writePointerSlotAddress(out, e.X) {
 				// Addressing a pointer variable or field produces a slot that stores the pointer handle.
+			} else if writeBareIdentAddress(out, e.X) {
+				// Bare locals need a pointer handle when their address is taken.
 			} else {
 				// Taking address of existing value just clones the Arc
 				TranspileExpressionContext(out, e.X, AddressOf)

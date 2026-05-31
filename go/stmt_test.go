@@ -479,6 +479,28 @@ func (s *Scope) String() string {
 	}
 }
 
+func TestAddressOfExternalStructLocalPassedToPointerParamWrapsHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "go/types"
+
+func setUsesCgo(conf *types.Config) {}
+
+func use() {
+	conf := types.Config{}
+	setUsesCgo(&conf)
+}
+`)
+
+	if strings.Contains(rust, "set_uses_cgo(conf.clone())") {
+		t.Fatalf("address-of external struct local should not pass the bare struct clone to a pointer parameter:\n%s", rust)
+	}
+	if !strings.Contains(rust, "set_uses_cgo(Rc::new(RefCell::new(Some(conf.clone()))))") &&
+		!strings.Contains(rust, "set_uses_cgo(Arc::new(Mutex::new(Some(conf.clone()))))") {
+		t.Fatalf("address-of external struct local should wrap the cloned value in a pointer handle:\n%s", rust)
+	}
+}
+
 func TestSourceMappedStringsBuilderUsesGeneratedMethods(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
