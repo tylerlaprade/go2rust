@@ -4592,8 +4592,8 @@ func run(fn func() error) {
 	if !strings.Contains(rust, "|r#fn: Arc<Mutex<Option<Box<dyn FnMut") {
 		t.Fatalf("goroutine function literal parameter should accept the wrapped function handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "__closure(r#fn.clone())") {
-		t.Fatalf("goroutine function literal call should pass the escaped function handle:\n%s", rust)
+	if !strings.Contains(rust, "let __go_arg_0 = r#fn.clone();") || !strings.Contains(rust, "__closure(__go_arg_0)") {
+		t.Fatalf("goroutine function literal call should capture and pass the escaped function handle:\n%s", rust)
 	}
 }
 
@@ -4612,8 +4612,8 @@ func run(funcs []func() error) {
 	if strings.Contains(rust, "Some(r#fn)") {
 		t.Fatalf("range function value argument should not be wrapped as an inner function box:\n%s", rust)
 	}
-	if !strings.Contains(rust, "__closure(r#fn.clone())") {
-		t.Fatalf("range function value argument should pass the function handle clone:\n%s", rust)
+	if !strings.Contains(rust, "let __go_arg_0 = r#fn.clone();") || !strings.Contains(rust, "__closure(__go_arg_0)") {
+		t.Fatalf("range function value argument should capture and pass the function handle clone:\n%s", rust)
 	}
 }
 
@@ -4639,6 +4639,56 @@ func run(h holder, names []string) {
 	}
 	if !strings.Contains(rust, "let open_thread = open.clone();") {
 		t.Fatalf("goroutine should capture the local function value handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut __closure = move |") {
+		t.Fatalf("goroutine closure that invokes a function value should be mutable:\n%s", rust)
+	}
+}
+
+func TestGoFuncLiteralRangeIndexArgumentCastsAndShadowsOuterRange(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func run(values []string, counts []int) {
+	for i, value := range values {
+		go func(i int, text string) {
+			counts[i] = len(text)
+		}(i, value)
+	}
+}
+`)
+
+	if strings.Contains(rust, "Some(i))") {
+		t.Fatalf("goroutine range index argument should cast usize to Go int before wrapping:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some(i as i32)") {
+		t.Fatalf("goroutine range index argument should cast usize to i32:\n%s", rust)
+	}
+	if strings.Contains(rust, "[(i) as usize]") {
+		t.Fatalf("function literal int parameter should shadow the outer range index:\n%s", rust)
+	}
+}
+
+func TestGoFuncLiteralWrappedCallArgumentPassesHandle(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func join(parts []string) string {
+	return parts[0] + parts[1]
+}
+
+func run(dir string, names []string) {
+	for _, name := range names {
+		go func(path string) {
+			_ = path
+		}(join([]string{dir, name}))
+	}
+}
+`)
+
+	if strings.Contains(rust, "Some(join(") {
+		t.Fatalf("goroutine argument should not double-wrap a call result that already returns a handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __go_arg_0 = join(") {
+		t.Fatalf("goroutine argument should capture the wrapped call result before spawning:\n%s", rust)
 	}
 }
 

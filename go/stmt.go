@@ -1966,6 +1966,76 @@ func shadowRangeLoopVars(names []string) func() {
 	}
 }
 
+func funcLitParamNames(funcLit *ast.FuncLit) []string {
+	if funcLit == nil || funcLit.Type == nil || funcLit.Type.Params == nil {
+		return nil
+	}
+	var names []string
+	for _, field := range funcLit.Type.Params.List {
+		for _, name := range field.Names {
+			if name != nil && name.Name != "_" {
+				names = append(names, name.Name)
+			}
+		}
+	}
+	return names
+}
+
+func pushFuncLitParamVarScope(funcLit *ast.FuncLit) func() {
+	vt := GetVarTable()
+	if vt == nil || funcLit == nil || funcLit.Type == nil || funcLit.Type.Params == nil {
+		return func() {}
+	}
+	vt.PushScope()
+	for _, field := range funcLit.Type.Params.List {
+		for _, name := range field.Names {
+			if name == nil || name.Name == "_" {
+				continue
+			}
+			rustType := goTypeToRustBase(field.Type)
+			if functionRustType, ok := functionTypeRustNameFromTypeExpr(field.Type); ok {
+				rustType = functionRustType
+			}
+			registerTypeExprCollectionInfo(name.Name, field.Type)
+			if varInfo, ok := interfaceParamVarInfo(field.Type); ok {
+				varInfo.RustType = rustType
+				vt.Register(name.Name, varInfo)
+			} else if _, ok := field.Type.(*ast.ChanType); ok {
+				vt.Register(name.Name, &VarInfo{
+					WrapLevel: WrapNone,
+					RustType:  rustType,
+					Source:    SourceParam,
+				})
+			} else if isSyncParam(field.Type) {
+				vt.Register(name.Name, &VarInfo{
+					WrapLevel: WrapNone,
+					RustType:  rustType,
+					Source:    SourceParam,
+				})
+			} else if typeExprIsRegisteredBareStructAlias(field.Type) {
+				vt.Register(name.Name, &VarInfo{
+					WrapLevel: WrapNone,
+					RustType:  rustType,
+					Source:    SourceParam,
+				})
+			} else if typeExprIsOrderedTypeParam(field.Type) {
+				vt.Register(name.Name, &VarInfo{
+					WrapLevel: WrapNone,
+					RustType:  rustType,
+					Source:    SourceParam,
+				})
+			} else {
+				vt.Register(name.Name, &VarInfo{
+					WrapLevel: WrapFull,
+					RustType:  rustType,
+					Source:    SourceParam,
+				})
+			}
+		}
+	}
+	return vt.PopScope
+}
+
 func shortDeclShadowsRangeVar(names []string) bool {
 	for _, name := range names {
 		if _, ok := rangeLoopVars[name]; ok {
@@ -12238,6 +12308,20 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 		}
 
+		var goFuncLitArgCaptures []string
+		if funcLit, ok := s.Call.Fun.(*ast.FuncLit); ok && len(s.Call.Args) > 0 {
+			goFuncLitArgCaptures = make([]string, len(s.Call.Args))
+			for i, arg := range s.Call.Args {
+				captureVar := fmt.Sprintf("__go_arg_%d", i)
+				goFuncLitArgCaptures[i] = captureVar
+				out.WriteString("let ")
+				out.WriteString(captureVar)
+				out.WriteString(" = ")
+				writeFunctionSignatureCallArgument(out, arg, funcLiteralParamType(funcLit, i))
+				out.WriteString("; ")
+			}
+		}
+
 		// Store current capture renames for nested transpilation
 		captureRenames := make(map[string]string)
 		for _, varName := range capturedVars {
@@ -12263,7 +12347,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// Generate the closure body inline
 			if len(s.Call.Args) > 0 {
 				// Has arguments - need to create parameter bindings
-				out.WriteString("let __closure = move |")
+				out.WriteString("let ")
+				if funcLitCallsFunctionValue(funcLit) {
+					out.WriteString("mut ")
+				}
+				out.WriteString("__closure = move |")
 				// Parameters
 				if funcLit.Type.Params != nil {
 					var params []string
@@ -12278,6 +12366,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString("| {\n            ")
 
 				// Body
+				popParamScope := pushFuncLitParamVarScope(funcLit)
+				restoreRangeShadows := shadowRangeLoopVars(funcLitParamNames(funcLit))
 				for i, stmt := range funcLit.Body.List {
 					if i > 0 {
 						out.WriteString("\n            ")
@@ -12285,6 +12375,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					TranspileStatementSimple(out, stmt, funcLit.Type, fileSet)
 					out.WriteString(";")
 				}
+				restoreRangeShadows()
+				popParamScope()
 
 				if hasClosureDefer {
 					out.WriteString("\n            while let Some(f) = __defer_stack.pop() {\n")
@@ -12296,49 +12388,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString("        __closure(")
 
 				// Arguments
-				for i, arg := range s.Call.Args {
+				for i, capture := range goFuncLitArgCaptures {
 					if i > 0 {
 						out.WriteString(", ")
 					}
-					// Wrap arguments appropriately
-					if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" && ident.Name != "_" {
-						if goStmtImmediateArgIsFunctionHandle(ident) {
-							argName := RustLocalIdent(ident.Name)
-							if captureRenames[ident.Name] != "" {
-								argName = RustLocalIdent(captureRenames[ident.Name])
-							}
-							out.WriteString(argName)
-							out.WriteString(".clone()")
-							continue
-						}
-						// Check if this is a variable (not a constant)
-						if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
-							if _, isLocalConst := localConstants[ident.Name]; !isLocalConst {
-								// It's a variable, clone it
-								if captureRenames[ident.Name] != "" {
-									out.WriteString(RustLocalIdent(captureRenames[ident.Name]))
-								} else {
-									out.WriteString(RustLocalIdent(ident.Name))
-									out.WriteString(".clone()")
-								}
-							} else {
-								// It's a constant, wrap it
-								out.WriteString("Arc::new(Mutex::new(Some(")
-								TranspileExpression(out, arg)
-								out.WriteString(")))")
-							}
-						} else {
-							// Range variable, wrap it
-							out.WriteString("Arc::new(Mutex::new(Some(")
-							TranspileExpression(out, arg)
-							out.WriteString(")))")
-						}
-					} else {
-						// Complex expression or literal, wrap it
-						out.WriteString("Arc::new(Mutex::new(Some(")
-						TranspileExpression(out, arg)
-						out.WriteString(")))")
-					}
+					out.WriteString(capture)
 				}
 				out.WriteString(")")
 			} else {
@@ -12979,6 +13033,50 @@ func isFunctionValueIdent(ident *ast.Ident) bool {
 		}
 	}
 	return isFunctionSignatureType(typ)
+}
+
+func funcLitCallsFunctionValue(funcLit *ast.FuncLit) bool {
+	if funcLit == nil || funcLit.Body == nil {
+		return false
+	}
+	found := false
+	ast.Inspect(funcLit.Body, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		call, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		if callTargetIsFunctionValue(call.Fun) {
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
+}
+
+func callTargetIsFunctionValue(fun ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || fun == nil {
+		return false
+	}
+	switch target := unwrapParens(fun).(type) {
+	case *ast.Ident:
+		return isFunctionValueIdent(target)
+	case *ast.SelectorExpr:
+		if obj := typeInfo.GetObject(target.Sel); obj != nil {
+			if _, ok := obj.(*types.Func); ok {
+				return false
+			}
+		}
+	default:
+		if objIdent, ok := fun.(*ast.Ident); ok && typeInfo.IsFunction(objIdent) {
+			return false
+		}
+	}
+	return isFunctionSignatureType(typeInfo.GetType(fun))
 }
 
 func suppressCaptureRename(name string) func() {
