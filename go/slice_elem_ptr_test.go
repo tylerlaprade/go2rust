@@ -69,6 +69,53 @@ func update() {
 	}
 }
 
+func TestSliceElemPointerToSourceMappedInterfaceElementUsesCollectionElementHandle(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "go/types"
+
+type reader struct {
+	typs []types.Type
+}
+
+func lookup(r *reader, i int) types.Type {
+	var where *types.Type
+	where = &r.typs[i]
+	if typ := *where; typ != nil {
+		return typ
+	}
+	var typ types.Type
+	*where = typ
+	return typ
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"go/types": "go_types"})
+	if strings.Contains(rust, "GoSliceElemPtr<Box<dyn go_types::Type") {
+		t.Fatalf("slice element pointer to source-mapped interface should not use the bare trait object element type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Option<GoSliceElemPtr<Rc<RefCell<Option<Box<dyn go_types::Type") {
+		t.Fatalf("slice element pointer to source-mapped interface should use the collection element handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "typ.borrow().as_ref().unwrap()).borrow") {
+		t.Fatalf("slice element pointer dereference should not treat the bare trait object as a wrapped handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "let new_val = (*typ.borrow().as_ref().unwrap())") {
+		t.Fatalf("slice element pointer assignment should store the interface handle, not the boxed payload:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = typ.clone()") {
+		t.Fatalf("slice element pointer assignment should clone the interface handle into the slice element:\n%s", rust)
+	}
+}
+
 func TestNamedSliceSliceElemAddressUsesInnerHandle(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

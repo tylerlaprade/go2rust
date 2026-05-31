@@ -846,7 +846,7 @@ func sliceElemPtrRustTypeForPointerType(t types.Type) (string, bool) {
 	if !ok {
 		return "", false
 	}
-	return goTypesTypeToRust(coreType(ptr.Elem())), true
+	return goTypesCollectionElemTypeToRust(coreType(ptr.Elem())), true
 }
 
 func assignmentRHSForLHS(stmt *ast.AssignStmt, lhsIndex int) ast.Expr {
@@ -894,7 +894,7 @@ func sliceElemPtrAddressElemRustType(expr ast.Expr) (string, bool) {
 	if elemType == nil {
 		return "", false
 	}
-	return goTypesTypeToRust(elemType), true
+	return goTypesCollectionElemTypeToRust(elemType), true
 }
 
 func arrayElemAddressPointerRustType(expr ast.Expr) (string, bool) {
@@ -1143,16 +1143,23 @@ func writeUnsupportedSliceElemPointerHandleValue(out *strings.Builder, rhs ast.E
 }
 
 func writeSliceElemPtrDerefAssignmentValue(out *strings.Builder, target *ast.StarExpr, rhs ast.Expr) bool {
-	ident, ok := rhs.(*ast.Ident)
-	if !ok || ident.Name != "nil" {
-		return false
-	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		return false
 	}
 	targetType := typeInfo.GetType(target)
 	if targetType == nil {
+		return false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(targetType); ok {
+		rhsType := typeInfo.GetType(rhs)
+		if rhsType == nil || !types.AssignableTo(rhsType, targetType) {
+			return false
+		}
+		return writeTranspiledInterfaceHandleClone(out, rhs)
+	}
+	ident, ok := rhs.(*ast.Ident)
+	if !ok || ident.Name != "nil" {
 		return false
 	}
 	if _, ok := types.Unalias(targetType).Underlying().(*types.Pointer); !ok {
