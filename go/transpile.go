@@ -13,6 +13,7 @@ import (
 
 // These maps track the names and types of special variables that shouldn't be unwrapped
 var rangeLoopVars = make(map[string]string)
+var rangeLoopVarGoTypes = make(map[string]types.Type)
 var localRangeElemRustTypes = make(map[string]string)
 var localCollectionKinds = make(map[string]string)
 var localMapKeyRustTypes = make(map[string]string)

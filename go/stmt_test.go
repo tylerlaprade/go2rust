@@ -4417,6 +4417,30 @@ func write(data []byte) (n int, err error) {
 	}
 }
 
+func TestAssignedPointerRangeValueReplacesHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Func struct {
+	name string
+}
+
+func pick(methods []*Func) *Func {
+	var m *Func
+	for _, m = range methods {
+		return m
+	}
+	return nil
+}
+`)
+
+	if strings.Contains(rust, "*m.borrow_mut() = Some(new_val);") {
+		t.Fatalf("pointer range assignment should replace the handle, not store the handle inside the pointee slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = (*__range_m).clone(); m = new_val;") {
+		t.Fatalf("pointer range assignment should clone the range pointer handle into the existing variable:\n%s", rust)
+	}
+}
+
 func TestRangeIndexComparedWithBareScalarCallCastsToI32(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

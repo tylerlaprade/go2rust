@@ -1969,20 +1969,48 @@ func registerFullShortDecls(names []string) {
 	}
 }
 
+func registerRangeLoopVar(name string, rustType string, goType types.Type) {
+	rangeLoopVars[name] = rustType
+	if goType != nil {
+		rangeLoopVarGoTypes[name] = goType
+	}
+}
+
+func deleteRangeLoopVar(name string) {
+	delete(rangeLoopVars, name)
+	delete(rangeLoopVarGoTypes, name)
+}
+
+func rangeLoopVarGoTypeIsPointer(name string) bool {
+	typ := rangeLoopVarGoTypes[name]
+	if typ == nil {
+		return false
+	}
+	_, ok := types.Unalias(typ).Underlying().(*types.Pointer)
+	return ok
+}
+
 func shadowRangeLoopVars(names []string) func() {
 	if len(names) == 0 {
 		return func() {}
 	}
 	saved := make(map[string]string)
+	savedGoTypes := make(map[string]types.Type)
 	for _, name := range names {
 		if varType, ok := rangeLoopVars[name]; ok {
 			saved[name] = varType
-			delete(rangeLoopVars, name)
+			if goType := rangeLoopVarGoTypes[name]; goType != nil {
+				savedGoTypes[name] = goType
+			}
+			deleteRangeLoopVar(name)
 		}
 	}
 	return func() {
 		for name, varType := range saved {
 			rangeLoopVars[name] = varType
+			if goType := savedGoTypes[name]; goType != nil {
+				rangeLoopVarGoTypes[name] = goType
+			}
 		}
 	}
 }
@@ -5729,7 +5757,16 @@ func writeBareRangeVarAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Exp
 
 func writePointerHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !typeInfo.IsPointer(lhs) || !typeInfo.IsPointer(rhs) {
+	if typeInfo == nil || !typeInfo.IsPointer(lhs) {
+		return false
+	}
+	rhsIsPointer := typeInfo.IsPointer(rhs)
+	if !rhsIsPointer {
+		if ident, ok := rhs.(*ast.Ident); ok {
+			rhsIsPointer = rangeLoopVarGoTypeIsPointer(ident.Name)
+		}
+	}
+	if !rhsIsPointer {
 		return false
 	}
 	if ident, ok := lhs.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && currentReceiverRustAlias != "" {
@@ -5766,6 +5803,15 @@ func writePointerHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Ex
 func writePointerHandleValueClone(out *strings.Builder, rhs ast.Expr) {
 	if writeCurrentPointerReceiverHandleClone(out, rhs) {
 		return
+	}
+	if ident, ok := rhs.(*ast.Ident); ok && rangeLoopVarGoTypeIsPointer(ident.Name) {
+		varType := rangeLoopVars[ident.Name]
+		if strings.HasPrefix(varType, "&") {
+			out.WriteString("(*")
+			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(").clone()")
+			return
+		}
 	}
 	if ident, ok := packageGlobalPointerIdent(rhs); ok {
 		writePackageGlobalPointerHandleClone(out, ident)
@@ -11044,6 +11090,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		valueType := "T"   // Generic placeholder
 		keyRangeVarType := keyType
 		var mapKeyType types.Type
+		var mapValueGoType types.Type
 		mapKeyNeedsValueBinding := false
 		mapKeyNeedsWrappedBinding := false
 
@@ -11058,6 +11105,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 			if key, mapValueType := rangeMapKeyValueTypes(s.X); mapValueType != nil {
 				mapKeyType = key
+				mapValueGoType = mapValueType
 				if mapKeyType != nil {
 					keyType = goTypesMapKeyToRust(mapKeyType)
 					keyRangeVarType = keyType
@@ -11153,6 +11201,31 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			keyBindingTemp = rangeAssignmentTempName(s.Key, "__range_key")
 			valueBindingTemp = rangeAssignmentTempName(s.Value, "__range_value")
 		}
+		var keyBindingGoType types.Type
+		var valueBindingGoType types.Type
+		if keyBindingTemp != "" {
+			switch {
+			case isMap:
+				keyBindingGoType = mapKeyType
+			case isString || isSlice || isArray:
+				keyBindingGoType = types.Typ[types.Int]
+			case isInteger:
+				keyBindingGoType = rangeExprGoType(s.X)
+				if keyBindingGoType == nil {
+					keyBindingGoType = types.Typ[types.Int]
+				}
+			}
+		}
+		if valueBindingTemp != "" {
+			switch {
+			case isMap:
+				valueBindingGoType = mapValueGoType
+			case isString:
+				valueBindingGoType = types.Typ[types.Int32]
+			case isSlice || isArray:
+				valueBindingGoType = rangeArrayOrSliceElemType(s.X)
+			}
+		}
 
 		var popRangeVarScope func()
 		if vt := GetVarTable(); vt != nil {
@@ -11169,10 +11242,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				keyName = ident.Name
 				keyAssigned = !rangeAssignsExisting && rangeLoopIdentAssigned(s.Body, keyName)
 				if keyBindingTemp != "" {
-					rangeLoopVars[keyBindingTemp] = keyRangeVarType
+					registerRangeLoopVar(keyBindingTemp, keyRangeVarType, keyBindingGoType)
 					keyTempRegistered = true
 				} else {
-					rangeLoopVars[keyName] = keyRangeVarType
+					registerRangeLoopVar(keyName, keyRangeVarType, nil)
 					keyRangeRegistered = true
 					if keyName != "_" {
 						if vt := GetVarTable(); vt != nil {
@@ -11185,7 +11258,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 				}
 			} else if keyBindingTemp != "" {
-				rangeLoopVars[keyBindingTemp] = keyRangeVarType
+				registerRangeLoopVar(keyBindingTemp, keyRangeVarType, keyBindingGoType)
 				keyTempRegistered = true
 			}
 		}
@@ -11247,10 +11320,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					registeredValueType = valueType
 				}
 				if valueBindingTemp != "" {
-					rangeLoopVars[valueBindingTemp] = registeredValueType
+					registerRangeLoopVar(valueBindingTemp, registeredValueType, valueBindingGoType)
 					valueTempRegistered = true
 				} else {
-					rangeLoopVars[valueName] = registeredValueType
+					registerRangeLoopVar(valueName, registeredValueType, nil)
 					valueRangeRegistered = true
 					if valueName != "_" {
 						if vt := GetVarTable(); vt != nil {
@@ -11263,7 +11336,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 				}
 			} else if valueBindingTemp != "" {
-				rangeLoopVars[valueBindingTemp] = valueType
+				registerRangeLoopVar(valueBindingTemp, valueType, valueBindingGoType)
 				valueTempRegistered = true
 			}
 		}
@@ -11653,16 +11726,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 		// Clean up range loop variables
 		if keyRangeRegistered && keyName != "" {
-			delete(rangeLoopVars, keyName)
+			deleteRangeLoopVar(keyName)
 		}
 		if keyTempRegistered && keyBindingTemp != "" {
-			delete(rangeLoopVars, keyBindingTemp)
+			deleteRangeLoopVar(keyBindingTemp)
 		}
 		if valueRangeRegistered && valueName != "" {
-			delete(rangeLoopVars, valueName)
+			deleteRangeLoopVar(valueName)
 		}
 		if valueTempRegistered && valueBindingTemp != "" {
-			delete(rangeLoopVars, valueBindingTemp)
+			deleteRangeLoopVar(valueBindingTemp)
 		}
 		if popRangeVarScope != nil {
 			popRangeVarScope()

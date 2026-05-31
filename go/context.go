@@ -64,6 +64,7 @@ type FileState struct {
 	Helpers                      *HelperTracker
 	StatementPreprocessor        *StatementPreprocessor
 	RangeLoopVars                map[string]string
+	RangeLoopVarGoTypes          map[string]types.Type
 	LocalRangeElemRustTypes      map[string]string
 	LocalCollectionKinds         map[string]string
 	LocalMapKeyRustTypes         map[string]string
@@ -171,6 +172,7 @@ func NewFileState(imports *ImportTracker, helpers *HelperTracker, statementPrepr
 		Helpers:                      helpers,
 		StatementPreprocessor:        statementPreprocessor,
 		RangeLoopVars:                make(map[string]string),
+		RangeLoopVarGoTypes:          make(map[string]types.Type),
 		LocalRangeElemRustTypes:      make(map[string]string),
 		LocalCollectionKinds:         make(map[string]string),
 		LocalMapKeyRustTypes:         make(map[string]string),
@@ -367,6 +369,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		if ctx.File.RangeLoopVars == nil {
 			ctx.File.RangeLoopVars = make(map[string]string)
 		}
+		if ctx.File.RangeLoopVarGoTypes == nil {
+			ctx.File.RangeLoopVarGoTypes = make(map[string]types.Type)
+		}
 		if ctx.File.LocalRangeElemRustTypes == nil {
 			ctx.File.LocalRangeElemRustTypes = make(map[string]string)
 		}
@@ -465,6 +470,7 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 		ctx.File.Helpers = ctx.Helpers
 		ctx.File.StatementPreprocessor = statementPreprocessor
 		ctx.File.RangeLoopVars = rangeLoopVars
+		ctx.File.RangeLoopVarGoTypes = rangeLoopVarGoTypes
 		ctx.File.LocalRangeElemRustTypes = localRangeElemRustTypes
 		ctx.File.LocalCollectionKinds = localCollectionKinds
 		ctx.File.LocalMapKeyRustTypes = localMapKeyRustTypes
@@ -531,6 +537,7 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 		ctx.Helpers = ctx.File.Helpers
 		statementPreprocessor = ctx.File.StatementPreprocessor
 		rangeLoopVars = ctx.File.RangeLoopVars
+		rangeLoopVarGoTypes = ctx.File.RangeLoopVarGoTypes
 		localRangeElemRustTypes = ctx.File.LocalRangeElemRustTypes
 		localCollectionKinds = ctx.File.LocalCollectionKinds
 		localMapKeyRustTypes = ctx.File.LocalMapKeyRustTypes
