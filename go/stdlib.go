@@ -353,7 +353,7 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 					// It's the builtin error type - use Display formatting
 					if ident, ok := arg.(*ast.Ident); ok {
 						out.WriteString("format!(\"{}\", (*")
-						out.WriteString(RustIdentForUse(ident))
+						out.WriteString(rustIdentForUseWithCapture(ident))
 						WriteBorrowMethod(out, false)
 						out.WriteString(".as_ref().unwrap()))")
 					} else {

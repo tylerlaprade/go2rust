@@ -5392,6 +5392,34 @@ func (p *parser) parse() {
 	}
 }
 
+func TestDeferClosureFmtErrorfUsesCapturedErrorIdent(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+func parse(filename string) (err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("reading %s: %v", filename, err)
+		}
+	}()
+	return fmt.Errorf("boom")
+}
+`)
+
+	if !strings.Contains(rust, "err_defer_captured") {
+		t.Fatalf("deferred closure should clone the named error result:\n%s", rust)
+	}
+	if strings.Contains(rust, "format!(\"{}\", (*err.borrow") ||
+		strings.Contains(rust, "format!(\"{}\", (*err.lock") {
+		t.Fatalf("fmt.Errorf inside deferred closure should not format the outer err binding:\n%s", rust)
+	}
+	if !strings.Contains(rust, "format!(\"{}\", (*err_defer_captured.borrow") &&
+		!strings.Contains(rust, "format!(\"{}\", (*err_defer_captured.lock") {
+		t.Fatalf("fmt.Errorf inside deferred closure should format the captured err clone:\n%s", rust)
+	}
+}
+
 func TestDeferClosureAssignedCapturedResultIsMutable(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
