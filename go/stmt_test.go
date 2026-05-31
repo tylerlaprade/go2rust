@@ -4504,6 +4504,23 @@ func setenv() error {
 	}
 }
 
+func TestReturnErrorChannelReceiveDoesNotDoubleWrapOption(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func recv(ch <-chan error) error {
+	return <-ch
+}
+`)
+
+	if strings.Contains(rust, "Some(ch.recv().unwrap_or_default())") {
+		t.Fatalf("error channel receive return should not double-wrap the optional error:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Arc::new(Mutex::new(ch.recv().unwrap_or_default()))") &&
+		!strings.Contains(rust, "Rc::new(RefCell::new(ch.recv().unwrap_or_default()))") {
+		t.Fatalf("error channel receive return should wrap the received optional error directly:\n%s", rust)
+	}
+}
+
 func TestAddressOfConcreteReturnBoxesLocalInterface(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

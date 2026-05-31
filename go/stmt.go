@@ -7397,6 +7397,18 @@ func writeErrorHandleFromChannelReceive(out *strings.Builder, channel ast.Expr) 
 	out.WriteString(".recv().unwrap_or_default()))")
 }
 
+func writeErrorChannelReceiveReturnValue(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
+	unary, ok := result.(*ast.UnaryExpr)
+	if !ok || unary.Op != token.ARROW {
+		return false
+	}
+	if !isGoErrorType(expectedTypeFromParamExpr(expected)) || !channelElementIsGoError(unary.X) {
+		return false
+	}
+	writeErrorHandleFromChannelReceive(out, unary.X)
+	return true
+}
+
 func writeEmptyErrorHandle(out *strings.Builder) {
 	trackWrapperImports()
 	if NeedsConcurrentWrapper() {
@@ -8525,6 +8537,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						// Map values that are maps/slices/pointers/etc. already return cloneable handles.
 						TranspileExpression(out, result)
 					} else if writeStdlibInterfaceReturnConversion(out, result, returnResultTypeExpr(fnType, i)) {
+					} else if writeErrorChannelReceiveReturnValue(out, result, returnResultTypeExpr(fnType, i)) {
 					} else if unaryExpr, ok := result.(*ast.UnaryExpr); ok {
 						// Check if this is address-of a struct literal
 						if unaryExpr.Op == token.AND {
