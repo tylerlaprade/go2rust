@@ -2159,6 +2159,24 @@ func call(values []any) int {
 	}
 }
 
+func TestAnySliceElementTypeAssertionUsesBareBox(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func last(values []any) int {
+	return values[len(values)-1].(int)
+}
+`)
+
+	if strings.Contains(rust, "let __cloned = (*__seq_guard.as_ref().unwrap()).clone()") ||
+		strings.Contains(rust, "let guard = val.borrow()") ||
+		strings.Contains(rust, "let guard = val.lock().unwrap()") {
+		t.Fatalf("[]any element type assertion should not clone the Vec or treat the element as a handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "[__idx].as_ref()") || !strings.Contains(rust, "downcast_ref::<i32>()") {
+		t.Fatalf("[]any element type assertion should downcast the boxed element directly:\n%s", rust)
+	}
+}
+
 func TestReferenceRangeComparisonDereferencesWithoutTypeInfo(t *testing.T) {
 	expr, err := parser.ParseExpr("num > 6")
 	if err != nil {

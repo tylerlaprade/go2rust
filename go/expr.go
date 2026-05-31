@@ -10591,6 +10591,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				writeTraitObjectConcreteAssertionValue(out, e, rustType, assertionReturnsPointer, targetIsError)
 				return
 			}
+			if writeAnySliceElementAssertionValue(out, e, rustType, assertionReturnsPointer, targetIsError) {
+				return
+			}
 			out.WriteString("({\n")
 			out.WriteString("        let val = ")
 			// Check if e.X is an identifier (simple variable)
@@ -13506,6 +13509,55 @@ func writeTypeAssertionSuccessBareValue(out *strings.Builder, targetIsError bool
 	} else {
 		out.WriteString("typed_val.clone()")
 	}
+}
+
+func writeAnySliceElementAssertionValue(out *strings.Builder, e *ast.TypeAssertExpr, rustType string, assertionReturnsPointer bool, targetIsError bool) bool {
+	index, ok := anySliceElementAssertionSource(e.X)
+	if !ok {
+		return false
+	}
+	out.WriteString("({\n")
+	out.WriteString("        let __idx = (")
+	TranspileExpression(out, index.Index)
+	out.WriteString(") as usize;\n")
+	out.WriteString("        let __seq_holder = ")
+	TranspileExpressionContext(out, index.X, LValue)
+	out.WriteString(".clone();\n")
+	out.WriteString("        let __seq_guard = __seq_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString("        let any_val = __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].as_ref();\n")
+	out.WriteString("        ")
+	if assertionReturnsPointer {
+		WriteWrapperPrefix(out)
+	}
+	writeTypeAssertionExpectBareValue(out, "any_val", rustType, targetIsError)
+	if assertionReturnsPointer {
+		WriteWrapperSuffix(out)
+	}
+	out.WriteString("\n")
+	out.WriteString("    })")
+	return true
+}
+
+func anySliceElementAssertionSource(expr ast.Expr) (*ast.IndexExpr, bool) {
+	index, ok := unwrapParens(expr).(*ast.IndexExpr)
+	if !ok {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, false
+	}
+	typ := typeInfo.GetType(index.X)
+	if typ == nil {
+		return nil, false
+	}
+	slice, ok := types.Unalias(typ).Underlying().(*types.Slice)
+	if !ok || !isEmptyInterfaceType(slice.Elem()) {
+		return nil, false
+	}
+	return index, true
 }
 
 func writeTypeAssertionExpectBareValue(out *strings.Builder, receiver string, rustType string, targetIsError bool) {
