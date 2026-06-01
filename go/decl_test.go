@@ -883,6 +883,79 @@ func (l *loader) ImportFrom(path string) {}
 	}
 }
 
+func TestInterfaceMethodMutableReceiverMatchesEquivalentMethodObject(t *testing.T) {
+	first := interfaceMethodFromSource(t, `package main
+
+type Importer interface {
+	Import(path string)
+}
+`, "Importer", "Import")
+	second := interfaceMethodFromSource(t, `package main
+
+type Importer interface {
+	Import(path string)
+}
+`, "Importer", "Import")
+	if first == second {
+		t.Fatal("test requires distinct method objects")
+	}
+
+	prevInterfaceMethodMutableReceiver := interfaceMethodMutableReceiver
+	prevInterfaceMethodMutableReceiverByName := interfaceMethodMutableReceiverByName
+	prevInterfaceMethodMutableReceiverByTrait := interfaceMethodMutableReceiverByTrait
+	interfaceMethodMutableReceiver = map[*types.Func]bool{first: true}
+	interfaceMethodMutableReceiverByName = make(map[string]bool)
+	interfaceMethodMutableReceiverByTrait = map[string]bool{
+		interfaceMethodMutableReceiverTraitKey("main::Importer", first.Name()): true,
+	}
+	t.Cleanup(func() {
+		interfaceMethodMutableReceiver = prevInterfaceMethodMutableReceiver
+		interfaceMethodMutableReceiverByName = prevInterfaceMethodMutableReceiverByName
+		interfaceMethodMutableReceiverByTrait = prevInterfaceMethodMutableReceiverByTrait
+	})
+
+	if !interfaceMethodRequiresMutableReceiver(second) {
+		t.Fatalf("equivalent interface method object should keep mutable receiver decision")
+	}
+	if !interfaceTraitMethodRequiresMutableReceiver("main::Importer", second.Name(), second) {
+		t.Fatalf("equivalent imported trait method should keep mutable receiver decision")
+	}
+	if !interfaceTraitMethodRequiresMutableReceiver("main::Importer", second.Name(), nil) {
+		t.Fatalf("trait method name should keep mutable receiver decision without a method object")
+	}
+}
+
+func interfaceMethodFromSource(t *testing.T, src string, ifaceName string, methodName string) *types.Func {
+	t.Helper()
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", src, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	obj, ok := typeInfo.pkg.Scope().Lookup(ifaceName).(*types.TypeName)
+	if !ok {
+		t.Fatalf("interface %s not found", ifaceName)
+	}
+	iface, ok := types.Unalias(obj.Type()).Underlying().(*types.Interface)
+	if !ok {
+		t.Fatalf("%s is not an interface", ifaceName)
+	}
+	iface.Complete()
+	for i := 0; i < iface.NumMethods(); i++ {
+		method := iface.Method(i)
+		if method.Name() == methodName {
+			return method
+		}
+	}
+	t.Fatalf("method %s not found on %s", methodName, ifaceName)
+	return nil
+}
+
 func TestInterfaceKeywordNameUsesIdentifierSafeHelperSuffix(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

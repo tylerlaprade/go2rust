@@ -1460,10 +1460,10 @@ func collectPackageMethods(files []*ast.File) map[string][]*ast.FuncDecl {
 	return methods
 }
 
-func writeExternalLocalInterfaceMethod(out *strings.Builder, methodName string, funcType *ast.FuncType, sourceIsInterface bool, methodObj *types.Func) {
+func writeExternalLocalInterfaceMethod(out *strings.Builder, ifaceName string, methodName string, funcType *ast.FuncType, sourceIsInterface bool, methodObj *types.Func) {
 	out.WriteString("    fn ")
 	out.WriteString(ToSnakeCase(methodName))
-	if interfaceMethodRequiresMutableReceiver(methodObj) {
+	if interfaceTraitMethodRequiresMutableReceiver(ifaceName, methodName, methodObj) {
 		out.WriteString("(&mut self")
 	} else {
 		out.WriteString("(&self")
@@ -1613,7 +1613,7 @@ func writeExternalLocalInterfaceImpls(out *strings.Builder, first *bool, impls m
 					if !ok {
 						continue
 					}
-					writeExternalLocalInterfaceMethod(out, method.Names[0].Name, funcType, impl.sourceIsInterface, interfaceMethodByName(impl.ifaceType, method.Names[0].Name))
+					writeExternalLocalInterfaceMethod(out, ifaceName, method.Names[0].Name, funcType, impl.sourceIsInterface, interfaceMethodByName(impl.ifaceType, method.Names[0].Name))
 				}
 			}
 			writeExternalLocalInterfaceSupportImpl(out, ifaceName, concreteType, impl.ifaceType)
@@ -2598,7 +2598,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 				currentTypeMethods = importedTraitMethods
 				for _, ifaceMethod := range explicitInterfaceMethods(ifaceType) {
 					if method := methodDeclByName(importedTraitMethods, ifaceMethod.Name()); method != nil {
-						TranspileTraitMethodImpl(&body, method, interfaceMethodRequiresMutableReceiver(ifaceMethod), fileSet, file.Comments)
+						TranspileTraitMethodImpl(&body, method, interfaceTraitMethodRequiresMutableReceiver(ifaceName, ifaceMethod.Name(), ifaceMethod), fileSet, file.Comments)
 					}
 				}
 				currentTypeMethods = previousTraitTypeMethods

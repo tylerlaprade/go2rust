@@ -2114,7 +2114,7 @@ func writeFunctionTypeInterfaceImpl(out *strings.Builder, funcTypeName, ifaceNam
 		out.WriteString("    fn ")
 		out.WriteString(ToSnakeCase(method.Name()))
 		out.WriteString("(")
-		if interfaceMethodRequiresMutableReceiver(method) {
+		if interfaceTraitMethodRequiresMutableReceiver(ifaceName, method.Name(), method) {
 			out.WriteString("&mut self")
 		} else {
 			out.WriteString("&self")
@@ -5141,9 +5141,13 @@ func packageMethodReceiverMutabilityForSelector(sel *ast.SelectorExpr) (bool, bo
 // map so the three stay consistent: a method that mutates through any
 // implementor lowers to `&mut self` everywhere.
 var interfaceMethodMutableReceiver = make(map[*types.Func]bool)
+var interfaceMethodMutableReceiverByName = make(map[string]bool)
+var interfaceMethodMutableReceiverByTrait = make(map[string]bool)
 
 func resetInterfaceMethodMutableReceiver() {
 	interfaceMethodMutableReceiver = make(map[*types.Func]bool)
+	interfaceMethodMutableReceiverByName = make(map[string]bool)
+	interfaceMethodMutableReceiverByTrait = make(map[string]bool)
 }
 
 // registerInterfaceMethodMutableReceivers walks every interface across all
@@ -5180,6 +5184,7 @@ func registerInterfaceMethodMutableReceivers(pkgs []*types.Package) {
 		if iface == nil || iface.NumMethods() == 0 {
 			continue
 		}
+		ifaceTraitNames := interfaceMethodMutableReceiverTraitNames(ifaceNamed)
 		for _, concrete := range concreteTypes {
 			obj := concrete.Obj()
 			if obj == nil || obj.Pkg() == nil {
@@ -5197,10 +5202,64 @@ func registerInterfaceMethodMutableReceivers(pkgs []*types.Package) {
 				concreteKey := packageMethodReceiverMutabilityKey(pkgPath, obj.Name(), m.Name())
 				if mutable, ok := packageMethodReceiverMutability[concreteKey]; ok && mutable {
 					interfaceMethodMutableReceiver[m] = true
+					for _, key := range interfaceMethodMutableReceiverKeys(m) {
+						interfaceMethodMutableReceiverByName[key] = true
+					}
+					for _, traitName := range ifaceTraitNames {
+						interfaceMethodMutableReceiverByTrait[interfaceMethodMutableReceiverTraitKey(traitName, m.Name())] = true
+					}
 				}
 			}
 		}
 	}
+}
+
+func interfaceMethodMutableReceiverTraitNames(ifaceNamed *types.Named) []string {
+	if ifaceNamed == nil || ifaceNamed.Obj() == nil {
+		return nil
+	}
+	seen := make(map[string]bool)
+	var names []string
+	add := func(name string) {
+		if name == "" || seen[name] {
+			return
+		}
+		seen[name] = true
+		names = append(names, name)
+	}
+	add(ifaceNamed.Obj().Name())
+	add(goTypesNamedTypeToRust(ifaceNamed))
+	if pkg := ifaceNamed.Obj().Pkg(); pkg != nil && pkg.Path() != "" {
+		add(RustCrateNameForGoImportPath(pkg.Path()) + "::" + RustTypeNameForUse(ifaceNamed.Obj().Name()))
+	}
+	return names
+}
+
+func interfaceMethodMutableReceiverTraitKey(ifaceName string, methodName string) string {
+	if ifaceName == "" || methodName == "" {
+		return ""
+	}
+	return ifaceName + "." + methodName
+}
+
+func interfaceMethodMutableReceiverKeys(method *types.Func) []string {
+	if method == nil {
+		return nil
+	}
+	seen := make(map[string]bool)
+	var keys []string
+	add := func(key string) {
+		if key == "" || seen[key] {
+			return
+		}
+		seen[key] = true
+		keys = append(keys, key)
+	}
+	add(method.FullName())
+	if method.Pkg() != nil {
+		add(method.Pkg().Path() + "." + method.Name())
+	}
+	return keys
 }
 
 // interfaceMethodRequiresMutableReceiver reports whether the given interface
@@ -5209,7 +5268,42 @@ func interfaceMethodRequiresMutableReceiver(method *types.Func) bool {
 	if method == nil {
 		return false
 	}
-	return interfaceMethodMutableReceiver[method]
+	if interfaceMethodMutableReceiver[method] {
+		return true
+	}
+	keys := interfaceMethodMutableReceiverKeys(method)
+	for _, key := range keys {
+		if interfaceMethodMutableReceiverByName[key] {
+			return true
+		}
+	}
+	for registered, mutable := range interfaceMethodMutableReceiver {
+		if !mutable {
+			continue
+		}
+		for _, registeredKey := range interfaceMethodMutableReceiverKeys(registered) {
+			for _, key := range keys {
+				if registeredKey == key {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func interfaceTraitMethodRequiresMutableReceiver(ifaceName string, methodName string, method *types.Func) bool {
+	if interfaceMethodRequiresMutableReceiver(method) {
+		return true
+	}
+	if methodName == "" && method != nil {
+		methodName = method.Name()
+	}
+	if methodName == "" {
+		return false
+	}
+	key := interfaceMethodMutableReceiverTraitKey(ifaceName, methodName)
+	return key != "" && interfaceMethodMutableReceiverByTrait[key]
 }
 
 // interfaceMethodSelectorRequiresMutableReceiver reports whether a method-call
@@ -5248,7 +5342,7 @@ func interfaceMethodByName(iface *types.Interface, name string) *types.Func {
 // interface's method lowers to a mutable receiver, else "&self".
 func interfaceTraitMethodReceiver(ifaceName, methodName string) string {
 	if iface := localInterfaceTypesByName(ifaceName); iface != nil {
-		if m := interfaceMethodByName(iface, methodName); interfaceMethodRequiresMutableReceiver(m) {
+		if m := interfaceMethodByName(iface, methodName); interfaceTraitMethodRequiresMutableReceiver(ifaceName, methodName, m) {
 			return "&mut self"
 		}
 	}

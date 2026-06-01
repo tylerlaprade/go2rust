@@ -239,12 +239,14 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	defer SetConcurrencyDetector(nil) // Clear when done
 
 	packageAnalysis := analyzeTranspileFiles(astFiles, pg.typeInfo)
-	if len(pg.packageMapping) == 0 {
-		resetPackageMethodReceiverMutability()
-	}
-	registerPackageMethodReceiverMutability("main", astFiles)
-	if pg.typeInfo != nil && pg.typeInfo.pkg != nil {
-		registerInterfaceMethodMutableReceivers([]*types.Package{pg.typeInfo.pkg})
+	if packageLoader == nil {
+		if len(pg.packageMapping) == 0 {
+			resetPackageMethodReceiverMutability()
+		}
+		registerPackageMethodReceiverMutability("main", astFiles)
+		if pg.typeInfo != nil && pg.typeInfo.pkg != nil {
+			registerInterfaceMethodMutableReceivers([]*types.Package{pg.typeInfo.pkg})
+		}
 	}
 	packageState := NewPackageState()
 	packageState.MapKeyStructTypes = packageAnalysis.mapKeyStructTypes

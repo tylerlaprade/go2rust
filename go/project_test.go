@@ -4612,6 +4612,67 @@ func Use() {
 	}
 }
 
+func TestProjectGeneratorPreservesLoaderInterfaceMutabilityForMainImpl(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.24
+`)
+	writeTestFile(t, filepath.Join(tempDir, "api", "api.go"), `package api
+
+type Importer interface {
+	Import(path string)
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "mut", "mut.go"), `package mut
+
+import "example.com/mainmod/api"
+
+type Other struct {
+	seen string
+}
+
+func (o *Other) Import(path string) {
+	o.seen = path
+}
+
+var _ api.Importer = (*Other)(nil)
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import (
+	"example.com/mainmod/api"
+	_ "example.com/mainmod/mut"
+)
+
+type projectImporter struct{}
+
+func (pi *projectImporter) Import(path string) {}
+
+var _ api.Importer = (*projectImporter)(nil)
+
+func accept(importer api.Importer) {}
+
+func main() {
+	accept(&projectImporter{})
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "impl example_com_mainmod_api::Importer for projectImporter") {
+		t.Fatalf("main concrete type should implement imported interface, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "fn import(&mut self") {
+		t.Fatalf("main imported-interface impl should preserve loader-wide mutable receiver decision:\n%s", mainRS)
+	}
+}
+
 func TestSourceStdlibImportedOrderedConstraintImplForNamedScalar(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "token.go", `package token
