@@ -1549,20 +1549,21 @@ func constExpressionCastsOperandsForOp(op token.Token) bool {
 }
 
 func writeConstExpressionOperandAsRustInteger(out *strings.Builder, expr ast.Expr, rustType string) {
+	operandRustType := constExpressionOperandRustType(expr, rustType)
 	if binary, ok := unwrapParens(expr).(*ast.BinaryExpr); ok && constExpressionCastsOperandsForOp(binary.Op) && isConstantExpression(binary) {
 		out.WriteString("(")
-		writeConstExpressionOperandAsRustInteger(out, binary.X, rustType)
+		writeConstExpressionOperandAsRustInteger(out, binary.X, operandRustType)
 		out.WriteString(" ")
 		out.WriteString(rustBinaryOp(binary.Op))
 		out.WriteString(" ")
-		writeConstExpressionOperandAsRustInteger(out, binary.Y, rustType)
+		writeConstExpressionOperandAsRustInteger(out, binary.Y, operandRustType)
 		out.WriteString(")")
 		return
 	}
 	out.WriteString("(")
 	TranspileConstExpr(out, expr, 0)
 	out.WriteString(" as ")
-	out.WriteString(rustType)
+	out.WriteString(operandRustType)
 	out.WriteString(")")
 }
 

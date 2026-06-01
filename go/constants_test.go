@@ -2106,6 +2106,31 @@ func fullRange() Range16 {
 	}
 }
 
+func TestHighMaskRightShiftUsesWiderConstantOperand(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func start() {
+	go func() {}()
+}
+
+func allowed(c byte) bool {
+	const mask = 0 |
+		(1<<26-1)<<'A' |
+		1<<'_'
+
+	return ((uint64(1)<<c)&(mask&(1<<64-1)) |
+		(uint64(1)<<(c-64))&(mask>>64)) != 0
+}
+`)
+
+	if strings.Contains(rust, "(mask as u64) >> (64 as u64)") {
+		t.Fatalf("high-half mask shift should not cast the source constant to u64 before shifting:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(mask as u128) >> (64 as u128)") {
+		t.Fatalf("high-half mask shift should use an intermediate type wide enough for the source constant:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerConversionShiftLeftOperandIsParenthesized(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
