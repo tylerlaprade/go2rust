@@ -2231,6 +2231,19 @@ func writeMapHandleForOp(out *strings.Builder, expr ast.Expr) {
 	TranspileExpressionContext(out, expr, LValue)
 }
 
+func writeMapHandleCloneForOp(out *strings.Builder, expr ast.Expr) {
+	writeMapHandleForOp(out, expr)
+	out.WriteString(".clone()")
+}
+
+func writeOptionalClonedMapExpression(out *strings.Builder, expr ast.Expr) {
+	out.WriteString("{ let __map_holder = ")
+	writeMapHandleCloneForOp(out, expr)
+	out.WriteString("; let __map_guard = __map_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }")
+}
+
 func pointerToMapDerefTarget(expr ast.Expr) (ast.Expr, bool) {
 	star, ok := unwrapParens(expr).(*ast.StarExpr)
 	if !ok {
@@ -9807,32 +9820,26 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				writeMapLookupValueWithHandle(out, valueType, defaultValue, valueKeepsHandle)
 			} else if NeedsConcurrentWrapper() {
 				out.WriteString("{ let __map = ")
-				if isNamedMapExpression(e.X) {
-					out.WriteString("{ let __map_holder = ")
-					writeNamedMapInnerHandleClone(out, e.X)
-					out.WriteString("; let __map_guard = __map_holder")
-					WriteBorrowMethod(out, false)
-					out.WriteString("; let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }")
-				} else {
-					writeClonedWrappedExpression(out, e.X, "__map_holder", "__map_guard")
-				}
-				out.WriteString("; __map.get(")
+				writeOptionalClonedMapExpression(out, e.X)
+				out.WriteString("; __map.as_ref().and_then(|__map| __map.get(")
 				if !writeMapLookupKeyWithRustType(out, e.X, e.Index, keyRustType, keyType) {
 					writeMapLookupKeyWithMapExpr(out, e.X, e.Index, keyType)
 				}
-				out.WriteString(")")
+				out.WriteString("))")
 				writeMapLookupValueWithHandle(out, valueType, defaultValue, valueKeepsHandle)
 				out.WriteString(" }")
 			} else {
-				out.WriteString("(*")
-				writeMapHandleForOp(out, e.X)
+				out.WriteString("{ let __map_holder = ")
+				writeMapHandleCloneForOp(out, e.X)
+				out.WriteString("; let __map_guard = __map_holder")
 				WriteBorrowMethod(out, false)
-				out.WriteString(".as_ref().unwrap()).get(")
+				out.WriteString("; __map_guard.as_ref().and_then(|__map| __map.get(")
 				if !writeMapLookupKeyWithRustType(out, e.X, e.Index, keyRustType, keyType) {
 					writeMapLookupKeyWithMapExpr(out, e.X, e.Index, keyType)
 				}
-				out.WriteString(")")
+				out.WriteString("))")
 				writeMapLookupValueWithHandle(out, valueType, defaultValue, valueKeepsHandle)
+				out.WriteString(" }")
 			}
 		} else {
 			// Regular array/slice/string indexing

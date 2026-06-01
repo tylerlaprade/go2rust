@@ -5900,7 +5900,8 @@ func f() { _ = counts["x"] }`, 0)
 	if strings.Contains(got, "type info required") {
 		t.Fatalf("package global map index should use syntax collection kind:\n%s", got)
 	}
-	if !strings.Contains(got, "(*counts.borrow().as_ref().unwrap()).get(&\"x\".to_string())") {
+	if !strings.Contains(got, "counts.clone()") ||
+		!strings.Contains(got, ".as_ref().and_then(|__map| __map.get(&\"x\".to_string()))") {
 		t.Fatalf("package global map index should read from global map:\n%s", got)
 	}
 }
@@ -5989,6 +5990,41 @@ func lookup(m map[string]token.Pos, key string) atPos {
 	if !strings.Contains(rust, ".map(|__v| __v.borrow().as_ref().unwrap().clone())") &&
 		!strings.Contains(rust, ".map(|__v| __v.lock().unwrap().as_ref().unwrap().clone())") {
 		t.Fatalf("selector-named integer map value should unwrap the stored value:\n%s", rust)
+	}
+}
+
+func TestMapLookupOnNilMapFieldUsesZeroValue(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Object interface {
+	Name() string
+}
+
+type item struct{}
+
+func (*item) Name() string { return "" }
+
+type Scope struct {
+	elems map[string]Object
+}
+
+func forceConcurrent() {
+	go func() {}()
+}
+
+func (s *Scope) Lookup(name string) Object {
+	return s.elems[name]
+}
+`)
+
+	if strings.Contains(rust, ".as_ref().unwrap()).get(") {
+		t.Fatalf("map lookup should not unwrap a nil map before reading:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".as_ref().and_then(|__map| __map.get(") {
+		t.Fatalf("map lookup should treat a nil map as empty:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".map(|__v| __v.clone()).unwrap_or_else(|| Default::default())") {
+		t.Fatalf("map lookup should still return the element zero value when missing:\n%s", rust)
 	}
 }
 

@@ -1158,7 +1158,7 @@ func forceConcurrent() {
 	if strings.Contains(rust, "type information required") || strings.Contains(rust, "Cannot determine if map") {
 		t.Fatalf("map comma-ok should use syntax fallback without type info:\n%s", rust)
 	}
-	if !strings.Contains(rust, "match __map.get(&GoLocalPtrKey::new(s.clone()))") {
+	if !strings.Contains(rust, "match __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(s.clone())))") {
 		t.Fatalf("map comma-ok should use pointer-key syntax fallback:\n%s", rust)
 	}
 	if !strings.Contains(rust, "Some(v) => (v.clone(),") || !strings.Contains(rust, "None => (Default::default(),") {
@@ -3889,7 +3889,7 @@ func relookup(m map[string]int) bool {
 		t.Fatalf("map comma-ok result should be a raw bool:\n%s", rust)
 	}
 	if !strings.Contains(rust, "/* MAP_COMMA_OK */ Some(v) => (v.clone(), true)") ||
-		!strings.Contains(rust, "let (__tmp_0, __tmp_1) = match") {
+		!strings.Contains(rust, "let (__tmp_0, __tmp_1) = { let __map_holder") {
 		t.Fatalf("map comma-ok short declaration and reassignment should keep tuple shape:\n%s", rust)
 	}
 }

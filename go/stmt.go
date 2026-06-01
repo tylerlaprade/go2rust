@@ -9485,33 +9485,26 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					out.WriteString(".get(")
 				} else if NeedsConcurrentWrapper() {
 					out.WriteString("{ let __map = ")
-					if isNamedMapExpression(indexExpr.X) {
-						out.WriteString("{ let __map_holder = ")
-						writeNamedMapInnerHandleClone(out, indexExpr.X)
-						out.WriteString("; let __map_guard = __map_holder")
-						WriteBorrowMethod(out, false)
-						out.WriteString("; let __cloned = (*__map_guard.as_ref().unwrap()).clone(); drop(__map_guard); __cloned }")
-					} else {
-						writeClonedWrappedExpression(out, indexExpr.X, "__map_holder", "__map_guard")
-					}
-					out.WriteString("; match __map.get(")
+					writeOptionalClonedMapExpression(out, indexExpr.X)
+					out.WriteString("; match __map.as_ref().and_then(|__map| __map.get(")
 				} else {
-					out.WriteString("match (*")
-					writeMapHandleForOp(out, indexExpr.X)
+					out.WriteString("{ let __map_holder = ")
+					writeMapHandleCloneForOp(out, indexExpr.X)
+					out.WriteString("; let __map_guard = __map_holder")
 					WriteBorrowMethod(out, false)
-					out.WriteString(".as_ref().unwrap()).get(")
+					out.WriteString("; match __map_guard.as_ref().and_then(|__map| __map.get(")
 				}
 				if !writeMapLookupKeyWithRustType(out, indexExpr.X, indexExpr.Index, keyRustType, keyType) {
 					writeMapLookupKeyWithMapExpr(out, indexExpr.X, indexExpr.Index, keyType)
 				}
-				out.WriteString(") { /* MAP_COMMA_OK */ Some(v) => (v.clone(), ")
+				out.WriteString(")) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), ")
 				out.WriteString("true")
 				out.WriteString("), None => (")
 				writeMapCommaOkMissingValue(out, indexExpr, valueKeepsHandle)
 				out.WriteString(", ")
 				out.WriteString("false")
 				out.WriteString(") }")
-				if NeedsConcurrentWrapper() && !isExpressionResultBare(indexExpr.X) {
+				if !isExpressionResultBare(indexExpr.X) && (NeedsConcurrentWrapper() || !isBareMapSelectorExpression(indexExpr.X)) {
 					out.WriteString(" }")
 				}
 				if s.Tok == token.DEFINE {
