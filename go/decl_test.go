@@ -159,6 +159,51 @@ func TestTranspileInternalABITypeOfUsesRuntimeTypeIntrinsic(t *testing.T) {
 	}
 }
 
+func TestTranspileInternalBytealgCountIntrinsicsUseGenericBodies(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	currentTypeInfo = &TypeInfo{pkg: types.NewPackage("internal/bytealg", "bytealg")}
+	t.Cleanup(func() {
+		currentTypeInfo = prevTypeInfo
+	})
+
+	fset := token.NewFileSet()
+	var out strings.Builder
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("CountString"),
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{List: []*ast.Field{
+				{Names: []*ast.Ident{ast.NewIdent("s")}, Type: ast.NewIdent("string")},
+				{Names: []*ast.Ident{ast.NewIdent("c")}, Type: ast.NewIdent("byte")},
+			}},
+			Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("int")}}},
+		},
+	}, fset, nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("Count"),
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{List: []*ast.Field{
+				{Names: []*ast.Ident{ast.NewIdent("b")}, Type: &ast.ArrayType{Elt: ast.NewIdent("byte")}},
+				{Names: []*ast.Ident{ast.NewIdent("c")}, Type: ast.NewIdent("byte")},
+			}},
+			Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("int")}}},
+		},
+	}, fset, nil)
+
+	got := out.String()
+	if strings.Contains(got, "Go function declaration has no body") {
+		t.Fatalf("internal/bytealg count intrinsics should not use the generic bodyless fallback:\n%s", got)
+	}
+	for _, want := range []string{
+		".as_bytes().iter().filter",
+		".iter().filter",
+		".count()).unwrap_or(0) as i32",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %q in:\n%s", want, got)
+		}
+	}
+}
+
 func TestTranspileFunctionWithoutBodyNamesUnnamedParams(t *testing.T) {
 	var out strings.Builder
 	fn := &ast.FuncDecl{

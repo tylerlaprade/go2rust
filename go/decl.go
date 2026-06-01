@@ -2760,6 +2760,15 @@ func writeRuntimeLinkedFunctionBody(out *strings.Builder, fn *ast.FuncDecl, inde
 			writeInternalABITypeOfIntrinsicBody(out, fn, indent)
 			return true
 		}
+	case "internal/bytealg":
+		switch fn.Name.Name {
+		case "Count":
+			writeInternalBytealgCountIntrinsicBody(out, fn, indent, false)
+			return true
+		case "CountString":
+			writeInternalBytealgCountIntrinsicBody(out, fn, indent, true)
+			return true
+		}
 	}
 	return false
 }
@@ -2849,6 +2858,69 @@ func writeInternalABITypeOfIntrinsicBody(out *strings.Builder, fn *ast.FuncDecl,
 	out.WriteString("__typ")
 	WriteWrapperSuffix(out)
 	out.WriteString("\n")
+}
+
+func writeInternalBytealgCountIntrinsicBody(out *strings.Builder, fn *ast.FuncDecl, indent string, stringInput bool) {
+	haystackName := functionParamName(fn, 0, "b")
+	if stringInput {
+		haystackName = functionParamName(fn, 0, "s")
+	}
+	needleName := functionParamName(fn, 1, "c")
+
+	out.WriteString(indent)
+	out.WriteString("let __needle = (*")
+	out.WriteString(RustLocalIdent(needleName))
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone();\n")
+	out.WriteString(indent)
+	out.WriteString("let __haystack = ")
+	out.WriteString(RustLocalIdent(haystackName))
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("let __count = __haystack.as_ref().map(|__v| __v")
+	if stringInput {
+		out.WriteString(".as_bytes()")
+	}
+	out.WriteString(".iter().filter(|&&__b| __b == __needle).count()).unwrap_or(0) as i32;\n")
+	out.WriteString(indent)
+	if runtimeLinkedSingleResultReturnsBareScalar(fn) {
+		out.WriteString("__count\n")
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("__count")
+	WriteWrapperSuffix(out)
+	out.WriteString("\n")
+}
+
+func runtimeLinkedSingleResultReturnsBareScalar(fn *ast.FuncDecl) bool {
+	sig, ok := funcDeclSignatureFromTypeInfo(fn)
+	return ok && signatureReturnsBareScalar(sig)
+}
+
+func functionParamName(fn *ast.FuncDecl, index int, fallback string) string {
+	if fn == nil || fn.Type == nil || fn.Type.Params == nil {
+		return fallback
+	}
+	seen := 0
+	for _, field := range fn.Type.Params.List {
+		names := field.Names
+		if len(names) == 0 {
+			if seen == index {
+				return fallback
+			}
+			seen++
+			continue
+		}
+		for _, name := range names {
+			if seen == index && name != nil {
+				return name.Name
+			}
+			seen++
+		}
+	}
+	return fallback
 }
 
 func writeRuntimeLinkedStringParamClone(out *strings.Builder, paramName string, localName string, indent string) {
