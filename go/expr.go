@@ -10041,7 +10041,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		}
 		// Handle array/slice literals
 		if sel, ok := e.Type.(*ast.SelectorExpr); ok {
-			if ident, ok := sel.X.(*ast.Ident); ok && ident.Name == "strings" && sel.Sel.Name == "Builder" {
+			if named, ok := namedTypeForTypeExpr(sel); ok &&
+				isStringsBuilderReceiverType(named) &&
+				!isSourceMappedStringsBuilderReceiverType(named) {
 				out.WriteString("String::new()")
 				return
 			}

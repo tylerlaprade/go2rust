@@ -615,6 +615,38 @@ func build(parts []string, sep string) string {
 	}
 }
 
+func TestSourceMappedStringsBuilderCompositeLiteralUsesGeneratedType(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "strings"
+
+func build() string {
+	b := strings.Builder{}
+	b.WriteString("x")
+	return b.String()
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"strings": "strings"})
+
+	if strings.Contains(rust, "let mut b = String::new()") {
+		t.Fatalf("source-mapped strings.Builder composite literal should not use native String:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut b = strings::Builder") {
+		t.Fatalf("source-mapped strings.Builder composite literal should use the generated Builder type:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".write_string(") || !strings.Contains(rust, ".string()") {
+		t.Fatalf("source-mapped strings.Builder composite literal should call generated methods:\n%s", rust)
+	}
+}
+
 func TestForwardGotoPreservesPreGotoVariableScope(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
