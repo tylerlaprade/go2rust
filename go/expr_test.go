@@ -2692,6 +2692,24 @@ func use() {
 	}
 }
 
+func TestConstShiftExternalStubArgumentUsesExpectedIntegerType(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "io"
+
+func use(r io.ReaderAt) {
+	_ = io.NewSectionReader(r, 0, 1<<63-1)
+}
+`)
+
+	if strings.Contains(rust, "let __tmp_x = 1; let __tmp_y = 63; __tmp_x << __tmp_y") {
+		t.Fatalf("const shift external stub argument should not stay at the default integer type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(1 as u64) << (63 as u64)") {
+		t.Fatalf("const shift external stub argument should use a wide intermediate before the int64 cast:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoExternalExecLookPathRegistersStub(t *testing.T) {
 	rust := transpileNoTypeInfoRegression(t, `package main
 

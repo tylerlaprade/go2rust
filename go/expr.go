@@ -2722,6 +2722,9 @@ func writeExternalStubCallArgument(out *strings.Builder, arg ast.Expr, expected 
 	if expected != nil && writeGoErrorCallArgument(out, arg, expected) {
 		return
 	}
+	if expected != nil && writeConstExpressionForExpectedGoType(out, arg, expected) {
+		return
+	}
 	if externalStubCallArgumentNeedsTemp(arg) {
 		var inner strings.Builder
 		writeExternalStubCallArgumentDirect(&inner, arg)
