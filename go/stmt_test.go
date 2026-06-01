@@ -3955,6 +3955,24 @@ func copyValues(src map[int]string) map[int]string {
 	}
 }
 
+func TestMapAssignmentClonesWrappedStringKey(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func store(m map[string]int, key string, value int) {
+	m[key] = value
+}
+`)
+
+	if strings.Contains(rust, "let __map_key = (*key.borrow().as_ref().unwrap());") ||
+		strings.Contains(rust, "let __map_key = (*key.lock().unwrap().as_ref().unwrap());") {
+		t.Fatalf("map assignment should not move a wrapped string key out of its handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __map_key = (*key.borrow().as_ref().unwrap()).clone();") &&
+		!strings.Contains(rust, "let __map_key = (*key.lock().unwrap().as_ref().unwrap()).clone();") {
+		t.Fatalf("map assignment should clone a wrapped string key:\n%s", rust)
+	}
+}
+
 func TestMapLookupCastsBareRangeIndexKey(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

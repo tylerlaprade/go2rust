@@ -5990,6 +5990,9 @@ func writeStringValueForExpectedBasicType(out *strings.Builder, expr ast.Expr, e
 	if writeRangeStringValue(out, expr) {
 		return true
 	}
+	if ident, ok := expr.(*ast.Ident); ok && writeOwnedExpressionValue(out, ident) {
+		return true
+	}
 	if !typeInfo.ReturnsWrappedValue(expr) {
 		TranspileExpression(out, expr)
 		return true
