@@ -13,9 +13,7 @@ use crate::runtime2::*;
 use crate::rwmutex::*;
 use crate::waitgroup::*;
 
-use std::any::Any;
 use std::fmt::{Display, Formatter};
-use std::sync::{Arc, Mutex as StdMutex};
 
 /// noCopy may be added to structs which must not be copied
 /// after the first use.
@@ -55,63 +53,5 @@ impl noCopy {
     }
 
     pub fn unlock(&self) {
-    }
-}
-
-impl Locker for noCopy {
-    fn lock(&self) {
-        noCopy::lock(self)
-    }
-    fn unlock(&self) {
-        noCopy::unlock(self)
-    }
-    fn __go_clone_box_locker(&self) -> Box<dyn Locker + Send + Sync> {
-        Box::new(self.clone()) as Box<dyn Locker + Send + Sync>
-    }
-    fn __go_as_any(&self) -> &dyn Any {
-        self
-    }
-    fn __go_eq_locker(&self, other: &(dyn Locker + Send + Sync)) -> bool {
-        if let Some(__other) = other.__go_as_any().downcast_ref::<noCopy>() {
-            false
-        } else {
-            false
-        }
-    }
-}
-
-#[derive(Clone)]
-pub struct noCopyPtr(pub Arc<StdMutex<Option<noCopy>>>);
-
-impl std::fmt::Display for noCopyPtr {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
-    }
-}
-
-impl Locker for noCopyPtr {
-    fn lock(&self) {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
-        noCopy::lock(__recv)
-    }
-    fn unlock(&self) {
-        let __recv_guard = self.0.lock().unwrap();
-        let __recv = __recv_guard.as_ref().unwrap();
-        noCopy::unlock(__recv)
-    }
-    fn __go_clone_box_locker(&self) -> Box<dyn Locker + Send + Sync> {
-        Box::new(self.clone()) as Box<dyn Locker + Send + Sync>
-    }
-    fn __go_as_any(&self) -> &dyn Any {
-        self
-    }
-    fn __go_eq_locker(&self, other: &(dyn Locker + Send + Sync)) -> bool {
-        if let Some(__other) = other.__go_as_any().downcast_ref::<noCopyPtr>() {
-            Arc::ptr_eq(&self.0, &__other.0)
-        } else {
-            false
-        }
     }
 }

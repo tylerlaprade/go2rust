@@ -5167,6 +5167,77 @@ func use(sink func(fs.File), f File) {
 	}
 }
 
+func TestSourceStdlibPruningSkipsCrossFileLocalInterfaceImplForPrunedInterface(t *testing.T) {
+	t.Setenv(sourceStdlibPackagesEnv, "sync")
+	prevCtx := GetTranspileContext()
+	SetTranspileContext(&TranspileContext{PackageMapping: map[string]string{"sync": "sync"}})
+	defer SetTranspileContext(prevCtx)
+	prevReachable := sourceStdlibReachable
+	defer SetSourceStdlibReachable(prevReachable)
+
+	fset := token.NewFileSet()
+	mutexFile, err := parser.ParseFile(fset, "mutex.go", `package sync
+
+type Locker interface {
+	Lock()
+	Unlock()
+}
+
+type Mutex struct {
+	_ noCopy
+}
+`, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("ParseFile(mutex.go) error = %v", err)
+	}
+	condFile, err := parser.ParseFile(fset, "cond.go", `package sync
+
+type noCopy struct{}
+
+func (noCopy) Lock() {}
+func (noCopy) Unlock() {}
+`, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("ParseFile(cond.go) error = %v", err)
+	}
+	mainPkg := parsePackageForReachabilityTest(t, fset, "main", "main.go", `package main
+
+import "sync"
+
+var _ sync.Mutex
+`)
+	syncPkg := &packages.Package{
+		Name:            "sync",
+		PkgPath:         "sync",
+		Fset:            fset,
+		GoFiles:         []string{"mutex.go", "cond.go"},
+		CompiledGoFiles: []string{"mutex.go", "cond.go"},
+		Syntax:          []*ast.File{mutexFile, condFile},
+		Imports:         make(map[string]*packages.Package),
+	}
+	loader := &PackageLoader{
+		fileSet: fset,
+		mainPkg: mainPkg,
+		allPackages: map[string]*packages.Package{
+			"main": mainPkg,
+			"sync": syncPkg,
+		},
+		packageMapping: map[string]string{"sync": "sync"},
+	}
+	if err := loader.typeCheckLocalPackage(syncPkg, loader.projectImporter()); err != nil {
+		t.Fatalf("typeCheckLocalPackage(sync) error = %v", err)
+	}
+	if err := loader.typeCheckLocalPackage(mainPkg, loader.projectImporter()); err != nil {
+		t.Fatalf("typeCheckLocalPackage(main) error = %v", err)
+	}
+	SetSourceStdlibReachable(loader.computeSourceStdlibReachable())
+
+	rust, _, _ := TranspileWithMapping(condFile, fset, &TypeInfo{info: syncPkg.TypesInfo, pkg: syncPkg.Types}, map[string]string{"sync": "sync"})
+	if strings.Contains(rust, "impl Locker for noCopy") {
+		t.Fatalf("pruned cross-file local interface should not get an impl block:\n%s", rust)
+	}
+}
+
 func TestCollectGoFilesSkipsTestFilesForDirectoryInput(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "main.go"), "package main\nfunc main() {}\n")

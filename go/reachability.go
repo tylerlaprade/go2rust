@@ -44,6 +44,32 @@ func isPrunedSourceDecl(ident *ast.Ident) bool {
 	return sourceMappedDeclIsPruned(ti.GetObject(ident))
 }
 
+// localInterfaceTypeIsPruned reports whether a named local interface is a
+// source-mapped type pruned by DCE. This handles cross-file trait impl emission:
+// the concrete type may be declared in one file while the interface type is
+// declared in another, so per-file prunedTypeNames is insufficient.
+func localInterfaceTypeIsPruned(name string) bool {
+	if name == "" {
+		return false
+	}
+	ti := GetTypeInfo()
+	if ti == nil || ti.pkg == nil {
+		return false
+	}
+	obj, ok := ti.pkg.Scope().Lookup(name).(*types.TypeName)
+	if !ok {
+		return false
+	}
+	named, ok := obj.Type().(*types.Named)
+	if !ok {
+		return false
+	}
+	if _, ok := types.Unalias(named.Underlying()).(*types.Interface); !ok {
+		return false
+	}
+	return sourceMappedDeclIsPruned(obj)
+}
+
 // implReceiverTypeIsPruned reports whether the type that owns the given methods
 // is a source-mapped type pruned by DCE. The per-file prunedTypeNames gate only
 // sees types DECLARED in the current file, but a type's methods can live in a

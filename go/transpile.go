@@ -2396,7 +2396,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			continue
 		}
 		for _, ifaceName := range ifaceNamesForDeclaredTypes {
-			if prunedTypeNames[ifaceName] {
+			if prunedTypeNames[ifaceName] || localInterfaceTypeIsPruned(ifaceName) {
 				continue
 			}
 			if currentPackageTypeImplementsInterface(typeName, localInterfaceTypesByName(ifaceName)) {
@@ -2571,7 +2571,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			pointerWrapperEmitted := false
 
 			for _, ifaceName := range ifaceNames {
-				if prunedTypeNames[ifaceName] {
+				if prunedTypeNames[ifaceName] || localInterfaceTypeIsPruned(ifaceName) {
 					continue
 				}
 				ifaceType := localInterfaceTypesByName(ifaceName)
