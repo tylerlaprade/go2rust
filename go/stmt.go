@@ -11537,7 +11537,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			if isNamedMapExpression(s.X) {
 				writeNamedMapInnerHandleClone(out, s.X)
 			} else if ident, ok := s.X.(*ast.Ident); ok {
-				out.WriteString(EscapeRustIdent(ident.Name))
+				name := RustIdentForUse(ident)
+				if renamed, ok := captureRenameForIdent(ident); ok && renamed != "" {
+					name = RustLocalIdent(renamed)
+				}
+				out.WriteString(name)
 				out.WriteString(".clone()")
 			} else {
 				TranspileExpressionContext(out, s.X, LValue)
