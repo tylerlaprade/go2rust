@@ -2775,6 +2775,21 @@ func writeRuntimeLinkedFunctionBody(out *strings.Builder, fn *ast.FuncDecl, inde
 			writeInternalBuildcfgExpListIntrinsicBody(out, fn, indent)
 			return true
 		}
+	case "internal/godebug":
+		switch fn.Name.Name {
+		case "setUpdate":
+			writeInternalGodebugSetUpdateBody(out, fn, indent)
+			return true
+		case "setNewIncNonDefault":
+			writeInternalGodebugSetNewIncNonDefaultBody(out, fn, indent)
+			return true
+		case "registerMetric":
+			writeInternalGodebugRegisterMetricBody(out, fn, indent)
+			return true
+		case "write":
+			writeInternalGodebugWriteBody(out, fn, indent)
+			return true
+		}
 	}
 	return false
 }
@@ -3012,6 +3027,88 @@ func internalBuildcfgExpListBoolFields(fn *ast.FuncDecl) ([]*types.Var, bool) {
 		fields = append(fields, field)
 	}
 	return fields, true
+}
+
+func writeInternalGodebugSetUpdateBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	updateName := RustLocalIdent(functionParamName(fn, 0, "update"))
+	out.WriteString(indent)
+	out.WriteString("let __env = std::env::var(\"GODEBUG\").unwrap_or_default();\n")
+	out.WriteString(indent)
+	out.WriteString("let mut __update_guard = ")
+	out.WriteString(updateName)
+	WriteBorrowMethod(out, true)
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("if let Some(__update) = __update_guard.as_mut() {\n")
+	out.WriteString(indent)
+	out.WriteString("    __update(")
+	WriteWrapperPrefix(out)
+	out.WriteString("String::new()")
+	WriteWrapperSuffix(out)
+	out.WriteString(", ")
+	WriteWrapperPrefix(out)
+	out.WriteString("__env")
+	WriteWrapperSuffix(out)
+	out.WriteString(");\n")
+	out.WriteString(indent)
+	out.WriteString("}\n")
+}
+
+func writeInternalGodebugSetNewIncNonDefaultBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	paramName := RustLocalIdent(functionParamName(fn, 0, "newIncNonDefault"))
+	out.WriteString(indent)
+	out.WriteString("let _ = ")
+	out.WriteString(paramName)
+	out.WriteString(";\n")
+}
+
+func writeInternalGodebugRegisterMetricBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	nameParam := RustLocalIdent(functionParamName(fn, 0, "name"))
+	readParam := RustLocalIdent(functionParamName(fn, 1, "read"))
+	out.WriteString(indent)
+	out.WriteString("let _ = (")
+	out.WriteString(nameParam)
+	out.WriteString(", ")
+	out.WriteString(readParam)
+	out.WriteString(");\n")
+}
+
+func writeInternalGodebugWriteBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	fdName := RustLocalIdent(functionParamName(fn, 0, "fd"))
+	ptrName := RustLocalIdent(functionParamName(fn, 1, "p"))
+	nName := RustLocalIdent(functionParamName(fn, 2, "n"))
+
+	out.WriteString(indent)
+	out.WriteString("let __fd = (*")
+	out.WriteString(fdName)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone();\n")
+	out.WriteString(indent)
+	out.WriteString("let __ptr = (*")
+	out.WriteString(ptrName)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone();\n")
+	out.WriteString(indent)
+	out.WriteString("let __n = (*")
+	out.WriteString(nName)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone();\n")
+	out.WriteString(indent)
+	out.WriteString("if __n <= 0 { return 0; }\n")
+	out.WriteString(indent)
+	out.WriteString("let __bytes = unsafe { std::slice::from_raw_parts(__ptr as *const u8, __n as usize) };\n")
+	out.WriteString(indent)
+	out.WriteString("let __result = match __fd {\n")
+	out.WriteString(indent)
+	out.WriteString("    1 => std::io::Write::write_all(&mut std::io::stdout(), __bytes),\n")
+	out.WriteString(indent)
+	out.WriteString("    2 => std::io::Write::write_all(&mut std::io::stderr(), __bytes),\n")
+	out.WriteString(indent)
+	out.WriteString("    _ => Err(std::io::Error::new(std::io::ErrorKind::Unsupported, \"unsupported runtime.write fd\")),\n")
+	out.WriteString(indent)
+	out.WriteString("};\n")
+	out.WriteString(indent)
+	out.WriteString("if __result.is_ok() { __n } else { -1 }\n")
 }
 
 func runtimeLinkedSingleResultReturnsBareScalar(fn *ast.FuncDecl) bool {

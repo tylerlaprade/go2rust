@@ -221,6 +221,71 @@ func TestTranspileInternalBuildcfgExpListUsesTypedGoexperimentFields(t *testing.
 	}
 }
 
+func TestTranspileInternalGodebugRuntimeLinknamesUseHostRuntime(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	currentTypeInfo = &TypeInfo{pkg: types.NewPackage("internal/godebug", "godebug")}
+	t.Cleanup(func() {
+		currentTypeInfo = prevTypeInfo
+	})
+
+	stringIdent := ast.NewIdent("string")
+	var out strings.Builder
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("setUpdate"),
+		Type: &ast.FuncType{Params: &ast.FieldList{List: []*ast.Field{{
+			Names: []*ast.Ident{ast.NewIdent("update")},
+			Type: &ast.FuncType{Params: &ast.FieldList{List: []*ast.Field{
+				{Type: stringIdent},
+				{Type: stringIdent},
+			}}},
+		}}}},
+	}, token.NewFileSet(), nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("setNewIncNonDefault"),
+		Type: &ast.FuncType{Params: &ast.FieldList{List: []*ast.Field{{
+			Names: []*ast.Ident{ast.NewIdent("newIncNonDefault")},
+			Type: &ast.FuncType{
+				Params:  &ast.FieldList{List: []*ast.Field{{Type: stringIdent}}},
+				Results: &ast.FieldList{List: []*ast.Field{{Type: &ast.FuncType{Params: &ast.FieldList{}}}}},
+			},
+		}}}},
+	}, token.NewFileSet(), nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("registerMetric"),
+		Type: &ast.FuncType{Params: &ast.FieldList{List: []*ast.Field{
+			{Names: []*ast.Ident{ast.NewIdent("name")}, Type: stringIdent},
+			{Names: []*ast.Ident{ast.NewIdent("read")}, Type: &ast.FuncType{Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("uint64")}}}}},
+		}}},
+	}, token.NewFileSet(), nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("write"),
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{List: []*ast.Field{
+				{Names: []*ast.Ident{ast.NewIdent("fd")}, Type: ast.NewIdent("uintptr")},
+				{Names: []*ast.Ident{ast.NewIdent("p")}, Type: ast.NewIdent("uintptr")},
+				{Names: []*ast.Ident{ast.NewIdent("n")}, Type: ast.NewIdent("int32")},
+			}},
+			Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("int32")}}},
+		},
+	}, token.NewFileSet(), nil)
+
+	got := out.String()
+	if strings.Contains(got, "Go function declaration has no body") {
+		t.Fatalf("internal/godebug runtime linknames should not use the generic bodyless fallback:\n%s", got)
+	}
+	for _, want := range []string{
+		"std::env::var(\"GODEBUG\")",
+		"let _ = newIncNonDefault",
+		"let _ = (name, read)",
+		"std::io::stderr()",
+		"std::slice::from_raw_parts",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %q in:\n%s", want, got)
+		}
+	}
+}
+
 func TestTranspileInternalBytealgCountIntrinsicsUseGenericBodies(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	currentTypeInfo = &TypeInfo{pkg: types.NewPackage("internal/bytealg", "bytealg")}
