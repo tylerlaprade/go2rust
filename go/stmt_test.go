@@ -3890,6 +3890,24 @@ func copyValues(src map[int]string) map[int]string {
 	}
 }
 
+func TestMapLookupCastsBareRangeIndexKey(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func firstHit(items []string, table map[int]string) int {
+	for i := range items {
+		if _, ok := table[i]; ok {
+			return i
+		}
+	}
+	return -1
+}
+`)
+
+	if !strings.Contains(rust, ".get(&(i as i32))") {
+		t.Fatalf("map lookup should cast bare range indexes to Go int keys:\n%s", rust)
+	}
+}
+
 func TestSliceAssignmentFromPointerDerefClonesPointeeHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

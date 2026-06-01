@@ -7832,6 +7832,15 @@ func writeMapLookupKeyWithMapExpr(out *strings.Builder, mapExpr ast.Expr, index 
 				writeWrappedRangeValueClone(out, ident, varType)
 				return
 			}
+			if varType == "usize" && keyType != nil {
+				var key strings.Builder
+				if writeRangeIndexForExpectedType(&key, index, keyType) {
+					out.WriteString("&(")
+					out.WriteString(key.String())
+					out.WriteString(")")
+					return
+				}
+			}
 			if varType == "ref_value" || strings.HasPrefix(varType, "&") {
 				out.WriteString(ident.Name)
 			} else {
