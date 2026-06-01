@@ -2468,8 +2468,12 @@ func writeUnwrappedBoolExpression(out *strings.Builder, expr ast.Expr) {
 }
 
 func writeScopedIdentValueClone(out *strings.Builder, ident *ast.Ident) {
+	writeScopedValueClone(out, rustIdentForUseWithCapture(ident))
+}
+
+func writeScopedValueClone(out *strings.Builder, handle string) {
 	out.WriteString("{ let __arg_holder = ")
-	out.WriteString(rustIdentForUseWithCapture(ident))
+	out.WriteString(handle)
 	out.WriteString(".clone(); let __arg_guard = __arg_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString("; (*__arg_guard.as_ref().unwrap()).clone() }")
@@ -3046,7 +3050,7 @@ func writePointerHandleCallArgument(out *strings.Builder, arg ast.Expr, expected
 			return true
 		}
 		if globalIdent, ok := packageGlobalPointerIdent(e); ok {
-			writePackageGlobalPointerHandleClone(out, globalIdent)
+			writeScopedValueClone(out, rustPackageGlobalName(globalIdent.Name))
 			return true
 		}
 		out.WriteString(rustIdentForUseWithCapture(e))
@@ -15657,10 +15661,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 						if typ := typeInfo.GetType(ident); typ != nil {
 							switch types.Unalias(typ).Underlying().(type) {
 							case *types.Pointer:
-								out.WriteString("(*")
-								out.WriteString(rustPackageGlobalName(ident.Name))
-								WriteBorrowMethod(out, false)
-								out.WriteString(".as_ref().unwrap()).clone()")
+								writeScopedValueClone(out, rustPackageGlobalName(ident.Name))
 								continue
 							}
 						}

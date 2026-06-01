@@ -154,6 +154,38 @@ func use() {
 	}
 }
 
+func TestPackageGlobalPointerCallArgumentUsesShortGuard(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Scope struct {
+	parent *Scope
+}
+
+var Universe *Scope
+var ch chan int
+
+func NewScope(parent *Scope) *Scope {
+	if parent != nil && parent != Universe {
+		return &Scope{parent: parent}
+	}
+	return &Scope{}
+}
+
+func NewPackage() *Scope {
+	return NewScope(Universe)
+}
+`)
+
+	bad := "new_scope((*Universe.lock().unwrap().as_ref().unwrap()).clone())"
+	if strings.Contains(rust, bad) {
+		t.Fatalf("package-global pointer call argument should not keep the global lock across the call:\n%s", rust)
+	}
+	want := "new_scope({ let __arg_holder = Universe.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })"
+	if !strings.Contains(rust, want) {
+		t.Fatalf("package-global pointer call argument should clone through a short guard block:\n%s", rust)
+	}
+}
+
 func TestSourceMappedPointerGlobalSelectorCopiesStoredHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
