@@ -2104,6 +2104,17 @@ func writeTypedMapLiteralHandleForOwnerPackage(out *strings.Builder, mapType *ty
 	WriteWrapperSuffix(out)
 }
 
+func writeTypedMapMakeHandleForOwnerPackage(out *strings.Builder, mapType *types.Map, ownerPkgPath string) {
+	TrackImport("BTreeMap")
+	WriteWrapperPrefix(out)
+	out.WriteString("BTreeMap::<")
+	out.WriteString(goTypesMapKeyToRustForOwnerPackage(mapType.Key(), ownerPkgPath))
+	out.WriteString(", ")
+	out.WriteString(goTypesMapValueToRust(mapType.Elem()))
+	out.WriteString(">::new()")
+	WriteWrapperSuffix(out)
+}
+
 func writeNamedMapCompositeLiteral(out *strings.Builder, lit *ast.CompositeLit) bool {
 	named, mapType, ok := namedMapTypeForExpr(lit)
 	if !ok {
@@ -6620,6 +6631,10 @@ func writeWrappedStructFieldValueWithOwnerPackage(out *strings.Builder, value as
 		}
 	}
 
+	if writeSourceMappedMapMakeFieldValue(out, value, expectedFieldType, fieldOwnerPkgPath) {
+		return
+	}
+
 	// Check if the value is an identifier (parameter/variable/constant).
 	if valIdent, ok := value.(*ast.Ident); ok {
 		if valIdent.Name == "true" || valIdent.Name == "false" || valIdent.Name == "nil" {
@@ -7397,6 +7412,35 @@ func registerExternalStructCompositeLiteralFields(structType types.Type, structU
 			}
 		}
 	}
+}
+
+func writeSourceMappedMapMakeFieldValue(out *strings.Builder, value ast.Expr, expectedFieldType types.Type, fieldOwnerPkgPath string) bool {
+	if expectedFieldType == nil || sourceMappedPackageKeyHelperQualifier(fieldOwnerPkgPath) == "" {
+		return false
+	}
+	call, ok := value.(*ast.CallExpr)
+	if !ok || !isBuiltinCallNamed(call, "make") {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString(`unimplemented!("type info required to lower source-mapped map make field")`)
+		return true
+	}
+	callType := typeInfo.GetType(call)
+	if callType == nil {
+		out.WriteString(`unimplemented!("type info required to lower source-mapped map make field")`)
+		return true
+	}
+	if _, ok := types.Unalias(callType).Underlying().(*types.Map); !ok {
+		return false
+	}
+	mapType, ok := types.Unalias(expectedFieldType).Underlying().(*types.Map)
+	if !ok {
+		return false
+	}
+	writeTypedMapMakeHandleForOwnerPackage(out, mapType, fieldOwnerPkgPath)
+	return true
 }
 
 func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Expr, valueType types.Type) {

@@ -1972,6 +1972,56 @@ func NewInfo() *types.Info {
 	}
 }
 
+func TestSourceMappedImportedTypesInfoMakeFieldQualifiesPointerKeyHelpers(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import (
+	"go/ast"
+	"go/types"
+)
+
+func NewInfo() *types.Info {
+	return &types.Info{
+		Types:        make(map[ast.Expr]types.TypeAndValue),
+		Defs:         make(map[*ast.Ident]types.Object),
+		Uses:         make(map[*ast.Ident]types.Object),
+		Implicits:    make(map[ast.Node]types.Object),
+		Instances:    make(map[*ast.Ident]types.Instance),
+		Scopes:       make(map[ast.Node]*types.Scope),
+		Selections:   make(map[*ast.SelectorExpr]*types.Selection),
+		FileVersions: make(map[*ast.File]string),
+	}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{
+		"go/ast":   "go_ast",
+		"go/types": "go_types",
+	})
+	if strings.Contains(rust, "BTreeMap::<GoLocalPtrKey<") {
+		t.Fatalf("source-mapped types.Info make field values should not use current crate pointer-key types:\n%s", rust)
+	}
+	for _, want := range []string{
+		"BTreeMap::<go_types::GoLocalPtrKey<Box<dyn go_ast::Expr",
+		"BTreeMap::<go_types::GoLocalPtrKey<go_ast::Ident>",
+		"BTreeMap::<go_types::GoLocalPtrKey<Box<dyn go_ast::Node",
+		"BTreeMap::<go_types::GoLocalPtrKey<go_ast::SelectorExpr>",
+		"BTreeMap::<go_types::GoLocalPtrKey<go_ast::File>",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("source-mapped types.Info make field value missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestSourceMappedImportedFunctionTypeAliasParamUsesAliasHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
