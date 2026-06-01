@@ -806,21 +806,129 @@ func transpilePackageGlobalInit(out *strings.Builder, globals []packageGlobal) {
 		if !ok {
 			continue
 		}
-		if writePackageGlobalErrorHandleInit(out, global, init.Rhs) {
-			continue
-		}
-		if writePackageGlobalInterfaceHandleInit(out, global, init.Rhs) {
-			continue
-		}
-		if writePackageGlobalCompositeInit(out, global, init.Rhs) {
-			continue
+		writePackageGlobalSingleInit(out, global, init.Rhs)
+	}
+	out.WriteString("}\n")
+
+	if packageWideInitHelpersEnabled() {
+		transpilePackageGlobalZeroHelper(out, globals)
+		transpilePackageGlobalOrderHelpers(out, globals, typeInfo.info.InitOrder)
+	}
+}
+
+func writePackageGlobalSingleInit(out *strings.Builder, global packageGlobal, rhs ast.Expr) {
+	if writePackageGlobalErrorHandleInit(out, global, rhs) {
+		return
+	}
+	if writePackageGlobalInterfaceHandleInit(out, global, rhs) {
+		return
+	}
+	if writePackageGlobalCompositeInit(out, global, rhs) {
+		return
+	}
+	out.WriteString("    *")
+	out.WriteString(rustPackageGlobalName(global.name))
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(")
+	writePackageGlobalInitValue(out, rhs, global.typ)
+	out.WriteString(");\n")
+}
+
+func packageWideInitHelpersEnabled() bool {
+	ctx := GetTranspileContext()
+	return ctx != nil && ctx.UsePackageHelpers
+}
+
+func transpilePackageGlobalZeroHelper(out *strings.Builder, globals []packageGlobal) {
+	out.WriteString("\n\npub(crate) fn __go_zero_globals() {\n")
+	for _, global := range globals {
+		if global.typ != nil {
+			if _, isFunc := global.typ.Underlying().(*types.Signature); isFunc {
+				continue
+			}
 		}
 		out.WriteString("    *")
-		out.WriteString(rustPackageGlobalName(init.Lhs[0].Name()))
+		out.WriteString(rustPackageGlobalName(global.name))
 		WriteBorrowMethod(out, true)
-		out.WriteString(" = Some(")
-		writePackageGlobalInitValue(out, init.Rhs, global.typ)
+		out.WriteString(" = ")
+		if isGoErrorType(global.typ) || isInterfaceType(global.typ) {
+			out.WriteString("None;\n")
+			continue
+		}
+		out.WriteString("Some(")
+		if global.typ != nil {
+			out.WriteString(zeroValueForTypesType(global.typ))
+		} else {
+			out.WriteString("Default::default()")
+		}
 		out.WriteString(");\n")
+	}
+	out.WriteString("}\n")
+}
+
+func transpilePackageGlobalOrderHelpers(out *strings.Builder, globals []packageGlobal, initOrder []*types.Initializer) {
+	globalByName := make(map[string]packageGlobal, len(globals))
+	for _, global := range globals {
+		globalByName[global.name] = global
+	}
+	for i, init := range initOrder {
+		if !packageGlobalMultiValueInitHasGlobal(init, globalByName) {
+			continue
+		}
+		out.WriteString("\n\npub(crate) fn __go_init_order_")
+		out.WriteString(fmt.Sprintf("%d", i))
+		out.WriteString("() {\n")
+		if len(init.Lhs) == 1 {
+			if global, ok := globalByName[init.Lhs[0].Name()]; ok {
+				writePackageGlobalSingleInit(out, global, init.Rhs)
+			}
+		} else {
+			writePackageGlobalMultiValueInit(out, init, globalByName)
+		}
+		out.WriteString("}\n")
+	}
+}
+
+func packageInitFunctionNames(initFunctionNames map[*ast.FuncDecl]string) []packageFunctionName {
+	initNames := make([]packageFunctionName, 0, len(initFunctionNames))
+	for fn, name := range initFunctionNames {
+		if fn.Name.Name != "init" {
+			continue
+		}
+		initNames = append(initNames, packageFunctionName{
+			rustName: name,
+			pos:      fn.Pos(),
+		})
+	}
+	sort.Slice(initNames, func(i, j int) bool {
+		return initNames[i].pos < initNames[j].pos
+	})
+	return initNames
+}
+
+func TranspilePackageInitFunctions(out *strings.Builder, initFunctionNames map[*ast.FuncDecl]string) {
+	out.WriteString("pub(crate) fn __go_init_functions() {\n")
+	for _, initName := range packageInitFunctionNames(initFunctionNames) {
+		out.WriteString("    self::")
+		out.WriteString(initName.rustName)
+		out.WriteString("();\n")
+	}
+	out.WriteString("}\n")
+}
+
+func TranspilePackageInitAll(out *strings.Builder, hasGlobals bool, initFunctionNames map[*ast.FuncDecl]string) {
+	if packageWideInitHelpersEnabled() {
+		TranspilePackageInitFunctions(out, initFunctionNames)
+		out.WriteString("\n\n")
+	}
+	out.WriteString("pub(crate) fn __go_init_all() {\n")
+	if hasGlobals {
+		out.WriteString("    self::__go_init_globals();\n")
+	}
+	for _, initName := range packageInitFunctionNames(initFunctionNames) {
+		out.WriteString("    self::")
+		out.WriteString(initName.rustName)
+		out.WriteString("();\n")
 	}
 	out.WriteString("}\n")
 }
@@ -1172,30 +1280,4 @@ func packageGlobalFunctionObjectInit(expr ast.Expr, targetType types.Type) bool 
 		return ok
 	}
 	return false
-}
-
-func TranspilePackageInitAll(out *strings.Builder, hasGlobals bool, initFunctionNames map[*ast.FuncDecl]string) {
-	out.WriteString("pub(crate) fn __go_init_all() {\n")
-	if hasGlobals {
-		out.WriteString("    self::__go_init_globals();\n")
-	}
-	initNames := make([]packageFunctionName, 0, len(initFunctionNames))
-	for fn, name := range initFunctionNames {
-		if fn.Name.Name != "init" {
-			continue
-		}
-		initNames = append(initNames, packageFunctionName{
-			rustName: name,
-			pos:      fn.Pos(),
-		})
-	}
-	sort.Slice(initNames, func(i, j int) bool {
-		return initNames[i].pos < initNames[j].pos
-	})
-	for _, initName := range initNames {
-		out.WriteString("    self::")
-		out.WriteString(initName.rustName)
-		out.WriteString("();\n")
-	}
-	out.WriteString("}\n")
 }

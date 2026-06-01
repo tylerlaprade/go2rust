@@ -41,6 +41,28 @@ type generatedRustModule struct {
 type generatedInitModule struct {
 	moduleName       string
 	initFunctionName string
+	hasGlobals       bool
+	hasInitFunctions bool
+}
+
+type generatedPackageInitOrderStep struct {
+	moduleName   string
+	functionName string
+}
+
+type generatedPackageInitPlan struct {
+	zeroModules         []string
+	orderSteps          []generatedPackageInitOrderStep
+	initFunctionModules []string
+}
+
+type packageInitFeatures struct {
+	hasGlobals       bool
+	hasInitFunctions bool
+}
+
+func (plan generatedPackageInitPlan) usesPackageWideInit() bool {
+	return len(plan.zeroModules) > 0 || len(plan.orderSteps) > 0 || len(plan.initFunctionModules) > 0
 }
 
 func NewProjectGenerator(goFiles []string) *ProjectGenerator {
@@ -320,6 +342,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 
 		outputName := pg.moduleNameForBase(baseName)
 		rustFilename := pg.moduleFilePath(filename, outputName)
+		initFeatures := packageInitFeaturesForFile(file)
 
 		var rustCode string
 		var fileImports *ImportTracker
@@ -353,6 +376,8 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 			pg.initModules = append(pg.initModules, generatedInitModule{
 				moduleName:       outputName,
 				initFunctionName: initFunctionName,
+				hasGlobals:       initFeatures.hasGlobals,
+				hasInitFunctions: initFeatures.hasInitFunctions,
 			})
 		}
 
@@ -392,7 +417,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 			return err
 		}
 	} else if pg.isLibrary {
-		err := pg.generateLibRs(packageState)
+		err := pg.generateLibRs(packageState, astFilesByPath)
 		if err != nil {
 			return err
 		}
@@ -727,7 +752,13 @@ func (pg *ProjectGenerator) generateMainRs(fileSet *token.FileSet, astFilesByPat
 		}
 	}
 
-	mainContent = injectModuleInitCalls(mainContent, pg.initModules)
+	initPlan := pg.packageInitPlan(astFilesByPath)
+	if initPlan.usesPackageWideInit() {
+		mainContent = replaceOrAppendMainPackageInitAll(mainContent, initPlan)
+		mainContent = ensureMainCallsPackageInitAll(mainContent)
+	} else {
+		mainContent = injectModuleInitCalls(mainContent, pg.initModules)
+	}
 	if pg.externalMode == ModeTranspile && len(pg.packageMapping) > 0 {
 		mainContent = injectExternalPackageInitCalls(mainContent, pg.sortedCrateNames())
 	}
@@ -831,6 +862,212 @@ func injectExternalPackageInitCalls(rustCode string, crateNames []string) string
 	}
 
 	return rustCode[:insertAt] + initCalls.String() + rustCode[insertAt:]
+}
+
+func packageInitFeaturesForFile(file *ast.File) packageInitFeatures {
+	var features packageInitFeatures
+	if file == nil {
+		return features
+	}
+	for _, decl := range file.Decls {
+		switch d := decl.(type) {
+		case *ast.FuncDecl:
+			if d.Recv == nil && d.Name != nil && d.Name.Name == "init" {
+				features.hasInitFunctions = true
+			}
+		case *ast.GenDecl:
+			if d.Tok != token.VAR {
+				continue
+			}
+			for _, spec := range d.Specs {
+				valueSpec, ok := spec.(*ast.ValueSpec)
+				if !ok {
+					continue
+				}
+				for _, name := range valueSpec.Names {
+					if name.Name != "_" {
+						features.hasGlobals = true
+						break
+					}
+				}
+				if features.hasGlobals {
+					break
+				}
+			}
+		}
+	}
+	return features
+}
+
+func (pg *ProjectGenerator) packageInitPlan(astFilesByPath map[string]*ast.File) generatedPackageInitPlan {
+	astFiles := make([]*ast.File, 0, len(pg.goFiles))
+	moduleNames := make([]string, 0, len(pg.goFiles))
+	for _, filename := range pg.goFiles {
+		file := astFilesByPath[normalizeFilePath(filename)]
+		if file == nil {
+			continue
+		}
+		moduleName := ""
+		baseName := strings.TrimSuffix(filepath.Base(filename), ".go")
+		if !(baseName == "main" && file.Name.Name == "main") {
+			moduleName = pg.moduleNameForBase(baseName)
+		}
+		astFiles = append(astFiles, file)
+		moduleNames = append(moduleNames, moduleName)
+	}
+	return packageInitPlanForModules(astFiles, moduleNames, pg.typeInfo)
+}
+
+func packageInitPlanForModules(astFiles []*ast.File, moduleNames []string, typeInfo *TypeInfo) generatedPackageInitPlan {
+	if len(astFiles) <= 1 || typeInfo == nil || typeInfo.info == nil {
+		return generatedPackageInitPlan{}
+	}
+
+	globalModuleByName := make(map[string]string)
+	var zeroModules []string
+	var initFunctionModules []string
+	for i, file := range astFiles {
+		if file == nil || i >= len(moduleNames) {
+			continue
+		}
+		moduleName := moduleNames[i]
+		features := packageInitFeaturesForFile(file)
+		if features.hasGlobals {
+			zeroModules = append(zeroModules, moduleName)
+		}
+		if features.hasInitFunctions {
+			initFunctionModules = append(initFunctionModules, moduleName)
+		}
+		for _, decl := range file.Decls {
+			genDecl, ok := decl.(*ast.GenDecl)
+			if !ok || genDecl.Tok != token.VAR {
+				continue
+			}
+			for _, spec := range genDecl.Specs {
+				valueSpec, ok := spec.(*ast.ValueSpec)
+				if !ok {
+					continue
+				}
+				for _, name := range valueSpec.Names {
+					if name.Name != "_" {
+						globalModuleByName[name.Name] = moduleName
+					}
+				}
+			}
+		}
+	}
+
+	var orderSteps []generatedPackageInitOrderStep
+	for i, init := range typeInfo.info.InitOrder {
+		moduleName, ok := packageInitModuleForInitializer(init, globalModuleByName)
+		if !ok {
+			continue
+		}
+		orderSteps = append(orderSteps, generatedPackageInitOrderStep{
+			moduleName:   moduleName,
+			functionName: fmt.Sprintf("__go_init_order_%d", i),
+		})
+	}
+
+	return generatedPackageInitPlan{
+		zeroModules:         zeroModules,
+		orderSteps:          orderSteps,
+		initFunctionModules: initFunctionModules,
+	}
+}
+
+func packageInitModuleForInitializer(init *types.Initializer, globalModuleByName map[string]string) (string, bool) {
+	for _, lhs := range init.Lhs {
+		if lhs == nil {
+			continue
+		}
+		moduleName, ok := globalModuleByName[lhs.Name()]
+		if ok {
+			return moduleName, true
+		}
+	}
+	return "", false
+}
+
+func replaceOrAppendMainPackageInitAll(rustCode string, plan generatedPackageInitPlan) string {
+	replacement := renderMainPackageInitAll(plan)
+	if updated, ok := replacePackageInitAllFunction(rustCode, replacement); ok {
+		return updated
+	}
+	if strings.HasSuffix(rustCode, "\n") {
+		return rustCode + "\n" + replacement
+	}
+	return rustCode + "\n\n" + replacement
+}
+
+func renderMainPackageInitAll(plan generatedPackageInitPlan) string {
+	var out strings.Builder
+	out.WriteString("pub(crate) fn __go_init_all() {\n")
+	writePackageInitPlanCalls(&out, plan, "    ")
+	out.WriteString("}\n")
+	return out.String()
+}
+
+func replacePackageInitAllFunction(rustCode, replacement string) (string, bool) {
+	const marker = "pub(crate) fn __go_init_all() {"
+	start := strings.Index(rustCode, marker)
+	if start < 0 {
+		return rustCode, false
+	}
+	depth := 0
+	for i := start; i < len(rustCode); i++ {
+		switch rustCode[i] {
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 {
+				end := i + 1
+				if end < len(rustCode) && rustCode[end] == '\n' {
+					end++
+				}
+				return rustCode[:start] + replacement + rustCode[end:], true
+			}
+		}
+	}
+	return rustCode, false
+}
+
+func ensureMainCallsPackageInitAll(rustCode string) string {
+	if strings.Contains(rustCode, "__go_init_all();") {
+		return rustCode
+	}
+	const marker = "fn main() {"
+	insertAt := strings.Index(rustCode, marker)
+	if insertAt < 0 {
+		return rustCode
+	}
+	insertAt += len(marker)
+	return rustCode[:insertAt] + "\n    __go_init_all();\n" + rustCode[insertAt:]
+}
+
+func writePackageInitPlanCalls(out *strings.Builder, plan generatedPackageInitPlan, indent string) {
+	for _, moduleName := range plan.zeroModules {
+		writePackageInitPlanCall(out, indent, moduleName, "__go_zero_globals")
+	}
+	for _, step := range plan.orderSteps {
+		writePackageInitPlanCall(out, indent, step.moduleName, step.functionName)
+	}
+	for _, moduleName := range plan.initFunctionModules {
+		writePackageInitPlanCall(out, indent, moduleName, "__go_init_functions")
+	}
+}
+
+func writePackageInitPlanCall(out *strings.Builder, indent, moduleName, functionName string) {
+	out.WriteString(indent)
+	if moduleName == "" {
+		out.WriteString("self::")
+	} else {
+		out.WriteString(moduleName)
+		out.WriteString("::")
+	}
+	out.WriteString(functionName)
+	out.WriteString("();\n")
 }
 
 func (pg *ProjectGenerator) generateCargoToml() error {
@@ -964,7 +1201,7 @@ func normalizeFilePath(path string) string {
 	return filepath.Clean(absPath)
 }
 
-func (pg *ProjectGenerator) generateLibRs(packageState *PackageState) error {
+func (pg *ProjectGenerator) generateLibRs(packageState *PackageState, astFilesByPath map[string]*ast.File) error {
 	var libRust strings.Builder
 
 	if pg.packageHelpersNeeded(packageState) {
@@ -988,13 +1225,13 @@ func (pg *ProjectGenerator) generateLibRs(packageState *PackageState) error {
 	if pg.externalMode == ModeTranspile && len(pg.packageMapping) > 0 {
 		initDependencyCrates = pg.sortedCrateNames()
 	}
-	writeLibraryPackageInitAll(&libRust, initDependencyCrates, pg.initModules)
+	writeLibraryPackageInitAll(&libRust, initDependencyCrates, pg.initModules, pg.packageInitPlan(astFilesByPath))
 
 	libRsPath := filepath.Join(pg.projectPath, "lib.rs")
 	return os.WriteFile(libRsPath, []byte(libRust.String()), 0644)
 }
 
-func writeLibraryPackageInitAll(out *strings.Builder, dependencyCrates []string, initModules []generatedInitModule) {
+func writeLibraryPackageInitAll(out *strings.Builder, dependencyCrates []string, initModules []generatedInitModule, initPlan generatedPackageInitPlan) {
 	out.WriteString("\n\nstatic __GO_INIT_ONCE: std::sync::Once = std::sync::Once::new();\n\n")
 	out.WriteString("pub fn __go_init_all() {\n")
 	out.WriteString("    __GO_INIT_ONCE.call_once(|| {\n")
@@ -1006,12 +1243,16 @@ func writeLibraryPackageInitAll(out *strings.Builder, dependencyCrates []string,
 		out.WriteString(crateName)
 		out.WriteString("::__go_init_all();\n")
 	}
-	for _, initModule := range initModules {
-		out.WriteString("        ")
-		out.WriteString(initModule.moduleName)
-		out.WriteString("::")
-		out.WriteString(initModule.initFunctionName)
-		out.WriteString("();\n")
+	if initPlan.usesPackageWideInit() {
+		writePackageInitPlanCalls(out, initPlan, "        ")
+	} else {
+		for _, initModule := range initModules {
+			out.WriteString("        ")
+			out.WriteString(initModule.moduleName)
+			out.WriteString("::")
+			out.WriteString(initModule.initFunctionName)
+			out.WriteString("();\n")
+		}
 	}
 	out.WriteString("    });\n")
 	out.WriteString("}\n")

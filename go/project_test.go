@@ -4101,15 +4101,19 @@ var gammaValue = 4
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
 	for _, want := range []string{
-		"alpha::__go_init_all_alpha();",
-		"beta::__go_init_all_beta();",
-		"gamma::__go_init_all_gamma();",
+		"alpha::__go_zero_globals();",
+		"beta::__go_zero_globals();",
+		"gamma::__go_zero_globals();",
+		"alpha::__go_init_order_0();",
+		"beta::__go_init_order_1();",
+		"gamma::__go_init_order_2();",
 	} {
 		if !strings.Contains(mainRS, want) {
-			t.Fatalf("main should call module-specific init helper %q, got:\n%s", want, mainRS)
+			t.Fatalf("main should call package-wide init helper %q, got:\n%s", want, mainRS)
 		}
 	}
-	if strings.Contains(mainRS, "alpha::__go_init_all();") || strings.Contains(mainRS, "beta::__go_init_all();") || strings.Contains(mainRS, "gamma::__go_init_all();") {
+	if strings.Contains(mainRS, "alpha::__go_init_all();") || strings.Contains(mainRS, "beta::__go_init_all();") || strings.Contains(mainRS, "gamma::__go_init_all();") ||
+		strings.Contains(mainRS, "alpha::__go_init_all_alpha();") || strings.Contains(mainRS, "beta::__go_init_all_beta();") || strings.Contains(mainRS, "gamma::__go_init_all_gamma();") {
 		t.Fatalf("main should not call ambiguous module init helper names, got:\n%s", mainRS)
 	}
 
@@ -4122,6 +4126,61 @@ var gammaValue = 4
 	}
 	if !strings.Contains(alphaRS, "pub(crate) fn __go_init_all()") {
 		t.Fatalf("alpha module should preserve string literals that mention init helper names, got:\n%s", alphaRS)
+	}
+}
+
+func TestCrossFilePackageGlobalInitUsesGoTypesInitOrder(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "aaa.go"), `package main
+
+var A = 1
+var C = B + 1
+`)
+	writeTestFile(t, filepath.Join(tempDir, "bbb.go"), `package main
+
+var B = A + 1
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+func main() {
+	println(A, B, C)
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "aaa.go"),
+		filepath.Join(tempDir, "bbb.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	wants := []string{
+		"aaa::__go_zero_globals();",
+		"bbb::__go_zero_globals();",
+		"aaa::__go_init_order_0();",
+		"bbb::__go_init_order_1();",
+		"aaa::__go_init_order_2();",
+	}
+	last := -1
+	for _, want := range wants {
+		idx := strings.Index(mainRS, want)
+		if idx < 0 {
+			t.Fatalf("package init order missing %q, got:\n%s", want, mainRS)
+		}
+		if idx <= last {
+			t.Fatalf("package init order put %q out of order, got:\n%s", want, mainRS)
+		}
+		last = idx
+	}
+	if strings.Contains(mainRS, "aaa::__go_init_all_aaa();") || strings.Contains(mainRS, "bbb::__go_init_all_bbb();") {
+		t.Fatalf("package-wide init should not call module-at-a-time global initializers, got:\n%s", mainRS)
 	}
 }
 

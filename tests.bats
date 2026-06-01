@@ -747,6 +747,10 @@ run_xfail_test() {
     run_test "tests/cross_file_function_alias_param"
 }
 
+@test "cross_file_global_init_dependency" {
+    run_test "tests/cross_file_global_init_dependency"
+}
+
 @test "cross_file_interface_impl" {
     run_test "tests/cross_file_interface_impl"
 }

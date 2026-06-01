@@ -1,0 +1,8 @@
+[package]
+name = "cross_file_global_init_dependency"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "cross_file_global_init_dependency"
+path = "main.rs"

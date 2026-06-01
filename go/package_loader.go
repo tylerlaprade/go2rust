@@ -744,9 +744,12 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 			}
 		}
 		if moduleHasPackageInitAll(rustCode) {
+			initFeatures := packageInitFeaturesForFile(astFile)
 			initModules = append(initModules, generatedInitModule{
 				moduleName:       moduleName,
 				initFunctionName: "__go_init_all",
+				hasGlobals:       initFeatures.hasGlobals,
+				hasInitFunctions: initFeatures.hasInitFunctions,
 			})
 		}
 
@@ -776,7 +779,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 			libRs.WriteString(fmt.Sprintf("pub use %s::*;\n", mod))
 		}
 	}
-	writeLibraryPackageInitAll(&libRs, initDependencyCrates, initModules)
+	writeLibraryPackageInitAll(&libRs, initDependencyCrates, initModules, packageInitPlanForModules(pkg.Syntax, moduleNamesByIndex, pkgTypeInfo))
 
 	// Write lib.rs
 	libRsPath := filepath.Join(outputDir, "lib.rs")
