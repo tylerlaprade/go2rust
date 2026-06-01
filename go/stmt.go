@@ -3969,6 +3969,31 @@ func writeMapWrappedValue(out *strings.Builder, expr ast.Expr, valueType types.T
 	if writeFunctionMapValue(out, expr, nil, valueType) {
 		return
 	}
+	if ident, ok := expr.(*ast.Ident); ok &&
+		ident.Name != "_" && ident.Name != "nil" && isVarBare(ident.Name) &&
+		valueType != nil && !mapValueTypeKeepsHandle(valueType) {
+		if _, isRangeVar := rangeLoopVars[ident.Name]; !isRangeVar {
+			varName := RustIdentForUse(ident)
+			if currentCaptureRenames != nil {
+				if renamed, exists := currentCaptureRenames[ident.Name]; exists {
+					varName = RustLocalIdent(renamed)
+				}
+			}
+			WriteWrapperPrefix(out)
+			if writeLenCapCallArgumentForExpectedType(out, expr, valueType) {
+				// len/cap emits usize, but Go int map values use i32.
+			} else if writeRangeIndexForExpectedType(out, expr, valueType) {
+				// range indexes emit usize, but Go int map values use i32.
+			} else {
+				out.WriteString(varName)
+			}
+			if !rangeElementUsesCopied(valueType) {
+				out.WriteString(".clone()")
+			}
+			WriteWrapperSuffix(out)
+			return
+		}
+	}
 	if ident, ok := expr.(*ast.Ident); ok && isCloneableNonPointerExpr(ident) {
 		if varType, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
 			if isWrappedRangeVarType(varType) && !mapValueTypeKeepsHandle(valueType) {

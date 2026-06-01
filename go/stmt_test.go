@@ -3829,6 +3829,67 @@ func relookup(m map[string]int) bool {
 	}
 }
 
+func TestMapAssignmentWrapsBareBoolValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func decide() bool {
+	return true
+}
+
+func store(m map[string]bool, key string) {
+	readOnly := decide()
+	m[key] = readOnly
+}
+`)
+
+	if strings.Contains(rust, "readOnly.borrow") || strings.Contains(rust, "readOnly.lock()") {
+		t.Fatalf("map assignment should wrap bare bool values without borrowing:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __map_value = Rc::new(RefCell::new(Some(readOnly)))") &&
+		!strings.Contains(rust, "let __map_value = Arc::new(Mutex::new(Some(readOnly)))") {
+		t.Fatalf("map assignment should store the bare bool inside a fresh handle:\n%s", rust)
+	}
+}
+
+func TestMapAssignmentCastsBareRangeIndexValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func positions(items []string) map[string]int {
+	result := map[string]int{}
+	for i, item := range items {
+		result[item] = i
+	}
+	return result
+}
+`)
+
+	if !strings.Contains(rust, "let __map_value = Rc::new(RefCell::new(Some(i as i32)))") &&
+		!strings.Contains(rust, "let __map_value = Arc::new(Mutex::new(Some(i as i32)))") {
+		t.Fatalf("map assignment should cast bare range indexes to Go int values:\n%s", rust)
+	}
+}
+
+func TestMapAssignmentKeepsRangeMapValueHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func copyValues(src map[int]string) map[int]string {
+	dst := map[int]string{}
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
+}
+`)
+
+	if strings.Contains(rust, "Some(v.clone())") {
+		t.Fatalf("map assignment from a range map value should not double-wrap the value handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __map_value = Rc::new(RefCell::new(Some((*v.borrow().as_ref().unwrap()).clone())))") &&
+		!strings.Contains(rust, "let __map_value = Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()).clone())))") {
+		t.Fatalf("map assignment from a range map value should copy the inner value into a fresh handle:\n%s", rust)
+	}
+}
+
 func TestSliceAssignmentFromPointerDerefClonesPointeeHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
