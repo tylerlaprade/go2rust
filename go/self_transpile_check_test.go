@@ -38,6 +38,7 @@ func TestSelfTranspileDefaultSourceStdlibPackages(t *testing.T) {
 		"regexp/syntax",
 		"path/filepath",
 		"text/scanner",
+		"unicode",
 		"unicode/utf8",
 	} {
 		if !strings.Contains(","+defaults+",", ","+want+",") {
