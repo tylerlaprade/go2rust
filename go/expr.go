@@ -6047,6 +6047,11 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 		return true
 	}
 	if compositeLiteralElementKeepsHandle(elemType) {
+		if _, ok := types.Unalias(elemType).Underlying().(*types.Pointer); ok {
+			if writePointerHandleCallArgument(out, expr, elemType) {
+				return true
+			}
+		}
 		if isFunctionSignatureType(elemType) && writeFunctionValueHandle(out, expr) {
 			return true
 		}

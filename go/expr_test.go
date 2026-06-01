@@ -1547,6 +1547,30 @@ func main() {
 	}
 }
 
+func TestPointerSliceCompositeLiteralKeepsSelectorHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Package struct{}
+
+type Info struct {
+	pkg *Package
+}
+
+func use(pkgs []*Package) {}
+
+func call(info *Info) {
+	use([]*Package{info.pkg})
+}
+`)
+
+	if strings.Contains(rust, "vec![(*") {
+		t.Fatalf("pointer slice literal should keep selector pointer handles, not pointee values:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pkg.clone()") {
+		t.Fatalf("pointer slice literal should clone the selector pointer handle:\n%s", rust)
+	}
+}
+
 func TestVariadicFixedLocalInterfaceArgumentBoxesIndexedPointer(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
