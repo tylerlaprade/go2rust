@@ -44,6 +44,7 @@ func TestSelfTranspileDefaultSourceStdlibPackages(t *testing.T) {
 		"crypto/rand",
 		"crypto/internal/boring",
 		"crypto/internal/fips140",
+		"crypto/internal/fips140deps/godebug",
 		"crypto/internal/sysrand",
 	} {
 		if !strings.Contains(","+defaults+",", ","+want+",") {

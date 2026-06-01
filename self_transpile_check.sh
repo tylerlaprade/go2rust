@@ -118,7 +118,7 @@ export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
 export CARGO_PROFILE_DEV_INCREMENTAL="${CARGO_PROFILE_DEV_INCREMENTAL:-false}"
 export RUSTFLAGS="${RUSTFLAGS:--Awarnings -C debuginfo=0}"
 export GOFLAGS="${GOFLAGS:--tags=purego}"
-export GO2RUST_SOURCE_STDLIB_PACKAGES="${GO2RUST_SOURCE_STDLIB_PACKAGES:-go/...,internal/...,cmp,slices,reflect,math/big,math/bits,math,strings,regexp,regexp/syntax,path/filepath,text/scanner,unicode,unicode/utf8,hash/maphash,crypto/rand,crypto/internal/boring,crypto/internal/fips140,crypto/internal/sysrand}"
+export GO2RUST_SOURCE_STDLIB_PACKAGES="${GO2RUST_SOURCE_STDLIB_PACKAGES:-go/...,internal/...,cmp,slices,reflect,math/big,math/bits,math,strings,regexp,regexp/syntax,path/filepath,text/scanner,unicode,unicode/utf8,hash/maphash,crypto/rand,crypto/internal/boring,crypto/internal/fips140,crypto/internal/fips140deps/godebug,crypto/internal/sysrand}"
 go build -o "$work/go2rust" "$repo_root/go"
 
 (
