@@ -2436,6 +2436,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		first = false
 		if IsFunctionTypeAlias(typeName) {
 			writeFunctionTypeAliasMethodImpl(&body, rustTypeName, typeMethods, fileSet, file.Comments)
+			writeFunctionTypeImportedInterfaceImpls(&body, rustTypeName, importedInterfaceImpls[typeName])
 			currentTypeMethods = previousTypeMethods
 			continue
 		}

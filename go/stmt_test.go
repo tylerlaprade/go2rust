@@ -2022,6 +2022,47 @@ func NewInfo() *types.Info {
 	}
 }
 
+func TestSourceMappedImportedInterfaceFieldFromFunctionTypeAliasUsesWrapper(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "go/types"
+
+type importerFunc func(path string) (*types.Package, error)
+
+func (f importerFunc) Import(path string) (*types.Package, error) {
+	return f(path)
+}
+
+func NewConfig(importer importerFunc) *types.Config {
+	return &types.Config{
+		Importer: importer,
+	}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"go/types": "go_types"})
+	if strings.Contains(rust, "Box::new((*importer.") {
+		t.Fatalf("function-type alias should not clone the inner boxed closure for imported interface fields:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl go_types::Importer for importerFuncAsgo_types_Importer") {
+		t.Fatalf("function-type alias should emit a wrapper impl for the imported interface:\n%s", rust)
+	}
+	if strings.Contains(rust, "Option<Rc<RefCell<Option<go_types::Package>>>>") {
+		t.Fatalf("function-type alias wrapper should not double-wrap imported interface pointer returns:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(importerFuncAsgo_types_Importer(importer.clone())) as Box<dyn go_types::Importer") {
+		t.Fatalf("function-type alias field should box the wrapper around the function handle:\n%s", rust)
+	}
+}
+
 func TestSourceMappedImportedFunctionTypeAliasParamUsesAliasHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

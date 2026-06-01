@@ -2075,23 +2075,15 @@ func writeFunctionTypeInterfaceImpls(out *strings.Builder, goName, rustTypeName 
 	}
 }
 
-// functionTypeInterfaceImplResultRust returns the Rust type for a function-
-// type-interface-impl method result. Named local interface results need the
-// trait-object wrapped shape (Arc<...<Box<dyn T + Send + Sync>>...>) which
-// goTypesTypeToRustWrapped does not produce (it returns the bare trait name
-// for named interface types).
+// functionTypeInterfaceImplResultRust mirrors the Rust signature emitted for
+// the interface trait method, including bare pointer handles and wrapped
+// named-interface results.
 func functionTypeInterfaceImplResultRust(typ types.Type) string {
-	if ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(typ); ok {
-		return rustLocalInterfaceParam(ifaceName)
-	}
-	if typeIsPredeclaredCopyScalar(typ) {
-		return goTypesTypeToRust(types.Unalias(typ))
-	}
-	return goTypesTypeToRustWrapped(typ)
+	return goTypesReturnTypeToRust(typ)
 }
 
 func writeFunctionTypeInterfaceImpl(out *strings.Builder, funcTypeName, ifaceName string, iface *types.Interface) {
-	wrapperName := funcTypeName + "As" + ifaceName
+	wrapperName := functionTypeInterfaceWrapperName(funcTypeName, ifaceName)
 	traitSnake := traitMethodSuffix(ifaceName)
 	out.WriteString("\n#[derive(Clone)]\n")
 	out.WriteString("pub struct ")
@@ -2190,6 +2182,31 @@ func writeFunctionTypeInterfaceImpl(out *strings.Builder, funcTypeName, ifaceNam
 	out.WriteString("        false\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
+}
+
+func functionTypeInterfaceWrapperName(funcTypeName, ifaceName string) string {
+	if !strings.Contains(ifaceName, "::") {
+		return funcTypeName + "As" + ifaceName
+	}
+	parts := strings.Split(ifaceName, "::")
+	for i, part := range parts {
+		parts[i] = strings.TrimPrefix(part, "r#")
+	}
+	return funcTypeName + "As" + strings.Join(parts, "_")
+}
+
+func writeFunctionTypeImportedInterfaceImpls(out *strings.Builder, funcTypeName string, impls map[string]*types.Interface) {
+	if len(impls) == 0 {
+		return
+	}
+	var ifaceNames []string
+	for ifaceName := range impls {
+		ifaceNames = append(ifaceNames, ifaceName)
+	}
+	sort.Strings(ifaceNames)
+	for _, ifaceName := range ifaceNames {
+		writeFunctionTypeInterfaceImpl(out, funcTypeName, ifaceName, impls[ifaceName])
+	}
 }
 
 func assignedInterfaceParamNames(fn *ast.FuncDecl) map[string]bool {

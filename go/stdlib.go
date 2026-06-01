@@ -3631,7 +3631,12 @@ func writeConcreteLocalInterfaceValue(out *strings.Builder, expr ast.Expr, expec
 		return false
 	}
 	out.WriteString("Box::new(")
-	if ident, ok := expr.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
+	if funcTypeName, ok := functionTypeAliasNameFromTypes(sourceType); ok {
+		out.WriteString(functionTypeInterfaceWrapperName(funcTypeName, ifaceName))
+		out.WriteString("(")
+		writeFunctionTypeAliasInnerValue(out, expr)
+		out.WriteString(")")
+	} else if ident, ok := expr.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
 		out.WriteString(currentReceiverRustName())
 		out.WriteString(".clone()")
 	} else if globalIdent, ok := packageGlobalPointerIdent(expr); ok {
