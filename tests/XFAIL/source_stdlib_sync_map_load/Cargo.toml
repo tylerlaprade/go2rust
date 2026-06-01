@@ -1,0 +1,22 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/internal_sync",
+    "vendor/sync",
+]
+
+[package]
+name = "source_stdlib_sync_map_load"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "source_stdlib_sync_map_load"
+path = "main.rs"
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+internal_sync = { path = "vendor/internal_sync" }
+sync = { path = "vendor/sync" }
