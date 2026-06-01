@@ -2063,6 +2063,44 @@ func NewConfig(importer importerFunc) *types.Config {
 	}
 }
 
+func TestSourceMappedPointerCompositeAssignmentToAnyBoxesConcreteValue(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import (
+	"go/ast"
+	"go/printer"
+)
+
+func BoxCommented(file *ast.File, comments []*ast.CommentGroup) any {
+	var node any
+	node = &printer.CommentedNode{Node: file, Comments: comments}
+	return node
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{
+		"go/ast":     "go_ast",
+		"go/printer": "go_printer",
+	})
+	if strings.Contains(rust, "Option<go_printer::CommentedNode>") {
+		t.Fatalf("assignment to any should not store the concrete source-mapped struct slot directly:\n%s", rust)
+	}
+	if strings.Contains(rust, "__moved_val") {
+		t.Fatalf("assignment to any should not move the concrete source-mapped struct option into the any slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(") || !strings.Contains(rust, "as Box<dyn Any") {
+		t.Fatalf("assignment to any should box the source-mapped pointer composite value:\n%s", rust)
+	}
+}
+
 func TestSourceMappedImportedFunctionTypeAliasParamUsesAliasHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

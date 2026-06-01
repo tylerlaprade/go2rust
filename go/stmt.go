@@ -9788,7 +9788,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Concrete value reassigned into an interface-typed target boxes into the interface handle.
 								} else if unary, ok := s.Rhs[0].(*ast.UnaryExpr); ok && unary.Op == token.AND {
 									if _, isComposite := unary.X.(*ast.CompositeLit); isComposite {
-										writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
+										if writeEmptyInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
+											// Addressed composite literals assigned to any must box the concrete value.
+										} else {
+											writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
+										}
 									} else {
 										// Special case: p = &x where p is a pointer
 										// We need to extract the value from x, not clone the whole Arc
