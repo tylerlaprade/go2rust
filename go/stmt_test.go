@@ -3180,6 +3180,63 @@ func lockPackageMutex() {
 	}
 }
 
+func TestMutexGuardNameStableAcrossFileSetBase(t *testing.T) {
+	source := `package main
+
+import "sync"
+
+func lock(mu *sync.Mutex) {
+	mu.Lock()
+	defer mu.Unlock()
+}
+`
+	rustA := transpileTypedRegressionWithPrefixFile(t, source, "")
+	rustB := transpileTypedRegressionWithPrefixFile(t, source, `package other
+
+var pad = "shift file set base"
+`)
+
+	guardA := firstMutexGuardName(t, rustA)
+	guardB := firstMutexGuardName(t, rustB)
+	if guardA != guardB {
+		t.Fatalf("mutex guard names should be stable across token.FileSet base changes: %q != %q\nA:\n%s\nB:\n%s", guardA, guardB, rustA, rustB)
+	}
+}
+
+func transpileTypedRegressionWithPrefixFile(t *testing.T, source string, prefixSource string) string {
+	t.Helper()
+	fset := token.NewFileSet()
+	if prefixSource != "" {
+		if _, err := parser.ParseFile(fset, "prefix.go", prefixSource, parser.ParseComments); err != nil {
+			t.Fatalf("ParseFile(prefix) error = %v", err)
+		}
+	}
+	file, err := parser.ParseFile(fset, "main.go", source, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("ParseFile(main) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo error = %v", err)
+	}
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	return rust
+}
+
+func firstMutexGuardName(t *testing.T, rust string) string {
+	t.Helper()
+	const prefix = "__mutex_guard_"
+	start := strings.Index(rust, prefix)
+	if start < 0 {
+		t.Fatalf("missing mutex guard in generated Rust:\n%s", rust)
+	}
+	end := start + len(prefix)
+	for end < len(rust) && rust[end] >= '0' && rust[end] <= '9' {
+		end++
+	}
+	return rust[start:end]
+}
+
 func TestPointerReceiverComparisonUsesHandleIdentity(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

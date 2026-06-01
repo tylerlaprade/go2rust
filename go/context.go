@@ -2,6 +2,7 @@ package main
 
 import (
 	"go/ast"
+	"go/token"
 	"go/types"
 	"strings"
 )
@@ -62,6 +63,7 @@ type PackageState struct {
 type FileState struct {
 	Imports                      *ImportTracker
 	Helpers                      *HelperTracker
+	FileSet                      *token.FileSet
 	StatementPreprocessor        *StatementPreprocessor
 	RangeLoopVars                map[string]string
 	RangeLoopVarGoTypes          map[string]types.Type
@@ -167,9 +169,14 @@ func NewFileState(imports *ImportTracker, helpers *HelperTracker, statementPrepr
 	if helpers == nil {
 		helpers = &HelperTracker{}
 	}
+	var fileSet *token.FileSet
+	if statementPreprocessor != nil {
+		fileSet = statementPreprocessor.fileSet
+	}
 	return &FileState{
 		Imports:                      imports,
 		Helpers:                      helpers,
+		FileSet:                      fileSet,
 		StatementPreprocessor:        statementPreprocessor,
 		RangeLoopVars:                make(map[string]string),
 		RangeLoopVarGoTypes:          make(map[string]types.Type),

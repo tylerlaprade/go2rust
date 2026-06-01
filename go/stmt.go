@@ -7750,7 +7750,7 @@ func writeMutexLockStatement(out *strings.Builder, expr ast.Expr) bool {
 		out.WriteString(".lock();")
 		return true
 	}
-	id := int(expr.Pos())
+	id := stableStatementPosID(expr.Pos())
 	sourceName := fmt.Sprintf("__mutex_guard_source_%d", id)
 	guardName := fmt.Sprintf("__mutex_guard_%d", id)
 
@@ -7768,6 +7768,20 @@ func writeMutexLockStatement(out *strings.Builder, expr ast.Expr) bool {
 		activeMutexGuards[key] = guardName
 	}
 	return true
+}
+
+func stableStatementPosID(pos token.Pos) int {
+	if pos == token.NoPos {
+		return 0
+	}
+	ctx := GetTranspileContext()
+	if ctx != nil && ctx.File != nil && ctx.File.FileSet != nil {
+		position := ctx.File.FileSet.Position(pos)
+		if position.IsValid() {
+			return position.Offset
+		}
+	}
+	return int(pos)
 }
 
 func writeMutexUnlockStatement(out *strings.Builder, expr ast.Expr) bool {
@@ -8543,6 +8557,11 @@ func rangeArrayOrSliceElemType(expr ast.Expr) types.Type {
 }
 
 func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet, comments []*ast.CommentGroup, lastPos *token.Pos, indent string) {
+	if fileSet != nil {
+		if ctx := GetTranspileContext(); ctx != nil && ctx.File != nil {
+			ctx.File.FileSet = fileSet
+		}
+	}
 	// Output any comments before this statement
 	if stmt != nil && comments != nil && lastPos != nil {
 		outputCommentsBeforePos(out, comments, fileSet, stmt.Pos(), indent, lastPos)

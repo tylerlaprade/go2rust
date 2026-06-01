@@ -330,7 +330,7 @@ impl Pool {
                 // Retry under the mutex.
                 // Can not lock the mutex while pinned.
         runtime_proc_unpin();
-        let __mutex_guard_source_3067081 = (*allPoolsMu.lock().unwrap().as_ref().unwrap()).clone(); let __mutex_guard_3067081 = __mutex_guard_source_3067081.guard();
+        let __mutex_guard_source_6909 = (*allPoolsMu.lock().unwrap().as_ref().unwrap()).clone(); let __mutex_guard_6909 = __mutex_guard_source_6909.guard();
         // mu.Unlock() handled by RAII guard
         let mut pid = runtime_proc_pin();
                 // poolCleanup won't be called while we are pinned.
