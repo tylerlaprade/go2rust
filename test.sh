@@ -4,10 +4,12 @@
 LOCK_DIR=""
 SHARD_DIR=""
 TEMP_FILE=""
+BUILT_TEST_BINARY_DIR=""
 _test_sh_cleanup() {
     [ -n "$LOCK_DIR" ] && rm -rf "$LOCK_DIR"
     [ -n "$SHARD_DIR" ] && rm -rf "$SHARD_DIR"
     [ -n "$TEMP_FILE" ] && rm -f "$TEMP_FILE" "$TEMP_FILE.bak"
+    [ -n "$BUILT_TEST_BINARY_DIR" ] && rm -rf "$BUILT_TEST_BINARY_DIR"
 }
 trap _test_sh_cleanup EXIT
 
@@ -202,6 +204,13 @@ fi
 # Export for use in tests.bats
 export SHOW_XFAIL_ERRORS
 
+# Sweep stale per-test workspaces left over from prior runs killed via SIGKILL
+# (OOM, kill -9, etc.) — SIGKILL bypasses the run_test EXIT trap. Project rule:
+# only one ./test.sh runs at a time, so anything matching is guaranteed stale.
+find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'go2rust-test.*' -o -name 'go2rust-bats-shards.*' -o -name 'go2rust-cargo-target.*' -o -name 'go2rust-test-binary.*' \) -type d -prune -exec rm -rf {} + 2>/dev/null
+find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'go2rust-rust-work.*' \) -type d -prune -exec rm -rf {} + 2>/dev/null
+find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'go2rust-tests-list.*' -o -name 'go2rust-rust-diff.*' -o -name 'go2rust-stdout.*' -o -name 'go2rust-stderr.*' \) -type f -delete 2>/dev/null
+
 # Build the transpiler once before running the suite. Bats parallelism is
 # file-level, so sharded runs would otherwise race multiple setup_file builds
 # against the same ./go2rust output path. GO2RUST_TEST_BINARY lets the same
@@ -217,16 +226,14 @@ if [ -n "${GO2RUST_TEST_BINARY:-}" ]; then
     fi
     export GO2RUST_TEST_BINARY
 else
-    go build -o go2rust ./go
+    BUILT_TEST_BINARY_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test-binary.XXXXXX")
+    BUILT_TEST_BINARY="$BUILT_TEST_BINARY_DIR/go2rust"
+    go build -o "$BUILT_TEST_BINARY" ./go
+    chmod +x "$BUILT_TEST_BINARY"
+    GO2RUST_TEST_BINARY="$BUILT_TEST_BINARY"
+    export GO2RUST_TEST_BINARY
 fi
 export GO2RUST_TEST_BINARY_READY=1
-
-# Sweep stale per-test workspaces left over from prior runs killed via SIGKILL
-# (OOM, kill -9, etc.) — SIGKILL bypasses the run_test EXIT trap. Project rule:
-# only one ./test.sh runs at a time, so anything matching is guaranteed stale.
-find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'go2rust-test.*' -o -name 'go2rust-bats-shards.*' -o -name 'go2rust-cargo-target.*' \) -type d -prune -exec rm -rf {} + 2>/dev/null
-find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'go2rust-rust-work.*' \) -type d -prune -exec rm -rf {} + 2>/dev/null
-find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'go2rust-tests-list.*' -o -name 'go2rust-rust-diff.*' -o -name 'go2rust-stdout.*' -o -name 'go2rust-stderr.*' \) -type f -delete 2>/dev/null
 
 # Set default job count if not specified
 if [ -z "$JOBS" ]; then

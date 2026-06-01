@@ -21,6 +21,7 @@ func TestTestScriptSweepsAllGeneratedTempRoots(t *testing.T) {
 		"go2rust-rust-diff.*",
 		"go2rust-stdout.*",
 		"go2rust-stderr.*",
+		"go2rust-test-binary.*",
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("test.sh stale-temp sweep should include %q", want)
@@ -39,6 +40,7 @@ func TestScriptsUseNamedGo2RustTempPaths(t *testing.T) {
 	}
 	for _, want := range []string{
 		`mktemp "${TMPDIR:-/tmp}/go2rust-tests-list.XXXXXX"`,
+		`mktemp -d "${TMPDIR:-/tmp}/go2rust-test-binary.XXXXXX"`,
 		`mktemp -d "$tmp_root/go2rust-rust-work.XXXXXX"`,
 		`mktemp "$diff_root/go2rust-rust-diff.XXXXXX"`,
 	} {
@@ -54,6 +56,33 @@ func TestScriptsUseNamedGo2RustTempPaths(t *testing.T) {
 		if strings.Contains(string(testSh), forbidden) || strings.Contains(string(bats), forbidden) {
 			t.Fatalf("scripts should not use anonymous temp path %q", forbidden)
 		}
+	}
+}
+
+func TestTestScriptBuildsDefaultBinaryInTemp(t *testing.T) {
+	data, err := os.ReadFile("../test.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(test.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`BUILT_TEST_BINARY_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test-binary.XXXXXX")`,
+		`BUILT_TEST_BINARY="$BUILT_TEST_BINARY_DIR/go2rust"`,
+		`go build -o "$BUILT_TEST_BINARY" ./go`,
+		`chmod +x "$BUILT_TEST_BINARY"`,
+		`GO2RUST_TEST_BINARY="$BUILT_TEST_BINARY"`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("test.sh should build the default transpiler binary in temp storage; missing %q", want)
+		}
+	}
+	if strings.Contains(script, "go build -o go2rust ./go") {
+		t.Fatalf("test.sh should not leave the default transpiler binary in the repo root")
+	}
+	sweepIndex := strings.Index(script, `go2rust-test-binary.*`)
+	buildIndex := strings.Index(script, `BUILT_TEST_BINARY_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test-binary.XXXXXX")`)
+	if sweepIndex < 0 || buildIndex < 0 || sweepIndex > buildIndex {
+		t.Fatalf("test.sh should sweep stale temp binaries before creating the current temp binary")
 	}
 }
 
