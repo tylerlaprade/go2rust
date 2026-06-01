@@ -19,8 +19,14 @@ Environment:
   GOCACHE=<path>          Override the temporary Go build cache.
   CARGO_HOME=<path>       Override the temporary Cargo registry/cache home.
   CARGO_TARGET_DIR=<path> Override the temporary Cargo target directory.
+  GOFLAGS=<flags>         Override Go build/load flags (default: -tags=purego).
   GO2RUST_BEHAVIOR_JOBS=N Number of behavior-suite shards (default: 3).
   GO2RUST_BEHAVIOR_TIMEOUT=TIME Per-test behavior timeout (default: 30s).
+  GO2RUST_BEHAVIOR_TESTS="name [name...]"
+                      Restrict --behavior-suite to specific fixture names.
+  GO2RUST_SELF_CLEAN_STALE=0
+                      Disable startup cleanup of stale self-transpile workspaces
+                      that were created with an owner pid marker.
   GO2RUST_SOURCE_STDLIB_PACKAGES=PATTERNS
                       Stdlib packages to transpile from GOROOT source
                       instead of semantic stubs (default: go/..., internal/...,
@@ -64,8 +70,28 @@ while [ "$#" -gt 0 ]; do
 done
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-work=$(mktemp -d "${TMPDIR:-/private/tmp}/go2rust-self.XXXXXX")
+tmp_root="${TMPDIR:-/private/tmp}"
+
+cleanup_stale_self_workspaces() {
+    [ "${GO2RUST_SELF_CLEAN_STALE:-1}" = "0" ] && return
+
+    find "$tmp_root" -maxdepth 1 -type d -name 'go2rust-self.*' -print 2>/dev/null | while IFS= read -r dir; do
+        pid_file="$dir/self_transpile_check.pid"
+        [ -f "$pid_file" ] || continue
+
+        pid=$(cat "$pid_file" 2>/dev/null || true)
+        if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+            continue
+        fi
+
+        rm -rf "$dir"
+    done
+}
+
+cleanup_stale_self_workspaces
+work=$(mktemp -d "$tmp_root/go2rust-self.XXXXXX")
 keep=${KEEP_SELF_TRANSPILE:-0}
+echo "$$" > "$work/self_transpile_check.pid"
 
 cleanup() {
     status=$?
@@ -91,7 +117,8 @@ export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
 export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
 export CARGO_PROFILE_DEV_INCREMENTAL="${CARGO_PROFILE_DEV_INCREMENTAL:-false}"
 export RUSTFLAGS="${RUSTFLAGS:--Awarnings -C debuginfo=0}"
-export GO2RUST_SOURCE_STDLIB_PACKAGES="${GO2RUST_SOURCE_STDLIB_PACKAGES:-go/...,internal/...,cmp,slices,reflect,math/big,math/bits,math,strings,regexp,regexp/syntax,path/filepath,text/scanner,unicode,unicode/utf8}"
+export GOFLAGS="${GOFLAGS:--tags=purego}"
+export GO2RUST_SOURCE_STDLIB_PACKAGES="${GO2RUST_SOURCE_STDLIB_PACKAGES:-go/...,internal/...,cmp,slices,reflect,math/big,math/bits,math,strings,regexp,regexp/syntax,path/filepath,text/scanner,unicode,unicode/utf8,hash/maphash,crypto/rand,crypto/internal/boring,crypto/internal/fips140}"
 go build -o "$work/go2rust" "$repo_root/go"
 
 (
@@ -136,9 +163,14 @@ if [ "$behavior_suite" = true ]; then
 
     (
         cd "$suite"
+        behavior_tests=()
+        if [ -n "${GO2RUST_BEHAVIOR_TESTS:-}" ]; then
+            # shellcheck disable=SC2206
+            behavior_tests=(${GO2RUST_BEHAVIOR_TESTS})
+        fi
         GO2RUST_TEST_BINARY="$CARGO_TARGET_DIR/debug/go" \
             GOCACHE="${GOCACHE:-$work/go-build-cache}" \
-            ./test.sh -n "${GO2RUST_BEHAVIOR_JOBS:-3}" -t "${GO2RUST_BEHAVIOR_TIMEOUT:-30s}"
+            ./test.sh -n "${GO2RUST_BEHAVIOR_JOBS:-3}" -t "${GO2RUST_BEHAVIOR_TIMEOUT:-30s}" "${behavior_tests[@]}"
     )
 fi
 

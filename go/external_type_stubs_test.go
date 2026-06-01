@@ -119,6 +119,35 @@ func TestGenericExternalPackageStubFunctionUsesSignatureTypeParams(t *testing.T)
 	}
 }
 
+func TestExternalPackageTimeAfterFuncStubEmitsGoTimerHelper(t *testing.T) {
+	got := generateExternalStubs(
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		map[string]*externalPackageStub{
+			"time": {
+				Functions: map[string]externalPackageStubFunction{
+					"after_func": {
+						ParamCount:  2,
+						ReturnTypes: []string{"GoTimer"},
+					},
+				},
+			},
+		},
+	)
+
+	if !strings.Contains(got, "struct GoTimer") {
+		t.Fatalf("time.AfterFunc stub returning GoTimer should emit the helper type:\n%s", got)
+	}
+	if !strings.Contains(got, "pub fn after_func") {
+		t.Fatalf("time.AfterFunc package stub was not emitted:\n%s", got)
+	}
+}
+
 func TestJsonSupportHelpersDecodeUnsignedAndFixedArrays(t *testing.T) {
 	var out strings.Builder
 	writeJsonSupportHelpers(&out, false)

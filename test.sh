@@ -220,7 +220,7 @@ export GO2RUST_TEST_BINARY_READY=1
 # Sweep stale per-test workspaces left over from prior runs killed via SIGKILL
 # (OOM, kill -9, etc.) — SIGKILL bypasses the run_test EXIT trap. Project rule:
 # only one ./test.sh runs at a time, so anything matching is guaranteed stale.
-find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'go2rust-test.*' -o -name 'go2rust-bats-shards.*' \) -type d -prune -exec rm -rf {} + 2>/dev/null
+find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'go2rust-test.*' -o -name 'go2rust-bats-shards.*' -o -name 'go2rust-cargo-target.*' \) -type d -prune -exec rm -rf {} + 2>/dev/null
 
 # Set default job count if not specified
 if [ -z "$JOBS" ]; then
@@ -364,6 +364,7 @@ colorize_output() {
 
 # Export timeout for bats to use
 export TEST_TIMEOUT="$TIMEOUT"
+export TEST_TIMEOUT_KILL_AFTER="${TEST_TIMEOUT_KILL_AFTER:-5s}"
 
 # Build filter pattern if specific tests requested
 FILTER_PATTERN=""

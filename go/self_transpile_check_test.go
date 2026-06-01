@@ -40,6 +40,10 @@ func TestSelfTranspileDefaultSourceStdlibPackages(t *testing.T) {
 		"text/scanner",
 		"unicode",
 		"unicode/utf8",
+		"hash/maphash",
+		"crypto/rand",
+		"crypto/internal/boring",
+		"crypto/internal/fips140",
 	} {
 		if !strings.Contains(","+defaults+",", ","+want+",") {
 			t.Fatalf("self-transpile default source stdlib packages should include %q; got %q", want, defaults)
@@ -54,6 +58,57 @@ func TestSelfTranspileDefaultSourceStdlibPackages(t *testing.T) {
 	} {
 		if strings.Contains(","+defaults+",", ","+blocked+",") {
 			t.Fatalf("self-transpile default source stdlib packages should keep OS/runtime package %q on host shims; got %q", blocked, defaults)
+		}
+	}
+}
+
+func TestSelfTranspileDefaultsToPuregoBuildTag(t *testing.T) {
+	data, err := os.ReadFile("../self_transpile_check.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(self_transpile_check.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`GOFLAGS=<flags>`,
+		`export GOFLAGS="${GOFLAGS:--tags=purego}"`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("self_transpile_check.sh should default self-host loading to purego; missing %q", want)
+		}
+	}
+}
+
+func TestSelfTranspileBehaviorSuiteSupportsFocusedFixtures(t *testing.T) {
+	data, err := os.ReadFile("../self_transpile_check.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(self_transpile_check.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		"GO2RUST_BEHAVIOR_TESTS",
+		"behavior_tests=(${GO2RUST_BEHAVIOR_TESTS})",
+		`"${behavior_tests[@]}"`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("self_transpile_check.sh should pass focused behavior fixtures through ./test.sh; missing %q", want)
+		}
+	}
+}
+
+func TestSelfTranspileWorkspaceRecordsOwnerPid(t *testing.T) {
+	data, err := os.ReadFile("../self_transpile_check.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(self_transpile_check.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`self_transpile_check.pid`,
+		`GO2RUST_SELF_CLEAN_STALE`,
+		`cleanup_stale_self_workspaces`,
+		`kill -0 "$pid"`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("self_transpile_check.sh should mark and clean stale temp workspaces; missing %q", want)
 		}
 	}
 }

@@ -1794,6 +1794,9 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 	if needsJsonSupport {
 		writeJsonSupportHelpers(&out, stubs["bytes_Buffer"])
 	}
+	if externalPackageStubsNeedGoTimer(packageStubs) {
+		generateGoTimerHelper(&out)
+	}
 	// writeTypesBridgeSupport emits helper traits and __go_types_check that
 	// only callers of types.Config.Check use. Don't emit them just because
 	// types.Config was named — the helpers reference ast_Expr/ast_File/etc.
@@ -1960,6 +1963,27 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 	writeExternalTypeStubConversions(&out, conversions, interfaceTypes)
 	writeExternalPackageStubs(&out, packageStubs, integerTypes, stubs, len(names) > 0)
 	return out.String()
+}
+
+func externalPackageStubsNeedGoTimer(packageStubs map[string]*externalPackageStub) bool {
+	for _, pkg := range packageStubs {
+		if pkg == nil {
+			continue
+		}
+		for _, fn := range pkg.Functions {
+			for _, returnType := range fn.ReturnTypes {
+				if strings.Contains(returnType, "GoTimer") {
+					return true
+				}
+			}
+		}
+		for _, rustType := range pkg.Variables {
+			if strings.Contains(rustType, "GoTimer") {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func externalStubNeedsInterfaceHelper(names []string, interfaceTypes map[string]bool) bool {
