@@ -23,8 +23,9 @@ Environment:
   GO2RUST_BEHAVIOR_TIMEOUT=TIME Per-test behavior timeout (default: 30s).
   GO2RUST_SOURCE_STDLIB_PACKAGES=PATTERNS
                       Stdlib packages to transpile from GOROOT source
-                      instead of semantic stubs (default: go/... plus
-                      internal/... for self-hosting).
+                      instead of semantic stubs (default: go/..., internal/...,
+                      and the self-host stdlib dependencies that must not route
+                      through semantic stubs).
 EOF
 }
 
@@ -90,7 +91,7 @@ export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
 export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
 export CARGO_PROFILE_DEV_INCREMENTAL="${CARGO_PROFILE_DEV_INCREMENTAL:-false}"
 export RUSTFLAGS="${RUSTFLAGS:--Awarnings -C debuginfo=0}"
-export GO2RUST_SOURCE_STDLIB_PACKAGES="${GO2RUST_SOURCE_STDLIB_PACKAGES:-go/...,internal/...}"
+export GO2RUST_SOURCE_STDLIB_PACKAGES="${GO2RUST_SOURCE_STDLIB_PACKAGES:-go/...,internal/...,cmp,slices,reflect,math/big,math/bits,math,strings,regexp,regexp/syntax,path/filepath,io/fs,os,os/exec,syscall,text/scanner}"
 go build -o "$work/go2rust" "$repo_root/go"
 
 (
