@@ -9377,18 +9377,18 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						out.WriteString("_")
 					}
 					out.WriteString(") = ")
-				} else {
-					out.WriteString("(")
-					TranspileExpressionContext(out, s.Lhs[0], LValue)
-					out.WriteString(", ")
-					TranspileExpressionContext(out, s.Lhs[1], LValue)
-					out.WriteString(") = ")
-				}
 
-				// Generate type assertion code with comma-ok
-				TranspileTypeAssertionCommaOk(out, typeAssert)
-				if s.Tok == token.DEFINE {
+					// Generate type assertion code with comma-ok
+					TranspileTypeAssertionCommaOk(out, typeAssert)
 					registerTypeAssertionResultInfo(s.Lhs[0], typeAssert)
+					registerBareShortDecl(s.Lhs[1])
+				} else {
+					out.WriteString("{ let (__tmp_0, __tmp_1) = ")
+					TranspileTypeAssertionCommaOk(out, typeAssert)
+					out.WriteString(";")
+					writeTupleAssignmentFromTemp(out, s.Lhs[0], "__tmp_0", false)
+					writeTupleAssignmentFromTemp(out, s.Lhs[1], "__tmp_1", true)
+					out.WriteString(" }")
 				}
 			} else if isMapAccess && needsTupleUnpack {
 				// Handle map access with existence check
@@ -9422,11 +9422,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					out.WriteString(") = ")
 				} else {
-					out.WriteString("(")
-					TranspileExpressionContext(out, s.Lhs[0], LValue)
-					out.WriteString(", ")
-					TranspileExpressionContext(out, s.Lhs[1], LValue)
-					out.WriteString(") = ")
+					out.WriteString("{ let (__tmp_0, __tmp_1) = ")
 				}
 
 				// Generate the map access code.
@@ -9456,17 +9452,21 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					writeMapLookupKeyWithMapExpr(out, indexExpr.X, indexExpr.Index, keyType)
 				}
 				out.WriteString(") { /* MAP_COMMA_OK */ Some(v) => (v.clone(), ")
-				WriteWrapperPrefix(out)
 				out.WriteString("true")
-				WriteWrapperSuffix(out)
 				out.WriteString("), None => (")
 				writeMapCommaOkMissingValue(out, indexExpr, valueKeepsHandle)
 				out.WriteString(", ")
-				WriteWrapperPrefix(out)
 				out.WriteString("false")
-				WriteWrapperSuffix(out)
 				out.WriteString(") }")
 				if NeedsConcurrentWrapper() && !isExpressionResultBare(indexExpr.X) {
+					out.WriteString(" }")
+				}
+				if s.Tok == token.DEFINE {
+					registerBareShortDecl(s.Lhs[1])
+				} else {
+					out.WriteString(";")
+					writeTupleAssignmentFromTemp(out, s.Lhs[0], "__tmp_0", false)
+					writeTupleAssignmentFromTemp(out, s.Lhs[1], "__tmp_1", true)
 					out.WriteString(" }")
 				}
 			} else if needsTupleUnpack {

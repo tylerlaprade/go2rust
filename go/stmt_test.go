@@ -3784,6 +3784,51 @@ func load(v any) []*Type {
 	}
 }
 
+func TestTypeAssertionCommaOkBindsRawBool(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func reassert(v any) bool {
+	_, ok := v.(*int)
+	if !ok {
+		return false
+	}
+	_, ok = v.(*string)
+	return ok
+}
+`)
+
+	if strings.Contains(rust, "Rc::new(RefCell::new(Some(true)))") ||
+		strings.Contains(rust, "Arc::new(Mutex::new(Some(true)))") {
+		t.Fatalf("type assertion comma-ok result should be a raw bool:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let (_, mut ok) =") || !strings.Contains(rust, "let (__tmp_0, __tmp_1) =") {
+		t.Fatalf("type assertion short declaration and reassignment should keep tuple shape:\n%s", rust)
+	}
+}
+
+func TestMapCommaOkBindsRawBool(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func relookup(m map[string]int) bool {
+	_, ok := m["first"]
+	if !ok {
+		return false
+	}
+	_, ok = m["second"]
+	return ok
+}
+`)
+
+	if strings.Contains(rust, "Rc::new(RefCell::new(Some(true)))") ||
+		strings.Contains(rust, "Arc::new(Mutex::new(Some(true)))") {
+		t.Fatalf("map comma-ok result should be a raw bool:\n%s", rust)
+	}
+	if !strings.Contains(rust, "/* MAP_COMMA_OK */ Some(v) => (v.clone(), true)") ||
+		!strings.Contains(rust, "let (__tmp_0, __tmp_1) = match") {
+		t.Fatalf("map comma-ok short declaration and reassignment should keep tuple shape:\n%s", rust)
+	}
+}
+
 func TestSliceAssignmentFromPointerDerefClonesPointeeHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
