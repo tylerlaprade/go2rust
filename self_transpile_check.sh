@@ -91,7 +91,7 @@ export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
 export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
 export CARGO_PROFILE_DEV_INCREMENTAL="${CARGO_PROFILE_DEV_INCREMENTAL:-false}"
 export RUSTFLAGS="${RUSTFLAGS:--Awarnings -C debuginfo=0}"
-export GO2RUST_SOURCE_STDLIB_PACKAGES="${GO2RUST_SOURCE_STDLIB_PACKAGES:-go/...,internal/...,cmp,slices,reflect,math/big,math/bits,math,strings,regexp,regexp/syntax,path/filepath,text/scanner}"
+export GO2RUST_SOURCE_STDLIB_PACKAGES="${GO2RUST_SOURCE_STDLIB_PACKAGES:-go/...,internal/...,cmp,slices,reflect,math/big,math/bits,math,strings,regexp,regexp/syntax,path/filepath,text/scanner,unicode/utf8}"
 go build -o "$work/go2rust" "$repo_root/go"
 
 (

@@ -38,6 +38,7 @@ func TestSelfTranspileDefaultSourceStdlibPackages(t *testing.T) {
 		"regexp/syntax",
 		"path/filepath",
 		"text/scanner",
+		"unicode/utf8",
 	} {
 		if !strings.Contains(","+defaults+",", ","+want+",") {
 			t.Fatalf("self-transpile default source stdlib packages should include %q; got %q", want, defaults)
