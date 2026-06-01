@@ -168,6 +168,8 @@ func returnExpressionEmissionStartsWithBlock(expr ast.Expr) bool {
 		// produce a leading `{`, the binary expression inherits the
 		// parsing ambiguity.
 		return returnExpressionEmissionStartsWithBlock(e.X)
+	case *ast.Ident:
+		return identExpressionEmissionStartsWithBlock(e)
 	case *ast.ParenExpr:
 		return returnExpressionEmissionStartsWithBlock(e.X)
 	case *ast.SelectorExpr:
@@ -194,6 +196,28 @@ func returnExpressionEmissionStartsWithBlock(expr ast.Expr) bool {
 		}
 	}
 	return false
+}
+
+func identExpressionEmissionStartsWithBlock(ident *ast.Ident) bool {
+	if ident == nil || !NeedsConcurrentWrapper() || !isCloneableNonPointerIdent(ident) {
+		return false
+	}
+	if isCurrentReceiverIdent(ident) || isPackageGlobalIdent(ident) {
+		return false
+	}
+	if ident.Name == "true" || ident.Name == "false" || ident.Name == "_" {
+		return false
+	}
+	if isLocalConstantIdent(ident) || isConstIdent(ident) {
+		return false
+	}
+	if ident.Name[0] >= 'A' && ident.Name[0] <= 'Z' && ident.Name != "String" && lookupVarInfo(ident.Name) == nil && !isLocalVarIdent(ident) {
+		return false
+	}
+	if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+		return false
+	}
+	return !isVarBare(ident.Name)
 }
 
 // namedReturnsUnwrapBareScalar reports whether the function has at least one

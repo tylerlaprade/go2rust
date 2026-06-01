@@ -3239,6 +3239,39 @@ func both(a, b, c, d int) bool {
 	}
 }
 
+func TestTailReturnStartingWithConcurrentIdentBlockStaysExplicit(t *testing.T) {
+	src := `package main
+
+func same(isRight bool, child, parent int) bool {
+	go func() {}()
+	if child < parent {
+		return true
+	}
+	return isRight && child == parent
+}
+`
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", src, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	prevDetector := GetConcurrencyDetector()
+	detector := NewConcurrencyDetector()
+	detector.AnalyzeFile(file)
+	SetConcurrencyDetector(detector)
+	defer SetConcurrencyDetector(prevDetector)
+
+	rust := transpileParsedRegression(t, file, fset, typeInfo)
+
+	if !strings.Contains(rust, "return { let __v = (*isRight") || !strings.Contains(rust, "} && { let __tmp_x =") {
+		t.Fatalf("tail return whose leading ident emits a Rust block should stay explicit:\n%s", rust)
+	}
+}
+
 func TestBareBoolCallConditionStaysBare(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
