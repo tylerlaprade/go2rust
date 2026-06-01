@@ -1837,7 +1837,7 @@ func writeEmbeddedTraitObjectMethod(out *strings.Builder, method *types.Func) {
 	out.WriteString("    }\n")
 }
 
-func writeLocalInterfaceForwardMethodFromTypes(out *strings.Builder, method *types.Func) {
+func writeLocalInterfaceForwardMethodFromTypes(out *strings.Builder, method *types.Func, receiverType string) {
 	if method == nil {
 		return
 	}
@@ -1886,9 +1886,20 @@ func writeLocalInterfaceForwardMethodFromTypes(out *strings.Builder, method *typ
 		out.WriteString(")")
 	}
 	out.WriteString(" {\n")
-	out.WriteString("        self.")
-	out.WriteString(rustMethodNameForTypesFunc(method))
-	out.WriteString("(")
+	out.WriteString("        ")
+	if receiverType != "" {
+		out.WriteString(receiverType)
+		out.WriteString("::")
+		out.WriteString(rustMethodNameForTypesFunc(method))
+		out.WriteString("(self")
+		if len(argNames) > 0 {
+			out.WriteString(", ")
+		}
+	} else {
+		out.WriteString("self.")
+		out.WriteString(rustMethodNameForTypesFunc(method))
+		out.WriteString("(")
+	}
 	for j, argName := range argNames {
 		if j > 0 {
 			out.WriteString(", ")

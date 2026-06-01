@@ -1564,6 +1564,35 @@ var reserved = new(struct{ Type })
 	}
 }
 
+func TestLocalInterfaceForwardMethodUsesInherentCall(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type interface {
+	Underlying() Type
+}
+
+type Interface struct{}
+
+func (t *Interface) Underlying() Type { return t }
+
+type Named struct {
+	typ Type
+}
+
+func (t *Named) Underlying() Type {
+	t.typ = t
+	return t.typ
+}
+`)
+
+	if strings.Contains(rust, "fn underlying(&mut self)") && strings.Contains(rust, "self.underlying()") {
+		t.Fatalf("mutable trait forwarder must not recursively dispatch through the trait method:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Interface::underlying(self)") {
+		t.Fatalf("mutable trait forwarder should call the inherent method explicitly:\n%s", rust)
+	}
+}
+
 func TestPackageGlobalOsArgsUsesSharedHelper(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

@@ -1082,7 +1082,7 @@ func writeAnonymousInterfaceAssertionTrait(out *strings.Builder, trait anonymous
 		out.WriteString(candidate.rustType)
 		out.WriteString(" {\n")
 		for i := 0; i < trait.iface.NumMethods(); i++ {
-			writeLocalInterfaceForwardMethodFromTypes(out, trait.iface.Method(i))
+			writeLocalInterfaceForwardMethodFromTypes(out, trait.iface.Method(i), candidate.rustType)
 		}
 		writeAnonymousInterfaceSupportImpl(out, trait.name, candidate.rustType)
 		out.WriteString("}")
@@ -2567,7 +2567,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 				// interfaces are provided by the supertrait's impl block —
 				// duplicating them here would create method-resolution ambiguity.
 				for _, method := range explicitInterfaceMethods(ifaceType) {
-					writeLocalInterfaceForwardMethodFromTypes(&body, method)
+					writeLocalInterfaceForwardMethodFromTypes(&body, method, rustTypeName)
 				}
 
 				writeLocalInterfaceSupportImpl(&body, ifaceName, typeName, ifaceType)
