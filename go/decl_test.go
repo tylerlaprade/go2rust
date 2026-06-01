@@ -275,6 +275,7 @@ func TestTranspileInternalGodebugRuntimeLinknamesUseHostRuntime(t *testing.T) {
 	}
 	for _, want := range []string{
 		"std::env::var(\"GODEBUG\")",
+		"if !__env.is_empty()",
 		"let _ = newIncNonDefault",
 		"let _ = (name, read)",
 		"std::io::stderr()",
