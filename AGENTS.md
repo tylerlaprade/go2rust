@@ -132,9 +132,12 @@ Self-transpiling is not the first validation step. Start with a focused fixture 
 - Focused compile check: `GOCACHE=/private/tmp/go2rust-go-cache ./self_transpile_check.sh --cargo-check --package <crate>`
 - Broad compile check: `GOCACHE=/private/tmp/go2rust-go-cache ./self_transpile_check.sh --cargo-check`
 - Behavior gate: `GOCACHE=/private/tmp/go2rust-go-cache GO2RUST_BEHAVIOR_JOBS=3 GO2RUST_BEHAVIOR_TIMEOUT=60s ./self_transpile_check.sh --behavior-suite`
+- Focused behavior gate: add `GO2RUST_BEHAVIOR_TESTS="fixture_one fixture_two"` to run a small generated-binary behavior slice while debugging.
 - The behavior gate builds the generated Rust transpiler and runs `./test.sh` against that generated binary inside a copied test workspace.
 - The copied behavior suite strips committed `.rs`, `Cargo.toml`, and `Cargo.lock` snapshots before running so the generated binary must recreate outputs.
 - Generated Rust compiling is not enough. Self-hosting requires behavior equivalence.
+- `self_transpile_check.sh` marks its temp workspace with an owner pid and removes stale marked workspaces on startup. Use `GO2RUST_SELF_CLEAN_STALE=0` only when deliberately preserving an old workspace for inspection.
+- The self-host script defaults `GOFLAGS` to `-tags=purego` so source-transpiled stdlib packages avoid architecture-specific declarations without Go bodies. Override `GOFLAGS` only when that is the point of the test.
 
 ### Strategy: Transpile stdlib, don't bridge it
 
