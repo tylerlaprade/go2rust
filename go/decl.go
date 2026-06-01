@@ -2554,6 +2554,10 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	writeAssignedInterfaceParamShadows(out, fn, "    ")
 
 	if fn.Body == nil {
+		if writeRuntimeLinkedFunctionBody(out, fn, "    ") {
+			out.WriteString("}\n")
+			return
+		}
 		out.WriteString("    unimplemented!(\"Go function declaration has no body\");\n")
 		out.WriteString("}\n")
 		return
@@ -2712,6 +2716,57 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	}
 
 	out.WriteString("}")
+}
+
+func writeRuntimeLinkedFunctionBody(out *strings.Builder, fn *ast.FuncDecl, indent string) bool {
+	if fn == nil || fn.Name == nil || !isSyscallPackageFunction(fn) {
+		return false
+	}
+	switch fn.Name.Name {
+	case "runtime_envs":
+		out.WriteString(indent)
+		out.WriteString("let __envs: Vec<String> = std::env::vars().map(|(__k, __v)| format!(\"{}={}\", __k, __v)).collect();\n")
+		out.WriteString(indent)
+		WriteWrapperPrefix(out)
+		out.WriteString("__envs")
+		WriteWrapperSuffix(out)
+		out.WriteString("\n")
+		return true
+	case "runtimeSetenv":
+		writeRuntimeLinkedStringParamClone(out, "k", "__key", indent)
+		writeRuntimeLinkedStringParamClone(out, "v", "__value", indent)
+		out.WriteString(indent)
+		out.WriteString("std::env::set_var(__key, __value);\n")
+		return true
+	case "runtimeUnsetenv":
+		writeRuntimeLinkedStringParamClone(out, "k", "__key", indent)
+		out.WriteString(indent)
+		out.WriteString("std::env::remove_var(__key);\n")
+		return true
+	default:
+		return false
+	}
+}
+
+func isSyscallPackageFunction(fn *ast.FuncDecl) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if obj, ok := typeInfo.GetObject(fn.Name).(*types.Func); ok && obj.Pkg() != nil {
+		return obj.Pkg().Path() == "syscall"
+	}
+	return typeInfo.pkg != nil && typeInfo.pkg.Path() == "syscall"
+}
+
+func writeRuntimeLinkedStringParamClone(out *strings.Builder, paramName string, localName string, indent string) {
+	out.WriteString(indent)
+	out.WriteString("let ")
+	out.WriteString(localName)
+	out.WriteString(" = (*")
+	out.WriteString(RustLocalIdent(paramName))
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone();\n")
 }
 
 func writeFuncDeclParams(out *strings.Builder, fn *ast.FuncDecl) {

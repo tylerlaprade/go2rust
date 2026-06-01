@@ -33,6 +33,52 @@ func TestTranspileFunctionWithoutBodyDoesNotPanic(t *testing.T) {
 	}
 }
 
+func TestTranspileSyscallRuntimeLinkedFunctionsUseHostEnv(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	currentTypeInfo = &TypeInfo{pkg: types.NewPackage("syscall", "syscall")}
+	t.Cleanup(func() {
+		currentTypeInfo = prevTypeInfo
+	})
+
+	fset := token.NewFileSet()
+	var out strings.Builder
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("runtime_envs"),
+		Type: &ast.FuncType{
+			Params:  &ast.FieldList{},
+			Results: &ast.FieldList{List: []*ast.Field{{Type: &ast.ArrayType{Elt: ast.NewIdent("string")}}}},
+		},
+	}, fset, nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("runtimeSetenv"),
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{List: []*ast.Field{{
+				Names: []*ast.Ident{ast.NewIdent("k"), ast.NewIdent("v")},
+				Type:  ast.NewIdent("string"),
+			}}},
+		},
+	}, fset, nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("runtimeUnsetenv"),
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{List: []*ast.Field{{
+				Names: []*ast.Ident{ast.NewIdent("k")},
+				Type:  ast.NewIdent("string"),
+			}}},
+		},
+	}, fset, nil)
+
+	got := out.String()
+	if strings.Contains(got, "Go function declaration has no body") {
+		t.Fatalf("syscall runtime-linked declarations should not use the generic bodyless fallback:\n%s", got)
+	}
+	for _, want := range []string{"std::env::vars()", "std::env::set_var(__key, __value)", "std::env::remove_var(__key)"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %q in:\n%s", want, got)
+		}
+	}
+}
+
 func TestTranspileFunctionWithoutBodyNamesUnnamedParams(t *testing.T) {
 	var out strings.Builder
 	fn := &ast.FuncDecl{
