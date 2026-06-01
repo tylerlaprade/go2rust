@@ -3979,8 +3979,8 @@ func TestUnsafeRuntimeIntrinsicsEmitTypedUnimplemented(t *testing.T) {
 
 import "unsafe"
 
-func unsafeValues(p *byte, n int) (string, []byte, unsafe.Pointer) {
-	return unsafe.String(p, n), unsafe.Slice(p, n), unsafe.Add(unsafe.Pointer(p), n)
+func unsafeValues(p *byte, n int, b []byte, s string) (string, []byte, unsafe.Pointer, unsafe.Pointer, unsafe.Pointer) {
+	return unsafe.String(p, n), unsafe.Slice(p, n), unsafe.Add(unsafe.Pointer(p), n), unsafe.Pointer(unsafe.SliceData(b)), unsafe.Pointer(unsafe.StringData(s))
 }
 `, 0)
 	if err != nil {
@@ -3996,7 +3996,7 @@ func unsafeValues(p *byte, n int) (string, []byte, unsafe.Pointer) {
 	if strings.Contains(rust, "unsafe::") {
 		t.Fatalf("unsafe compiler intrinsics should not be emitted as Rust module calls:\n%s", rust)
 	}
-	for _, name := range []string{"unsafe.String", "unsafe.Slice", "unsafe.Add"} {
+	for _, name := range []string{"unsafe.String", "unsafe.Slice", "unsafe.Add", "unsafe.SliceData", "unsafe.StringData"} {
 		if !strings.Contains(rust, `unimplemented!("`+name+` requires unsafe intrinsic support")`) {
 			t.Fatalf("%s should emit a loud unsupported intrinsic marker:\n%s", name, rust)
 		}

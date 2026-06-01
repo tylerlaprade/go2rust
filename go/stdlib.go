@@ -127,6 +127,7 @@ func init() {
 		"time.NewTicker":           transpileTimeNewTicker,
 		"time.NewTimer":            transpileTimeNewTimer,
 		"time.Tick":                transpileTimeTick,
+		"time.AfterFunc":           transpileTimeAfterFunc,
 		"context.Background":       transpileContextBackground,
 		"context.WithTimeout":      transpileContextWithTimeout,
 		"context.WithCancel":       transpileContextWithCancel,
@@ -154,6 +155,8 @@ func init() {
 		"unsafe.Add":                                 transpileUnsafeAdd,
 		"unsafe.Slice":                               transpileUnsafeSlice,
 		"unsafe.String":                              transpileUnsafeString,
+		"unsafe.SliceData":                           transpileUnsafeSliceData,
+		"unsafe.StringData":                          transpileUnsafeStringData,
 		"math/rand.Seed":                             transpileRandSeed,
 		"math/rand.Intn":                             transpileRandIntn,
 		"math/rand.Float64":                          transpileRandFloat64,
@@ -3435,6 +3438,14 @@ func transpileUnsafeString(out *strings.Builder, call *ast.CallExpr) {
 	transpileUnsupportedUnsafeIntrinsic(out, call, "String")
 }
 
+func transpileUnsafeSliceData(out *strings.Builder, call *ast.CallExpr) {
+	transpileUnsupportedUnsafeIntrinsic(out, call, "SliceData")
+}
+
+func transpileUnsafeStringData(out *strings.Builder, call *ast.CallExpr) {
+	transpileUnsupportedUnsafeIntrinsic(out, call, "StringData")
+}
+
 func transpileUnsupportedUnsafeIntrinsic(out *strings.Builder, call *ast.CallExpr, goFunc string) {
 	WriteWrapperPrefix(out)
 	typeInfo := GetTypeInfo()
@@ -5617,6 +5628,48 @@ func transpileTimeNewTimer(out *strings.Builder, call *ast.CallExpr) {
 	}
 	out.WriteString(")")
 	out.WriteString(")))")
+}
+
+func transpileTimeAfterFunc(out *strings.Builder, call *ast.CallExpr) {
+	NeedGoTimer()
+	TrackImport("time::Duration")
+	WriteWrapperPrefix(out)
+	out.WriteString("go_after_func(")
+	if len(call.Args) > 0 {
+		transpileDurationArg(out, call.Args[0])
+	} else {
+		out.WriteString("std::time::Duration::from_secs(0)")
+	}
+	out.WriteString(", ")
+	if len(call.Args) > 1 {
+		writeTimeAfterFuncCallback(out, call.Args[1])
+	} else {
+		writeUnsupportedTimeAfterFuncCallback(out)
+	}
+	out.WriteString(")")
+	out.WriteString(")))")
+}
+
+func writeTimeAfterFuncCallback(out *strings.Builder, arg ast.Expr) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		writeUnsupportedTimeAfterFuncCallback(out)
+		return
+	}
+	sig, ok := signatureFromType(typeInfo.GetType(arg))
+	if !ok || sig == nil || sig.Params().Len() != 0 || sig.Results().Len() != 0 {
+		writeUnsupportedTimeAfterFuncCallback(out)
+		return
+	}
+	if ident, ok := arg.(*ast.Ident); ok && typeInfo.IsFunction(ident) {
+		out.WriteString(rustFunctionNameForUse(ident.Name))
+		return
+	}
+	writeUnsupportedTimeAfterFuncCallback(out)
+}
+
+func writeUnsupportedTimeAfterFuncCallback(out *strings.Builder) {
+	out.WriteString("move || { unimplemented!(\"time.AfterFunc callback lowering requires a named zero-argument function\") }")
 }
 
 func transpileTimeTick(out *strings.Builder, call *ast.CallExpr) {

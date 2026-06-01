@@ -537,7 +537,7 @@ func (ht *HelperTracker) ImportNames() []string {
 		add("GoTime", "go_time_civil_from_days")
 	}
 	if ht.needsGoTimer {
-		add("GoTimer", "go_new_timer")
+		add("GoTimer", "go_new_timer", "go_after_func")
 	}
 	if ht.needsGoAfter {
 		add("go_channel_after")
@@ -2733,6 +2733,21 @@ fn go_new_timer(duration: std::time::Duration) -> GoTimer {
     }
 }
 
+fn go_after_func<F>(duration: std::time::Duration, callback: F) -> GoTimer
+where
+    F: FnOnce() + Send + 'static,
+{
+    let timer = go_new_timer(duration);
+    let stopped = timer.stopped.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(duration);
+        if !stopped.load(std::sync::atomic::Ordering::SeqCst) {
+            callback();
+        }
+    });
+    timer
+}
+
 impl GoTimer {
     fn stop(&self) -> bool {
         let was_stopped = self.stopped.swap(true, std::sync::atomic::Ordering::SeqCst);
@@ -2769,6 +2784,21 @@ fn go_new_timer(duration: std::time::Duration) -> GoTimer {
         c: channel,
         stopped,
     }
+}
+
+fn go_after_func<F>(duration: std::time::Duration, callback: F) -> GoTimer
+where
+    F: FnOnce() + Send + 'static,
+{
+    let timer = go_new_timer(duration);
+    let stopped = timer.stopped.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(duration);
+        if !stopped.load(std::sync::atomic::Ordering::SeqCst) {
+            callback();
+        }
+    });
+    timer
 }
 
 impl GoTimer {

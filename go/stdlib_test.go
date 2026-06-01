@@ -249,6 +249,34 @@ func forceConcurrent() {
 	}
 }
 
+func TestTimeAfterFuncUsesGoTimerHelper(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "time"
+
+func warn() {}
+
+func read() {
+	t := time.AfterFunc(time.Minute, warn)
+	defer t.Stop()
+}
+
+func forceConcurrent() {
+	go func() {}()
+}
+`)
+
+	if strings.Contains(rust, "time::after_func") {
+		t.Fatalf("time.AfterFunc should use the GoTimer helper, not an external package stub:\n%s", rust)
+	}
+	if !strings.Contains(rust, "go_after_func(std::time::Duration::from_secs(60), warn)") {
+		t.Fatalf("time.AfterFunc should pass a raw duration and named callback to the helper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __recv_ptr: *mut GoTimer") {
+		t.Fatalf("deferred Stop should use the same GoTimer helper type:\n%s", rust)
+	}
+}
+
 func TestFmtSprintfPrecisionGAndSignedDecimalVerbs(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

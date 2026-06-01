@@ -44,6 +44,7 @@ func TestSelfTranspileDefaultSourceStdlibPackages(t *testing.T) {
 		"crypto/rand",
 		"crypto/internal/boring",
 		"crypto/internal/fips140",
+		"crypto/internal/sysrand",
 	} {
 		if !strings.Contains(","+defaults+",", ","+want+",") {
 			t.Fatalf("self-transpile default source stdlib packages should include %q; got %q", want, defaults)
