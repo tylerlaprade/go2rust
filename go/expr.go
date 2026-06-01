@@ -9366,14 +9366,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 
 			if isStringConcat {
-				// Use format! for string concatenation
-				// All arguments must be unwrapped Display values for format!
-				out.WriteString("format!(\"{}{}\"")
-				out.WriteString(", ")
-				writeUnwrappedForFormat(out, e.X)
-				out.WriteString(", ")
-				writeUnwrappedForFormat(out, e.Y)
-				out.WriteString(")")
+				operands := typedStringConcatOperands(e)
+				if len(operands) > 2 {
+					writeLinearStringConcat(out, operands)
+					return
+				}
+				writePairStringConcat(out, e.X, e.Y)
 				return
 			}
 		}
@@ -13330,6 +13328,39 @@ func isSyntaxStringConcatExpr(expr *ast.BinaryExpr) bool {
 	}
 	return isSyntaxStringValue(expr.X) || isSyntaxStringValue(expr.Y) ||
 		isSyntaxStringConversion(expr.X) || isSyntaxStringConversion(expr.Y)
+}
+
+func typedStringConcatOperands(expr ast.Expr) []ast.Expr {
+	binary, ok := expr.(*ast.BinaryExpr)
+	if !ok || binary.Op != token.ADD {
+		return []ast.Expr{expr}
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsString(binary) {
+		return []ast.Expr{expr}
+	}
+	operands := typedStringConcatOperands(binary.X)
+	operands = append(operands, typedStringConcatOperands(binary.Y)...)
+	return operands
+}
+
+func writePairStringConcat(out *strings.Builder, left ast.Expr, right ast.Expr) {
+	out.WriteString("format!(\"{}{}\"")
+	out.WriteString(", ")
+	writeUnwrappedForFormat(out, left)
+	out.WriteString(", ")
+	writeUnwrappedForFormat(out, right)
+	out.WriteString(")")
+}
+
+func writeLinearStringConcat(out *strings.Builder, operands []ast.Expr) {
+	out.WriteString("{ let mut __s = String::new();")
+	for _, operand := range operands {
+		out.WriteString(" __s.push_str(&format!(\"{}\", ")
+		writeUnwrappedForFormat(out, operand)
+		out.WriteString("));")
+	}
+	out.WriteString(" __s }")
 }
 
 func writeUnsafePointerConversion(out *strings.Builder, arg ast.Expr) {

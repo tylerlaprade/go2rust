@@ -759,6 +759,23 @@ func appendName(name string) []byte {
 	}
 }
 
+func TestTypedLongStringConcatUsesLinearBuilder(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func render(name string) string {
+	return "a" + name + "b" + name + "c" + name + "d"
+}
+`)
+
+	if strings.Contains(rust, `format!("{}{}", format!("{}{}"`) {
+		t.Fatalf("long string concatenation should not lower to nested format macros:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut __s = String::new()") ||
+		!strings.Contains(rust, `__s.push_str(&format!("{}",`) {
+		t.Fatalf("long string concatenation should use a linear string builder shape:\n%s", rust)
+	}
+}
+
 func TestAppendStringSliceToStringSliceUsesBareString(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
