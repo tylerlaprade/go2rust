@@ -1380,12 +1380,103 @@ func constExpressionOperandRustType(expr ast.Expr, rustType string) string {
 	if isUnsignedRustIntegerCastType(rustType) && constExpressionContainsNegativeValue(expr) {
 		return "i128"
 	}
+	if min, max, ok := constExpressionIntegerBounds(expr); ok && !rustIntegerTypeCanRepresentBounds(rustType, min, max) {
+		if widened, ok := unsignedRustIntegerTypeForConstBounds(rustType, min, max); ok {
+			return widened
+		}
+		if widened, ok := rustIntegerTypeForConstBounds(min, max); ok {
+			return widened
+		}
+	}
 	return rustType
+}
+
+func constExpressionIntegerBounds(expr ast.Expr) (*big.Int, *big.Int, bool) {
+	var min, max *big.Int
+	ast.Inspect(expr, func(node ast.Node) bool {
+		nodeExpr, ok := node.(ast.Expr)
+		if !ok {
+			return true
+		}
+		value, ok := constExpressionValue(nodeExpr)
+		if !ok {
+			return true
+		}
+		intValue := value
+		if intValue.Kind() != constant.Int {
+			intValue = constant.ToInt(value)
+		}
+		n, ok := bigIntForConstInteger(intValue)
+		if !ok {
+			return true
+		}
+		if min == nil || n.Cmp(min) < 0 {
+			min = n
+		}
+		if max == nil || n.Cmp(max) > 0 {
+			max = n
+		}
+		return true
+	})
+	return min, max, min != nil && max != nil
+}
+
+func unsignedRustIntegerTypeForConstBounds(target string, min *big.Int, max *big.Int) (string, bool) {
+	if min == nil || max == nil || min.Sign() < 0 || !isUnsignedRustIntegerCastType(target) {
+		return "", false
+	}
+	for _, candidate := range []struct {
+		name string
+		bits uint
+	}{
+		{"u8", 8},
+		{"u16", 16},
+		{"u32", 32},
+		{"u64", 64},
+		{"u128", 128},
+	} {
+		if max.Cmp(maxUnsignedBigInt(candidate.bits)) <= 0 {
+			return candidate.name, true
+		}
+	}
+	return "", false
+}
+
+func rustIntegerTypeCanRepresentBounds(rustType string, min *big.Int, max *big.Int) bool {
+	if min == nil || max == nil {
+		return false
+	}
+	switch rustType {
+	case "i8":
+		return min.Cmp(minSignedBigInt(8)) >= 0 && max.Cmp(maxSignedBigInt(8)) <= 0
+	case "i16":
+		return min.Cmp(minSignedBigInt(16)) >= 0 && max.Cmp(maxSignedBigInt(16)) <= 0
+	case "i32":
+		return min.Cmp(minSignedBigInt(32)) >= 0 && max.Cmp(maxSignedBigInt(32)) <= 0
+	case "i64":
+		return min.Cmp(minSignedBigInt(64)) >= 0 && max.Cmp(maxSignedBigInt(64)) <= 0
+	case "i128":
+		return min.Cmp(minSignedBigInt(128)) >= 0 && max.Cmp(maxSignedBigInt(128)) <= 0
+	case "u8":
+		return min.Sign() >= 0 && max.Cmp(maxUnsignedBigInt(8)) <= 0
+	case "u16":
+		return min.Sign() >= 0 && max.Cmp(maxUnsignedBigInt(16)) <= 0
+	case "u32":
+		return min.Sign() >= 0 && max.Cmp(maxUnsignedBigInt(32)) <= 0
+	case "u64":
+		return min.Sign() >= 0 && max.Cmp(maxUnsignedBigInt(64)) <= 0
+	case "u128":
+		return min.Sign() >= 0 && max.Cmp(maxUnsignedBigInt(128)) <= 0
+	case "usize":
+		return min.Sign() >= 0 && max.Cmp(maxUnsignedBigInt(uint(strconv.IntSize))) <= 0
+	default:
+		return false
+	}
 }
 
 func isUnsignedRustIntegerCastType(rustType string) bool {
 	switch rustType {
-	case "u8", "u16", "u32", "u64", "usize":
+	case "u8", "u16", "u32", "u64", "u128", "usize":
 		return true
 	default:
 		return false

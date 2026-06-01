@@ -2082,6 +2082,30 @@ func setMantissa(bits uint64) uint64 {
 	}
 }
 
+func TestUntypedShiftConstUsesWiderIntermediateForNarrowExpectedType(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func start() {
+	go func() {}()
+}
+
+type Range16 struct {
+	Hi uint16
+}
+
+func fullRange() Range16 {
+	return Range16{Hi: 1<<16 - 1}
+}
+`)
+
+	if strings.Contains(rust, "(1 as u16) << (16 as u16)") {
+		t.Fatalf("constant shift intermediate should not be narrowed before subtracting:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(1 as u32) << (16 as u32)") {
+		t.Fatalf("constant shift intermediate should use a wider unsigned type before final cast:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerConversionShiftLeftOperandIsParenthesized(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
