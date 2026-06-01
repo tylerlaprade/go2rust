@@ -6285,6 +6285,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 		}
 		if funcName == "exit" {
 			writeOsExitFunction(out)
+		} else if funcName == "getenv" {
+			writeOsGetenvFunction(out, pkg.Functions[funcName])
 		} else if funcName == "mkdir_all" {
 			writeOsMkdirAllFunction(out, pkg.Functions[funcName])
 		} else if funcName == "read_file" {
@@ -6337,6 +6339,31 @@ func writeOsErrorHelpers(out *strings.Builder) {
 func writeOsExitFunction(out *strings.Builder) {
 	out.WriteString("    pub fn exit<T0: Into<i32>>(_arg0: T0) {\n")
 	out.WriteString("        std::process::exit(_arg0.into());\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.Getenv maps to std::env::var in the host process environment.
+func writeOsGetenvFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	stringType := wrappedExternalStubType("String")
+	stringBorrow := externalStubBorrowExpr("v")
+
+	out.WriteString("    pub fn getenv<T0: 'static>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let key = if let Some(v) = (&_arg0 as &dyn Any).downcast_ref::<String>() {\n")
+	out.WriteString("            v.clone()\n")
+	out.WriteString("        } else if let Some(v) = (&_arg0 as &dyn Any).downcast_ref::<")
+	out.WriteString(stringType)
+	out.WriteString(">() {\n")
+	out.WriteString("            ")
+	out.WriteString(stringBorrow)
+	out.WriteString(".as_ref().cloned().unwrap_or_default()\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            panic!(\"os.Getenv bridge: expected string argument\")\n")
+	out.WriteString("        };\n")
+	out.WriteString("        ")
+	out.WriteString(wrappedExternalStubExpr("String", "std::env::var(key).unwrap_or_default()"))
+	out.WriteString("\n")
 	out.WriteString("    }\n")
 }
 

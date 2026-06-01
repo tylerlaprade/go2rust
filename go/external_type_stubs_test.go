@@ -417,6 +417,32 @@ func TestOsFileStubImplementsReadAtMethod(t *testing.T) {
 	}
 }
 
+func TestOsGetenvStubUsesHostEnv(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"getenv": {
+				ParamCount:  1,
+				ReturnTypes: []string{wrappedExternalStubType("String")},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.Getenv should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"std::env::var(key).unwrap_or_default()",
+		"downcast_ref::<" + wrappedExternalStubType("String") + ">",
+		externalStubBorrowExpr("v") + ".as_ref().cloned().unwrap_or_default()",
+		"os.Getenv bridge: expected string argument",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.Getenv shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestIoCopyStubMatchesBareCountReturnSignature(t *testing.T) {
 	var out strings.Builder
 	writeIoCopyStub(&out, externalPackageStubFunction{
