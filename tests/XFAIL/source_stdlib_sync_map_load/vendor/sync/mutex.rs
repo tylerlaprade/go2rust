@@ -32,7 +32,7 @@ use std::sync::{Arc, Mutex as StdMutex};
 #[derive(Clone)]
 pub struct Mutex {
     pub __blank_0_0: Arc<StdMutex<Option<noCopy>>>,
-    pub mu: Arc<StdMutex<Option<internal_sync::Mutex>>>,
+    pub mu: Arc<StdMutex<Option<internal_sync::mutex::Mutex>>>,
 }
 
 impl Mutex {

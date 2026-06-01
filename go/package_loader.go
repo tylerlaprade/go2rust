@@ -20,6 +20,7 @@ type PackageLoader struct {
 	mainPkg             *packages.Package
 	allPackages         map[string]*packages.Package // import path -> package
 	packageMapping      map[string]string            // Go import -> Rust crate name
+	packageTypeModules  map[string]map[string]string // import path -> Go type name -> Rust module name
 	packageStates       map[string]*PackageState
 	comparableByPackage map[string]map[string]bool
 	concurrencyDetector *ConcurrencyDetector
@@ -35,6 +36,7 @@ func NewPackageLoader(workDir string) *PackageLoader {
 		workDir:             workDir,
 		allPackages:         make(map[string]*packages.Package),
 		packageMapping:      make(map[string]string),
+		packageTypeModules:  make(map[string]map[string]string),
 		packageStates:       make(map[string]*PackageState),
 		comparableByPackage: make(map[string]map[string]bool),
 	}
@@ -484,6 +486,7 @@ func (pl *PackageLoader) TranspileAll() error {
 	// in heavy deps (go/ast's reflect printer, filepath's os-based Glob) don't
 	// block compilation of the subset the program actually uses.
 	SetSourceStdlibReachable(pl.computeSourceStdlibReachable())
+	pl.packageTypeModules = pl.collectPackageTypeModuleNames()
 
 	resetPackageMethodReceiverMutability()
 	var allPackageTypes []*types.Package
@@ -633,6 +636,45 @@ func (pl *PackageLoader) orderedPackagePaths() []string {
 	return paths
 }
 
+func packageModuleNames(pkg *packages.Package) ([]string, []string) {
+	if pkg == nil {
+		return nil, nil
+	}
+	var modules []string
+	moduleNamesByIndex := make([]string, len(pkg.Syntax))
+	for i, astFile := range pkg.Syntax {
+		if len(astFile.Decls) == 0 {
+			continue
+		}
+		fileName := packageFileName(pkg, i)
+		baseName := strings.TrimSuffix(fileName, ".go")
+		if baseName == pkg.Name {
+			baseName = "mod" // Avoid name collision
+		}
+		moduleName := SanitizeRustModuleName(baseName)
+		moduleNamesByIndex[i] = moduleName
+		modules = append(modules, moduleName)
+	}
+	return modules, moduleNamesByIndex
+}
+
+func (pl *PackageLoader) collectPackageTypeModuleNames() map[string]map[string]string {
+	typeModules := make(map[string]map[string]string)
+	for _, pkgPath := range pl.orderedAllPackagePaths() {
+		pkg := pl.allPackages[pkgPath]
+		if pkg == nil || len(pkg.Syntax) == 0 || pl.packageMapping[pkgPath] == "" {
+			continue
+		}
+		_, moduleNamesByIndex := packageModuleNames(pkg)
+		pkgState := NewPackageState()
+		registerPackageTypeModuleNames(pkgState, pkg.Syntax, moduleNamesByIndex)
+		if len(pkgState.TypeModuleNames) > 0 {
+			typeModules[pkgPath] = pkgState.TypeModuleNames
+		}
+	}
+	return typeModules
+}
+
 // transpilePackage transpiles a single package
 func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	if len(pkg.Syntax) == 0 {
@@ -671,8 +713,10 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	pkgState.MethodNameOverrides = assignPackageMethodNames(pkg.Syntax, pkgTypeInfo)
 	pkgState.ConstantNameOverrides = assignPackageConstantNames(pkg.Syntax)
 	pkgState.MethodsByType = collectPackageMethods(pkg.Syntax)
+	session := NewTranspileSession(pkgTypeInfo, pl.packageMapping)
+	session.PackageTypeModuleNames = pl.packageTypeModules
 	SetTranspileContext(&TranspileContext{
-		Session:                 NewTranspileSession(pkgTypeInfo, pl.packageMapping),
+		Session:                 session,
 		Package:                 pkgState,
 		PackageMapping:          pl.packageMapping,
 		UsePackageExternalStubs: true,
@@ -694,21 +738,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 
 	// Generate lib.rs with all modules
 	var libRs strings.Builder
-	var modules []string
-	moduleNamesByIndex := make([]string, len(pkg.Syntax))
-	for i, astFile := range pkg.Syntax {
-		if len(astFile.Decls) == 0 {
-			continue
-		}
-		fileName := packageFileName(pkg, i)
-		baseName := strings.TrimSuffix(fileName, ".go")
-		if baseName == pkg.Name {
-			baseName = "mod" // Avoid name collision
-		}
-		moduleName := SanitizeRustModuleName(baseName)
-		moduleNamesByIndex[i] = moduleName
-		modules = append(modules, moduleName)
-	}
+	modules, moduleNamesByIndex := packageModuleNames(pkg)
 	usePackageHelpers := len(modules) > 1
 	if pkgCtx != nil {
 		pkgCtx.UsePackageHelpers = usePackageHelpers
@@ -937,6 +967,10 @@ func (pl *PackageLoader) goPathToRustCrate(goPath string) string {
 // GetPackageMapping returns the package mapping
 func (pl *PackageLoader) GetPackageMapping() map[string]string {
 	return pl.packageMapping
+}
+
+func (pl *PackageLoader) GetPackageTypeModuleNames() map[string]map[string]string {
+	return pl.packageTypeModules
 }
 
 func (pl *PackageLoader) GetPackageStates() []*PackageState {

@@ -9,8 +9,9 @@ import (
 
 // TranspileSession holds run-scoped state shared across package transpilation.
 type TranspileSession struct {
-	TypeInfo       *TypeInfo
-	PackageMapping map[string]string // Go import path -> Rust crate name
+	TypeInfo               *TypeInfo
+	PackageMapping         map[string]string            // Go import path -> Rust crate name
+	PackageTypeModuleNames map[string]map[string]string // Go import path -> Go type name -> Rust module name
 }
 
 // PackageState holds package-scoped registries that should be shared across files.

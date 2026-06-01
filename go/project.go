@@ -25,9 +25,10 @@ type ProjectGenerator struct {
 	externalMode             ExternalPackageMode
 	goImports                map[string][]string // package path -> list of imports
 	packageMapping           map[string]string   // Go import path -> Rust crate name
-	isVendorPackage          bool                // True if this is a vendor package (no go.mod required)
-	useSharedStdlibStubCrate bool                // True when transpiled packages share one stdlib stub crate
-	usePackageHelpers        bool                // True when helper definitions must be shared across generated modules
+	packageTypeModules       map[string]map[string]string
+	isVendorPackage          bool // True if this is a vendor package (no go.mod required)
+	useSharedStdlibStubCrate bool // True when transpiled packages share one stdlib stub crate
+	usePackageHelpers        bool // True when helper definitions must be shared across generated modules
 }
 
 const packageHelperIncludeFile = "__go2rust_helpers.rs"
@@ -178,6 +179,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		// Get type info and package mapping
 		pg.typeInfo = loader.GetTypeInfo()
 		pg.packageMapping = loader.GetPackageMapping()
+		pg.packageTypeModules = loader.GetPackageTypeModuleNames()
 		pg.useSharedStdlibStubCrate = len(pg.packageMapping) > 0
 
 		// CRITICAL: Replace our AST files with the ones from PackageLoader
@@ -274,8 +276,10 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	packageState.MapKeyStructTypes = packageAnalysis.mapKeyStructTypes
 	packageState.ComparableStructTypes = packageAnalysis.comparableStructTypes
 	pg.usePackageHelpers = len(astFiles) > 1
+	session := NewTranspileSession(pg.typeInfo, pg.packageMapping)
+	session.PackageTypeModuleNames = pg.packageTypeModules
 	runCtx := &TranspileContext{
-		Session:                 NewTranspileSession(pg.typeInfo, pg.packageMapping),
+		Session:                 session,
 		Package:                 packageState,
 		PackageMapping:          pg.packageMapping,
 		UsePackageExternalStubs: pg.useSharedStdlibStubCrate,

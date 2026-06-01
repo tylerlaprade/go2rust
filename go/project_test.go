@@ -4599,6 +4599,58 @@ func main() {
 	}
 }
 
+func TestMappedImportedTypeUsesDeclaringModulePath(t *testing.T) {
+	fset := token.NewFileSet()
+	mutexPkg := parsePackageForReachabilityTest(t, fset, "example.com/internal/sync", "mutex.go", `package sync
+
+type Mutex struct{}
+`)
+	syncPkg := parsePackageForReachabilityTest(t, fset, "example.com/sync", "sync.go", `package sync
+
+import isync "example.com/internal/sync"
+
+type Holder struct {
+	mu isync.Mutex
+}
+`)
+	loader := &PackageLoader{
+		fileSet: fset,
+		mainPkg: syncPkg,
+		allPackages: map[string]*packages.Package{
+			"example.com/internal/sync": mutexPkg,
+			"example.com/sync":          syncPkg,
+		},
+		packageMapping: map[string]string{"example.com/internal/sync": "internal_sync"},
+	}
+	if err := loader.typeCheckLocalPackage(mutexPkg, loader.projectImporter()); err != nil {
+		t.Fatalf("typeCheckLocalPackage(example.com/internal/sync) error = %v", err)
+	}
+	if err := loader.typeCheckLocalPackage(syncPkg, loader.projectImporter()); err != nil {
+		t.Fatalf("typeCheckLocalPackage(example.com/sync) error = %v", err)
+	}
+
+	typeInfo := &TypeInfo{info: syncPkg.TypesInfo, pkg: syncPkg.Types}
+	session := NewTranspileSession(typeInfo, loader.packageMapping)
+	session.PackageTypeModuleNames = map[string]map[string]string{
+		"example.com/internal/sync": {"Mutex": "mutex"},
+	}
+	prevCtx := GetTranspileContext()
+	SetTranspileContext(&TranspileContext{
+		Session:        session,
+		Package:        NewPackageState(),
+		PackageMapping: loader.packageMapping,
+	})
+	defer SetTranspileContext(prevCtx)
+
+	rust, _, _ := TranspileWithMapping(syncPkg.Syntax[0], fset, typeInfo, loader.packageMapping)
+	if strings.Contains(rust, "internal_sync::Mutex") {
+		t.Fatalf("mapped imported type should not use crate-root path that can be shadowed:\n%s", rust)
+	}
+	if !strings.Contains(rust, "internal_sync::mutex::Mutex") {
+		t.Fatalf("mapped imported type should use declaring module path:\n%s", rust)
+	}
+}
+
 func TestSourceStdlibPackageLocalInterfacesDoNotRegisterExternalStubs(t *testing.T) {
 	t.Setenv(sourceStdlibPackagesEnv, "go/build/constraint")
 	tempDir := t.TempDir()

@@ -1862,6 +1862,9 @@ func rustTypeNameForImportedPackagePath(pkgPath, name string) (string, bool) {
 	if ctx != nil && ctx.PackageMapping != nil {
 		if crateName, ok := ctx.PackageMapping[pkgPath]; ok {
 			TrackGeneratedCrateDependency(crateName)
+			if moduleName := importedPackageTypeModuleName(ctx, pkgPath, name); moduleName != "" {
+				return crateName + "::" + moduleName + "::" + RustTypeNameForUse(name), true
+			}
 			return crateName + "::" + RustTypeNameForUse(name), true
 		}
 	}
@@ -1869,6 +1872,17 @@ func rustTypeNameForImportedPackagePath(pkgPath, name string) (string, bool) {
 		return "", false
 	}
 	return RustCrateNameForGoImportPath(pkgPath) + "::" + RustTypeNameForUse(name), true
+}
+
+func importedPackageTypeModuleName(ctx *TranspileContext, pkgPath, name string) string {
+	if ctx == nil || ctx.Session == nil || ctx.Session.PackageTypeModuleNames == nil {
+		return ""
+	}
+	typeModules := ctx.Session.PackageTypeModuleNames[pkgPath]
+	if typeModules == nil {
+		return ""
+	}
+	return typeModules[name]
 }
 
 // goTypesTypeToRustWrapped converts a go/types.Type to the wrapped Rust type string
