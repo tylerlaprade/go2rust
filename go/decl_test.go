@@ -287,6 +287,78 @@ func TestTranspileInternalGodebugRuntimeLinknamesUseHostRuntime(t *testing.T) {
 	}
 }
 
+func TestTranspileStringsBuilderRuntimeUnsafeIntrinsics(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	stringsPkg := types.NewPackage("strings", "strings")
+	builderNamed := types.NewNamed(types.NewTypeName(token.NoPos, stringsPkg, "Builder", nil), types.NewStruct(nil, nil), nil)
+	builderRecv := types.NewVar(token.NoPos, stringsPkg, "b", types.NewPointer(builderNamed))
+	copyCheckName := ast.NewIdent("copyCheck")
+	stringName := ast.NewIdent("String")
+	currentTypeInfo = &TypeInfo{
+		info: &types.Info{Defs: map[*ast.Ident]types.Object{
+			copyCheckName: types.NewFunc(token.NoPos, stringsPkg, "copyCheck", types.NewSignatureType(builderRecv, nil, nil, nil, nil, false)),
+			stringName:    types.NewFunc(token.NoPos, stringsPkg, "String", types.NewSignatureType(builderRecv, nil, nil, nil, types.NewTuple(types.NewVar(token.NoPos, stringsPkg, "", types.Typ[types.String])), false)),
+		}},
+		pkg: stringsPkg,
+	}
+	t.Cleanup(func() {
+		currentTypeInfo = prevTypeInfo
+	})
+
+	recv := &ast.FieldList{List: []*ast.Field{{
+		Names: []*ast.Ident{ast.NewIdent("b")},
+		Type:  &ast.StarExpr{X: ast.NewIdent("Builder")},
+	}}}
+	copyCheck := &ast.FuncDecl{
+		Recv: recv,
+		Name: copyCheckName,
+		Type: &ast.FuncType{Params: &ast.FieldList{}},
+		Body: &ast.BlockStmt{Lbrace: token.Pos(1), List: []ast.Stmt{
+			&ast.AssignStmt{
+				Lhs: []ast.Expr{&ast.SelectorExpr{X: ast.NewIdent("b"), Sel: ast.NewIdent("addr")}},
+				Tok: token.ASSIGN,
+				Rhs: []ast.Expr{ast.NewIdent("b")},
+			},
+		}, Rbrace: token.Pos(2)},
+	}
+	stringMethod := &ast.FuncDecl{
+		Recv: recv,
+		Name: stringName,
+		Type: &ast.FuncType{
+			Params:  &ast.FieldList{},
+			Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("string")}}},
+		},
+		Body: &ast.BlockStmt{Lbrace: token.Pos(3), List: []ast.Stmt{
+			&ast.ReturnStmt{Results: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: `"body should be replaced"`}}},
+		}, Rbrace: token.Pos(4)},
+	}
+
+	var out strings.Builder
+	TranspileMethodImpl(&out, copyCheck, token.NewFileSet(), nil)
+	TranspileMethodImpl(&out, stringMethod, token.NewFileSet(), nil)
+
+	got := out.String()
+	for _, bad := range []string{
+		"unsafe.Pointer conversion to Builder",
+		"unsafe.String requires unsafe intrinsic support",
+		"body should be replaced",
+	} {
+		if strings.Contains(got, bad) {
+			t.Fatalf("strings.Builder runtime intrinsics should replace unsafe Go bodies, found %q in:\n%s", bad, got)
+		}
+	}
+	for _, want := range []string{
+		"pub fn copy_check(&mut self)",
+		"let _ = self;",
+		"pub fn string(&self) -> Rc<RefCell<Option<String>>>",
+		"String::from_utf8_lossy(__buf).to_string()",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %q in:\n%s", want, got)
+		}
+	}
+}
+
 func TestTranspileInternalBytealgCountIntrinsicsUseGenericBodies(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	currentTypeInfo = &TypeInfo{pkg: types.NewPackage("internal/bytealg", "bytealg")}

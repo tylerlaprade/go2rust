@@ -2790,6 +2790,19 @@ func writeRuntimeLinkedFunctionBody(out *strings.Builder, fn *ast.FuncDecl, inde
 			writeInternalGodebugWriteBody(out, fn, indent)
 			return true
 		}
+	case "strings":
+		switch fn.Name.Name {
+		case "copyCheck":
+			if runtimeLinkedReceiverIsNamed(fn, "Builder") {
+				writeStringsBuilderCopyCheckBody(out, indent)
+				return true
+			}
+		case "String":
+			if runtimeLinkedReceiverIsNamed(fn, "Builder") {
+				writeStringsBuilderStringBody(out, indent)
+				return true
+			}
+		}
 	}
 	return false
 }
@@ -3113,6 +3126,38 @@ func writeInternalGodebugWriteBody(out *strings.Builder, fn *ast.FuncDecl, inden
 	out.WriteString("};\n")
 	out.WriteString(indent)
 	out.WriteString("if __result.is_ok() { __n } else { -1 }\n")
+}
+
+func runtimeLinkedReceiverIsNamed(fn *ast.FuncDecl, name string) bool {
+	sig, ok := funcDeclSignatureFromTypeInfo(fn)
+	if !ok || sig.Recv() == nil {
+		return false
+	}
+	recvType := types.Unalias(sig.Recv().Type())
+	if ptr, ok := recvType.(*types.Pointer); ok {
+		recvType = types.Unalias(ptr.Elem())
+	}
+	named, ok := recvType.(*types.Named)
+	return ok && named.Obj() != nil && named.Obj().Name() == name
+}
+
+func writeStringsBuilderCopyCheckBody(out *strings.Builder, indent string) {
+	out.WriteString(indent)
+	out.WriteString("let _ = self;\n")
+}
+
+func writeStringsBuilderStringBody(out *strings.Builder, indent string) {
+	out.WriteString(indent)
+	out.WriteString("let __buf_guard = self.buf")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("let __text = __buf_guard.as_ref().map(|__buf| String::from_utf8_lossy(__buf).to_string()).unwrap_or_default();\n")
+	out.WriteString(indent)
+	WriteWrapperPrefix(out)
+	out.WriteString("__text")
+	WriteWrapperSuffix(out)
+	out.WriteString("\n")
 }
 
 func runtimeLinkedSingleResultReturnsBareScalar(fn *ast.FuncDecl) bool {
@@ -6111,6 +6156,13 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 				}
 			}
 		}
+	}
+
+	if writeRuntimeLinkedFunctionBody(out, fn, "        ") {
+		out.WriteString("    }\n")
+		currentReceiver = ""
+		currentReceiverObject = nil
+		return
 	}
 
 	// Method body - need to handle self references
