@@ -22,6 +22,7 @@ func TestTestScriptSweepsAllGeneratedTempRoots(t *testing.T) {
 		"go2rust-stdout.*",
 		"go2rust-stderr.*",
 		"go2rust-test-binary.*",
+		"go2rust-go-cache.*",
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("test.sh stale-temp sweep should include %q", want)
@@ -41,6 +42,7 @@ func TestScriptsUseNamedGo2RustTempPaths(t *testing.T) {
 	for _, want := range []string{
 		`mktemp "${TMPDIR:-/tmp}/go2rust-tests-list.XXXXXX"`,
 		`mktemp -d "${TMPDIR:-/tmp}/go2rust-test-binary.XXXXXX"`,
+		`mktemp -d "${TMPDIR:-/tmp}/go2rust-go-cache.XXXXXX"`,
 		`mktemp -d "$tmp_root/go2rust-rust-work.XXXXXX"`,
 		`mktemp "$diff_root/go2rust-rust-diff.XXXXXX"`,
 	} {
@@ -55,6 +57,25 @@ func TestScriptsUseNamedGo2RustTempPaths(t *testing.T) {
 	} {
 		if strings.Contains(string(testSh), forbidden) || strings.Contains(string(bats), forbidden) {
 			t.Fatalf("scripts should not use anonymous temp path %q", forbidden)
+		}
+	}
+}
+
+func TestTestScriptDefaultsGoCacheToTemp(t *testing.T) {
+	data, err := os.ReadFile("../test.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(test.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`TEST_GOCACHE_DIR=""`,
+		`[ -n "$TEST_GOCACHE_DIR" ] && rm -rf "$TEST_GOCACHE_DIR"`,
+		`if [ -z "${GOCACHE:-}" ]; then`,
+		`TEST_GOCACHE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-go-cache.XXXXXX")`,
+		`export GOCACHE="$TEST_GOCACHE_DIR"`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("test.sh should use a temporary GOCACHE by default; missing %q", want)
 		}
 	}
 }

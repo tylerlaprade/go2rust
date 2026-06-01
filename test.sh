@@ -5,11 +5,13 @@ LOCK_DIR=""
 SHARD_DIR=""
 TEMP_FILE=""
 BUILT_TEST_BINARY_DIR=""
+TEST_GOCACHE_DIR=""
 _test_sh_cleanup() {
     [ -n "$LOCK_DIR" ] && rm -rf "$LOCK_DIR"
     [ -n "$SHARD_DIR" ] && rm -rf "$SHARD_DIR"
     [ -n "$TEMP_FILE" ] && rm -f "$TEMP_FILE" "$TEMP_FILE.bak"
     [ -n "$BUILT_TEST_BINARY_DIR" ] && rm -rf "$BUILT_TEST_BINARY_DIR"
+    [ -n "$TEST_GOCACHE_DIR" ] && rm -rf "$TEST_GOCACHE_DIR"
 }
 trap _test_sh_cleanup EXIT
 
@@ -207,9 +209,14 @@ export SHOW_XFAIL_ERRORS
 # Sweep stale per-test workspaces left over from prior runs killed via SIGKILL
 # (OOM, kill -9, etc.) — SIGKILL bypasses the run_test EXIT trap. Project rule:
 # only one ./test.sh runs at a time, so anything matching is guaranteed stale.
-find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'go2rust-test.*' -o -name 'go2rust-bats-shards.*' -o -name 'go2rust-cargo-target.*' -o -name 'go2rust-test-binary.*' \) -type d -prune -exec rm -rf {} + 2>/dev/null
+find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'go2rust-test.*' -o -name 'go2rust-bats-shards.*' -o -name 'go2rust-cargo-target.*' -o -name 'go2rust-test-binary.*' -o -name 'go2rust-go-cache.*' \) -type d -prune -exec rm -rf {} + 2>/dev/null
 find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'go2rust-rust-work.*' \) -type d -prune -exec rm -rf {} + 2>/dev/null
 find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'go2rust-tests-list.*' -o -name 'go2rust-rust-diff.*' -o -name 'go2rust-stdout.*' -o -name 'go2rust-stderr.*' \) -type f -delete 2>/dev/null
+
+if [ -z "${GOCACHE:-}" ]; then
+    TEST_GOCACHE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-go-cache.XXXXXX")
+    export GOCACHE="$TEST_GOCACHE_DIR"
+fi
 
 # Build the transpiler once before running the suite. Bats parallelism is
 # file-level, so sharded runs would otherwise race multiple setup_file builds
