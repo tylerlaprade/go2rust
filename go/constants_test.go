@@ -2060,6 +2060,28 @@ func localDepthMask(localDepth uint8) uintptr {
 	}
 }
 
+func TestUntypedShiftConstUsesExpectedIntegerTypeInConcurrentTemp(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func start() {
+	go func() {}()
+}
+
+func setMantissa(bits uint64) uint64 {
+	mantissa := bits & (1<<52 - 1)
+	mantissa |= 1 << 52
+	return mantissa
+}
+`)
+
+	if strings.Contains(rust, "let __tmp_x = 1; let __tmp_y = 52; __tmp_x << __tmp_y") {
+		t.Fatalf("untyped shift constants for uint64 should type the left operand before shifting:\n%s", rust)
+	}
+	if !strings.Contains(rust, "1 as u64") {
+		t.Fatalf("untyped shift constant should use the expected uint64 operand type:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerConversionShiftLeftOperandIsParenthesized(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

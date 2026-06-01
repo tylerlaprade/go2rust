@@ -1336,7 +1336,7 @@ func writeConstExpressionWithRustIntegerOperands(out *strings.Builder, value ast
 }
 
 func writeConstExpressionWithRustIntegerOperandsForExpected(out *strings.Builder, value ast.Expr, rustType string) bool {
-	if rustType == "" || !isConstantExpression(value) || !constExpressionHasRustIntegerOperandMismatch(value, rustType) {
+	if rustType == "" || !isConstantExpression(value) || !constExpressionNeedsExpectedRustIntegerOperands(value, rustType) {
 		return false
 	}
 	binary, ok := unwrapParens(value).(*ast.BinaryExpr)
@@ -1352,6 +1352,28 @@ func writeConstExpressionWithRustIntegerOperandsForExpected(out *strings.Builder
 	writeConstExpressionOperandAsRustInteger(out, binary.Y, operandRustType)
 	out.WriteString(")")
 	return true
+}
+
+func constExpressionNeedsExpectedRustIntegerOperands(expr ast.Expr, rustType string) bool {
+	if constExpressionHasRustIntegerOperandMismatch(expr, rustType) {
+		return true
+	}
+	needsExpected := false
+	ast.Inspect(expr, func(node ast.Node) bool {
+		if needsExpected {
+			return false
+		}
+		binary, ok := node.(*ast.BinaryExpr)
+		if !ok {
+			return true
+		}
+		if binary.Op == token.SHL || binary.Op == token.SHR {
+			needsExpected = true
+			return false
+		}
+		return true
+	})
+	return needsExpected
 }
 
 func constExpressionOperandRustType(expr ast.Expr, rustType string) string {
@@ -1418,7 +1440,7 @@ func constExpressionHasRustIntegerOperandMismatch(expr ast.Expr, rustType string
 
 func constExpressionCastsTopOperandsForOp(op token.Token) bool {
 	switch op {
-	case token.AND, token.OR, token.XOR, token.AND_NOT:
+	case token.AND, token.OR, token.XOR, token.AND_NOT, token.SHL, token.SHR:
 		return true
 	default:
 		return false
@@ -1428,7 +1450,7 @@ func constExpressionCastsTopOperandsForOp(op token.Token) bool {
 func constExpressionCastsOperandsForOp(op token.Token) bool {
 	switch op {
 	case token.ADD, token.SUB, token.MUL, token.QUO, token.REM,
-		token.AND, token.OR, token.XOR, token.AND_NOT:
+		token.AND, token.OR, token.XOR, token.AND_NOT, token.SHL, token.SHR:
 		return true
 	default:
 		return false
