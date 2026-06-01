@@ -329,6 +329,94 @@ func TestRuntimeGOMAXPROCSStubMatchesBareReturnSignature(t *testing.T) {
 	}
 }
 
+func TestFsDirEntryStubImplementsTypeMethod(t *testing.T) {
+	var out strings.Builder
+	writeFsDirEntryStub(&out, "fs_DirEntry", map[string]externalTypeStubMethod{
+		"r#type": {ReturnTypes: []string{wrappedExternalStubType("fs_FileMode")}},
+	})
+	got := out.String()
+	for _, want := range []string{
+		"pub fn r#type(&self) -> " + wrappedExternalStubType("fs_FileMode"),
+		"fs_FileMode(1u32 << 31)",
+		"fs_FileMode(0)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("fs.DirEntry Type shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestExecCmdStubImplementsEnvironMethod(t *testing.T) {
+	var out strings.Builder
+	writeExecCmdTypeStub(&out, nil, nil)
+	got := out.String()
+	for _, want := range []string{
+		"pub fn environ(&self) -> ",
+		"std::env::vars().map(|(__k, __v)| format!(\"{}={}\", __k, __v)).collect()",
+		"env.extend(cmd_env.iter().cloned())",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("exec.Cmd Environ shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestExecCmdStubImplementsStderrPipeMethod(t *testing.T) {
+	var out strings.Builder
+	writeExecCmdTypeStub(&out, nil, map[string]externalTypeStubMethod{
+		"stderr_pipe": {
+			ReturnTypes: []string{
+				wrappedExternalStubType("io_ReadCloser"),
+				wrappedExternalStubType(externalStubErrorInnerType()),
+			},
+		},
+	})
+	got := out.String()
+	for _, want := range []string{
+		"pub fn stderr_pipe(&mut self) -> ",
+		"let file = os_File::default();",
+		"io_ReadCloser::__go_from(file)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("exec.Cmd StderrPipe shim should include %q:\n%s", want, got)
+		}
+	}
+
+	got = generateExternalStubs(
+		map[string]bool{"exec_Cmd": true},
+		nil, nil, nil, nil,
+		map[string]map[string]externalTypeStubMethod{
+			"exec_Cmd": {
+				"stderr_pipe": {
+					ReturnTypes: []string{
+						wrappedExternalStubType("io_ReadCloser"),
+						wrappedExternalStubType(externalStubErrorInnerType()),
+					},
+				},
+			},
+		},
+		nil, nil,
+	)
+	if !strings.Contains(got, "pub struct os_File") {
+		t.Fatalf("exec.Cmd StderrPipe shim should emit its os.File backing type:\n%s", got)
+	}
+}
+
+func TestOsFileStubImplementsReadAtMethod(t *testing.T) {
+	var out strings.Builder
+	writeOsFileStub(&out)
+	got := out.String()
+	for _, want := range []string{
+		"pub fn read_at<T0: 'static, T1: 'static>",
+		"let offset =",
+		"target[..count].copy_from_slice(&data[start..start + count]);",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.File ReadAt shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestIoCopyStubMatchesBareCountReturnSignature(t *testing.T) {
 	var out strings.Builder
 	writeIoCopyStub(&out, externalPackageStubFunction{

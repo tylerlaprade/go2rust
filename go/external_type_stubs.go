@@ -1764,6 +1764,11 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 	if packageStubs["parser"] != nil {
 		stubs["token_Token"] = true
 	}
+	if methodsByType["exec_Cmd"] != nil {
+		if _, ok := methodsByType["exec_Cmd"]["stderr_pipe"]; ok {
+			stubs["os_File"] = true
+		}
+	}
 	if packageStubs["ast"] != nil {
 		for _, typ := range packageStubs["ast"].Constants {
 			if typ == "ast_ChanDir" {
@@ -1819,7 +1824,7 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 			continue
 		}
 		if name == "exec_Cmd" {
-			writeExecCmdTypeStub(&out, fieldsByType[name])
+			writeExecCmdTypeStub(&out, fieldsByType[name], methodsByType[name])
 			continue
 		}
 		if name == "atomic_Int32" {
@@ -1839,7 +1844,7 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 			continue
 		}
 		if name == "fs_DirEntry" {
-			writeFsDirEntryStub(&out, name)
+			writeFsDirEntryStub(&out, name, methodsByType[name])
 			continue
 		}
 		if name == "types_Basic" {
@@ -2623,6 +2628,7 @@ impl token_Token {
 // os.File wraps OS file handles, no transpilable Go source equivalent.
 func writeOsFileStub(out *strings.Builder) {
 	vecType := wrappedExternalStubType("Vec<u8>")
+	int64Type := wrappedExternalStubType("i64")
 	stringType := wrappedExternalStubType("String")
 	intType := wrappedExternalStubType("i32")
 	errorInnerType := externalStubErrorInnerType()
@@ -2630,6 +2636,12 @@ func writeOsFileStub(out *strings.Builder) {
 	noneError := wrappedExternalStubNoneExpr(errorInnerType)
 	vecBorrow := externalStubBorrowExpr("v")
 	stringBorrow := externalStubBorrowExpr("v")
+	int64Borrow := ".borrow()"
+	vecMutBorrow := ".borrow_mut()"
+	if NeedsConcurrentWrapper() {
+		int64Borrow = ".lock().unwrap()"
+		vecMutBorrow = ".lock().unwrap()"
+	}
 	fmt.Fprintf(out, `#[derive(Debug, Clone)]
 pub struct os_File {
     pub __go_data: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
@@ -2715,25 +2727,55 @@ impl os_File {
         (%s, %s)
     }
 
-    pub fn read<T0>(&self, _arg0: T0) -> (%s, %s) {
-        (%s, %s)
-    }
-}
-`,
+	    pub fn read<T0>(&self, _arg0: T0) -> (%s, %s) {
+	        (%s, %s)
+	    }
+
+	    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (%s, %s) {
+	        let offset = if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<i64>() {
+	            *v
+	        } else if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<%s>() {
+	            v%s.as_ref().copied().unwrap_or_default()
+	        } else {
+	            0
+	        };
+	        let data = self.__go_read_all();
+	        let mut n = 0i32;
+	        if offset >= 0 {
+	            let start = offset as usize;
+	            if start < data.len() {
+	                if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
+	                    let mut guard = v%s;
+	                    if let Some(target) = guard.as_mut() {
+	                        let count = std::cmp::min(target.len(), data.len() - start);
+	                        target[..count].copy_from_slice(&data[start..start + count]);
+	                        n = count as i32;
+	                    }
+	                }
+	            }
+	        }
+	        (%s, %s)
+	    }
+	}
+	`,
 		errorType, noneError,
 		intType, errorType, vecType, vecBorrow, wrappedExternalStubExpr("i32", "n"), noneError,
 		intType, errorType, stringType, stringBorrow, wrappedExternalStubExpr("i32", "n"), noneError,
-		intType, errorType, wrappedExternalStubExpr("i32", "0"), noneError)
+		intType, errorType, wrappedExternalStubExpr("i32", "0"), noneError,
+		intType, errorType, int64Type, int64Borrow, vecType, vecMutBorrow, wrappedExternalStubExpr("i32", "n"), noneError)
 }
 
 // PERMANENT: not scaffold — Rust std::process::Command is the long-term implementation;
 // exec.Cmd is OS process layer, no transpilable Go source equivalent.
-func writeExecCmdTypeStub(out *strings.Builder, fields map[string]string) {
+func writeExecCmdTypeStub(out *strings.Builder, fields map[string]string, methods map[string]externalTypeStubMethod) {
 	if fields == nil {
 		fields = make(map[string]string)
 	}
 	if _, ok := fields["args"]; !ok {
 		fields["args"] = wrappedExternalStubType("Vec<String>")
+	}
+	if _, ok := fields["env"]; !ok {
+		fields["env"] = wrappedExternalStubType("Vec<String>")
 	}
 	out.WriteString("#[derive(Debug, Clone, Default)]\n")
 	out.WriteString("pub struct exec_Cmd {\n")
@@ -2762,14 +2804,32 @@ impl std::fmt::Display for exec_Cmd {
 }
 
 impl exec_Cmd {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
-    }
+	    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+	        None
+	    }
 
-`)
-	fmt.Fprintf(out, `    fn __go_error(message: String) -> %s {
+	`)
+	fmt.Fprintf(out, `    pub fn environ(&self) -> %s {
+        let mut env: Vec<String> = std::env::vars().map(|(__k, __v)| format!("{}={}", __k, __v)).collect();
+        if let Some(cmd_env) = %s.as_ref() {
+            env.extend(cmd_env.iter().cloned());
+        }
         %s
     }
+
+`, wrappedExternalStubType("Vec<String>"), externalStubBorrowExpr("self.env"), wrappedExternalStubExpr("Vec<String>", "env"))
+	if method, ok := methods["stderr_pipe"]; ok && len(method.ReturnTypes) == 2 {
+		fmt.Fprintf(out, `    pub fn stderr_pipe(&mut self) -> (%s, %s) {
+        let file = os_File::default();
+        (%s, %s)
+    }
+
+`, method.ReturnTypes[0], method.ReturnTypes[1],
+			wrappedExternalStubExpr("io_ReadCloser", "io_ReadCloser::__go_from(file)"), noneError)
+	}
+	fmt.Fprintf(out, `    fn __go_error(message: String) -> %s {
+	        %s
+	    }
 
     fn __go_run_output(&self) -> Result<std::process::Output, std::io::Error> {
         let args = %s.as_ref().cloned().unwrap_or_default();
@@ -4146,7 +4206,7 @@ impl %s {
 }
 
 // PERMANENT: not scaffold — io/fs.DirEntry is OS-tied; Rust std::fs::DirEntry is the long-term implementation.
-func writeFsDirEntryStub(out *strings.Builder, name string) {
+func writeFsDirEntryStub(out *strings.Builder, name string, methods map[string]externalTypeStubMethod) {
 	stringType := wrappedExternalStubType("String")
 
 	fmt.Fprintf(out, `#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
@@ -4169,11 +4229,34 @@ impl %s {
     pub fn name(&self) -> %s {
         %s
     }
-    pub fn is_dir(&self) -> bool {
-        self.is_dir
-    }
-}
+	    pub fn is_dir(&self) -> bool {
+	        self.is_dir
+	    }
 `, name, name, name, name, stringType, wrappedExternalStubExpr("String", "self.name.clone()"))
+	if method, ok := methods["r#type"]; ok && len(method.ReturnTypes) == 1 {
+		fmt.Fprintf(out, `    pub fn r#type(&self) -> %s {
+        if self.is_dir {
+            %s
+        } else {
+            %s
+        }
+    }
+`, method.ReturnTypes[0],
+			wrappedExternalStubExpr("fs_FileMode", "fs_FileMode(1u32 << 31)"),
+			wrappedExternalStubExpr("fs_FileMode", "fs_FileMode(0)"))
+	}
+	methodNames := make([]string, 0, len(methods))
+	for methodName := range methods {
+		if methodName == "name" || methodName == "is_dir" || methodName == "r#type" {
+			continue
+		}
+		methodNames = append(methodNames, methodName)
+	}
+	slices.Sort(methodNames)
+	for _, methodName := range methodNames {
+		writeExternalTypeStubMethod(out, name, methodName, methods[methodName])
+	}
+	out.WriteString("}\n")
 }
 
 // TEMPORARY: hand-written Rust shim for go/ast package.
