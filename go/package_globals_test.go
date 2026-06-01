@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -186,6 +187,37 @@ func NewPackage() *Scope {
 	}
 }
 
+func TestPackageGlobalPointerInterfaceWrapperUsesShortGuard(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Object interface {
+	Name() string
+}
+
+type TypeName struct{}
+
+func (*TypeName) Name() string { return "" }
+
+var global *TypeName
+var ch chan int
+
+func def(obj Object) {}
+
+func init() {
+	def(global)
+}
+`)
+
+	bad := "TypeNamePtr((*global.lock().unwrap().as_ref().unwrap()).clone().clone())"
+	if strings.Contains(rust, bad) {
+		t.Fatalf("package-global pointer interface wrapper should not keep the global lock across wrapper construction:\n%s", rust)
+	}
+	want := "TypeNamePtr({ let __arg_holder = global.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })"
+	if !strings.Contains(rust, want) {
+		t.Fatalf("package-global pointer interface wrapper should clone through a short guard block:\n%s", rust)
+	}
+}
+
 func TestPackageGlobalPointerMapValueCopiesStoredHandle(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
@@ -205,6 +237,30 @@ var Tables = map[string]*RangeTable{"C": C}
 	}
 	if !strings.Contains(rust, `__go_map.insert("C".to_string(), (*C.lock().unwrap().as_ref().unwrap()).clone())`) {
 		t.Fatalf("package-global pointer map value should clone the stored pointer handle:\n%s", rust)
+	}
+}
+
+func TestLargePackageGlobalMapLiteralIsChunked(t *testing.T) {
+	var src strings.Builder
+	src.WriteString("package main\n\n")
+	src.WriteString("var ch chan int\n")
+	src.WriteString("var PackageSymbols = map[string][]int{\n")
+	for i := 0; i < packageGlobalMapLiteralChunkSize+1; i++ {
+		fmt.Fprintf(&src, "\t\"pkg%d\": {%d},\n", i, i)
+	}
+	src.WriteString("}\n")
+
+	rust := transpileTypedConcurrentRegression(t, src.String())
+
+	if !strings.Contains(rust, "fn __go_init_PackageSymbols_map_chunk_0(__go_map: &mut BTreeMap<") {
+		t.Fatalf("large package-global map literal should emit first chunk helper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "fn __go_init_PackageSymbols_map_chunk_1(__go_map: &mut BTreeMap<") {
+		t.Fatalf("large package-global map literal should emit second chunk helper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__go_init_PackageSymbols_map_chunk_0(&mut __go_map);") ||
+		!strings.Contains(rust, "__go_init_PackageSymbols_map_chunk_1(&mut __go_map);") {
+		t.Fatalf("large package-global map literal should call chunk helpers:\n%s", rust)
 	}
 }
 

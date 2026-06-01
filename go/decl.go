@@ -2206,6 +2206,178 @@ func functionTypeInterfaceWrapperName(funcTypeName, ifaceName string) string {
 	return funcTypeName + "As" + strings.Join(parts, "_")
 }
 
+func pointerLocalInterfaceWrapperName(typeName, ifaceName string) string {
+	return strings.TrimPrefix(RustTypeNameForUse(typeName), "r#") + "Ptr"
+}
+
+func pointerLocalInterfaceWrapperNameForUse(typeName, ifaceName string) string {
+	wrapperName := pointerLocalInterfaceWrapperName(typeName, ifaceName)
+	ctx := GetTranspileContext()
+	if ctx == nil || ctx.Package == nil || ctx.CurrentModuleName == "" {
+		return wrapperName
+	}
+	moduleName := ctx.Package.TypeModuleNames[typeName]
+	if moduleName == "" || moduleName == ctx.CurrentModuleName {
+		return wrapperName
+	}
+	return "crate::" + moduleName + "::" + wrapperName
+}
+
+func writePointerLocalInterfaceWrapper(out *strings.Builder, typeName, ifaceName string, ifaceType *types.Interface, emitStruct bool) {
+	trackWrapperImports()
+	rustTypeName := RustTypeNameForUse(typeName)
+	wrapperName := pointerLocalInterfaceWrapperName(typeName, ifaceName)
+	pointerType := GetOuterWrapperType() + "<" + GetInnerWrapperType() + "<Option<" + rustTypeName + ">>>"
+
+	if emitStruct {
+		out.WriteString("#[derive(Clone)]\n")
+		out.WriteString("pub struct ")
+		out.WriteString(wrapperName)
+		out.WriteString("(pub ")
+		out.WriteString(pointerType)
+		out.WriteString(");\n\n")
+
+		out.WriteString("impl std::fmt::Display for ")
+		out.WriteString(wrapperName)
+		out.WriteString(" {\n")
+		out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
+		out.WriteString("        let __guard = self.0")
+		WriteBorrowMethod(out, false)
+		out.WriteString(";\n")
+		out.WriteString("        match __guard.as_ref() { Some(__v) => write!(f, \"{}\", __v), None => write!(f, \"<nil>\") }\n")
+		out.WriteString("    }\n")
+		out.WriteString("}\n\n")
+	}
+
+	out.WriteString("impl ")
+	out.WriteString(ifaceName)
+	out.WriteString(" for ")
+	out.WriteString(wrapperName)
+	out.WriteString(" {\n")
+	for _, method := range explicitInterfaceMethods(ifaceType) {
+		writePointerLocalInterfaceForwardMethodFromTypes(out, method, rustTypeName)
+	}
+	writePointerLocalInterfaceSupportImpl(out, ifaceName, wrapperName, ifaceType)
+	out.WriteString("}")
+}
+
+func writePointerLocalInterfaceForwardMethodFromTypes(out *strings.Builder, method *types.Func, receiverType string) {
+	if method == nil {
+		return
+	}
+	sig, ok := method.Type().(*types.Signature)
+	if !ok {
+		return
+	}
+	out.WriteString("    fn ")
+	out.WriteString(ToSnakeCase(method.Name()))
+	out.WriteString("(")
+	mutableReceiver := interfaceMethodRequiresMutableReceiver(method)
+	if mutableReceiver {
+		out.WriteString("&mut self")
+	} else {
+		out.WriteString("&self")
+	}
+	params := sig.Params()
+	argNames := make([]string, 0, params.Len())
+	for j := 0; j < params.Len(); j++ {
+		param := params.At(j)
+		paramName := param.Name()
+		if paramName == "" {
+			paramName = fmt.Sprintf("__arg%d", j)
+		}
+		paramName = RustLocalIdent(paramName)
+		argNames = append(argNames, paramName)
+		out.WriteString(", ")
+		out.WriteString(paramName)
+		out.WriteString(": ")
+		out.WriteString(goTypesParamTypeToRust(param.Type()))
+	}
+	out.WriteString(")")
+	res := sig.Results()
+	switch res.Len() {
+	case 0:
+	case 1:
+		out.WriteString(" -> ")
+		out.WriteString(goTypesReturnTypeToRust(res.At(0).Type()))
+	default:
+		out.WriteString(" -> (")
+		for j := 0; j < res.Len(); j++ {
+			if j > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString(goTypesReturnTypeToRust(res.At(j).Type()))
+		}
+		out.WriteString(")")
+	}
+	out.WriteString(" {\n")
+	out.WriteString("        let ")
+	if mutableReceiver {
+		out.WriteString("mut ")
+	}
+	out.WriteString("__recv_guard = self.0")
+	WriteBorrowMethod(out, mutableReceiver)
+	out.WriteString(";\n")
+	out.WriteString("        let __recv = __recv_guard.")
+	if mutableReceiver {
+		out.WriteString("as_mut")
+	} else {
+		out.WriteString("as_ref")
+	}
+	out.WriteString("().unwrap();\n")
+	out.WriteString("        ")
+	out.WriteString(receiverType)
+	out.WriteString("::")
+	out.WriteString(rustMethodNameForTypesFunc(method))
+	out.WriteString("(__recv")
+	for _, argName := range argNames {
+		out.WriteString(", ")
+		out.WriteString(argName)
+	}
+	out.WriteString(")\n")
+	out.WriteString("    }\n")
+}
+
+func writePointerLocalInterfaceSupportImpl(out *strings.Builder, ifaceName, wrapperName string, ifaceType *types.Interface) {
+	TrackImport("Any")
+	traitSnake := traitMethodSuffix(ifaceName)
+	hasEmbedded := ifaceType != nil && interfaceTypeHasNamedEmbedded(ifaceType)
+	if ifaceType == nil {
+		hasEmbedded = localInterfaceHasEmbeddedInterfaces(ifaceName)
+	}
+	out.WriteString("    fn __go_clone_box_")
+	out.WriteString(traitSnake)
+	out.WriteString("(&self) -> ")
+	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+	out.WriteString(" {\n")
+	out.WriteString("        Box::new(self.clone()) as ")
+	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+	out.WriteString("\n")
+	out.WriteString("    }\n")
+	if !hasEmbedded {
+		out.WriteString("    fn __go_as_any(&self) -> &dyn Any {\n")
+		out.WriteString("        self\n")
+		out.WriteString("    }\n")
+	}
+	out.WriteString("    fn __go_eq_")
+	out.WriteString(traitSnake)
+	out.WriteString("(&self, other: ")
+	out.WriteString(rustLocalInterfaceParamBare(ifaceName))
+	out.WriteString(") -> bool {\n")
+	out.WriteString("        if let Some(__other) = other.__go_as_any().downcast_ref::<")
+	out.WriteString(wrapperName)
+	out.WriteString(">() {\n")
+	if NeedsConcurrentWrapper() {
+		out.WriteString("            Arc::ptr_eq(&self.0, &__other.0)\n")
+	} else {
+		out.WriteString("            Rc::ptr_eq(&self.0, &__other.0)\n")
+	}
+	out.WriteString("        } else {\n")
+	out.WriteString("            false\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
 func writeFunctionTypeImportedInterfaceImpls(out *strings.Builder, funcTypeName string, impls map[string]*types.Interface) {
 	if len(impls) == 0 {
 		return

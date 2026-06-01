@@ -520,10 +520,10 @@ func cached(x any) Type {
 `)
 
 	if strings.Contains(rust, "Some(({") && strings.Contains(rust, "downcast_ref::<rtype>()") {
-		t.Fatalf("concrete assertion returned as local interface should not wrap the pointer handle directly:\n%s", rust)
+		t.Fatalf("concrete assertion returned as local interface should not wrap an untyped expression directly:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box::new((*") || !strings.Contains(rust, "downcast_ref::<rtype>()") || !strings.Contains(rust, "as Box<dyn Type") {
-		t.Fatalf("concrete assertion returned as local interface should box the asserted concrete value:\n%s", rust)
+	if !strings.Contains(rust, "Box::new(rtypePtr(") || !strings.Contains(rust, "downcast_ref::<rtype>()") || !strings.Contains(rust, "as Box<dyn Type") {
+		t.Fatalf("concrete assertion returned as local interface should box a pointer-identity wrapper:\n%s", rust)
 	}
 }
 
@@ -6832,6 +6832,94 @@ func visit(kv *ast.KeyValueExpr) {
 	rust, _, _ := Transpile(file, fset, typeInfo)
 	if !strings.Contains(rust, "let __arg = { let __field = (*kv.borrow().as_ref().unwrap()).value.clone(); __field }; let __converted") {
 		t.Fatalf("stdlib interface selector field argument did not clone the field handle:\n%s", rust)
+	}
+}
+
+func TestStdlibInterfaceConstSelectorConversionUsesRawValue(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "rand.go", `package rand
+
+import (
+	"crypto/internal/boring"
+	"io"
+)
+
+var Reader io.Reader
+
+func init() {
+	if boring.Enabled {
+		Reader = boring.RandReader
+	}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(rand.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfoWithImporter("crypto/rand", []*ast.File{file}, fset, nil)
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter() error = %v", err)
+	}
+	SetTypeInfo(typeInfo)
+	defer SetTypeInfo(nil)
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "boring::RAND_READER.lock()") {
+		t.Fatalf("stdlib interface conversion from a const selector must not borrow it as a handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __arg = boring::RAND_READER; __arg.into()") {
+		t.Fatalf("stdlib interface conversion from a const selector should convert the raw value:\n%s", rust)
+	}
+}
+
+func TestSourceMappedPointerToStdlibInterfaceConversionKeepsHandle(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "rand.go", `package rand
+
+import "io"
+
+type reader struct{}
+
+func (r *reader) Read(b []byte) (int, error) {
+	return len(b), nil
+}
+
+var Reader io.Reader
+
+func init() {
+	Reader = &reader{}
+}
+
+func set(r *reader) {
+	Reader = r
+}
+
+func use() bool {
+	_, ok := Reader.(*reader)
+	return ok
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(rand.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfoWithImporter("crypto/rand", []*ast.File{file}, fset, nil)
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"crypto/rand": "crypto_rand"})
+	if strings.Contains(rust, "io_Reader::default()") {
+		t.Fatalf("source concrete pointer assigned to stdlib interface must not become a default interface:\n%s", rust)
+	}
+	if !strings.Contains(rust, "io_Reader::__go_from(") {
+		t.Fatalf("source concrete pointer assigned to stdlib interface should use __go_from:\n%s", rust)
+	}
+	if strings.Contains(rust, "io_Reader::__go_from((*r.borrow().as_ref().unwrap())") ||
+		strings.Contains(rust, "io_Reader::__go_from((*r.lock().unwrap().as_ref().unwrap())") {
+		t.Fatalf("source concrete pointer ident assigned to stdlib interface should pass the handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "downcast_ref::<Rc<RefCell<Option<reader>>>>") &&
+		!strings.Contains(rust, "downcast_ref::<Arc<Mutex<Option<reader>>>>") {
+		t.Fatalf("stdlib interface pointer assertion should recover the stored pointer handle:\n%s", rust)
 	}
 }
 

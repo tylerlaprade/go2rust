@@ -1593,6 +1593,39 @@ func (t *Named) Underlying() Type {
 	}
 }
 
+func TestTypedNilPointerReceiverMethodCallPreservesNilReceiver(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Checker struct {
+	cleaned bool
+}
+
+type Alias struct{}
+
+func NewAlias() *Alias {
+	return (*Checker)(nil).newAlias()
+}
+
+func (check *Checker) newAlias() *Alias {
+	a := &Alias{}
+	if check != nil {
+		check.cleaned = true
+	}
+	return a
+}
+`)
+
+	if strings.Contains(rust, "None::<Checker>") && strings.Contains(rust, ".as_mut().unwrap()).new_alias(") {
+		t.Fatalf("typed nil pointer receiver call must not unwrap the nil receiver before dispatch:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__go_nil_recv_checker_new_alias") {
+		t.Fatalf("typed nil pointer receiver call should dispatch through an explicit receiver helper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "if (*check.borrow()).is_some()") {
+		t.Fatalf("typed nil pointer receiver helper should preserve the receiver nil check:\n%s", rust)
+	}
+}
+
 func TestPackageGlobalOsArgsUsesSharedHelper(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

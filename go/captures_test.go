@@ -297,7 +297,8 @@ func clear(x *operand) bool {
 		t.Fatalf("captured interface argument should not box through the outer variable:\n%s", rust)
 	}
 	if !strings.Contains(rust, "Box::new((*x_closure_clone.borrow()") &&
-		!strings.Contains(rust, "Box::new((*x_closure_clone.lock()") {
+		!strings.Contains(rust, "Box::new((*x_closure_clone.lock()") &&
+		!strings.Contains(rust, "operandPtr(x_closure_clone.clone())") {
 		t.Fatalf("captured interface argument should box through the closure clone:\n%s", rust)
 	}
 }

@@ -1418,6 +1418,15 @@ func currentPackageTypeImplementsInterface(typeName string, iface *types.Interfa
 	return types.Implements(types.NewPointer(named), iface)
 }
 
+func currentPackagePointerImplementsInterface(typeName string, iface *types.Interface) bool {
+	named, ok := currentPackageNamedType(typeName)
+	if !ok || iface == nil {
+		return false
+	}
+	iface.Complete()
+	return types.Implements(types.NewPointer(named), iface)
+}
+
 func typeAliasSkipsLocalImpl(typeName string) bool {
 	return IsTypeAlias(typeName) && !IsFunctionTypeAlias(typeName)
 }
@@ -2227,6 +2236,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		hasInitFunction = true
 	}
 	registerPackageGlobalNames(globalVars)
+	nilPointerReceiverMethodHelpers := collectNilPointerReceiverMethodHelpers(file, typeInfo, methods)
+	restoreNilPointerReceiverMethodHelpers := setCurrentNilPointerReceiverMethodHelpers(nilPointerReceiverMethodHelpers)
+	defer restoreNilPointerReceiverMethodHelpers()
 	localFunctionInterfaces := fileAnalysis.functionLocalInterfaces
 	for name, ifaceType := range localFunctionInterfaces {
 		interfaces[name] = ifaceType
@@ -2546,6 +2558,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			// Sort interface names for deterministic output.
 			ifaceNames := packageLocalInterfaceNames(interfaces)
 			slices.Sort(ifaceNames)
+			pointerWrapperEmitted := false
 
 			for _, ifaceName := range ifaceNames {
 				if prunedTypeNames[ifaceName] {
@@ -2572,6 +2585,12 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 
 				writeLocalInterfaceSupportImpl(&body, ifaceName, typeName, ifaceType)
 				body.WriteString("}")
+
+				if currentPackagePointerImplementsInterface(typeName, ifaceType) {
+					body.WriteString("\n\n")
+					writePointerLocalInterfaceWrapper(&body, typeName, ifaceName, ifaceType, !pointerWrapperEmitted)
+					pointerWrapperEmitted = true
+				}
 			}
 
 			var importedIfaceNames []string
@@ -2624,6 +2643,8 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		outputComment(&body, fn.Doc, "", true)
 		TranspileFunction(&body, fn, fileSet, file.Comments)
 	}
+
+	writeNilPointerReceiverMethodHelpers(&body, &first, nilPointerReceiverMethodHelpers, methods, fileSet, file.Comments)
 
 	writeAnonymousStructDefinitions(&body, &first, emittedAnonymousStructs)
 	writeAnonymousInterfaceAssertionTraits(&body, &first)

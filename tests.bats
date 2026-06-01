@@ -187,6 +187,7 @@ run_transpile_and_compare() {
 run_test() {
     local test_dir="$1"
     local timeout="${TEST_TIMEOUT:-60s}"
+    local kill_after="${TEST_TIMEOUT_KILL_AFTER:-5s}"
 
     # Export the helper functions so they're available in the subshell
     export -f run_transpile_and_compare
@@ -194,7 +195,7 @@ run_test() {
 
     # Run the entire test with timeout
     # shellcheck disable=SC2016
-    if ! timeout "$timeout" bash -c '
+    if ! timeout -k "$kill_after" "$timeout" bash -c '
         test_dir="$1"
         test_tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test.XXXXXX")
         trap '"'"'rm -rf "$test_tmp_root"'"'"' EXIT
@@ -259,6 +260,7 @@ run_xfail_test() {
     local test_name
     test_name=$(basename "$test_dir")
     local timeout="${TEST_TIMEOUT:-60s}"
+    local kill_after="${TEST_TIMEOUT_KILL_AFTER:-5s}"
     
     # Export the helper functions so they're available in the subshell
     export -f run_transpile_and_compare
@@ -266,7 +268,7 @@ run_xfail_test() {
     
     # Run the entire test with timeout
     # shellcheck disable=SC2016
-    if ! timeout "$timeout" bash -c '
+    if ! timeout -k "$kill_after" "$timeout" bash -c '
         test_dir="$1"
         test_name="$2"
         test_tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test.XXXXXX")
@@ -1123,6 +1125,10 @@ run_xfail_test() {
     run_test "tests/global_inferred_array"
 }
 
+@test "global_pointer_argument_lock_lifetime" {
+    run_test "tests/global_pointer_argument_lock_lifetime"
+}
+
 @test "goroutine_function_param_capture" {
     run_test "tests/goroutine_function_param_capture"
 }
@@ -1311,8 +1317,16 @@ run_xfail_test() {
     run_test "tests/local_interface_method_param"
 }
 
+@test "local_interface_pointer_identity_equality" {
+    run_test "tests/local_interface_pointer_identity_equality"
+}
+
 @test "local_interface_pointer_receiver" {
     run_test "tests/local_interface_pointer_receiver"
+}
+
+@test "local_interface_pointer_type_switch" {
+    run_test "tests/local_interface_pointer_type_switch"
 }
 
 @test "local_large_fixed_array_zero" {

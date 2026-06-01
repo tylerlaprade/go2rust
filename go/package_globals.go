@@ -7,6 +7,7 @@ import (
 	"go/types"
 	"sort"
 	"strings"
+	"unicode"
 )
 
 var functionNameOverrides map[*ast.FuncDecl]string
@@ -529,6 +530,15 @@ func writeSourceMappedPackageGlobalPointerHandleClone(out *strings.Builder, expr
 	return true
 }
 
+func writeSourceMappedPackageGlobalPointerScopedClone(out *strings.Builder, expr ast.Expr) bool {
+	crateName, globalName, ok := sourceMappedPackageGlobalPointerSelector(expr)
+	if !ok {
+		return false
+	}
+	writeScopedValueClone(out, crateName+"::"+globalName)
+	return true
+}
+
 func writePackageGlobalPointerPointeeClone(out *strings.Builder, ident *ast.Ident) {
 	out.WriteString("{ let __global_ptr = ")
 	writePackageGlobalPointerHandleClone(out, ident)
@@ -1041,30 +1051,71 @@ func underlyingMapType(typ types.Type) *types.Map {
 	return nil
 }
 
+const packageGlobalMapLiteralChunkSize = 16
+
+func rustHelperIdentPart(name string) string {
+	name = strings.TrimPrefix(name, "r#")
+	var out strings.Builder
+	for i, r := range name {
+		if r == '_' || unicode.IsLetter(r) || (i > 0 && unicode.IsDigit(r)) {
+			out.WriteRune(r)
+		} else {
+			out.WriteByte('_')
+		}
+	}
+	if out.Len() == 0 {
+		return "global"
+	}
+	return out.String()
+}
+
 func writePackageGlobalMapLiteralInit(out *strings.Builder, name string, mapType *types.Map, lit *ast.CompositeLit) {
 	TrackImport("BTreeMap")
 	out.WriteString("    {\n")
+	if len(lit.Elts) > packageGlobalMapLiteralChunkSize {
+		mapKey := goTypesMapKeyToRust(mapType.Key())
+		mapValue := goTypesMapValueToRust(mapType.Elem())
+		helperPrefix := "__go_init_" + rustHelperIdentPart(name) + "_map_chunk"
+		for start, chunk := 0, 0; start < len(lit.Elts); start, chunk = start+packageGlobalMapLiteralChunkSize, chunk+1 {
+			end := start + packageGlobalMapLiteralChunkSize
+			if end > len(lit.Elts) {
+				end = len(lit.Elts)
+			}
+			out.WriteString("        fn ")
+			out.WriteString(helperPrefix)
+			out.WriteString(fmt.Sprintf("_%d", chunk))
+			out.WriteString("(__go_map: &mut BTreeMap<")
+			out.WriteString(mapKey)
+			out.WriteString(", ")
+			out.WriteString(mapValue)
+			out.WriteString(">) {\n")
+			writePackageGlobalMapLiteralElements(out, "            ", "__go_map", mapType, lit.Elts[start:end])
+			out.WriteString("        }\n")
+		}
+		out.WriteString("        let mut __go_map = BTreeMap::<")
+		out.WriteString(mapKey)
+		out.WriteString(", ")
+		out.WriteString(mapValue)
+		out.WriteString(">::new();\n")
+		for chunk := 0; chunk*packageGlobalMapLiteralChunkSize < len(lit.Elts); chunk++ {
+			out.WriteString("        ")
+			out.WriteString(helperPrefix)
+			out.WriteString(fmt.Sprintf("_%d", chunk))
+			out.WriteString("(&mut __go_map);\n")
+		}
+		out.WriteString("        *")
+		out.WriteString(name)
+		WriteBorrowMethod(out, true)
+		out.WriteString(" = Some(__go_map);\n")
+		out.WriteString("    }\n")
+		return
+	}
 	out.WriteString("        let mut __go_map = BTreeMap::<")
 	out.WriteString(goTypesMapKeyToRust(mapType.Key()))
 	out.WriteString(", ")
 	out.WriteString(goTypesMapValueToRust(mapType.Elem()))
 	out.WriteString(">::new();\n")
-	for _, elt := range lit.Elts {
-		kv, ok := elt.(*ast.KeyValueExpr)
-		if !ok {
-			out.WriteString("        /* ERROR: Type information required for package map literal element */\n")
-			out.WriteString("        unimplemented!();\n")
-			continue
-		}
-		if writePackageGlobalMapSliceValueInsert(out, kv, mapType.Key(), mapType.Elem()) {
-			continue
-		}
-		out.WriteString("        __go_map.insert(")
-		writeMapLiteralKeyWithType(out, kv.Key, mapType.Key())
-		out.WriteString(", ")
-		writeWrappedMapValue(out, kv.Value, nil, mapType.Elem())
-		out.WriteString(");\n")
-	}
+	writePackageGlobalMapLiteralElements(out, "        ", "__go_map", mapType, lit.Elts)
 	out.WriteString("        *")
 	out.WriteString(name)
 	WriteBorrowMethod(out, true)
@@ -1072,7 +1123,30 @@ func writePackageGlobalMapLiteralInit(out *strings.Builder, name string, mapType
 	out.WriteString("    }\n")
 }
 
-func writePackageGlobalMapSliceValueInsert(out *strings.Builder, kv *ast.KeyValueExpr, keyType types.Type, valueType types.Type) bool {
+func writePackageGlobalMapLiteralElements(out *strings.Builder, indent string, mapName string, mapType *types.Map, elts []ast.Expr) {
+	for _, elt := range elts {
+		kv, ok := elt.(*ast.KeyValueExpr)
+		if !ok {
+			out.WriteString(indent)
+			out.WriteString("/* ERROR: Type information required for package map literal element */\n")
+			out.WriteString(indent)
+			out.WriteString("unimplemented!();\n")
+			continue
+		}
+		if writePackageGlobalMapSliceValueInsert(out, indent, mapName, kv, mapType.Key(), mapType.Elem()) {
+			continue
+		}
+		out.WriteString(indent)
+		out.WriteString(mapName)
+		out.WriteString(".insert(")
+		writeMapLiteralKeyWithType(out, kv.Key, mapType.Key())
+		out.WriteString(", ")
+		writeWrappedMapValue(out, kv.Value, nil, mapType.Elem())
+		out.WriteString(");\n")
+	}
+}
+
+func writePackageGlobalMapSliceValueInsert(out *strings.Builder, indent string, mapName string, kv *ast.KeyValueExpr, keyType types.Type, valueType types.Type) bool {
 	valueLit, ok := kv.Value.(*ast.CompositeLit)
 	if !ok {
 		return false
@@ -1083,18 +1157,20 @@ func writePackageGlobalMapSliceValueInsert(out *strings.Builder, kv *ast.KeyValu
 	}
 	keyName := fmt.Sprintf("__go_map_key_%d", valueLit.Pos())
 	valueName := fmt.Sprintf("__go_map_value_%d", valueLit.Pos())
-	out.WriteString("        let ")
+	out.WriteString(indent)
+	out.WriteString("let ")
 	out.WriteString(keyName)
 	out.WriteString(" = ")
 	writeMapLiteralKeyWithType(out, kv.Key, keyType)
 	out.WriteString(";\n")
-	out.WriteString("        let mut ")
+	out.WriteString(indent)
+	out.WriteString("let mut ")
 	out.WriteString(valueName)
 	out.WriteString(" = Vec::<")
 	out.WriteString(goTypesTypeToRust(sliceType.Elem()))
 	out.WriteString(">::new();\n")
 	for _, elt := range orderedArrayLiteralValues(valueLit.Elts) {
-		out.WriteString("        ")
+		out.WriteString(indent)
 		out.WriteString(valueName)
 		out.WriteString(".push(")
 		if elt == nil {
@@ -1104,7 +1180,9 @@ func writePackageGlobalMapSliceValueInsert(out *strings.Builder, kv *ast.KeyValu
 		}
 		out.WriteString(");\n")
 	}
-	out.WriteString("        __go_map.insert(")
+	out.WriteString(indent)
+	out.WriteString(mapName)
+	out.WriteString(".insert(")
 	out.WriteString(keyName)
 	out.WriteString(", ")
 	WriteWrapperPrefix(out)

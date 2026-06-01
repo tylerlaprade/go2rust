@@ -136,6 +136,8 @@ func init() {
 		"reflect.TypeOf":           transpileReflectTypeOf,
 		"sync/atomic.AddInt64":     transpileAtomicAddInt64,
 		"sync/atomic.LoadInt64":    transpileAtomicLoadInt64,
+		"sync/atomic.LoadUint32":   transpileAtomicLoadUint32,
+		"sync/atomic.StoreUint32":  transpileAtomicStoreUint32,
 		"sync/atomic.LoadPointer":  transpileAtomicLoadPointer,
 		"sync/atomic.StorePointer": transpileAtomicStorePointer,
 		"encoding/base64.StdEncoding.EncodeToString": transpileBase64EncodeToString,
@@ -1837,6 +1839,43 @@ func transpileAtomicLoadInt64(out *strings.Builder, call *ast.CallExpr) {
 	}
 	out.WriteString(" *__guard.as_ref().unwrap() }")
 	WriteWrapperSuffix(out)
+}
+
+func transpileAtomicLoadUint32(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 1 {
+		out.WriteString("/* ERROR: atomic.LoadUint32 requires pointer */ unimplemented!()")
+		return
+	}
+
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __target = ")
+	writeAtomicTarget(out, call.Args[0])
+	if NeedsConcurrentWrapper() {
+		out.WriteString("; let __guard = __target.lock().unwrap();")
+	} else {
+		out.WriteString("; let __guard = __target.borrow();")
+	}
+	out.WriteString(" *__guard.as_ref().unwrap() }")
+	WriteWrapperSuffix(out)
+}
+
+func transpileAtomicStoreUint32(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 2 {
+		out.WriteString("/* ERROR: atomic.StoreUint32 requires pointer and value */ unimplemented!()")
+		return
+	}
+
+	out.WriteString("{ let __target = ")
+	writeAtomicTarget(out, call.Args[0])
+	out.WriteString("; let __stored = ")
+	writeNumericConversionValue(out, call.Args[1])
+	out.WriteString(" as u32; ")
+	if NeedsConcurrentWrapper() {
+		out.WriteString("let mut __guard = __target.lock().unwrap();")
+	} else {
+		out.WriteString("let mut __guard = __target.borrow_mut();")
+	}
+	out.WriteString(" *__guard.as_mut().unwrap() = __stored; }")
 }
 
 func transpileAtomicLoadPointer(out *strings.Builder, call *ast.CallExpr) {
@@ -3636,6 +3675,8 @@ func writeConcreteLocalInterfaceValue(out *strings.Builder, expr ast.Expr, expec
 		out.WriteString("(")
 		writeFunctionTypeAliasInnerValue(out, expr)
 		out.WriteString(")")
+	} else if writePointerLocalInterfaceWrapperValue(out, expr, expected, ifaceName) {
+		// Pointer dynamic values compare by handle identity when stored in an interface.
 	} else if ident, ok := expr.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
 		out.WriteString(currentReceiverRustName())
 		out.WriteString(".clone()")

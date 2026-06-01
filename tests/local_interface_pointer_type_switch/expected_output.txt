@@ -1,0 +1,4 @@
+type:T
+builtin:B
+T
+not type

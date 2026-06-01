@@ -2383,6 +2383,18 @@ func typeSwitchCaseRustType(typeInfo *TypeInfo, typeExpr ast.Expr) (rustType str
 	return goTypesTypeToRust(typ), false
 }
 
+func typeSwitchCasePointerWrapper(typeInfo *TypeInfo, typeExpr ast.Expr, subjectType types.Type) (wrapperType string, ok bool) {
+	if typeInfo == nil {
+		return "", false
+	}
+	targetType := typeInfo.GetType(typeExpr)
+	if targetType == nil {
+		return "", false
+	}
+	wrapperType, _, ok = localInterfacePointerAssertionWrapperFor(subjectType, targetType)
+	return wrapperType, ok
+}
+
 func typeSwitchCaseLocalInterface(typeInfo *TypeInfo, typeExpr ast.Expr) (*types.Interface, bool) {
 	if typeInfo == nil || typeExpr == nil {
 		return nil, false
@@ -2487,6 +2499,12 @@ func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, type
 	rustType, isNil := typeSwitchCaseRustType(typeInfo, typeExpr)
 	if isNil {
 		out.WriteString("_ts_is_nil")
+		return
+	}
+	if wrapperType, ok := typeSwitchCasePointerWrapper(typeInfo, typeExpr, subjectType); ok {
+		out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+		out.WriteString(wrapperType)
+		out.WriteString(">()).is_some()")
 		return
 	}
 	if writeTypeSwitchLocalInterfaceCaseCondition(out, typeInfo, typeExpr, subjectType) {
@@ -5613,6 +5631,9 @@ func writeMoveWrappedInnerAssignmentFromTemp(out *strings.Builder, lhs ast.Expr,
 	if indexExpr, ok := lhs.(*ast.IndexExpr); ok && writeIndexedSequenceAssignmentFromTemp(out, indexExpr, tmpName, true, nil) {
 		return
 	}
+	if writePointerHandleAssignmentFromTemp(out, lhs, tmpName) {
+		return
+	}
 	movedName := "__moved_" + strings.TrimLeft(tmpName, "_")
 	out.WriteString(" let ")
 	out.WriteString(movedName)
@@ -7092,6 +7113,9 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 	if writeParallelNilAssignmentTarget(out, lhs, tmpName, rhs) {
 		return
 	}
+	if writeParallelPointerHandleAssignmentTarget(out, lhs, tmpName, rhs) {
+		return
+	}
 	if ident, ok := lhs.(*ast.Ident); ok && isVarBare(ident.Name) {
 		out.WriteString(" ")
 		out.WriteString(rustIdentForUseWithCapture(ident))
@@ -7141,6 +7165,58 @@ func writeParallelAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName s
 		}
 		out.WriteString(");")
 	}
+}
+
+func writePointerHandleAssignmentFromTemp(out *strings.Builder, lhs ast.Expr, tmpName string) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsPointer(lhs) {
+		return false
+	}
+	switch lhs.(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+	default:
+		return false
+	}
+	if ident, ok := lhs.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && currentReceiverRustAlias != "" {
+		return false
+	}
+	out.WriteString(" ")
+	writePointerHandleAssignmentTempTarget(out, lhs, tmpName)
+	return true
+}
+
+func writeParallelPointerHandleAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string, rhs ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsPointer(lhs) || !typeInfo.IsPointer(rhs) {
+		return false
+	}
+	switch lhs.(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+	default:
+		return false
+	}
+	if ident, ok := lhs.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && currentReceiverRustAlias != "" {
+		return false
+	}
+	out.WriteString(" ")
+	writePointerHandleAssignmentTempTarget(out, lhs, tmpName)
+	return true
+}
+
+func writePointerHandleAssignmentTempTarget(out *strings.Builder, lhs ast.Expr, tmpName string) {
+	if ident, ok := packageGlobalPointerIdent(lhs); ok {
+		out.WriteString("*")
+		out.WriteString(rustPackageGlobalName(ident.Name))
+		WriteBorrowMethod(out, true)
+		out.WriteString(" = Some(")
+		out.WriteString(tmpName)
+		out.WriteString(".clone());")
+		return
+	}
+	writePointerHandleAssignmentTarget(out, lhs)
+	out.WriteString(" = ")
+	out.WriteString(tmpName)
+	out.WriteString(".clone();")
 }
 
 func writeParallelSliceElemPtrAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpName string, rhs ast.Expr) bool {
@@ -12942,11 +13018,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						}
 						out.WriteString(varName)
 						out.WriteString(" = ")
-						WriteWrapperPrefix(out)
-						out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
-						out.WriteString(rustType)
-						out.WriteString(">()).unwrap().clone()")
-						WriteWrapperSuffix(out)
+						if wrapperType, ok := typeSwitchCasePointerWrapper(typeInfo, caseClause.List[0], typeSwitchSubjectType); ok {
+							out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+							out.WriteString(wrapperType)
+							out.WriteString(">()).unwrap().0.clone()")
+						} else {
+							WriteWrapperPrefix(out)
+							out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+							out.WriteString(rustType)
+							out.WriteString(">()).unwrap().clone()")
+							WriteWrapperSuffix(out)
+						}
 						out.WriteString(";\n")
 					}
 				} else {

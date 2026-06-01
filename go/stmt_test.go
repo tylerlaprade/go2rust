@@ -153,6 +153,72 @@ func important(q Node) bool {
 	}
 }
 
+func TestTypeSwitchPointerLocalInterfaceCaseUsesPointerWrapper(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Object interface {
+	Name() string
+}
+
+type TypeName struct {
+	name string
+}
+
+func (t *TypeName) Name() string { return t.name }
+
+type Builtin struct {
+	name string
+}
+
+func (b *Builtin) Name() string { return b.name }
+
+func classify(obj Object) string {
+	switch obj := obj.(type) {
+	case *TypeName:
+		return obj.Name()
+	case *Builtin:
+		return obj.Name()
+	default:
+		panic("unreachable")
+	}
+}
+
+func assertTypeName(obj Object) string {
+	if t, ok := obj.(*TypeName); ok {
+		return t.Name()
+	}
+	return ""
+}
+`)
+	classifyIndex := strings.Index(rust, "pub fn classify")
+	assertIndex := strings.Index(rust, "pub fn assert_type_name")
+	if classifyIndex < 0 || assertIndex < 0 {
+		t.Fatalf("generated Rust did not contain expected functions:\n%s", rust)
+	}
+	classifyRust := rust[classifyIndex:assertIndex]
+	assertRust := rust[assertIndex:]
+	if !strings.Contains(classifyRust, "downcast_ref::<TypeNamePtr>()") ||
+		!strings.Contains(classifyRust, "downcast_ref::<BuiltinPtr>()") {
+		t.Fatalf("type switch on local interface pointer cases should downcast to pointer wrappers:\n%s", rust)
+	}
+	if strings.Contains(classifyRust, "downcast_ref::<TypeName>()") ||
+		strings.Contains(classifyRust, "downcast_ref::<Builtin>()") {
+		t.Fatalf("type switch on local interface pointer cases should not downcast to cloned pointee values:\n%s", rust)
+	}
+	if !strings.Contains(classifyRust, "unwrap().0.clone()") {
+		t.Fatalf("type switch pointer case binding should preserve the original pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(assertRust, "downcast_ref::<TypeNamePtr>()") {
+		t.Fatalf("type assertion on local interface pointer should downcast to the pointer wrapper:\n%s", rust)
+	}
+	if strings.Contains(assertRust, "downcast_ref::<TypeName>()") {
+		t.Fatalf("type assertion on local interface pointer should not downcast to the pointee value:\n%s", rust)
+	}
+	if !strings.Contains(assertRust, "typed_val.0.clone()") {
+		t.Fatalf("type assertion on local interface pointer should return the original pointer handle:\n%s", rust)
+	}
+}
+
 func TestTypeSwitchDefaultBindingKeepsInterfaceHandleWrapped(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -3871,6 +3937,32 @@ func reassert(v any) bool {
 	}
 }
 
+func TestPointerTupleAssignmentRebindsLocalHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Alias struct{}
+type Other struct{}
+
+func reassign(v any) bool {
+	a0 := &Alias{}
+	a := a0
+	for a != nil {
+		v = &Other{}
+		a, _ = v.(*Alias)
+	}
+	return a0 != nil
+}
+`)
+
+	if strings.Contains(rust, "*a.borrow_mut() = __moved_tmp_0") ||
+		strings.Contains(rust, "*a.lock().unwrap() = __moved_tmp_0") {
+		t.Fatalf("tuple assignment to a pointer local should not mutate the previous pointed handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "a = __tmp_0.clone();") {
+		t.Fatalf("tuple assignment to a pointer local should rebind the local handle from the tuple temp:\n%s", rust)
+	}
+}
+
 func TestMapCommaOkBindsRawBool(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -5329,9 +5421,8 @@ func newType() (T Type) {
 		strings.Contains(rust, "*T.lock().unwrap() = Some(new_val)") {
 		t.Fatalf("named local-interface return should not assign a concrete value into the interface slot:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box::new((*typ.borrow().as_ref().unwrap()).clone()) as Box<dyn Type") &&
-		!strings.Contains(rust, "Box::new((*typ.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Type") {
-		t.Fatalf("named local-interface return should box the concrete pointer value:\n%s", rust)
+	if !strings.Contains(rust, "Box::new(SlicePtr(typ.clone())) as Box<dyn Type") {
+		t.Fatalf("named local-interface return should box a pointer-identity wrapper:\n%s", rust)
 	}
 }
 
@@ -5465,8 +5556,8 @@ func cloneExpr(x Expr) Expr {
 	if strings.Contains(rust, "return op.clone()") {
 		t.Fatalf("address-of concrete returned as interface should not return the local pointer handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box::new((*op.clone()") || !strings.Contains(rust, "as Box<dyn Expr") {
-		t.Fatalf("address-of concrete returned as interface should box the pointed-to concrete value:\n%s", rust)
+	if !strings.Contains(rust, "Box::new(BinaryExprPtr(op.clone()") || !strings.Contains(rust, "as Box<dyn Expr") {
+		t.Fatalf("address-of concrete returned as interface should box a pointer-identity wrapper:\n%s", rust)
 	}
 }
 

@@ -3211,6 +3211,12 @@ func methodParamExprFromDecls(methods []*ast.FuncDecl, methodName string, index 
 }
 
 func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	if expected == nil {
+		if ident, ok := arg.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
+			out.WriteString(currentReceiverRustName())
+			return true
+		}
+	}
 	ifaceName, ifaceNameOK := transpiledNamedInterfaceTypeNameFromTypes(expected)
 	if !ifaceNameOK {
 		return false
@@ -3422,6 +3428,52 @@ func writeLocalInterfaceWrappedConstruction(out *strings.Builder, arg ast.Expr, 
 	out.WriteString(")))")
 }
 
+func pointerLocalInterfaceWrapperInfo(arg ast.Expr, expected types.Type, ifaceName string) (string, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || arg == nil {
+		return "", false
+	}
+	if expected == nil {
+		named, _ := localInterfaceNamedTypeByName(ifaceName)
+		if named == nil {
+			return "", false
+		}
+		expected = named
+	}
+	localIfaceName, ok := localNamedInterfaceTypeNameFromTypes(expected)
+	if !ok {
+		return "", false
+	}
+	argType := typeInfo.GetType(arg)
+	if argType == nil || !types.AssignableTo(argType, expected) {
+		return "", false
+	}
+	ptr, ok := types.Unalias(argType).(*types.Pointer)
+	if !ok {
+		return "", false
+	}
+	elemNamed, ok := types.Unalias(ptr.Elem()).(*types.Named)
+	if !ok || elemNamed.Obj() == nil {
+		return "", false
+	}
+	if typeInfo.pkg != nil && elemNamed.Obj().Pkg() != typeInfo.pkg {
+		return "", false
+	}
+	return pointerLocalInterfaceWrapperNameForUse(elemNamed.Obj().Name(), localIfaceName), true
+}
+
+func writePointerLocalInterfaceWrapperValue(out *strings.Builder, arg ast.Expr, expected types.Type, ifaceName string) bool {
+	wrapperName, ok := pointerLocalInterfaceWrapperInfo(arg, expected, ifaceName)
+	if !ok {
+		return false
+	}
+	out.WriteString(wrapperName)
+	out.WriteString("(")
+	writePointerConcreteInterfaceHandle(out, arg)
+	out.WriteString(")")
+	return true
+}
+
 func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg ast.Expr, expectedIface types.Type) {
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		argType := typeInfo.GetType(arg)
@@ -3440,6 +3492,9 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 		}
 	}
 	if writeLocalInterfaceConstConcreteValue(out, arg, expectedIface) {
+		return
+	}
+	if writePointerLocalInterfaceWrapperValue(out, arg, expectedIface, "") {
 		return
 	}
 	if ident, ok := arg.(*ast.Ident); ok {
@@ -4270,12 +4325,21 @@ func writeStdlibInterfaceCallArgumentConversion(out *strings.Builder, arg ast.Ex
 	if !ok {
 		if targetRust, ok := localConcreteToStdlibInterfaceConversion(arg, expectedType); ok {
 			WriteWrapperPrefix(out)
-			out.WriteString(targetRust)
-			out.WriteString("::default()")
+			writeLocalConcreteStdlibInterfaceConversion(out, arg, targetRust)
 			WriteWrapperSuffix(out)
 			return true
 		}
 		return false
+	}
+	if stdlibInterfaceConversionSourceIsRaw(arg) {
+		out.WriteString("{ let __arg = ")
+		TranspileExpression(out, arg)
+		out.WriteString("; ")
+		WriteWrapperPrefix(out)
+		out.WriteString("__arg.into()")
+		WriteWrapperSuffix(out)
+		out.WriteString(" }")
+		return true
 	}
 	out.WriteString("{ let __arg = ")
 	writeStdlibInterfaceSourceHandle(out, arg, expectedType)
@@ -4294,15 +4358,20 @@ func writeStdlibInterfaceCallArgumentConversion(out *strings.Builder, arg ast.Ex
 func writeStdlibInterfaceBareConversion(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
 	if _, _, ok := stdlibInterfaceArgumentConversion(arg, expectedType); !ok {
 		if targetRust, ok := localConcreteToStdlibInterfaceConversion(arg, expectedType); ok {
-			out.WriteString(targetRust)
-			out.WriteString("::default()")
+			writeLocalConcreteStdlibInterfaceConversion(out, arg, targetRust)
 			return true
 		}
 		return false
 	}
+	targetRust, _, _ := stdlibInterfaceArgumentConversion(arg, expectedType)
+	if stdlibInterfaceConversionSourceIsRaw(arg) {
+		out.WriteString("{ let __arg = ")
+		TranspileExpression(out, arg)
+		out.WriteString("; __arg.into() }")
+		return true
+	}
 	out.WriteString("{ let __arg = ")
 	writeStdlibInterfaceSourceHandle(out, arg, expectedType)
-	targetRust, _, _ := stdlibInterfaceArgumentConversion(arg, expectedType)
 	out.WriteString("; let __arg_guard = __arg")
 	WriteBorrowMethod(out, false)
 	out.WriteString("; __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(")
@@ -4358,11 +4427,16 @@ func writeStdlibInterfaceComparableConversion(out *strings.Builder, arg ast.Expr
 	targetRust, _, ok := stdlibInterfaceArgumentConversion(arg, expectedType)
 	if !ok {
 		if targetRust, ok := localConcreteToStdlibInterfaceConversion(arg, expectedType); ok {
-			out.WriteString(targetRust)
-			out.WriteString("::default()")
+			writeLocalConcreteStdlibInterfaceConversion(out, arg, targetRust)
 			return true
 		}
 		return false
+	}
+	if stdlibInterfaceConversionSourceIsRaw(arg) {
+		out.WriteString("{ let __arg = ")
+		TranspileExpression(out, arg)
+		out.WriteString("; __arg.into() }")
+		return true
 	}
 	out.WriteString("{ let __arg = ")
 	writeStdlibInterfaceSourceHandle(out, arg, expectedType)
@@ -4376,6 +4450,22 @@ func writeStdlibInterfaceComparableConversion(out *strings.Builder, arg ast.Expr
 	out.WriteString("__converted")
 	out.WriteString(" }")
 	return true
+}
+
+func stdlibInterfaceConversionSourceIsRaw(arg ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	var obj types.Object
+	switch e := arg.(type) {
+	case *ast.Ident:
+		obj = typeInfo.info.Uses[e]
+	case *ast.SelectorExpr:
+		obj = typeInfo.info.Uses[e.Sel]
+	}
+	_, ok := obj.(*types.Const)
+	return ok
 }
 
 func localConcreteToStdlibInterfaceConversion(arg ast.Expr, expectedType types.Type) (targetRust string, ok bool) {
@@ -4414,6 +4504,60 @@ func localConcreteToStdlibInterfaceConversion(arg ast.Expr, expectedType types.T
 		return "", false
 	}
 	return goTypesNamedTypeToRust(targetNamed), true
+}
+
+func writeLocalConcreteStdlibInterfaceConversion(out *strings.Builder, arg ast.Expr, targetRust string) {
+	out.WriteString(targetRust)
+	out.WriteString("::__go_from(")
+	writeLocalConcreteStdlibInterfaceSource(out, arg)
+	out.WriteString(")")
+}
+
+func writeLocalConcreteStdlibInterfaceSource(out *strings.Builder, arg ast.Expr) {
+	typeInfo := GetTypeInfo()
+	sourceType := types.Type(nil)
+	if typeInfo != nil {
+		sourceType = typeInfo.GetType(arg)
+	}
+	if sourceType != nil {
+		if _, ok := types.Unalias(sourceType).(*types.Pointer); ok {
+			if ident, ok := arg.(*ast.Ident); ok {
+				out.WriteString(rustIdentForUseWithCapture(ident))
+				out.WriteString(".clone()")
+				return
+			}
+			TranspileExpression(out, arg)
+			return
+		}
+	}
+	if ident, ok := arg.(*ast.Ident); ok {
+		writeScopedIdentValueClone(out, ident)
+		return
+	}
+	TranspileExpression(out, arg)
+}
+
+func stdlibInterfacePointerAssertionHandleType(e *ast.TypeAssertExpr) (string, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return "", false
+	}
+	targetType := typeInfo.GetType(e.Type)
+	if targetType == nil {
+		return "", false
+	}
+	ptr, ok := types.Unalias(targetType).(*types.Pointer)
+	if !ok {
+		return "", false
+	}
+	named, ok := types.Unalias(ptr.Elem()).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return "", false
+	}
+	if !isSourceMappedPackagePath(named.Obj().Pkg().Path()) {
+		return "", false
+	}
+	return goTypesTypeToRust(targetType), true
 }
 
 func isWrappedValueIdent(ident *ast.Ident) bool {
@@ -4850,6 +4994,15 @@ func writeInterfaceEqualityReferenceBinding(out *strings.Builder, name string, e
 
 func writePointerConcreteInterfaceHandle(out *strings.Builder, expr ast.Expr) {
 	if writeCurrentPointerReceiverHandleClone(out, expr) {
+		return
+	}
+	if ident, ok := expr.(*ast.Ident); ok {
+		if globalIdent, ok := packageGlobalPointerIdent(ident); ok {
+			writeScopedValueClone(out, rustPackageGlobalName(globalIdent.Name))
+			return
+		}
+	}
+	if writeSourceMappedPackageGlobalPointerScopedClone(out, expr) {
 		return
 	}
 	if sel, ok := expr.(*ast.SelectorExpr); ok && isPackageVarSelector(sel) {
@@ -6112,7 +6265,7 @@ func writeArraySliceLiteralElementValue(out *strings.Builder, expr ast.Expr, ele
 	if writeLocalInterfaceSliceLiteralElement(out, expr, elemType) {
 		return true
 	}
-	if compositeLiteralElementKeepsHandle(elemType) {
+	if elemType != nil && compositeLiteralElementKeepsHandle(elemType) {
 		if _, ok := types.Unalias(elemType).Underlying().(*types.Pointer); ok {
 			if writePointerHandleCallArgument(out, expr, elemType) {
 				return true
@@ -7094,6 +7247,14 @@ func writeConcreteLocalInterfaceBox(out *strings.Builder, value ast.Expr, interf
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		return false
+	}
+	var pointerWrapper strings.Builder
+	if writePointerLocalInterfaceWrapperValue(&pointerWrapper, value, nil, interfaceName) {
+		out.WriteString("Box::new(")
+		out.WriteString(pointerWrapper.String())
+		out.WriteString(") as ")
+		out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
+		return true
 	}
 	if ident, ok := value.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
 		out.WriteString("Box::new(")
@@ -10709,6 +10870,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				writeAnonInterfaceAssertionValue(out, e, sourceType, iface, candidates)
 				return
 			}
+			if wrapperType, _, ok := localInterfacePointerAssertionWrapperForAssert(e); ok {
+				writeTraitObjectPointerAssertionValue(out, e, wrapperType)
+				return
+			}
 			// Get the Rust type for the assertion
 			rustType := ""
 			assertionReturnsPointer := false
@@ -13727,6 +13892,47 @@ func localInterfaceAssertionSourceTrait(sourceType types.Type) string {
 	return ""
 }
 
+func localInterfacePointerAssertionWrapperFor(sourceType types.Type, targetType types.Type) (wrapperType string, pointeeRustType string, ok bool) {
+	if sourceType == nil || targetType == nil {
+		return "", "", false
+	}
+	sourceIfaceName, ok := localNamedInterfaceTypeNameFromTypes(sourceType)
+	if !ok {
+		return "", "", false
+	}
+	ptr, ok := types.Unalias(targetType).(*types.Pointer)
+	if !ok {
+		return "", "", false
+	}
+	elemNamed, ok := types.Unalias(ptr.Elem()).(*types.Named)
+	if !ok || elemNamed.Obj() == nil {
+		return "", "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil || elemNamed.Obj().Pkg() != typeInfo.pkg {
+		return "", "", false
+	}
+	if !sourceAllowsInterfaceAssertionCandidate(ptr, sourceType) {
+		return "", "", false
+	}
+	return pointerLocalInterfaceWrapperNameForUse(elemNamed.Obj().Name(), sourceIfaceName), goTypesNamedTypeToRust(elemNamed), true
+}
+
+func localInterfacePointerAssertionWrapperForAssert(e *ast.TypeAssertExpr) (wrapperType string, pointeeRustType string, ok bool) {
+	if e == nil || e.Type == nil {
+		return "", "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return "", "", false
+	}
+	targetType, ok := typeInfoTypeForTypeExpr(e.Type)
+	if !ok {
+		return "", "", false
+	}
+	return localInterfacePointerAssertionWrapperFor(typeInfo.GetType(e.X), targetType)
+}
+
 func typeAssertionSourceUsesTraitObject(expr ast.Expr) bool {
 	return typeAssertionSourceTraitObject(expr) != ""
 }
@@ -13866,6 +14072,84 @@ func writeTypeAssertionFailureWrappedValue(out *strings.Builder, rustType string
 	WriteWrapperPrefix(out)
 	out.WriteString(defaultValue)
 	WriteWrapperSuffix(out)
+}
+
+func writeTraitObjectPointerAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, wrapperType string, pointeeRustType string) {
+	sourceTrait := typeAssertionSourceTraitObject(e.X)
+	out.WriteString("({\n")
+	if typeAssertionSourceIsTraitObjectRef(e.X) {
+		out.WriteString("        let any_val = ")
+		writeTraitObjectAssertionSourceRef(out, e.X)
+		out.WriteString(".__go_as_any();\n")
+		out.WriteString("        if let Some(typed_val) = any_val.downcast_ref::<")
+		out.WriteString(wrapperType)
+		out.WriteString(">() {\n")
+		out.WriteString("            (typed_val.0.clone(), true)\n")
+		out.WriteString("        } else {\n")
+		out.WriteString("            (")
+		writeTypedWrappedNone(out, pointeeRustType)
+		out.WriteString(", false)\n")
+		out.WriteString("        }\n")
+	} else {
+		out.WriteString("        let val = ")
+		writeTypeAssertionInputClone(out, e.X)
+		out.WriteString(";\n")
+		out.WriteString("        let guard = val")
+		WriteBorrowMethod(out, false)
+		out.WriteString(";\n")
+		out.WriteString("        if let Some(ref any_val) = *guard {\n")
+		out.WriteString("            if let Some(typed_val) = ")
+		writeLocalInterfaceAssertionDowncast(out, sourceTrait, wrapperType)
+		out.WriteString(" {\n")
+		out.WriteString("                (typed_val.0.clone(), true)\n")
+		out.WriteString("            } else {\n")
+		out.WriteString("                (")
+		writeTypedWrappedNone(out, pointeeRustType)
+		out.WriteString(", false)\n")
+		out.WriteString("            }\n")
+		out.WriteString("        } else {\n")
+		out.WriteString("            (")
+		writeTypedWrappedNone(out, pointeeRustType)
+		out.WriteString(", false)\n")
+		out.WriteString("        }\n")
+	}
+	out.WriteString("    })")
+}
+
+func writeTraitObjectPointerAssertionValue(out *strings.Builder, e *ast.TypeAssertExpr, wrapperType string) {
+	sourceTrait := typeAssertionSourceTraitObject(e.X)
+	out.WriteString("({\n")
+	if typeAssertionSourceIsTraitObjectRef(e.X) {
+		out.WriteString("        let any_val = ")
+		writeTraitObjectAssertionSourceRef(out, e.X)
+		out.WriteString(".__go_as_any();\n")
+		out.WriteString("        if let Some(typed_val) = any_val.downcast_ref::<")
+		out.WriteString(wrapperType)
+		out.WriteString(">() {\n")
+		out.WriteString("            typed_val.0.clone()\n")
+		out.WriteString("        } else {\n")
+		out.WriteString("            panic!(\"type assertion failed\")\n")
+		out.WriteString("        }\n")
+	} else {
+		out.WriteString("        let val = ")
+		writeTypeAssertionInputClone(out, e.X)
+		out.WriteString(";\n")
+		out.WriteString("        let guard = val")
+		WriteBorrowMethod(out, false)
+		out.WriteString(";\n")
+		out.WriteString("        if let Some(ref any_val) = *guard {\n")
+		out.WriteString("            if let Some(typed_val) = ")
+		writeLocalInterfaceAssertionDowncast(out, sourceTrait, wrapperType)
+		out.WriteString(" {\n")
+		out.WriteString("                typed_val.0.clone()\n")
+		out.WriteString("            } else {\n")
+		out.WriteString("                panic!(\"type assertion failed\")\n")
+		out.WriteString("            }\n")
+		out.WriteString("        } else {\n")
+		out.WriteString("            panic!(\"type assertion on nil interface\")\n")
+		out.WriteString("        }\n")
+	}
+	out.WriteString("    })")
 }
 
 func writeTraitObjectConcreteAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, rustType string, defaultValue string, targetIsPointer bool, targetIsInterface bool, targetIsError bool) {
@@ -14312,6 +14596,10 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		writeAnonInterfaceAssertionCommaOk(out, e, sourceType, iface, candidates)
 		return
 	}
+	if wrapperType, pointeeRustType, ok := localInterfacePointerAssertionWrapperForAssert(e); ok {
+		writeTraitObjectPointerAssertionCommaOk(out, e, wrapperType, pointeeRustType)
+		return
+	}
 
 	// Get the Rust type for the assertion
 	rustType := ""
@@ -14464,6 +14752,24 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		WriteBorrowMethod(out, false)
 		out.WriteString(";\n")
 		out.WriteString("        if let Some(ref any_val) = *guard {\n")
+		if pointerHandleType, ok := stdlibInterfacePointerAssertionHandleType(e); ok {
+			out.WriteString("            if let Some(typed_val) = any_val.downcast_ref::<")
+			out.WriteString(pointerHandleType)
+			out.WriteString(">() {\n")
+			out.WriteString("                (typed_val.clone(), true)\n")
+			out.WriteString("            } else {\n")
+			out.WriteString("                (")
+			writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer, targetIsInterface)
+			out.WriteString(", false)\n")
+			out.WriteString("            }\n")
+			out.WriteString("        } else {\n")
+			out.WriteString("            (")
+			writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer, targetIsInterface)
+			out.WriteString(", false)\n")
+			out.WriteString("        }\n")
+			out.WriteString("    })")
+			return
+		}
 		out.WriteString("            if let Some(typed_val) = any_val.downcast_ref::<")
 		out.WriteString(rustType)
 		out.WriteString(">() {\n")
@@ -14509,6 +14815,19 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 			TranspileExpression(out, e.X)
 		}
 		out.WriteString(".clone();\n")
+		if pointerHandleType, ok := stdlibInterfacePointerAssertionHandleType(e); ok {
+			out.WriteString("        if let Some(typed_val) = val.downcast_ref::<")
+			out.WriteString(pointerHandleType)
+			out.WriteString(">() {\n")
+			out.WriteString("            (typed_val.clone(), true)\n")
+			out.WriteString("        } else {\n")
+			out.WriteString("            (")
+			writeTypeAssertionFailureWrappedValue(out, rustType, defaultValue, targetIsPointer, targetIsInterface)
+			out.WriteString(", false)\n")
+			out.WriteString("        }\n")
+			out.WriteString("    })")
+			return
+		}
 		out.WriteString("        if let Some(typed_val) = val.downcast_ref::<")
 		out.WriteString(rustType)
 		out.WriteString(">() {\n")
@@ -15100,6 +15419,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		}
 
 		if writeStringsBuilderMethodCall(out, sel, call) {
+			return
+		}
+		if writeNilPointerReceiverMethodCall(out, sel, call) {
 			return
 		}
 

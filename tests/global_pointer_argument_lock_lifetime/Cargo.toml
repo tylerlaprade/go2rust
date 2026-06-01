@@ -1,0 +1,8 @@
+[package]
+name = "global_pointer_argument_lock_lifetime"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "global_pointer_argument_lock_lifetime"
+path = "main.rs"

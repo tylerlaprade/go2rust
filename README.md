@@ -599,6 +599,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ `sync.Once.Do` callbacks that initialize receiver fields | ✅ |
 | **`sync/atomic` package** | |
 | └ `atomic.AddInt64` / `atomic.LoadInt64` | ✅ |
+| └ `atomic.LoadUint32` / `atomic.StoreUint32` | ✅ |
 | └ `atomic.Uint64` `Load` / `Store` / `CompareAndSwap` | ✅ |
 | **`strings` (Builder)** | |
 | └ `strings.Builder` | ✅ |
