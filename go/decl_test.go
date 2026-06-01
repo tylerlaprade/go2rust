@@ -120,6 +120,45 @@ func TestTranspileInternalABIFuncPCIntrinsicsUseFunctionTypeID(t *testing.T) {
 	}
 }
 
+func TestTranspileInternalABITypeOfUsesRuntimeTypeIntrinsic(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	currentTypeInfo = &TypeInfo{pkg: types.NewPackage("internal/abi", "abi")}
+	t.Cleanup(func() {
+		currentTypeInfo = prevTypeInfo
+	})
+
+	fn := &ast.FuncDecl{
+		Name: ast.NewIdent("TypeOf"),
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{List: []*ast.Field{{
+				Names: []*ast.Ident{ast.NewIdent("a")},
+				Type:  &ast.InterfaceType{Methods: &ast.FieldList{}},
+			}}},
+			Results: &ast.FieldList{List: []*ast.Field{{
+				Type: &ast.StarExpr{X: ast.NewIdent("Type")},
+			}}},
+		},
+		Body: &ast.BlockStmt{Lbrace: token.Pos(1), Rbrace: token.Pos(2)},
+	}
+
+	var out strings.Builder
+	TranspileFunction(&out, fn, token.NewFileSet(), nil)
+	got := out.String()
+	if strings.Contains(got, "unsafe.Pointer conversion to EmptyInterface") ||
+		strings.Contains(got, "unsafe.Pointer conversion to Type") {
+		t.Fatalf("internal/abi.TypeOf should use a Rust runtime type intrinsic, not Go interface layout casts:\n%s", got)
+	}
+	for _, want := range []string{
+		"<dyn std::any::Any>::is::<String>",
+		"std::mem::size_of_val(__value)",
+		"internal/abi.TypeOf unsupported Rust Any payload",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %q in:\n%s", want, got)
+		}
+	}
+}
+
 func TestTranspileFunctionWithoutBodyNamesUnnamedParams(t *testing.T) {
 	var out strings.Builder
 	fn := &ast.FuncDecl{

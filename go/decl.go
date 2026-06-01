@@ -2553,6 +2553,11 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 
 	writeAssignedInterfaceParamShadows(out, fn, "    ")
 
+	if fn.Body != nil && writeRuntimeLinkedFunctionBody(out, fn, "    ") {
+		out.WriteString("}\n")
+		return
+	}
+
 	if fn.Body == nil {
 		if writeRuntimeLinkedFunctionBody(out, fn, "    ") {
 			out.WriteString("}\n")
@@ -2751,6 +2756,9 @@ func writeRuntimeLinkedFunctionBody(out *strings.Builder, fn *ast.FuncDecl, inde
 		case "FuncPCABI0", "FuncPCABIInternal":
 			writeFuncPCIntrinsicBody(out, fn, indent)
 			return true
+		case "TypeOf":
+			writeInternalABITypeOfIntrinsicBody(out, fn, indent)
+			return true
 		}
 	}
 	return false
@@ -2793,6 +2801,54 @@ func writeFuncPCIntrinsicBody(out *strings.Builder, fn *ast.FuncDecl, indent str
 	out.WriteString("std::hash::Hash::hash(&std::any::Any::type_id(__value.as_ref()), &mut __hasher);\n")
 	out.WriteString(indent)
 	out.WriteString("std::hash::Hasher::finish(&__hasher) as usize\n")
+}
+
+func writeInternalABITypeOfIntrinsicBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	paramName := "a"
+	if fn != nil && fn.Type != nil && fn.Type.Params != nil && len(fn.Type.Params.List) > 0 {
+		firstParam := fn.Type.Params.List[0]
+		if len(firstParam.Names) > 0 && firstParam.Names[0] != nil {
+			paramName = firstParam.Names[0].Name
+		}
+	}
+
+	sliceHandleType := "Rc<RefCell<Option<Vec<u8>>>>"
+	if NeedsConcurrentWrapper() {
+		sliceHandleType = "Arc<Mutex<Option<Vec<u8>>>>"
+	}
+
+	out.WriteString(indent)
+	out.WriteString("let __guard = ")
+	out.WriteString(RustLocalIdent(paramName))
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("let __value = match __guard.as_ref() { Some(__value) => __value.as_ref(), None => return ")
+	WriteWrappedNone(out)
+	out.WriteString(" };\n")
+	out.WriteString(indent)
+	out.WriteString("let mut __typ = Type::default();\n")
+	out.WriteString(indent)
+	out.WriteString("let __kind: u8 = if <dyn std::any::Any>::is::<bool>(__value) { BOOL } else if <dyn std::any::Any>::is::<i32>(__value) { INT } else if <dyn std::any::Any>::is::<i8>(__value) { INT8 } else if <dyn std::any::Any>::is::<i16>(__value) { INT16 } else if <dyn std::any::Any>::is::<i64>(__value) { INT64 } else if <dyn std::any::Any>::is::<u8>(__value) { UINT8 } else if <dyn std::any::Any>::is::<u16>(__value) { UINT16 } else if <dyn std::any::Any>::is::<u32>(__value) { UINT32 } else if <dyn std::any::Any>::is::<u64>(__value) { UINT64 } else if <dyn std::any::Any>::is::<usize>(__value) { UINTPTR } else if <dyn std::any::Any>::is::<f32>(__value) { FLOAT32 } else if <dyn std::any::Any>::is::<f64>(__value) { FLOAT64 } else if <dyn std::any::Any>::is::<String>(__value) { STRING } else if <dyn std::any::Any>::is::<")
+	out.WriteString(sliceHandleType)
+	out.WriteString(">(__value) { SLICE } else { panic!(\"internal/abi.TypeOf unsupported Rust Any payload\") };\n")
+	out.WriteString(indent)
+	out.WriteString("*__typ.kind_")
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(Kind(")
+	WriteWrapperPrefix(out)
+	out.WriteString("__kind")
+	WriteWrapperSuffix(out)
+	out.WriteString("));\n")
+	out.WriteString(indent)
+	out.WriteString("*__typ.size_")
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(std::mem::size_of_val(__value));\n")
+	out.WriteString(indent)
+	WriteWrapperPrefix(out)
+	out.WriteString("__typ")
+	WriteWrapperSuffix(out)
+	out.WriteString("\n")
 }
 
 func writeRuntimeLinkedStringParamClone(out *strings.Builder, paramName string, localName string, indent string) {
