@@ -826,7 +826,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
     }
         let mut e = { let __recv = n.clone(); let __recv_ptr: *const node<K, V> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const node<K, V> }; let __result = unsafe { &*__recv_ptr }.entry(); __result };
         while (*e.lock().unwrap()).is_some() {
-        if !{ let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<K>>>, Arc<StdMutex<Option<V>>>) -> bool + Send + Sync> = { let mut __f_guard = r#yield.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<K>>>, Arc<StdMutex<Option<V>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*e.lock().unwrap().as_ref().unwrap()).key, (*e.lock().unwrap().as_ref().unwrap()).value) } {
+        if !{ let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<K>>>, Arc<StdMutex<Option<V>>>) -> bool + Send + Sync> = { let mut __f_guard = r#yield.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<K>>>, Arc<StdMutex<Option<V>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*e.lock().unwrap().as_ref().unwrap()).key.clone(), (*e.lock().unwrap().as_ref().unwrap()).value.clone()) } {
         return false;
     }
         { let new_val = (*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).load().clone(); e = new_val; };
@@ -876,7 +876,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
     pub fn lookup(&mut self, key: Arc<StdMutex<Option<K>>>) -> (Arc<StdMutex<Option<V>>>, bool) {
         let mut __self = self.clone();
         while true {
-        if { let __left = __self.key; let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if { let __left = __self.key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
         return ({ let __return_value_0 = __self.value.clone(); __return_value_0 }, true);
     }
         { let new_val = (*__self.overflow.lock().unwrap().as_mut().unwrap()).load(); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
@@ -887,7 +887,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
     pub fn lookup_with_value(&mut self, key: Arc<StdMutex<Option<K>>>, value: Arc<StdMutex<Option<V>>>, valEqual: equalFunc) -> (Arc<StdMutex<Option<V>>>, bool) {
         let mut __self = self.clone();
         while true {
-        if { let __left = __self.key; let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } && ((*valEqual.lock().unwrap()).is_none() || { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&__self.value.clone()) as usize))), abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&value.clone()) as usize))))) }) {
+        if { let __left = __self.key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } && ((*valEqual.lock().unwrap()).is_none() || { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&__self.value.clone()) as usize))), abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&value.clone()) as usize))))) }) {
         return ({ let __return_value_0 = __self.value.clone(); __return_value_0 }, true);
     }
         { let new_val = (*__self.overflow.lock().unwrap().as_mut().unwrap()).load(); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
@@ -900,7 +900,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
     ///
     /// swap must be called under the mutex of the indirect node which e is a child of.
     pub fn swap(&self, key: Arc<StdMutex<Option<K>>>, new: Arc<StdMutex<Option<V>>>) -> (Arc<StdMutex<Option<entry<K, V>>>>, Arc<StdMutex<Option<V>>>, bool) {
-        if { let __left = self.key; let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if { let __left = self.key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
                 // Return the new head of the list.
         let mut e = new_entry_node::<K, V>(key.clone(), new.clone());
         {
@@ -915,7 +915,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
         let mut i = self.overflow.clone();
         let mut e = { let __recv = i.clone(); let __recv_ptr: *mut GoAtomicPointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result };
         while (*e.lock().unwrap()).is_some() {
-        if { let __left = (*e.lock().unwrap().as_ref().unwrap()).key; let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if { let __left = (*e.lock().unwrap().as_ref().unwrap()).key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
         let mut eNew = new_entry_node::<K, V>(key.clone(), new.clone());
         (*(*eNew.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).store((*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).load());
         { let __recv = i.clone(); let __recv_ptr: *mut GoAtomicPointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.store(eNew.clone()); __result };
@@ -933,7 +933,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
     ///
     /// compareAndSwap must be called under the mutex of the indirect node which e is a child of.
     pub fn compare_and_swap(&self, key: Arc<StdMutex<Option<K>>>, old: Arc<StdMutex<Option<V>>>, new: Arc<StdMutex<Option<V>>>, valEqual: equalFunc) -> (Arc<StdMutex<Option<entry<K, V>>>>, bool) {
-        if { let __left = self.key; let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } && { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.value.clone()) as usize))), abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&old.clone()) as usize))))) } {
+        if { let __left = self.key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } && { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.value.clone()) as usize))), abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&old.clone()) as usize))))) } {
                 // Return the new head of the list.
         let mut e = new_entry_node::<K, V>(key.clone(), new.clone());
         {
@@ -948,7 +948,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
         let mut i = self.overflow.clone();
         let mut e = { let __recv = i.clone(); let __recv_ptr: *mut GoAtomicPointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result };
         while (*e.lock().unwrap()).is_some() {
-        if { let __left = (*e.lock().unwrap().as_ref().unwrap()).key; let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } && { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&(*e.lock().unwrap().as_ref().unwrap()).value.clone()) as usize))), abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&old.clone()) as usize))))) } {
+        if { let __left = (*e.lock().unwrap().as_ref().unwrap()).key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } && { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&(*e.lock().unwrap().as_ref().unwrap()).value.clone()) as usize))), abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&old.clone()) as usize))))) } {
         let mut eNew = new_entry_node::<K, V>(key.clone(), new.clone());
         (*(*eNew.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).store((*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).load());
         { let __recv = i.clone(); let __recv_ptr: *mut GoAtomicPointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.store(eNew.clone()); __result };
@@ -965,7 +965,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
     ///
     /// loadAndDelete must be called under the mutex of the indirect node which e is a child of.
     pub fn load_and_delete(&self, key: Arc<StdMutex<Option<K>>>) -> (Arc<StdMutex<Option<V>>>, Arc<StdMutex<Option<entry<K, V>>>>, bool) {
-        if { let __left = self.key; let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if { let __left = self.key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
                 // Drop the head of the list.
         return ({ let __return_value_0 = self.value.clone(); __return_value_0 }, (*self.overflow.lock().unwrap().as_mut().unwrap()).load(), true);
     }
@@ -973,7 +973,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
         let mut i = self.overflow.clone();
         let mut e = { let __recv = i.clone(); let __recv_ptr: *mut GoAtomicPointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result };
         while (*e.lock().unwrap()).is_some() {
-        if { let __left = (*e.lock().unwrap().as_ref().unwrap()).key; let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if { let __left = (*e.lock().unwrap().as_ref().unwrap()).key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
         { let __recv = i.clone(); let __recv_ptr: *mut GoAtomicPointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.store((*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).load()); __result };
         return ({ let __return_value_0 = (*e.lock().unwrap().as_ref().unwrap()).value.clone(); __return_value_0 }, Arc::new(StdMutex::new(Some(self.clone()))), true);
     }
@@ -988,7 +988,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
     ///
     /// compareAndDelete must be called under the mutex of the indirect node which e is a child of.
     pub fn compare_and_delete(&self, key: Arc<StdMutex<Option<K>>>, value: Arc<StdMutex<Option<V>>>, valEqual: equalFunc) -> (Arc<StdMutex<Option<entry<K, V>>>>, bool) {
-        if { let __left = self.key; let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } && { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.value.clone()) as usize))), abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&value.clone()) as usize))))) } {
+        if { let __left = self.key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } && { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.value.clone()) as usize))), abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&value.clone()) as usize))))) } {
                 // Drop the head of the list.
         return ((*self.overflow.lock().unwrap().as_mut().unwrap()).load(), true);
     }
@@ -996,7 +996,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
         let mut i = self.overflow.clone();
         let mut e = { let __recv = i.clone(); let __recv_ptr: *mut GoAtomicPointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result };
         while (*e.lock().unwrap()).is_some() {
-        if { let __left = (*e.lock().unwrap().as_ref().unwrap()).key; let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } && { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&(*e.lock().unwrap().as_ref().unwrap()).value.clone()) as usize))), abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&value.clone()) as usize))))) } {
+        if { let __left = (*e.lock().unwrap().as_ref().unwrap()).key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } && { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&(*e.lock().unwrap().as_ref().unwrap()).value.clone()) as usize))), abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&value.clone()) as usize))))) } {
         { let __recv = i.clone(); let __recv_ptr: *mut GoAtomicPointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.store((*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).load()); __result };
         return (Arc::new(StdMutex::new(Some(self.clone()))), true);
     }

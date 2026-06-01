@@ -5256,6 +5256,34 @@ func same[S ~[]E, E comparable](left, right S, i int) bool {
 	}
 }
 
+func TestTypeParamSelectorHandleUsesClone(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type entry[T comparable] struct {
+	key T
+}
+
+func same[T comparable](e *entry[T], key T, yield func(T) bool) bool {
+	if e.key == key {
+		return yield(e.key)
+	}
+	return false
+}
+`)
+
+	if strings.Contains(rust, "let __left = (*e.borrow().as_ref().unwrap()).key;") ||
+		strings.Contains(rust, "let __left = (*e.lock().unwrap().as_ref().unwrap()).key;") {
+		t.Fatalf("type-parameter selector equality should not move the field handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "(*__f)((*e.borrow().as_ref().unwrap()).key)") ||
+		strings.Contains(rust, "(*__f)((*e.lock().unwrap().as_ref().unwrap()).key)") {
+		t.Fatalf("type-parameter selector function argument should not move the field handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".key.clone()") {
+		t.Fatalf("type-parameter selector handle should be cloned before use:\n%s", rust)
+	}
+}
+
 func TestTypeParamClosureCallUsesHandleArguments(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

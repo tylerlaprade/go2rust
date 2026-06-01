@@ -5260,6 +5260,9 @@ func writeTypeParamHandleExpression(out *strings.Builder, expr ast.Expr) bool {
 			return true
 		}
 		TranspileExpressionContext(out, expr, LValue)
+		if _, ok := unwrapParens(expr).(*ast.SelectorExpr); ok {
+			out.WriteString(".clone()")
+		}
 		return true
 	}
 	if ident.Name == "_" || ident.Name == "nil" || isConstIdent(ident) {
