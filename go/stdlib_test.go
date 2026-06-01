@@ -535,6 +535,23 @@ func fill(dst nat, src nat, d int) int {
 	}
 }
 
+func TestBuiltinCopyWrappedSourceAllowsNilSlice(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func fill(dst []byte, src []byte) int {
+	return copy(dst, src)
+}
+`)
+
+	if strings.Contains(rust, "src.borrow().as_ref().unwrap()).clone()") ||
+		strings.Contains(rust, "src.lock().unwrap().as_ref().unwrap()).clone()") {
+		t.Fatalf("copy source should not unwrap nil slices:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__copy_src_guard.as_ref().cloned().unwrap_or_default()") {
+		t.Fatalf("copy source should clone-or-default nil slices:\n%s", rust)
+	}
+}
+
 func TestBuiltinCopyNamedSliceArrayElementSourceUsesBareNamedValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

@@ -70,12 +70,12 @@ impl std::fmt::Display for buf {
 impl buf {
     pub fn fill(&mut self, src: Rc<RefCell<Option<Vec<u8>>>>) {
         { let new_val = Rc::new(RefCell::new(Some(vec![0; ((*src.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize]))); self.dst = new_val; };
-        { let _src = ((*src.borrow().as_ref().unwrap())).clone(); let _n = std::cmp::min((*self.dst.borrow().as_ref().unwrap()).len(), _src.len()); for _i in 0.._n { (*self.dst.borrow_mut().as_mut().unwrap())[_i] = _src[_i].clone(); } Rc::new(RefCell::new(Some(_n as i32))) };
+        { let _src = { let __copy_src_holder = src.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().cloned().unwrap_or_default() }; let _n = std::cmp::min((*self.dst.borrow().as_ref().unwrap()).len(), _src.len()); for _i in 0.._n { (*self.dst.borrow_mut().as_mut().unwrap())[_i] = _src[_i].clone(); } Rc::new(RefCell::new(Some(_n as i32))) };
     }
 }
 
 fn main() {
-    let mut b = Rc::new(RefCell::new(Some(buf { dst: Rc::new(RefCell::new(Some(vec![]))) })));
+    let mut b = Rc::new(RefCell::new(Some(buf { dst: Default::default() })));
     (*b.borrow_mut().as_mut().unwrap()).fill(Rc::new(RefCell::new(Some(("hello".to_string()).as_bytes().to_vec()))));
     println!("{}", format!("{}", (*Rc::new(RefCell::new(Some(String::from_utf8({ let __slice_holder = (*b.borrow().as_ref().unwrap()).dst.clone(); let __slice_guard = __slice_holder.borrow(); (*__slice_guard.as_ref().unwrap()).clone() }).unwrap()))).borrow().as_ref().unwrap())));
 }

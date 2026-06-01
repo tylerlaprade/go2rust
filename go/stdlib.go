@@ -4768,11 +4768,19 @@ func writeCopySourceValue(out *strings.Builder, expr ast.Expr, isString bool) {
 	if writeNamedSliceCopySourceValue(out, expr) {
 		return
 	}
-	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.ReturnsWrappedValue(expr) && !isExpressionResultBare(expr) {
-		out.WriteString("(*")
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsSlice(expr) && !isExpressionResultBare(expr) {
+		if _, isSliceExpr := unwrapParens(expr).(*ast.SliceExpr); isSliceExpr {
+			out.WriteString("(*")
+			TranspileExpression(out, expr)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).clone()")
+			return
+		}
+		out.WriteString("{ let __copy_src_holder = ")
 		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(".clone(); let __copy_src_guard = __copy_src_holder")
 		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap()).clone()")
+		out.WriteString("; __copy_src_guard.as_ref().cloned().unwrap_or_default() }")
 		return
 	}
 	out.WriteString("(")

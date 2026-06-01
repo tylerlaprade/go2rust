@@ -723,6 +723,10 @@ run_xfail_test() {
     run_test "tests/copy_compound_assign"
 }
 
+@test "copy_from_nil_slice" {
+    run_test "tests/copy_from_nil_slice"
+}
+
 @test "copy_from_string" {
     run_test "tests/copy_from_string"
 }

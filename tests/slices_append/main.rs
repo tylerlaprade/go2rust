@@ -51,7 +51,7 @@ fn main() {
     println!("{} {}", format!("{}", "slice:".to_string()), format!("{}", format_slice(&s)));
 
     let mut c = Rc::new(RefCell::new(Some(vec!["".to_string(); ((*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize])));
-    { let _src = ((*s.borrow().as_ref().unwrap())).clone(); let _n = std::cmp::min(((*c.borrow().as_ref().unwrap())).len(), _src.len()); for _i in 0.._n { (*c.borrow_mut().as_mut().unwrap())[_i] = _src[_i].clone(); } Rc::new(RefCell::new(Some(_n as i32))) };
+    { let _src = { let __copy_src_holder = s.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().cloned().unwrap_or_default() }; let _n = std::cmp::min((*c.borrow().as_ref().unwrap()).len(), _src.len()); for _i in 0.._n { (*c.borrow_mut().as_mut().unwrap())[_i] = _src[_i].clone(); } Rc::new(RefCell::new(Some(_n as i32))) };
     println!("{} {}", format!("{}", "copy:".to_string()), format!("{}", format_slice(&c)));
 
     let mut l = Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize..(3) as usize].to_vec() })));
