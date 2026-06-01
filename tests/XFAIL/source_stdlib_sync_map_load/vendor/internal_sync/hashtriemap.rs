@@ -223,7 +223,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
     /// value is present.
     /// The ok result indicates whether value was found in the map.
     pub fn load(&mut self, key: Arc<StdMutex<Option<K>>>) -> (Arc<StdMutex<Option<V>>>, bool) {
-    let mut value: Arc<StdMutex<Option<V>>> = Arc::new(StdMutex::new(Some(Default::default())));
+    let mut value: Arc<StdMutex<Option<V>>> = Arc::new(StdMutex::new(None));
     let mut ok: Arc<StdMutex<Option<bool>>> = Arc::new(StdMutex::new(Some(false)));
 
         self.init();
@@ -235,7 +235,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
 
         let mut n = { let __seq = { let __seq_holder = (*i.lock().unwrap().as_ref().unwrap()).children.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ({ let __tmp_x = hash; let __tmp_y = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x >> __tmp_y }); let __tmp_y = N_CHILDREN_MASK as usize; __tmp_x & __tmp_y }) as usize].clone() }.load();
         if (*n.lock().unwrap()).is_none() {
-        return (Arc::new(StdMutex::new(Some({ let __v = (*Arc::new(StdMutex::new(Some(V::default()))).lock().unwrap().as_ref().unwrap()).clone(); __v }))), false);
+        return (Arc::new(StdMutex::new(None)), false);
     }
         if (*{ let __field = (*n.lock().unwrap().as_ref().unwrap()).is_entry.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
         return { let __recv = { let __recv = n.clone(); let __recv_ptr: *const node<K, V> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const node<K, V> }; let __result = unsafe { &*__recv_ptr }.entry(); __result }; let __result = (*__recv.lock().unwrap().as_mut().unwrap()).lookup(Arc::new(StdMutex::new(Some((*key.lock().unwrap().as_ref().unwrap()))))); __result };
@@ -251,7 +251,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
     pub fn load_or_store(&mut self, key: Arc<StdMutex<Option<K>>>, value: Arc<StdMutex<Option<V>>>) -> (Arc<StdMutex<Option<V>>>, bool) {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let mut result: Arc<StdMutex<Option<V>>> = Arc::new(StdMutex::new(Some(Default::default())));
+    let mut result: Arc<StdMutex<Option<V>>> = Arc::new(StdMutex::new(None));
     let mut loaded: Arc<StdMutex<Option<bool>>> = Arc::new(StdMutex::new(Some(false)));
 
         self.init();
@@ -430,7 +430,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
     pub fn swap(&mut self, key: Arc<StdMutex<Option<K>>>, new: Arc<StdMutex<Option<V>>>) -> (Arc<StdMutex<Option<V>>>, bool) {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let mut previous: Arc<StdMutex<Option<V>>> = Arc::new(StdMutex::new(Some(Default::default())));
+    let mut previous: Arc<StdMutex<Option<V>>> = Arc::new(StdMutex::new(None));
     let mut loaded: Arc<StdMutex<Option<bool>>> = Arc::new(StdMutex::new(Some(false)));
 
         self.init();
@@ -598,25 +598,25 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
     /// LoadAndDelete deletes the value for a key, returning the previous value if any.
     /// The loaded result reports whether the key was present.
     pub fn load_and_delete(&mut self, key: Arc<StdMutex<Option<K>>>) -> (Arc<StdMutex<Option<V>>>, bool) {
-    let mut value: Arc<StdMutex<Option<V>>> = Arc::new(StdMutex::new(Some(Default::default())));
+    let mut value: Arc<StdMutex<Option<V>>> = Arc::new(StdMutex::new(None));
     let mut loaded: Arc<StdMutex<Option<bool>>> = Arc::new(StdMutex::new(Some(false)));
 
         self.init();
         let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), { let __field = self.seed.clone(); __field }) };
                 // Find a node with the key and compare with it. n != nil if we found the node.
-        let (mut i, mut hashShift, mut slot, mut n) = self.find(Arc::new(StdMutex::new(Some((*key.lock().unwrap().as_ref().unwrap())))), Arc::new(StdMutex::new(Some(hash))), Arc::new(StdMutex::new(None)), Arc::new(StdMutex::new(Some({ let __v = (*Arc::new(StdMutex::new(Some(V::default()))).lock().unwrap().as_ref().unwrap()).clone(); __v }))));
+        let (mut i, mut hashShift, mut slot, mut n) = self.find(Arc::new(StdMutex::new(Some((*key.lock().unwrap().as_ref().unwrap())))), Arc::new(StdMutex::new(Some(hash))), Arc::new(StdMutex::new(None)), Arc::new(StdMutex::new(None)));
         if (*n.lock().unwrap()).is_none() {
         if (*i.lock().unwrap()).is_some() {
         (*(*i.lock().unwrap().as_ref().unwrap()).mu.lock().unwrap().as_ref().unwrap()).unlock();
     }
-        return (Arc::new(StdMutex::new(Some({ let __v = (*Arc::new(StdMutex::new(Some(V::default()))).lock().unwrap().as_ref().unwrap()).clone(); __v }))), false);
+        return (Arc::new(StdMutex::new(None)), false);
     }
                 // Try to delete the entry.
         let (mut v, mut e, __tmp_2) = { let __recv = { let __recv = n.clone(); let __recv_ptr: *const node<K, V> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const node<K, V> }; let __result = unsafe { &*__recv_ptr }.entry(); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).load_and_delete(Arc::new(StdMutex::new(Some((*key.lock().unwrap().as_ref().unwrap()))))); __result }; *loaded.lock().unwrap() = Some(__tmp_2);;
         if !{ let __v = (*loaded.lock().unwrap().as_ref().unwrap()).clone(); __v } {
                 // Nothing was actually deleted, which means the node is no longer there.
         (*(*i.lock().unwrap().as_ref().unwrap()).mu.lock().unwrap().as_ref().unwrap()).unlock();
-        return (Arc::new(StdMutex::new(Some({ let __v = (*Arc::new(StdMutex::new(Some(V::default()))).lock().unwrap().as_ref().unwrap()).clone(); __v }))), false);
+        return (Arc::new(StdMutex::new(None)), false);
     }
                 // Nothing was actually deleted, which means the node is no longer there.
         if (*e.lock().unwrap()).is_some() {
@@ -669,7 +669,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
     }
         let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), { let __field = self.seed.clone(); __field }) };
                 // Find a node with the key. n != nil if we found the node.
-        let (mut i, mut hashShift, mut slot, mut n) = self.find(Arc::new(StdMutex::new(Some((*key.lock().unwrap().as_ref().unwrap())))), Arc::new(StdMutex::new(Some(hash))), Arc::new(StdMutex::new(None)), Arc::new(StdMutex::new(Some({ let __v = (*Arc::new(StdMutex::new(Some(V::default()))).lock().unwrap().as_ref().unwrap()).clone(); __v }))));
+        let (mut i, mut hashShift, mut slot, mut n) = self.find(Arc::new(StdMutex::new(Some((*key.lock().unwrap().as_ref().unwrap())))), Arc::new(StdMutex::new(Some(hash))), Arc::new(StdMutex::new(None)), Arc::new(StdMutex::new(None)));
         if (*n.lock().unwrap()).is_none() {
         if (*i.lock().unwrap()).is_some() {
         (*(*i.lock().unwrap().as_ref().unwrap()).mu.lock().unwrap().as_ref().unwrap()).unlock();
@@ -865,7 +865,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
     }
         { let new_val = (*__self.overflow.lock().unwrap().as_mut().unwrap()).load(); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
     }
-        (Arc::new(StdMutex::new(Some({ let __v = (*Arc::new(StdMutex::new(Some(V::default()))).lock().unwrap().as_ref().unwrap()).clone(); __v }))), false)
+        (Arc::new(StdMutex::new(None)), false)
     }
 
     pub fn lookup_with_value(&mut self, key: Arc<StdMutex<Option<K>>>, value: Arc<StdMutex<Option<V>>>, valEqual: equalFunc) -> (Arc<StdMutex<Option<V>>>, bool) {
@@ -876,7 +876,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
     }
         { let new_val = (*__self.overflow.lock().unwrap().as_mut().unwrap()).load(); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
     }
-        (Arc::new(StdMutex::new(Some({ let __v = (*Arc::new(StdMutex::new(Some(V::default()))).lock().unwrap().as_ref().unwrap()).clone(); __v }))), false)
+        (Arc::new(StdMutex::new(None)), false)
     }
 
     /// swap replaces an entry in the overflow chain if keys compare equal. Returns the new entry chain,
@@ -964,7 +964,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
         { let new_val = (*e.lock().unwrap().as_ref().unwrap()).overflow.clone().clone(); i = new_val; };
         { let new_val = (*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).load().clone(); e = new_val; };
     }
-        (Arc::new(StdMutex::new(Some({ let __v = (*Arc::new(StdMutex::new(Some(V::default()))).lock().unwrap().as_ref().unwrap()).clone(); __v }))), Arc::new(StdMutex::new(Some(self.clone()))), false)
+        (Arc::new(StdMutex::new(None)), Arc::new(StdMutex::new(Some(self.clone()))), false)
     }
 
     /// compareAndDelete deletes an entry in the overflow chain if both the key and value compare

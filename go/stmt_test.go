@@ -4261,6 +4261,58 @@ func pick[S ~[]E, E any](values S, i int, use func(E) bool) bool {
 	}
 }
 
+func TestTypeParamZeroValueUsesNilHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func miss[T any]() (T, bool) {
+	return *new(T), false
+}
+
+func store[T any](ok bool, value T) (T, bool) {
+	if ok {
+		return value, true
+	}
+	var zero T
+	return zero, false
+}
+
+func named[T any]() (value T, ok bool) {
+	return
+}
+
+type holder[T any] struct{}
+
+func (h *holder[T]) use(value T) {}
+
+func call[T any](h *holder[T]) {
+	h.use(*new(T))
+}
+`)
+
+	for _, forbidden := range []string{
+		"T::default()",
+		"Some(Default::default())",
+		"Some(Rc::new(RefCell::new(None)))",
+		"Some(Arc::new(Mutex::new(None)))",
+	} {
+		if strings.Contains(rust, forbidden) {
+			t.Fatalf("unconstrained type-parameter zero value should not require Rust Default via %q:\n%s", forbidden, rust)
+		}
+	}
+	if !strings.Contains(rust, "(Rc::new(RefCell::new(None)), false)") &&
+		!strings.Contains(rust, "(Arc::new(Mutex::new(None)), false)") {
+		t.Fatalf("*new(T) zero return should emit a nil generic value handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut zero: Rc<RefCell<Option<T>>> = Rc::new(RefCell::new(None));") &&
+		!strings.Contains(rust, "let mut zero: Arc<Mutex<Option<T>>> = Arc::new(Mutex::new(None));") {
+		t.Fatalf("var zero T should initialize the generic value handle to None:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut value: Rc<RefCell<Option<T>>> = Rc::new(RefCell::new(None));") &&
+		!strings.Contains(rust, "let mut value: Arc<Mutex<Option<T>>> = Arc::new(Mutex::new(None));") {
+		t.Fatalf("named result T should initialize the generic value handle to None:\n%s", rust)
+	}
+}
+
 func TestNamedSliceSelectorReturnAsUnnamedSliceUsesInnerHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

@@ -3081,6 +3081,11 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 						continue
 					}
 
+					if writeDirectTypeParamWrappedZeroValue(out, result.Type, "named return zero value") {
+						out.WriteString(";\n")
+						continue
+					}
+
 					// For all other types
 					WriteWrapperPrefix(out)
 					switch t := result.Type.(type) {
@@ -5840,6 +5845,12 @@ func writeNamedReturnDeclarations(out *strings.Builder, fnType *ast.FuncType) {
 
 			if _, ok := transpiledNamedInterfaceTypeNameFromExpr(result.Type); ok {
 				WriteWrappedNone(out)
+				out.WriteString(";\n")
+				wrote = true
+				continue
+			}
+
+			if writeDirectTypeParamWrappedZeroValue(out, result.Type, "named return zero value") {
 				out.WriteString(";\n")
 				wrote = true
 				continue

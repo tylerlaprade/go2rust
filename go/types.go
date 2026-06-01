@@ -1279,6 +1279,35 @@ func zeroValueForGoType(expr ast.Expr) string {
 	}
 }
 
+func isDirectTypeParamType(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	_, ok := types.Unalias(typ).(*types.TypeParam)
+	return ok
+}
+
+func writeDirectTypeParamWrappedZeroValue(out *strings.Builder, typeExpr ast.Expr, operation string) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(typeExpr)
+	if typ == nil {
+		out.WriteString("/* ERROR: Type information required for ")
+		out.WriteString(operation)
+		out.WriteString(" */ unimplemented!(\"type info required for ")
+		out.WriteString(operation)
+		out.WriteString("\")")
+		return true
+	}
+	if !isDirectTypeParamType(typ) {
+		return false
+	}
+	WriteWrappedNone(out)
+	return true
+}
+
 func zeroValueForTypesType(typ types.Type) string {
 	if typ == nil {
 		return "Default::default()"

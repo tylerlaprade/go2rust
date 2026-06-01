@@ -1354,6 +1354,9 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 		if writeFunctionHandleCallArgument(out, arg, expectedArgType) {
 			return
 		}
+		if isDirectTypeParamType(expectedArgType) && writeTypeParamNewDerefExpression(out, arg) {
+			return
+		}
 		if writeBareStructAliasCallArgument(out, arg, expectedArgType) {
 			return
 		}
@@ -5250,6 +5253,9 @@ func writeTypeParamHandleExpression(out *strings.Builder, expr ast.Expr) bool {
 		if !isTypeParamExpression(expr) {
 			return false
 		}
+		if writeTypeParamNewDerefExpression(out, expr) {
+			return true
+		}
 		TranspileExpressionContext(out, expr, LValue)
 		return true
 	}
@@ -5274,6 +5280,20 @@ func writeTypeParamHandleExpression(out *strings.Builder, expr ast.Expr) bool {
 	out.WriteString(name)
 	out.WriteString(".clone()")
 	return true
+}
+
+func writeTypeParamNewDerefExpression(out *strings.Builder, expr ast.Expr) bool {
+	switch e := unwrapParens(expr).(type) {
+	case *ast.UnaryExpr:
+		if e.Op != token.MUL {
+			return false
+		}
+		return writeTypeParamNewDerefZeroValue(out, e.X)
+	case *ast.StarExpr:
+		return writeTypeParamNewDerefZeroValue(out, e.X)
+	default:
+		return false
+	}
 }
 
 func isTypeParamExpression(expr ast.Expr) bool {
@@ -9398,6 +9418,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				break
 			}
 			if ctx == RValue {
+				if writeTypeParamNewDerefZeroValue(out, e.X) {
+					break
+				}
 				if writeCurrentReceiverDerefRead(out, e, e.X) {
 					break
 				}
@@ -9468,6 +9491,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		}
 		// Dereference pointer - unwrap the wrapper to get T
 		if ctx == RValue {
+			if writeTypeParamNewDerefZeroValue(out, e.X) {
+				break
+			}
 			if writeCurrentReceiverDerefRead(out, e, e.X) {
 				break
 			}
@@ -11021,6 +11047,32 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		WriteWrapperPrefix(out)
 		out.WriteString("()))")
 	}
+}
+
+func writeTypeParamNewDerefZeroValue(out *strings.Builder, expr ast.Expr) bool {
+	call, ok := unwrapParens(expr).(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString("/* ERROR: Type information required for new zero dereference */ unimplemented!(\"type info required for new zero dereference\")")
+		return true
+	}
+	if !isBareBuiltinCallName(call, "new") {
+		return false
+	}
+	callType := typeInfo.GetType(call)
+	if callType == nil {
+		out.WriteString("/* ERROR: Type information required for new zero dereference */ unimplemented!(\"type info required for new zero dereference\")")
+		return true
+	}
+	ptr, ok := types.Unalias(callType).(*types.Pointer)
+	if !ok || !isDirectTypeParamType(ptr.Elem()) {
+		return false
+	}
+	WriteWrappedNone(out)
+	return true
 }
 
 // Helper to check if an identifier is a function (not a closure variable)
