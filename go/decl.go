@@ -3746,6 +3746,10 @@ func getEmbeddedFieldName(expr ast.Expr) string {
 	case *ast.StarExpr:
 		// For pointer types, get the underlying type name
 		return getEmbeddedFieldName(t.X)
+	case *ast.IndexExpr:
+		return getEmbeddedFieldName(t.X)
+	case *ast.IndexListExpr:
+		return getEmbeddedFieldName(t.X)
 	case *ast.SelectorExpr:
 		// For qualified types like pkg.Type
 		return t.Sel.Name

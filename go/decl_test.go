@@ -1616,6 +1616,51 @@ var Holder struct {
 	}
 }
 
+func TestGenericEmbeddedFieldUsesBaseTypeName(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type node[K comparable, V any] struct {
+	isEntry bool
+}
+
+type entry[K comparable, V any] struct {
+	node[K, V]
+	value V
+}
+
+func newEntry[K comparable, V any](value V) *entry[K, V] {
+	return &entry[K, V]{
+		node:  node[K, V]{isEntry: true},
+		value: value,
+	}
+}
+
+func header[K comparable, V any](e *entry[K, V]) *node[K, V] {
+	return &e.node
+}
+`)
+
+	if strings.Contains(rust, "pub embedded:") || strings.Contains(rust, ".embedded") {
+		t.Fatalf("generic embedded field should not use fallback embedded name:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub node: Rc<RefCell<Option<node<K, V>>>>") &&
+		!strings.Contains(rust, "pub node: Arc<Mutex<Option<node<K, V>>>>") {
+		t.Fatalf("generic embedded field should use the base type name:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".node") {
+		t.Fatalf("selector for generic embedded field should use the declared field name:\n%s", rust)
+	}
+	if strings.Contains(rust, "Some())") {
+		t.Fatalf("generic struct composite literal should emit the struct value inside Some:\n%s", rust)
+	}
+	if strings.Contains(rust, "Some(entry<K, V> {") || strings.Contains(rust, "Some(node<K, V> {") {
+		t.Fatalf("generic struct literal should use Rust turbofish path syntax:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some(entry::<K, V> {") || !strings.Contains(rust, "Some(node::<K, V> {") {
+		t.Fatalf("generic struct literal should include Rust turbofish path syntax:\n%s", rust)
+	}
+}
+
 func TestPackageGlobalNewAnonymousStructRegistersType(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

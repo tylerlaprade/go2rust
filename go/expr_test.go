@@ -5218,6 +5218,28 @@ func use[T string | []byte](sep T) uint32 {
 	}
 }
 
+func TestTypeParamMethodArgumentClonesWrappedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type box[T any] struct{}
+
+func (b *box[T]) take(value T) {}
+
+func use[T any](b *box[T], value T) {
+	b.take(value)
+}
+`)
+
+	if strings.Contains(rust, "Some((*value.borrow().as_ref().unwrap()))") ||
+		strings.Contains(rust, "Some((*value.lock().unwrap().as_ref().unwrap()))") {
+		t.Fatalf("type-parameter method argument should not move from a shared value borrow:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __arg_holder = value.clone()") ||
+		!strings.Contains(rust, "(*__arg_guard.as_ref().unwrap()).clone()") {
+		t.Fatalf("type-parameter method argument should clone the inner value into a fresh handle:\n%s", rust)
+	}
+}
+
 func TestTypeParamSliceElementEqualityUsesHandleComparison(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

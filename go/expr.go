@@ -1357,6 +1357,9 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 		if isDirectTypeParamType(expectedArgType) && writeTypeParamNewDerefExpression(out, arg) {
 			return
 		}
+		if writeTypeParamIdentValueCallArgument(out, arg, expectedArgType) {
+			return
+		}
 		if writeBareStructAliasCallArgument(out, arg, expectedArgType) {
 			return
 		}
@@ -7556,9 +7559,45 @@ func typesStructLiteralName(typ types.Type, structUnder *types.Struct) string {
 	return lookupAnonymousStructName(structUnder)
 }
 
+func rustStructLiteralPath(typeName string) string {
+	if idx := strings.Index(typeName, "<"); idx >= 0 {
+		return typeName[:idx] + "::" + typeName[idx:]
+	}
+	return typeName
+}
+
+func writeInstantiatedStructCompositeLiteral(out *strings.Builder, lit *ast.CompositeLit) bool {
+	switch lit.Type.(type) {
+	case *ast.IndexExpr, *ast.IndexListExpr:
+	default:
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString("/* ERROR: Type information required for instantiated struct literal */ unimplemented!(\"type info required for instantiated struct literal\")")
+		return true
+	}
+	typ := typeInfo.GetType(lit)
+	if typ == nil {
+		out.WriteString("/* ERROR: Type information required for instantiated struct literal */ unimplemented!(\"type info required for instantiated struct literal\")")
+		return true
+	}
+	structUnder, ok := types.Unalias(typ).Underlying().(*types.Struct)
+	if !ok {
+		return false
+	}
+	structTypeName := typesStructLiteralName(typ, structUnder)
+	if structTypeName == "" {
+		out.WriteString("/* ERROR: Type information required for instantiated struct literal name */ unimplemented!(\"type info required for instantiated struct literal name\")")
+		return true
+	}
+	writeTypesStructCompositeLiteral(out, structTypeName, typ, structUnder, lit.Elts)
+	return true
+}
+
 func writeTypesStructCompositeLiteral(out *strings.Builder, structTypeName string, structType types.Type, structUnder *types.Struct, elts []ast.Expr) {
 	registerExternalStructCompositeLiteralFields(structType, structUnder, elts)
-	out.WriteString(structTypeName)
+	out.WriteString(rustStructLiteralPath(structTypeName))
 	out.WriteString(" { ")
 
 	allPositional := true
@@ -10293,6 +10332,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			return
 		}
 		// Handle array/slice literals
+		if writeInstantiatedStructCompositeLiteral(out, e) {
+			return
+		}
 		if sel, ok := e.Type.(*ast.SelectorExpr); ok {
 			if named, ok := namedTypeForTypeExpr(sel); ok &&
 				isStringsBuilderReceiverType(named) &&
@@ -16861,6 +16903,32 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 		TranspileExpression(out, arg)
 	}
 	WriteWrapperSuffix(out)
+}
+
+func writeTypeParamIdentValueCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	if !isDirectTypeParamType(expected) || goTypeParamHasOrderedConstraint(expected) {
+		return false
+	}
+	ident, ok := arg.(*ast.Ident)
+	if !ok || ident.Name == "_" || ident.Name == "nil" || isConstIdent(ident) || isVarBare(ident.Name) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	actual := typeInfo.GetType(ident)
+	if actual == nil {
+		out.WriteString("/* ERROR: Type information required for type-parameter call argument */ unimplemented!(\"type info required for type-parameter call argument\")")
+		return true
+	}
+	if !isDirectTypeParamType(actual) || !types.AssignableTo(actual, expected) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	writeScopedIdentValueClone(out, ident)
+	WriteWrapperSuffix(out)
+	return true
 }
 
 func writeTypeParamHandleCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
