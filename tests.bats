@@ -47,7 +47,9 @@ compile_and_run_rust() {
     local rust_file="$1"
     local input_file="$2"
     local temp_dir
-    temp_dir=$(mktemp -d)
+    local tmp_root="${GO2RUST_TEST_TMP:-${TMPDIR:-/tmp}}"
+    mkdir -p "$tmp_root"
+    temp_dir=$(mktemp -d "$tmp_root/go2rust-rust-work.XXXXXX")
     local exit_code=0
 
     mkdir -p "$temp_dir/src"
@@ -129,14 +131,18 @@ run_transpile_and_compare() {
     # scalar return types). Without that file, generated Rust is allowed
     # to drift freely between runs.
     if [ -f "$test_dir/expected_main.rs" ]; then
-        if ! diff -u "$test_dir/expected_main.rs" "$test_dir/main.rs" > /tmp/go2rust-rust-diff.$$ 2>&1; then
+        local diff_root="${GO2RUST_TEST_TMP:-${TMPDIR:-/tmp}}"
+        mkdir -p "$diff_root"
+        local diff_file
+        diff_file=$(mktemp "$diff_root/go2rust-rust-diff.XXXXXX")
+        if ! diff -u "$test_dir/expected_main.rs" "$test_dir/main.rs" > "$diff_file" 2>&1; then
             echo ""
             echo "Generated Rust does not match expected_main.rs:"
-            cat /tmp/go2rust-rust-diff.$$ | sed "s/^/  /"
-            rm -f /tmp/go2rust-rust-diff.$$
+            cat "$diff_file" | sed "s/^/  /"
+            rm -f "$diff_file"
             return 1
         fi
-        rm -f /tmp/go2rust-rust-diff.$$
+        rm -f "$diff_file"
     fi
 
     # Run Rust version with faster compilation settings

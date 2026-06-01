@@ -16,9 +16,43 @@ func TestTestScriptSweepsAllGeneratedTempRoots(t *testing.T) {
 		"go2rust-test.*",
 		"go2rust-bats-shards.*",
 		"go2rust-cargo-target.*",
+		"go2rust-rust-work.*",
+		"go2rust-tests-list.*",
+		"go2rust-rust-diff.*",
+		"go2rust-stdout.*",
+		"go2rust-stderr.*",
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("test.sh stale-temp sweep should include %q", want)
+		}
+	}
+}
+
+func TestScriptsUseNamedGo2RustTempPaths(t *testing.T) {
+	testSh, err := os.ReadFile("../test.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(test.sh) error = %v", err)
+	}
+	bats, err := os.ReadFile("../tests.bats")
+	if err != nil {
+		t.Fatalf("ReadFile(tests.bats) error = %v", err)
+	}
+	for _, want := range []string{
+		`mktemp "${TMPDIR:-/tmp}/go2rust-tests-list.XXXXXX"`,
+		`mktemp -d "$tmp_root/go2rust-rust-work.XXXXXX"`,
+		`mktemp "$diff_root/go2rust-rust-diff.XXXXXX"`,
+	} {
+		if !strings.Contains(string(testSh)+"\n"+string(bats), want) {
+			t.Fatalf("scripts should use named go2rust temp path %q", want)
+		}
+	}
+	for _, forbidden := range []string{
+		"temp_file=$(mktemp)",
+		"temp_dir=$(mktemp -d)",
+		"/tmp/go2rust-rust-diff.$$",
+	} {
+		if strings.Contains(string(testSh), forbidden) || strings.Contains(string(bats), forbidden) {
+			t.Fatalf("scripts should not use anonymous temp path %q", forbidden)
 		}
 	}
 }

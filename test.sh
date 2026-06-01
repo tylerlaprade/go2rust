@@ -3,9 +3,11 @@
 # Centralized cleanup so the lock and the shard dir share one EXIT trap.
 LOCK_DIR=""
 SHARD_DIR=""
+TEMP_FILE=""
 _test_sh_cleanup() {
     [ -n "$LOCK_DIR" ] && rm -rf "$LOCK_DIR"
     [ -n "$SHARD_DIR" ] && rm -rf "$SHARD_DIR"
+    [ -n "$TEMP_FILE" ] && rm -f "$TEMP_FILE" "$TEMP_FILE.bak"
 }
 trap _test_sh_cleanup EXIT
 
@@ -38,7 +40,8 @@ echo $$ > "$LOCK_DIR/pid"
 # Note: We use a temp file here because passing multi-line content to awk
 # via variables or command substitution can corrupt newlines. A temp file
 # is the most reliable way to preserve formatting.
-temp_file=$(mktemp)
+TEMP_FILE=$(mktemp "${TMPDIR:-/tmp}/go2rust-tests-list.XXXXXX")
+temp_file="$TEMP_FILE"
 
 # Generate test cases for directories containing main.go
 for dir in $(find tests -maxdepth 1 -type d ! -name tests ! -name XFAIL | sort); do
@@ -90,6 +93,7 @@ awk '
 
 mv tests.bats.new tests.bats
 rm "$temp_file"
+TEMP_FILE=""
 
 echo "Updated tests.bats with $(grep -c '^@test' tests.bats) tests"
 
@@ -221,6 +225,8 @@ export GO2RUST_TEST_BINARY_READY=1
 # (OOM, kill -9, etc.) — SIGKILL bypasses the run_test EXIT trap. Project rule:
 # only one ./test.sh runs at a time, so anything matching is guaranteed stale.
 find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'go2rust-test.*' -o -name 'go2rust-bats-shards.*' -o -name 'go2rust-cargo-target.*' \) -type d -prune -exec rm -rf {} + 2>/dev/null
+find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'go2rust-rust-work.*' \) -type d -prune -exec rm -rf {} + 2>/dev/null
+find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'go2rust-tests-list.*' -o -name 'go2rust-rust-diff.*' -o -name 'go2rust-stdout.*' -o -name 'go2rust-stderr.*' \) -type f -delete 2>/dev/null
 
 # Set default job count if not specified
 if [ -z "$JOBS" ]; then
