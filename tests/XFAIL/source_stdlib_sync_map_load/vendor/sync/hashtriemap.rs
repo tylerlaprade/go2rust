@@ -15,7 +15,7 @@ use crate::waitgroup::*;
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex as StdMutex};
 
 /// Map is like a Go map[any]any but is safe for concurrent use
 /// by multiple goroutines without additional locking or coordination.
@@ -46,20 +46,20 @@ use std::sync::{Arc, Mutex};
 /// [the Go memory model]: https://go.dev/ref/mem
 #[derive(Clone)]
 pub struct Map {
-    pub __blank_0_0: Arc<Mutex<Option<noCopy>>>,
-    pub m: Arc<Mutex<Option<internal_sync::HashTrieMap<Box<dyn Any + Send + Sync>, Box<dyn Any + Send + Sync>>>>>,
+    pub __blank_0_0: Arc<StdMutex<Option<noCopy>>>,
+    pub m: Arc<StdMutex<Option<internal_sync::HashTrieMap<Box<dyn Any + Send + Sync>, Box<dyn Any + Send + Sync>>>>>,
 }
 
 impl Map {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, m: { let __guard = self.m.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, m: { let __guard = self.m.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
     }
 }
 
 
 impl Default for Map {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(noCopy::default()))), m: Arc::new(Mutex::new(Some(Default::default()))) }
+        Self { __blank_0_0: Arc::new(StdMutex::new(Some(noCopy::default()))), m: Arc::new(StdMutex::new(Some(Default::default()))) }
     }
 }
 
@@ -82,15 +82,15 @@ impl Map {
     /// Load returns the value stored in the map for a key, or nil if no
     /// value is present.
     /// The ok result indicates whether value was found in the map.
-    pub fn load(&self, key: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> (Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, bool) {
-    let mut value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(None));
-    let mut ok: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
+    pub fn load(&self, key: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>) -> (Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>, bool) {
+    let mut value: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(StdMutex::new(None));
+    let mut ok: Arc<StdMutex<Option<bool>>> = Arc::new(StdMutex::new(Some(false)));
 
         (*self.m.lock().unwrap().as_mut().unwrap()).load(key.clone())
     }
 
     /// Store sets the value for a key.
-    pub fn store(&self, key: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) {
+    pub fn store(&self, key: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>, value: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>) {
         (*self.m.lock().unwrap().as_mut().unwrap()).store(key.clone(), value.clone());
     }
 
@@ -102,32 +102,32 @@ impl Map {
     /// LoadOrStore returns the existing value for the key if present.
     /// Otherwise, it stores and returns the given value.
     /// The loaded result is true if the value was loaded, false if stored.
-    pub fn load_or_store(&self, key: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> (Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, bool) {
-    let mut actual: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(None));
-    let mut loaded: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
+    pub fn load_or_store(&self, key: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>, value: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>) -> (Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>, bool) {
+    let mut actual: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(StdMutex::new(None));
+    let mut loaded: Arc<StdMutex<Option<bool>>> = Arc::new(StdMutex::new(Some(false)));
 
         (*self.m.lock().unwrap().as_mut().unwrap()).load_or_store(key.clone(), value.clone())
     }
 
     /// LoadAndDelete deletes the value for a key, returning the previous value if any.
     /// The loaded result reports whether the key was present.
-    pub fn load_and_delete(&self, key: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> (Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, bool) {
-    let mut value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(None));
-    let mut loaded: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
+    pub fn load_and_delete(&self, key: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>) -> (Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>, bool) {
+    let mut value: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(StdMutex::new(None));
+    let mut loaded: Arc<StdMutex<Option<bool>>> = Arc::new(StdMutex::new(Some(false)));
 
         (*self.m.lock().unwrap().as_mut().unwrap()).load_and_delete(key.clone())
     }
 
     /// Delete deletes the value for a key.
-    pub fn delete(&self, key: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) {
+    pub fn delete(&self, key: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>) {
         (*self.m.lock().unwrap().as_mut().unwrap()).delete(key.clone());
     }
 
     /// Swap swaps the value for a key and returns the previous value if any.
     /// The loaded result reports whether the key was present.
-    pub fn swap(&self, key: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, value: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> (Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, bool) {
-    let mut previous: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(None));
-    let mut loaded: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
+    pub fn swap(&self, key: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>, value: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>) -> (Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>, bool) {
+    let mut previous: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(StdMutex::new(None));
+    let mut loaded: Arc<StdMutex<Option<bool>>> = Arc::new(StdMutex::new(Some(false)));
 
         (*self.m.lock().unwrap().as_mut().unwrap()).swap(key.clone(), value.clone())
     }
@@ -135,8 +135,8 @@ impl Map {
     /// CompareAndSwap swaps the old and new values for key
     /// if the value stored in the map is equal to old.
     /// The old value must be of a comparable type.
-    pub fn compare_and_swap(&self, key: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, old: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, new: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool {
-    let mut swapped: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
+    pub fn compare_and_swap(&self, key: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>, old: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>, new: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool {
+    let mut swapped: Arc<StdMutex<Option<bool>>> = Arc::new(StdMutex::new(Some(false)));
 
         (*self.m.lock().unwrap().as_mut().unwrap()).compare_and_swap(key.clone(), old.clone(), new.clone())
     }
@@ -146,8 +146,8 @@ impl Map {
     ///
     /// If there is no current value for key in the map, CompareAndDelete
     /// returns false (even if the old value is the nil interface value).
-    pub fn compare_and_delete(&self, key: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, old: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool {
-    let mut deleted: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
+    pub fn compare_and_delete(&self, key: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>, old: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool {
+    let mut deleted: Arc<StdMutex<Option<bool>>> = Arc::new(StdMutex::new(Some(false)));
 
         (*self.m.lock().unwrap().as_mut().unwrap()).compare_and_delete(key.clone(), old.clone())
     }
@@ -163,7 +163,7 @@ impl Map {
     ///
     /// Range may be O(N) with the number of elements in the map even if f returns
     /// false after a constant number of calls.
-    pub fn range(&self, f: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool + Send + Sync>>>>) {
+    pub fn range(&self, f: Arc<StdMutex<Option<Box<dyn FnMut(Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>, Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool + Send + Sync>>>>) {
         (*self.m.lock().unwrap().as_mut().unwrap()).range(f.clone());
     }
 }

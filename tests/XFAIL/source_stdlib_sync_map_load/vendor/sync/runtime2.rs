@@ -14,29 +14,29 @@ use crate::rwmutex::*;
 use crate::waitgroup::*;
 
 use std::fmt::{Display, Formatter};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex as StdMutex};
 
 /// Approximation of notifyList in runtime/sema.go. Size and alignment must
 /// agree.
 #[derive(Debug, Clone)]
 pub struct notifyList {
-    pub wait: Arc<Mutex<Option<u32>>>,
-    pub notify: Arc<Mutex<Option<u32>>>,
-    pub lock: Arc<Mutex<Option<usize>>>,
-    pub head: Arc<Mutex<Option<usize>>>,
-    pub tail: Arc<Mutex<Option<usize>>>,
+    pub wait: Arc<StdMutex<Option<u32>>>,
+    pub notify: Arc<StdMutex<Option<u32>>>,
+    pub lock: Arc<StdMutex<Option<usize>>>,
+    pub head: Arc<StdMutex<Option<usize>>>,
+    pub tail: Arc<StdMutex<Option<usize>>>,
 }
 
 impl notifyList {
     pub fn __go_value_clone(&self) -> Self {
-        Self { wait: { let __guard = self.wait.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, notify: { let __guard = self.notify.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, head: { let __guard = self.head.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, tail: { let __guard = self.tail.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        Self { wait: { let __guard = self.wait.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, notify: { let __guard = self.notify.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, lock: { let __guard = self.lock.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, head: { let __guard = self.head.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, tail: { let __guard = self.tail.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
     }
 }
 
 
 impl Default for notifyList {
     fn default() -> Self {
-        Self { wait: Arc::new(Mutex::new(Some(0))), notify: Arc::new(Mutex::new(Some(0))), lock: Arc::new(Mutex::new(Some(0))), head: Arc::new(Mutex::new(Some(0))), tail: Arc::new(Mutex::new(Some(0))) }
+        Self { wait: Arc::new(StdMutex::new(Some(0))), notify: Arc::new(StdMutex::new(Some(0))), lock: Arc::new(StdMutex::new(Some(0))), head: Arc::new(StdMutex::new(Some(0))), tail: Arc::new(StdMutex::new(Some(0))) }
     }
 }
 

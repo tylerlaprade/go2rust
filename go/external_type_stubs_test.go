@@ -119,6 +119,37 @@ func TestGenericExternalPackageStubFunctionUsesSignatureTypeParams(t *testing.T)
 	}
 }
 
+func TestPackageExternalStubsUseCanonicalMutexWrapperName(t *testing.T) {
+	prevContext := currentContext
+	prevCD := GetConcurrencyDetector()
+	imports := NewImportTracker()
+	imports.ReserveName("Mutex")
+	ctx := &TranspileContext{
+		Package:                 NewPackageState(),
+		File:                    NewFileState(imports, &HelperTracker{}, nil),
+		Imports:                 imports,
+		UsePackageExternalStubs: true,
+	}
+	cd := NewConcurrencyDetector()
+	cd.hasGoroutines = true
+	SetConcurrencyDetector(cd)
+	SetTranspileContext(ctx)
+	defer func() {
+		SetTranspileContext(prevContext)
+		SetConcurrencyDetector(prevCD)
+	}()
+
+	got := wrappedExternalStubType("usize")
+	if got != "Arc<Mutex<Option<usize>>>" {
+		t.Fatalf("package external stubs should store canonical Mutex wrapper, got %q", got)
+	}
+	RegisterExternalTypeStubFieldByRustType("abi_Type", "equal", "Arc<StdMutex<Option<usize>>>")
+	fieldType := ctx.Package.ExternalTypeStubFields["abi_Type"]["equal"]
+	if fieldType != "Arc<Mutex<Option<usize>>>" {
+		t.Fatalf("package external stub fields should canonicalize Mutex wrapper, got %q", fieldType)
+	}
+}
+
 func TestExternalPackageTimeAfterFuncStubEmitsGoTimerHelper(t *testing.T) {
 	got := generateExternalStubs(
 		nil,

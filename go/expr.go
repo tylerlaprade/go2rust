@@ -10515,15 +10515,17 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString(RustTypeNameForUse(ident.Name))
 					out.WriteString(" { ")
 					fieldIdx := 0
+					needComma := false
 					for fieldIndex, field := range sd.ASTType.Fields.List {
 						fieldNames := field.Names
 						if len(fieldNames) == 0 {
 							fieldNames = []*ast.Ident{ast.NewIdent(getEmbeddedFieldName(field.Type))}
 						}
 						for nameIndex, name := range fieldNames {
-							if fieldIdx > 0 {
+							if needComma {
 								out.WriteString(", ")
 							}
+							needComma = true
 							out.WriteString(rustStructFieldName(name, fieldIndex, nameIndex))
 							out.WriteString(": ")
 							var typedFieldType types.Type
@@ -10534,6 +10536,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							fieldIdx++
 						}
 					}
+					writeRustPhantomValueForStructDef(out, ident.Name, &needComma)
 					out.WriteString(" }")
 				} else {
 					out.WriteString(RustTypeNameForUse(ident.Name))
@@ -10756,6 +10759,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						}
 					}
 				}
+				writeRustPhantomValueForStructDef(out, ident.Name, &wroteFields)
 			} else {
 				if wroteFields {
 					out.WriteString(", ")
@@ -12762,7 +12766,9 @@ func writePointerTypeConversionFromUnsafePointer(out *strings.Builder, target as
 	targetType := pointerConversionTargetTypeToRust(target)
 	trackWrapperImports()
 	if NeedsConcurrentWrapper() {
-		out.WriteString("Arc::new(Mutex::new({ let __ptr = ")
+		out.WriteString("Arc::new(")
+		out.WriteString(GetInnerWrapperType())
+		out.WriteString("::new({ let __ptr = ")
 		writeUnsafePointerConversionSource(out, source)
 		out.WriteString("; let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<")
 		out.WriteString(targetType)

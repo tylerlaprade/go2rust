@@ -15,7 +15,7 @@ use crate::waitgroup::*;
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex as StdMutex};
 
 /// noCopy may be added to structs which must not be copied
 /// after the first use.
@@ -81,7 +81,7 @@ impl Locker for noCopy {
 }
 
 #[derive(Clone)]
-pub struct noCopyPtr(pub Arc<Mutex<Option<noCopy>>>);
+pub struct noCopyPtr(pub Arc<StdMutex<Option<noCopy>>>);
 
 impl std::fmt::Display for noCopyPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

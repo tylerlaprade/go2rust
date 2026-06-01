@@ -942,6 +942,26 @@ func (h *Holder[T]) Get() T {
 	}
 }
 
+func TestGenericStructWithUnusedTypeParamsAddsPhantomData(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Header[K any, V any] struct {
+	isEntry bool
+}
+
+func MakeHeader[K any, V any]() Header[K, V] {
+	return Header[K, V]{isEntry: true}
+}
+`)
+
+	if !strings.Contains(rust, "pub __go_phantom: std::marker::PhantomData<(K, V)>") {
+		t.Fatalf("generic struct should retain unused type parameters with PhantomData:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__go_phantom: std::marker::PhantomData") {
+		t.Fatalf("generic struct literals and defaults should initialize PhantomData:\n%s", rust)
+	}
+}
+
 func TestGenericSliceConstrainedParameterUsesSliceRepresentation(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

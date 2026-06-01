@@ -160,13 +160,14 @@ func SetPackageImports(imports map[string]string) {
 
 // structDefs tracks struct definitions and their fields
 type StructDef struct {
-	Fields        map[string]string // field name -> field type
-	FieldTypes    map[string]ast.Expr
-	FieldTags     map[string]string
-	FieldOrder    []string
-	EmbeddedTypes []string        // list of embedded type names
-	ASTType       *ast.StructType // original AST type for zero-value generation
-	EmbedsError   bool            // true when the struct embeds the predeclared error interface
+	Fields            map[string]string // field name -> field type
+	FieldTypes        map[string]ast.Expr
+	FieldTags         map[string]string
+	FieldOrder        []string
+	EmbeddedTypes     []string        // list of embedded type names
+	ASTType           *ast.StructType // original AST type for zero-value generation
+	EmbedsError       bool            // true when the struct embeds the predeclared error interface
+	PhantomTypeParams []string
 }
 
 var structDefs = make(map[string]*StructDef)
@@ -2085,6 +2086,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	}
 	SetTranspileContext(ctx)
 	defer SetTranspileContext(parentCtx)
+	reserveSiblingRustTypeNames(imports)
 	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.MethodNameOverrides) == 0 {
 		currentContext.Package.MethodNameOverrides = assignPackageMethodNames([]*ast.File{file}, typeInfo)
 		packageMethodNameOverrides = currentContext.Package.MethodNameOverrides
@@ -2303,7 +2305,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	// Output type declarations
 	for _, t := range types {
 		if structType, ok := t.spec.Type.(*ast.StructType); ok {
-			registerStructDef(t.spec.Name.Name, structType)
+			registerStructTypeSpecDef(t.spec, structType)
 		}
 	}
 	markComparableInterfaceImplementorStructs(types, methods, interfaces)
@@ -2675,6 +2677,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	if strings.Contains(stubsStr, "StdError") {
 		imports.Add("Error")
 	}
+	reserveSiblingRustTypeNames(imports)
 	importsStr := imports.GenerateImports()
 	output.WriteString(importsStr)
 	if importsStr != "" {
@@ -2708,6 +2711,22 @@ func reserveFileRustTypeNames(imports *ImportTracker, types []struct {
 			continue
 		}
 		imports.ReserveName(RustTypeNameForUse(t.spec.Name.Name))
+	}
+}
+
+func reserveSiblingRustTypeNames(imports *ImportTracker) {
+	if imports == nil {
+		return
+	}
+	ctx := GetTranspileContext()
+	if ctx == nil || ctx.Package == nil || ctx.CurrentModuleName == "" {
+		return
+	}
+	for typeName, moduleName := range ctx.Package.TypeModuleNames {
+		if moduleName == "" || moduleName == ctx.CurrentModuleName {
+			continue
+		}
+		imports.ReserveName(RustTypeNameForUse(typeName))
 	}
 }
 

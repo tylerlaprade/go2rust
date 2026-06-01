@@ -24,8 +24,9 @@ func rustStructFieldName(name *ast.Ident, fieldIndex int, nameIndex int) string 
 
 // generateStructDisplay generates a Display implementation for a struct to match Go's output format
 type rustTypeGenerics struct {
-	Decl string
-	Use  string
+	Decl    string
+	Use     string
+	Phantom []string
 }
 
 func writeRustInherentImplHeader(out *strings.Builder, generics rustTypeGenerics, rustTypeName string) {
@@ -866,6 +867,7 @@ func generateStructValueClone(out *strings.Builder, structName string, structTyp
 			writeStructCloneField(out, fieldName, field.Type)
 		}
 	}
+	writeRustPhantomValue(out, generics, &needComma)
 	out.WriteString(" }\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
@@ -982,6 +984,7 @@ func generateStructDefault(out *strings.Builder, structName string, structType *
 			writeStructDefaultValue(out, field.Type)
 		}
 	}
+	writeRustPhantomValue(out, generics, &needComma)
 	out.WriteString(" }\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
@@ -1404,6 +1407,129 @@ func rustTypeGenericsForTypeSpec(typeSpec *ast.TypeSpec) rustTypeGenerics {
 		Decl: "<" + strings.Join(declParams, ", ") + ">",
 		Use:  "<" + strings.Join(useParams, ", ") + ">",
 	}
+}
+
+func rustTypeGenericsForStructTypeSpec(typeSpec *ast.TypeSpec, structType *ast.StructType) rustTypeGenerics {
+	generics := rustTypeGenericsForTypeSpec(typeSpec)
+	generics.Phantom = rustUnusedTypeParamsForStruct(typeSpec, structType)
+	return generics
+}
+
+func rustUnusedTypeParamsForStruct(typeSpec *ast.TypeSpec, structType *ast.StructType) []string {
+	if typeSpec == nil || typeSpec.TypeParams == nil || structType == nil {
+		return nil
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil
+	}
+	typeParams := make([]string, 0, len(typeSpec.TypeParams.List))
+	paramSet := make(map[string]bool)
+	for _, field := range typeSpec.TypeParams.List {
+		for _, name := range field.Names {
+			if _, ok := typeInfo.info.Defs[name].(*types.TypeName); !ok {
+				continue
+			}
+			rustName := RustTypeNameForUse(name.Name)
+			typeParams = append(typeParams, rustName)
+			paramSet[rustName] = true
+		}
+	}
+	if len(typeParams) == 0 {
+		return nil
+	}
+	used := make(map[string]bool)
+	for _, field := range structType.Fields.List {
+		if field.Type == nil {
+			continue
+		}
+		collectRustTypeParamUses(typeInfo.GetType(field.Type), used, make(map[types.Type]bool))
+	}
+	var unused []string
+	for _, param := range typeParams {
+		if paramSet[param] && !used[param] {
+			unused = append(unused, param)
+		}
+	}
+	return unused
+}
+
+func collectRustTypeParamUses(typ types.Type, used map[string]bool, seen map[types.Type]bool) {
+	if typ == nil || seen[typ] {
+		return
+	}
+	seen[typ] = true
+	switch t := types.Unalias(typ).(type) {
+	case *types.TypeParam:
+		if t.Obj() != nil {
+			used[RustTypeNameForUse(t.Obj().Name())] = true
+		}
+	case *types.Named:
+		typeArgs := t.TypeArgs()
+		for i := 0; typeArgs != nil && i < typeArgs.Len(); i++ {
+			collectRustTypeParamUses(typeArgs.At(i), used, seen)
+		}
+	case *types.Pointer:
+		collectRustTypeParamUses(t.Elem(), used, seen)
+	case *types.Slice:
+		collectRustTypeParamUses(t.Elem(), used, seen)
+	case *types.Array:
+		collectRustTypeParamUses(t.Elem(), used, seen)
+	case *types.Map:
+		collectRustTypeParamUses(t.Key(), used, seen)
+		collectRustTypeParamUses(t.Elem(), used, seen)
+	case *types.Chan:
+		collectRustTypeParamUses(t.Elem(), used, seen)
+	case *types.Tuple:
+		for i := 0; i < t.Len(); i++ {
+			collectRustTypeParamUses(t.At(i).Type(), used, seen)
+		}
+	case *types.Signature:
+		collectRustTypeParamUses(t.Params(), used, seen)
+		collectRustTypeParamUses(t.Results(), used, seen)
+	case *types.Struct:
+		for i := 0; i < t.NumFields(); i++ {
+			collectRustTypeParamUses(t.Field(i).Type(), used, seen)
+		}
+	}
+}
+
+func writeRustPhantomField(out *strings.Builder, generics rustTypeGenerics) {
+	if len(generics.Phantom) == 0 {
+		return
+	}
+	out.WriteString("    pub __go_phantom: std::marker::PhantomData<")
+	writeRustPhantomType(out, generics.Phantom)
+	out.WriteString(">,\n")
+}
+
+func writeRustPhantomValue(out *strings.Builder, generics rustTypeGenerics, needComma *bool) {
+	if len(generics.Phantom) == 0 {
+		return
+	}
+	if *needComma {
+		out.WriteString(", ")
+	}
+	out.WriteString("__go_phantom: std::marker::PhantomData")
+	*needComma = true
+}
+
+func writeRustPhantomValueForStructDef(out *strings.Builder, structName string, needComma *bool) {
+	def := structDefs[structName]
+	if def == nil || len(def.PhantomTypeParams) == 0 {
+		return
+	}
+	writeRustPhantomValue(out, rustTypeGenerics{Phantom: def.PhantomTypeParams}, needComma)
+}
+
+func writeRustPhantomType(out *strings.Builder, params []string) {
+	if len(params) == 1 {
+		out.WriteString(params[0])
+		return
+	}
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString(")")
 }
 
 func rustFunctionTypeParam(name *ast.Ident) string {
@@ -2582,7 +2708,7 @@ func registerPackageStructDefsFromFiles(files []*ast.File) {
 					continue
 				}
 				if structType, ok := typeSpec.Type.(*ast.StructType); ok {
-					registerStructDef(typeSpec.Name.Name, structType)
+					registerStructTypeSpecDef(typeSpec, structType)
 				}
 			}
 		}
@@ -3624,8 +3750,9 @@ func definedTypeUnderlyingStructAST(t ast.Expr) *ast.StructType {
 func emitStructTypeDeclBody(out *strings.Builder, typeSpec *ast.TypeSpec, t *ast.StructType) {
 	structName := typeSpec.Name.Name
 	rustTypeName := RustTypeNameForUse(structName)
-	generics := rustTypeGenericsForTypeSpec(typeSpec)
+	generics := rustTypeGenericsForStructTypeSpec(typeSpec, t)
 	registerStructDef(structName, t)
+	setStructDefPhantomTypeParams(structName, generics.Phantom)
 
 	writeStructDerive(out, structName, t)
 	out.WriteString("pub struct ")
@@ -3660,6 +3787,7 @@ func emitStructTypeDeclBody(out *strings.Builder, typeSpec *ast.TypeSpec, t *ast
 			out.WriteString(",\n")
 		}
 	}
+	writeRustPhantomField(out, generics)
 
 	out.WriteString("}\n\n")
 
@@ -4079,6 +4207,24 @@ func registerStructDef(name string, structType *ast.StructType) {
 		}
 	}
 	structDefs[name] = structDef
+}
+
+func registerStructTypeSpecDef(typeSpec *ast.TypeSpec, structType *ast.StructType) {
+	if typeSpec == nil {
+		return
+	}
+	registerStructDef(typeSpec.Name.Name, structType)
+	generics := rustTypeGenericsForStructTypeSpec(typeSpec, structType)
+	setStructDefPhantomTypeParams(typeSpec.Name.Name, generics.Phantom)
+}
+
+func setStructDefPhantomTypeParams(name string, phantomTypeParams []string) {
+	if len(phantomTypeParams) == 0 {
+		return
+	}
+	if def, ok := structDefs[name]; ok && def != nil {
+		def.PhantomTypeParams = append([]string(nil), phantomTypeParams...)
+	}
 }
 
 func structFieldEmbedsGoError(field *ast.Field) bool {

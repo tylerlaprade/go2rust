@@ -5,7 +5,7 @@ use crate::{GoAtomicPointer, format_slice, format_slice_values, format_slice_wra
 use crate::hashtriemap::*;
 use crate::mutex::*;
 
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex as StdMutex};
 
 /// SemacquireMutex is like Semacquire, but for profiling contended
 /// Mutexes and RWMutexes.
@@ -17,7 +17,7 @@ use std::sync::{Arc, Mutex};
 /// Otherwise they're functionally identical.
 ///
 ///go:linkname runtime_SemacquireMutex
-pub fn runtime__semacquire_mutex(s: Arc<Mutex<Option<u32>>>, lifo: Arc<Mutex<Option<bool>>>, skipframes: Arc<Mutex<Option<i32>>>) {
+pub fn runtime__semacquire_mutex(s: Arc<StdMutex<Option<u32>>>, lifo: Arc<StdMutex<Option<bool>>>, skipframes: Arc<StdMutex<Option<i32>>>) {
     unimplemented!("Go function declaration has no body");
 }
 
@@ -31,7 +31,7 @@ pub fn runtime__semacquire_mutex(s: Arc<Mutex<Option<u32>>>, lifo: Arc<Mutex<Opt
 /// runtime_Semrelease's caller.
 ///
 ///go:linkname runtime_Semrelease
-pub fn runtime__semrelease(s: Arc<Mutex<Option<u32>>>, handoff: Arc<Mutex<Option<bool>>>, skipframes: Arc<Mutex<Option<i32>>>) {
+pub fn runtime__semrelease(s: Arc<StdMutex<Option<u32>>>, handoff: Arc<StdMutex<Option<bool>>>, skipframes: Arc<StdMutex<Option<i32>>>) {
     unimplemented!("Go function declaration has no body");
 }
 
@@ -40,7 +40,7 @@ pub fn runtime__semrelease(s: Arc<Mutex<Option<u32>>>, handoff: Arc<Mutex<Option
 /// runtime_canSpin reports whether spinning makes sense at the moment.
 ///
 ///go:linkname runtime_canSpin
-pub fn runtime_can_spin(i: Arc<Mutex<Option<i32>>>) -> bool {
+pub fn runtime_can_spin(i: Arc<StdMutex<Option<i32>>>) -> bool {
     unimplemented!("Go function declaration has no body");
 }
 
@@ -60,12 +60,12 @@ pub fn runtime_nanotime() -> i64 {
 
 
 ///go:linkname throw
-pub fn throw(__arg0: Arc<Mutex<Option<String>>>) {
+pub fn throw(__arg0: Arc<StdMutex<Option<String>>>) {
     unimplemented!("Go function declaration has no body");
 }
 
 
 ///go:linkname fatal
-pub fn fatal(__arg0: Arc<Mutex<Option<String>>>) {
+pub fn fatal(__arg0: Arc<StdMutex<Option<String>>>) {
     unimplemented!("Go function declaration has no body");
 }

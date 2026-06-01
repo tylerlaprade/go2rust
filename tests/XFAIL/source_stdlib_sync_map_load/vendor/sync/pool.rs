@@ -15,7 +15,7 @@ use crate::waitgroup::*;
 
 use std::any::Any;
 use std::fmt::{Display, Formatter};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex as StdMutex};
 
 /// A Pool is a set of temporary objects that may be individually saved and
 /// retrieved.
@@ -56,24 +56,24 @@ use std::sync::{Arc, Mutex};
 /// [the Go memory model]: https://go.dev/ref/mem
 #[derive(Clone)]
 pub struct Pool {
-    pub no_copy: Arc<Mutex<Option<noCopy>>>,
-    pub local: Arc<Mutex<Option<usize>>>,
-    pub local_size: Arc<Mutex<Option<usize>>>,
-    pub victim: Arc<Mutex<Option<usize>>>,
-    pub victim_size: Arc<Mutex<Option<usize>>>,
-    pub new: Arc<Mutex<Option<Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> + Send + Sync>>>>,
+    pub no_copy: Arc<StdMutex<Option<noCopy>>>,
+    pub local: Arc<StdMutex<Option<usize>>>,
+    pub local_size: Arc<StdMutex<Option<usize>>>,
+    pub victim: Arc<StdMutex<Option<usize>>>,
+    pub victim_size: Arc<StdMutex<Option<usize>>>,
+    pub new: Arc<StdMutex<Option<Box<dyn FnMut() -> Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>> + Send + Sync>>>>,
 }
 
 impl Pool {
     pub fn __go_value_clone(&self) -> Self {
-        Self { no_copy: { let __guard = self.no_copy.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, local: { let __guard = self.local.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, local_size: { let __guard = self.local_size.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, victim: { let __guard = self.victim.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, victim_size: { let __guard = self.victim_size.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, new: self.new.clone() }
+        Self { no_copy: { let __guard = self.no_copy.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, local: { let __guard = self.local.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, local_size: { let __guard = self.local_size.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, victim: { let __guard = self.victim.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, victim_size: { let __guard = self.victim_size.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, new: self.new.clone() }
     }
 }
 
 
 impl Default for Pool {
     fn default() -> Self {
-        Self { no_copy: Arc::new(Mutex::new(Some(noCopy::default()))), local: Arc::new(Mutex::new(Some(0))), local_size: Arc::new(Mutex::new(Some(0))), victim: Arc::new(Mutex::new(Some(0))), victim_size: Arc::new(Mutex::new(Some(0))), new: Arc::new(Mutex::new(None)) }
+        Self { no_copy: Arc::new(StdMutex::new(Some(noCopy::default()))), local: Arc::new(StdMutex::new(Some(0))), local_size: Arc::new(StdMutex::new(Some(0))), victim: Arc::new(StdMutex::new(Some(0))), victim_size: Arc::new(StdMutex::new(Some(0))), new: Arc::new(StdMutex::new(None)) }
     }
 }
 
@@ -95,20 +95,20 @@ impl GoJsonDecode for Pool {
 /// Local per-P Pool appendix.
 #[derive(Clone)]
 pub struct poolLocalInternal {
-    pub private: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>,
-    pub shared: Arc<Mutex<Option<poolChain>>>,
+    pub private: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>,
+    pub shared: Arc<StdMutex<Option<poolChain>>>,
 }
 
 impl poolLocalInternal {
     pub fn __go_value_clone(&self) -> Self {
-        Self { private: self.private.clone(), shared: { let __guard = self.shared.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        Self { private: self.private.clone(), shared: { let __guard = self.shared.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
     }
 }
 
 
 impl Default for poolLocalInternal {
     fn default() -> Self {
-        Self { private: Arc::new(Mutex::new(None)), shared: Arc::new(Mutex::new(Some(poolChain::default()))) }
+        Self { private: Arc::new(StdMutex::new(None)), shared: Arc::new(StdMutex::new(Some(poolChain::default()))) }
     }
 }
 
@@ -129,20 +129,20 @@ impl GoJsonDecode for poolLocalInternal {
 
 #[derive(Clone)]
 pub struct poolLocal {
-    pub pool_local_internal: Arc<Mutex<Option<poolLocalInternal>>>,
-    pub pad: Arc<Mutex<Option<[u8; 96]>>>,
+    pub pool_local_internal: Arc<StdMutex<Option<poolLocalInternal>>>,
+    pub pad: Arc<StdMutex<Option<[u8; 96]>>>,
 }
 
 impl poolLocal {
     pub fn __go_value_clone(&self) -> Self {
-        Self { pool_local_internal: { let __guard = self.pool_local_internal.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pad: { let __guard = self.pad.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        Self { pool_local_internal: { let __guard = self.pool_local_internal.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, pad: { let __guard = self.pad.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
     }
 }
 
 
 impl Default for poolLocal {
     fn default() -> Self {
-        Self { pool_local_internal: Arc::new(Mutex::new(Some(poolLocalInternal::default()))), pad: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        Self { pool_local_internal: Arc::new(StdMutex::new(Some(poolLocalInternal::default()))), pad: Arc::new(StdMutex::new(Some(std::array::from_fn(|_| 0)))) }
     }
 }
 
@@ -165,9 +165,9 @@ pub(crate) static poolRaceHash: std::sync::LazyLock<std::sync::Arc<std::sync::Mu
 
 pub(crate) static allPoolsMu: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Mutex>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
-pub(crate) static allPools: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<Arc<Mutex<Option<Pool>>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) static allPools: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<Arc<StdMutex<Option<Pool>>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
-pub(crate) static oldPools: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<Arc<Mutex<Option<Pool>>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) static oldPools: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<Arc<StdMutex<Option<Pool>>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
 
 fn __go_init_globals() {
@@ -188,12 +188,12 @@ pub(crate) fn __go_zero_globals() {
 
 impl Pool {
     /// Put adds x to the pool.
-    pub fn put(&self, x: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) {
+    pub fn put(&self, x: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>) {
         if (*x.lock().unwrap()).is_none() {
         return;
     }
         if race::ENABLED {
-        if { let __tmp_x = runtime_randn(Arc::new(Mutex::new(Some(4 as u32)))); let __tmp_y = 0 as u32; __tmp_x == __tmp_y } {
+        if { let __tmp_x = runtime_randn(Arc::new(StdMutex::new(Some(4 as u32)))); let __tmp_y = 0 as u32; __tmp_x == __tmp_y } {
                 // Randomly drop x on floor.
         return;
     }
@@ -222,7 +222,7 @@ impl Pool {
     ///
     /// If Get would otherwise return nil and p.New is non-nil, Get returns
     /// the result of calling p.New.
-    pub fn get(&self) -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
+    pub fn get(&self) -> Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>> {
         if race::ENABLED {
         race::disable();
     }
@@ -235,7 +235,7 @@ impl Pool {
                 // reuse.
         { let (__tmp_0, __tmp_1) = (*(*(*l.lock().unwrap().as_mut().unwrap()).pool_local_internal.lock().unwrap().as_mut().unwrap()).shared.lock().unwrap().as_ref().unwrap()).pop_head(); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *x.lock().unwrap() = __moved_tmp_0; };
         if (*x.lock().unwrap()).is_none() {
-        x = self.get_slow(Arc::new(Mutex::new(Some(pid)))).clone();
+        x = self.get_slow(Arc::new(StdMutex::new(Some(pid)))).clone();
     }
     }
                 // Try to pop the head of the local shard. We prefer
@@ -249,19 +249,19 @@ impl Pool {
     }
     }
         if (*x.lock().unwrap()).is_none() && { let __nil_target = self.new.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
-        x = { let __f_holder = self.new.clone(); let __f_ptr: *mut Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }.clone();
+        x = { let __f_holder = self.new.clone(); let __f_ptr: *mut Box<dyn FnMut() -> Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>> + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }.clone();
     }
         return x.clone();
     }
 
-    pub fn get_slow(&self, pid: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
+    pub fn get_slow(&self, pid: Arc<StdMutex<Option<i32>>>) -> Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>> {
                 // See the comment in pin regarding ordering of the loads.
         let mut size = runtime__load_acquintptr(self.local_size.clone());
-        let mut locals = Arc::new(Mutex::new(Some({ let __selector_holder = self.local.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+        let mut locals = Arc::new(StdMutex::new(Some({ let __selector_holder = self.local.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
                 // Try to steal one element from other procs.
-        let mut i = Arc::new(Mutex::new(Some(0)));
-    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some(size as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
-        let mut l = index_local(Arc::new(Mutex::new(Some({ let __arg_holder = locals.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __tmp_x = { let __v = (*pid.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y }); let __tmp_y = (*Arc::new(Mutex::new(Some(size as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }))));
+        let mut i = Arc::new(StdMutex::new(Some(0)));
+    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(StdMutex::new(Some(size as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+        let mut l = index_local(Arc::new(StdMutex::new(Some({ let __arg_holder = locals.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __tmp_x = { let __v = (*pid.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y }); let __tmp_y = (*Arc::new(StdMutex::new(Some(size as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }))));
         {
         let (mut x, _) = (*(*(*l.lock().unwrap().as_mut().unwrap()).pool_local_internal.lock().unwrap().as_mut().unwrap()).shared.lock().unwrap().as_ref().unwrap()).pop_tail();;
         if (*x.lock().unwrap()).is_some() {
@@ -274,11 +274,11 @@ impl Pool {
                 // from all primary caches because we want objects in the
                 // victim cache to age out if at all possible.
         { let new_val = atomic::load_uintptr(self.victim_size.clone()); size = new_val; };
-        if { let __tmp_x = (*Arc::new(Mutex::new(Some((*pid.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = size; __tmp_x >= __tmp_y } {
-        return Arc::new(Mutex::new(None));
+        if { let __tmp_x = (*Arc::new(StdMutex::new(Some((*pid.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = size; __tmp_x >= __tmp_y } {
+        return Arc::new(StdMutex::new(None));
     }
         { let new_val = { let __selector_holder = self.victim.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *locals.lock().unwrap() = Some(new_val); };
-        let mut l = index_local(Arc::new(Mutex::new(Some({ let __arg_holder = locals.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = pid.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        let mut l = index_local(Arc::new(StdMutex::new(Some({ let __arg_holder = locals.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some({ let __arg_holder = pid.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         {
         let mut x = (*(*l.lock().unwrap().as_mut().unwrap()).pool_local_internal.lock().unwrap().as_mut().unwrap()).private.clone();;
         if (*x.lock().unwrap()).is_some() {
@@ -286,9 +286,9 @@ impl Pool {
             return x.clone();;
         }
     }
-        let mut i = Arc::new(Mutex::new(Some(0)));
-    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some(size as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
-        let mut l = index_local(Arc::new(Mutex::new(Some({ let __arg_holder = locals.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __v = (*pid.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }); let __tmp_y = (*Arc::new(Mutex::new(Some(size as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }))));
+        let mut i = Arc::new(StdMutex::new(Some(0)));
+    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(StdMutex::new(Some(size as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+        let mut l = index_local(Arc::new(StdMutex::new(Some({ let __arg_holder = locals.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __v = (*pid.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }); let __tmp_y = (*Arc::new(StdMutex::new(Some(size as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }))));
         {
         let (mut x, _) = (*(*(*l.lock().unwrap().as_mut().unwrap()).pool_local_internal.lock().unwrap().as_mut().unwrap()).shared.lock().unwrap().as_ref().unwrap()).pop_tail();;
         if (*x.lock().unwrap()).is_some() {
@@ -300,13 +300,13 @@ impl Pool {
                 // Mark the victim cache as empty for future gets don't bother
                 // with it.
         atomic::store_uintptr(self.victim_size.clone(), 0 as usize);
-        return Arc::new(Mutex::new(None));
+        return Arc::new(StdMutex::new(None));
     }
 
     /// pin pins the current goroutine to P, disables preemption and
     /// returns poolLocal pool for the P and the P's id.
     /// Caller must call runtime_procUnpin() when done with the pool.
-    pub fn pin(&self) -> (Arc<Mutex<Option<poolLocal>>>, i32) {
+    pub fn pin(&self) -> (Arc<StdMutex<Option<poolLocal>>>, i32) {
                 // Check whether p is nil to get a panic.
                 // Otherwise the nil dereference happens while the m is pinned,
                 // causing a fatal error rather than a panic.
@@ -319,14 +319,14 @@ impl Pool {
                 // Thus here we must observe local at least as large localSize.
                 // We can observe a newer/larger local, it is fine (we must observe its zero-initialized-ness).
         let mut s = runtime__load_acquintptr(self.local_size.clone());
-        let mut l = Arc::new(Mutex::new(Some({ let __selector_holder = self.local.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        if { let __tmp_x = (*Arc::new(Mutex::new(Some(pid as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = s; __tmp_x < __tmp_y } {
-        return (index_local(Arc::new(Mutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(pid)))), pid);
+        let mut l = Arc::new(StdMutex::new(Some({ let __selector_holder = self.local.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+        if { let __tmp_x = (*Arc::new(StdMutex::new(Some(pid as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = s; __tmp_x < __tmp_y } {
+        return (index_local(Arc::new(StdMutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some(pid)))), pid);
     }
         self.pin_slow()
     }
 
-    pub fn pin_slow(&self) -> (Arc<Mutex<Option<poolLocal>>>, i32) {
+    pub fn pin_slow(&self) -> (Arc<StdMutex<Option<poolLocal>>>, i32) {
                 // Retry under the mutex.
                 // Can not lock the mutex while pinned.
         runtime_proc_unpin();
@@ -334,19 +334,19 @@ impl Pool {
         // mu.Unlock() handled by RAII guard
         let mut pid = runtime_proc_pin();
                 // poolCleanup won't be called while we are pinned.
-        let mut s = Arc::new(Mutex::new(Some({ let __selector_holder = self.local_size.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        let mut l = Arc::new(Mutex::new(Some({ let __selector_holder = self.local.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        if { let __tmp_x = (*Arc::new(Mutex::new(Some(pid as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
-        return (index_local(Arc::new(Mutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(pid)))), pid);
+        let mut s = Arc::new(StdMutex::new(Some({ let __selector_holder = self.local_size.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+        let mut l = Arc::new(StdMutex::new(Some({ let __selector_holder = self.local.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+        if { let __tmp_x = (*Arc::new(StdMutex::new(Some(pid as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
+        return (index_local(Arc::new(StdMutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some(pid)))), pid);
     }
         if { let __nil_target = self.local.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = { let __collection_holder = { let __append_target = allPools.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(self.clone()); __append_target.clone() }.clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *allPools.lock().unwrap() = new_val; };
     }
                 // If GOMAXPROCS changes between GCs, we re-allocate the array and lose the old one.
         let mut size = runtime::g_o_m_a_x_p_r_o_c_s(0);
-        let mut local: Arc<Mutex<Option<Vec<poolLocal>>>> = Arc::new(Mutex::new(Some(vec![Default::default(); (size) as usize])));
-        { let __target = self.local.clone(); let __stored = { let __value = Arc::new(Mutex::new(Some({ let __seq_holder = local.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))); let __guard = __value.lock().unwrap(); (*__guard).clone() }; *__target.lock().unwrap() = __stored; };
-        runtime__store_reluintptr(self.local_size.clone(), Arc::new(Mutex::new(Some(size as usize))));
+        let mut local: Arc<StdMutex<Option<Vec<poolLocal>>>> = Arc::new(StdMutex::new(Some(vec![Default::default(); (size) as usize])));
+        { let __target = self.local.clone(); let __stored = { let __value = Arc::new(StdMutex::new(Some({ let __seq_holder = local.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))); let __guard = __value.lock().unwrap(); (*__guard).clone() }; *__target.lock().unwrap() = __stored; };
+        runtime__store_reluintptr(self.local_size.clone(), Arc::new(StdMutex::new(Some(size as usize))));
         return (unimplemented!("slice element pointer return requires pointer representation support"), pid);
     }
 }
@@ -357,7 +357,7 @@ impl poolLocal {
 /// from runtime
 ///
 ///go:linkname runtime_randn runtime.randn
-pub fn runtime_randn(n: Arc<Mutex<Option<u32>>>) -> u32 {
+pub fn runtime_randn(n: Arc<StdMutex<Option<u32>>>) -> u32 {
     unimplemented!("Go function declaration has no body");
 }
 
@@ -367,10 +367,10 @@ pub fn runtime_randn(n: Arc<Mutex<Option<u32>>>) -> u32 {
 /// directly, for fear of conflicting with other synchronization on that address.
 /// Instead, we hash the pointer to get an index into poolRaceHash.
 /// See discussion on golang.org/cl/31589.
-pub fn pool_race_addr(x: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<usize>>> {
-    let mut ptr = Arc::new(Mutex::new(Some((*{ let __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&x.clone()) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[usize; 2]>(unimplemented!("unsafe.Pointer conversion to [usize; 2]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.lock().unwrap().as_ref().unwrap()) as usize)));
-    let mut h = Arc::new(Mutex::new(Some(({ let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*ptr.lock().unwrap().as_ref().unwrap()) as u32 as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 0x85ebca6b as u64; __tmp_x * __tmp_y }); let __tmp_y = 16 as u64; __tmp_x >> __tmp_y }) as u32)));
-    return Arc::new(Mutex::new(Some({ let __seq_holder = poolRaceHash.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[({ let __tmp_x = { let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*poolRaceHash.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32; __tmp_x % __tmp_y }) as usize] as *const _ as usize })));
+pub fn pool_race_addr(x: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<StdMutex<Option<usize>>> {
+    let mut ptr = Arc::new(StdMutex::new(Some((*{ let __seq = { let __seq_holder = Arc::new(StdMutex::new({ let __ptr = Arc::new(StdMutex::new(Some(Arc::as_ptr(&x.clone()) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[usize; 2]>(unimplemented!("unsafe.Pointer conversion to [usize; 2]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.lock().unwrap().as_ref().unwrap()) as usize)));
+    let mut h = Arc::new(StdMutex::new(Some(({ let __tmp_x = ({ let __tmp_x = (*Arc::new(StdMutex::new(Some((*ptr.lock().unwrap().as_ref().unwrap()) as u32 as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 0x85ebca6b as u64; __tmp_x * __tmp_y }); let __tmp_y = 16 as u64; __tmp_x >> __tmp_y }) as u32)));
+    return Arc::new(StdMutex::new(Some({ let __seq_holder = poolRaceHash.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[({ let __tmp_x = { let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(StdMutex::new(Some((*poolRaceHash.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32; __tmp_x % __tmp_y }) as usize] as *const _ as usize })));
 }
 
 /// poolCleanup should be an internal detail,
@@ -408,16 +408,16 @@ pub fn pool_cleanup() {
 }
 
 fn __go_init_0() {
-    runtime_register_pool_cleanup(Arc::new(Mutex::new(Some(Box::new(move || { pool_cleanup() }) as Box<dyn FnMut() -> () + Send + Sync>))));
+    runtime_register_pool_cleanup(Arc::new(StdMutex::new(Some(Box::new(move || { pool_cleanup() }) as Box<dyn FnMut() -> () + Send + Sync>))));
 }
 
-pub fn index_local(l: Arc<Mutex<Option<usize>>>, i: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<poolLocal>>> {
-    let mut lp = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*l.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<poolLocal>()))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x * __tmp_y }; __tmp_x + __tmp_y })));
-    return Arc::new(Mutex::new({ let __ptr = lp.clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<poolLocal>(unimplemented!("unsafe.Pointer conversion to poolLocal")) } }));
+pub fn index_local(l: Arc<StdMutex<Option<usize>>>, i: Arc<StdMutex<Option<i32>>>) -> Arc<StdMutex<Option<poolLocal>>> {
+    let mut lp = Arc::new(StdMutex::new(Some({ let __tmp_x = (*Arc::new(StdMutex::new(Some((*l.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = (*Arc::new(StdMutex::new(Some((*i.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(StdMutex::new(Some(std::mem::size_of::<poolLocal>()))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x * __tmp_y }; __tmp_x + __tmp_y })));
+    return Arc::new(StdMutex::new({ let __ptr = lp.clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<poolLocal>(unimplemented!("unsafe.Pointer conversion to poolLocal")) } }));
 }
 
 /// Implemented in runtime.
-pub fn runtime_register_pool_cleanup(cleanup: Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>) {
+pub fn runtime_register_pool_cleanup(cleanup: Arc<StdMutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>) {
     unimplemented!("Go function declaration has no body");
 }
 
@@ -433,13 +433,13 @@ pub fn runtime_proc_unpin() {
 
 
 ///go:linkname runtime_LoadAcquintptr internal/runtime/atomic.LoadAcquintptr
-pub fn runtime__load_acquintptr(ptr: Arc<Mutex<Option<usize>>>) -> usize {
+pub fn runtime__load_acquintptr(ptr: Arc<StdMutex<Option<usize>>>) -> usize {
     unimplemented!("Go function declaration has no body");
 }
 
 
 ///go:linkname runtime_StoreReluintptr internal/runtime/atomic.StoreReluintptr
-pub fn runtime__store_reluintptr(ptr: Arc<Mutex<Option<usize>>>, val: Arc<Mutex<Option<usize>>>) -> usize {
+pub fn runtime__store_reluintptr(ptr: Arc<StdMutex<Option<usize>>>, val: Arc<StdMutex<Option<usize>>>) -> usize {
     unimplemented!("Go function declaration has no body");
 }
 

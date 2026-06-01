@@ -1,6 +1,9 @@
 package main
 
 import (
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"strings"
 	"testing"
 )
@@ -80,5 +83,67 @@ func forceConcurrent() {
 	}
 	if !strings.Contains(rust, "state: Arc::new(StdMutex::new(Some(0)))") {
 		t.Fatalf("struct default wrapper should construct through StdMutex:\n%s", rust)
+	}
+}
+
+func TestWrapperMutexImportAliasesWhenSiblingModuleExportsMutex(t *testing.T) {
+	fset := token.NewFileSet()
+	mutexFile, err := parser.ParseFile(fset, "mutex.go", `package internal_sync
+
+type Mutex struct{}
+`, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("ParseFile(mutex.go) error = %v", err)
+	}
+	hashFile, err := parser.ParseFile(fset, "hashtriemap.go", `package internal_sync
+
+import "unsafe"
+
+type Holder struct {
+	mu Mutex
+}
+
+func fromPointer(p unsafe.Pointer) *Holder {
+	return (*Holder)(p)
+}
+
+func forceConcurrent() {
+	go func() {}()
+}
+`, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("ParseFile(hashtriemap.go) error = %v", err)
+	}
+	files := []*ast.File{mutexFile, hashFile}
+	typeInfo, err := NewTypeInfo(files, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo error = %v", err)
+	}
+	cd := NewConcurrencyDetector()
+	cd.AnalyzeProject(files)
+	prevCD := GetConcurrencyDetector()
+	SetConcurrencyDetector(cd)
+	defer SetConcurrencyDetector(prevCD)
+
+	packageState := NewPackageState()
+	packageState.TypeModuleNames["Mutex"] = "mutex"
+	packageState.TypeModuleNames["Holder"] = "hashtriemap"
+	SetTranspileContext(&TranspileContext{
+		Session:           NewTranspileSession(typeInfo, nil),
+		Package:           packageState,
+		CurrentModuleName: "hashtriemap",
+	})
+	defer SetTranspileContext(nil)
+
+	rust, _, _ := Transpile(hashFile, fset, typeInfo)
+
+	if !strings.Contains(rust, "use std::sync::{Arc, Mutex as StdMutex};") {
+		t.Fatalf("wrapper mutex import should be aliased around sibling Mutex type:\n%s", rust)
+	}
+	if strings.Contains(rust, "Arc<Mutex<Option<Mutex>>") || strings.Contains(rust, "Arc::new(Mutex::new") {
+		t.Fatalf("wrapper output should use StdMutex when sibling module exports Mutex:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub mu: Arc<StdMutex<Option<Mutex>>>") {
+		t.Fatalf("same-package Mutex field should keep inner Mutex and use StdMutex wrapper:\n%s", rust)
 	}
 }

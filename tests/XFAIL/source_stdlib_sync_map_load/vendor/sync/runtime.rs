@@ -14,7 +14,7 @@ use crate::rwmutex::*;
 use crate::waitgroup::*;
 
 use std::fmt::{Display, Formatter};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex as StdMutex};
 
 #[derive(Debug, Clone, Default)]
 pub struct AnonymousStruct1 {
@@ -42,14 +42,14 @@ impl GoJsonDecode for AnonymousStruct1 {
 
 
 /// Ensure that sync and runtime agree on size of notifyList.
-pub fn runtime_notify_list_check(size: Arc<Mutex<Option<usize>>>) {
+pub fn runtime_notify_list_check(size: Arc<StdMutex<Option<usize>>>) {
     unimplemented!("Go function declaration has no body");
 }
 
 
 fn __go_init_0() {
-    let mut n: Arc<Mutex<Option<notifyList>>> = Arc::new(Mutex::new(Some(Default::default())));
-    runtime_notify_list_check(Arc::new(Mutex::new(Some(std::mem::size_of::<notifyList>()))));
+    let mut n: Arc<StdMutex<Option<notifyList>>> = Arc::new(StdMutex::new(Some(Default::default())));
+    runtime_notify_list_check(Arc::new(StdMutex::new(Some(std::mem::size_of::<notifyList>()))));
 }
 
 pub(crate) fn __go_init_functions() {

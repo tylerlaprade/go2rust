@@ -204,7 +204,7 @@ func RegisterExternalTypeStubField(typeName string, fieldName string, fieldType 
 	}
 	RegisterExternalTypeStub(typeName)
 	trackWrapperImports()
-	fieldTypeRust := goTypesFieldTypeToRust(fieldType)
+	fieldTypeRust := canonicalPackageExternalStubRustType(goTypesFieldTypeToRust(fieldType))
 	fields := currentExternalTypeStubFields()
 	if fields[typeName] == nil {
 		fields[typeName] = make(map[string]string)
@@ -233,7 +233,7 @@ func RegisterExternalTypeStubMethod(typeName string, methodName string, sig *typ
 	}
 	results := sig.Results()
 	for i := 0; i < results.Len(); i++ {
-		method.ReturnTypes = append(method.ReturnTypes, goTypesReturnTypeToRust(results.At(i).Type()))
+		method.ReturnTypes = append(method.ReturnTypes, canonicalPackageExternalStubRustType(goTypesReturnTypeToRust(results.At(i).Type())))
 	}
 	methods := currentExternalTypeStubMethods()
 	if methods[typeName] == nil {
@@ -677,11 +677,11 @@ func RegisterExternalPackageStubFunction(pkgName string, funcName string, sig *t
 	}
 	params := sig.Params()
 	for i := 0; len(fn.GenericParamNames) > 0 && i < params.Len(); i++ {
-		fn.ParamTypes = append(fn.ParamTypes, goTypesParamTypeToRust(params.At(i).Type()))
+		fn.ParamTypes = append(fn.ParamTypes, canonicalPackageExternalStubRustType(goTypesParamTypeToRust(params.At(i).Type())))
 	}
 	results := sig.Results()
 	for i := 0; i < results.Len(); i++ {
-		fn.ReturnTypes = append(fn.ReturnTypes, goTypesReturnTypeToRust(results.At(i).Type()))
+		fn.ReturnTypes = append(fn.ReturnTypes, canonicalPackageExternalStubRustType(goTypesReturnTypeToRust(results.At(i).Type())))
 	}
 	pkg := ensureExternalPackageStub(pkgName)
 	pkg.Functions[funcName] = fn
@@ -843,7 +843,7 @@ func RegisterExternalTypeStubFieldByRustType(typeName string, fieldName string, 
 	if fields[typeName] == nil {
 		fields[typeName] = make(map[string]string)
 	}
-	fields[typeName][fieldName] = fieldTypeRust
+	fields[typeName][fieldName] = canonicalPackageExternalStubRustType(fieldTypeRust)
 }
 
 func RegisterExternalPackageStubConstant(pkgName string, constName string, constType types.Type) {
@@ -866,7 +866,14 @@ func RegisterExternalPackageStubVariable(pkgName string, varName string, varType
 	}
 	trackWrapperImports()
 	pkg := ensureExternalPackageStub(pkgName)
-	pkg.Variables[varName] = goTypesReturnTypeToRust(varType)
+	pkg.Variables[varName] = canonicalPackageExternalStubRustType(goTypesReturnTypeToRust(varType))
+}
+
+func canonicalPackageExternalStubRustType(rustType string) string {
+	if !usePackageExternalStubs() || !NeedsConcurrentWrapper() {
+		return rustType
+	}
+	return strings.ReplaceAll(rustType, "StdMutex", "Mutex")
 }
 
 func ensureExternalPackageStub(pkgName string) *externalPackageStub {
@@ -1453,7 +1460,7 @@ func externalStubsNeedJsonSupport(stubs map[string]bool, packageStubs map[string
 // Long-term fix: transpile encoding/json source (mostly pure Go reflection-driven code).
 func writeJsonSupportHelpers(out *strings.Builder, hasBytesBuffer bool) {
 	outerWrapper := GetOuterWrapperType()
-	innerWrapper := GetInnerWrapperType()
+	innerWrapper := externalStubInnerWrapperType()
 	borrow := ".borrow()"
 	borrowMut := ".borrow_mut()"
 	errorInnerType := "Box<dyn StdError>"
@@ -4158,11 +4165,11 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 }
 
 func wrappedExternalStubType(innerType string) string {
-	return fmt.Sprintf("%s<%s<Option<%s>>>", GetOuterWrapperType(), GetInnerWrapperType(), innerType)
+	return fmt.Sprintf("%s<%s<Option<%s>>>", GetOuterWrapperType(), externalStubInnerWrapperType(), innerType)
 }
 
 func wrappedExternalStubExpr(innerType string, expr string) string {
-	return fmt.Sprintf("%s::new(%s::new(Some::<%s>(%s)))", GetOuterWrapperType(), GetInnerWrapperType(), innerType, expr)
+	return fmt.Sprintf("%s::new(%s::new(Some::<%s>(%s)))", GetOuterWrapperType(), externalStubInnerWrapperType(), innerType, expr)
 }
 
 func writeExternalStubReturnValue(out *strings.Builder, rustType string, innerType string, expr string) {
@@ -4178,7 +4185,14 @@ func wrappedExternalStubSomeExpr(innerType string, expr string) string {
 }
 
 func wrappedExternalStubNoneExpr(innerType string) string {
-	return fmt.Sprintf("%s::new(%s::new(None::<%s>))", GetOuterWrapperType(), GetInnerWrapperType(), innerType)
+	return fmt.Sprintf("%s::new(%s::new(None::<%s>))", GetOuterWrapperType(), externalStubInnerWrapperType(), innerType)
+}
+
+func externalStubInnerWrapperType() string {
+	if usePackageExternalStubs() && NeedsConcurrentWrapper() {
+		return "Mutex"
+	}
+	return GetInnerWrapperType()
 }
 
 // PERMANENT: not scaffold — io/fs.FileInfo is OS-tied; Rust std::fs::Metadata is the long-term implementation.
@@ -4930,7 +4944,7 @@ func tokenConstValues() map[string]int {
 // Long-term fix: transpile go/parser source.
 func writeParserArgTraits(out *strings.Builder) {
 	outerWrapper := GetOuterWrapperType()
-	innerWrapper := GetInnerWrapperType()
+	innerWrapper := externalStubInnerWrapperType()
 	borrow := "borrow()"
 	if NeedsConcurrentWrapper() {
 		borrow = "lock().unwrap()"
@@ -6084,7 +6098,7 @@ func writeBuildIsLocalImportFunction(out *strings.Builder) {
 // Long-term fix: transpile flag source (mostly pure Go).
 func writeFlagPackageStub(out *strings.Builder) {
 	outerWrapper := GetOuterWrapperType()
-	innerWrapper := GetInnerWrapperType()
+	innerWrapper := externalStubInnerWrapperType()
 	stringFlagType := fmt.Sprintf("%s<%s<Option<String>>>", outerWrapper, innerWrapper)
 	boolFlagType := fmt.Sprintf("%s<%s<Option<bool>>>", outerWrapper, innerWrapper)
 	argsType := fmt.Sprintf("%s<%s<Option<Vec<String>>>>", outerWrapper, innerWrapper)
@@ -6356,7 +6370,7 @@ func writeOsErrorHelpers(out *strings.Builder) {
         %s::new(%s::new(Some(Box::new(err))))
     }
 
-`, errorType, GetOuterWrapperType(), GetInnerWrapperType(), GetOuterWrapperType(), GetInnerWrapperType())
+`, errorType, GetOuterWrapperType(), externalStubInnerWrapperType(), GetOuterWrapperType(), externalStubInnerWrapperType())
 }
 
 // PERMANENT: not scaffold — os.Exit maps to std::process::exit, runtime-tied.
@@ -6687,7 +6701,7 @@ func writeFilepathErrorHelpers(out *strings.Builder) {
         path.components().collect::<PathBuf>().to_string_lossy().into_owned()
     }
 
-`, errorType, GetOuterWrapperType(), GetInnerWrapperType(), GetOuterWrapperType(), GetInnerWrapperType())
+`, errorType, GetOuterWrapperType(), externalStubInnerWrapperType(), GetOuterWrapperType(), externalStubInnerWrapperType())
 }
 
 // TEMPORARY: hand-written Rust shim for filepath single-string functions (Base, Dir, Ext, Clean).
@@ -7281,7 +7295,7 @@ func writeExternalStubReturnType(out *strings.Builder, returnTypes []string) {
 // MACHINERY: default-value emitter for stub return types.
 func writeExternalStubDefaultValue(out *strings.Builder, rustType string) {
 	outerWrapper := GetOuterWrapperType()
-	innerWrapper := GetInnerWrapperType()
+	innerWrapper := externalStubInnerWrapperType()
 	wrappedPrefix := outerWrapper + "<" + innerWrapper + "<Option<"
 	if strings.HasPrefix(rustType, wrappedPrefix) && strings.HasSuffix(rustType, ">>>") {
 		innerType := strings.TrimSuffix(strings.TrimPrefix(rustType, wrappedPrefix), ">>>")
