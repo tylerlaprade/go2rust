@@ -1419,6 +1419,32 @@ func setBits(abs []Word) nat {
 	}
 }
 
+func TestUnnamedSliceConversionFromNamedSliceReceiverUsesInnerHandle(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type CaseRange struct{}
+type SpecialCase []CaseRange
+
+var ch chan int
+
+func use(ranges []CaseRange) int {
+	return len(ranges)
+}
+
+func (special SpecialCase) score() int {
+	return use([]CaseRange(special))
+}
+`)
+
+	if strings.Contains(rust, "use((*self.0.lock().unwrap().as_ref().unwrap()))") ||
+		strings.Contains(rust, "use((*self.0.borrow().as_ref().unwrap()))") {
+		t.Fatalf("unnamed slice conversion from named-slice receiver should not unwrap to a bare Vec:\n%s", rust)
+	}
+	if !strings.Contains(rust, "use(self.0.clone())") {
+		t.Fatalf("unnamed slice conversion from named-slice receiver should pass the inner slice handle:\n%s", rust)
+	}
+}
+
 func TestAppendLocalInterfaceHandleKeepsWrappedValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
