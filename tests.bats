@@ -206,6 +206,7 @@ run_test() {
     if ! timeout -k "$kill_after" "$timeout" bash -c '
         test_dir="$1"
         test_tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test.XXXXXX")
+        echo "$$" > "$test_tmp_root/go2rust-test.pid"
         trap '"'"'rm -rf "$test_tmp_root"'"'"' EXIT
         export GO2RUST_TEST_TMP="$test_tmp_root"
 

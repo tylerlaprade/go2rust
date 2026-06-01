@@ -80,6 +80,25 @@ func TestTestScriptDefaultsGoCacheToTemp(t *testing.T) {
 	}
 }
 
+func TestTestScriptDefaultJobsRespectMemoryHeadroom(t *testing.T) {
+	data, err := os.ReadFile("../test.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(test.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`MEM_BYTES=$(sysctl -n hw.memsize`,
+		`GO2RUST_TEST_MEMORY_PER_JOB_GB`,
+		`MEM_JOBS=$(( MEM_BYTES / BYTES_PER_JOB ))`,
+		`[ "$JOBS" -gt "$MEM_JOBS" ] && JOBS=$MEM_JOBS`,
+		`GO2RUST_TEST_JOBS_MAX`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("test.sh should bound default jobs by memory headroom; missing %q", want)
+		}
+	}
+}
+
 func TestTestScriptBuildsDefaultBinaryInTemp(t *testing.T) {
 	data, err := os.ReadFile("../test.sh")
 	if err != nil {
@@ -104,6 +123,52 @@ func TestTestScriptBuildsDefaultBinaryInTemp(t *testing.T) {
 	buildIndex := strings.Index(script, `BUILT_TEST_BINARY_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test-binary.XXXXXX")`)
 	if sweepIndex < 0 || buildIndex < 0 || sweepIndex > buildIndex {
 		t.Fatalf("test.sh should sweep stale temp binaries before creating the current temp binary")
+	}
+}
+
+func TestBatsMarksPerTestTempRootOwner(t *testing.T) {
+	data, err := os.ReadFile("../tests.bats")
+	if err != nil {
+		t.Fatalf("ReadFile(tests.bats) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`test_tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test.XXXXXX")`,
+		`echo "$$" > "$test_tmp_root/go2rust-test.pid"`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("tests.bats should mark per-test temp roots with their owner pid; missing %q", want)
+		}
+	}
+}
+
+func TestCleanupScriptRemovesKnownGo2RustArtifacts(t *testing.T) {
+	data, err := os.ReadFile("../cleanup.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(cleanup.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`go2rust-self.*`,
+		`go2rust-test.*`,
+		`go2rust-bats-shards.*`,
+		`go2rust-cargo-target.*`,
+		`go2rust-test-binary.*`,
+		`go2rust-go-cache.*`,
+		`go2rust-rust-work.*`,
+		`go2rust-tests-list.*`,
+		`go2rust-rust-diff.*`,
+		`go2rust-stdout.*`,
+		`go2rust-stderr.*`,
+		`self_transpile_check.pid`,
+		`go2rust-test.pid`,
+		`if [ "$age_minutes" -gt 0 ]; then`,
+		`age_args=(-mmin +"$age_minutes")`,
+		`"$repo_root/go2rust" "$repo_root/transpiler" "$repo_root/test" "$repo_root/go/go"`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("cleanup.sh should cover go2rust temp/build artifact %q", want)
+		}
 	}
 }
 

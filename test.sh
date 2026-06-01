@@ -249,6 +249,22 @@ if [ -z "$JOBS" ]; then
     # Use 75% of cores (minimum 2) to avoid memory pressure from Rust compilation
     JOBS=$(( CORES * 3 / 4 ))
     [ $JOBS -lt 2 ] && JOBS=2
+
+    MEM_BYTES=$(sysctl -n hw.memsize 2>/dev/null || awk '/MemTotal/ { printf "%.0f\n", $2 * 1024 }' /proc/meminfo 2>/dev/null || echo 0)
+    MEMORY_PER_JOB_GB="${GO2RUST_TEST_MEMORY_PER_JOB_GB:-4}"
+    case "$MEM_BYTES" in ''|*[!0-9]*) MEM_BYTES=0 ;; esac
+    case "$MEMORY_PER_JOB_GB" in ''|*[!0-9]*) MEMORY_PER_JOB_GB=0 ;; esac
+    if [ "$MEM_BYTES" -gt 0 ] && [ "$MEMORY_PER_JOB_GB" -gt 0 ]; then
+        BYTES_PER_JOB=$(( MEMORY_PER_JOB_GB * 1024 * 1024 * 1024 ))
+        MEM_JOBS=$(( MEM_BYTES / BYTES_PER_JOB ))
+        [ "$MEM_JOBS" -lt 1 ] && MEM_JOBS=1
+        [ "$JOBS" -gt "$MEM_JOBS" ] && JOBS=$MEM_JOBS
+    fi
+    JOBS_MAX="${GO2RUST_TEST_JOBS_MAX:-}"
+    case "$JOBS_MAX" in ''|*[!0-9]*) JOBS_MAX=0 ;; esac
+    if [ "$JOBS_MAX" -gt 0 ]; then
+        [ "$JOBS" -gt "$JOBS_MAX" ] && JOBS=$JOBS_MAX
+    fi
 fi
 
 if [ "$JOBS" -gt 1 ] && ! command -v parallel >/dev/null 2>&1; then
