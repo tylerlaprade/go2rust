@@ -1380,11 +1380,12 @@ func constExpressionOperandRustType(expr ast.Expr, rustType string) string {
 	if isUnsignedRustIntegerCastType(rustType) && constExpressionContainsNegativeValue(expr) {
 		return "i128"
 	}
-	if min, max, ok := constExpressionIntegerBounds(expr); ok && !rustIntegerTypeCanRepresentBounds(rustType, min, max) {
-		if widened, ok := unsignedRustIntegerTypeForConstBounds(rustType, min, max); ok {
+	minBits := constExpressionShiftOperandMinBits(expr)
+	if min, max, ok := constExpressionIntegerBounds(expr); ok && (minBits > rustIntegerTypeWidth(rustType) || !rustIntegerTypeCanRepresentBounds(rustType, min, max)) {
+		if widened, ok := unsignedRustIntegerTypeForConstBoundsAtLeast(rustType, min, max, minBits); ok {
 			return widened
 		}
-		if widened, ok := rustIntegerTypeForConstBounds(min, max); ok {
+		if widened, ok := rustIntegerTypeForConstBoundsAtLeast(min, max, minBits); ok {
 			return widened
 		}
 	}
@@ -1422,6 +1423,10 @@ func constExpressionIntegerBounds(expr ast.Expr) (*big.Int, *big.Int, bool) {
 }
 
 func unsignedRustIntegerTypeForConstBounds(target string, min *big.Int, max *big.Int) (string, bool) {
+	return unsignedRustIntegerTypeForConstBoundsAtLeast(target, min, max, 0)
+}
+
+func unsignedRustIntegerTypeForConstBoundsAtLeast(target string, min *big.Int, max *big.Int, minBits uint) (string, bool) {
 	if min == nil || max == nil || min.Sign() < 0 || !isUnsignedRustIntegerCastType(target) {
 		return "", false
 	}
@@ -1435,11 +1440,78 @@ func unsignedRustIntegerTypeForConstBounds(target string, min *big.Int, max *big
 		{"u64", 64},
 		{"u128", 128},
 	} {
-		if max.Cmp(maxUnsignedBigInt(candidate.bits)) <= 0 {
+		if candidate.bits >= minBits && max.Cmp(maxUnsignedBigInt(candidate.bits)) <= 0 {
 			return candidate.name, true
 		}
 	}
 	return "", false
+}
+
+func rustIntegerTypeForConstBoundsAtLeast(min *big.Int, max *big.Int, minBits uint) (string, bool) {
+	if min == nil || max == nil {
+		return "", false
+	}
+	candidates := []string{"i32", "i64", "u64", "i128", "u128"}
+	if min.Sign() < 0 {
+		candidates = []string{"i32", "i64", "i128"}
+	}
+	for _, candidate := range candidates {
+		if rustIntegerTypeWidth(candidate) >= minBits && rustIntegerTypeCanRepresentBounds(candidate, min, max) {
+			return candidate, true
+		}
+	}
+	return "", false
+}
+
+func constExpressionShiftOperandMinBits(expr ast.Expr) uint {
+	var minBits uint
+	ast.Inspect(expr, func(node ast.Node) bool {
+		binary, ok := node.(*ast.BinaryExpr)
+		if !ok || (binary.Op != token.SHL && binary.Op != token.SHR) {
+			return true
+		}
+		value, ok := constExpressionValue(binary.Y)
+		if !ok {
+			return true
+		}
+		intValue := value
+		if intValue.Kind() != constant.Int {
+			intValue = constant.ToInt(value)
+		}
+		count, ok := bigIntForConstInteger(intValue)
+		if !ok || count.Sign() < 0 {
+			return true
+		}
+		if count.BitLen() > 7 {
+			minBits = 129
+			return false
+		}
+		required := uint(count.Uint64()) + 1
+		if required > minBits {
+			minBits = required
+		}
+		return true
+	})
+	return minBits
+}
+
+func rustIntegerTypeWidth(rustType string) uint {
+	switch rustType {
+	case "i8", "u8":
+		return 8
+	case "i16", "u16":
+		return 16
+	case "i32", "u32":
+		return 32
+	case "i64", "u64":
+		return 64
+	case "i128", "u128":
+		return 128
+	case "usize":
+		return uint(strconv.IntSize)
+	default:
+		return 0
+	}
 }
 
 func rustIntegerTypeCanRepresentBounds(rustType string, min *big.Int, max *big.Int) bool {

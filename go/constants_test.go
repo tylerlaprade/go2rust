@@ -2131,6 +2131,30 @@ func allowed(c byte) bool {
 	}
 }
 
+func TestLowMaskRightShiftByWidthUsesWiderConstantOperand(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func start() {
+	go func() {}()
+}
+
+func allowed(c byte) bool {
+	const mask = 0 |
+		(1<<10-1)<<'0'
+
+	return ((uint64(1)<<c)&(mask&(1<<64-1)) |
+		(uint64(1)<<(c-64))&(mask>>64)) != 0
+}
+`)
+
+	if strings.Contains(rust, "(mask as u64) >> (64 as u64)") {
+		t.Fatalf("shift by the target type width should use a wider constant operand:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(mask as u128) >> (64 as u128)") {
+		t.Fatalf("shift by the target type width should widen before final cast:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerConversionShiftLeftOperandIsParenthesized(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
