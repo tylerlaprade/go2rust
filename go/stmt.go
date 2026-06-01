@@ -1544,6 +1544,10 @@ func registerCallResultSyntaxInfo(lhs ast.Expr, call *ast.CallExpr) {
 		return
 	}
 	registerStdlibCallCollectionInfo(lhs, call)
+	if info, ok := sliceElemPtrReturnInfoForCall(call); ok {
+		registerSliceElemPtrVar(ident.Name, info.elemRustType)
+		return
+	}
 	if arrayType, ok := call.Fun.(*ast.ArrayType); ok && arrayType.Len == nil {
 		localCollectionKinds[ident.Name] = "slice"
 		localRangeElemRustTypes[ident.Name] = goCollectionElemTypeToRust(arrayType.Elt)

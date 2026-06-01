@@ -441,6 +441,45 @@ func use(p *prog) int {
 	}
 }
 
+func TestSliceElemPointerIfInitFromReturnKeepsMetadata(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type inst struct {
+	out int
+}
+
+func find(p []inst) *inst {
+	i := &p[0]
+	return i
+}
+
+func dump(i *inst) int {
+	return i.out
+}
+
+func use(p []inst) int {
+	if i := find(p); i != nil {
+		return dump(i)
+	}
+	return 0
+}
+`)
+
+	if !strings.Contains(rust, "let mut i: Option<GoSliceElemPtr<inst>> = find(") {
+		t.Fatalf("if-init slice element pointer return should keep GoSliceElemPtr local metadata:\n%s", rust)
+	}
+	if strings.Contains(rust, "i.lock()") || strings.Contains(rust, "(*i.borrow()).is_some()") || strings.Contains(rust, "dump(i.clone())") {
+		t.Fatalf("if-init slice element pointer local should not be treated as a wrapped pointer slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "if i.is_some()") {
+		t.Fatalf("if-init slice element pointer nil check should inspect the option directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "dump(Rc::new(RefCell::new((*i.as_ref().unwrap().borrow()).clone())))") &&
+		!strings.Contains(rust, "dump(Arc::new(Mutex::new((*i.as_ref().unwrap().borrow()).clone())))") {
+		t.Fatalf("if-init slice element pointer local should pass a cloned pointee to read-only pointer params:\n%s", rust)
+	}
+}
+
 func TestReadOnlyPointerParamAcceptsSliceElemPointerLocal(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
