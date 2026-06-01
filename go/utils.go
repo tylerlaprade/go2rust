@@ -24,7 +24,9 @@ func isPredeclaredTypeName(name string) bool {
 func WrapInArcMutex(out *strings.Builder, expr ast.Expr) {
 	TrackImport("Arc")
 	TrackImport("Mutex")
-	out.WriteString("Arc::new(Mutex::new(Some(")
+	out.WriteString("Arc::new(")
+	out.WriteString(GetInnerWrapperType())
+	out.WriteString("::new(Some(")
 	TranspileExpression(out, expr)
 	WriteWrapperSuffix(out)
 }
@@ -73,7 +75,7 @@ func UnwrapValue(out *strings.Builder, expr ast.Expr) {
 // GetWrapperType returns the wrapper type string based on concurrency needs
 func GetWrapperType() string {
 	if NeedsConcurrentWrapper() {
-		return "Arc<Mutex"
+		return "Arc<" + GetInnerWrapperType()
 	}
 	return "Rc<RefCell"
 }
@@ -81,6 +83,9 @@ func GetWrapperType() string {
 // GetInnerWrapperType returns just the inner wrapper (Mutex vs RefCell)
 func GetInnerWrapperType() string {
 	if NeedsConcurrentWrapper() {
+		if currentContext != nil && currentContext.Imports != nil && currentContext.Imports.IsReservedName("Mutex") {
+			return "StdMutex"
+		}
 		return "Mutex"
 	}
 	return "RefCell"
@@ -108,7 +113,9 @@ func trackWrapperImports() {
 func WriteWrapperPrefix(out *strings.Builder) {
 	trackWrapperImports()
 	if NeedsConcurrentWrapper() {
-		out.WriteString("Arc::new(Mutex::new(Some(")
+		out.WriteString("Arc::new(")
+		out.WriteString(GetInnerWrapperType())
+		out.WriteString("::new(Some(")
 		// DEBUG
 		// fmt.Fprintf(os.Stderr, "DEBUG: Using Arc<Mutex<>> wrapper\n")
 	} else {
@@ -127,7 +134,9 @@ func WriteWrapperSuffix(out *strings.Builder) {
 func WriteWrapperOptionPrefix(out *strings.Builder) {
 	trackWrapperImports()
 	if NeedsConcurrentWrapper() {
-		out.WriteString("Arc::new(Mutex::new(")
+		out.WriteString("Arc::new(")
+		out.WriteString(GetInnerWrapperType())
+		out.WriteString("::new(")
 	} else {
 		out.WriteString("Rc::new(RefCell::new(")
 	}
@@ -142,7 +151,9 @@ func WriteWrappedNone(out *strings.Builder) {
 	if NeedsConcurrentWrapper() {
 		TrackImport("Arc")
 		TrackImport("Mutex")
-		out.WriteString("Arc::new(Mutex::new(None))")
+		out.WriteString("Arc::new(")
+		out.WriteString(GetInnerWrapperType())
+		out.WriteString("::new(None))")
 	} else {
 		TrackImport("Rc")
 		TrackImport("RefCell")

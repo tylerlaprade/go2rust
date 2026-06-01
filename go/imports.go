@@ -10,19 +10,36 @@ const goTypeNameHelperRustName = "__go_type_name"
 
 // ImportTracker tracks which imports are needed during transpilation
 type ImportTracker struct {
-	needs map[string]bool
+	needs         map[string]bool
+	reservedNames map[string]bool
 }
 
 // NewImportTracker creates a new import tracker
 func NewImportTracker() *ImportTracker {
 	return &ImportTracker{
-		needs: make(map[string]bool),
+		needs:         make(map[string]bool),
+		reservedNames: make(map[string]bool),
 	}
 }
 
 // Add marks an import as needed with a reason
 func (it *ImportTracker) Add(importName string) {
 	it.needs[importName] = true
+}
+
+// ReserveName marks a Rust name emitted in this file so imports can avoid it.
+func (it *ImportTracker) ReserveName(name string) {
+	if name == "" {
+		return
+	}
+	if it.reservedNames == nil {
+		it.reservedNames = make(map[string]bool)
+	}
+	it.reservedNames[name] = true
+}
+
+func (it *ImportTracker) IsReservedName(name string) bool {
+	return it != nil && it.reservedNames[name]
 }
 
 // GenerateImports returns the import statements for the file
@@ -39,7 +56,11 @@ func (it *ImportTracker) GenerateImports() string {
 		syncImports = append(syncImports, "Arc")
 	}
 	if it.needs["Mutex"] {
-		syncImports = append(syncImports, "Mutex")
+		if it.IsReservedName("Mutex") {
+			syncImports = append(syncImports, "Mutex as StdMutex")
+		} else {
+			syncImports = append(syncImports, "Mutex")
+		}
 	}
 	if len(syncImports) > 0 {
 		imports = append(imports, fmt.Sprintf("use std::sync::{%s};", strings.Join(syncImports, ", ")))

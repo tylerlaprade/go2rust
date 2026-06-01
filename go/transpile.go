@@ -2235,6 +2235,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	if len(globalVars) > 0 {
 		hasInitFunction = true
 	}
+	reserveFileRustTypeNames(imports, types)
 	registerPackageGlobalNames(globalVars)
 	nilPointerReceiverMethodHelpers := collectNilPointerReceiverMethodHelpers(file, typeInfo, methods)
 	restoreNilPointerReceiverMethodHelpers := setCurrentNilPointerReceiverMethodHelpers(nilPointerReceiverMethodHelpers)
@@ -2683,6 +2684,24 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	output.WriteString(body.String())
 
 	return output.String(), imports, fileExternalPackages
+}
+
+func reserveFileRustTypeNames(imports *ImportTracker, types []struct {
+	spec *ast.TypeSpec
+	decl *ast.GenDecl
+}) {
+	if imports == nil {
+		return
+	}
+	for _, t := range types {
+		if t.spec == nil || t.spec.Name == nil {
+			continue
+		}
+		if isPrunedSourceDecl(t.spec.Name) {
+			continue
+		}
+		imports.ReserveName(RustTypeNameForUse(t.spec.Name.Name))
+	}
 }
 
 func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted map[string]bool) {

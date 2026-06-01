@@ -14,7 +14,7 @@ use crate::rwmutex::*;
 use crate::waitgroup::*;
 
 use std::fmt::{Display, Formatter};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex as StdMutex};
 
 /// A Mutex is a mutual exclusion lock.
 /// The zero value for a Mutex is an unlocked mutex.
@@ -31,20 +31,20 @@ use std::sync::{Arc, Mutex};
 /// [the Go memory model]: https://go.dev/ref/mem
 #[derive(Clone)]
 pub struct Mutex {
-    pub __blank_0_0: Arc<Mutex<Option<noCopy>>>,
-    pub mu: Arc<Mutex<Option<internal_sync::Mutex>>>,
+    pub __blank_0_0: Arc<StdMutex<Option<noCopy>>>,
+    pub mu: Arc<StdMutex<Option<internal_sync::Mutex>>>,
 }
 
 impl Mutex {
     pub fn __go_value_clone(&self) -> Self {
-        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, mu: { let __guard = self.mu.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+        Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, mu: { let __guard = self.mu.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
     }
 }
 
 
 impl Default for Mutex {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(noCopy::default()))), mu: Arc::new(Mutex::new(Some(Default::default()))) }
+        Self { __blank_0_0: Arc::new(StdMutex::new(Some(noCopy::default()))), mu: Arc::new(StdMutex::new(Some(Default::default()))) }
     }
 }
 

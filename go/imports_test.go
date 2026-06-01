@@ -53,3 +53,32 @@ func TestGoPtrKeyHelperModuleImportsWrapperTypes(t *testing.T) {
 		t.Fatalf("concurrent GoLocalPtrKey helper should import Arc and Mutex:\n%s", helper)
 	}
 }
+
+func TestWrapperMutexImportAliasesWhenLocalTypeUsesMutex(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Mutex struct {
+	state int
+}
+
+func forceConcurrent() {
+	go func() {}()
+}
+`)
+
+	if !strings.Contains(rust, "use std::sync::{Arc, Mutex as StdMutex};") {
+		t.Fatalf("wrapper mutex import should be aliased around local Mutex type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub struct Mutex") {
+		t.Fatalf("local Mutex type should keep its Rust type name:\n%s", rust)
+	}
+	if strings.Contains(rust, "Arc<Mutex<Option<") || strings.Contains(rust, "Arc::new(Mutex::new") {
+		t.Fatalf("wrapper output should use the aliased StdMutex name:\n%s", rust)
+	}
+	if !strings.Contains(rust, "state: Arc<StdMutex<Option<i32>>>") {
+		t.Fatalf("struct field wrapper should use StdMutex:\n%s", rust)
+	}
+	if !strings.Contains(rust, "state: Arc::new(StdMutex::new(Some(0)))") {
+		t.Fatalf("struct default wrapper should construct through StdMutex:\n%s", rust)
+	}
+}
