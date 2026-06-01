@@ -329,6 +329,28 @@ func TestRuntimeGOMAXPROCSStubMatchesBareReturnSignature(t *testing.T) {
 	}
 }
 
+func TestRuntimeGOROOTStubUsesHostGoRoot(t *testing.T) {
+	var out strings.Builder
+	writeRuntimeGOROOTStub(&out, externalPackageStubFunction{
+		ReturnTypes: []string{wrappedExternalStubType("String")},
+	})
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("runtime.GOROOT should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"pub fn g_o_r_o_o_t() -> " + wrappedExternalStubType("String"),
+		"std::sync::OnceLock<String>",
+		"std::env::var(\"GOROOT\")",
+		"std::process::Command::new(\"go\")",
+		".args([\"env\", \"GOROOT\"])",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %q in:\n%s", want, got)
+		}
+	}
+}
+
 func TestFsDirEntryStubImplementsTypeMethod(t *testing.T) {
 	var out strings.Builder
 	writeFsDirEntryStub(&out, "fs_DirEntry", map[string]externalTypeStubMethod{

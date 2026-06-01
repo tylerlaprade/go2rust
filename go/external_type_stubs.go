@@ -6847,6 +6847,10 @@ func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn 
 		writeRuntimeGOMAXPROCSStub(out, fn)
 		return
 	}
+	if funcName == "g_o_r_o_o_t" && len(fn.ReturnTypes) == 1 {
+		writeRuntimeGOROOTStub(out, fn)
+		return
+	}
 	if funcName == "new_term" && len(fn.ReturnTypes) == 1 {
 		writeTypesNewTermFunction(out)
 		return
@@ -6944,6 +6948,32 @@ func writeRuntimeGOMAXPROCSStub(out *strings.Builder, fn externalPackageStubFunc
 	writeExternalStubReturnType(out, fn.ReturnTypes)
 	out.WriteString(" {\n        ")
 	writeExternalStubReturnValue(out, fn.ReturnTypes[0], "i32", "std::thread::available_parallelism().map(|n| n.get() as i32).unwrap_or(1).max(1)")
+	out.WriteString("\n    }\n")
+}
+
+// PERMANENT: not scaffold — runtime.GOROOT is runtime-tied; use the host Go toolchain root.
+func writeRuntimeGOROOTStub(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn g_o_r_o_o_t() -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n        ")
+	writeExternalStubReturnValue(out, fn.ReturnTypes[0], "String", `{
+            static GOROOT: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+            GOROOT.get_or_init(|| {
+                if let Ok(value) = std::env::var("GOROOT") {
+                    if !value.is_empty() {
+                        return value;
+                    }
+                }
+                std::process::Command::new("go")
+                    .args(["env", "GOROOT"])
+                    .output()
+                    .ok()
+                    .and_then(|output| if output.status.success() { String::from_utf8(output.stdout).ok() } else { None })
+                    .map(|value| value.trim().to_string())
+                    .filter(|value| !value.is_empty())
+                    .unwrap_or_default()
+            }).clone()
+        }`)
 	out.WriteString("\n    }\n")
 }
 
