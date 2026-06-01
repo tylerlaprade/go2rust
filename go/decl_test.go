@@ -79,6 +79,47 @@ func TestTranspileSyscallRuntimeLinkedFunctionsUseHostEnv(t *testing.T) {
 	}
 }
 
+func TestTranspileInternalABIFuncPCIntrinsicsUseFunctionTypeID(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	currentTypeInfo = &TypeInfo{pkg: types.NewPackage("internal/abi", "abi")}
+	t.Cleanup(func() {
+		currentTypeInfo = prevTypeInfo
+	})
+
+	fset := token.NewFileSet()
+	param := &ast.FieldList{List: []*ast.Field{{
+		Names: []*ast.Ident{ast.NewIdent("f")},
+		Type:  &ast.InterfaceType{Methods: &ast.FieldList{}},
+	}}}
+	result := &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("uintptr")}}}
+
+	var out strings.Builder
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("FuncPCABI0"),
+		Type: &ast.FuncType{Params: param, Results: result},
+	}, fset, nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("FuncPCABIInternal"),
+		Type: &ast.FuncType{Params: param, Results: result},
+	}, fset, nil)
+
+	got := out.String()
+	if strings.Contains(got, "Go function declaration has no body") {
+		t.Fatalf("internal/abi FuncPC intrinsics should not use the generic bodyless fallback:\n%s", got)
+	}
+	for _, want := range []string{
+		"std::any::Any::type_id(__value.as_ref())",
+		"std::hash::Hash::hash",
+		"std::hash::Hasher::finish(&__hasher) as usize",
+		"internal/abi.FuncPCABI0 requires a function value",
+		"internal/abi.FuncPCABIInternal requires a function value",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %q in:\n%s", want, got)
+		}
+	}
+}
+
 func TestTranspileFunctionWithoutBodyNamesUnnamedParams(t *testing.T) {
 	var out strings.Builder
 	fn := &ast.FuncDecl{

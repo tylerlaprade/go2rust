@@ -2719,44 +2719,80 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 }
 
 func writeRuntimeLinkedFunctionBody(out *strings.Builder, fn *ast.FuncDecl, indent string) bool {
-	if fn == nil || fn.Name == nil || !isSyscallPackageFunction(fn) {
+	if fn == nil || fn.Name == nil {
 		return false
 	}
-	switch fn.Name.Name {
-	case "runtime_envs":
-		out.WriteString(indent)
-		out.WriteString("let __envs: Vec<String> = std::env::vars().map(|(__k, __v)| format!(\"{}={}\", __k, __v)).collect();\n")
-		out.WriteString(indent)
-		WriteWrapperPrefix(out)
-		out.WriteString("__envs")
-		WriteWrapperSuffix(out)
-		out.WriteString("\n")
-		return true
-	case "runtimeSetenv":
-		writeRuntimeLinkedStringParamClone(out, "k", "__key", indent)
-		writeRuntimeLinkedStringParamClone(out, "v", "__value", indent)
-		out.WriteString(indent)
-		out.WriteString("std::env::set_var(__key, __value);\n")
-		return true
-	case "runtimeUnsetenv":
-		writeRuntimeLinkedStringParamClone(out, "k", "__key", indent)
-		out.WriteString(indent)
-		out.WriteString("std::env::remove_var(__key);\n")
-		return true
-	default:
-		return false
+	switch functionPackagePath(fn) {
+	case "syscall":
+		switch fn.Name.Name {
+		case "runtime_envs":
+			out.WriteString(indent)
+			out.WriteString("let __envs: Vec<String> = std::env::vars().map(|(__k, __v)| format!(\"{}={}\", __k, __v)).collect();\n")
+			out.WriteString(indent)
+			WriteWrapperPrefix(out)
+			out.WriteString("__envs")
+			WriteWrapperSuffix(out)
+			out.WriteString("\n")
+			return true
+		case "runtimeSetenv":
+			writeRuntimeLinkedStringParamClone(out, "k", "__key", indent)
+			writeRuntimeLinkedStringParamClone(out, "v", "__value", indent)
+			out.WriteString(indent)
+			out.WriteString("std::env::set_var(__key, __value);\n")
+			return true
+		case "runtimeUnsetenv":
+			writeRuntimeLinkedStringParamClone(out, "k", "__key", indent)
+			out.WriteString(indent)
+			out.WriteString("std::env::remove_var(__key);\n")
+			return true
+		}
+	case "internal/abi":
+		switch fn.Name.Name {
+		case "FuncPCABI0", "FuncPCABIInternal":
+			writeFuncPCIntrinsicBody(out, fn, indent)
+			return true
+		}
 	}
+	return false
 }
 
-func isSyscallPackageFunction(fn *ast.FuncDecl) bool {
+func functionPackagePath(fn *ast.FuncDecl) string {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
-		return false
+		return ""
 	}
 	if obj, ok := typeInfo.GetObject(fn.Name).(*types.Func); ok && obj.Pkg() != nil {
-		return obj.Pkg().Path() == "syscall"
+		return obj.Pkg().Path()
 	}
-	return typeInfo.pkg != nil && typeInfo.pkg.Path() == "syscall"
+	if typeInfo.pkg != nil {
+		return typeInfo.pkg.Path()
+	}
+	return ""
+}
+
+func writeFuncPCIntrinsicBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	paramName := "f"
+	if fn != nil && fn.Type != nil && fn.Type.Params != nil && len(fn.Type.Params.List) > 0 {
+		firstParam := fn.Type.Params.List[0]
+		if len(firstParam.Names) > 0 && firstParam.Names[0] != nil {
+			paramName = firstParam.Names[0].Name
+		}
+	}
+	out.WriteString(indent)
+	out.WriteString("let __guard = ")
+	out.WriteString(RustLocalIdent(paramName))
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("let __value = __guard.as_ref().expect(\"internal/abi.")
+	out.WriteString(fn.Name.Name)
+	out.WriteString(" requires a function value\");\n")
+	out.WriteString(indent)
+	out.WriteString("let mut __hasher = std::collections::hash_map::DefaultHasher::new();\n")
+	out.WriteString(indent)
+	out.WriteString("std::hash::Hash::hash(&std::any::Any::type_id(__value.as_ref()), &mut __hasher);\n")
+	out.WriteString(indent)
+	out.WriteString("std::hash::Hasher::finish(&__hasher) as usize\n")
 }
 
 func writeRuntimeLinkedStringParamClone(out *strings.Builder, paramName string, localName string, indent string) {
