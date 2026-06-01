@@ -4741,11 +4741,15 @@ func writeLocalInterfaceEquality(out *strings.Builder, left ast.Expr, right ast.
 		return false
 	}
 	out.WriteString("{ ")
-	writeInterfaceEqualityReferenceBinding(out, "__left", left, ifaceName, leftKind)
-	writeInterfaceEqualityReferenceBinding(out, "__right", right, ifaceName, rightKind)
-	out.WriteString("let __eq = __left.__go_eq_")
+	writeInterfaceEqualityOptionBinding(out, "__left", left, ifaceName, leftKind)
+	writeInterfaceEqualityOptionBinding(out, "__right", right, ifaceName, rightKind)
+	out.WriteString("let __eq = match (__left_opt, __right_opt) { ")
+	if leftKind == interfaceEqualityOperandInterface && rightKind == interfaceEqualityOperandInterface {
+		out.WriteString("(None, None) => true, ")
+	}
+	out.WriteString("(Some(__left), Some(__right)) => __left.__go_eq_")
 	out.WriteString(traitMethodSuffix(ifaceName))
-	out.WriteString("(__right); ")
+	out.WriteString("(__right), _ => false }; ")
 	if op == token.NEQ {
 		out.WriteString("!")
 	}
@@ -4759,6 +4763,49 @@ const (
 	interfaceEqualityOperandInterface interfaceEqualityOperandKind = iota
 	interfaceEqualityOperandConcrete
 )
+
+func writeInterfaceEqualityOptionBinding(out *strings.Builder, name string, expr ast.Expr, ifaceName string, kind interfaceEqualityOperandKind) {
+	bareType := rustLocalInterfaceParamBare(ifaceName)
+	if kind == interfaceEqualityOperandInterface && isBareLocalInterfaceValue(expr) {
+		out.WriteString("let ")
+		out.WriteString(name)
+		out.WriteString("_opt: Option<")
+		out.WriteString(bareType)
+		out.WriteString("> = Some(")
+		TranspileExpression(out, expr)
+		out.WriteString("); ")
+		return
+	}
+	out.WriteString("let ")
+	out.WriteString(name)
+	out.WriteString("_holder = ")
+	if kind == interfaceEqualityOperandInterface {
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(".clone()")
+	} else {
+		writePointerConcreteInterfaceHandle(out, expr)
+	}
+	out.WriteString("; let ")
+	out.WriteString(name)
+	out.WriteString("_guard = ")
+	out.WriteString(name)
+	out.WriteString("_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let ")
+	out.WriteString(name)
+	out.WriteString("_opt: Option<")
+	out.WriteString(bareType)
+	out.WriteString("> = ")
+	out.WriteString(name)
+	out.WriteString("_guard.as_ref().map(|__v| ")
+	if kind == interfaceEqualityOperandInterface {
+		out.WriteString("__v.as_ref()")
+	} else {
+		out.WriteString("__v as ")
+		out.WriteString(bareType)
+	}
+	out.WriteString("); ")
+}
 
 func writeInterfaceEqualityReferenceBinding(out *strings.Builder, name string, expr ast.Expr, ifaceName string, kind interfaceEqualityOperandKind) {
 	if kind == interfaceEqualityOperandInterface {

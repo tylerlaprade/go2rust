@@ -273,6 +273,40 @@ func (t *Named) same(orig Type) bool {
 	}
 }
 
+func TestLocalInterfaceEqualityChecksNilBeforeTraitDispatch(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Object interface {
+	Name() string
+}
+
+type item struct{}
+
+func (*item) Name() string { return "" }
+
+func same(obj Object, alias Object) bool {
+	return obj == alias
+}
+`)
+
+	if strings.Contains(rust, "__left_guard.as_ref().unwrap().as_ref()") ||
+		strings.Contains(rust, "__right_guard.as_ref().unwrap().as_ref()") {
+		t.Fatalf("local interface equality should not unwrap nil slots before comparing:\n%s", rust)
+	}
+	if !strings.Contains(rust, "match (__left_opt, __right_opt)") {
+		t.Fatalf("local interface equality should match on optional trait references:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(None, None) => true") {
+		t.Fatalf("local interface equality should treat two nil interfaces as equal:\n%s", rust)
+	}
+	if !strings.Contains(rust, "_ => false") {
+		t.Fatalf("local interface equality should treat one nil interface as unequal:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(Some(__left), Some(__right)) => __left.__go_eq_object(__right)") {
+		t.Fatalf("local interface equality should still dispatch through the trait equality helper:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceSupersetArgumentUsesTraitObjectAdapter(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
