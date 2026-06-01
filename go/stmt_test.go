@@ -2022,6 +2022,37 @@ func NewInfo() *types.Info {
 	}
 }
 
+func TestSourceMappedInterfaceMapAssignmentBoxesConcreteKey(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "go/types"
+
+func mark(value any) map[types.Object]bool {
+	localObjects := make(map[types.Object]bool)
+	if obj, ok := value.(*types.Var); ok {
+		localObjects[obj] = true
+	}
+	return localObjects
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"go/types": "go_types"})
+	if strings.Contains(rust, "let __map_key = GoLocalPtrKey::new(obj.clone());") {
+		t.Fatalf("interface map assignment should not use concrete pointer key directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new((*obj") || !strings.Contains(rust, "as Box<dyn go_types::Object") {
+		t.Fatalf("interface map assignment should box concrete key as the expected interface:\n%s", rust)
+	}
+}
+
 func TestSourceMappedImportedInterfaceFieldFromFunctionTypeAliasUsesWrapper(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

@@ -4140,6 +4140,16 @@ func writeMapAssignmentKeyExpressionWithRustType(out *strings.Builder, key ast.E
 	return true
 }
 
+func mapAssignmentKeyRequiresTypeDrivenConversion(keyType types.Type) bool {
+	if keyType == nil {
+		return false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(keyType); ok {
+		return true
+	}
+	return isEmptyInterfaceType(keyType)
+}
+
 func mapAssignmentKeyNeedsClone(ident *ast.Ident, keyType types.Type, rhs ast.Expr) bool {
 	if ident == nil || rhs == nil || ident.Name == "_" || ident.Name == "nil" {
 		return false
@@ -9130,7 +9140,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					keyType, valueType = typeInfo.GetMapTypes(indexExpr.X)
 				}
 				out.WriteString("{ let __map_key = ")
-				if !writeMapAssignmentKeyExpressionWithRustType(out, indexExpr.Index, keyRustType) {
+				if mapAssignmentKeyRequiresTypeDrivenConversion(keyType) || !writeMapAssignmentKeyExpressionWithRustType(out, indexExpr.Index, keyRustType) {
 					writeMapAssignmentKeyExpression(out, indexExpr.Index, keyType, s.Rhs[0])
 				}
 				out.WriteString("; let __map_value = ")
