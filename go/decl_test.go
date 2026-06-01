@@ -404,6 +404,41 @@ func TestTranspileInternalBytealgCountIntrinsicsUseGenericBodies(t *testing.T) {
 	}
 }
 
+func TestTranspileInternalBytealgMakeNoZeroUsesRuntimeAllocation(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	currentTypeInfo = &TypeInfo{pkg: types.NewPackage("internal/bytealg", "bytealg")}
+	t.Cleanup(func() {
+		currentTypeInfo = prevTypeInfo
+	})
+
+	var out strings.Builder
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("MakeNoZero"),
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{List: []*ast.Field{{
+				Names: []*ast.Ident{ast.NewIdent("n")},
+				Type:  ast.NewIdent("int"),
+			}}},
+			Results: &ast.FieldList{List: []*ast.Field{{Type: &ast.ArrayType{Elt: ast.NewIdent("byte")}}}},
+		},
+	}, token.NewFileSet(), nil)
+
+	got := out.String()
+	if strings.Contains(got, "Go function declaration has no body") {
+		t.Fatalf("internal/bytealg.MakeNoZero should use a runtime allocation body:\n%s", got)
+	}
+	for _, want := range []string{
+		"let __n = (*n",
+		"internal/bytealg.MakeNoZero: negative length",
+		"let __len = __n as usize;",
+		"vec![0u8; __len]",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %q in:\n%s", want, got)
+		}
+	}
+}
+
 func TestTranspileFunctionWithoutBodyNamesUnnamedParams(t *testing.T) {
 	var out strings.Builder
 	fn := &ast.FuncDecl{

@@ -2768,6 +2768,9 @@ func writeRuntimeLinkedFunctionBody(out *strings.Builder, fn *ast.FuncDecl, inde
 		case "CountString":
 			writeInternalBytealgCountIntrinsicBody(out, fn, indent, true)
 			return true
+		case "MakeNoZero":
+			writeInternalBytealgMakeNoZeroBody(out, fn, indent)
+			return true
 		}
 	case "internal/buildcfg":
 		switch fn.Name.Name {
@@ -2924,6 +2927,24 @@ func writeInternalBytealgCountIntrinsicBody(out *strings.Builder, fn *ast.FuncDe
 	}
 	WriteWrapperPrefix(out)
 	out.WriteString("__count")
+	WriteWrapperSuffix(out)
+	out.WriteString("\n")
+}
+
+func writeInternalBytealgMakeNoZeroBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	nName := RustLocalIdent(functionParamName(fn, 0, "n"))
+	out.WriteString(indent)
+	out.WriteString("let __n = (*")
+	out.WriteString(nName)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone();\n")
+	out.WriteString(indent)
+	out.WriteString("if __n < 0 { panic!(\"internal/bytealg.MakeNoZero: negative length\"); }\n")
+	out.WriteString(indent)
+	out.WriteString("let __len = __n as usize;\n")
+	out.WriteString(indent)
+	WriteWrapperPrefix(out)
+	out.WriteString("vec![0u8; __len]")
 	WriteWrapperSuffix(out)
 	out.WriteString("\n")
 }
