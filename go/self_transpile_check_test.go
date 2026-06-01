@@ -37,14 +37,21 @@ func TestSelfTranspileDefaultSourceStdlibPackages(t *testing.T) {
 		"regexp",
 		"regexp/syntax",
 		"path/filepath",
-		"io/fs",
-		"os",
-		"os/exec",
-		"syscall",
 		"text/scanner",
 	} {
 		if !strings.Contains(","+defaults+",", ","+want+",") {
 			t.Fatalf("self-transpile default source stdlib packages should include %q; got %q", want, defaults)
+		}
+	}
+
+	for _, blocked := range []string{
+		"io/fs",
+		"os",
+		"os/exec",
+		"syscall",
+	} {
+		if strings.Contains(","+defaults+",", ","+blocked+",") {
+			t.Fatalf("self-transpile default source stdlib packages should keep OS/runtime package %q on host shims; got %q", blocked, defaults)
 		}
 	}
 }
