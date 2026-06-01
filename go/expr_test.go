@@ -96,6 +96,31 @@ func main() {
 	}
 }
 
+func TestRepeatedWrappedValueCallArgumentsUseShortGuard(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func add(a int, b int) int {
+	return a + b
+}
+
+func main() {
+	x := 2
+	ch := make(chan int, 1)
+	_ = add(x, x)
+	ch <- x
+}
+`)
+
+	bad := "Arc::new(Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap()).clone())))"
+	if strings.Contains(rust, bad) {
+		t.Fatalf("repeated wrapped call args should not keep mutex guards alive for the full call:\n%s", rust)
+	}
+	want := "{ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }"
+	if strings.Count(rust, want) < 2 {
+		t.Fatalf("repeated wrapped call args should clone through short guard blocks:\n%s", rust)
+	}
+}
+
 func TestEmptyStructLiteralInitializesEmbeddedFields(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

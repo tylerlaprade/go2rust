@@ -2467,6 +2467,14 @@ func writeUnwrappedBoolExpression(out *strings.Builder, expr ast.Expr) {
 	out.WriteString(".as_ref().unwrap())")
 }
 
+func writeScopedIdentValueClone(out *strings.Builder, ident *ast.Ident) {
+	out.WriteString("{ let __arg_holder = ")
+	out.WriteString(rustIdentForUseWithCapture(ident))
+	out.WriteString(".clone(); let __arg_guard = __arg_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; (*__arg_guard.as_ref().unwrap()).clone() }")
+}
+
 func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 	if funcLit, ok := arg.(*ast.FuncLit); ok {
 		TranspileFuncLitBox(out, funcLit)
@@ -2507,38 +2515,12 @@ func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 	if typ == nil {
 		return false
 	}
-	switch underlying := typ.Underlying().(type) {
+	switch typ.Underlying().(type) {
 	case *types.Basic:
-		varName := RustIdentForUse(ident)
-		if currentCaptureRenames != nil {
-			if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-				varName = RustLocalIdent(renamed)
-			}
-		}
-		if underlying.Kind() == types.String {
-			out.WriteString("{ let __arg_holder = ")
-			out.WriteString(varName)
-			out.WriteString(".clone(); let __arg_guard = __arg_holder")
-			WriteBorrowMethod(out, false)
-			out.WriteString("; (*__arg_guard.as_ref().unwrap()).clone() }")
-			return true
-		}
-		out.WriteString("(*")
-		out.WriteString(varName)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap()).clone()")
+		writeScopedIdentValueClone(out, ident)
 		return true
 	case *types.Struct, *types.Array:
-		varName := RustIdentForUse(ident)
-		if currentCaptureRenames != nil {
-			if renamed, exists := currentCaptureRenames[ident.Name]; exists {
-				varName = RustLocalIdent(renamed)
-			}
-		}
-		out.WriteString("(*")
-		out.WriteString(varName)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap()).clone()")
+		writeScopedIdentValueClone(out, ident)
 		return true
 	case *types.Interface:
 		if named, ok := typ.(*types.Named); ok && named.Obj() != nil && named.Obj().Pkg() != nil && isStdlibPackage(named.Obj().Pkg().Path()) {
@@ -15740,10 +15722,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 						} else if IsParamValueType(funcSig, i) {
 							// Value-type parameter — deep copy to preserve Go's pass-by-value semantics
 							WriteWrapperPrefix(out)
-							out.WriteString("(*")
-							out.WriteString(argVarName)
-							WriteBorrowMethod(out, false)
-							out.WriteString(".as_ref().unwrap()).clone()")
+							writeScopedIdentValueClone(out, ident)
 							WriteWrapperSuffix(out)
 						} else {
 							// Regular variable, just clone it (shares Rc for pointer semantics)
