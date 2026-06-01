@@ -45,7 +45,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
     }
 }
 
-impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> std::fmt::Display for HashTrieMap<K, V> {
+impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> std::fmt::Display for HashTrieMap<K, V> where K: std::fmt::Display, V: std::fmt::Display {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {} {} {} {} {}}}", (*self.inited.lock().unwrap().as_ref().unwrap()), (*self.init_mu.lock().unwrap().as_ref().unwrap()), (*self.root.lock().unwrap().as_ref().unwrap()), "<func>", "<func>", (*self.seed.lock().unwrap().as_ref().unwrap()))
     }
@@ -89,7 +89,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
     }
 }
 
-impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> std::fmt::Display for indirect<K, V> {
+impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> std::fmt::Display for indirect<K, V> where K: std::fmt::Display, V: std::fmt::Display {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {} {} {} {}}}", (*self.embedded.lock().unwrap().as_ref().unwrap()), (*self.dead.lock().unwrap().as_ref().unwrap()), (*self.mu.lock().unwrap().as_ref().unwrap()), { let __guard = self.parent.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, format_slice(&self.children))
     }
@@ -126,7 +126,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
     }
 }
 
-impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> std::fmt::Display for entry<K, V> {
+impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> std::fmt::Display for entry<K, V> where K: std::fmt::Display, V: std::fmt::Display {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {} {} {}}}", (*self.embedded.lock().unwrap().as_ref().unwrap()), (*self.overflow.lock().unwrap().as_ref().unwrap()), (*self.key.lock().unwrap().as_ref().unwrap()), (*self.value.lock().unwrap().as_ref().unwrap()))
     }

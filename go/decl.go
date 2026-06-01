@@ -26,6 +26,7 @@ func rustStructFieldName(name *ast.Ident, fieldIndex int, nameIndex int) string 
 type rustTypeGenerics struct {
 	Decl    string
 	Use     string
+	Where   string
 	Phantom []string
 }
 
@@ -35,6 +36,7 @@ func writeRustInherentImplHeader(out *strings.Builder, generics rustTypeGenerics
 	out.WriteString(" ")
 	out.WriteString(rustTypeName)
 	out.WriteString(generics.Use)
+	out.WriteString(generics.Where)
 	out.WriteString(" {\n")
 }
 
@@ -46,6 +48,7 @@ func writeRustTraitImplHeader(out *strings.Builder, generics rustTypeGenerics, t
 	out.WriteString(" for ")
 	out.WriteString(rustTypeName)
 	out.WriteString(generics.Use)
+	out.WriteString(generics.Where)
 	out.WriteString(" {\n")
 }
 
@@ -267,6 +270,17 @@ func generateStructDebug(out *strings.Builder, structName string, generics rustT
 	writeRustTraitImplHeader(out, generics, "std::fmt::Debug", rustStructName)
 	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
 	out.WriteString("        write!(f, \"{}\", self)\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+}
+
+func generateStructDisplayTypeInfoRequired(out *strings.Builder, structName string, generics rustTypeGenerics) {
+	TrackImport("Display")
+	TrackImport("Formatter")
+	rustStructName := RustTypeNameForUse(structName)
+	writeRustTraitImplHeader(out, generics, "std::fmt::Display", rustStructName)
+	out.WriteString("    fn fmt(&self, _f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
+	out.WriteString("        unimplemented!(\"type info required for generic struct Display bounds\")\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
 }
@@ -1413,6 +1427,82 @@ func rustTypeGenericsForStructTypeSpec(typeSpec *ast.TypeSpec, structType *ast.S
 	generics := rustTypeGenericsForTypeSpec(typeSpec)
 	generics.Phantom = rustUnusedTypeParamsForStruct(typeSpec, structType)
 	return generics
+}
+
+func rustStructDisplayGenerics(generics rustTypeGenerics, typeSpec *ast.TypeSpec, structType *ast.StructType) (rustTypeGenerics, bool) {
+	displayParams, ok := rustDisplayTypeParamsForStruct(typeSpec, structType)
+	if !ok {
+		return generics, false
+	}
+	if len(displayParams) == 0 {
+		return generics, true
+	}
+	clauses := make([]string, 0, len(displayParams))
+	for _, param := range displayParams {
+		clauses = append(clauses, param+": std::fmt::Display")
+	}
+	generics.Where = " where " + strings.Join(clauses, ", ")
+	return generics, true
+}
+
+func rustDisplayTypeParamsForStruct(typeSpec *ast.TypeSpec, structType *ast.StructType) ([]string, bool) {
+	if typeSpec == nil || typeSpec.TypeParams == nil || structType == nil {
+		return nil, true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil, false
+	}
+	used := make(map[string]bool)
+	for _, field := range structType.Fields.List {
+		if field == nil || field.Type == nil || !structDisplayFieldUsesDefaultFormatter(field.Type) {
+			continue
+		}
+		typ := typeInfo.GetType(field.Type)
+		if typ == nil {
+			return nil, false
+		}
+		collectRustTypeParamUses(typ, used, make(map[types.Type]bool))
+	}
+	if len(used) == 0 {
+		return nil, true
+	}
+	var params []string
+	for _, field := range typeSpec.TypeParams.List {
+		for _, name := range field.Names {
+			rustName := RustTypeNameForUse(name.Name)
+			if used[rustName] {
+				params = append(params, rustName)
+			}
+		}
+	}
+	return params, true
+}
+
+func structDisplayFieldUsesDefaultFormatter(expr ast.Expr) bool {
+	if expr == nil || isSyncParam(expr) || isEmptyInterfaceExpr(expr) || isFunctionSignatureTypeExpr(expr) {
+		return false
+	}
+	switch expr.(type) {
+	case *ast.ChanType, *ast.MapType:
+		return false
+	}
+	if arrayFieldContainsFunction(expr) ||
+		sliceFieldContainsEmptyInterface(expr) ||
+		mapFieldNeedsOpaqueDisplay(expr) ||
+		arrayFieldNestedInnerIsPointer(expr) ||
+		arrayFieldContainsSlice(expr) ||
+		pointerFieldContainsPointerSlice(expr) ||
+		pointerFieldContainsSlice(expr) ||
+		arrayFieldContainsPointer(expr) ||
+		arrayFieldContainsLocalInterface(expr) ||
+		structDisplayFieldIsPointer(expr) {
+		return false
+	}
+	if _, ok := expr.(*ast.ArrayType); ok {
+		return false
+	}
+	return true
 }
 
 func rustUnusedTypeParamsForStruct(typeSpec *ast.TypeSpec, structType *ast.StructType) []string {
@@ -3800,7 +3890,12 @@ func emitStructTypeDeclBody(out *strings.Builder, typeSpec *ast.TypeSpec, t *ast
 	}
 
 	// Generate Display implementation to match Go's format
-	generateStructDisplay(out, structName, t, generics)
+	displayGenerics, hasDisplayTypeInfo := rustStructDisplayGenerics(generics, typeSpec, t)
+	if hasDisplayTypeInfo {
+		generateStructDisplay(out, structName, t, displayGenerics)
+	} else {
+		generateStructDisplayTypeInfoRequired(out, structName, displayGenerics)
+	}
 	if IsErrorImplType(structName) && !structCanDeriveDebug(t) {
 		generateStructDebug(out, structName, generics)
 	}

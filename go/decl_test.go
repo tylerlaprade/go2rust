@@ -931,7 +931,7 @@ func (h *Holder[T]) Get() T {
 	for _, want := range []string{
 		"impl<T: Any + Clone + 'static> Holder<T> {",
 		"impl<T: Any + Clone + 'static> Holder<T> {\n    pub fn get",
-		"impl<T: Any + Clone + 'static> std::fmt::Display for Holder<T> {",
+		"impl<T: Any + Clone + 'static> std::fmt::Display for Holder<T> where T: std::fmt::Display {",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("generic struct impl should carry type parameters, missing %q:\n%s", want, rust)
@@ -959,6 +959,34 @@ func MakeHeader[K any, V any]() Header[K, V] {
 	}
 	if !strings.Contains(rust, "__go_phantom: std::marker::PhantomData") {
 		t.Fatalf("generic struct literals and defaults should initialize PhantomData:\n%s", rust)
+	}
+}
+
+func TestGenericStructDisplayImplBoundsFormattedTypeParams(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Entry[K any, V any] struct {
+	key K
+	value V
+}
+`)
+
+	want := "impl<K: Any + Clone + 'static, V: Any + Clone + 'static> std::fmt::Display for Entry<K, V> where K: std::fmt::Display, V: std::fmt::Display {"
+	if !strings.Contains(rust, want) {
+		t.Fatalf("generic struct Display impl should bound formatted type parameters, missing %q:\n%s", want, rust)
+	}
+}
+
+func TestGenericStructDisplayRequiresTypeInfoForBounds(t *testing.T) {
+	rust := transpileRegression(t, `package main
+
+type Entry[K any] struct {
+	key K
+}
+`, nil)
+
+	if !strings.Contains(rust, `unimplemented!("type info required for generic struct Display bounds")`) {
+		t.Fatalf("generic struct Display without type info should fail loudly:\n%s", rust)
 	}
 }
 
