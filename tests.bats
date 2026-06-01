@@ -1863,6 +1863,10 @@ run_xfail_test() {
     run_test "tests/pointer_method_value_of_receiver"
 }
 
+@test "pointer_package_global" {
+    run_test "tests/pointer_package_global"
+}
+
 @test "pointer_receiver_as_pointer_value" {
     run_test "tests/pointer_receiver_as_pointer_value"
 }
@@ -2869,10 +2873,6 @@ run_xfail_test() {
 
 @test "XFAIL: parallel_assign_receiver_value_field_swap" {
     run_xfail_test "tests/XFAIL/parallel_assign_receiver_value_field_swap"
-}
-
-@test "XFAIL: pointer_package_global" {
-    run_xfail_test "tests/XFAIL/pointer_package_global"
 }
 
 @test "XFAIL: stateful_goroutines" {

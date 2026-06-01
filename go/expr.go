@@ -7466,6 +7466,10 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 			out.WriteString("Default::default()")
 			return
 		}
+		if globalIdent, ok := packageGlobalPointerIdent(value); ok {
+			writePackageGlobalPointerHandleClone(out, globalIdent)
+			return
+		}
 		TranspileExpressionContext(out, value, LValue)
 		out.WriteString(".clone()")
 		return

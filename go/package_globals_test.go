@@ -186,6 +186,28 @@ func NewPackage() *Scope {
 	}
 }
 
+func TestPackageGlobalPointerMapValueCopiesStoredHandle(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type RangeTable struct {
+	Lo int
+	Hi int
+}
+
+var ch chan int
+var _C = &RangeTable{Lo: 1, Hi: 2}
+var C = _C
+var Tables = map[string]*RangeTable{"C": C}
+`)
+
+	if strings.Contains(rust, `__go_map.insert("C".to_string(), C.clone())`) {
+		t.Fatalf("package-global pointer map value should not clone the global slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, `__go_map.insert("C".to_string(), (*C.lock().unwrap().as_ref().unwrap()).clone())`) {
+		t.Fatalf("package-global pointer map value should clone the stored pointer handle:\n%s", rust)
+	}
+}
+
 func TestSourceMappedPointerGlobalSelectorCopiesStoredHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
