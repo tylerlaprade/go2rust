@@ -10896,7 +10896,7 @@ func pointerMethodValueSignature(expr ast.Expr) (*types.Signature, bool) {
 }
 
 func writePointerMethodValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig *types.Signature) {
-	boxType := signatureToBoxDynFn(sig)
+	boxType := signatureToGoParamBoxDynFn(sig)
 	// A method value bound to the current method's own receiver (`self`) binds a
 	// bare value, not a wrapped Arc/Rc handle; clone it (the clone shares the
 	// receiver's wrapped field handles, like the defer-capture pattern) and call
@@ -10959,7 +10959,7 @@ func writePointerMethodValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig
 }
 
 func writeMethodExpressionValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig *types.Signature) {
-	boxType := signatureToBoxDynFn(sig)
+	boxType := signatureToGoParamBoxDynFn(sig)
 	out.WriteString("Box::new(move |")
 	params := sig.Params()
 	for i := 0; i < params.Len(); i++ {
@@ -11068,7 +11068,7 @@ func writeBorrowedMethodExpressionCall(out *strings.Builder, sel *ast.SelectorEx
 }
 
 func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Signature) {
-	boxType := signatureToBoxDynFn(sig)
+	boxType := signatureToGoParamBoxDynFn(sig)
 	out.WriteString("Box::new(move |")
 	params := sig.Params()
 	for i := 0; i < params.Len(); i++ {
@@ -11132,7 +11132,7 @@ func writeFunctionValueExpressionBox(out *strings.Builder, expr ast.Expr, sig *t
 		writeMethodValueExpressionBox(out, sel, sig)
 		return
 	}
-	boxType := signatureToBoxDynFn(sig)
+	boxType := signatureToGoParamBoxDynFn(sig)
 	out.WriteString("Box::new(move |")
 	params := sig.Params()
 	for i := 0; i < params.Len(); i++ {
@@ -11173,7 +11173,7 @@ func writeFunctionValueExpressionBox(out *strings.Builder, expr ast.Expr, sig *t
 }
 
 func writeMethodValueExpressionBox(out *strings.Builder, sel *ast.SelectorExpr, sig *types.Signature) {
-	boxType := signatureToBoxDynFn(sig)
+	boxType := signatureToGoParamBoxDynFn(sig)
 	out.WriteString("{ let mut __recv = ")
 	writeMethodValueReceiverSnapshot(out, sel.X)
 	out.WriteString("; Box::new(move |")

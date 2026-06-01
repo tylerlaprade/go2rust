@@ -1791,6 +1791,49 @@ func walk(s *ast.LabeledStmt) {
 	}
 }
 
+func TestSourceMappedFunctionValueBoxUsesWrappedInterfaceParam(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import (
+	"go/ast"
+	"strings"
+)
+
+func emit(out *strings.Builder, expr ast.Expr) {
+	_ = out
+	_ = expr
+}
+
+func use(fn func(*strings.Builder, ast.Expr)) {
+	_ = fn
+}
+
+func run() {
+	use(emit)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{
+		"go/ast":  "go_ast",
+		"strings": "strings",
+	})
+
+	if strings.Contains(rust, "FnMut(Rc<RefCell<Option<strings::Builder>>>, &dyn go_ast::Expr") {
+		t.Fatalf("source-mapped function value box should not cast ast.Expr to a bare trait reference:\n%s", rust)
+	}
+	if !strings.Contains(rust, "FnMut(Rc<RefCell<Option<strings::Builder>>>, Rc<RefCell<Option<Box<dyn go_ast::Expr>>>>)") {
+		t.Fatalf("source-mapped function value box should use the wrapped ast.Expr parameter shape:\n%s", rust)
+	}
+}
+
 func TestSourceMappedInterfaceAssertionCommaOkFalseBranchIsNil(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

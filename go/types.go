@@ -1981,12 +1981,11 @@ func signatureFromType(t types.Type) (*types.Signature, bool) {
 	return nil, false
 }
 
-// signatureToBoxDynFn converts a go/types Signature to a boxed Go function string.
-func signatureToBoxDynFn(sig *types.Signature) string {
+func signatureToBoxDynFnWithParamShape(sig *types.Signature, paramType func(types.Type) string) string {
 	var paramTypes []string
 	params := sig.Params()
 	for i := 0; i < params.Len(); i++ {
-		paramTypes = append(paramTypes, goTypesFunctionParamTypeToRust(params.At(i).Type()))
+		paramTypes = append(paramTypes, paramType(params.At(i).Type()))
 	}
 
 	var returnType string
@@ -2008,4 +2007,16 @@ func signatureToBoxDynFn(sig *types.Signature) string {
 		return fmt.Sprintf("Box<dyn FnMut(%s) -> %s + Send + Sync>", paramsStr, returnType)
 	}
 	return fmt.Sprintf("Box<dyn FnMut(%s) -> %s>", paramsStr, returnType)
+}
+
+// signatureToBoxDynFn converts a go/types Signature to a boxed Go function
+// string for go/types-only function shapes.
+func signatureToBoxDynFn(sig *types.Signature) string {
+	return signatureToBoxDynFnWithParamShape(sig, goTypesFunctionParamTypeToRust)
+}
+
+// signatureToGoParamBoxDynFn converts a go/types Signature to a boxed function
+// string that matches generated Go-level function parameter declarations.
+func signatureToGoParamBoxDynFn(sig *types.Signature) string {
+	return signatureToBoxDynFnWithParamShape(sig, goTypesParamTypeToRust)
 }
