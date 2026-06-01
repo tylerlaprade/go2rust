@@ -2317,6 +2317,20 @@ func writeNamedSliceIndexValue(out *strings.Builder, expr ast.Expr, index ast.Ex
 	return true
 }
 
+func writeNamedArrayIndexValue(out *strings.Builder, expr ast.Expr, index ast.Expr) bool {
+	if !isNamedArrayExpression(expr) {
+		return false
+	}
+	out.WriteString("{ let __seq_holder = ")
+	writeNamedArrayInnerHandleClone(out, expr)
+	out.WriteString("; let __seq_guard = __seq_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __seq = __seq_guard.as_ref().unwrap(); __seq[")
+	writeExpressionAsUsize(out, index)
+	out.WriteString("].clone() }")
+	return true
+}
+
 // isCompositeLitSelfWrapping checks if a CompositeLit expression will
 // self-wrap with Rc<RefCell<Option<>>> when transpiled. Slice and map
 // literals self-wrap; struct literals do not.
@@ -9807,6 +9821,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 			} else if writeNamedSliceIndexValue(out, e.X, e.Index) {
 				// Named slice element emitted by helper.
+			} else if writeNamedArrayIndexValue(out, e.X, e.Index) {
+				// Named array element emitted by helper.
 			} else if writePointerDerefSequenceIndexValue(out, e.X, e.Index) {
 				// Pointer-to-slice/array dereference yields a bare sequence value.
 			} else {

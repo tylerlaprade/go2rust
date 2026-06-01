@@ -1445,6 +1445,32 @@ func (special SpecialCase) score() int {
 	}
 }
 
+func TestNamedArrayFieldIndexUsesInnerHandle(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type d [3]int
+
+type CaseRange struct {
+	Delta d
+}
+
+var ch chan int
+
+func convert(cr *CaseRange, i int) int {
+	return cr.Delta[i]
+}
+`)
+
+	if strings.Contains(rust, "let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[") {
+		t.Fatalf("named array field index should not index the named wrapper value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __named_array = (*") ||
+		!strings.Contains(rust, ".delta") ||
+		!strings.Contains(rust, ".0.clone(); __named_array }") {
+		t.Fatalf("named array field index should use the inner array handle:\n%s", rust)
+	}
+}
+
 func TestAppendLocalInterfaceHandleKeepsWrappedValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
