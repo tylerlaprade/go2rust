@@ -159,6 +159,68 @@ func TestTranspileInternalABITypeOfUsesRuntimeTypeIntrinsic(t *testing.T) {
 	}
 }
 
+func TestTranspileInternalBuildcfgExpListUsesTypedGoexperimentFields(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	currentPkg := types.NewPackage("internal/buildcfg", "buildcfg")
+	flagsPkg := types.NewPackage("internal/goexperiment", "goexperiment")
+	flagsStruct := types.NewStruct([]*types.Var{
+		types.NewField(token.NoPos, flagsPkg, "FieldTrack", types.Typ[types.Bool], false),
+		types.NewField(token.NoPos, flagsPkg, "RegabiArgs", types.Typ[types.Bool], false),
+	}, nil)
+	flagsNamed := types.NewNamed(types.NewTypeName(token.NoPos, flagsPkg, "Flags", nil), flagsStruct, nil)
+
+	fnName := ast.NewIdent("expList")
+	sig := types.NewSignatureType(nil, nil, nil,
+		types.NewTuple(
+			types.NewVar(token.NoPos, currentPkg, "exp", types.NewPointer(flagsNamed)),
+			types.NewVar(token.NoPos, currentPkg, "base", types.NewPointer(flagsNamed)),
+			types.NewVar(token.NoPos, currentPkg, "all", types.Typ[types.Bool]),
+		),
+		types.NewTuple(types.NewVar(token.NoPos, currentPkg, "", types.NewSlice(types.Typ[types.String]))),
+		false,
+	)
+	currentTypeInfo = &TypeInfo{
+		info: &types.Info{Defs: map[*ast.Ident]types.Object{
+			fnName: types.NewFunc(token.NoPos, currentPkg, "expList", sig),
+		}},
+		pkg: currentPkg,
+	}
+	t.Cleanup(func() {
+		currentTypeInfo = prevTypeInfo
+	})
+
+	fn := &ast.FuncDecl{
+		Name: fnName,
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{List: []*ast.Field{
+				{Names: []*ast.Ident{ast.NewIdent("exp"), ast.NewIdent("base")}, Type: &ast.StarExpr{X: ast.NewIdent("Flags")}},
+				{Names: []*ast.Ident{ast.NewIdent("all")}, Type: ast.NewIdent("bool")},
+			}},
+			Results: &ast.FieldList{List: []*ast.Field{{Type: &ast.ArrayType{Elt: ast.NewIdent("string")}}}},
+		},
+		Body: &ast.BlockStmt{Lbrace: token.Pos(1), List: []ast.Stmt{
+			&ast.ExprStmt{X: &ast.CallExpr{Fun: ast.NewIdent("panic"), Args: []ast.Expr{&ast.BasicLit{Kind: token.STRING, Value: `"body should be replaced"`}}}},
+		}, Rbrace: token.Pos(2)},
+	}
+
+	var out strings.Builder
+	TranspileFunction(&out, fn, token.NewFileSet(), nil)
+	got := out.String()
+	if strings.Contains(got, "reflect::value_of") || strings.Contains(got, "body should be replaced") {
+		t.Fatalf("internal/buildcfg.expList should lower from go/types fields, not its reflect body:\n%s", got)
+	}
+	for _, want := range []string{
+		".field_track",
+		"\"fieldtrack\".to_string()",
+		"\"noregabiargs\".to_string()",
+		"internal/buildcfg.expList requires exp flags",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %q in:\n%s", want, got)
+		}
+	}
+}
+
 func TestTranspileInternalBytealgCountIntrinsicsUseGenericBodies(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	currentTypeInfo = &TypeInfo{pkg: types.NewPackage("internal/bytealg", "bytealg")}

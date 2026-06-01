@@ -2769,6 +2769,12 @@ func writeRuntimeLinkedFunctionBody(out *strings.Builder, fn *ast.FuncDecl, inde
 			writeInternalBytealgCountIntrinsicBody(out, fn, indent, true)
 			return true
 		}
+	case "internal/buildcfg":
+		switch fn.Name.Name {
+		case "expList":
+			writeInternalBuildcfgExpListIntrinsicBody(out, fn, indent)
+			return true
+		}
 	}
 	return false
 }
@@ -2892,6 +2898,120 @@ func writeInternalBytealgCountIntrinsicBody(out *strings.Builder, fn *ast.FuncDe
 	out.WriteString("__count")
 	WriteWrapperSuffix(out)
 	out.WriteString("\n")
+}
+
+func writeInternalBuildcfgExpListIntrinsicBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	fields, ok := internalBuildcfgExpListBoolFields(fn)
+	if !ok {
+		out.WriteString(indent)
+		out.WriteString("unimplemented!(\"type info required for internal/buildcfg.expList\")\n")
+		return
+	}
+
+	expName := RustLocalIdent(functionParamName(fn, 0, "exp"))
+	baseName := RustLocalIdent(functionParamName(fn, 1, "base"))
+	allName := RustLocalIdent(functionParamName(fn, 2, "all"))
+
+	trackWrapperImports()
+	out.WriteString(indent)
+	out.WriteString("let mut list: ")
+	out.WriteString(GetOuterWrapperType())
+	out.WriteString("<")
+	out.WriteString(GetInnerWrapperType())
+	out.WriteString("<Option<Vec<String>>>> = ")
+	WriteWrappedNone(out)
+	out.WriteString(";\n")
+
+	out.WriteString(indent)
+	out.WriteString("{\n")
+	out.WriteString(indent)
+	out.WriteString("    let __exp_guard = ")
+	out.WriteString(expName)
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("    let __exp_value = __exp_guard.as_ref().expect(\"internal/buildcfg.expList requires exp flags\");\n")
+	out.WriteString(indent)
+	out.WriteString("    let __base_guard = ")
+	out.WriteString(baseName)
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("    let __base_value = __base_guard.as_ref();\n")
+	out.WriteString(indent)
+	out.WriteString("    let __all = (*")
+	out.WriteString(allName)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone();\n")
+
+	for _, field := range fields {
+		rustField := ToSnakeCase(field.Name())
+		enabledName := strings.ToLower(field.Name())
+		disabledName := "no" + enabledName
+
+		out.WriteString(indent)
+		out.WriteString("    let __val = (*__exp_value.")
+		out.WriteString(rustField)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone();\n")
+		out.WriteString(indent)
+		out.WriteString("    let __base_val = __base_value.map(|__base| (*__base.")
+		out.WriteString(rustField)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()).unwrap_or(false);\n")
+		out.WriteString(indent)
+		out.WriteString("    if __all || __val != __base_val {\n")
+		out.WriteString(indent)
+		out.WriteString("        let mut __list_guard = list")
+		WriteBorrowMethod(out, true)
+		out.WriteString(";\n")
+		out.WriteString(indent)
+		out.WriteString("        if __list_guard.is_none() { *__list_guard = Some(Vec::new()); }\n")
+		out.WriteString(indent)
+		out.WriteString("        if __val { __list_guard.as_mut().unwrap().push(\"")
+		out.WriteString(enabledName)
+		out.WriteString("\".to_string()); } else { __list_guard.as_mut().unwrap().push(\"")
+		out.WriteString(disabledName)
+		out.WriteString("\".to_string()); }\n")
+		out.WriteString(indent)
+		out.WriteString("    }\n")
+	}
+
+	out.WriteString(indent)
+	out.WriteString("}\n")
+	out.WriteString(indent)
+	out.WriteString("list.clone()\n")
+}
+
+func internalBuildcfgExpListBoolFields(fn *ast.FuncDecl) ([]*types.Var, bool) {
+	sig, ok := funcDeclSignatureFromTypeInfo(fn)
+	if !ok || sig.Params() == nil || sig.Params().Len() < 1 {
+		return nil, false
+	}
+	ptr, ok := types.Unalias(sig.Params().At(0).Type()).(*types.Pointer)
+	if !ok {
+		return nil, false
+	}
+	named, ok := types.Unalias(ptr.Elem()).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return nil, false
+	}
+	if named.Obj().Pkg().Path() != "internal/goexperiment" || named.Obj().Name() != "Flags" {
+		return nil, false
+	}
+	st, ok := named.Underlying().(*types.Struct)
+	if !ok {
+		return nil, false
+	}
+	fields := make([]*types.Var, 0, st.NumFields())
+	for i := 0; i < st.NumFields(); i++ {
+		field := st.Field(i)
+		if !types.Identical(types.Unalias(field.Type()), types.Typ[types.Bool]) {
+			return nil, false
+		}
+		fields = append(fields, field)
+	}
+	return fields, true
 }
 
 func runtimeLinkedSingleResultReturnsBareScalar(fn *ast.FuncDecl) bool {
