@@ -17,10 +17,12 @@ setup_file() {
 
 # Helper to run a command and prefix stdout/stderr
 run_with_prefix() {
+    local tmp_root="${GO2RUST_TEST_TMP:-${TMPDIR:-/tmp}}"
+    mkdir -p "$tmp_root"
     local stdout_file
-    stdout_file=$(mktemp)
+    stdout_file=$(mktemp "$tmp_root/go2rust-stdout.XXXXXX")
     local stderr_file
-    stderr_file=$(mktemp)
+    stderr_file=$(mktemp "$tmp_root/go2rust-stderr.XXXXXX")
     
     # Run command, capturing stdout and stderr separately
     "$@" >"$stdout_file" 2>"$stderr_file"
