@@ -47,7 +47,7 @@ use std::sync::{Arc, Mutex};
 #[derive(Clone)]
 pub struct Map {
     pub __blank_0_0: Arc<Mutex<Option<noCopy>>>,
-    pub m: Arc<Mutex<Option<internal_sync::HashTrieMap>>>,
+    pub m: Arc<Mutex<Option<internal_sync::HashTrieMap<Box<dyn Any + Send + Sync>, Box<dyn Any + Send + Sync>>>>>,
 }
 
 impl Map {

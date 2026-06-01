@@ -905,6 +905,43 @@ func Less[T Ordered](x, y T) bool {
 	}
 }
 
+func TestGenericStructDeclCarriesTypeParamsIntoImpls(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Holder[T any] struct {
+	value T
+	next *Holder[T]
+}
+
+func (h *Holder[T]) Get() T {
+	return h.value
+}
+`)
+
+	wantDecl := "pub struct Holder<T: Any + Clone + 'static> {"
+	if !strings.Contains(rust, wantDecl) {
+		t.Fatalf("generic struct declaration should carry type parameters, want %q:\n%s", wantDecl, rust)
+	}
+	if !strings.Contains(rust, "pub value: Rc<RefCell<Option<T>>>") {
+		t.Fatalf("generic struct field should use the type parameter in its wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub next: Rc<RefCell<Option<Holder<T>>>>") {
+		t.Fatalf("instantiated generic field should keep type arguments:\n%s", rust)
+	}
+	for _, want := range []string{
+		"impl<T: Any + Clone + 'static> Holder<T> {",
+		"impl<T: Any + Clone + 'static> Holder<T> {\n    pub fn get",
+		"impl<T: Any + Clone + 'static> std::fmt::Display for Holder<T> {",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("generic struct impl should carry type parameters, missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "impl Unknown") || strings.Contains(rust, "impl Holder {\n    pub fn get") {
+		t.Fatalf("generic receiver method should lower under Holder<T>, not Unknown or bare Holder:\n%s", rust)
+	}
+}
+
 func TestGenericSliceConstrainedParameterUsesSliceRepresentation(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

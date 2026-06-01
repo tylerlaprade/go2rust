@@ -23,16 +23,40 @@ func rustStructFieldName(name *ast.Ident, fieldIndex int, nameIndex int) string 
 }
 
 // generateStructDisplay generates a Display implementation for a struct to match Go's output format
-func generateStructDisplay(out *strings.Builder, structName string, structType *ast.StructType) {
+type rustTypeGenerics struct {
+	Decl string
+	Use  string
+}
+
+func writeRustInherentImplHeader(out *strings.Builder, generics rustTypeGenerics, rustTypeName string) {
+	out.WriteString("impl")
+	out.WriteString(generics.Decl)
+	out.WriteString(" ")
+	out.WriteString(rustTypeName)
+	out.WriteString(generics.Use)
+	out.WriteString(" {\n")
+}
+
+func writeRustTraitImplHeader(out *strings.Builder, generics rustTypeGenerics, traitName string, rustTypeName string) {
+	out.WriteString("impl")
+	out.WriteString(generics.Decl)
+	out.WriteString(" ")
+	out.WriteString(traitName)
+	out.WriteString(" for ")
+	out.WriteString(rustTypeName)
+	out.WriteString(generics.Use)
+	out.WriteString(" {\n")
+}
+
+// generateStructDisplay generates a Display implementation for a struct to match Go's output format
+func generateStructDisplay(out *strings.Builder, structName string, structType *ast.StructType, generics rustTypeGenerics) {
 	TrackImport("Display")
 	TrackImport("Formatter")
 	rustStructName := RustTypeNameForUse(structName)
 
 	// If this type implements the error interface, Display should delegate to error()
 	if IsErrorImplType(structName) {
-		out.WriteString("impl std::fmt::Display for ")
-		out.WriteString(rustStructName)
-		out.WriteString(" {\n")
+		writeRustTraitImplHeader(out, generics, "std::fmt::Display", rustStructName)
 		out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
 		out.WriteString("        write!(f, \"{}\", (*self.error()")
 		WriteBorrowMethod(out, false)
@@ -43,9 +67,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 	}
 
 	if namedTypeHasGoStringMethod(structName) {
-		out.WriteString("impl std::fmt::Display for ")
-		out.WriteString(rustStructName)
-		out.WriteString(" {\n")
+		writeRustTraitImplHeader(out, generics, "std::fmt::Display", rustStructName)
 		out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
 		writeStringerDisplayBody(out, structName, "        ")
 		out.WriteString("    }\n")
@@ -53,9 +75,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		return
 	}
 
-	out.WriteString("impl std::fmt::Display for ")
-	out.WriteString(rustStructName)
-	out.WriteString(" {\n")
+	writeRustTraitImplHeader(out, generics, "std::fmt::Display", rustStructName)
 	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
 	out.WriteString("        write!(f, \"{{")
 
@@ -241,11 +261,9 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 	out.WriteString("}\n")
 }
 
-func generateStructDebug(out *strings.Builder, structName string) {
+func generateStructDebug(out *strings.Builder, structName string, generics rustTypeGenerics) {
 	rustStructName := RustTypeNameForUse(structName)
-	out.WriteString("impl std::fmt::Debug for ")
-	out.WriteString(rustStructName)
-	out.WriteString(" {\n")
+	writeRustTraitImplHeader(out, generics, "std::fmt::Debug", rustStructName)
 	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
 	out.WriteString("        write!(f, \"{}\", self)\n")
 	out.WriteString("    }\n")
@@ -761,15 +779,13 @@ func writeStructComparableFieldOrd(out *strings.Builder, field structComparableF
 	out.WriteString("        }\n")
 }
 
-func generateStructPartialEq(out *strings.Builder, structName string, structType *ast.StructType) {
+func generateStructPartialEq(out *strings.Builder, structName string, structType *ast.StructType, generics rustTypeGenerics) {
 	if !structNeedsCustomPartialEq(structName, structType) {
 		return
 	}
 
 	rustStructName := RustTypeNameForUse(structName)
-	out.WriteString("impl PartialEq for ")
-	out.WriteString(rustStructName)
-	out.WriteString(" {\n")
+	writeRustTraitImplHeader(out, generics, "PartialEq", rustStructName)
 	out.WriteString("    fn eq(&self, other: &Self) -> bool {\n")
 
 	fields := structComparableFields(structType)
@@ -792,27 +808,28 @@ func generateStructPartialEq(out *strings.Builder, structName string, structType
 	out.WriteString("}\n")
 }
 
-func generateStructOrd(out *strings.Builder, structName string, structType *ast.StructType) {
+func generateStructOrd(out *strings.Builder, structName string, structType *ast.StructType, generics rustTypeGenerics) {
 	if !structNeedsCustomOrd(structName, structType) {
 		return
 	}
 
 	rustStructName := RustTypeNameForUse(structName)
-	out.WriteString("\nimpl Eq for ")
+	out.WriteString("\nimpl")
+	out.WriteString(generics.Decl)
+	out.WriteString(" Eq for ")
 	out.WriteString(rustStructName)
+	out.WriteString(generics.Use)
 	out.WriteString(" {}\n")
 
-	out.WriteString("\nimpl PartialOrd for ")
-	out.WriteString(rustStructName)
-	out.WriteString(" {\n")
+	out.WriteString("\n")
+	writeRustTraitImplHeader(out, generics, "PartialOrd", rustStructName)
 	out.WriteString("    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {\n")
 	out.WriteString("        Some(self.cmp(other))\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
 
-	out.WriteString("\nimpl Ord for ")
-	out.WriteString(rustStructName)
-	out.WriteString(" {\n")
+	out.WriteString("\n")
+	writeRustTraitImplHeader(out, generics, "Ord", rustStructName)
 	out.WriteString("    fn cmp(&self, other: &Self) -> std::cmp::Ordering {\n")
 
 	fields := structComparableFields(structType)
@@ -824,14 +841,12 @@ func generateStructOrd(out *strings.Builder, structName string, structType *ast.
 	out.WriteString("}\n")
 }
 
-func generateStructValueClone(out *strings.Builder, structName string, structType *ast.StructType) {
+func generateStructValueClone(out *strings.Builder, structName string, structType *ast.StructType, generics rustTypeGenerics) {
 	if structType == nil {
 		return
 	}
 	rustStructName := RustTypeNameForUse(structName)
-	out.WriteString("impl ")
-	out.WriteString(rustStructName)
-	out.WriteString(" {\n")
+	writeRustInherentImplHeader(out, generics, rustStructName)
 	out.WriteString("    pub fn __go_value_clone(&self) -> Self {\n")
 	out.WriteString("        Self { ")
 	needComma := false
@@ -936,13 +951,12 @@ func writeStructDefaultValue(out *strings.Builder, fieldType ast.Expr) {
 	out.WriteString("Default::default()")
 }
 
-func generateStructDefault(out *strings.Builder, structName string, structType *ast.StructType) {
+func generateStructDefault(out *strings.Builder, structName string, structType *ast.StructType, generics rustTypeGenerics) {
 	if !structNeedsCustomDefault(structType) {
 		return
 	}
-	out.WriteString("\nimpl Default for ")
-	out.WriteString(RustTypeNameForUse(structName))
-	out.WriteString(" {\n")
+	out.WriteString("\n")
+	writeRustTraitImplHeader(out, generics, "Default", RustTypeNameForUse(structName))
 	out.WriteString("    fn default() -> Self {\n")
 	out.WriteString("        Self { ")
 	needComma := false
@@ -1039,13 +1053,12 @@ func jsonDecodeFieldSupported(fieldType ast.Expr) bool {
 	return jsonDecodeTypeSupported(typeInfo.GetType(fieldType))
 }
 
-func generateStructJsonDecode(out *strings.Builder, structName string, structType *ast.StructType) {
+func generateStructJsonDecode(out *strings.Builder, structName string, structType *ast.StructType, generics rustTypeGenerics) {
 	if !shouldGenerateJsonDecodeImpl() || structType == nil {
 		return
 	}
-	out.WriteString("\nimpl GoJsonDecode for ")
-	out.WriteString(RustTypeNameForUse(structName))
-	out.WriteString(" {\n")
+	out.WriteString("\n")
+	writeRustTraitImplHeader(out, generics, "GoJsonDecode", RustTypeNameForUse(structName))
 	out.WriteString("    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {\n")
 	out.WriteString("        let object = value.as_object().ok_or_else(|| go_json_expected(value, \"object\"))?;\n")
 	out.WriteString("        let mut out = Self::default();\n")
@@ -1370,6 +1383,27 @@ func writeFunctionTypeParams(out *strings.Builder, fnType *ast.FuncType) {
 	out.WriteString("<")
 	out.WriteString(strings.Join(params, ", "))
 	out.WriteString(">")
+}
+
+func rustTypeGenericsForTypeSpec(typeSpec *ast.TypeSpec) rustTypeGenerics {
+	if typeSpec == nil || typeSpec.TypeParams == nil || len(typeSpec.TypeParams.List) == 0 {
+		return rustTypeGenerics{}
+	}
+	var declParams []string
+	var useParams []string
+	for _, field := range typeSpec.TypeParams.List {
+		for _, name := range field.Names {
+			declParams = append(declParams, rustFunctionTypeParam(name))
+			useParams = append(useParams, RustTypeNameForUse(name.Name))
+		}
+	}
+	if len(declParams) == 0 {
+		return rustTypeGenerics{}
+	}
+	return rustTypeGenerics{
+		Decl: "<" + strings.Join(declParams, ", ") + ">",
+		Use:  "<" + strings.Join(useParams, ", ") + ">",
+	}
 }
 
 func rustFunctionTypeParam(name *ast.Ident) string {
@@ -3587,13 +3621,16 @@ func definedTypeUnderlyingStructAST(t ast.Expr) *ast.StructType {
 	return nil
 }
 
-func emitStructTypeDeclBody(out *strings.Builder, structName string, t *ast.StructType) {
+func emitStructTypeDeclBody(out *strings.Builder, typeSpec *ast.TypeSpec, t *ast.StructType) {
+	structName := typeSpec.Name.Name
 	rustTypeName := RustTypeNameForUse(structName)
+	generics := rustTypeGenericsForTypeSpec(typeSpec)
 	registerStructDef(structName, t)
 
 	writeStructDerive(out, structName, t)
 	out.WriteString("pub struct ")
 	out.WriteString(rustTypeName)
+	out.WriteString(generics.Decl)
 	out.WriteString(" {\n")
 
 	for fieldIndex, field := range t.Fields.List {
@@ -3626,29 +3663,29 @@ func emitStructTypeDeclBody(out *strings.Builder, structName string, t *ast.Stru
 
 	out.WriteString("}\n\n")
 
-	generateStructValueClone(out, structName, t)
+	generateStructValueClone(out, structName, t, generics)
 	out.WriteString("\n")
 
-	generateStructDefault(out, structName, t)
+	generateStructDefault(out, structName, t, generics)
 	if structNeedsCustomDefault(t) {
 		out.WriteString("\n")
 	}
 
 	// Generate Display implementation to match Go's format
-	generateStructDisplay(out, structName, t)
+	generateStructDisplay(out, structName, t, generics)
 	if IsErrorImplType(structName) && !structCanDeriveDebug(t) {
-		generateStructDebug(out, structName)
+		generateStructDebug(out, structName, generics)
 	}
-	generateStructPartialEq(out, structName, t)
-	generateStructOrd(out, structName, t)
-	generateStructJsonDecode(out, structName, t)
+	generateStructPartialEq(out, structName, t, generics)
+	generateStructOrd(out, structName, t, generics)
+	generateStructJsonDecode(out, structName, t, generics)
 }
 
 func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *ast.GenDecl) {
 	rustTypeName := RustTypeNameForUse(typeSpec.Name.Name)
 	switch t := typeSpec.Type.(type) {
 	case *ast.StructType:
-		emitStructTypeDeclBody(out, typeSpec.Name.Name, t)
+		emitStructTypeDeclBody(out, typeSpec, t)
 
 	case *ast.InterfaceType:
 		// Generate a trait for the interface
@@ -3792,7 +3829,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			// field access (t.field) resolves to nothing (E0609/E0615) — go/types'
 			// union.Term hits this.
 			registerTypeDefinitionForTypeExpr(typeSpec.Name.Name, t)
-			emitStructTypeDeclBody(out, typeSpec.Name.Name, structAST)
+			emitStructTypeDeclBody(out, typeSpec, structAST)
 			return
 		} else {
 			// Type definition: type A B
@@ -3836,7 +3873,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				out.WriteString("    }\n")
 				out.WriteString("}\n")
 				if !canDeriveDebug {
-					generateStructDebug(out, typeSpec.Name.Name)
+					generateStructDebug(out, typeSpec.Name.Name, rustTypeGenerics{})
 				}
 			} else if array, ok := t.(*ast.ArrayType); ok && arrayTypeDefinitionElemDisplayable(array) {
 				TrackImport("Display")

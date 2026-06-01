@@ -1971,10 +1971,11 @@ func getReceiverType(expr ast.Expr) string {
 	case *ast.Ident:
 		return t.Name
 	case *ast.StarExpr:
-		// Pointer receiver
-		if ident, ok := t.X.(*ast.Ident); ok {
-			return ident.Name
-		}
+		return getReceiverType(t.X)
+	case *ast.IndexExpr:
+		return getReceiverType(t.X)
+	case *ast.IndexListExpr:
+		return getReceiverType(t.X)
 	}
 	return "Unknown"
 }
@@ -2356,8 +2357,10 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	var typeNames []string
 	typesWithImpls := make(map[string]bool)
 	declaredTypeNames := make(map[string]bool)
+	typeSpecByName := make(map[string]*ast.TypeSpec)
 	for _, t := range types {
 		declaredTypeNames[t.spec.Name.Name] = true
+		typeSpecByName[t.spec.Name.Name] = t.spec
 	}
 
 	// Add types that have methods
@@ -2453,8 +2456,12 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			currentTypeMethods = previousTypeMethods
 			continue
 		}
-		body.WriteString("impl ")
+		generics := rustTypeGenericsForTypeSpec(typeSpecByName[typeName])
+		body.WriteString("impl")
+		body.WriteString(generics.Decl)
+		body.WriteString(" ")
 		body.WriteString(rustTypeName)
+		body.WriteString(generics.Use)
 		body.WriteString(" {\n")
 
 		// First, output the type's own methods
@@ -2745,12 +2752,12 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 		}
 
 		body.WriteString("}\n")
-		generateStructValueClone(body, typeName, structType)
+		generateStructValueClone(body, typeName, structType, rustTypeGenerics{})
 		body.WriteString("\n")
-		generateStructDefault(body, typeName, structType)
+		generateStructDefault(body, typeName, structType, rustTypeGenerics{})
 		body.WriteString("\n")
-		generateStructDisplay(body, typeName, structType)
-		generateStructJsonDecode(body, typeName, structType)
+		generateStructDisplay(body, typeName, structType, rustTypeGenerics{})
+		generateStructJsonDecode(body, typeName, structType, rustTypeGenerics{})
 		writeAnonymousStructEmbeddedInterfaceImpls(body, typeName, structType)
 		emitted[typeName] = true
 	}

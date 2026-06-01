@@ -1724,20 +1724,32 @@ func goTypesNamedTypeToRust(named *types.Named) string {
 	}
 	obj := named.Obj()
 	if obj.Pkg() == nil {
-		return RustTypeNameForUse(obj.Name())
+		return rustNamedTypeWithArgs(named, RustTypeNameForUse(obj.Name()))
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil && typeInfo.pkg != nil && obj.Pkg() == typeInfo.pkg {
-		return RustTypeNameForUse(obj.Name())
+		return rustNamedTypeWithArgs(named, RustTypeNameForUse(obj.Name()))
 	}
 	if rustName, ok := rustTypeNameForImportedPackagePath(obj.Pkg().Path(), obj.Name()); ok {
-		return rustName
+		return rustNamedTypeWithArgs(named, rustName)
 	}
 	rustName := obj.Pkg().Name() + "_" + RustTypeNameForUse(obj.Name())
 	if isStubBackedStdlibPackagePath(obj.Pkg().Path()) {
 		RegisterExternalTypeStubNamed(named, rustName)
 	}
-	return rustName
+	return rustNamedTypeWithArgs(named, rustName)
+}
+
+func rustNamedTypeWithArgs(named *types.Named, rustName string) string {
+	typeArgs := named.TypeArgs()
+	if typeArgs == nil || typeArgs.Len() == 0 {
+		return rustName
+	}
+	args := make([]string, 0, typeArgs.Len())
+	for i := 0; i < typeArgs.Len(); i++ {
+		args = append(args, goTypesTypeToRust(typeArgs.At(i)))
+	}
+	return rustName + "<" + strings.Join(args, ", ") + ">"
 }
 
 func goTypesKnownStdlibNamedTypeToRust(t types.Type) (string, bool) {
