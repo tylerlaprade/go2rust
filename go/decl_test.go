@@ -439,6 +439,62 @@ func TestTranspileInternalBytealgMakeNoZeroUsesRuntimeAllocation(t *testing.T) {
 	}
 }
 
+func TestTranspileInternalBytealgNativeStringIntrinsics(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	currentTypeInfo = &TypeInfo{pkg: types.NewPackage("internal/bytealg", "bytealg")}
+	t.Cleanup(func() {
+		currentTypeInfo = prevTypeInfo
+	})
+
+	stringIdent := ast.NewIdent("string")
+	byteIdent := ast.NewIdent("byte")
+	var out strings.Builder
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("IndexByteString"),
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{List: []*ast.Field{
+				{Names: []*ast.Ident{ast.NewIdent("s")}, Type: stringIdent},
+				{Names: []*ast.Ident{ast.NewIdent("c")}, Type: byteIdent},
+			}},
+			Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("int")}}},
+		},
+	}, token.NewFileSet(), nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("IndexString"),
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{List: []*ast.Field{
+				{Names: []*ast.Ident{ast.NewIdent("a")}, Type: stringIdent},
+				{Names: []*ast.Ident{ast.NewIdent("b")}, Type: stringIdent},
+			}},
+			Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("int")}}},
+		},
+	}, token.NewFileSet(), nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("abigen_runtime_cmpstring"),
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{List: []*ast.Field{
+				{Names: []*ast.Ident{ast.NewIdent("a")}, Type: stringIdent},
+				{Names: []*ast.Ident{ast.NewIdent("b")}, Type: stringIdent},
+			}},
+			Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("int")}}},
+		},
+	}, token.NewFileSet(), nil)
+
+	got := out.String()
+	if strings.Contains(got, "Go function declaration has no body") {
+		t.Fatalf("internal/bytealg native string intrinsics should not use the generic bodyless fallback:\n%s", got)
+	}
+	for _, want := range []string{
+		"__s.as_bytes().iter().position",
+		"__a.find(&__b).map",
+		"match __a.cmp(&__b)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %q in:\n%s", want, got)
+		}
+	}
+}
+
 func TestTranspileFunctionWithoutBodyNamesUnnamedParams(t *testing.T) {
 	var out strings.Builder
 	fn := &ast.FuncDecl{

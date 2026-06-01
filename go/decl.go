@@ -2771,6 +2771,15 @@ func writeRuntimeLinkedFunctionBody(out *strings.Builder, fn *ast.FuncDecl, inde
 		case "MakeNoZero":
 			writeInternalBytealgMakeNoZeroBody(out, fn, indent)
 			return true
+		case "IndexByteString":
+			writeInternalBytealgIndexByteStringBody(out, fn, indent)
+			return true
+		case "IndexString":
+			writeInternalBytealgIndexStringBody(out, fn, indent)
+			return true
+		case "abigen_runtime_cmpstring":
+			writeInternalBytealgCompareStringBody(out, fn, indent)
+			return true
 		}
 	case "internal/buildcfg":
 		switch fn.Name.Name {
@@ -2947,6 +2956,37 @@ func writeInternalBytealgMakeNoZeroBody(out *strings.Builder, fn *ast.FuncDecl, 
 	out.WriteString("vec![0u8; __len]")
 	WriteWrapperSuffix(out)
 	out.WriteString("\n")
+}
+
+func writeInternalBytealgIndexByteStringBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	sName := functionParamName(fn, 0, "s")
+	cName := RustLocalIdent(functionParamName(fn, 1, "c"))
+	writeRuntimeLinkedStringParamClone(out, sName, "__s", indent)
+	out.WriteString(indent)
+	out.WriteString("let __c = (*")
+	out.WriteString(cName)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone();\n")
+	out.WriteString(indent)
+	out.WriteString("__s.as_bytes().iter().position(|&__b| __b == __c).map(|__i| __i as i32).unwrap_or(-1)\n")
+}
+
+func writeInternalBytealgIndexStringBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	aName := functionParamName(fn, 0, "a")
+	bName := functionParamName(fn, 1, "b")
+	writeRuntimeLinkedStringParamClone(out, aName, "__a", indent)
+	writeRuntimeLinkedStringParamClone(out, bName, "__b", indent)
+	out.WriteString(indent)
+	out.WriteString("__a.find(&__b).map(|__i| __i as i32).unwrap_or(-1)\n")
+}
+
+func writeInternalBytealgCompareStringBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	aName := functionParamName(fn, 0, "a")
+	bName := functionParamName(fn, 1, "b")
+	writeRuntimeLinkedStringParamClone(out, aName, "__a", indent)
+	writeRuntimeLinkedStringParamClone(out, bName, "__b", indent)
+	out.WriteString(indent)
+	out.WriteString("match __a.cmp(&__b) { std::cmp::Ordering::Less => -1, std::cmp::Ordering::Equal => 0, std::cmp::Ordering::Greater => 1 }\n")
 }
 
 func writeInternalBuildcfgExpListIntrinsicBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
