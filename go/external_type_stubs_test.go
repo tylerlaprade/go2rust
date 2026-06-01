@@ -74,6 +74,51 @@ func TestSourceMappedStdlibPackageIsNotStubBacked(t *testing.T) {
 	}
 }
 
+func TestGenericExternalPackageStubFunctionUsesSignatureTypeParams(t *testing.T) {
+	prevContext := currentContext
+	ctx := &TranspileContext{
+		Package: NewPackageState(),
+		File:    NewFileState(NewImportTracker(), &HelperTracker{}, nil),
+	}
+	SetTranspileContext(ctx)
+	defer SetTranspileContext(prevContext)
+
+	pkg := gotypes.NewPackage("slices", "slices")
+	anyConstraint := gotypes.NewInterfaceType(nil, nil).Complete()
+	elemName := gotypes.NewTypeName(gotoken.NoPos, pkg, "E", nil)
+	elemParam := gotypes.NewTypeParam(elemName, anyConstraint)
+	sliceConstraint := gotypes.NewInterfaceType(nil, []gotypes.Type{
+		gotypes.NewUnion([]*gotypes.Term{
+			gotypes.NewTerm(true, gotypes.NewSlice(elemParam)),
+		}),
+	}).Complete()
+	sliceName := gotypes.NewTypeName(gotoken.NoPos, pkg, "S", nil)
+	sliceParam := gotypes.NewTypeParam(sliceName, sliceConstraint)
+	sig := gotypes.NewSignatureType(
+		nil,
+		nil,
+		[]*gotypes.TypeParam{sliceParam, elemParam},
+		gotypes.NewTuple(gotypes.NewVar(gotoken.NoPos, pkg, "s", sliceParam)),
+		gotypes.NewTuple(gotypes.NewVar(gotoken.NoPos, pkg, "", sliceParam)),
+		false,
+	)
+
+	RegisterExternalPackageStubFunction("slices", "clip", sig)
+	got := GenerateExternalTypeStubs()
+	for _, want := range []string{
+		"pub fn clip<S, E>(",
+		"_arg0: Rc<RefCell<Option<Vec<Rc<RefCell<Option<E>>>>>",
+		"-> Rc<RefCell<Option<Vec<Rc<RefCell<Option<E>>>>>",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("generic external stub should preserve typed signature piece %q:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "pub fn clip<T0>") || strings.Contains(got, "pub fn clip<S, E, T0>") {
+		t.Fatalf("generic external stub should not invent value-parameter generics:\n%s", got)
+	}
+}
+
 func TestJsonSupportHelpersDecodeUnsignedAndFixedArrays(t *testing.T) {
 	var out strings.Builder
 	writeJsonSupportHelpers(&out, false)

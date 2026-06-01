@@ -41,8 +41,10 @@ type externalPackageStub struct {
 }
 
 type externalPackageStubFunction struct {
-	ParamCount  int
-	ReturnTypes []string
+	ParamCount        int
+	ParamTypes        []string
+	GenericParamNames []string
+	ReturnTypes       []string
 }
 
 func RegisterExternalTypeStub(name string) {
@@ -664,6 +666,18 @@ func RegisterExternalPackageStubFunction(pkgName string, funcName string, sig *t
 	}
 	fn := externalPackageStubFunction{
 		ParamCount: sig.Params().Len(),
+	}
+	typeParams := sig.TypeParams()
+	for i := 0; typeParams != nil && i < typeParams.Len(); i++ {
+		tp := typeParams.At(i)
+		if tp == nil || tp.Obj() == nil {
+			continue
+		}
+		fn.GenericParamNames = append(fn.GenericParamNames, RustTypeNameForUse(tp.Obj().Name()))
+	}
+	params := sig.Params()
+	for i := 0; len(fn.GenericParamNames) > 0 && i < params.Len(); i++ {
+		fn.ParamTypes = append(fn.ParamTypes, goTypesParamTypeToRust(params.At(i).Type()))
 	}
 	results := sig.Results()
 	for i := 0; i < results.Len(); i++ {
@@ -6729,7 +6743,16 @@ func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn 
 	}
 	out.WriteString("    pub fn ")
 	out.WriteString(funcName)
-	if fn.ParamCount > 0 {
+	if len(fn.GenericParamNames) > 0 {
+		out.WriteString("<")
+		for i, name := range fn.GenericParamNames {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString(name)
+		}
+		out.WriteString(">")
+	} else if fn.ParamCount > 0 {
 		out.WriteString("<")
 		for i := 0; i < fn.ParamCount; i++ {
 			if i > 0 {
@@ -6747,8 +6770,13 @@ func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn 
 		}
 		out.WriteString("_arg")
 		out.WriteString(strconv.Itoa(i))
-		out.WriteString(": T")
-		out.WriteString(strconv.Itoa(i))
+		out.WriteString(": ")
+		if len(fn.GenericParamNames) > 0 && i < len(fn.ParamTypes) && fn.ParamTypes[i] != "" {
+			out.WriteString(fn.ParamTypes[i])
+		} else {
+			out.WriteString("T")
+			out.WriteString(strconv.Itoa(i))
+		}
 	}
 	out.WriteString(")")
 	if len(fn.ReturnTypes) > 0 {
