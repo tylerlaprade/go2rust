@@ -2135,6 +2135,46 @@ func Call(qual types.Qualifier, pkg *types.Package) string {
 	}
 }
 
+func TestSourceMappedImportedFunctionTypeAliasStructFieldUsesAliasHandle(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "go/types"
+
+type Printer struct {
+	qual types.Qualifier
+}
+
+func NewPrinter(qual types.Qualifier) *Printer {
+	return &Printer{
+		qual: qual,
+	}
+}
+
+func (p *Printer) Qualify(pkg *types.Package) string {
+	return p.qual(pkg)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"go/types": "go_types"})
+	if strings.Contains(rust, "Option<go_types::Qualifier>") {
+		t.Fatalf("source-mapped function type alias field should not be wrapped again:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub qual: go_types::Qualifier,") {
+		t.Fatalf("source-mapped function type alias field should use the imported alias handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "qual: qual.clone()") {
+		t.Fatalf("source-mapped function type alias field initializer should clone the imported alias handle:\n%s", rust)
+	}
+}
+
 func TestConcretePointerMapLookupKeyForLocalInterfaceKeyBoxesValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

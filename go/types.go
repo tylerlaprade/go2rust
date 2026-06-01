@@ -764,6 +764,9 @@ func GoTypeToRustParam(expr ast.Expr) string {
 
 func GoTypeToRust(expr ast.Expr) string {
 	if typ, ok := typeInfoTypeForTypeExpr(expr); ok {
+		if rustType, ok := goTypesNamedFunctionTypeToRust(typ); ok {
+			return rustType
+		}
 		if rustType, ok := goTypeParamSliceConstraintToRust(typ); ok {
 			return goTypesWrappedRustType(rustType)
 		}
