@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoAtomicPointer, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_slice, format_slice_values, format_slice_wrapped, go_any_eq};
+use crate::{GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_slice, format_slice_values, format_slice_wrapped, go_any_eq};
 
 use crate::cond::*;
 use crate::hashtriemap::*;
@@ -32,7 +32,7 @@ pub(crate) const DEQUEUE_LIMIT: i64 = (1 << DEQUEUE_BITS) / 4;
 /// but not typically a property considered in the literature.
 #[derive(Clone)]
 pub struct poolDequeue {
-    pub head_tail: Arc<StdMutex<Option<atomic_Uint64>>>,
+    pub head_tail: Arc<StdMutex<Option<sync_atomic::r#type::Uint64>>>,
     pub vals: Arc<StdMutex<Option<Vec<eface>>>>,
 }
 
@@ -115,7 +115,7 @@ pub struct dequeueNil(pub Arc<StdMutex<Option<AnonymousStruct1>>>);
 #[derive(Clone)]
 pub struct poolChain {
     pub head: Arc<StdMutex<Option<poolChainElt>>>,
-    pub tail: Arc<StdMutex<Option<GoAtomicPointer<poolChainElt>>>>,
+    pub tail: Arc<StdMutex<Option<sync_atomic::r#type::Pointer<poolChainElt>>>>,
 }
 
 impl poolChain {
@@ -149,8 +149,8 @@ impl GoJsonDecode for poolChain {
 #[derive(Clone)]
 pub struct poolChainElt {
     pub pool_dequeue: Arc<StdMutex<Option<poolDequeue>>>,
-    pub next: Arc<StdMutex<Option<GoAtomicPointer<poolChainElt>>>>,
-    pub prev: Arc<StdMutex<Option<GoAtomicPointer<poolChainElt>>>>,
+    pub next: Arc<StdMutex<Option<sync_atomic::r#type::Pointer<poolChainElt>>>>,
+    pub prev: Arc<StdMutex<Option<sync_atomic::r#type::Pointer<poolChainElt>>>>,
 }
 
 impl poolChainElt {
@@ -227,7 +227,7 @@ impl poolDequeue {
     /// pushHead adds val at the head of the queue. It returns false if the
     /// queue is full. It must only be called by a single producer.
     pub fn push_head(&self, mut val: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool {
-        let mut ptrs = (*self.head_tail.lock().unwrap().as_mut().unwrap()).load();
+        let mut ptrs = (*self.head_tail.lock().unwrap().as_ref().unwrap()).load();
         let (mut head, mut tail) = self.unpack(Arc::new(StdMutex::new(Some(ptrs))));
         if { let __tmp_x = { let __tmp_x = ({ let __tmp_x = tail; let __tmp_y = (*Arc::new(StdMutex::new(Some((*self.vals.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }); let __tmp_y = (((1 as u64) << (DEQUEUE_BITS as u64)) - (1 as u64)) as u32; __tmp_x & __tmp_y }; let __tmp_y = head; __tmp_x == __tmp_y } {
                 // Queue is full.
@@ -236,7 +236,7 @@ impl poolDequeue {
                 // Queue is full.
         let mut slot: Option<GoSliceElemPtr<eface>> = Some(GoSliceElemPtr::new(self.vals.clone(), ({ let __tmp_x = head; let __tmp_y = (*Arc::new(StdMutex::new(Some(({ let __tmp_x = ((*self.vals.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y }) as usize));
                 // Check if the head slot has been released by popTail.
-        let mut typ = { let __target = (*slot.as_ref().unwrap().borrow().as_ref().unwrap()).typ.clone(); let __guard = __target.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
+        let mut typ = sync_atomic::load_pointer((*slot.as_ref().unwrap().borrow().as_ref().unwrap()).typ.clone());
         if (*typ.lock().unwrap()).is_some() {
                 // Another goroutine is still cleaning up the tail, so
                 // the queue is actually still full.
@@ -251,7 +251,7 @@ impl poolDequeue {
         { let _ = (*val.lock().unwrap().as_ref().unwrap()); unimplemented!("unsafe.Pointer dereference assignment"); };
                 // Increment head. This passes ownership of slot to popTail
                 // and acts as a store barrier for writing the slot.
-        (*self.head_tail.lock().unwrap().as_mut().unwrap()).add(((1 as u64) << (DEQUEUE_BITS as u64)) as u64);
+        (*self.head_tail.lock().unwrap().as_ref().unwrap()).add(Arc::new(StdMutex::new(Some(((1 as u64) << (DEQUEUE_BITS as u64)) as u64))));
         true
     }
 
@@ -261,7 +261,7 @@ impl poolDequeue {
     pub fn pop_head(&self) -> (Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>, bool) {
         let mut slot: Option<GoSliceElemPtr<eface>> = None;
         loop {
-        let mut ptrs = (*self.head_tail.lock().unwrap().as_mut().unwrap()).load();
+        let mut ptrs = (*self.head_tail.lock().unwrap().as_ref().unwrap()).load();
         let (mut head, mut tail) = self.unpack(Arc::new(StdMutex::new(Some(ptrs))));
         if { let __tmp_x = tail; let __tmp_y = head; __tmp_x == __tmp_y } {
                 // Queue is empty.
@@ -274,7 +274,7 @@ impl poolDequeue {
                 // slot.
         { head -= 1; }
         let mut ptrs2 = self.pack(Arc::new(StdMutex::new(Some(head))), Arc::new(StdMutex::new(Some(tail))));
-        if (*self.head_tail.lock().unwrap().as_mut().unwrap()).compare_and_swap(ptrs, ptrs2) {
+        if (*self.head_tail.lock().unwrap().as_ref().unwrap()).compare_and_swap(Arc::new(StdMutex::new(Some(ptrs))), Arc::new(StdMutex::new(Some(ptrs2)))) {
                 // We successfully took back slot.
         slot = Some(GoSliceElemPtr::new(self.vals.clone(), ({ let __tmp_x = head; let __tmp_y = (*Arc::new(StdMutex::new(Some(({ let __tmp_x = ((*self.vals.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y }) as usize));
         break
@@ -301,7 +301,7 @@ impl poolDequeue {
     pub fn pop_tail(&self) -> (Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>, bool) {
         let mut slot: Option<GoSliceElemPtr<eface>> = None;
         loop {
-        let mut ptrs = (*self.head_tail.lock().unwrap().as_mut().unwrap()).load();
+        let mut ptrs = (*self.head_tail.lock().unwrap().as_ref().unwrap()).load();
         let (mut head, mut tail) = self.unpack(Arc::new(StdMutex::new(Some(ptrs))));
         if { let __tmp_x = tail; let __tmp_y = head; __tmp_x == __tmp_y } {
                 // Queue is empty.
@@ -313,7 +313,7 @@ impl poolDequeue {
                 // above) and increment tail. If this succeeds, then
                 // we own the slot at tail.
         let mut ptrs2 = self.pack(Arc::new(StdMutex::new(Some(head))), Arc::new(StdMutex::new(Some({ let __tmp_x = tail; let __tmp_y = 1 as u32; __tmp_x + __tmp_y }))));
-        if (*self.head_tail.lock().unwrap().as_mut().unwrap()).compare_and_swap(ptrs, ptrs2) {
+        if (*self.head_tail.lock().unwrap().as_ref().unwrap()).compare_and_swap(Arc::new(StdMutex::new(Some(ptrs))), Arc::new(StdMutex::new(Some(ptrs2)))) {
                 // Success.
         slot = Some(GoSliceElemPtr::new(self.vals.clone(), ({ let __tmp_x = tail; let __tmp_y = (*Arc::new(StdMutex::new(Some(({ let __tmp_x = ((*self.vals.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y }) as usize));
         break
@@ -336,7 +336,7 @@ impl poolDequeue {
                 // We write to val first and then publish that we're done with
                 // this slot by atomically writing to typ.
         *(*slot.as_ref().unwrap().borrow().as_ref().unwrap()).val.lock().unwrap() = None;
-        { let __target = (*slot.as_ref().unwrap().borrow().as_ref().unwrap()).typ.clone(); let __stored = None; *__target.lock().unwrap() = __stored; };
+        sync_atomic::store_pointer((*slot.as_ref().unwrap().borrow().as_ref().unwrap()).typ.clone(), Arc::new(StdMutex::new(None)));
                 // At this point pushHead owns the slot.
         return (val.clone(), true);
     }
@@ -352,7 +352,7 @@ impl poolChain {
         { let new_val = Arc::new(StdMutex::new(Some(poolChainElt::default()))).clone(); d = new_val; };
         { let new_val = Arc::new(StdMutex::new(Some(vec![Default::default(); (initSize) as usize]))); (*(*d.lock().unwrap().as_mut().unwrap()).pool_dequeue.lock().unwrap().as_mut().unwrap()).vals = new_val; };
         { let new_val = d.clone(); self.head = new_val; };
-        (*self.tail.lock().unwrap().as_mut().unwrap()).store(d.clone());
+        (*self.tail.lock().unwrap().as_ref().unwrap()).store(d.clone());
     }
                 // Initialize the chain.
                 // Must be a power of 2
@@ -368,10 +368,10 @@ impl poolChain {
     }
                 // Can't make it any bigger.
         let mut d2 = Arc::new(StdMutex::new(Some(poolChainElt { pool_dequeue: Arc::new(StdMutex::new(Some(Default::default()))), next: Arc::new(StdMutex::new(Some(Default::default()))), prev: Arc::new(StdMutex::new(Some(Default::default()))) })));
-        (*(*d2.lock().unwrap().as_ref().unwrap()).prev.lock().unwrap().as_mut().unwrap()).store(d.clone());
+        (*(*d2.lock().unwrap().as_ref().unwrap()).prev.lock().unwrap().as_ref().unwrap()).store(d.clone());
         { let new_val = Arc::new(StdMutex::new(Some(vec![Default::default(); ({ let __v = (*newSize.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize]))); (*(*d2.lock().unwrap().as_mut().unwrap()).pool_dequeue.lock().unwrap().as_mut().unwrap()).vals = new_val; };
         { let new_val = d2.clone(); self.head = new_val; };
-        (*(*d.lock().unwrap().as_ref().unwrap()).next.lock().unwrap().as_mut().unwrap()).store(d2.clone());
+        (*(*d.lock().unwrap().as_ref().unwrap()).next.lock().unwrap().as_ref().unwrap()).store(d2.clone());
         { let __recv = d2.clone(); let __recv_ptr: *const poolChainElt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const poolChainElt }; let __result = unsafe { &*__recv_ptr }.push_head(val.clone()); __result };
     }
 
@@ -387,7 +387,7 @@ impl poolChain {
 
                 // There may still be unconsumed elements in the
                 // previous dequeue, so try backing up.
-        { let new_val = (*(*d.lock().unwrap().as_ref().unwrap()).prev.lock().unwrap().as_mut().unwrap()).load().clone(); d = new_val; };
+        { let new_val = (*(*d.lock().unwrap().as_ref().unwrap()).prev.lock().unwrap().as_ref().unwrap()).load().clone(); d = new_val; };
     }
                 // There may still be unconsumed elements in the
                 // previous dequeue, so try backing up.
@@ -395,7 +395,7 @@ impl poolChain {
     }
 
     pub fn pop_tail(&self) -> (Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>, bool) {
-        let mut d = (*self.tail.lock().unwrap().as_mut().unwrap()).load();
+        let mut d = (*self.tail.lock().unwrap().as_ref().unwrap()).load();
         if (*d.lock().unwrap()).is_none() {
         return (Arc::new(StdMutex::new(None)), false);
     }
@@ -406,7 +406,7 @@ impl poolChain {
                 // the pop and the pop fails, then d is permanently
                 // empty, which is the only condition under which it's
                 // safe to drop d from the chain.
-        let mut d2 = (*(*d.lock().unwrap().as_ref().unwrap()).next.lock().unwrap().as_mut().unwrap()).load();
+        let mut d2 = (*(*d.lock().unwrap().as_ref().unwrap()).next.lock().unwrap().as_ref().unwrap()).load();
 
         {
         let (mut val, mut ok) = { let __recv = d.clone(); let __recv_ptr: *const poolChainElt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const poolChainElt }; let __result = unsafe { &*__recv_ptr }.pop_tail(); __result };;
@@ -427,12 +427,12 @@ impl poolChain {
                 // to the next dequeue. Try to drop it from the chain
                 // so the next pop doesn't have to look at the empty
                 // dequeue again.
-        if (*self.tail.lock().unwrap().as_mut().unwrap()).compare_and_swap(d.clone(), d2.clone()) {
+        if (*self.tail.lock().unwrap().as_ref().unwrap()).compare_and_swap(d.clone(), d2.clone()) {
                 // We won the race. Clear the prev pointer so
                 // the garbage collector can collect the empty
                 // dequeue and so popHead doesn't back up
                 // further than necessary.
-        (*(*d2.lock().unwrap().as_ref().unwrap()).prev.lock().unwrap().as_mut().unwrap()).store(Arc::new(StdMutex::new(None)));
+        (*(*d2.lock().unwrap().as_ref().unwrap()).prev.lock().unwrap().as_ref().unwrap()).store(Arc::new(StdMutex::new(None)));
     }
                 // We won the race. Clear the prev pointer so
                 // the garbage collector can collect the empty

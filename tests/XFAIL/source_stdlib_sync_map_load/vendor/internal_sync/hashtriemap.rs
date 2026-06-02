@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoAtomicPointer, GoValueClone, format_slice, format_slice_values, format_slice_wrapped, go_any_clone};
+use crate::{GoValueClone, format_slice, format_slice_values, format_slice_wrapped, go_any_clone};
 
 use crate::mutex::*;
 use crate::runtime::*;
@@ -23,9 +23,9 @@ pub(crate) const N_CHILDREN_MASK: i32 = N_CHILDREN - 1;
 /// The zero HashTrieMap is empty and ready to use.
 /// It must not be copied after first use.
 pub struct HashTrieMap<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> {
-    pub inited: Arc<StdMutex<Option<atomic_Uint32>>>,
+    pub inited: Arc<StdMutex<Option<sync_atomic::r#type::Uint32>>>,
     pub init_mu: Arc<StdMutex<Option<Mutex>>>,
-    pub root: Arc<StdMutex<Option<GoAtomicPointer<indirect<K, V>>>>>,
+    pub root: Arc<StdMutex<Option<sync_atomic::r#type::Pointer<indirect<K, V>>>>>,
     pub key_hash: hashFunc,
     pub val_equal: equalFunc,
     pub seed: Arc<StdMutex<Option<usize>>>,
@@ -74,10 +74,10 @@ pub type equalFunc = Arc<StdMutex<Option<Box<dyn FnMut(Arc<StdMutex<Option<usize
 /// indirect is an internal node in the hash-trie.
 pub struct indirect<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> {
     pub node: Arc<StdMutex<Option<node<K, V>>>>,
-    pub dead: Arc<StdMutex<Option<atomic_Bool>>>,
+    pub dead: Arc<StdMutex<Option<sync_atomic::r#type::Bool>>>,
     pub mu: Arc<StdMutex<Option<Mutex>>>,
     pub parent: Arc<StdMutex<Option<indirect<K, V>>>>,
-    pub children: Arc<StdMutex<Option<[GoAtomicPointer<node<K, V>>; 16]>>>,
+    pub children: Arc<StdMutex<Option<[sync_atomic::r#type::Pointer<node<K, V>>; 16]>>>,
 }
 
 impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> indirect<K, V> {
@@ -117,7 +117,7 @@ impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> GoJsonDecod
 /// entry is a leaf node in the hash-trie.
 pub struct entry<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> {
     pub node: Arc<StdMutex<Option<node<K, V>>>>,
-    pub overflow: Arc<StdMutex<Option<GoAtomicPointer<entry<K, V>>>>>,
+    pub overflow: Arc<StdMutex<Option<sync_atomic::r#type::Pointer<entry<K, V>>>>>,
     pub key: Arc<StdMutex<Option<K>>>,
     pub value: Arc<StdMutex<Option<V>>>,
 }
@@ -200,7 +200,7 @@ impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> GoJsonDecod
 
 impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send + Sync + 'static> HashTrieMap<K, V> {
     pub fn init(&mut self) {
-        if { let __tmp_x = (*self.inited.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 0 as u32; __tmp_x == __tmp_y } {
+        if { let __tmp_x = (*self.inited.lock().unwrap().as_ref().unwrap()).load(); let __tmp_y = 0 as u32; __tmp_x == __tmp_y } {
         self.init_slow();
     }
     }
@@ -213,7 +213,7 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
         let mut ht_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         (*ht_defer_captured.init_mu.lock().unwrap().as_ref().unwrap()).unlock();
     }));
-        if { let __tmp_x = (*self.inited.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 0 as u32; __tmp_x != __tmp_y } {
+        if { let __tmp_x = (*self.inited.lock().unwrap().as_ref().unwrap()).load(); let __tmp_y = 0 as u32; __tmp_x != __tmp_y } {
                 // Someone got to it while we were waiting.
         {
         // Execute deferred functions
@@ -227,12 +227,12 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
                 // Set up root node, derive the hash function for the key, and the
                 // equal function for the value, if any.
         let mut m: Arc<StdMutex<Option<BTreeMap<K, Arc<StdMutex<Option<V>>>>>>> = Arc::new(StdMutex::new(Some(BTreeMap::new())));
-        let mut mapType = { let __recv = abi::type_of(m.clone()); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).map_type(); __result };
-        (*self.root.lock().unwrap().as_mut().unwrap()).store(new_indirect_node::<K, V>(Arc::new(StdMutex::new(None))));
+        let mut mapType = { let __recv = internal_abi::type_of(Arc::new(StdMutex::new(Some(Box::new((*m.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>)))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).map_type(); __result };
+        (*self.root.lock().unwrap().as_ref().unwrap()).store(new_indirect_node::<K, V>(Arc::new(StdMutex::new(None))));
         { let new_val = (*mapType.lock().unwrap().as_ref().unwrap()).hasher.clone(); self.key_hash = new_val; };
         { let new_val = (*(*mapType.lock().unwrap().as_ref().unwrap()).elem.lock().unwrap().as_ref().unwrap()).equal.clone(); self.val_equal = new_val; };
         { let new_val = Arc::new(StdMutex::new(Some(runtime_rand() as usize))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *self.seed.lock().unwrap() = __moved_val; };
-        (*self.inited.lock().unwrap().as_mut().unwrap()).store(1 as u32);
+        (*self.inited.lock().unwrap().as_ref().unwrap()).store(Arc::new(StdMutex::new(Some(1 as u32))));
 
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -248,8 +248,8 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
     let mut ok: Arc<StdMutex<Option<bool>>> = Arc::new(StdMutex::new(Some(false)));
 
         self.init();
-        let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), { let __field = self.seed.clone(); __field }) };
-        let mut i = (*self.root.lock().unwrap().as_mut().unwrap()).load();
+        let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), { let __field = self.seed.clone(); __field }) };
+        let mut i = (*self.root.lock().unwrap().as_ref().unwrap()).load();
         let mut hashShift = Arc::new(StdMutex::new(Some({ let __tmp_x = 8; let __tmp_y = goarch::PTR_SIZE; __tmp_x * __tmp_y })));
         while { let __tmp_x = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x != __tmp_y } {
         { let __rhs = 4; let mut guard = hashShift.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
@@ -276,21 +276,21 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
     let mut loaded: Arc<StdMutex<Option<bool>>> = Arc::new(StdMutex::new(Some(false)));
 
         self.init();
-        let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), { let __field = self.seed.clone(); __field }) };
+        let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), { let __field = self.seed.clone(); __field }) };
         let mut i: Arc<StdMutex<Option<indirect<K, V>>>> = Arc::new(StdMutex::new(None));
         let mut hashShift: Arc<StdMutex<Option<u64>>> = Arc::new(StdMutex::new(Some(0)));
-        let mut slot: Arc<StdMutex<Option<GoAtomicPointer<node<K, V>>>>> = Arc::new(StdMutex::new(None));
+        let mut slot: Arc<StdMutex<Option<sync_atomic::r#type::Pointer<node<K, V>>>>> = Arc::new(StdMutex::new(None));
         let mut n: Arc<StdMutex<Option<node<K, V>>>> = Arc::new(StdMutex::new(None));
         loop {
                 // Find the key or a candidate location for insertion.
-        { let new_val = (*self.root.lock().unwrap().as_mut().unwrap()).load().clone(); i = new_val; };
+        { let new_val = (*self.root.lock().unwrap().as_ref().unwrap()).load().clone(); i = new_val; };
         { let new_val = { let __tmp_x = 8; let __tmp_y = goarch::PTR_SIZE; __tmp_x * __tmp_y } as u64; *hashShift.lock().unwrap() = Some(new_val); };
         let mut haveInsertPoint = Arc::new(StdMutex::new(Some(false)));
         while { let __tmp_x = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
         { let __rhs = N_CHILDREN_LOG2 as u64; let mut guard = hashShift.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
 
         { let new_val = /* ERROR: Array element address requires array element pointer support */ unimplemented!("array element address requires pointer support").clone(); slot = new_val; };
-        { let new_val = { let __recv = slot.clone(); let __recv_ptr: *mut GoAtomicPointer<node<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<node<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result }.clone(); n = new_val; };
+        { let new_val = { let __recv = slot.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<node<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<node<K, V>> }; let __result = unsafe { &*__recv_ptr }.load(); __result }.clone(); n = new_val; };
         if (*n.lock().unwrap()).is_none() {
                 // We found a nil slot which is a candidate for insertion.
         { let new_val = true; *haveInsertPoint.lock().unwrap() = Some(new_val); };
@@ -333,8 +333,8 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
 
                 // Grab the lock and double-check what we saw.
         (*(*i.lock().unwrap().as_ref().unwrap()).mu.lock().unwrap().as_ref().unwrap()).lock();
-        { let new_val = { let __recv = slot.clone(); let __recv_ptr: *mut GoAtomicPointer<node<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<node<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result }.clone(); n = new_val; };
-        if ((*n.lock().unwrap()).is_none() || (*{ let __field = (*n.lock().unwrap().as_ref().unwrap()).is_entry.clone(); __field }.lock().unwrap().as_ref().unwrap())) && !(*(*i.lock().unwrap().as_ref().unwrap()).dead.lock().unwrap().as_mut().unwrap()).load() {
+        { let new_val = { let __recv = slot.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<node<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<node<K, V>> }; let __result = unsafe { &*__recv_ptr }.load(); __result }.clone(); n = new_val; };
+        if ((*n.lock().unwrap()).is_none() || (*{ let __field = (*n.lock().unwrap().as_ref().unwrap()).is_entry.clone(); __field }.lock().unwrap().as_ref().unwrap())) && !(*(*i.lock().unwrap().as_ref().unwrap()).dead.lock().unwrap().as_ref().unwrap()).load() {
                 // What we saw is still true, so we can continue with the insert.
         break
     }
@@ -381,13 +381,13 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
         let mut newEntry = new_entry_node::<K, V>(key.clone(), value.clone());
         if (*oldEntry.lock().unwrap()).is_none() {
                 // Easy case: create a new entry and store it.
-        { let __recv = slot.clone(); let __recv_ptr: *mut GoAtomicPointer<node<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<node<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.store((*newEntry.lock().unwrap().as_ref().unwrap()).node.clone()); __result };
+        { let __recv = slot.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<node<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<node<K, V>> }; let __result = unsafe { &*__recv_ptr }.store((*newEntry.lock().unwrap().as_ref().unwrap()).node.clone()); __result };
     } else {
                 // We possibly need to expand the entry already there into one or more new nodes.
                 //
                 // Publish the node last, which will make both oldEntry and newEntry visible. We
                 // don't want readers to be able to observe that oldEntry isn't in the tree.
-        { let __recv = slot.clone(); let __recv_ptr: *mut GoAtomicPointer<node<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<node<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.store(self.expand(oldEntry.clone(), newEntry.clone(), Arc::new(StdMutex::new(Some(hash))), Arc::new(StdMutex::new(Some({ let __arg_holder = hashShift.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), i.clone())); __result };
+        { let __recv = slot.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<node<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<node<K, V>> }; let __result = unsafe { &*__recv_ptr }.store(self.expand(oldEntry.clone(), newEntry.clone(), Arc::new(StdMutex::new(Some(hash))), Arc::new(StdMutex::new(Some({ let __arg_holder = hashShift.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), i.clone())); __result };
     }
                 // Easy case: create a new entry and store it.
                 // We possibly need to expand the entry already there into one or more new nodes.
@@ -413,7 +413,7 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
         if { let __tmp_x = oldHash; let __tmp_y = { let __v = (*newHash.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } {
                 // Store the old entry in the new entry's overflow list, then store
                 // the new entry.
-        (*(*newEntry.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).store(oldEntry.clone());
+        (*(*newEntry.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_ref().unwrap()).store(oldEntry.clone());
         return (*newEntry.lock().unwrap().as_ref().unwrap()).node.clone();
     }
                 // Store the old entry in the new entry's overflow list, then store
@@ -455,21 +455,21 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
     let mut loaded: Arc<StdMutex<Option<bool>>> = Arc::new(StdMutex::new(Some(false)));
 
         self.init();
-        let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), { let __field = self.seed.clone(); __field }) };
+        let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), { let __field = self.seed.clone(); __field }) };
         let mut i: Arc<StdMutex<Option<indirect<K, V>>>> = Arc::new(StdMutex::new(None));
         let mut hashShift: Arc<StdMutex<Option<u64>>> = Arc::new(StdMutex::new(Some(0)));
-        let mut slot: Arc<StdMutex<Option<GoAtomicPointer<node<K, V>>>>> = Arc::new(StdMutex::new(None));
+        let mut slot: Arc<StdMutex<Option<sync_atomic::r#type::Pointer<node<K, V>>>>> = Arc::new(StdMutex::new(None));
         let mut n: Arc<StdMutex<Option<node<K, V>>>> = Arc::new(StdMutex::new(None));
         loop {
                 // Find the key or a candidate location for insertion.
-        { let new_val = (*self.root.lock().unwrap().as_mut().unwrap()).load().clone(); i = new_val; };
+        { let new_val = (*self.root.lock().unwrap().as_ref().unwrap()).load().clone(); i = new_val; };
         { let new_val = { let __tmp_x = 8; let __tmp_y = goarch::PTR_SIZE; __tmp_x * __tmp_y } as u64; *hashShift.lock().unwrap() = Some(new_val); };
         let mut haveInsertPoint = Arc::new(StdMutex::new(Some(false)));
         while { let __tmp_x = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
         { let __rhs = N_CHILDREN_LOG2 as u64; let mut guard = hashShift.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
 
         { let new_val = /* ERROR: Array element address requires array element pointer support */ unimplemented!("array element address requires pointer support").clone(); slot = new_val; };
-        { let new_val = { let __recv = slot.clone(); let __recv_ptr: *mut GoAtomicPointer<node<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<node<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result }.clone(); n = new_val; };
+        { let new_val = { let __recv = slot.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<node<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<node<K, V>> }; let __result = unsafe { &*__recv_ptr }.load(); __result }.clone(); n = new_val; };
         if (*n.lock().unwrap()).is_none() || (*{ let __field = (*n.lock().unwrap().as_ref().unwrap()).is_entry.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
                 // We found a nil slot which is a candidate for insertion,
                 // or an existing entry that we'll replace.
@@ -488,8 +488,8 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
 
                 // Grab the lock and double-check what we saw.
         (*(*i.lock().unwrap().as_ref().unwrap()).mu.lock().unwrap().as_ref().unwrap()).lock();
-        { let new_val = { let __recv = slot.clone(); let __recv_ptr: *mut GoAtomicPointer<node<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<node<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result }.clone(); n = new_val; };
-        if ((*n.lock().unwrap()).is_none() || (*{ let __field = (*n.lock().unwrap().as_ref().unwrap()).is_entry.clone(); __field }.lock().unwrap().as_ref().unwrap())) && !(*(*i.lock().unwrap().as_ref().unwrap()).dead.lock().unwrap().as_mut().unwrap()).load() {
+        { let new_val = { let __recv = slot.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<node<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<node<K, V>> }; let __result = unsafe { &*__recv_ptr }.load(); __result }.clone(); n = new_val; };
+        if ((*n.lock().unwrap()).is_none() || (*{ let __field = (*n.lock().unwrap().as_ref().unwrap()).is_entry.clone(); __field }.lock().unwrap().as_ref().unwrap())) && !(*(*i.lock().unwrap().as_ref().unwrap()).dead.lock().unwrap().as_ref().unwrap()).load() {
                 // What we saw is still true, so we can continue with the insert.
         break
     }
@@ -519,7 +519,7 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
         { let new_val = { let __recv = n.clone(); let __recv_ptr: *const node<K, V> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const node<K, V> }; let __result = unsafe { &*__recv_ptr }.entry(); __result }.clone(); oldEntry = new_val; };
         let (mut newEntry, mut old, mut swapped) = { let __recv = oldEntry.clone(); let __recv_ptr: *const entry<K, V> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const entry<K, V> }; let __result = unsafe { &*__recv_ptr }.swap(Arc::new(StdMutex::new(Some({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }))), Arc::new(StdMutex::new(Some({ let __arg_holder = new.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() })))); __result };
         if swapped {
-        { let __recv = slot.clone(); let __recv_ptr: *mut GoAtomicPointer<node<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<node<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.store((*newEntry.lock().unwrap().as_ref().unwrap()).node.clone()); __result };
+        { let __recv = slot.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<node<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<node<K, V>> }; let __result = unsafe { &*__recv_ptr }.store((*newEntry.lock().unwrap().as_ref().unwrap()).node.clone()); __result };
         {
         { let new_val = (*old.lock().unwrap().as_ref().unwrap()).go_value_clone(); *previous.lock().unwrap() = Some(new_val); };;
         { let new_val = true; *loaded.lock().unwrap() = Some(new_val); };;
@@ -536,13 +536,13 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
         let mut newEntry = new_entry_node::<K, V>(key.clone(), new.clone());
         if (*oldEntry.lock().unwrap()).is_none() {
                 // Easy case: create a new entry and store it.
-        { let __recv = slot.clone(); let __recv_ptr: *mut GoAtomicPointer<node<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<node<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.store((*newEntry.lock().unwrap().as_ref().unwrap()).node.clone()); __result };
+        { let __recv = slot.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<node<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<node<K, V>> }; let __result = unsafe { &*__recv_ptr }.store((*newEntry.lock().unwrap().as_ref().unwrap()).node.clone()); __result };
     } else {
                 // We possibly need to expand the entry already there into one or more new nodes.
                 //
                 // Publish the node last, which will make both oldEntry and newEntry visible. We
                 // don't want readers to be able to observe that oldEntry isn't in the tree.
-        { let __recv = slot.clone(); let __recv_ptr: *mut GoAtomicPointer<node<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<node<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.store(self.expand(oldEntry.clone(), newEntry.clone(), Arc::new(StdMutex::new(Some(hash))), Arc::new(StdMutex::new(Some({ let __arg_holder = hashShift.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), i.clone())); __result };
+        { let __recv = slot.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<node<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<node<K, V>> }; let __result = unsafe { &*__recv_ptr }.store(self.expand(oldEntry.clone(), newEntry.clone(), Arc::new(StdMutex::new(Some(hash))), Arc::new(StdMutex::new(Some({ let __arg_holder = hashShift.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), i.clone())); __result };
     }
                 // Easy case: create a new entry and store it.
                 // We possibly need to expand the entry already there into one or more new nodes.
@@ -572,7 +572,7 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
         if { let __nil_target = self.val_equal.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
         panic!("called CompareAndSwap when value is not of comparable type");
     }
-        let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), { let __field = self.seed.clone(); __field }) };
+        let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), { let __field = self.seed.clone(); __field }) };
                 // Find a node with the key and compare with it. n != nil if we found the node.
         let (mut i, _, mut slot, mut n) = { let __method_arg0 = Arc::new(StdMutex::new(Some({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }))); let __method_arg1 = Arc::new(StdMutex::new(Some(hash))); let __method_arg2 = self.val_equal.clone(); let __method_arg3 = Arc::new(StdMutex::new(Some({ let __arg_holder = old.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }))); self.find(__method_arg0, __method_arg1, __method_arg2, __method_arg3) };
         if (*i.lock().unwrap()).is_some() {
@@ -605,7 +605,7 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
     }
                 // Nothing was actually swapped, which means the node is no longer there.
                 // Store the entry back because it changed.
-        { let __recv = slot.clone(); let __recv_ptr: *mut GoAtomicPointer<node<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<node<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.store((*e.lock().unwrap().as_ref().unwrap()).node.clone()); __result };
+        { let __recv = slot.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<node<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<node<K, V>> }; let __result = unsafe { &*__recv_ptr }.store((*e.lock().unwrap().as_ref().unwrap()).node.clone()); __result };
         {
         { let new_val = true; *swapped.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
@@ -623,7 +623,7 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
     let mut loaded: Arc<StdMutex<Option<bool>>> = Arc::new(StdMutex::new(Some(false)));
 
         self.init();
-        let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), { let __field = self.seed.clone(); __field }) };
+        let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), { let __field = self.seed.clone(); __field }) };
                 // Find a node with the key and compare with it. n != nil if we found the node.
         let (mut i, mut hashShift, mut slot, mut n) = self.find(Arc::new(StdMutex::new(Some({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }))), Arc::new(StdMutex::new(Some(hash))), Arc::new(StdMutex::new(None)), Arc::new(StdMutex::new(None)));
         if (*n.lock().unwrap()).is_none() {
@@ -643,14 +643,14 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
         if (*e.lock().unwrap()).is_some() {
                 // We didn't actually delete the whole entry, just one entry in the chain.
                 // Nothing else to do, since the parent is definitely not empty.
-        { let __recv = slot.clone(); let __recv_ptr: *mut GoAtomicPointer<node<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<node<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.store((*e.lock().unwrap().as_ref().unwrap()).node.clone()); __result };
+        { let __recv = slot.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<node<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<node<K, V>> }; let __result = unsafe { &*__recv_ptr }.store((*e.lock().unwrap().as_ref().unwrap()).node.clone()); __result };
         (*(*i.lock().unwrap().as_ref().unwrap()).mu.lock().unwrap().as_ref().unwrap()).unlock();
         return (v.clone(), true);
     }
                 // We didn't actually delete the whole entry, just one entry in the chain.
                 // Nothing else to do, since the parent is definitely not empty.
                 // Delete the entry.
-        { let __recv = slot.clone(); let __recv_ptr: *mut GoAtomicPointer<node<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<node<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.store(Arc::new(StdMutex::new(None))); __result };
+        { let __recv = slot.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<node<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<node<K, V>> }; let __result = unsafe { &*__recv_ptr }.store(Arc::new(StdMutex::new(None))); __result };
                 // Check if the node is now empty (and isn't the root), and delete it if able.
         while { let __nil_target = (*i.lock().unwrap().as_ref().unwrap()).parent.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } && { let __recv = i.clone(); let __recv_ptr: *const indirect<K, V> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const indirect<K, V> }; let __result = unsafe { &*__recv_ptr }.empty(); __result } {
         if { let __tmp_x = hashShift; let __tmp_y = { let __tmp_x = 8; let __tmp_y = goarch::PTR_SIZE; __tmp_x * __tmp_y } as u64; __tmp_x == __tmp_y } {
@@ -661,7 +661,7 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
                 // Delete the current node in the parent.
         let mut parent = (*i.lock().unwrap().as_ref().unwrap()).parent.clone();
         (*(*parent.lock().unwrap().as_ref().unwrap()).mu.lock().unwrap().as_ref().unwrap()).lock();
-        (*(*i.lock().unwrap().as_ref().unwrap()).dead.lock().unwrap().as_mut().unwrap()).store(true);
+        (*(*i.lock().unwrap().as_ref().unwrap()).dead.lock().unwrap().as_ref().unwrap()).store(Arc::new(StdMutex::new(Some(true))));
         { let __seq = { let __seq_holder = (*parent.lock().unwrap().as_ref().unwrap()).children.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ({ let __tmp_x = hash; let __tmp_y = hashShift; __tmp_x >> __tmp_y }); let __tmp_y = N_CHILDREN_MASK as usize; __tmp_x & __tmp_y }) as usize].clone() }.store(Arc::new(StdMutex::new(None)));
         (*(*i.lock().unwrap().as_ref().unwrap()).mu.lock().unwrap().as_ref().unwrap()).unlock();
         { let new_val = parent.clone(); i = new_val; };
@@ -688,7 +688,7 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
         if { let __nil_target = self.val_equal.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
         panic!("called CompareAndDelete when value is not of comparable type");
     }
-        let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), { let __field = self.seed.clone(); __field }) };
+        let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), { let __field = self.seed.clone(); __field }) };
                 // Find a node with the key. n != nil if we found the node.
         let (mut i, mut hashShift, mut slot, mut n) = self.find(Arc::new(StdMutex::new(Some({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }))), Arc::new(StdMutex::new(Some(hash))), Arc::new(StdMutex::new(None)), Arc::new(StdMutex::new(None)));
         if (*n.lock().unwrap()).is_none() {
@@ -708,14 +708,14 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
         if (*e.lock().unwrap()).is_some() {
                 // We didn't actually delete the whole entry, just one entry in the chain.
                 // Nothing else to do, since the parent is definitely not empty.
-        { let __recv = slot.clone(); let __recv_ptr: *mut GoAtomicPointer<node<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<node<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.store((*e.lock().unwrap().as_ref().unwrap()).node.clone()); __result };
+        { let __recv = slot.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<node<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<node<K, V>> }; let __result = unsafe { &*__recv_ptr }.store((*e.lock().unwrap().as_ref().unwrap()).node.clone()); __result };
         (*(*i.lock().unwrap().as_ref().unwrap()).mu.lock().unwrap().as_ref().unwrap()).unlock();
         return true;
     }
                 // We didn't actually delete the whole entry, just one entry in the chain.
                 // Nothing else to do, since the parent is definitely not empty.
                 // Delete the entry.
-        { let __recv = slot.clone(); let __recv_ptr: *mut GoAtomicPointer<node<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<node<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.store(Arc::new(StdMutex::new(None))); __result };
+        { let __recv = slot.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<node<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<node<K, V>> }; let __result = unsafe { &*__recv_ptr }.store(Arc::new(StdMutex::new(None))); __result };
                 // Check if the node is now empty (and isn't the root), and delete it if able.
         while { let __nil_target = (*i.lock().unwrap().as_ref().unwrap()).parent.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } && { let __recv = i.clone(); let __recv_ptr: *const indirect<K, V> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const indirect<K, V> }; let __result = unsafe { &*__recv_ptr }.empty(); __result } {
         if { let __tmp_x = hashShift; let __tmp_y = { let __tmp_x = 8; let __tmp_y = goarch::PTR_SIZE; __tmp_x * __tmp_y } as u64; __tmp_x == __tmp_y } {
@@ -726,7 +726,7 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
                 // Delete the current node in the parent.
         let mut parent = (*i.lock().unwrap().as_ref().unwrap()).parent.clone();
         (*(*parent.lock().unwrap().as_ref().unwrap()).mu.lock().unwrap().as_ref().unwrap()).lock();
-        (*(*i.lock().unwrap().as_ref().unwrap()).dead.lock().unwrap().as_mut().unwrap()).store(true);
+        (*(*i.lock().unwrap().as_ref().unwrap()).dead.lock().unwrap().as_ref().unwrap()).store(Arc::new(StdMutex::new(Some(true))));
         { let __seq = { let __seq_holder = (*parent.lock().unwrap().as_ref().unwrap()).children.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ({ let __tmp_x = hash; let __tmp_y = hashShift; __tmp_x >> __tmp_y }); let __tmp_y = N_CHILDREN_MASK as usize; __tmp_x & __tmp_y }) as usize].clone() }.store(Arc::new(StdMutex::new(None)));
         (*(*i.lock().unwrap().as_ref().unwrap()).mu.lock().unwrap().as_ref().unwrap()).unlock();
         { let new_val = parent.clone(); i = new_val; };
@@ -742,22 +742,22 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
     /// Returns a non-nil node, which will always be an entry, if found.
     ///
     /// If i != nil then i.mu is locked, and it is the caller's responsibility to unlock it.
-    pub fn find(&mut self, key: Arc<StdMutex<Option<K>>>, hash: Arc<StdMutex<Option<usize>>>, valEqual: equalFunc, value: Arc<StdMutex<Option<V>>>) -> (Arc<StdMutex<Option<indirect<K, V>>>>, u64, Arc<StdMutex<Option<GoAtomicPointer<node<K, V>>>>>, Arc<StdMutex<Option<node<K, V>>>>) {
-    let mut i: Arc<StdMutex<Option<indirect<K, V>>>> = Arc::new(StdMutex::new(Some(Default::default())));
+    pub fn find(&mut self, key: Arc<StdMutex<Option<K>>>, hash: Arc<StdMutex<Option<usize>>>, valEqual: equalFunc, value: Arc<StdMutex<Option<V>>>) -> (Arc<StdMutex<Option<indirect<K, V>>>>, u64, Arc<StdMutex<Option<sync_atomic::r#type::Pointer<node<K, V>>>>>, Arc<StdMutex<Option<node<K, V>>>>) {
+    let mut i: Arc<StdMutex<Option<indirect<K, V>>>> = Arc::new(StdMutex::new(None));
     let mut hashShift: Arc<StdMutex<Option<u64>>> = Arc::new(StdMutex::new(Some(0)));
-    let mut slot: Arc<StdMutex<Option<GoAtomicPointer<node<K, V>>>>> = Arc::new(StdMutex::new(Some(Default::default())));
-    let mut n: Arc<StdMutex<Option<node<K, V>>>> = Arc::new(StdMutex::new(Some(Default::default())));
+    let mut slot: Arc<StdMutex<Option<sync_atomic::r#type::Pointer<node<K, V>>>>> = Arc::new(StdMutex::new(None));
+    let mut n: Arc<StdMutex<Option<node<K, V>>>> = Arc::new(StdMutex::new(None));
 
         loop {
                 // Find the key or return if it's not there.
-        { let new_val = (*self.root.lock().unwrap().as_mut().unwrap()).load().clone(); i = new_val; };
+        { let new_val = (*self.root.lock().unwrap().as_ref().unwrap()).load().clone(); i = new_val; };
         { let new_val = { let __tmp_x = 8; let __tmp_y = goarch::PTR_SIZE; __tmp_x * __tmp_y } as u64; *hashShift.lock().unwrap() = Some(new_val); };
         let mut found = Arc::new(StdMutex::new(Some(false)));
         while { let __tmp_x = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
         { let __rhs = N_CHILDREN_LOG2 as u64; let mut guard = hashShift.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
 
         { let new_val = /* ERROR: Array element address requires array element pointer support */ unimplemented!("array element address requires pointer support").clone(); slot = new_val; };
-        { let new_val = { let __recv = slot.clone(); let __recv_ptr: *mut GoAtomicPointer<node<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<node<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result }.clone(); n = new_val; };
+        { let new_val = { let __recv = slot.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<node<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<node<K, V>> }; let __result = unsafe { &*__recv_ptr }.load(); __result }.clone(); n = new_val; };
         if (*n.lock().unwrap()).is_none() {
                 // Nothing to compare with. Give up.
         *i.lock().unwrap() = None;
@@ -794,8 +794,8 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
 
                 // Grab the lock and double-check what we saw.
         (*(*i.lock().unwrap().as_ref().unwrap()).mu.lock().unwrap().as_ref().unwrap()).lock();
-        { let new_val = { let __recv = slot.clone(); let __recv_ptr: *mut GoAtomicPointer<node<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<node<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result }.clone(); n = new_val; };
-        if !(*(*i.lock().unwrap().as_ref().unwrap()).dead.lock().unwrap().as_mut().unwrap()).load() && ((*n.lock().unwrap()).is_none() || (*{ let __field = (*n.lock().unwrap().as_ref().unwrap()).is_entry.clone(); __field }.lock().unwrap().as_ref().unwrap())) {
+        { let new_val = { let __recv = slot.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<node<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<node<K, V>> }; let __result = unsafe { &*__recv_ptr }.load(); __result }.clone(); n = new_val; };
+        if !(*(*i.lock().unwrap().as_ref().unwrap()).dead.lock().unwrap().as_ref().unwrap()).load() && ((*n.lock().unwrap()).is_none() || (*{ let __field = (*n.lock().unwrap().as_ref().unwrap()).is_entry.clone(); __field }.lock().unwrap().as_ref().unwrap())) {
                 // Either we've got a valid node or the node is now nil under the lock.
                 // In either case, we're done here.
         return (i, (*hashShift.lock().unwrap().as_ref().unwrap()), slot, n);
@@ -819,7 +819,7 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
     pub fn all(&mut self) -> Arc<StdMutex<Option<Box<dyn FnMut(Arc<StdMutex<Option<Box<dyn FnMut(Arc<StdMutex<Option<K>>>, Arc<StdMutex<Option<V>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
         self.init();
         let mut ht_closure_clone = (*self).clone(); return Arc::new(StdMutex::new(Some(Box::new(move |r#yield: Arc<StdMutex<Option<Box<dyn FnMut(Arc<StdMutex<Option<K>>>, Arc<StdMutex<Option<V>>>) -> bool + Send + Sync>>>>| {
-        { let __method_arg0 = (*ht_closure_clone.root.lock().unwrap().as_mut().unwrap()).load(); let __method_arg1 = r#yield.clone(); ht_closure_clone.iter(__method_arg0, __method_arg1) };
+        { let __method_arg0 = (*ht_closure_clone.root.lock().unwrap().as_ref().unwrap()).load(); let __method_arg1 = r#yield.clone(); ht_closure_clone.iter(__method_arg0, __method_arg1) };
     }) as Box<dyn FnMut(Arc<StdMutex<Option<Box<dyn FnMut(Arc<StdMutex<Option<K>>>, Arc<StdMutex<Option<V>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>)));
     }
 
@@ -830,7 +830,7 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
     /// It provides the same guarantees as sync.Map, and All.
     pub fn range(&mut self, r#yield: Arc<StdMutex<Option<Box<dyn FnMut(Arc<StdMutex<Option<K>>>, Arc<StdMutex<Option<V>>>) -> bool + Send + Sync>>>>) {
         self.init();
-        { let __method_arg0 = (*self.root.lock().unwrap().as_mut().unwrap()).load(); let __method_arg1 = r#yield.clone(); self.iter(__method_arg0, __method_arg1) };
+        { let __method_arg0 = (*self.root.lock().unwrap().as_ref().unwrap()).load(); let __method_arg1 = r#yield.clone(); self.iter(__method_arg0, __method_arg1) };
     }
 
     pub fn iter(&self, i: Arc<StdMutex<Option<indirect<K, V>>>>, r#yield: Arc<StdMutex<Option<Box<dyn FnMut(Arc<StdMutex<Option<K>>>, Arc<StdMutex<Option<V>>>) -> bool + Send + Sync>>>>) -> bool {
@@ -850,7 +850,7 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
         if !{ let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<K>>>, Arc<StdMutex<Option<V>>>) -> bool + Send + Sync> = { let mut __f_guard = r#yield.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<K>>>, Arc<StdMutex<Option<V>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*e.lock().unwrap().as_ref().unwrap()).key.clone(), (*e.lock().unwrap().as_ref().unwrap()).value.clone()) } {
         return false;
     }
-        { let new_val = (*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).load().clone(); e = new_val; };
+        { let new_val = (*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_ref().unwrap()).load().clone(); e = new_val; };
     }
     }
         true
@@ -861,7 +861,7 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
         self.init();
                 // It's sufficient to just drop the root on the floor, but the root
                 // must always be non-nil.
-        (*self.root.lock().unwrap().as_mut().unwrap()).store(new_indirect_node::<K, V>(Arc::new(StdMutex::new(None))));
+        (*self.root.lock().unwrap().as_ref().unwrap()).store(new_indirect_node::<K, V>(Arc::new(StdMutex::new(None))));
     }
 }
 
@@ -900,7 +900,7 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
         if { let __left = __self.key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
         return ({ let __return_value_0 = __self.value.clone(); __return_value_0 }, true);
     }
-        { let new_val = (*__self.overflow.lock().unwrap().as_mut().unwrap()).load(); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
+        { let new_val = (*__self.overflow.lock().unwrap().as_ref().unwrap()).load(); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
     }
         (Arc::new(StdMutex::new(None)), false)
     }
@@ -908,10 +908,10 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
     pub fn lookup_with_value(&mut self, key: Arc<StdMutex<Option<K>>>, value: Arc<StdMutex<Option<V>>>, valEqual: equalFunc) -> (Arc<StdMutex<Option<V>>>, bool) {
         let mut __self = self.clone();
         while true {
-        if { let __left = __self.key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } && ((*valEqual.lock().unwrap()).is_none() || { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&__self.value.clone()) as usize))), abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&value.clone()) as usize))))) }) {
+        if { let __left = __self.key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } && ((*valEqual.lock().unwrap()).is_none() || { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&__self.value.clone()) as usize))), internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&value.clone()) as usize))))) }) {
         return ({ let __return_value_0 = __self.value.clone(); __return_value_0 }, true);
     }
-        { let new_val = (*__self.overflow.lock().unwrap().as_mut().unwrap()).load(); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
+        { let new_val = (*__self.overflow.lock().unwrap().as_ref().unwrap()).load(); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
     }
         (Arc::new(StdMutex::new(None)), false)
     }
@@ -925,25 +925,25 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
                 // Return the new head of the list.
         let mut e = new_entry_node::<K, V>(key.clone(), new.clone());
         {
-        let mut chain = (*self.overflow.lock().unwrap().as_mut().unwrap()).load();;
+        let mut chain = (*self.overflow.lock().unwrap().as_ref().unwrap()).load();;
         if (*chain.lock().unwrap()).is_some() {
-            (*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).store(chain.clone());;
+            (*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_ref().unwrap()).store(chain.clone());;
         }
     }
         return (e.clone(), { let __return_value_1 = self.value.clone(); __return_value_1 }, true);
     }
                 // Return the new head of the list.
         let mut i = self.overflow.clone();
-        let mut e = { let __recv = i.clone(); let __recv_ptr: *mut GoAtomicPointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result };
+        let mut e = { let __recv = i.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<entry<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<entry<K, V>> }; let __result = unsafe { &*__recv_ptr }.load(); __result };
         while (*e.lock().unwrap()).is_some() {
         if { let __left = (*e.lock().unwrap().as_ref().unwrap()).key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
         let mut eNew = new_entry_node::<K, V>(key.clone(), new.clone());
-        (*(*eNew.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).store((*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).load());
-        { let __recv = i.clone(); let __recv_ptr: *mut GoAtomicPointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.store(eNew.clone()); __result };
+        (*(*eNew.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_ref().unwrap()).store((*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_ref().unwrap()).load());
+        { let __recv = i.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<entry<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<entry<K, V>> }; let __result = unsafe { &*__recv_ptr }.store(eNew.clone()); __result };
         return (Arc::new(StdMutex::new(Some(self.clone()))), { let __return_value_1 = (*e.lock().unwrap().as_ref().unwrap()).value.clone(); __return_value_1 }, true);
     }
         { let new_val = (*e.lock().unwrap().as_ref().unwrap()).overflow.clone().clone(); i = new_val; };
-        { let new_val = (*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).load().clone(); e = new_val; };
+        { let new_val = (*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_ref().unwrap()).load().clone(); e = new_val; };
     }
         let mut zero: Arc<StdMutex<Option<V>>> = Arc::new(StdMutex::new(None));
         return (Arc::new(StdMutex::new(Some(self.clone()))), zero.clone(), false);
@@ -954,29 +954,29 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
     ///
     /// compareAndSwap must be called under the mutex of the indirect node which e is a child of.
     pub fn compare_and_swap(&self, key: Arc<StdMutex<Option<K>>>, old: Arc<StdMutex<Option<V>>>, new: Arc<StdMutex<Option<V>>>, valEqual: equalFunc) -> (Arc<StdMutex<Option<entry<K, V>>>>, bool) {
-        if { let __left = self.key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } && { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.value.clone()) as usize))), abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&old.clone()) as usize))))) } {
+        if { let __left = self.key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } && { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.value.clone()) as usize))), internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&old.clone()) as usize))))) } {
                 // Return the new head of the list.
         let mut e = new_entry_node::<K, V>(key.clone(), new.clone());
         {
-        let mut chain = (*self.overflow.lock().unwrap().as_mut().unwrap()).load();;
+        let mut chain = (*self.overflow.lock().unwrap().as_ref().unwrap()).load();;
         if (*chain.lock().unwrap()).is_some() {
-            (*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).store(chain.clone());;
+            (*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_ref().unwrap()).store(chain.clone());;
         }
     }
         return (e.clone(), true);
     }
                 // Return the new head of the list.
         let mut i = self.overflow.clone();
-        let mut e = { let __recv = i.clone(); let __recv_ptr: *mut GoAtomicPointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result };
+        let mut e = { let __recv = i.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<entry<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<entry<K, V>> }; let __result = unsafe { &*__recv_ptr }.load(); __result };
         while (*e.lock().unwrap()).is_some() {
-        if { let __left = (*e.lock().unwrap().as_ref().unwrap()).key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } && { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&(*e.lock().unwrap().as_ref().unwrap()).value.clone()) as usize))), abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&old.clone()) as usize))))) } {
+        if { let __left = (*e.lock().unwrap().as_ref().unwrap()).key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } && { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&(*e.lock().unwrap().as_ref().unwrap()).value.clone()) as usize))), internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&old.clone()) as usize))))) } {
         let mut eNew = new_entry_node::<K, V>(key.clone(), new.clone());
-        (*(*eNew.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).store((*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).load());
-        { let __recv = i.clone(); let __recv_ptr: *mut GoAtomicPointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.store(eNew.clone()); __result };
+        (*(*eNew.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_ref().unwrap()).store((*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_ref().unwrap()).load());
+        { let __recv = i.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<entry<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<entry<K, V>> }; let __result = unsafe { &*__recv_ptr }.store(eNew.clone()); __result };
         return (Arc::new(StdMutex::new(Some(self.clone()))), true);
     }
         { let new_val = (*e.lock().unwrap().as_ref().unwrap()).overflow.clone().clone(); i = new_val; };
-        { let new_val = (*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).load().clone(); e = new_val; };
+        { let new_val = (*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_ref().unwrap()).load().clone(); e = new_val; };
     }
         (Arc::new(StdMutex::new(Some(self.clone()))), false)
     }
@@ -988,18 +988,18 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
     pub fn load_and_delete(&self, key: Arc<StdMutex<Option<K>>>) -> (Arc<StdMutex<Option<V>>>, Arc<StdMutex<Option<entry<K, V>>>>, bool) {
         if { let __left = self.key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
                 // Drop the head of the list.
-        return ({ let __return_value_0 = self.value.clone(); __return_value_0 }, (*self.overflow.lock().unwrap().as_mut().unwrap()).load(), true);
+        return ({ let __return_value_0 = self.value.clone(); __return_value_0 }, (*self.overflow.lock().unwrap().as_ref().unwrap()).load(), true);
     }
                 // Drop the head of the list.
         let mut i = self.overflow.clone();
-        let mut e = { let __recv = i.clone(); let __recv_ptr: *mut GoAtomicPointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result };
+        let mut e = { let __recv = i.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<entry<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<entry<K, V>> }; let __result = unsafe { &*__recv_ptr }.load(); __result };
         while (*e.lock().unwrap()).is_some() {
         if { let __left = (*e.lock().unwrap().as_ref().unwrap()).key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
-        { let __recv = i.clone(); let __recv_ptr: *mut GoAtomicPointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.store((*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).load()); __result };
+        { let __recv = i.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<entry<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<entry<K, V>> }; let __result = unsafe { &*__recv_ptr }.store((*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_ref().unwrap()).load()); __result };
         return ({ let __return_value_0 = (*e.lock().unwrap().as_ref().unwrap()).value.clone(); __return_value_0 }, Arc::new(StdMutex::new(Some(self.clone()))), true);
     }
         { let new_val = (*e.lock().unwrap().as_ref().unwrap()).overflow.clone().clone(); i = new_val; };
-        { let new_val = (*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).load().clone(); e = new_val; };
+        { let new_val = (*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_ref().unwrap()).load().clone(); e = new_val; };
     }
         (Arc::new(StdMutex::new(None)), Arc::new(StdMutex::new(Some(self.clone()))), false)
     }
@@ -1009,20 +1009,20 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
     ///
     /// compareAndDelete must be called under the mutex of the indirect node which e is a child of.
     pub fn compare_and_delete(&self, key: Arc<StdMutex<Option<K>>>, value: Arc<StdMutex<Option<V>>>, valEqual: equalFunc) -> (Arc<StdMutex<Option<entry<K, V>>>>, bool) {
-        if { let __left = self.key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } && { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.value.clone()) as usize))), abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&value.clone()) as usize))))) } {
+        if { let __left = self.key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } && { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.value.clone()) as usize))), internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&value.clone()) as usize))))) } {
                 // Drop the head of the list.
-        return ((*self.overflow.lock().unwrap().as_mut().unwrap()).load(), true);
+        return ((*self.overflow.lock().unwrap().as_ref().unwrap()).load(), true);
     }
                 // Drop the head of the list.
         let mut i = self.overflow.clone();
-        let mut e = { let __recv = i.clone(); let __recv_ptr: *mut GoAtomicPointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result };
+        let mut e = { let __recv = i.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<entry<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<entry<K, V>> }; let __result = unsafe { &*__recv_ptr }.load(); __result };
         while (*e.lock().unwrap()).is_some() {
-        if { let __left = (*e.lock().unwrap().as_ref().unwrap()).key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } && { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&(*e.lock().unwrap().as_ref().unwrap()).value.clone()) as usize))), abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&value.clone()) as usize))))) } {
-        { let __recv = i.clone(); let __recv_ptr: *mut GoAtomicPointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut GoAtomicPointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.store((*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).load()); __result };
+        if { let __left = (*e.lock().unwrap().as_ref().unwrap()).key.clone(); let __right = key.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } && { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&(*e.lock().unwrap().as_ref().unwrap()).value.clone()) as usize))), internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&value.clone()) as usize))))) } {
+        { let __recv = i.clone(); let __recv_ptr: *const sync_atomic::r#type::Pointer<entry<K, V>> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const sync_atomic::r#type::Pointer<entry<K, V>> }; let __result = unsafe { &*__recv_ptr }.store((*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_ref().unwrap()).load()); __result };
         return (Arc::new(StdMutex::new(Some(self.clone()))), true);
     }
         { let new_val = (*e.lock().unwrap().as_ref().unwrap()).overflow.clone().clone(); i = new_val; };
-        { let new_val = (*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).load().clone(); e = new_val; };
+        { let new_val = (*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_ref().unwrap()).load().clone(); e = new_val; };
     }
         (Arc::new(StdMutex::new(Some(self.clone()))), false)
     }

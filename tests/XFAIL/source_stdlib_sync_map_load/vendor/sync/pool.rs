@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoAtomicPointer, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_slice, format_slice_values, format_slice_wrapped, go_any_eq};
+use crate::{GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_slice, format_slice_values, format_slice_wrapped, go_any_eq};
 
 use crate::cond::*;
 use crate::hashtriemap::*;
@@ -273,7 +273,7 @@ impl Pool {
                 // Try the victim cache. We do this after attempting to steal
                 // from all primary caches because we want objects in the
                 // victim cache to age out if at all possible.
-        { let new_val = atomic::load_uintptr(self.victim_size.clone()); size = new_val; };
+        { let new_val = sync_atomic::load_uintptr(self.victim_size.clone()); size = new_val; };
         if { let __tmp_x = (*Arc::new(StdMutex::new(Some((*pid.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = size; __tmp_x >= __tmp_y } {
         return Arc::new(StdMutex::new(None));
     }
@@ -299,7 +299,7 @@ impl Pool {
     }
                 // Mark the victim cache as empty for future gets don't bother
                 // with it.
-        atomic::store_uintptr(self.victim_size.clone(), 0 as usize);
+        sync_atomic::store_uintptr(self.victim_size.clone(), Arc::new(StdMutex::new(Some(0 as usize))));
         return Arc::new(StdMutex::new(None));
     }
 
@@ -355,7 +355,7 @@ impl Pool {
                 // If GOMAXPROCS changes between GCs, we re-allocate the array and lose the old one.
         let mut size = runtime::g_o_m_a_x_p_r_o_c_s(0);
         let mut local: Arc<StdMutex<Option<Vec<poolLocal>>>> = Arc::new(StdMutex::new(Some(vec![Default::default(); (size) as usize])));
-        { let __target = self.local.clone(); let __stored = { let __value = Arc::new(StdMutex::new(Some({ let __seq_holder = local.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))); let __guard = __value.lock().unwrap(); (*__guard).clone() }; *__target.lock().unwrap() = __stored; };
+        sync_atomic::store_pointer(self.local.clone(), Arc::new(StdMutex::new(Some({ let __seq_holder = local.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))));
         runtime__store_reluintptr(self.local_size.clone(), Arc::new(StdMutex::new(Some(size as usize))));
         {
         // Execute deferred functions

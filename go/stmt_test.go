@@ -4360,6 +4360,23 @@ func call[T any](h *holder[T]) {
 	}
 }
 
+func TestTypeParamPointerNamedResultUsesNilHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func swap[T any]() (old *T) {
+	return
+}
+`)
+
+	if strings.Contains(rust, "Some(Default::default())") {
+		t.Fatalf("named *T result should not require Rust Default:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut old: Rc<RefCell<Option<T>>> = Rc::new(RefCell::new(None));") &&
+		!strings.Contains(rust, "let mut old: Arc<Mutex<Option<T>>> = Arc::new(Mutex::new(None));") {
+		t.Fatalf("named *T result should initialize to a nil handle:\n%s", rust)
+	}
+}
+
 func TestNamedSliceSelectorReturnAsUnnamedSliceUsesInnerHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

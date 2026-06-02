@@ -102,6 +102,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		ptrToPtrSlice      bool
 		isPointer          bool
 		interfaceSlice     bool
+		zeroLenArray       bool
 	}
 	var fields []fieldEntry
 	for fieldIndex, field := range structType.Fields.List {
@@ -125,6 +126,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		ptrToPtrSlice := pointerFieldContainsPointerSlice(field.Type)
 		isPointer := structDisplayFieldIsPointer(field.Type)
 		interfaceSlice := arrayFieldContainsLocalInterface(field.Type)
+		zeroLenArray := structDisplayFieldIsZeroLenArray(field.Type)
 		if isChannel {
 			continue
 		}
@@ -148,6 +150,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 					ptrToPtrSlice:      ptrToPtrSlice,
 					isPointer:          isPointer,
 					interfaceSlice:     interfaceSlice,
+					zeroLenArray:       zeroLenArray,
 				})
 			}
 		} else {
@@ -171,6 +174,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 				ptrToPtrSlice:      ptrToPtrSlice,
 				isPointer:          isPointer,
 				interfaceSlice:     interfaceSlice,
+				zeroLenArray:       zeroLenArray,
 			})
 		}
 	}
@@ -207,6 +211,8 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			out.WriteString("format_map(&self.")
 			out.WriteString(ToSnakeCase(f.name))
 			out.WriteString(")")
+		} else if f.zeroLenArray {
+			out.WriteString("\"[]\"")
 		} else if f.nestedSliceWrapped {
 			NeedFormatNestedSliceWrapped()
 			out.WriteString("format_nested_slice_wrapped(&self.")
@@ -263,6 +269,19 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 	out.WriteString(")\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
+}
+
+func structDisplayFieldIsZeroLenArray(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	array, ok := types.Unalias(typ).Underlying().(*types.Array)
+	return ok && array.Len() == 0
 }
 
 func generateStructDebug(out *strings.Builder, structName string, generics rustTypeGenerics) {
@@ -3308,6 +3327,11 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 						continue
 					}
 
+					if writeNamedReturnNilZeroValueFromTypeInfo(out, result.Type) {
+						out.WriteString(";\n")
+						continue
+					}
+
 					// For all other types
 					WriteWrapperPrefix(out)
 					switch t := result.Type.(type) {
@@ -3443,6 +3467,10 @@ func writeRuntimeLinkedFunctionBody(out *strings.Builder, fn *ast.FuncDecl, inde
 			out.WriteString(";\n")
 			return true
 		}
+	case "sync/atomic":
+		if writeSyncAtomicRuntimeLinkedBody(out, fn, indent) {
+			return true
+		}
 	case "syscall":
 		switch fn.Name.Name {
 		case "runtime_envs":
@@ -3532,6 +3560,211 @@ func writeRuntimeLinkedFunctionBody(out *strings.Builder, fn *ast.FuncDecl, inde
 		}
 	}
 	return false
+}
+
+func writeSyncAtomicRuntimeLinkedBody(out *strings.Builder, fn *ast.FuncDecl, indent string) bool {
+	if fn == nil || fn.Name == nil {
+		return false
+	}
+	switch fn.Name.Name {
+	case "LoadInt32", "LoadInt64", "LoadUint32", "LoadUint64", "LoadUintptr":
+		writeSyncAtomicLoadScalarBody(out, fn, indent)
+		return true
+	case "StoreInt32", "StoreInt64", "StoreUint32", "StoreUint64", "StoreUintptr":
+		writeSyncAtomicStoreScalarBody(out, fn, indent)
+		return true
+	case "SwapInt32", "SwapInt64", "SwapUint32", "SwapUint64", "SwapUintptr":
+		writeSyncAtomicSwapScalarBody(out, fn, indent)
+		return true
+	case "CompareAndSwapInt32", "CompareAndSwapInt64", "CompareAndSwapUint32", "CompareAndSwapUint64", "CompareAndSwapUintptr":
+		writeSyncAtomicCompareAndSwapScalarBody(out, fn, indent)
+		return true
+	case "AddInt32", "AddInt64", "AddUint32", "AddUint64", "AddUintptr":
+		writeSyncAtomicAddScalarBody(out, fn, indent)
+		return true
+	case "AndInt32", "AndInt64", "AndUint32", "AndUint64", "AndUintptr":
+		writeSyncAtomicBitwiseScalarBody(out, fn, indent, "&=")
+		return true
+	case "OrInt32", "OrInt64", "OrUint32", "OrUint64", "OrUintptr":
+		writeSyncAtomicBitwiseScalarBody(out, fn, indent, "|=")
+		return true
+	case "LoadPointer":
+		writeSyncAtomicLoadPointerBody(out, fn, indent)
+		return true
+	case "StorePointer":
+		writeSyncAtomicStorePointerBody(out, fn, indent)
+		return true
+	case "SwapPointer":
+		writeSyncAtomicSwapPointerBody(out, fn, indent)
+		return true
+	case "CompareAndSwapPointer":
+		writeSyncAtomicCompareAndSwapPointerBody(out, fn, indent)
+		return true
+	default:
+		return false
+	}
+}
+
+func writeSyncAtomicLoadScalarBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	addrName := RustLocalIdent(functionParamName(fn, 0, "addr"))
+	out.WriteString(indent)
+	out.WriteString("(*")
+	out.WriteString(addrName)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()\n")
+}
+
+func writeSyncAtomicStoreScalarBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	addrName := RustLocalIdent(functionParamName(fn, 0, "addr"))
+	valueName := functionParamName(fn, 1, "val")
+	writeRuntimeLinkedParamClone(out, valueName, "__val", indent)
+	out.WriteString(indent)
+	out.WriteString("*")
+	out.WriteString(addrName)
+	WriteBorrowMethod(out, true)
+	out.WriteString(".as_mut().unwrap() = __val;\n")
+}
+
+func writeSyncAtomicSwapScalarBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	addrName := RustLocalIdent(functionParamName(fn, 0, "addr"))
+	newName := functionParamName(fn, 1, "new")
+	writeRuntimeLinkedParamClone(out, newName, "__new", indent)
+	writeSyncAtomicMutableGuard(out, addrName, indent)
+	out.WriteString(indent)
+	out.WriteString("let __old = (*__guard.as_ref().unwrap()).clone();\n")
+	out.WriteString(indent)
+	out.WriteString("*__guard.as_mut().unwrap() = __new;\n")
+	out.WriteString(indent)
+	out.WriteString("__old\n")
+}
+
+func writeSyncAtomicCompareAndSwapScalarBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	addrName := RustLocalIdent(functionParamName(fn, 0, "addr"))
+	oldName := functionParamName(fn, 1, "old")
+	newName := functionParamName(fn, 2, "new")
+	writeRuntimeLinkedParamClone(out, oldName, "__old", indent)
+	writeRuntimeLinkedParamClone(out, newName, "__new", indent)
+	writeSyncAtomicMutableGuard(out, addrName, indent)
+	out.WriteString(indent)
+	out.WriteString("if *__guard.as_ref().unwrap() == __old {\n")
+	out.WriteString(indent)
+	out.WriteString("    *__guard.as_mut().unwrap() = __new;\n")
+	out.WriteString(indent)
+	out.WriteString("    true\n")
+	out.WriteString(indent)
+	out.WriteString("} else {\n")
+	out.WriteString(indent)
+	out.WriteString("    false\n")
+	out.WriteString(indent)
+	out.WriteString("}\n")
+}
+
+func writeSyncAtomicAddScalarBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	addrName := RustLocalIdent(functionParamName(fn, 0, "addr"))
+	deltaName := functionParamName(fn, 1, "delta")
+	writeRuntimeLinkedParamClone(out, deltaName, "__delta", indent)
+	writeSyncAtomicMutableGuard(out, addrName, indent)
+	out.WriteString(indent)
+	out.WriteString("let __current = (*__guard.as_ref().unwrap()).clone();\n")
+	out.WriteString(indent)
+	out.WriteString("let __new = __current.wrapping_add(__delta);\n")
+	out.WriteString(indent)
+	out.WriteString("*__guard.as_mut().unwrap() = __new;\n")
+	out.WriteString(indent)
+	out.WriteString("__new\n")
+}
+
+func writeSyncAtomicBitwiseScalarBody(out *strings.Builder, fn *ast.FuncDecl, indent string, op string) {
+	addrName := RustLocalIdent(functionParamName(fn, 0, "addr"))
+	maskName := functionParamName(fn, 1, "mask")
+	writeRuntimeLinkedParamClone(out, maskName, "__mask", indent)
+	writeSyncAtomicMutableGuard(out, addrName, indent)
+	out.WriteString(indent)
+	out.WriteString("let __old = (*__guard.as_ref().unwrap()).clone();\n")
+	out.WriteString(indent)
+	out.WriteString("*__guard.as_mut().unwrap() ")
+	out.WriteString(op)
+	out.WriteString(" __mask;\n")
+	out.WriteString(indent)
+	out.WriteString("__old\n")
+}
+
+func writeSyncAtomicLoadPointerBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	addrName := RustLocalIdent(functionParamName(fn, 0, "addr"))
+	out.WriteString(indent)
+	out.WriteString("let __value = ")
+	out.WriteString(addrName)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().copied().unwrap_or(0);\n")
+	out.WriteString(indent)
+	WriteWrapperPrefix(out)
+	out.WriteString("__value")
+	WriteWrapperSuffix(out)
+	out.WriteString("\n")
+}
+
+func writeSyncAtomicStorePointerBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	addrName := RustLocalIdent(functionParamName(fn, 0, "addr"))
+	valName := functionParamName(fn, 1, "val")
+	writeSyncAtomicPointerParamValue(out, valName, "__val", indent)
+	writeSyncAtomicMutableGuard(out, addrName, indent)
+	out.WriteString(indent)
+	out.WriteString("*__guard.as_mut().unwrap() = __val;\n")
+}
+
+func writeSyncAtomicSwapPointerBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	addrName := RustLocalIdent(functionParamName(fn, 0, "addr"))
+	newName := functionParamName(fn, 1, "new")
+	writeSyncAtomicPointerParamValue(out, newName, "__new", indent)
+	writeSyncAtomicMutableGuard(out, addrName, indent)
+	out.WriteString(indent)
+	out.WriteString("let __old = __guard.as_ref().copied().unwrap_or(0);\n")
+	out.WriteString(indent)
+	out.WriteString("*__guard.as_mut().unwrap() = __new;\n")
+	out.WriteString(indent)
+	WriteWrapperPrefix(out)
+	out.WriteString("__old")
+	WriteWrapperSuffix(out)
+	out.WriteString("\n")
+}
+
+func writeSyncAtomicCompareAndSwapPointerBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	addrName := RustLocalIdent(functionParamName(fn, 0, "addr"))
+	oldName := functionParamName(fn, 1, "old")
+	newName := functionParamName(fn, 2, "new")
+	writeSyncAtomicPointerParamValue(out, oldName, "__old", indent)
+	writeSyncAtomicPointerParamValue(out, newName, "__new", indent)
+	writeSyncAtomicMutableGuard(out, addrName, indent)
+	out.WriteString(indent)
+	out.WriteString("if __guard.as_ref().copied().unwrap_or(0) == __old {\n")
+	out.WriteString(indent)
+	out.WriteString("    *__guard.as_mut().unwrap() = __new;\n")
+	out.WriteString(indent)
+	out.WriteString("    true\n")
+	out.WriteString(indent)
+	out.WriteString("} else {\n")
+	out.WriteString(indent)
+	out.WriteString("    false\n")
+	out.WriteString(indent)
+	out.WriteString("}\n")
+}
+
+func writeSyncAtomicMutableGuard(out *strings.Builder, addrName string, indent string) {
+	out.WriteString(indent)
+	out.WriteString("let mut __guard = ")
+	out.WriteString(addrName)
+	WriteBorrowMethod(out, true)
+	out.WriteString(";\n")
+}
+
+func writeSyncAtomicPointerParamValue(out *strings.Builder, paramName string, localName string, indent string) {
+	out.WriteString(indent)
+	out.WriteString("let ")
+	out.WriteString(localName)
+	out.WriteString(" = ")
+	out.WriteString(RustLocalIdent(paramName))
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().copied().unwrap_or(0);\n")
 }
 
 func functionPackagePath(fn *ast.FuncDecl) string {
@@ -3966,6 +4199,10 @@ func functionParamName(fn *ast.FuncDecl, index int, fallback string) string {
 }
 
 func writeRuntimeLinkedStringParamClone(out *strings.Builder, paramName string, localName string, indent string) {
+	writeRuntimeLinkedParamClone(out, paramName, localName, indent)
+}
+
+func writeRuntimeLinkedParamClone(out *strings.Builder, paramName string, localName string, indent string) {
 	out.WriteString(indent)
 	out.WriteString("let ")
 	out.WriteString(localName)
@@ -6142,6 +6379,12 @@ func writeNamedReturnDeclarations(out *strings.Builder, fnType *ast.FuncType) {
 				continue
 			}
 
+			if writeNamedReturnNilZeroValueFromTypeInfo(out, result.Type) {
+				out.WriteString(";\n")
+				wrote = true
+				continue
+			}
+
 			WriteWrapperPrefix(out)
 			switch t := result.Type.(type) {
 			case *ast.Ident:
@@ -6231,6 +6474,12 @@ func writeNamedReturnZeroValue(out *strings.Builder, typeExpr ast.Expr) {
 		WriteWrappedNone(out)
 		return
 	}
+	if writeDirectTypeParamWrappedZeroValue(out, typeExpr, "named return zero value") {
+		return
+	}
+	if writeNamedReturnNilZeroValueFromTypeInfo(out, typeExpr) {
+		return
+	}
 
 	WriteWrapperPrefix(out)
 	switch t := typeExpr.(type) {
@@ -6253,6 +6502,29 @@ func writeNamedReturnZeroValue(out *strings.Builder, typeExpr ast.Expr) {
 		out.WriteString("Default::default()")
 	}
 	WriteWrapperSuffix(out)
+}
+
+func writeNamedReturnNilZeroValueFromTypeInfo(out *strings.Builder, typeExpr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(typeExpr)
+	if typ == nil {
+		return false
+	}
+	if named, ok := types.Unalias(typ).(*types.Named); ok {
+		if _, isSlice := types.Unalias(named.Underlying()).(*types.Slice); isSlice {
+			return false
+		}
+	}
+	switch types.Unalias(typ).Underlying().(type) {
+	case *types.Interface, *types.Pointer, *types.Signature, *types.Slice:
+		WriteWrappedNone(out)
+		return true
+	default:
+		return false
+	}
 }
 
 func exprReferencesReceiver(expr ast.Expr, receiverName string) bool {

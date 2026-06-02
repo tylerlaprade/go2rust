@@ -30,6 +30,7 @@ static __GO_INIT_ONCE: std::sync::Once = std::sync::Once::new();
 pub fn __go_init_all() {
     __GO_INIT_ONCE.call_once(|| {
         internal_sync::__go_init_all();
+        sync_atomic::__go_init_all();
         pool::__go_zero_globals();
         pool::__go_init_functions();
         runtime::__go_init_functions();

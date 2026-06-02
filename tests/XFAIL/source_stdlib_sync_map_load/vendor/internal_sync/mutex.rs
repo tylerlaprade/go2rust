@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoAtomicPointer, GoValueClone, format_slice, format_slice_values, format_slice_wrapped, go_any_clone};
+use crate::{GoValueClone, format_slice, format_slice_values, format_slice_wrapped, go_any_clone};
 
 use crate::hashtriemap::*;
 use crate::runtime::*;
@@ -58,7 +58,7 @@ impl Mutex {
     /// See package [sync.Mutex] documentation.
     pub fn lock(&self) {
                 // Fast path: grab unlocked mutex.
-        if atomic::compare_and_swap_int32(self.state.clone(), 0 as i32, MUTEX_LOCKED as i32) {
+        if sync_atomic::compare_and_swap_int32(self.state.clone(), Arc::new(StdMutex::new(Some(0 as i32))), Arc::new(StdMutex::new(Some(MUTEX_LOCKED as i32)))) {
         if race::ENABLED {
         race::acquire(Arc::new(StdMutex::new(Some(self as *const _ as usize))));
     }
@@ -79,7 +79,7 @@ impl Mutex {
                 // There may be a goroutine waiting for the mutex, but we are
                 // running now and can try to grab the mutex before that
                 // goroutine wakes up.
-        if !atomic::compare_and_swap_int32(self.state.clone(), old.clone(), { let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MUTEX_LOCKED as i32; __tmp_x | __tmp_y }) {
+        if !sync_atomic::compare_and_swap_int32(self.state.clone(), Arc::new(StdMutex::new(Some({ let __arg_holder = old.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some({ let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MUTEX_LOCKED as i32; __tmp_x | __tmp_y })))) {
         return false;
     }
         if race::ENABLED {
@@ -101,7 +101,7 @@ impl Mutex {
                 // Active spinning makes sense.
                 // Try to set mutexWoken flag to inform Unlock
                 // to not wake other blocked goroutines.
-        if !{ let __v = (*awoke.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = { let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MUTEX_WOKEN as i32; __tmp_x & __tmp_y }; let __tmp_y = 0 as i32; __tmp_x == __tmp_y } && { let __tmp_x = { let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MUTEX_WAITER_SHIFT as i32; __tmp_x >> __tmp_y }; let __tmp_y = 0 as i32; __tmp_x != __tmp_y } && atomic::compare_and_swap_int32(self.state.clone(), old.clone(), { let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MUTEX_WOKEN as i32; __tmp_x | __tmp_y }) {
+        if !{ let __v = (*awoke.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = { let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MUTEX_WOKEN as i32; __tmp_x & __tmp_y }; let __tmp_y = 0 as i32; __tmp_x == __tmp_y } && { let __tmp_x = { let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MUTEX_WAITER_SHIFT as i32; __tmp_x >> __tmp_y }; let __tmp_y = 0 as i32; __tmp_x != __tmp_y } && sync_atomic::compare_and_swap_int32(self.state.clone(), Arc::new(StdMutex::new(Some({ let __arg_holder = old.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some({ let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MUTEX_WOKEN as i32; __tmp_x | __tmp_y })))) {
         { let new_val = true; *awoke.lock().unwrap() = Some(new_val); };
     }
         runtime_do_spin();
@@ -139,7 +139,7 @@ impl Mutex {
     }
                 // The goroutine has been woken from sleep,
                 // so we need to reset the flag in either case.
-        if atomic::compare_and_swap_int32(self.state.clone(), old.clone(), new.clone()) {
+        if sync_atomic::compare_and_swap_int32(self.state.clone(), Arc::new(StdMutex::new(Some({ let __arg_holder = old.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some({ let __arg_holder = new.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
         if { let __tmp_x = { let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = MUTEX_LOCKED; let __tmp_y = MUTEX_STARVING; __tmp_x | __tmp_y }) as i32; __tmp_x & __tmp_y }; let __tmp_y = 0 as i32; __tmp_x == __tmp_y } {
         break
     }
@@ -174,7 +174,7 @@ impl Mutex {
                 // Starvation mode is so inefficient, that two goroutines
                 // can go lock-step infinitely once they switch mutex
                 // to starvation mode.
-        atomic::add_int32(self.state.clone(), delta.clone());
+        sync_atomic::add_int32(self.state.clone(), Arc::new(StdMutex::new(Some({ let __arg_holder = delta.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         break
     }
                 // If this goroutine was woken and mutex is in starvation mode,
@@ -229,7 +229,7 @@ impl Mutex {
         race::release(Arc::new(StdMutex::new(Some(self as *const _ as usize))));
     }
                 // Fast path: drop lock bit.
-        let mut new = atomic::add_int32(self.state.clone(), -MUTEX_LOCKED as i32);
+        let mut new = sync_atomic::add_int32(self.state.clone(), Arc::new(StdMutex::new(Some(-MUTEX_LOCKED as i32))));
         if { let __tmp_x = new; let __tmp_y = 0 as i32; __tmp_x != __tmp_y } {
                 // Outlined slow path to allow inlining the fast path.
                 // To hide unlockSlow during tracing we skip one extra frame when tracing GoUnblock.
@@ -256,7 +256,7 @@ impl Mutex {
 
                 // Grab the right to wake someone.
         { let new_val = { let __tmp_x = ({ let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((1 as i32) << (MUTEX_WAITER_SHIFT as i32)) as i32; __tmp_x - __tmp_y }); let __tmp_y = MUTEX_WOKEN as i32; __tmp_x | __tmp_y }; *new.lock().unwrap() = Some(new_val); };
-        if atomic::compare_and_swap_int32(self.state.clone(), old.clone(), new.clone()) {
+        if sync_atomic::compare_and_swap_int32(self.state.clone(), Arc::new(StdMutex::new(Some({ let __arg_holder = old.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some({ let __arg_holder = new.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
         runtime__semrelease(self.sema.clone(), Arc::new(StdMutex::new(Some(false))), Arc::new(StdMutex::new(Some(2))));
         return;
     }

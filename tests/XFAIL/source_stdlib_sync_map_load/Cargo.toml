@@ -3,8 +3,10 @@
 members = [
     ".",
     "vendor/go2rust_stdlib_stubs",
+    "vendor/internal_abi",
     "vendor/internal_sync",
     "vendor/sync",
+    "vendor/sync_atomic",
 ]
 
 [package]
@@ -18,5 +20,7 @@ path = "main.rs"
 
 [dependencies]
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+internal_abi = { path = "vendor/internal_abi" }
 internal_sync = { path = "vendor/internal_sync" }
 sync = { path = "vendor/sync" }
+sync_atomic = { path = "vendor/sync_atomic" }

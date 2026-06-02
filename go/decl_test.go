@@ -157,6 +157,72 @@ func TestTranspileSyncRuntimeLinkedFunctionsUseLocalRuntimeBodies(t *testing.T) 
 	}
 }
 
+func TestTranspileSyncAtomicRuntimeIntrinsicsUseWrappedAddressBodies(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	currentTypeInfo = &TypeInfo{pkg: types.NewPackage("sync/atomic", "atomic")}
+	t.Cleanup(func() {
+		currentTypeInfo = prevTypeInfo
+	})
+	prevCD := GetConcurrencyDetector()
+	cd := NewConcurrencyDetector()
+	cd.hasGoroutines = true
+	SetConcurrencyDetector(cd)
+	t.Cleanup(func() {
+		SetConcurrencyDetector(prevCD)
+	})
+
+	field := func(name string, typ ast.Expr) *ast.Field {
+		return &ast.Field{Names: []*ast.Ident{ast.NewIdent(name)}, Type: typ}
+	}
+	ptrTo := func(name string) ast.Expr {
+		return &ast.StarExpr{X: ast.NewIdent(name)}
+	}
+	result := func(name string) *ast.FieldList {
+		return &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent(name)}}}
+	}
+	fn := func(name string, params []*ast.Field, results *ast.FieldList) *ast.FuncDecl {
+		return &ast.FuncDecl{
+			Name: ast.NewIdent(name),
+			Type: &ast.FuncType{Params: &ast.FieldList{List: params}, Results: results},
+		}
+	}
+
+	fset := token.NewFileSet()
+	var out strings.Builder
+	for _, decl := range []*ast.FuncDecl{
+		fn("LoadUint32", []*ast.Field{field("addr", ptrTo("uint32"))}, result("uint32")),
+		fn("StoreUint32", []*ast.Field{field("addr", ptrTo("uint32")), field("val", ast.NewIdent("uint32"))}, nil),
+		fn("SwapUint32", []*ast.Field{field("addr", ptrTo("uint32")), field("new", ast.NewIdent("uint32"))}, result("uint32")),
+		fn("CompareAndSwapUint32", []*ast.Field{field("addr", ptrTo("uint32")), field("old", ast.NewIdent("uint32")), field("new", ast.NewIdent("uint32"))}, result("bool")),
+		fn("AddUint32", []*ast.Field{field("addr", ptrTo("uint32")), field("delta", ast.NewIdent("uint32"))}, result("uint32")),
+		fn("AndUint32", []*ast.Field{field("addr", ptrTo("uint32")), field("mask", ast.NewIdent("uint32"))}, result("uint32")),
+		fn("OrUint32", []*ast.Field{field("addr", ptrTo("uint32")), field("mask", ast.NewIdent("uint32"))}, result("uint32")),
+		fn("LoadPointer", []*ast.Field{field("addr", ptrTo("uintptr"))}, result("uintptr")),
+		fn("StorePointer", []*ast.Field{field("addr", ptrTo("uintptr")), field("val", ast.NewIdent("uintptr"))}, nil),
+		fn("CompareAndSwapPointer", []*ast.Field{field("addr", ptrTo("uintptr")), field("old", ast.NewIdent("uintptr")), field("new", ast.NewIdent("uintptr"))}, result("bool")),
+	} {
+		TranspileFunction(&out, decl, fset, nil)
+	}
+
+	got := out.String()
+	if strings.Contains(got, "Go function declaration has no body") {
+		t.Fatalf("sync/atomic runtime intrinsics should not use the generic bodyless fallback:\n%s", got)
+	}
+	for _, want := range []string{
+		"let mut __guard = addr.lock().unwrap();",
+		"*__guard.as_mut().unwrap() = __new;",
+		"__current.wrapping_add(__delta)",
+		"*__guard.as_mut().unwrap() &= __mask;",
+		"*__guard.as_mut().unwrap() |= __mask;",
+		"if *__guard.as_ref().unwrap() == __old",
+		"as_ref().copied().unwrap_or(0)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %q in:\n%s", want, got)
+		}
+	}
+}
+
 func TestTranspileInternalABIFuncPCIntrinsicsUseFunctionTypeID(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	currentTypeInfo = &TypeInfo{pkg: types.NewPackage("internal/abi", "abi")}
@@ -1218,6 +1284,28 @@ type Entry[K any, V any] struct {
 	want := "impl<K: Any + 'static, V: Any + 'static> std::fmt::Display for Entry<K, V> where K: std::fmt::Display, V: std::fmt::Display {"
 	if !strings.Contains(rust, want) {
 		t.Fatalf("generic struct Display impl should bound formatted type parameters, missing %q:\n%s", want, rust)
+	}
+}
+
+func TestGenericStructDisplayZeroLengthPointerArrayNeedsNoDisplayBound(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Pointer[T any] struct {
+	_ [0]*T
+	v int
+}
+`)
+
+	for _, forbidden := range []string{
+		"where T: std::fmt::Display",
+		"format_slice_wrapped(&self.__blank_0_0)",
+	} {
+		if strings.Contains(rust, forbidden) {
+			t.Fatalf("zero-length pointer-array phantom field should not require Display via %q:\n%s", forbidden, rust)
+		}
+	}
+	if !strings.Contains(rust, `write!(f, "{{{} {}}}", "[]"`) {
+		t.Fatalf("zero-length pointer-array field should format as an empty array literal:\n%s", rust)
 	}
 }
 
