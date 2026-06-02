@@ -179,12 +179,20 @@ if [ "$remove_repo_artifacts" = true ]; then
     done
 fi
 
-tmp_roots=("${TMPDIR:-/tmp}" "/private/tmp")
-if [ "${TMPDIR:-}" != "" ]; then
-    case "${TMPDIR}" in
-        */) tmp_roots+=("${TMPDIR%/}") ;;
+tmp_roots=()
+add_tmp_root() {
+    local root="$1"
+    [ -n "$root" ] || return
+    case "$root" in
+        */) root="${root%/}" ;;
     esac
-fi
+    [ -n "$root" ] || return
+    tmp_roots+=("$root")
+}
+
+add_tmp_root "${TMPDIR:-}"
+add_tmp_root "/tmp"
+add_tmp_root "/private/tmp"
 
 seen_roots=""
 for root in "${tmp_roots[@]}"; do

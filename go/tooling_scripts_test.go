@@ -199,6 +199,25 @@ func TestCleanupScriptRemovesKnownGo2RustArtifacts(t *testing.T) {
 	}
 }
 
+func TestCleanupScriptScansCanonicalTempRoots(t *testing.T) {
+	data, err := os.ReadFile("../cleanup.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(cleanup.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`add_tmp_root "${TMPDIR:-}"`,
+		`add_tmp_root "/tmp"`,
+		`add_tmp_root "/private/tmp"`,
+		`case "$root" in`,
+		`*/) root="${root%/}" ;;`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("cleanup.sh should scan canonical temp roots; missing %q", want)
+		}
+	}
+}
+
 func TestCleanupScriptCanReportArtifactSizes(t *testing.T) {
 	data, err := os.ReadFile("../cleanup.sh")
 	if err != nil {

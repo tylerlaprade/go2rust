@@ -107,10 +107,27 @@ func TestSelfTranspileWorkspaceRecordsOwnerPid(t *testing.T) {
 		`self_transpile_check.pid`,
 		`GO2RUST_SELF_CLEAN_STALE`,
 		`cleanup_stale_self_workspaces`,
-		`kill -0 "$pid"`,
+		`"$repo_root/cleanup.sh" --age-minutes "${GO2RUST_SELF_CLEAN_AGE_MINUTES:-60}" --keep-repo-artifacts`,
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("self_transpile_check.sh should mark and clean stale temp workspaces; missing %q", want)
+		}
+	}
+}
+
+func TestSelfTranspileCleanupAgeIsConfigurable(t *testing.T) {
+	data, err := os.ReadFile("../self_transpile_check.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(self_transpile_check.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`GO2RUST_SELF_CLEAN_AGE_MINUTES=N`,
+		`Age threshold for startup cleanup of stale go2rust temp`,
+		`"${GO2RUST_SELF_CLEAN_AGE_MINUTES:-60}"`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("self_transpile_check.sh should expose configurable cleanup age; missing %q", want)
 		}
 	}
 }

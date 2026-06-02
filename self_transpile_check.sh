@@ -24,6 +24,9 @@ Environment:
   GO2RUST_BEHAVIOR_TIMEOUT=TIME Per-test behavior timeout (default: 30s).
   GO2RUST_BEHAVIOR_TESTS="name [name...]"
                       Restrict --behavior-suite to specific fixture names.
+  GO2RUST_SELF_CLEAN_AGE_MINUTES=N
+                      Age threshold for startup cleanup of stale go2rust temp
+                      artifacts (default: 60).
   GO2RUST_SELF_CLEAN_STALE=0
                       Disable startup cleanup of stale self-transpile workspaces
                       that were created with an owner pid marker.
@@ -74,18 +77,7 @@ tmp_root="${TMPDIR:-/private/tmp}"
 
 cleanup_stale_self_workspaces() {
     [ "${GO2RUST_SELF_CLEAN_STALE:-1}" = "0" ] && return
-
-    find "$tmp_root" -maxdepth 1 -type d -name 'go2rust-self.*' -print 2>/dev/null | while IFS= read -r dir; do
-        pid_file="$dir/self_transpile_check.pid"
-        [ -f "$pid_file" ] || continue
-
-        pid=$(cat "$pid_file" 2>/dev/null || true)
-        if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-            continue
-        fi
-
-        rm -rf "$dir"
-    done
+    "$repo_root/cleanup.sh" --age-minutes "${GO2RUST_SELF_CLEAN_AGE_MINUTES:-60}" --keep-repo-artifacts >/dev/null
 }
 
 cleanup_stale_self_workspaces
