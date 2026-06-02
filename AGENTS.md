@@ -113,7 +113,7 @@ Runtime guidance:
 
 - Run only one `./test.sh` process at a time; it rewrites generated Bats files.
 - Prefer the default parallel fixture mode when the machine has memory headroom.
-- Use `./test.sh -n 1 ...` only for memory pressure, hard-to-read interleaving, or self-transpile follow-up checks.
+- Use `./test.sh --low-memory ...` for memory pressure; it forces one fixture at a time and applies low-memory Cargo settings. Use `./test.sh -n 1 ...` only when you specifically need sequential fixture output without changing Cargo settings.
 - Treat `Passing: 0/0` as an invalid run, not success.
 - For focused Go unit tests, prefer `./go_test.sh -run ...`; it wraps `go test ./go` with a disposable `GOCACHE`.
 - For expensive Rust validation, set `CARGO_TARGET_DIR` to a temp directory.

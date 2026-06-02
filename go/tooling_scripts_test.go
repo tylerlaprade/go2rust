@@ -6,10 +6,10 @@ import (
 	"testing"
 )
 
-func TestTestScriptSweepsAllGeneratedTempRoots(t *testing.T) {
-	data, err := os.ReadFile("../test.sh")
+func TestCleanupScriptSweepsAllGeneratedTempRoots(t *testing.T) {
+	data, err := os.ReadFile("../cleanup.sh")
 	if err != nil {
-		t.Fatalf("ReadFile(test.sh) error = %v", err)
+		t.Fatalf("ReadFile(cleanup.sh) error = %v", err)
 	}
 	script := string(data)
 	for _, want := range []string{
@@ -25,12 +25,12 @@ func TestTestScriptSweepsAllGeneratedTempRoots(t *testing.T) {
 		"go2rust-go-cache.*",
 	} {
 		if !strings.Contains(script, want) {
-			t.Fatalf("test.sh stale-temp sweep should include %q", want)
+			t.Fatalf("cleanup.sh stale-temp sweep should include %q", want)
 		}
 	}
 }
 
-func TestTestScriptStaleSweepRespectsOwnerPidMarkers(t *testing.T) {
+func TestTestScriptDelegatesStaleSweepToCleanupScript(t *testing.T) {
 	data, err := os.ReadFile("../test.sh")
 	if err != nil {
 		t.Fatalf("ReadFile(test.sh) error = %v", err)
@@ -38,17 +38,15 @@ func TestTestScriptStaleSweepRespectsOwnerPidMarkers(t *testing.T) {
 	script := string(data)
 	for _, want := range []string{
 		`GO2RUST_TEST_CLEAN_STALE`,
-		`pid_is_active()`,
-		`maybe_remove_stale_temp_dir()`,
-		`if pid_is_active "$dir/go2rust-test.pid"`,
-		`while IFS= read -r dir; do`,
-		`maybe_remove_stale_temp_dir "$dir"`,
+		`GO2RUST_TEST_CLEAN_AGE_MINUTES`,
+		`cleanup_stale_test_artifacts()`,
+		`"$script_dir/cleanup.sh" --age-minutes "${GO2RUST_TEST_CLEAN_AGE_MINUTES:-60}" --keep-repo-artifacts`,
 		`echo "$$" > "$TEST_GOCACHE_DIR/go2rust-test.pid"`,
 		`echo "$$" > "$BUILT_TEST_BINARY_DIR/go2rust-test.pid"`,
 		`echo "$$" > "$SHARD_DIR/go2rust-test.pid"`,
 	} {
 		if !strings.Contains(script, want) {
-			t.Fatalf("test.sh stale-temp sweep should respect owner pid markers; missing %q", want)
+			t.Fatalf("test.sh should delegate stale-temp sweep through cleanup.sh; missing %q", want)
 		}
 	}
 	if strings.Contains(script, `-exec rm -rf {} +`) {
@@ -56,22 +54,46 @@ func TestTestScriptStaleSweepRespectsOwnerPidMarkers(t *testing.T) {
 	}
 }
 
-func TestTestScriptStaleSweepScansCanonicalTempRoots(t *testing.T) {
-	data, err := os.ReadFile("../test.sh")
+func TestCleanupScriptStaleSweepRespectsOwnerPidMarkers(t *testing.T) {
+	data, err := os.ReadFile("../cleanup.sh")
 	if err != nil {
-		t.Fatalf("ReadFile(test.sh) error = %v", err)
+		t.Fatalf("ReadFile(cleanup.sh) error = %v", err)
 	}
 	script := string(data)
 	for _, want := range []string{
-		`add_stale_tmp_root "${TMPDIR:-}"`,
-		`add_stale_tmp_root "/tmp"`,
-		`add_stale_tmp_root "/private/tmp"`,
+		`pid_is_active()`,
+		`maybe_remove_temp_dir()`,
+		`if pid_is_active "$dir/$pid_name"; then`,
+		`while IFS= read -r dir; do`,
+		`maybe_remove_temp_dir "$dir"`,
+		`self_transpile_check.pid`,
+		`go2rust-test.pid`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("cleanup.sh stale-temp sweep should respect owner pid markers; missing %q", want)
+		}
+	}
+	if strings.Contains(script, `-exec rm -rf {} +`) {
+		t.Fatalf("cleanup.sh should not delete temp directories without checking owner pid markers")
+	}
+}
+
+func TestCleanupScriptStaleSweepScansCanonicalTempRoots(t *testing.T) {
+	data, err := os.ReadFile("../cleanup.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(cleanup.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`add_tmp_root "${TMPDIR:-}"`,
+		`add_tmp_root "/tmp"`,
+		`add_tmp_root "/private/tmp"`,
 		`case "$root" in`,
 		`*/) root="${root%/}" ;;`,
 		`case ":$seen_roots:" in`,
 	} {
 		if !strings.Contains(script, want) {
-			t.Fatalf("test.sh stale-temp sweep should scan canonical temp roots; missing %q", want)
+			t.Fatalf("cleanup.sh stale-temp sweep should scan canonical temp roots; missing %q", want)
 		}
 	}
 }
@@ -206,6 +228,28 @@ func TestTestScriptDefaultJobsRespectCurrentMemoryPressure(t *testing.T) {
 	}
 }
 
+func TestTestScriptLowMemoryModeBoundsJobsAndCargo(t *testing.T) {
+	data, err := os.ReadFile("../test.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(test.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`LOW_MEMORY="${GO2RUST_LOW_MEMORY:-0}"`,
+		`--low-memory`,
+		`JOBS=1`,
+		`export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}"`,
+		`export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"`,
+		`export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"`,
+		`export CARGO_PROFILE_DEV_INCREMENTAL="${CARGO_PROFILE_DEV_INCREMENTAL:-false}"`,
+		`export RUSTFLAGS="${RUSTFLAGS:--Awarnings -C debuginfo=0}"`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("test.sh low-memory mode should bound jobs and Cargo memory use; missing %q", want)
+		}
+	}
+}
+
 func TestTestScriptBuildsDefaultBinaryInTemp(t *testing.T) {
 	data, err := os.ReadFile("../test.sh")
 	if err != nil {
@@ -226,10 +270,13 @@ func TestTestScriptBuildsDefaultBinaryInTemp(t *testing.T) {
 	if strings.Contains(script, "go build -o go2rust ./go") {
 		t.Fatalf("test.sh should not leave the default transpiler binary in the repo root")
 	}
-	sweepIndex := strings.Index(script, `go2rust-test-binary.*`)
 	buildIndex := strings.Index(script, `BUILT_TEST_BINARY_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test-binary.XXXXXX")`)
-	if sweepIndex < 0 || buildIndex < 0 || sweepIndex > buildIndex {
-		t.Fatalf("test.sh should sweep stale temp binaries before creating the current temp binary")
+	if buildIndex < 0 {
+		t.Fatalf("test.sh should create the current temp binary in a named temp directory")
+	}
+	sweepIndex := strings.LastIndex(script[:buildIndex], `cleanup_stale_test_artifacts`)
+	if sweepIndex < 0 {
+		t.Fatalf("test.sh should invoke stale temp cleanup before creating the current temp binary")
 	}
 }
 

@@ -22,6 +22,7 @@ VERBOSE=false
 JOBS=""
 TIMEOUT="15s"
 HELP=false
+LOW_MEMORY="${GO2RUST_LOW_MEMORY:-0}"
 TEST_NAMES=()
 
 i=1
@@ -39,6 +40,9 @@ for arg in "$@"; do
             ;;
         -v|--verbose)
             VERBOSE=true
+            ;;
+        --low-memory)
+            LOW_MEMORY=1
             ;;
         -n|--jobs)
             # Next argument should be the number
@@ -87,6 +91,7 @@ if [ "$HELP" = true ]; then
     echo "  -v, --verbose      Show XFAIL tests in output"
     echo "  -n, --jobs N       Number of parallel jobs (default: auto-detect from CPU and memory)"
     echo "  -t, --timeout TIME Timeout per test (default: 60s)"
+    echo "  --low-memory       Run one fixture at a time and use low-memory Cargo settings"
     echo "  -h, --help         Show this help message"
     echo ""
     echo "Arguments:"
@@ -123,61 +128,11 @@ if ! mkdir "$LOCK_DIR" 2>/dev/null; then
 fi
 echo $$ > "$LOCK_DIR/pid"
 
-pid_is_active() {
-    local pid_file="$1"
-    [ -f "$pid_file" ] || return 1
-
-    local pid
-    pid=$(cat "$pid_file" 2>/dev/null || true)
-    [ -n "$pid" ] || return 1
-    kill -0 "$pid" 2>/dev/null
-}
-
-maybe_remove_stale_temp_dir() {
-    local dir="$1"
-
-    if pid_is_active "$dir/go2rust-test.pid" || pid_is_active "$dir/self_transpile_check.pid" || pid_is_active "$dir/pid"; then
-        return
-    fi
-
-    rm -rf "$dir"
-}
-
 cleanup_stale_test_artifacts() {
     [ "${GO2RUST_TEST_CLEAN_STALE:-1}" = "0" ] && return
-
-    local tmp_roots=()
-    add_stale_tmp_root() {
-        local root="$1"
-        [ -n "$root" ] || return
-        case "$root" in
-            */) root="${root%/}" ;;
-        esac
-        [ -n "$root" ] || return
-        tmp_roots+=("$root")
-    }
-
-    add_stale_tmp_root "${TMPDIR:-}"
-    add_stale_tmp_root "/tmp"
-    add_stale_tmp_root "/private/tmp"
-
-    local seen_roots=""
-    local tmp_root
-    for tmp_root in "${tmp_roots[@]}"; do
-        [ -d "$tmp_root" ] || continue
-        case ":$seen_roots:" in
-            *":$tmp_root:"*) continue ;;
-        esac
-        seen_roots="$seen_roots:$tmp_root"
-
-        find "$tmp_root" -maxdepth 1 \( -name 'go2rust-test.*' -o -name 'go2rust-bats-shards.*' -o -name 'go2rust-cargo-target.*' -o -name 'go2rust-test-binary.*' -o -name 'go2rust-go-cache.*' \) -type d -prune -print 2>/dev/null | while IFS= read -r dir; do
-            maybe_remove_stale_temp_dir "$dir"
-        done
-        find "$tmp_root" -maxdepth 1 \( -name 'go2rust-rust-work.*' \) -type d -prune -print 2>/dev/null | while IFS= read -r dir; do
-            maybe_remove_stale_temp_dir "$dir"
-        done
-        find "$tmp_root" -maxdepth 1 \( -name 'go2rust-tests-list.*' -o -name 'go2rust-rust-diff.*' -o -name 'go2rust-stdout.*' -o -name 'go2rust-stderr.*' \) -type f -delete 2>/dev/null
-    done
+    local script_dir
+    script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+    "$script_dir/cleanup.sh" --age-minutes "${GO2RUST_TEST_CLEAN_AGE_MINUTES:-60}" --keep-repo-artifacts >/dev/null
 }
 
 # Generate test cases and update the GENERATED TESTS section in tests.bats
@@ -268,6 +223,17 @@ export SHOW_XFAIL_ERRORS
 # Sweep stale per-test workspaces left over from prior runs killed via SIGKILL
 # (OOM, kill -9, etc.) — SIGKILL bypasses the run_test EXIT trap.
 cleanup_stale_test_artifacts
+
+case "$LOW_MEMORY" in
+    1|true|TRUE|yes|YES)
+        JOBS=1
+        export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}"
+        export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
+        export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
+        export CARGO_PROFILE_DEV_INCREMENTAL="${CARGO_PROFILE_DEV_INCREMENTAL:-false}"
+        export RUSTFLAGS="${RUSTFLAGS:--Awarnings -C debuginfo=0}"
+        ;;
+esac
 
 if [ -z "${GOCACHE:-}" ]; then
     TEST_GOCACHE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-go-cache.XXXXXX")
