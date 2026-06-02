@@ -1462,7 +1462,9 @@ func rustDisplayTypeParamsForStruct(typeSpec *ast.TypeSpec, structType *ast.Stru
 		if typ == nil {
 			return nil, false
 		}
-		collectRustTypeParamUses(typ, used, make(map[types.Type]bool))
+		if !collectRustDisplayTypeParamUses(typ, used, make(map[types.Type]bool)) {
+			return nil, false
+		}
 	}
 	if len(used) == 0 {
 		return nil, true
@@ -1503,6 +1505,139 @@ func structDisplayFieldUsesDefaultFormatter(expr ast.Expr) bool {
 		return false
 	}
 	return true
+}
+
+func collectRustDisplayTypeParamUses(typ types.Type, used map[string]bool, seen map[types.Type]bool) bool {
+	if typ == nil {
+		return true
+	}
+	typ = types.Unalias(typ)
+	if seen[typ] {
+		return true
+	}
+	seen[typ] = true
+
+	switch t := typ.(type) {
+	case *types.TypeParam:
+		if t.Obj() != nil {
+			used[RustTypeNameForUse(t.Obj().Name())] = true
+		}
+	case *types.Named:
+		indexes, ok := rustNamedDisplayTypeArgIndexes(t, seen)
+		if !ok {
+			return false
+		}
+		typeArgs := t.TypeArgs()
+		for _, index := range indexes {
+			if typeArgs == nil || index < 0 || index >= typeArgs.Len() {
+				continue
+			}
+			if !collectRustDisplayTypeParamUses(typeArgs.At(index), used, seen) {
+				return false
+			}
+		}
+	case *types.Pointer, *types.Slice, *types.Array, *types.Map, *types.Chan, *types.Signature, *types.Interface:
+		return true
+	case *types.Tuple:
+		for i := 0; i < t.Len(); i++ {
+			if !collectRustDisplayTypeParamUses(t.At(i).Type(), used, seen) {
+				return false
+			}
+		}
+	case *types.Struct:
+		for i := 0; i < t.NumFields(); i++ {
+			fieldType := t.Field(i).Type()
+			if !structDisplayTypeUsesDefaultFormatter(fieldType) {
+				continue
+			}
+			if !collectRustDisplayTypeParamUses(fieldType, used, seen) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func rustNamedDisplayTypeArgIndexes(named *types.Named, seen map[types.Type]bool) ([]int, bool) {
+	if named == nil || named.TypeArgs() == nil || named.TypeArgs().Len() == 0 {
+		return nil, true
+	}
+	origin := named
+	if named.Origin() != nil {
+		origin = named.Origin()
+	}
+	if namedDisplayIgnoresTypeArgs(origin) {
+		return nil, true
+	}
+	typeParams := origin.TypeParams()
+	if typeParams == nil || typeParams.Len() == 0 {
+		return nil, true
+	}
+	obj := origin.Obj()
+	typeInfo := GetTypeInfo()
+	if obj == nil || obj.Pkg() == nil || typeInfo == nil || typeInfo.pkg == nil || obj.Pkg() != typeInfo.pkg {
+		indexes := make([]int, named.TypeArgs().Len())
+		for i := range indexes {
+			indexes[i] = i
+		}
+		return indexes, true
+	}
+	structType, ok := origin.Underlying().(*types.Struct)
+	if !ok {
+		indexes := make([]int, named.TypeArgs().Len())
+		for i := range indexes {
+			indexes[i] = i
+		}
+		return indexes, true
+	}
+	formalUses := make(map[string]bool)
+	for i := 0; i < structType.NumFields(); i++ {
+		fieldType := structType.Field(i).Type()
+		if !structDisplayTypeUsesDefaultFormatter(fieldType) {
+			continue
+		}
+		if !collectRustDisplayTypeParamUses(fieldType, formalUses, seen) {
+			return nil, false
+		}
+	}
+	var indexes []int
+	for i := 0; i < typeParams.Len(); i++ {
+		typeParam := typeParams.At(i)
+		if typeParam == nil || typeParam.Obj() == nil {
+			continue
+		}
+		if formalUses[RustTypeNameForUse(typeParam.Obj().Name())] {
+			indexes = append(indexes, i)
+		}
+	}
+	return indexes, true
+}
+
+func namedDisplayIgnoresTypeArgs(named *types.Named) bool {
+	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	obj := named.Obj()
+	return obj.Pkg().Path() == "sync/atomic" && obj.Name() == "Pointer"
+}
+
+func structDisplayTypeUsesDefaultFormatter(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	typ = types.Unalias(typ)
+	if isGoSyncNamedType(typ) || isEmptyInterfaceType(typ) {
+		return false
+	}
+	if _, ok := typ.(*types.TypeParam); ok {
+		return true
+	}
+	switch typ.Underlying().(type) {
+	case *types.Pointer, *types.Slice, *types.Array, *types.Map, *types.Chan, *types.Signature, *types.Interface:
+		return false
+	default:
+		return true
+	}
 }
 
 func rustUnusedTypeParamsForStruct(typeSpec *ast.TypeSpec, structType *ast.StructType) []string {

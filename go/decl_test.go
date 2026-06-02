@@ -977,6 +977,36 @@ type Entry[K any, V any] struct {
 	}
 }
 
+func TestGenericStructDisplayDoesNotLeakBoundsThroughOpaqueNamedField(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Node[K any, V any] struct {
+	isEntry bool
+}
+
+type Indirect[K any, V any] struct {
+	node Node[K, V]
+}
+
+type Entry[K any, V any] struct {
+	key K
+	value V
+}
+
+type Holder[K any, V any] struct {
+	entry Entry[K, V]
+}
+`)
+
+	if strings.Contains(rust, "impl<K: Any + Clone + 'static, V: Any + Clone + 'static> std::fmt::Display for Indirect<K, V> where K: std::fmt::Display") {
+		t.Fatalf("Display bounds from Node should not leak through Indirect's named field:\n%s", rust)
+	}
+	want := "impl<K: Any + Clone + 'static, V: Any + Clone + 'static> std::fmt::Display for Holder<K, V> where K: std::fmt::Display, V: std::fmt::Display {"
+	if !strings.Contains(rust, want) {
+		t.Fatalf("Display bounds from Entry should still propagate through Holder, missing %q:\n%s", want, rust)
+	}
+}
+
 func TestGenericStructDisplayRequiresTypeInfoForBounds(t *testing.T) {
 	rust := transpileRegression(t, `package main
 
