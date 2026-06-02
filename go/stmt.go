@@ -10817,17 +10817,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								if pkgIdent, ok := sel.X.(*ast.Ident); ok && pkgIdent.Name == "sync" {
 									if isBareSyncTypeName(sel.Sel.Name) {
 										isSyncType = true
+										rustType := ""
 										switch sel.Sel.Name {
 										case "WaitGroup":
 											NeedWaitGroup()
+											rustType = "WaitGroup"
 										case "Mutex":
 											NeedGoMutex()
+											rustType = "GoMutex"
 										case "Once":
 											NeedGoOnce()
+											rustType = "GoOnce"
 										}
 										if vt := GetVarTable(); vt != nil {
 											vt.Register(name.Name, &VarInfo{
 												WrapLevel: WrapNone,
+												RustType:  rustType,
 												Source:    SourceLocal,
 											})
 										}

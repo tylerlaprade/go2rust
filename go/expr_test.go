@@ -5227,7 +5227,7 @@ func initHolder() {
 	}
 }
 
-func TestSourceMappedSyncOnceDoFuncLitWrapsGeneratedArgument(t *testing.T) {
+func TestSourceMappedSyncOnceDoFuncLitWrapsSourceOnceArgument(t *testing.T) {
 	rust := transpileTypedConcurrentPackageWithMapping(t, "internal/godebug", `package godebug
 
 import "sync"
@@ -5246,15 +5246,15 @@ func (s *Setting) Value() {
 `, map[string]string{"sync": "sync"})
 
 	if strings.Contains(rust, "__once.r#do(||") {
-		t.Fatalf("source-mapped sync.Once.Do should not pass a raw closure:\n%s", rust)
+		t.Fatalf("source-mapped sync.Once.Do should not pass a raw closure to source sync::Once:\n%s", rust)
 	}
 	if !strings.Contains(rust, "__once.r#do(Arc::new(Mutex::new(Some(") ||
 		!strings.Contains(rust, "Box::new(move ||") {
-		t.Fatalf("source-mapped sync.Once.Do should wrap function literal arguments in the generated func() handle type:\n%s", rust)
+		t.Fatalf("source-mapped sync.Once.Do should wrap function literal arguments for source sync::Once:\n%s", rust)
 	}
 }
 
-func TestSourceMappedSyncOnceDoMethodValueWrapsGeneratedArgument(t *testing.T) {
+func TestSourceMappedSyncOnceDoMethodValueWrapsSourceOnceArgument(t *testing.T) {
 	rust := transpileTypedConcurrentPackageWithMapping(t, "internal/godebug", `package godebug
 
 import "sync"
@@ -5274,11 +5274,83 @@ func (s *Setting) register() {
 }
 `, map[string]string{"sync": "sync"})
 
-	if strings.Contains(rust, "__once.r#do({ let __recv = self.clone(); Box::new") {
-		t.Fatalf("source-mapped sync.Once.Do should not pass a raw method-value closure:\n%s", rust)
+	if strings.Contains(rust, "__once.r#do({ let mut __recv = self.clone(); Box::new") {
+		t.Fatalf("source-mapped sync.Once.Do should not pass a raw method-value closure to source sync::Once:\n%s", rust)
 	}
 	if !strings.Contains(rust, "__once.r#do(Arc::new(Mutex::new(Some({ let mut __recv = self.clone(); Box::new") {
-		t.Fatalf("source-mapped sync.Once.Do should wrap method-value arguments in the generated func() handle type:\n%s", rust)
+		t.Fatalf("source-mapped sync.Once.Do should wrap method-value arguments for source sync::Once:\n%s", rust)
+	}
+}
+
+func TestSourceMappedPackageLocalSyncOnceDoUsesHelperCallable(t *testing.T) {
+	rust := transpileTypedConcurrentPackageWithMapping(t, "golang.org/x/tools/internal/gcimporter", `package gcimporter
+
+import "sync"
+
+func lookup(run func()) func() {
+	var listOnce sync.Once
+	return func() {
+		listOnce.Do(func() {
+			run()
+		})
+	}
+}
+`, map[string]string{"sync": "sync"})
+
+	if strings.Contains(rust, "__once.r#do(Arc::new(Mutex::new(Some(") {
+		t.Fatalf("local sync.Once variables lower to GoOnce and should pass a callable, not a wrapped func() handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__once.r#do(||") {
+		t.Fatalf("local sync.Once variables should pass a callable to GoOnce::do:\n%s", rust)
+	}
+}
+
+func TestSourceMappedPromotedSyncOnceDoWrapsSourceOnceArgument(t *testing.T) {
+	rust := transpileTypedConcurrentPackageWithMapping(t, "math/big", `package big
+
+import "sync"
+
+var threeOnce struct {
+	sync.Once
+	n int
+}
+
+func three() {
+	threeOnce.Do(func() {
+		threeOnce.n++
+	})
+}
+`, map[string]string{"sync": "sync"})
+
+	if strings.Contains(rust, "__once.r#do(||") {
+		t.Fatalf("promoted source sync.Once should not pass a raw closure to source sync::Once:\n%s", rust)
+	}
+	hasWrappedOnce := strings.Contains(rust, "__once.r#do(Arc::new(Mutex::new(Some(") ||
+		strings.Contains(rust, "__once.r#do(Rc::new(RefCell::new(Some(")
+	if !hasWrappedOnce || !strings.Contains(rust, "Box::new(move ||") {
+		t.Fatalf("promoted source sync.Once should wrap function literal arguments for source sync::Once:\n%s", rust)
+	}
+}
+
+func TestSourceMappedPackageGlobalSyncOnceDoWrapsSourceOnceArgument(t *testing.T) {
+	rust := transpileTypedConcurrentPackageWithMapping(t, "golang.org/x/tools/internal/gcimporter", `package gcimporter
+
+import "sync"
+
+var fakeLinesOnce sync.Once
+
+func initFakeLines() {
+	fakeLinesOnce.Do(func() {})
+}
+`, map[string]string{"sync": "sync"})
+
+	if strings.Contains(rust, "__once.r#do(||") {
+		t.Fatalf("source-mapped package-global sync.Once should not pass a raw closure to source sync::Once:\n%s", rust)
+	}
+	hasWrappedOnce := strings.Contains(rust, "__once.r#do(Arc::new(Mutex::new(Some(") ||
+		strings.Contains(rust, "__once.r#do(Rc::new(RefCell::new(Some(")
+	if !hasWrappedOnce || !strings.Contains(rust, "Box::new(move ||") {
+		t.Fatalf("source-mapped package-global sync.Once should wrap function literal arguments for source sync::Once:\n%s", rust)
 	}
 }
 
