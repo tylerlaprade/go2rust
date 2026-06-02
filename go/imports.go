@@ -148,6 +148,7 @@ type HelperTracker struct {
 	needsFormatAnySlice             bool
 	needsAnyEq                      bool
 	needsAnyClone                   bool
+	needsGoValueClone               bool
 	needsGoByteSequence             bool
 	needsGoInteger                  bool
 	needsGoChannel                  bool
@@ -247,6 +248,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	if ht.needsAnyClone {
 		generateAnyClone(&result, ht.anyCloneTypes)
+	}
+
+	if ht.needsGoValueClone {
+		generateGoValueClone(&result)
 	}
 
 	if ht.needsGoByteSequence {
@@ -376,6 +381,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsFormatAnySlice ||
 		ht.needsAnyEq ||
 		ht.needsAnyClone ||
+		ht.needsGoValueClone ||
 		ht.needsGoByteSequence ||
 		ht.needsGoInteger ||
 		ht.needsGoChannel ||
@@ -499,6 +505,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsAnyClone {
 		add("go_any_clone")
+	}
+	if ht.needsGoValueClone {
+		add("GoValueClone")
 	}
 	if ht.needsGoByteSequence {
 		add("GoByteSequence")
@@ -911,6 +920,59 @@ fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
 	writeAnyCloneTypeArms(out, anyCloneTypes, "Box<dyn Any>")
 	out.WriteString(`
     panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
+}
+`)
+}
+
+func generateGoValueClone(out *strings.Builder) {
+	TrackImport("Any")
+	if NeedsConcurrentWrapper() {
+		out.WriteString(`
+pub trait GoValueClone {
+    fn go_value_clone(&self) -> Self;
+}
+
+macro_rules! impl_go_value_clone_copy {
+    ($($t:ty),* $(,)?) => {
+        $(impl GoValueClone for $t {
+            fn go_value_clone(&self) -> Self { *self }
+        })*
+    };
+}
+
+impl_go_value_clone_copy!(bool, char, i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, &'static str);
+
+impl GoValueClone for String {
+    fn go_value_clone(&self) -> Self { self.clone() }
+}
+
+impl GoValueClone for Box<dyn Any + Send + Sync> {
+    fn go_value_clone(&self) -> Self { go_any_clone(self.as_ref()) }
+}
+`)
+		return
+	}
+	out.WriteString(`
+pub trait GoValueClone {
+    fn go_value_clone(&self) -> Self;
+}
+
+macro_rules! impl_go_value_clone_copy {
+    ($($t:ty),* $(,)?) => {
+        $(impl GoValueClone for $t {
+            fn go_value_clone(&self) -> Self { *self }
+        })*
+    };
+}
+
+impl_go_value_clone_copy!(bool, char, i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, &'static str);
+
+impl GoValueClone for String {
+    fn go_value_clone(&self) -> Self { self.clone() }
+}
+
+impl GoValueClone for Box<dyn Any> {
+    fn go_value_clone(&self) -> Self { go_any_clone(self.as_ref()) }
 }
 `)
 }

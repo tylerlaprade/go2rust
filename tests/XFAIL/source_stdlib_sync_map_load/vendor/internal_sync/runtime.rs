@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoAtomicPointer, format_slice, format_slice_values, format_slice_wrapped};
+use crate::{GoAtomicPointer, GoValueClone, format_slice, format_slice_values, format_slice_wrapped, go_any_clone};
 
 use crate::hashtriemap::*;
 use crate::mutex::*;

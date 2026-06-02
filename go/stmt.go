@@ -741,6 +741,33 @@ func writeTypeParamHandleInitializer(out *strings.Builder, rhs ast.Expr) bool {
 	return writeTypeParamHandleExpression(out, rhs)
 }
 
+func writeBareDirectTypeParamWrappedReturnValue(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || result == nil || expected == nil {
+		return false
+	}
+	expectedType := typeInfo.GetType(expected)
+	if expectedType == nil {
+		out.WriteString(`/* ERROR: Type information required for type-parameter return value */ unimplemented!("type info required for type-parameter return value")`)
+		return true
+	}
+	if !isDirectTypeParamType(expectedType) {
+		return false
+	}
+	actualType := typeInfo.GetType(result)
+	if actualType == nil {
+		out.WriteString(`/* ERROR: Type information required for type-parameter return value */ unimplemented!("type info required for type-parameter return value")`)
+		return true
+	}
+	if !isDirectTypeParamType(actualType) || !types.AssignableTo(actualType, expectedType) || !isExpressionResultBare(result) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	TranspileExpression(out, result)
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writePointerConstrainedTypeParamDerefInitializer(out *strings.Builder, rhs ast.Expr, typeInfo *TypeInfo) bool {
 	star, ok := unwrapParens(rhs).(*ast.StarExpr)
 	if !ok || typeInfo == nil {
@@ -5920,6 +5947,30 @@ func writePointerHandleValueClone(out *strings.Builder, rhs ast.Expr) {
 	out.WriteString(".clone()")
 }
 
+func writeTypeParamWrappedIdentValueClone(out *strings.Builder, ident *ast.Ident, rustVarName string) bool {
+	if ident == nil || rustVarName == "" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(ident)
+	if typ == nil {
+		out.WriteString(`/* ERROR: Type information required for type-parameter value clone */ unimplemented!("type info required for type-parameter value clone")`)
+		return true
+	}
+	if !isDirectTypeParamType(typ) {
+		return false
+	}
+	NeedGoValueClone()
+	out.WriteString("(*")
+	out.WriteString(rustVarName)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).go_value_clone()")
+	return true
+}
+
 func writeCurrentPointerReceiverHandleClone(out *strings.Builder, rhs ast.Expr) bool {
 	ident, ok := unwrapParens(rhs).(*ast.Ident)
 	if !ok || !isCurrentReceiverIdent(ident) || currentReceiverObject == nil {
@@ -8956,6 +9007,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 						if writeWrappedReferenceRangeValueCopy(out, ident) {
 							continue
 						}
+						if writeBareDirectTypeParamWrappedReturnValue(out, ident, returnResultTypeExpr(fnType, i)) {
+							continue
+						}
 						if writeWrappedValueCopyFromIdent(out, ident) {
 							continue
 						}
@@ -10035,9 +10089,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 														rhsVarName = RustLocalIdent(renamed)
 													}
 												}
-												out.WriteString(rhsVarName)
-												WriteBorrowMethod(out, false)
-												out.WriteString(".as_ref().unwrap().clone()")
+												if !writeTypeParamWrappedIdentValueClone(out, rhsIdent, rhsVarName) {
+													out.WriteString(rhsVarName)
+													WriteBorrowMethod(out, false)
+													out.WriteString(".as_ref().unwrap().clone()")
+												}
 											} else if writeConstAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
 												// Constants assigned to wrapped slots need the target type from go/types.
 											} else if writeByteConstAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {

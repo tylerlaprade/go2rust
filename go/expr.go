@@ -2501,7 +2501,11 @@ func writeUnwrappedBoolExpression(out *strings.Builder, expr ast.Expr) {
 }
 
 func writeScopedIdentValueClone(out *strings.Builder, ident *ast.Ident) {
-	writeScopedValueClone(out, rustIdentForUseWithCapture(ident))
+	handle := rustIdentForUseWithCapture(ident)
+	if writeScopedTypeParamIdentValueClone(out, ident, handle) {
+		return
+	}
+	writeScopedValueClone(out, handle)
 }
 
 func writeScopedValueClone(out *strings.Builder, handle string) {
@@ -2510,6 +2514,31 @@ func writeScopedValueClone(out *strings.Builder, handle string) {
 	out.WriteString(".clone(); let __arg_guard = __arg_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString("; (*__arg_guard.as_ref().unwrap()).clone() }")
+}
+
+func writeScopedTypeParamIdentValueClone(out *strings.Builder, ident *ast.Ident, handle string) bool {
+	if ident == nil || handle == "" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(ident)
+	if typ == nil {
+		out.WriteString(`/* ERROR: Type information required for type-parameter value clone */ unimplemented!("type info required for type-parameter value clone")`)
+		return true
+	}
+	if !isDirectTypeParamType(typ) {
+		return false
+	}
+	NeedGoValueClone()
+	out.WriteString("{ let __arg_holder = ")
+	out.WriteString(handle)
+	out.WriteString(".clone(); let __arg_guard = __arg_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; (*__arg_guard.as_ref().unwrap()).go_value_clone() }")
+	return true
 }
 
 func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {

@@ -681,6 +681,15 @@ func NeedAnyClone() {
 	}
 }
 
+// NeedGoValueClone marks that we need the GoValueClone helper trait.
+func NeedGoValueClone() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoValueClone = true
+		helpers.needsAnyClone = true
+		TrackImport("Any")
+	}
+}
+
 func RegisterAnyCloneType(typ types.Type) {
 	rustType, ok := anyCloneRustType(typ)
 	if !ok {

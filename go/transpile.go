@@ -1986,10 +1986,10 @@ func writeGenericOwnMethodImpls(out *strings.Builder, rustTypeName string, typeS
 		methods  []*ast.FuncDecl
 	}
 
-	cloneRequired := genericMethodCloneRequirements(typeMethods)
+	boundKinds := genericMethodBoundKinds(typeMethods)
 	var groups []methodImplGroup
 	for _, method := range typeMethods {
-		generics := rustGenericMethodImplGenerics(typeSpec, cloneRequired[method])
+		generics := rustGenericMethodImplGenerics(typeSpec, boundKinds[method])
 		if len(groups) == 0 || !sameRustTypeGenerics(groups[len(groups)-1].generics, generics) {
 			groups = append(groups, methodImplGroup{generics: generics})
 		}
@@ -2011,9 +2011,23 @@ func writeGenericOwnMethodImpls(out *strings.Builder, rustTypeName string, typeS
 	}
 }
 
-func rustGenericMethodImplGenerics(typeSpec *ast.TypeSpec, cloneRequired bool) rustTypeGenerics {
-	if cloneRequired {
+type genericMethodBoundKind int
+
+const (
+	genericMethodBoundNone         genericMethodBoundKind = 0
+	genericMethodBoundGoValueClone genericMethodBoundKind = 1 << 0
+	genericMethodBoundRustClone    genericMethodBoundKind = 1 << 1
+)
+
+func rustGenericMethodImplGenerics(typeSpec *ast.TypeSpec, boundKind genericMethodBoundKind) rustTypeGenerics {
+	if boundKind&genericMethodBoundRustClone != 0 && boundKind&genericMethodBoundGoValueClone != 0 {
+		return rustTypeGenericsForTypeSpecWithParam(typeSpec, rustCloneAndGoValueCloneTypeParam)
+	}
+	if boundKind&genericMethodBoundRustClone != 0 {
 		return rustTypeGenericsForTypeSpec(typeSpec)
+	}
+	if boundKind&genericMethodBoundGoValueClone != 0 {
+		return rustTypeGenericsForTypeSpecWithParam(typeSpec, rustGoValueCloneTypeParam)
 	}
 	return rustTypeGenericsForDeclarationTypeSpec(typeSpec)
 }
@@ -2022,8 +2036,8 @@ func sameRustTypeGenerics(a rustTypeGenerics, b rustTypeGenerics) bool {
 	return a.Decl == b.Decl && a.Use == b.Use && a.Where == b.Where
 }
 
-func genericMethodCloneRequirements(typeMethods []*ast.FuncDecl) map[*ast.FuncDecl]bool {
-	cloneRequired := make(map[*ast.FuncDecl]bool)
+func genericMethodBoundKinds(typeMethods []*ast.FuncDecl) map[*ast.FuncDecl]genericMethodBoundKind {
+	boundKinds := make(map[*ast.FuncDecl]genericMethodBoundKind)
 	typeInfo := GetTypeInfo()
 	methodByObject := make(map[types.Object]*ast.FuncDecl)
 	methodByName := make(map[string]*ast.FuncDecl)
@@ -2040,37 +2054,53 @@ func genericMethodCloneRequirements(typeMethods []*ast.FuncDecl) map[*ast.FuncDe
 	}
 
 	for _, method := range typeMethods {
-		if genericMethodRequiresCloneBounds(method) {
-			cloneRequired[method] = true
+		var boundKind genericMethodBoundKind
+		if genericMethodUsesDirectTypeParamValue(method) {
+			boundKind |= genericMethodBoundGoValueClone
 		}
+		boundKinds[method] = boundKind
 	}
 	if len(methodByObject) == 0 {
-		return cloneRequired
+		return boundKinds
 	}
 
 	changed := true
 	for changed {
 		changed = false
 		for _, method := range typeMethods {
-			if cloneRequired[method] {
+			if boundKinds[method]&genericMethodBoundRustClone != 0 && boundKinds[method]&genericMethodBoundGoValueClone != 0 {
 				continue
 			}
-			if methodCallsCloneBoundMethod(typeInfo, method, methodByObject, methodByName, cloneRequired) {
-				cloneRequired[method] = true
+			calledBound := methodCalledBoundKind(typeInfo, method, methodByObject, methodByName, boundKinds)
+			if calledBound == genericMethodBoundNone {
+				continue
+			}
+			nextBound := boundKinds[method] | calledBound
+			if nextBound != boundKinds[method] {
+				boundKinds[method] = nextBound
 				changed = true
 			}
 		}
 	}
-	return cloneRequired
+	return boundKinds
 }
 
-func methodCallsCloneBoundMethod(typeInfo *TypeInfo, method *ast.FuncDecl, methodByObject map[types.Object]*ast.FuncDecl, methodByName map[string]*ast.FuncDecl, cloneRequired map[*ast.FuncDecl]bool) bool {
-	if typeInfo == nil || typeInfo.info == nil || method == nil || method.Body == nil {
-		return false
+func genericMethodUnionBoundKind(typeMethods []*ast.FuncDecl) genericMethodBoundKind {
+	boundKinds := genericMethodBoundKinds(typeMethods)
+	var union genericMethodBoundKind
+	for _, boundKind := range boundKinds {
+		union |= boundKind
 	}
-	callsCloneBoundMethod := false
+	return union
+}
+
+func methodCalledBoundKind(typeInfo *TypeInfo, method *ast.FuncDecl, methodByObject map[types.Object]*ast.FuncDecl, methodByName map[string]*ast.FuncDecl, boundKinds map[*ast.FuncDecl]genericMethodBoundKind) genericMethodBoundKind {
+	if typeInfo == nil || typeInfo.info == nil || method == nil || method.Body == nil {
+		return genericMethodBoundNone
+	}
+	calledBound := genericMethodBoundNone
 	ast.Inspect(method.Body, func(node ast.Node) bool {
-		if callsCloneBoundMethod || node == nil {
+		if calledBound&genericMethodBoundRustClone != 0 && calledBound&genericMethodBoundGoValueClone != 0 || node == nil {
 			return false
 		}
 		call, ok := node.(*ast.CallExpr)
@@ -2089,19 +2119,24 @@ func methodCallsCloneBoundMethod(typeInfo *TypeInfo, method *ast.FuncDecl, metho
 		if target == nil {
 			target = methodByName[selection.Obj().Name()]
 		}
-		if target != nil && cloneRequired[target] {
-			callsCloneBoundMethod = true
-			return false
+		if target != nil {
+			nextBound := calledBound | boundKinds[target]
+			if nextBound != calledBound {
+				calledBound = nextBound
+				if calledBound&genericMethodBoundRustClone != 0 && calledBound&genericMethodBoundGoValueClone != 0 {
+					return false
+				}
+			}
 		}
 		return true
 	})
-	return callsCloneBoundMethod
+	return calledBound
 }
 
-func genericMethodRequiresCloneBounds(method *ast.FuncDecl) bool {
+func genericMethodUsesDirectTypeParamValue(method *ast.FuncDecl) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || method == nil || method.Type == nil {
-		return true
+		return false
 	}
 	if fieldListHasDirectTypeParam(typeInfo, method.Type.Params) || fieldListHasDirectTypeParam(typeInfo, method.Type.Results) {
 		return true
@@ -2156,10 +2191,6 @@ func methodBodyUsesDirectTypeParamValue(typeInfo *TypeInfo, body *ast.BlockStmt)
 				}
 			}
 		case *ast.CallExpr:
-			if callInstantiatesDirectTypeParam(typeInfo, stmt) {
-				usesTypeParam = true
-				return false
-			}
 			for _, arg := range stmt.Args {
 				if exprHasDirectTypeParam(typeInfo, arg) {
 					usesTypeParam = true
@@ -2172,50 +2203,13 @@ func methodBodyUsesDirectTypeParamValue(typeInfo *TypeInfo, body *ast.BlockStmt)
 	return usesTypeParam
 }
 
-func callInstantiatesDirectTypeParam(typeInfo *TypeInfo, call *ast.CallExpr) bool {
-	if typeInfo == nil || typeInfo.info == nil || typeInfo.info.Instances == nil || call == nil {
-		return false
-	}
-	ident := genericCallInstanceIdent(call)
-	if ident == nil {
-		return false
-	}
-	instance, ok := typeInfo.info.Instances[ident]
-	if !ok || instance.TypeArgs == nil {
-		return false
-	}
-	for i := 0; i < instance.TypeArgs.Len(); i++ {
-		if isDirectTypeParamType(instance.TypeArgs.At(i)) {
-			return true
-		}
-	}
-	return false
-}
-
-func genericCallInstanceIdent(call *ast.CallExpr) *ast.Ident {
-	if call == nil {
-		return nil
-	}
-	if _, ident, ok := explicitGenericFunctionTarget(call.Fun); ok {
-		return ident
-	}
-	switch fun := unwrapParens(call.Fun).(type) {
-	case *ast.Ident:
-		return fun
-	case *ast.SelectorExpr:
-		return fun.Sel
-	default:
-		return nil
-	}
-}
-
 func exprHasDirectTypeParam(typeInfo *TypeInfo, expr ast.Expr) bool {
 	if typeInfo == nil || expr == nil {
-		return true
+		return false
 	}
 	typ := typeInfo.GetType(expr)
 	if typ == nil {
-		return true
+		return false
 	}
 	_, ok := types.Unalias(typ).(*types.TypeParam)
 	return ok
@@ -2717,7 +2711,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		if shouldSplitGenericOwnMethodImpls(typeSpec, typeName, typeMethods, declaredTypeNames) {
 			writeGenericOwnMethodImpls(&body, rustTypeName, typeSpec, typeMethods, fileSet, file.Comments)
 		} else {
-			generics := rustTypeGenericsForTypeSpec(typeSpec)
+			generics := rustGenericMethodImplGenerics(typeSpec, genericMethodUnionBoundKind(typeMethods))
 			body.WriteString("impl")
 			body.WriteString(generics.Decl)
 			body.WriteString(" ")

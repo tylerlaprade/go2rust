@@ -1116,6 +1116,10 @@ run_xfail_test() {
     run_test "tests/functions_multiple_return"
 }
 
+@test "generic_any_method_value_copy" {
+    run_test "tests/generic_any_method_value_copy"
+}
+
 @test "generic_function_type_alias" {
     run_test "tests/generic_function_type_alias"
 }
@@ -2878,10 +2882,6 @@ run_xfail_test() {
 
 @test "XFAIL: file_operations" {
     run_xfail_test "tests/XFAIL/file_operations"
-}
-
-@test "XFAIL: generic_any_method_value_copy" {
-    run_xfail_test "tests/XFAIL/generic_any_method_value_copy"
 }
 
 @test "XFAIL: generic_type_param_method_call" {

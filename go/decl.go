@@ -1396,13 +1396,28 @@ func checkHasDeferClauses(body *ast.BlockStmt) bool {
 }
 
 func writeFunctionTypeParams(out *strings.Builder, fnType *ast.FuncType) {
+	writeFunctionTypeParamsWithParam(out, fnType, rustFunctionTypeParam)
+}
+
+func writeFunctionDeclTypeParams(out *strings.Builder, fn *ast.FuncDecl) {
+	if fn == nil || fn.Type == nil {
+		return
+	}
+	paramFunc := rustTypeDeclarationParam
+	if genericFunctionUsesDirectTypeParamValue(fn) {
+		paramFunc = rustGoValueCloneTypeParam
+	}
+	writeFunctionTypeParamsWithParam(out, fn.Type, paramFunc)
+}
+
+func writeFunctionTypeParamsWithParam(out *strings.Builder, fnType *ast.FuncType, paramFunc func(*ast.Ident) string) {
 	if fnType == nil || fnType.TypeParams == nil || len(fnType.TypeParams.List) == 0 {
 		return
 	}
 	var params []string
 	for _, field := range fnType.TypeParams.List {
 		for _, name := range field.Names {
-			params = append(params, rustFunctionTypeParam(name))
+			params = append(params, paramFunc(name))
 		}
 	}
 	if len(params) == 0 {
@@ -1411,6 +1426,17 @@ func writeFunctionTypeParams(out *strings.Builder, fnType *ast.FuncType) {
 	out.WriteString("<")
 	out.WriteString(strings.Join(params, ", "))
 	out.WriteString(">")
+}
+
+func genericFunctionUsesDirectTypeParamValue(fn *ast.FuncDecl) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || fn == nil || fn.Type == nil {
+		return false
+	}
+	if fieldListHasDirectTypeParam(typeInfo, fn.Type.Params) || fieldListHasDirectTypeParam(typeInfo, fn.Type.Results) {
+		return true
+	}
+	return methodBodyUsesDirectTypeParamValue(typeInfo, fn.Body)
 }
 
 func rustTypeGenericsForTypeSpec(typeSpec *ast.TypeSpec) rustTypeGenerics {
@@ -1777,14 +1803,22 @@ func writeRustPhantomType(out *strings.Builder, params []string) {
 }
 
 func rustFunctionTypeParam(name *ast.Ident) string {
-	return rustTypeParam(name, true)
+	return rustTypeParam(name, []string{"Clone"})
 }
 
 func rustTypeDeclarationParam(name *ast.Ident) string {
-	return rustTypeParam(name, false)
+	return rustTypeParam(name, nil)
 }
 
-func rustTypeParam(name *ast.Ident, includeClone bool) string {
+func rustGoValueCloneTypeParam(name *ast.Ident) string {
+	return rustTypeParam(name, []string{"GoValueClone"})
+}
+
+func rustCloneAndGoValueCloneTypeParam(name *ast.Ident) string {
+	return rustTypeParam(name, []string{"Clone", "GoValueClone"})
+}
+
+func rustTypeParam(name *ast.Ident, cloneBounds []string) string {
 	rustName := RustTypeNameForUse(name.Name)
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
@@ -1797,9 +1831,7 @@ func rustTypeParam(name *ast.Ident, includeClone bool) string {
 	if goTypeParamHasComparableConstraint(obj.Type()) {
 		TrackImport("Any")
 		bounds := []string{"Any"}
-		if includeClone {
-			bounds = append(bounds, "Clone")
-		}
+		bounds = appendTypeParamCloneBounds(bounds, cloneBounds, true)
 		if NeedsConcurrentWrapper() {
 			bounds = append(bounds, "Send", "Sync")
 		}
@@ -1809,9 +1841,7 @@ func rustTypeParam(name *ast.Ident, includeClone bool) string {
 	if goTypeParamHasAnyConstraint(obj.Type()) {
 		TrackImport("Any")
 		bounds := []string{"Any"}
-		if includeClone {
-			bounds = append(bounds, "Clone")
-		}
+		bounds = appendTypeParamCloneBounds(bounds, cloneBounds, true)
 		if NeedsConcurrentWrapper() {
 			bounds = append(bounds, "Send", "Sync")
 		}
@@ -1821,9 +1851,7 @@ func rustTypeParam(name *ast.Ident, includeClone bool) string {
 	if goTypeParamHasStringByteSliceConstraint(obj.Type()) {
 		NeedGoByteSequence()
 		bounds := []string{"GoByteSequence"}
-		if includeClone {
-			bounds = append(bounds, "Clone")
-		}
+		bounds = appendTypeParamCloneBounds(bounds, cloneBounds, false)
 		if NeedsConcurrentWrapper() {
 			bounds = append(bounds, "Send", "Sync")
 		}
@@ -1833,9 +1861,7 @@ func rustTypeParam(name *ast.Ident, includeClone bool) string {
 	if goTypeParamHasIntegerConstraint(obj.Type()) {
 		NeedGoInteger()
 		bounds := []string{"GoInteger"}
-		if includeClone {
-			bounds = append(bounds, "Clone")
-		}
+		bounds = appendTypeParamCloneBounds(bounds, cloneBounds, false)
 		if NeedsConcurrentWrapper() {
 			bounds = append(bounds, "Send", "Sync")
 		}
@@ -1844,9 +1870,7 @@ func rustTypeParam(name *ast.Ident, includeClone bool) string {
 	}
 	if traitName, ok := goTypeParamOrderedTraitConstraintName(obj.Type()); ok {
 		bounds := []string{traitName}
-		if includeClone {
-			bounds = append(bounds, "Clone")
-		}
+		bounds = appendTypeParamCloneBounds(bounds, cloneBounds, false)
 		bounds = append(bounds, "PartialOrd")
 		if goTypeParamHasStringConstraint(obj.Type()) {
 			bounds = append(bounds, "ToString")
@@ -1859,9 +1883,7 @@ func rustTypeParam(name *ast.Ident, includeClone bool) string {
 	}
 	if goTypeParamHasOrderedConstraint(obj.Type()) {
 		var bounds []string
-		if includeClone {
-			bounds = append(bounds, "Clone")
-		}
+		bounds = appendTypeParamCloneBounds(bounds, cloneBounds, false)
 		bounds = append(bounds, "PartialOrd")
 		if goTypeParamHasStringConstraint(obj.Type()) {
 			bounds = append(bounds, "ToString")
@@ -1874,9 +1896,7 @@ func rustTypeParam(name *ast.Ident, includeClone bool) string {
 	}
 	if goTypeParamHasPointerConstraint(obj.Type()) {
 		var bounds []string
-		if includeClone {
-			bounds = append(bounds, "Clone")
-		}
+		bounds = appendTypeParamCloneBounds(bounds, cloneBounds, false)
 		if NeedsConcurrentWrapper() {
 			bounds = append(bounds, "Send", "Sync")
 		}
@@ -1888,14 +1908,28 @@ func rustTypeParam(name *ast.Ident, includeClone bool) string {
 		return rustName
 	}
 	bounds := []string{traitName}
-	if includeClone {
-		bounds = append(bounds, "Clone")
-	}
+	bounds = appendTypeParamCloneBounds(bounds, cloneBounds, false)
 	if NeedsConcurrentWrapper() {
 		bounds = append(bounds, "Send", "Sync")
 	}
 	bounds = append(bounds, "'static")
 	return rustName + ": " + strings.Join(bounds, " + ")
+}
+
+func appendTypeParamCloneBounds(bounds []string, cloneBounds []string, allowGoValueClone bool) []string {
+	for _, bound := range cloneBounds {
+		if bound == "" {
+			continue
+		}
+		if bound == "GoValueClone" && !allowGoValueClone {
+			bound = "Clone"
+		}
+		if bound == "GoValueClone" {
+			NeedGoValueClone()
+		}
+		bounds = append(bounds, bound)
+	}
+	return bounds
 }
 
 // localInterfaceTypesFromTypeSpec returns the go/types representation of the
@@ -3086,7 +3120,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	}
 	out.WriteString("fn ")
 	out.WriteString(rustFunctionName(fn))
-	writeFunctionTypeParams(out, fn.Type)
+	writeFunctionDeclTypeParams(out, fn)
 	out.WriteString("(")
 
 	writeFuncDeclParams(out, fn)

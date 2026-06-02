@@ -743,7 +743,7 @@ func substList[T comparable](in []T, subst func(T) T) []T {
 	if !strings.Contains(rust, "Vec<Rc<RefCell<Option<T>>>>") {
 		t.Fatalf("generic []T should store wrapped element handles:\n%s", rust)
 	}
-	if !strings.Contains(rust, "pub fn subst_list<T: Any + Clone + 'static>") ||
+	if !strings.Contains(rust, "pub fn subst_list<T: Any + GoValueClone + 'static>") ||
 		strings.Contains(rust, "PartialEq") {
 		t.Fatalf("generic comparable type parameter should not require raw Rust PartialEq:\n%s", rust)
 	}
@@ -789,11 +789,11 @@ func Identity[T any](x T) T {
 }
 `)
 
-	want := "pub fn identity<T: Any + Clone + 'static>(x: Rc<RefCell<Option<T>>>) -> Rc<RefCell<Option<T>>>"
+	want := "pub fn identity<T: Any + GoValueClone + 'static>(x: Rc<RefCell<Option<T>>>) -> Rc<RefCell<Option<T>>>"
 	if !strings.Contains(rust, want) {
 		t.Fatalf("generic any return should preserve the type parameter in the result signature, want %q:\n%s", want, rust)
 	}
-	if strings.Contains(rust, "Box<dyn Any") {
+	if strings.Contains(rust, "Rc<RefCell<Option<Box<dyn Any") {
 		t.Fatalf("generic any value/result slots should not lower to the any constraint object:\n%s", rust)
 	}
 }
@@ -873,12 +873,15 @@ func Keep[N int64 | uint64](num N) N {
 }
 `)
 
-	want := "pub fn keep<N: GoInteger + Clone + 'static>(num: Rc<RefCell<Option<N>>>) -> Rc<RefCell<Option<N>>>"
+	want := "pub fn keep<N: GoInteger + Clone + 'static>(num: N) -> Rc<RefCell<Option<N>>>"
 	if !strings.Contains(rust, want) {
 		t.Fatalf("generic union-constrained parameter should preserve the type parameter in the signature, want %q:\n%s", want, rust)
 	}
 	if strings.Contains(rust, "num: Rc<RefCell<Option<i64>>>") {
 		t.Fatalf("generic union-constrained parameter should not lower to the first constraint term:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Rc::new(RefCell::new(Some(num)))") {
+		t.Fatalf("generic union-constrained bare parameter should be wrapped for the generic return slot:\n%s", rust)
 	}
 }
 
@@ -930,7 +933,7 @@ func (h *Holder[T]) Get() T {
 	}
 	for _, want := range []string{
 		"impl<T: Any + 'static> Holder<T> {",
-		"impl<T: Any + Clone + 'static> Holder<T> {\n    pub fn get",
+		"impl<T: Any + GoValueClone + 'static> Holder<T> {\n    pub fn get",
 		"impl<T: Any + 'static> std::fmt::Display for Holder<T> where T: std::fmt::Display {",
 	} {
 		if !strings.Contains(rust, want) {
@@ -993,6 +996,46 @@ func Use(h *Holder) {
 	}
 }
 
+func TestGenericStructAnyMethodValueCopyUsesGoValueCloneBound(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "fmt"
+
+type Cell[T any] struct {
+	value T
+}
+
+func (c *Cell[T]) Store(value T) {
+	c.value = value
+}
+
+func (c *Cell[T]) Load() T {
+	return c.value
+}
+
+func Use(c *Cell[any]) {
+	c.Store("value")
+	fmt.Println(c.Load())
+}
+`)
+
+	if strings.Contains(rust, "impl<T: Any + Clone + 'static> Cell<T> {\n    pub fn store") {
+		t.Fatalf("generic method copying T should not require Rust Clone for Cell[any]:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl<T: Any + GoValueClone + 'static> Cell<T> {\n    pub fn store") {
+		t.Fatalf("generic method copying T should require GoValueClone bounds:\n%s", rust)
+	}
+	for _, want := range []string{
+		"trait GoValueClone",
+		"impl GoValueClone for Box<dyn Any>",
+		"(*value.borrow().as_ref().unwrap()).go_value_clone()",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("generic any method copy should emit %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestGenericStructMethodCallingTypeParamHelperKeepsCloneBound(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -1014,11 +1057,18 @@ func (b *Bucket[T]) Clear() {
 }
 `)
 
-	if !strings.Contains(rust, "impl<T: Any + Clone + 'static> Bucket<T> {\n    pub fn reset") {
-		t.Fatalf("generic method calling a helper instantiated with T should keep Clone bounds:\n%s", rust)
+	if strings.Contains(rust, "impl<T: Any + Clone + 'static> Bucket<T> {\n    pub fn reset") {
+		t.Fatalf("generic method calling a helper that does not copy T should not require Clone bounds:\n%s", rust)
 	}
-	if !strings.Contains(rust, "impl<T: Any + 'static> Bucket<T> {\n    pub fn clear") {
-		t.Fatalf("generic method that does not use T should stay in declaration-bound impl:\n%s", rust)
+	if !strings.Contains(rust, "impl<T: Any + 'static> Bucket<T> {\n    pub fn reset") {
+		t.Fatalf("generic method calling a helper that does not copy T should stay in declaration-bound impl:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn new_node<T: Any + 'static>()") {
+		t.Fatalf("generic helper that only constructs handles should not require Clone bounds:\n%s", rust)
+	}
+	declImplStart := strings.Index(rust, "impl<T: Any + 'static> Bucket<T> {\n    pub fn reset")
+	if declImplStart < 0 || !strings.Contains(rust[declImplStart:], "pub fn clear") {
+		t.Fatalf("generic methods that do not copy T should share declaration-bound impl:\n%s", rust)
 	}
 }
 
@@ -1047,20 +1097,14 @@ func (b *Bucket[T]) Clear() {
 }
 `)
 
-	if !strings.Contains(rust, "impl<T: Any + Clone + 'static> Bucket<T> {\n    pub fn reset_slow") {
-		t.Fatalf("helper-instantiating method should require Clone bounds:\n%s", rust)
+	if strings.Contains(rust, "impl<T: Any + Clone + 'static> Bucket<T> {\n    pub fn reset_slow") {
+		t.Fatalf("helper-instantiating method should not require Clone when the helper does not copy T:\n%s", rust)
 	}
-	cloneImplStart := strings.Index(rust, "impl<T: Any + Clone + 'static> Bucket<T> {\n    pub fn reset_slow")
-	declImplRelStart := -1
-	if cloneImplStart >= 0 {
-		declImplRelStart = strings.Index(rust[cloneImplStart:], "impl<T: Any + 'static> Bucket<T> {\n    pub fn clear")
-	}
-	if declImplRelStart < 0 {
-		t.Fatalf("unrelated method should stay in declaration-bound impl:\n%s", rust)
-	}
-	declImplStart := cloneImplStart + declImplRelStart
-	if cloneImplStart < 0 || declImplStart < 0 || cloneImplStart > declImplStart || !strings.Contains(rust[cloneImplStart:declImplStart], "pub fn reset(&mut self)") {
-		t.Fatalf("method calling clone-bound method should share clone-bound impl:\n%s", rust)
+	declImplStart := strings.Index(rust, "impl<T: Any + 'static> Bucket<T> {\n    pub fn reset_slow")
+	if declImplStart < 0 ||
+		!strings.Contains(rust[declImplStart:], "pub fn reset(&mut self)") ||
+		!strings.Contains(rust[declImplStart:], "pub fn clear") {
+		t.Fatalf("methods that only call declaration-bound helpers should share declaration-bound impl:\n%s", rust)
 	}
 }
 
@@ -1254,7 +1298,7 @@ func clone[P *T, T any](p P) P {
 }
 `)
 
-	want := "pub fn clone<P: Clone + 'static, T: Any + Clone + 'static>(p: Rc<RefCell<Option<P>>>) -> Rc<RefCell<Option<P>>>"
+	want := "pub fn clone<P: Clone + 'static, T: Any + GoValueClone + 'static>(p: Rc<RefCell<Option<P>>>) -> Rc<RefCell<Option<P>>>"
 	if !strings.Contains(rust, want) {
 		t.Fatalf("generic pointer-constrained type parameter should get a clone bound, want %q:\n%s", want, rust)
 	}
