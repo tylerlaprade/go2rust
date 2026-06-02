@@ -6855,7 +6855,7 @@ func TestExternalLocalInterfaceMethodUsesMutableTraitReceiver(t *testing.T) {
 	})
 
 	var out strings.Builder
-	writeExternalLocalInterfaceMethod(&out, "Alias", "SetTypeParams", &ast.FuncType{}, false, method)
+	writeExternalLocalInterfaceMethod(&out, "Alias", "SetTypeParams", &ast.FuncType{}, externalLocalInterfaceImpl{}, method)
 	if !strings.Contains(out.String(), "fn set_type_params(&mut self)") {
 		t.Fatalf("external local-interface impl should match a mutable trait receiver:\n%s", out.String())
 	}
@@ -6871,7 +6871,7 @@ func TestExternalLocalInterfaceMethodUsesMutableTraitReceiverByName(t *testing.T
 	})
 
 	var out strings.Builder
-	writeExternalLocalInterfaceMethod(&out, "go_types::Importer", "Import", &ast.FuncType{}, false, nil)
+	writeExternalLocalInterfaceMethod(&out, "go_types::Importer", "Import", &ast.FuncType{}, externalLocalInterfaceImpl{}, nil)
 	if !strings.Contains(out.String(), "fn import(&mut self)") {
 		t.Fatalf("external local-interface impl should match a mutable trait receiver by method name:\n%s", out.String())
 	}

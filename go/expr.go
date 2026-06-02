@@ -3552,6 +3552,14 @@ func writePointerLocalInterfaceWrapperValue(out *strings.Builder, arg ast.Expr, 
 	return true
 }
 
+func sourceMappedPointerWrapperTypeName(named *types.Named) string {
+	rustType := goTypesNamedTypeToRust(named)
+	if idx := strings.Index(rustType, "<"); idx >= 0 {
+		return rustType[:idx] + "Ptr" + rustType[idx:]
+	}
+	return rustType + "Ptr"
+}
+
 func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg ast.Expr, expectedIface types.Type) {
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		argType := typeInfo.GetType(arg)

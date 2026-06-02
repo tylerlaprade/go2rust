@@ -406,6 +406,7 @@ func (analysis *transpileFileAnalysis) inspectReturnStmt(ret *ast.ReturnStmt, fn
 			for i := 0; i < results.Len(); i++ {
 				expected := expectedTypeFromParamExpr(returnResultTypeExpr(fnType, i))
 				analysis.recordImportedInterfaceImplForType(expected, results.At(i).Type())
+				analysis.recordExternalLocalInterfaceArg(expected, results.At(i).Type())
 			}
 			return
 		}
@@ -413,6 +414,7 @@ func (analysis *transpileFileAnalysis) inspectReturnStmt(ret *ast.ReturnStmt, fn
 	for i, result := range ret.Results {
 		expected := expectedTypeFromParamExpr(returnResultTypeExpr(fnType, i))
 		analysis.recordImportedInterfaceImpl(expected, result, typeInfo)
+		analysis.recordExternalLocalInterfaceArg(expected, typeInfo.GetType(result))
 	}
 }
 
@@ -581,8 +583,10 @@ func (analysis *transpileFileAnalysis) externalLocalInterfaceImpls(interfaces ma
 			return
 		}
 		concreteType := concrete
+		sourcePointerWrapper := false
 		if ptr, ok := concreteType.(*types.Pointer); ok {
 			concreteType = ptr.Elem()
+			sourcePointerWrapper = true
 		}
 		named, ok := types.Unalias(concreteType).(*types.Named)
 		if !ok || named.Obj() == nil || named.Obj().Pkg() == nil || named.Obj().Pkg() == typeInfo.pkg {
@@ -593,14 +597,21 @@ func (analysis *transpileFileAnalysis) externalLocalInterfaceImpls(interfaces ma
 		implRustType := rustType
 		if sourceIsInterface {
 			implRustType = rustLocalInterfaceTraitObject(rustType)
+			sourcePointerWrapper = false
+		} else if sourcePointerWrapper && isSourceMappedPackagePath(named.Obj().Pkg().Path()) {
+			implRustType = sourceMappedPointerWrapperTypeName(named)
+		} else {
+			sourcePointerWrapper = false
 		}
 		if impls[ifaceName] == nil {
 			impls[ifaceName] = make(map[string]externalLocalInterfaceImpl)
 		}
 		impls[ifaceName][implRustType] = externalLocalInterfaceImpl{
-			ifaceAST:          interfaces[ifaceName],
-			ifaceType:         ifaceType,
-			sourceIsInterface: sourceIsInterface,
+			ifaceAST:              interfaces[ifaceName],
+			ifaceType:             ifaceType,
+			sourceIsInterface:     sourceIsInterface,
+			sourcePointerWrapper:  sourcePointerWrapper,
+			sourcePointeeRustType: rustType,
 		}
 	}
 
@@ -968,9 +979,11 @@ func importedInterfaceImplsForFile(file *ast.File) map[string]map[string]*types.
 }
 
 type externalLocalInterfaceImpl struct {
-	ifaceAST          *ast.InterfaceType
-	ifaceType         *types.Interface
-	sourceIsInterface bool
+	ifaceAST              *ast.InterfaceType
+	ifaceType             *types.Interface
+	sourceIsInterface     bool
+	sourcePointerWrapper  bool
+	sourcePointeeRustType string
 }
 
 type externalLocalInterfaceArg struct {
@@ -1491,10 +1504,11 @@ func collectPackageMethods(files []*ast.File) map[string][]*ast.FuncDecl {
 	return methods
 }
 
-func writeExternalLocalInterfaceMethod(out *strings.Builder, ifaceName string, methodName string, funcType *ast.FuncType, sourceIsInterface bool, methodObj *types.Func) {
+func writeExternalLocalInterfaceMethod(out *strings.Builder, ifaceName string, methodName string, funcType *ast.FuncType, impl externalLocalInterfaceImpl, methodObj *types.Func) {
 	out.WriteString("    fn ")
 	out.WriteString(ToSnakeCase(methodName))
-	if interfaceTraitMethodRequiresMutableReceiver(ifaceName, methodName, methodObj) {
+	mutableReceiver := interfaceTraitMethodRequiresMutableReceiver(ifaceName, methodName, methodObj)
+	if mutableReceiver {
 		out.WriteString("(&mut self")
 	} else {
 		out.WriteString("(&self")
@@ -1520,8 +1534,42 @@ func writeExternalLocalInterfaceMethod(out *strings.Builder, ifaceName string, m
 	out.WriteString(")")
 	writeFunctionResultTypes(out, funcType)
 	out.WriteString(" {\n")
+	if impl.sourcePointerWrapper {
+		methodRustName := RustFunctionName(methodName)
+		if methodObj != nil {
+			methodRustName = rustMethodNameForTypesFunc(methodObj)
+		}
+		out.WriteString("        {\n")
+		out.WriteString("            let ")
+		if mutableReceiver {
+			out.WriteString("mut ")
+		}
+		out.WriteString("__recv_guard = self.0")
+		WriteBorrowMethod(out, mutableReceiver)
+		out.WriteString(";\n")
+		out.WriteString("            let __recv = __recv_guard.")
+		if mutableReceiver {
+			out.WriteString("as_mut")
+		} else {
+			out.WriteString("as_ref")
+		}
+		out.WriteString("().unwrap();\n")
+		out.WriteString("            ")
+		out.WriteString(impl.sourcePointeeRustType)
+		out.WriteString("::")
+		out.WriteString(methodRustName)
+		out.WriteString("(__recv")
+		for _, argName := range argNames {
+			out.WriteString(", ")
+			out.WriteString(argName)
+		}
+		out.WriteString(")\n")
+		out.WriteString("        }\n")
+		out.WriteString("    }\n")
+		return
+	}
 	out.WriteString("        ")
-	if sourceIsInterface {
+	if impl.sourceIsInterface {
 		out.WriteString("(**self).")
 	} else {
 		out.WriteString("self.")
@@ -1644,7 +1692,7 @@ func writeExternalLocalInterfaceImpls(out *strings.Builder, first *bool, impls m
 					if !ok {
 						continue
 					}
-					writeExternalLocalInterfaceMethod(out, ifaceName, method.Names[0].Name, funcType, impl.sourceIsInterface, interfaceMethodByName(impl.ifaceType, method.Names[0].Name))
+					writeExternalLocalInterfaceMethod(out, ifaceName, method.Names[0].Name, funcType, impl, interfaceMethodByName(impl.ifaceType, method.Names[0].Name))
 				}
 			}
 			writeExternalLocalInterfaceSupportImpl(out, ifaceName, concreteType, impl.ifaceType)

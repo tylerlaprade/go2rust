@@ -5036,6 +5036,46 @@ func Use() {
 	}
 }
 
+func TestSourceMappedPointerWrapperImplementsLocalInterface(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "types.go", `package types
+
+import (
+	"go/ast"
+	"go/token"
+)
+
+type positioner interface {
+	Pos() token.Pos
+}
+
+func report(call *ast.CallExpr) positioner {
+	return call
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(types.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{
+		"go/ast":   "go_ast",
+		"go/token": "go_token",
+	})
+	if strings.Contains(rust, "impl positioner for go_ast::CallExpr {") {
+		t.Fatalf("source-mapped pointer return should not implement the local interface for the pointee value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl positioner for go_ast::CallExprPtr") {
+		t.Fatalf("source-mapped pointer return should implement the local interface for the pointer wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "go_ast::CallExpr::pos(__recv)") {
+		t.Fatalf("source-mapped pointer local-interface impl should delegate through the pointee:\n%s", rust)
+	}
+}
+
 func TestProjectGeneratorPreservesLoaderInterfaceMutabilityForMainImpl(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
