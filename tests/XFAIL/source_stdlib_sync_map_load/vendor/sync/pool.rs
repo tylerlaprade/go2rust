@@ -350,7 +350,7 @@ impl Pool {
     }
     }
         if { let __nil_target = self.local.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
-        { let new_val = { let __collection_holder = { let __append_target = allPools.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(self.clone()); __append_target.clone() }.clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *allPools.lock().unwrap() = new_val; };
+        { let new_val = { let __collection_holder = { let __append_target = allPools.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(Arc::new(StdMutex::new(Some(self.clone())))); __append_target.clone() }.clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *allPools.lock().unwrap() = new_val; };
     }
                 // If GOMAXPROCS changes between GCs, we re-allocate the array and lose the old one.
         let mut size = runtime::g_o_m_a_x_p_r_o_c_s(0);

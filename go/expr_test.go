@@ -1078,6 +1078,29 @@ func (i *item) Nodes() []Node {
 	}
 }
 
+func TestAppendCurrentPointerReceiverToPointerSliceWrapsSelfHandle(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Pool struct {
+	id int
+}
+
+var allPools []*Pool
+
+func (p *Pool) add() {
+	allPools = append(allPools, p)
+}
+`)
+
+	if strings.Contains(rust, ".push(self.clone())") {
+		t.Fatalf("current pointer receiver appended to pointer slice should not push the bare receiver value:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".push(Rc::new(RefCell::new(Some(self.clone()))))") &&
+		!strings.Contains(rust, ".push(Arc::new(Mutex::new(Some(self.clone()))))") {
+		t.Fatalf("current pointer receiver appended to pointer slice should wrap self in a pointer handle:\n%s", rust)
+	}
+}
+
 func TestAppendInterfaceCallResultKeepsHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

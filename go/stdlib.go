@@ -3814,6 +3814,11 @@ func transpileAppend(out *strings.Builder, call *ast.CallExpr) {
 					return
 				}
 				if elemType != nil {
+					if _, ok := types.Unalias(elemType).Underlying().(*types.Pointer); ok {
+						if writePointerHandleCallArgument(out, expr, elemType) {
+							return
+						}
+					}
 					if _, ok := transpiledNamedInterfaceTypeNameFromTypes(elemType); ok {
 						if writeLocalInterfaceSliceElementValue(out, expr, elemType) {
 							return
