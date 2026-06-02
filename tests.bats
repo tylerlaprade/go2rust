@@ -43,6 +43,15 @@ run_with_prefix() {
     return $exit_code
 }
 
+cargo_run_quiet() {
+    local -a cargo_offline_args=()
+    if [ -n "${GO2RUST_CARGO_OFFLINE_ARGS:-}" ]; then
+        # shellcheck disable=SC2206
+        cargo_offline_args=(${GO2RUST_CARGO_OFFLINE_ARGS})
+    fi
+    run_with_prefix cargo "${cargo_offline_args[@]}" run --quiet
+}
+
 compile_and_run_rust() {
     local rust_file="$1"
     local input_file="$2"
@@ -63,13 +72,13 @@ edition = "2021"
 CARGO_EOF
 
     if [ -n "$input_file" ]; then
-        if (cd "$temp_dir" && run_with_prefix cargo run --quiet < "$input_file"); then
+        if (cd "$temp_dir" && cargo_run_quiet < "$input_file"); then
             exit_code=0
         else
             exit_code=$?
         fi
     else
-        if (cd "$temp_dir" && run_with_prefix cargo run --quiet); then
+        if (cd "$temp_dir" && cargo_run_quiet); then
             exit_code=0
         else
             exit_code=$?
@@ -160,7 +169,13 @@ run_transpile_and_compare() {
         remove_cargo_target=true
     fi
 
-    if rust_output=$(cd "$test_dir" && CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo run --quiet 2>&1); then
+    local -a cargo_offline_args=()
+    if [ -n "${GO2RUST_CARGO_OFFLINE_ARGS:-}" ]; then
+        # shellcheck disable=SC2206
+        cargo_offline_args=(${GO2RUST_CARGO_OFFLINE_ARGS})
+    fi
+
+    if rust_output=$(cd "$test_dir" && CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_offline_args[@]}" run --quiet 2>&1); then
         rust_exit_code=0
     else
         rust_exit_code=$?

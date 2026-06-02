@@ -66,8 +66,10 @@ func TestCleanupScriptStaleSweepRespectsOwnerPidMarkers(t *testing.T) {
 	script := string(data)
 	for _, want := range []string{
 		`pid_is_active()`,
+		`active_pid_from_file()`,
 		`maybe_remove_temp_dir()`,
-		`if pid_is_active "$dir/$pid_name"; then`,
+		`active_pid=$(active_pid_from_file "$dir/$pid_name" || true)`,
+		`if [ -n "$active_pid" ]; then`,
 		`while IFS= read -r dir; do`,
 		`maybe_remove_temp_dir "$dir"`,
 		`self_transpile_check.pid`,
@@ -220,8 +222,9 @@ func TestTestScriptDefaultJobsRespectMemoryHeadroom(t *testing.T) {
 		`MEM_BYTES=$(sysctl -n hw.memsize`,
 		`GO2RUST_TEST_MEMORY_PER_JOB_GB`,
 		`MEM_JOBS=$(( MEM_BYTES / BYTES_PER_JOB ))`,
-		`[ "$JOBS" -gt "$MEM_JOBS" ] && JOBS=$MEM_JOBS`,
+		`JOBS_REASON="total memory cap (${MEMORY_PER_JOB_GB} GiB/job)"`,
 		`GO2RUST_TEST_JOBS_MAX`,
+		`JOBS_REASON="GO2RUST_TEST_JOBS_MAX=$JOBS_MAX"`,
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("test.sh should bound default jobs by memory headroom; missing %q", want)
@@ -242,7 +245,8 @@ func TestTestScriptDefaultJobsRespectCurrentMemoryPressure(t *testing.T) {
 		`/MemAvailable/`,
 		`vm_stat`,
 		`AVAILABLE_MEM_JOBS=$(( AVAILABLE_MEM_BYTES / BYTES_PER_JOB ))`,
-		`[ "$JOBS" -gt "$AVAILABLE_MEM_JOBS" ] && JOBS=$AVAILABLE_MEM_JOBS`,
+		`AVAILABLE_MEM_GB=$(( AVAILABLE_MEM_BYTES / 1024 / 1024 / 1024 ))`,
+		`JOBS_REASON="available memory cap (${AVAILABLE_MEM_GB} GiB free, ${MEMORY_PER_JOB_GB} GiB/job)"`,
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("test.sh should cap default jobs by current memory pressure; missing %q", want)
@@ -260,9 +264,29 @@ func TestTestScriptLowMemoryModeBoundsJobs(t *testing.T) {
 		`LOW_MEMORY="${GO2RUST_LOW_MEMORY:-0}"`,
 		`--low-memory`,
 		`JOBS=1`,
+		`JOBS_REASON="low-memory mode"`,
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("test.sh low-memory mode should force sequential fixture execution; missing %q", want)
+		}
+	}
+}
+
+func TestTestScriptReportsWhyFixtureRunIsSequential(t *testing.T) {
+	data, err := os.ReadFile("../test.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(test.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`JOBS_REASON=""`,
+		`JOBS_REASON="GNU parallel is not installed"`,
+		`Running tests sequentially ($JOBS_REASON; timeout: $TIMEOUT per test)...`,
+		`Running tests sequentially (timeout: $TIMEOUT per test)...`,
+		`Timeout per test (default: 15s)`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("test.sh should report why it selected sequential mode; missing %q", want)
 		}
 	}
 }
@@ -283,6 +307,37 @@ func TestTestScriptCapsNestedCargoByDefault(t *testing.T) {
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("test.sh should cap nested Cargo memory use by default; missing %q", want)
+		}
+	}
+}
+
+func TestFixtureCargoUsesCachedOfflineMode(t *testing.T) {
+	testScript, err := os.ReadFile("../test.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(test.sh) error = %v", err)
+	}
+	batsFile, err := os.ReadFile("../tests.bats")
+	if err != nil {
+		t.Fatalf("ReadFile(tests.bats) error = %v", err)
+	}
+	for _, want := range []string{
+		`GO2RUST_CARGO_OFFLINE_ARGS=""`,
+		`case "${GO2RUST_CARGO_OFFLINE:-auto}" in`,
+		`compgen -G "$cargo_home/registry/index/*"`,
+		`GO2RUST_CARGO_OFFLINE_ARGS="--offline"`,
+	} {
+		if !strings.Contains(string(testScript), want) {
+			t.Fatalf("test.sh should expose cached Cargo offline mode; missing %q", want)
+		}
+	}
+	for _, want := range []string{
+		`cargo_run_quiet()`,
+		`cargo_offline_args=(${GO2RUST_CARGO_OFFLINE_ARGS})`,
+		`run_with_prefix cargo "${cargo_offline_args[@]}" run --quiet`,
+		`cargo "${cargo_offline_args[@]}" run --quiet`,
+	} {
+		if !strings.Contains(string(batsFile), want) {
+			t.Fatalf("tests.bats should pass cached Cargo offline args to fixture runs; missing %q", want)
 		}
 	}
 }
@@ -344,12 +399,18 @@ func TestCleanupScriptRemovesKnownGo2RustArtifacts(t *testing.T) {
 		`go2rust-self.*`,
 		`go2rust-test.*`,
 		`go2rust-bats-shards.*`,
+		`go2rust-cargo-home`,
+		`go2rust-cargo-home.*`,
 		`go2rust-cargo-target.*`,
+		`go2rust-self-cargo-home`,
+		`go2rust-self-cargo-home.*`,
 		`go2rust-test-binary.*`,
 		`go2rust-go-cache`,
 		`go2rust-go-cache.*`,
 		`go2rust-rust-work.*`,
 		`go2rust-tests-list.*`,
+		`go2rust-debug-*.log`,
+		`go2rust-sample-*`,
 		`go2rust-rust-diff.*`,
 		`go2rust-stdout.*`,
 		`go2rust-stderr.*`,
@@ -364,6 +425,28 @@ func TestCleanupScriptRemovesKnownGo2RustArtifacts(t *testing.T) {
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("cleanup.sh should cover go2rust temp/build artifact %q", want)
+		}
+	}
+}
+
+func TestCleanupSummaryCanReportActiveTempRoots(t *testing.T) {
+	data, err := os.ReadFile("../cleanup.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(cleanup.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`--show-active`,
+		`show_active=false`,
+		`show_active=true`,
+		`active_pid_from_file()`,
+		`report_active_path()`,
+		`pid_command()`,
+		`active: $path$size (pid $pid via $pid_name`,
+		`Active skipped: $(format_kib "$active_kib") across $active_count path(s)`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("cleanup.sh should report active marked temp roots; missing %q", want)
 		}
 	}
 }

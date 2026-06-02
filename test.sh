@@ -20,6 +20,7 @@ trap _test_sh_cleanup EXIT
 # behind a running fixture suite.
 VERBOSE=false
 JOBS=""
+JOBS_REASON=""
 TIMEOUT="15s"
 HELP=false
 LOW_MEMORY="${GO2RUST_LOW_MEMORY:-0}"
@@ -90,7 +91,7 @@ if [ "$HELP" = true ]; then
     echo "Options:"
     echo "  -v, --verbose      Show XFAIL tests in output"
     echo "  -n, --jobs N       Number of parallel jobs (default: auto-detect from CPU and memory)"
-    echo "  -t, --timeout TIME Timeout per test (default: 60s)"
+    echo "  -t, --timeout TIME Timeout per test (default: 15s)"
     echo "  --low-memory       Run one fixture at a time"
     echo "  -h, --help         Show this help message"
     echo ""
@@ -232,10 +233,30 @@ export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
 export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
 export CARGO_PROFILE_DEV_INCREMENTAL="${CARGO_PROFILE_DEV_INCREMENTAL:-false}"
 export RUSTFLAGS="${RUSTFLAGS:--Awarnings -C debuginfo=0}"
+export GO2RUST_CARGO_OFFLINE_ARGS=""
+case "${GO2RUST_CARGO_OFFLINE:-auto}" in
+    1|true|yes)
+        GO2RUST_CARGO_OFFLINE_ARGS="--offline"
+        ;;
+    0|false|no)
+        ;;
+    auto|"")
+        cargo_home="${CARGO_HOME:-$HOME/.cargo}"
+        if compgen -G "$cargo_home/registry/index/*" >/dev/null; then
+            GO2RUST_CARGO_OFFLINE_ARGS="--offline"
+        fi
+        ;;
+    *)
+        echo "error: GO2RUST_CARGO_OFFLINE must be auto, 1, or 0" >&2
+        exit 2
+        ;;
+esac
+export GO2RUST_CARGO_OFFLINE_ARGS
 
 case "$LOW_MEMORY" in
     1|true|TRUE|yes|YES)
         JOBS=1
+        JOBS_REASON="low-memory mode"
         ;;
 esac
 
@@ -335,7 +356,10 @@ if [ -z "$JOBS" ]; then
         if [ "$MEM_BYTES" -gt 0 ]; then
             MEM_JOBS=$(( MEM_BYTES / BYTES_PER_JOB ))
             [ "$MEM_JOBS" -lt 1 ] && MEM_JOBS=1
-            [ "$JOBS" -gt "$MEM_JOBS" ] && JOBS=$MEM_JOBS
+            if [ "$JOBS" -gt "$MEM_JOBS" ]; then
+                JOBS=$MEM_JOBS
+                JOBS_REASON="total memory cap (${MEMORY_PER_JOB_GB} GiB/job)"
+            fi
         fi
 
         AVAILABLE_MEM_BYTES=$(detect_available_memory_bytes)
@@ -343,19 +367,27 @@ if [ -z "$JOBS" ]; then
         if [ "$AVAILABLE_MEM_BYTES" -gt 0 ]; then
             AVAILABLE_MEM_JOBS=$(( AVAILABLE_MEM_BYTES / BYTES_PER_JOB ))
             [ "$AVAILABLE_MEM_JOBS" -lt 1 ] && AVAILABLE_MEM_JOBS=1
-            [ "$JOBS" -gt "$AVAILABLE_MEM_JOBS" ] && JOBS=$AVAILABLE_MEM_JOBS
+            if [ "$JOBS" -gt "$AVAILABLE_MEM_JOBS" ]; then
+                JOBS=$AVAILABLE_MEM_JOBS
+                AVAILABLE_MEM_GB=$(( AVAILABLE_MEM_BYTES / 1024 / 1024 / 1024 ))
+                JOBS_REASON="available memory cap (${AVAILABLE_MEM_GB} GiB free, ${MEMORY_PER_JOB_GB} GiB/job)"
+            fi
         fi
     fi
     JOBS_MAX="${GO2RUST_TEST_JOBS_MAX:-}"
     case "$JOBS_MAX" in ''|*[!0-9]*) JOBS_MAX=0 ;; esac
     if [ "$JOBS_MAX" -gt 0 ]; then
-        [ "$JOBS" -gt "$JOBS_MAX" ] && JOBS=$JOBS_MAX
+        if [ "$JOBS" -gt "$JOBS_MAX" ]; then
+            JOBS=$JOBS_MAX
+            JOBS_REASON="GO2RUST_TEST_JOBS_MAX=$JOBS_MAX"
+        fi
     fi
 fi
 
 if [ "$JOBS" -gt 1 ] && ! command -v parallel >/dev/null 2>&1; then
     echo "GNU parallel is not installed; running tests sequentially."
     JOBS=1
+    JOBS_REASON="GNU parallel is not installed"
 fi
 
 create_bats_shards() {
@@ -513,7 +545,11 @@ BATS_ARGS=(-T --tap)
 BATS_TARGETS=(tests.bats)
 SHARD_DIR=""
 if [ "$JOBS" -eq 1 ]; then
-    echo "Running tests sequentially (timeout: $TIMEOUT per test)..."
+    if [ -n "$JOBS_REASON" ]; then
+        echo "Running tests sequentially ($JOBS_REASON; timeout: $TIMEOUT per test)..."
+    else
+        echo "Running tests sequentially (timeout: $TIMEOUT per test)..."
+    fi
 else
     echo "Running tests in parallel with $JOBS jobs (timeout: $TIMEOUT per test)..."
     SHARD_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-bats-shards.XXXXXX")

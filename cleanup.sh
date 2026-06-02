@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
     cat <<'EOF'
-Usage: ./cleanup.sh [--dry-run] [--sizes] [--summary] [--age-minutes N] [--keep-repo-artifacts] [--keep-loop-logs]
+Usage: ./cleanup.sh [--dry-run] [--sizes] [--summary] [--show-active] [--age-minutes N] [--keep-repo-artifacts] [--keep-loop-logs]
 
 Remove stale go2rust temporary roots and ignored local build artifacts.
 
@@ -12,6 +12,8 @@ Options:
   --sizes               Include each path's disk usage in cleanup output.
   --summary             Print matching paths, sizes, and the total reclaimable
                         space without removing anything.
+  --show-active         With --summary or --dry-run, print active marked temp
+                        roots that cleanup skips.
   --age-minutes N       Only remove temp paths older than N minutes (default: 60).
   --keep-repo-artifacts Keep ignored root build artifacts such as ./go2rust.
   --keep-loop-logs      Keep ignored Ralph/Codex loop logs.
@@ -23,11 +25,14 @@ repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 dry_run=false
 show_sizes=false
 summary=false
+show_active=false
 age_minutes="${GO2RUST_CLEANUP_AGE_MINUTES:-60}"
 remove_repo_artifacts=true
 remove_loop_logs=true
 candidate_count=0
 total_kib=0
+active_count=0
+active_kib=0
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -42,6 +47,11 @@ while [ "$#" -gt 0 ]; do
         --summary)
             summary=true
             dry_run=true
+            show_sizes=true
+            shift
+            ;;
+        --show-active)
+            show_active=true
             show_sizes=true
             shift
             ;;
@@ -134,11 +144,56 @@ pid_is_active() {
     kill -0 "$pid" 2>/dev/null
 }
 
+pid_command() {
+    local pid="$1"
+    ps -p "$pid" -o command= 2>/dev/null || true
+}
+
+active_pid_from_file() {
+    local pid_file="$1"
+    [ -f "$pid_file" ] || return 1
+
+    local pid
+    pid=$(cat "$pid_file" 2>/dev/null || true)
+    [ -n "$pid" ] || return 1
+    kill -0 "$pid" 2>/dev/null || return 1
+    printf '%s\n' "$pid"
+}
+
+report_active_path() {
+    local path="$1"
+    local pid_name="$2"
+    local pid="$3"
+    local size=""
+    if [ "$show_sizes" = true ]; then
+        local size_kib
+        size_kib=$(path_size_kib "$path")
+        if [ -n "$size_kib" ]; then
+            active_kib=$((active_kib + size_kib))
+            size=" ($(format_kib "$size_kib"))"
+        fi
+    fi
+    active_count=$((active_count + 1))
+
+    local command
+    command=$(pid_command "$pid")
+    if [ -n "$command" ]; then
+        echo "active: $path$size (pid $pid via $pid_name: $command)"
+    else
+        echo "active: $path$size (pid $pid via $pid_name)"
+    fi
+}
+
 maybe_remove_temp_dir() {
     local dir="$1"
 
     for pid_name in self_transpile_check.pid go2rust-test.pid pid; do
-        if pid_is_active "$dir/$pid_name"; then
+        local active_pid
+        active_pid=$(active_pid_from_file "$dir/$pid_name" || true)
+        if [ -n "$active_pid" ]; then
+            if [ "$show_active" = true ]; then
+                report_active_path "$dir" "$pid_name" "$active_pid"
+            fi
             return
         fi
     done
@@ -161,7 +216,11 @@ cleanup_temp_root() {
         -name 'go2rust-self.*' -o \
         -name 'go2rust-test.*' -o \
         -name 'go2rust-bats-shards.*' -o \
+        -name 'go2rust-cargo-home' -o \
+        -name 'go2rust-cargo-home.*' -o \
         -name 'go2rust-cargo-target.*' -o \
+        -name 'go2rust-self-cargo-home' -o \
+        -name 'go2rust-self-cargo-home.*' -o \
         -name 'go2rust-test-binary.*' -o \
         -name 'go2rust-go-cache' -o \
         -name 'go2rust-go-cache.*' -o \
@@ -172,6 +231,8 @@ cleanup_temp_root() {
         remove_path "$file"
     done < <(find "$root" -maxdepth 1 "${age_args[@]}" -type f \( \
         -name 'go2rust-tests-list.*' -o \
+        -name 'go2rust-debug-*.log' -o \
+        -name 'go2rust-sample-*' -o \
         -name 'go2rust-rust-diff.*' -o \
         -name 'go2rust-stdout.*' -o \
         -name 'go2rust-stderr.*' -o \
@@ -235,4 +296,7 @@ done
 
 if [ "$summary" = true ]; then
     echo "Total reclaimable: $(format_kib "$total_kib") across $candidate_count path(s)"
+    if [ "$show_active" = true ]; then
+        echo "Active skipped: $(format_kib "$active_kib") across $active_count path(s)"
+    fi
 fi

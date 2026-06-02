@@ -19,6 +19,9 @@ Environment:
   GOCACHE=<path>          Override the temporary Go build cache.
   CARGO_HOME=<path>       Override the temporary Cargo registry/cache home.
   CARGO_TARGET_DIR=<path> Override the temporary Cargo target directory.
+  GO2RUST_CARGO_OFFLINE=auto|1|0
+                      Use Cargo --offline. With auto, enable it only when
+                      CARGO_HOME already has a registry index (default: auto).
   GOFLAGS=<flags>         Override Go build/load flags (default: -tags=purego).
   GO2RUST_BEHAVIOR_JOBS=N Number of behavior-suite shards (default: auto via
                       test.sh memory detection).
@@ -112,6 +115,23 @@ export CARGO_PROFILE_DEV_INCREMENTAL="${CARGO_PROFILE_DEV_INCREMENTAL:-false}"
 export RUSTFLAGS="${RUSTFLAGS:--Awarnings -C debuginfo=0}"
 export GOFLAGS="${GOFLAGS:--tags=purego}"
 export GO2RUST_SOURCE_STDLIB_PACKAGES="${GO2RUST_SOURCE_STDLIB_PACKAGES:-go/...,internal/...,cmp,slices,reflect,math/big,math/bits,math,strings,regexp,regexp/syntax,path/filepath,sync,sync/atomic,text/scanner,unicode,unicode/utf8,hash/maphash,crypto/rand,crypto/internal/boring,crypto/internal/fips140,crypto/internal/fips140deps/godebug,crypto/internal/sysrand}"
+cargo_offline_args=()
+case "${GO2RUST_CARGO_OFFLINE:-auto}" in
+    1|true|yes)
+        cargo_offline_args=(--offline)
+        ;;
+    0|false|no)
+        ;;
+    auto|"")
+        if compgen -G "$CARGO_HOME/registry/index/*" >/dev/null; then
+            cargo_offline_args=(--offline)
+        fi
+        ;;
+    *)
+        echo "error: GO2RUST_CARGO_OFFLINE must be auto, 1, or 0" >&2
+        exit 2
+        ;;
+esac
 go build -o "$work/go2rust" "$repo_root/go"
 
 (
@@ -124,13 +144,13 @@ if [ "$cargo_check" = true ]; then
     if [ "${#packages[@]}" -eq 0 ]; then
         (
             cd "$work/go"
-            cargo check --workspace --message-format=short
+            cargo "${cargo_offline_args[@]}" check --workspace --message-format=short
         )
     else
         for package in "${packages[@]}"; do
             (
                 cd "$work/go"
-                cargo check -p "$package" --message-format=short
+                cargo "${cargo_offline_args[@]}" check -p "$package" --message-format=short
             )
         done
     fi
@@ -140,7 +160,7 @@ if [ "$behavior_suite" = true ]; then
     export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$work/cargo-target}"
     (
         cd "$work/go"
-        cargo build -p go --bin go
+        cargo "${cargo_offline_args[@]}" build -p go --bin go
     )
 
     suite="$work/behavior-suite"

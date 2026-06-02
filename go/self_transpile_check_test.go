@@ -121,6 +121,27 @@ func TestSelfTranspileBehaviorSuiteUsesAutoJobsByDefault(t *testing.T) {
 	}
 }
 
+func TestSelfTranspileCargoOfflineAutoUsesCachedIndex(t *testing.T) {
+	data, err := os.ReadFile("../self_transpile_check.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(self_transpile_check.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`GO2RUST_CARGO_OFFLINE=auto|1|0`,
+		`cargo_offline_args=()`,
+		`case "${GO2RUST_CARGO_OFFLINE:-auto}" in`,
+		`compgen -G "$CARGO_HOME/registry/index/*"`,
+		`cargo "${cargo_offline_args[@]}" check --workspace --message-format=short`,
+		`cargo "${cargo_offline_args[@]}" check -p "$package" --message-format=short`,
+		`cargo "${cargo_offline_args[@]}" build -p go --bin go`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("self_transpile_check.sh should support cached-index Cargo offline mode; missing %q", want)
+		}
+	}
+}
+
 func TestSelfTranspileBehaviorSuiteCopiesCleanupScript(t *testing.T) {
 	data, err := os.ReadFile("../self_transpile_check.sh")
 	if err != nil {
