@@ -145,6 +145,27 @@ func TestTestScriptDefaultJobsRespectMemoryHeadroom(t *testing.T) {
 	}
 }
 
+func TestTestScriptDefaultJobsRespectCurrentMemoryPressure(t *testing.T) {
+	data, err := os.ReadFile("../test.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(test.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`detect_available_memory_bytes()`,
+		`memory_pressure`,
+		`System-wide memory free percentage:`,
+		`/MemAvailable/`,
+		`vm_stat`,
+		`AVAILABLE_MEM_JOBS=$(( AVAILABLE_MEM_BYTES / BYTES_PER_JOB ))`,
+		`[ "$JOBS" -gt "$AVAILABLE_MEM_JOBS" ] && JOBS=$AVAILABLE_MEM_JOBS`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("test.sh should cap default jobs by current memory pressure; missing %q", want)
+		}
+	}
+}
+
 func TestTestScriptBuildsDefaultBinaryInTemp(t *testing.T) {
 	data, err := os.ReadFile("../test.sh")
 	if err != nil {

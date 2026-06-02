@@ -226,7 +226,7 @@ if [ "$HELP" = true ]; then
     echo ""
     echo "Options:"
     echo "  -v, --verbose      Show XFAIL tests in output"
-    echo "  -n, --jobs N       Number of parallel jobs (default: auto-detect)"
+    echo "  -n, --jobs N       Number of parallel jobs (default: auto-detect from CPU and memory)"
     echo "  -t, --timeout TIME Timeout per test (default: 60s)"
     echo "  -h, --help         Show this help message"
     echo ""
@@ -298,6 +298,54 @@ else
 fi
 export GO2RUST_TEST_BINARY_READY=1
 
+detect_available_memory_bytes() {
+    if command -v memory_pressure >/dev/null 2>&1; then
+        memory_pressure 2>/dev/null | awk '
+            /^The system has / {
+                total = $4
+            }
+            /System-wide memory free percentage:/ {
+                pct = $5
+                gsub(/%/, "", pct)
+            }
+            END {
+                if (total ~ /^[0-9]+$/ && pct ~ /^[0-9]+$/) {
+                    printf "%.0f\n", total * pct / 100
+                }
+            }
+        '
+        return
+    fi
+
+    if [ -r /proc/meminfo ]; then
+        awk '/MemAvailable/ { printf "%.0f\n", $2 * 1024 }' /proc/meminfo 2>/dev/null
+        return
+    fi
+
+    if command -v vm_stat >/dev/null 2>&1; then
+        vm_stat 2>/dev/null | awk '
+            /page size of/ {
+                page_size = $8
+                gsub(/[^0-9]/, "", page_size)
+            }
+            /Pages free:/ {
+                free_pages = $3
+                gsub(/[^0-9]/, "", free_pages)
+            }
+            /Pages speculative:/ {
+                speculative_pages = $3
+                gsub(/[^0-9]/, "", speculative_pages)
+            }
+            END {
+                if (page_size > 0) {
+                    printf "%.0f\n", (free_pages + speculative_pages) * page_size
+                }
+            }
+        '
+        return
+    fi
+}
+
 # Set default job count if not specified
 if [ -z "$JOBS" ]; then
     # Detect CPU cores but leave some headroom for Rust's memory usage
@@ -310,11 +358,21 @@ if [ -z "$JOBS" ]; then
     MEMORY_PER_JOB_GB="${GO2RUST_TEST_MEMORY_PER_JOB_GB:-4}"
     case "$MEM_BYTES" in ''|*[!0-9]*) MEM_BYTES=0 ;; esac
     case "$MEMORY_PER_JOB_GB" in ''|*[!0-9]*) MEMORY_PER_JOB_GB=0 ;; esac
-    if [ "$MEM_BYTES" -gt 0 ] && [ "$MEMORY_PER_JOB_GB" -gt 0 ]; then
+    if [ "$MEMORY_PER_JOB_GB" -gt 0 ]; then
         BYTES_PER_JOB=$(( MEMORY_PER_JOB_GB * 1024 * 1024 * 1024 ))
-        MEM_JOBS=$(( MEM_BYTES / BYTES_PER_JOB ))
-        [ "$MEM_JOBS" -lt 1 ] && MEM_JOBS=1
-        [ "$JOBS" -gt "$MEM_JOBS" ] && JOBS=$MEM_JOBS
+        if [ "$MEM_BYTES" -gt 0 ]; then
+            MEM_JOBS=$(( MEM_BYTES / BYTES_PER_JOB ))
+            [ "$MEM_JOBS" -lt 1 ] && MEM_JOBS=1
+            [ "$JOBS" -gt "$MEM_JOBS" ] && JOBS=$MEM_JOBS
+        fi
+
+        AVAILABLE_MEM_BYTES=$(detect_available_memory_bytes)
+        case "$AVAILABLE_MEM_BYTES" in ''|*[!0-9]*) AVAILABLE_MEM_BYTES=0 ;; esac
+        if [ "$AVAILABLE_MEM_BYTES" -gt 0 ]; then
+            AVAILABLE_MEM_JOBS=$(( AVAILABLE_MEM_BYTES / BYTES_PER_JOB ))
+            [ "$AVAILABLE_MEM_JOBS" -lt 1 ] && AVAILABLE_MEM_JOBS=1
+            [ "$JOBS" -gt "$AVAILABLE_MEM_JOBS" ] && JOBS=$AVAILABLE_MEM_JOBS
+        fi
     fi
     JOBS_MAX="${GO2RUST_TEST_JOBS_MAX:-}"
     case "$JOBS_MAX" in ''|*[!0-9]*) JOBS_MAX=0 ;; esac
