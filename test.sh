@@ -38,6 +38,40 @@ if ! mkdir "$LOCK_DIR" 2>/dev/null; then
 fi
 echo $$ > "$LOCK_DIR/pid"
 
+pid_is_active() {
+    local pid_file="$1"
+    [ -f "$pid_file" ] || return 1
+
+    local pid
+    pid=$(cat "$pid_file" 2>/dev/null || true)
+    [ -n "$pid" ] || return 1
+    kill -0 "$pid" 2>/dev/null
+}
+
+maybe_remove_stale_temp_dir() {
+    local dir="$1"
+
+    if pid_is_active "$dir/go2rust-test.pid" || pid_is_active "$dir/self_transpile_check.pid" || pid_is_active "$dir/pid"; then
+        return
+    fi
+
+    rm -rf "$dir"
+}
+
+cleanup_stale_test_artifacts() {
+    [ "${GO2RUST_TEST_CLEAN_STALE:-1}" = "0" ] && return
+
+    local tmp_root="${TMPDIR:-/tmp}"
+
+    find "$tmp_root" -maxdepth 1 \( -name 'go2rust-test.*' -o -name 'go2rust-bats-shards.*' -o -name 'go2rust-cargo-target.*' -o -name 'go2rust-test-binary.*' -o -name 'go2rust-go-cache.*' \) -type d -prune -print 2>/dev/null | while IFS= read -r dir; do
+        maybe_remove_stale_temp_dir "$dir"
+    done
+    find "$tmp_root" -maxdepth 1 \( -name 'go2rust-rust-work.*' \) -type d -prune -print 2>/dev/null | while IFS= read -r dir; do
+        maybe_remove_stale_temp_dir "$dir"
+    done
+    find "$tmp_root" -maxdepth 1 \( -name 'go2rust-tests-list.*' -o -name 'go2rust-rust-diff.*' -o -name 'go2rust-stdout.*' -o -name 'go2rust-stderr.*' \) -type f -delete 2>/dev/null
+}
+
 # Generate test cases and update the GENERATED TESTS section in tests.bats
 
 # Create temporary file for new test cases
@@ -207,14 +241,12 @@ fi
 export SHOW_XFAIL_ERRORS
 
 # Sweep stale per-test workspaces left over from prior runs killed via SIGKILL
-# (OOM, kill -9, etc.) — SIGKILL bypasses the run_test EXIT trap. Project rule:
-# only one ./test.sh runs at a time, so anything matching is guaranteed stale.
-find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'go2rust-test.*' -o -name 'go2rust-bats-shards.*' -o -name 'go2rust-cargo-target.*' -o -name 'go2rust-test-binary.*' -o -name 'go2rust-go-cache.*' \) -type d -prune -exec rm -rf {} + 2>/dev/null
-find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'go2rust-rust-work.*' \) -type d -prune -exec rm -rf {} + 2>/dev/null
-find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'go2rust-tests-list.*' -o -name 'go2rust-rust-diff.*' -o -name 'go2rust-stdout.*' -o -name 'go2rust-stderr.*' \) -type f -delete 2>/dev/null
+# (OOM, kill -9, etc.) — SIGKILL bypasses the run_test EXIT trap.
+cleanup_stale_test_artifacts
 
 if [ -z "${GOCACHE:-}" ]; then
     TEST_GOCACHE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-go-cache.XXXXXX")
+    echo "$$" > "$TEST_GOCACHE_DIR/go2rust-test.pid"
     export GOCACHE="$TEST_GOCACHE_DIR"
 fi
 
@@ -234,6 +266,7 @@ if [ -n "${GO2RUST_TEST_BINARY:-}" ]; then
     export GO2RUST_TEST_BINARY
 else
     BUILT_TEST_BINARY_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test-binary.XXXXXX")
+    echo "$$" > "$BUILT_TEST_BINARY_DIR/go2rust-test.pid"
     BUILT_TEST_BINARY="$BUILT_TEST_BINARY_DIR/go2rust"
     go build -o "$BUILT_TEST_BINARY" ./go
     chmod +x "$BUILT_TEST_BINARY"
@@ -431,6 +464,7 @@ if [ "$JOBS" -eq 1 ]; then
 else
     echo "Running tests in parallel with $JOBS jobs (timeout: $TIMEOUT per test)..."
     SHARD_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-bats-shards.XXXXXX")
+    echo "$$" > "$SHARD_DIR/go2rust-test.pid"
     create_bats_shards "$SHARD_DIR" "$JOBS"
     BATS_ARGS+=(-j "$JOBS")
     BATS_TARGETS=("$SHARD_DIR"/tests-shard-*.bats)

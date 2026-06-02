@@ -30,6 +30,32 @@ func TestTestScriptSweepsAllGeneratedTempRoots(t *testing.T) {
 	}
 }
 
+func TestTestScriptStaleSweepRespectsOwnerPidMarkers(t *testing.T) {
+	data, err := os.ReadFile("../test.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(test.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`GO2RUST_TEST_CLEAN_STALE`,
+		`pid_is_active()`,
+		`maybe_remove_stale_temp_dir()`,
+		`if pid_is_active "$dir/go2rust-test.pid"`,
+		`while IFS= read -r dir; do`,
+		`maybe_remove_stale_temp_dir "$dir"`,
+		`echo "$$" > "$TEST_GOCACHE_DIR/go2rust-test.pid"`,
+		`echo "$$" > "$BUILT_TEST_BINARY_DIR/go2rust-test.pid"`,
+		`echo "$$" > "$SHARD_DIR/go2rust-test.pid"`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("test.sh stale-temp sweep should respect owner pid markers; missing %q", want)
+		}
+	}
+	if strings.Contains(script, `-exec rm -rf {} +`) {
+		t.Fatalf("test.sh should not delete temp directories without checking owner pid markers")
+	}
+}
+
 func TestScriptsUseNamedGo2RustTempPaths(t *testing.T) {
 	testSh, err := os.ReadFile("../test.sh")
 	if err != nil {
@@ -135,6 +161,7 @@ func TestBatsMarksPerTestTempRootOwner(t *testing.T) {
 	for _, want := range []string{
 		`test_tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test.XXXXXX")`,
 		`echo "$$" > "$test_tmp_root/go2rust-test.pid"`,
+		`echo "$$" > "$cargo_target_dir/go2rust-test.pid"`,
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("tests.bats should mark per-test temp roots with their owner pid; missing %q", want)

@@ -156,6 +156,7 @@ run_transpile_and_compare() {
         mkdir -p "$cargo_target_dir"
     else
         cargo_target_dir=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-cargo-target.XXXXXX")
+        echo "$$" > "$cargo_target_dir/go2rust-test.pid"
         remove_cargo_target=true
     fi
 
@@ -281,6 +282,7 @@ run_xfail_test() {
         test_dir="$1"
         test_name="$2"
         test_tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test.XXXXXX")
+        echo "$$" > "$test_tmp_root/go2rust-test.pid"
         trap '"'"'rm -rf "$test_tmp_root"'"'"' EXIT
         export GO2RUST_TEST_TMP="$test_tmp_root"
         
