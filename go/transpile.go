@@ -1966,6 +1966,261 @@ func generateExternalPromotedMethod(out *strings.Builder, method externalPromote
 	out.WriteString("    }\n")
 }
 
+func shouldSplitGenericOwnMethodImpls(typeSpec *ast.TypeSpec, typeName string, typeMethods []*ast.FuncDecl, declaredTypeNames map[string]bool) bool {
+	if typeSpec == nil || typeSpec.TypeParams == nil || len(typeSpec.TypeParams.List) == 0 || len(typeMethods) == 0 {
+		return false
+	}
+	structDef, exists := structDefs[typeName]
+	if !exists || !declaredTypeNames[typeName] {
+		return true
+	}
+	if structDef.EmbedsError && !typeHasExplicitErrorStringMethod(typeMethods) {
+		return false
+	}
+	return len(structDef.EmbeddedTypes) == 0
+}
+
+func writeGenericOwnMethodImpls(out *strings.Builder, rustTypeName string, typeSpec *ast.TypeSpec, typeMethods []*ast.FuncDecl, fileSet *token.FileSet, comments []*ast.CommentGroup) {
+	type methodImplGroup struct {
+		generics rustTypeGenerics
+		methods  []*ast.FuncDecl
+	}
+
+	cloneRequired := genericMethodCloneRequirements(typeMethods)
+	var groups []methodImplGroup
+	for _, method := range typeMethods {
+		generics := rustGenericMethodImplGenerics(typeSpec, cloneRequired[method])
+		if len(groups) == 0 || !sameRustTypeGenerics(groups[len(groups)-1].generics, generics) {
+			groups = append(groups, methodImplGroup{generics: generics})
+		}
+		groups[len(groups)-1].methods = append(groups[len(groups)-1].methods, method)
+	}
+
+	for i, group := range groups {
+		if i > 0 {
+			out.WriteString("\n\n")
+		}
+		writeRustInherentImplHeader(out, group.generics, rustTypeName)
+		for j, method := range group.methods {
+			if j > 0 {
+				out.WriteString("\n")
+			}
+			TranspileMethodImpl(out, method, fileSet, comments)
+		}
+		out.WriteString("}")
+	}
+}
+
+func rustGenericMethodImplGenerics(typeSpec *ast.TypeSpec, cloneRequired bool) rustTypeGenerics {
+	if cloneRequired {
+		return rustTypeGenericsForTypeSpec(typeSpec)
+	}
+	return rustTypeGenericsForDeclarationTypeSpec(typeSpec)
+}
+
+func sameRustTypeGenerics(a rustTypeGenerics, b rustTypeGenerics) bool {
+	return a.Decl == b.Decl && a.Use == b.Use && a.Where == b.Where
+}
+
+func genericMethodCloneRequirements(typeMethods []*ast.FuncDecl) map[*ast.FuncDecl]bool {
+	cloneRequired := make(map[*ast.FuncDecl]bool)
+	typeInfo := GetTypeInfo()
+	methodByObject := make(map[types.Object]*ast.FuncDecl)
+	methodByName := make(map[string]*ast.FuncDecl)
+	if typeInfo != nil && typeInfo.info != nil {
+		for _, method := range typeMethods {
+			if method == nil || method.Name == nil {
+				continue
+			}
+			methodByName[method.Name.Name] = method
+			if obj := typeInfo.info.Defs[method.Name]; obj != nil {
+				methodByObject[obj] = method
+			}
+		}
+	}
+
+	for _, method := range typeMethods {
+		if genericMethodRequiresCloneBounds(method) {
+			cloneRequired[method] = true
+		}
+	}
+	if len(methodByObject) == 0 {
+		return cloneRequired
+	}
+
+	changed := true
+	for changed {
+		changed = false
+		for _, method := range typeMethods {
+			if cloneRequired[method] {
+				continue
+			}
+			if methodCallsCloneBoundMethod(typeInfo, method, methodByObject, methodByName, cloneRequired) {
+				cloneRequired[method] = true
+				changed = true
+			}
+		}
+	}
+	return cloneRequired
+}
+
+func methodCallsCloneBoundMethod(typeInfo *TypeInfo, method *ast.FuncDecl, methodByObject map[types.Object]*ast.FuncDecl, methodByName map[string]*ast.FuncDecl, cloneRequired map[*ast.FuncDecl]bool) bool {
+	if typeInfo == nil || typeInfo.info == nil || method == nil || method.Body == nil {
+		return false
+	}
+	callsCloneBoundMethod := false
+	ast.Inspect(method.Body, func(node ast.Node) bool {
+		if callsCloneBoundMethod || node == nil {
+			return false
+		}
+		call, ok := node.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		sel, ok := unwrapParens(call.Fun).(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
+		selection := typeInfo.info.Selections[sel]
+		if selection == nil || selection.Obj() == nil {
+			return true
+		}
+		target := methodByObject[selection.Obj()]
+		if target == nil {
+			target = methodByName[selection.Obj().Name()]
+		}
+		if target != nil && cloneRequired[target] {
+			callsCloneBoundMethod = true
+			return false
+		}
+		return true
+	})
+	return callsCloneBoundMethod
+}
+
+func genericMethodRequiresCloneBounds(method *ast.FuncDecl) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || method == nil || method.Type == nil {
+		return true
+	}
+	if fieldListHasDirectTypeParam(typeInfo, method.Type.Params) || fieldListHasDirectTypeParam(typeInfo, method.Type.Results) {
+		return true
+	}
+	return methodBodyUsesDirectTypeParamValue(typeInfo, method.Body)
+}
+
+func fieldListHasDirectTypeParam(typeInfo *TypeInfo, fields *ast.FieldList) bool {
+	if fields == nil {
+		return false
+	}
+	for _, field := range fields.List {
+		if field == nil || field.Type == nil {
+			continue
+		}
+		if exprHasDirectTypeParam(typeInfo, field.Type) {
+			return true
+		}
+	}
+	return false
+}
+
+func methodBodyUsesDirectTypeParamValue(typeInfo *TypeInfo, body *ast.BlockStmt) bool {
+	if body == nil {
+		return false
+	}
+	usesTypeParam := false
+	ast.Inspect(body, func(node ast.Node) bool {
+		if usesTypeParam || node == nil {
+			return false
+		}
+		switch stmt := node.(type) {
+		case *ast.ReturnStmt:
+			for _, result := range stmt.Results {
+				if exprHasDirectTypeParam(typeInfo, result) {
+					usesTypeParam = true
+					return false
+				}
+			}
+		case *ast.AssignStmt:
+			for _, rhs := range stmt.Rhs {
+				if exprHasDirectTypeParam(typeInfo, rhs) {
+					usesTypeParam = true
+					return false
+				}
+			}
+		case *ast.ValueSpec:
+			for _, value := range stmt.Values {
+				if exprHasDirectTypeParam(typeInfo, value) {
+					usesTypeParam = true
+					return false
+				}
+			}
+		case *ast.CallExpr:
+			if callInstantiatesDirectTypeParam(typeInfo, stmt) {
+				usesTypeParam = true
+				return false
+			}
+			for _, arg := range stmt.Args {
+				if exprHasDirectTypeParam(typeInfo, arg) {
+					usesTypeParam = true
+					return false
+				}
+			}
+		}
+		return true
+	})
+	return usesTypeParam
+}
+
+func callInstantiatesDirectTypeParam(typeInfo *TypeInfo, call *ast.CallExpr) bool {
+	if typeInfo == nil || typeInfo.info == nil || typeInfo.info.Instances == nil || call == nil {
+		return false
+	}
+	ident := genericCallInstanceIdent(call)
+	if ident == nil {
+		return false
+	}
+	instance, ok := typeInfo.info.Instances[ident]
+	if !ok || instance.TypeArgs == nil {
+		return false
+	}
+	for i := 0; i < instance.TypeArgs.Len(); i++ {
+		if isDirectTypeParamType(instance.TypeArgs.At(i)) {
+			return true
+		}
+	}
+	return false
+}
+
+func genericCallInstanceIdent(call *ast.CallExpr) *ast.Ident {
+	if call == nil {
+		return nil
+	}
+	if _, ident, ok := explicitGenericFunctionTarget(call.Fun); ok {
+		return ident
+	}
+	switch fun := unwrapParens(call.Fun).(type) {
+	case *ast.Ident:
+		return fun
+	case *ast.SelectorExpr:
+		return fun.Sel
+	default:
+		return nil
+	}
+}
+
+func exprHasDirectTypeParam(typeInfo *TypeInfo, expr ast.Expr) bool {
+	if typeInfo == nil || expr == nil {
+		return true
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return true
+	}
+	_, ok := types.Unalias(typ).(*types.TypeParam)
+	return ok
+}
+
 // getReceiverType extracts the type name from a receiver type expression
 func getReceiverType(expr ast.Expr) string {
 	switch t := expr.(type) {
@@ -2458,82 +2713,87 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 			currentTypeMethods = previousTypeMethods
 			continue
 		}
-		generics := rustTypeGenericsForTypeSpec(typeSpecByName[typeName])
-		body.WriteString("impl")
-		body.WriteString(generics.Decl)
-		body.WriteString(" ")
-		body.WriteString(rustTypeName)
-		body.WriteString(generics.Use)
-		body.WriteString(" {\n")
+		typeSpec := typeSpecByName[typeName]
+		if shouldSplitGenericOwnMethodImpls(typeSpec, typeName, typeMethods, declaredTypeNames) {
+			writeGenericOwnMethodImpls(&body, rustTypeName, typeSpec, typeMethods, fileSet, file.Comments)
+		} else {
+			generics := rustTypeGenericsForTypeSpec(typeSpec)
+			body.WriteString("impl")
+			body.WriteString(generics.Decl)
+			body.WriteString(" ")
+			body.WriteString(rustTypeName)
+			body.WriteString(generics.Use)
+			body.WriteString(" {\n")
 
-		// First, output the type's own methods
-		methodCount := 0
-		for _, method := range typeMethods {
-			if methodCount > 0 {
-				body.WriteString("\n")
-			}
-			TranspileMethodImpl(&body, method, fileSet, file.Comments)
-			methodCount++
-		}
-
-		if structDef, exists := structDefs[typeName]; exists && declaredTypeNames[typeName] && structDef.EmbedsError && !typeHasExplicitErrorStringMethod(typeMethods) {
-			if methodCount > 0 {
-				body.WriteString("\n")
-			}
-			writeEmbeddedGoErrorMethod(&body)
-			methodCount++
-		}
-
-		// Generate promoted methods from embedded types
-		if structDef, exists := structDefs[typeName]; exists && declaredTypeNames[typeName] {
-			existingMethodNames := make(map[string]bool)
-			existingRustMethodNames := make(map[string]bool)
-			for _, ownMethod := range packageMethods[typeName] {
-				existingMethodNames[ownMethod.Name.Name] = true
-				existingRustMethodNames[rustMethodName(ownMethod)] = true
+			// First, output the type's own methods
+			methodCount := 0
+			for _, method := range typeMethods {
+				if methodCount > 0 {
+					body.WriteString("\n")
+				}
+				TranspileMethodImpl(&body, method, fileSet, file.Comments)
+				methodCount++
 			}
 
-			// Collect all methods that should be promoted (including from nested embeds)
-			promotedMethods := make(map[string]struct {
-				embeddedType string
-				method       *ast.FuncDecl
-			})
-			collectPromotedMethods(structDef, packageMethods, promotedMethods)
-
-			// Generate forwarding methods for all promoted methods
-			// Sort method names for deterministic output
-			var promotedMethodNames []string
-			for methodName := range promotedMethods {
-				promotedMethodNames = append(promotedMethodNames, methodName)
+			if structDef, exists := structDefs[typeName]; exists && declaredTypeNames[typeName] && structDef.EmbedsError && !typeHasExplicitErrorStringMethod(typeMethods) {
+				if methodCount > 0 {
+					body.WriteString("\n")
+				}
+				writeEmbeddedGoErrorMethod(&body)
+				methodCount++
 			}
-			slices.Sort(promotedMethodNames)
 
-			for _, methodName := range promotedMethodNames {
-				methodInfo := promotedMethods[methodName]
-				// Check if this method is already defined by the outer type (shadowing)
-				methodRustName := rustMethodName(methodInfo.method)
-				if !existingMethodNames[methodName] && !existingRustMethodNames[methodRustName] {
-					// Generate a forwarding method
+			// Generate promoted methods from embedded types
+			if structDef, exists := structDefs[typeName]; exists && declaredTypeNames[typeName] {
+				existingMethodNames := make(map[string]bool)
+				existingRustMethodNames := make(map[string]bool)
+				for _, ownMethod := range packageMethods[typeName] {
+					existingMethodNames[ownMethod.Name.Name] = true
+					existingRustMethodNames[rustMethodName(ownMethod)] = true
+				}
+
+				// Collect all methods that should be promoted (including from nested embeds)
+				promotedMethods := make(map[string]struct {
+					embeddedType string
+					method       *ast.FuncDecl
+				})
+				collectPromotedMethods(structDef, packageMethods, promotedMethods)
+
+				// Generate forwarding methods for all promoted methods
+				// Sort method names for deterministic output
+				var promotedMethodNames []string
+				for methodName := range promotedMethods {
+					promotedMethodNames = append(promotedMethodNames, methodName)
+				}
+				slices.Sort(promotedMethodNames)
+
+				for _, methodName := range promotedMethodNames {
+					methodInfo := promotedMethods[methodName]
+					// Check if this method is already defined by the outer type (shadowing)
+					methodRustName := rustMethodName(methodInfo.method)
+					if !existingMethodNames[methodName] && !existingRustMethodNames[methodRustName] {
+						// Generate a forwarding method
+						if methodCount > 0 {
+							body.WriteString("\n")
+						}
+						generatePromotedMethod(&body, methodInfo.method, methodInfo.embeddedType)
+						existingMethodNames[methodName] = true
+						existingRustMethodNames[methodRustName] = true
+						methodCount++
+					}
+				}
+
+				for _, promotedMethod := range collectExternalPromotedMethods(structDef, existingRustMethodNames) {
 					if methodCount > 0 {
 						body.WriteString("\n")
 					}
-					generatePromotedMethod(&body, methodInfo.method, methodInfo.embeddedType)
-					existingMethodNames[methodName] = true
-					existingRustMethodNames[methodRustName] = true
+					generateExternalPromotedMethod(&body, promotedMethod)
 					methodCount++
 				}
 			}
 
-			for _, promotedMethod := range collectExternalPromotedMethods(structDef, existingRustMethodNames) {
-				if methodCount > 0 {
-					body.WriteString("\n")
-				}
-				generateExternalPromotedMethod(&body, promotedMethod)
-				methodCount++
-			}
+			body.WriteString("}")
 		}
-
-		body.WriteString("}")
 
 		// Check if this type has or promotes an Error() string method.
 		hasErrorMethod := typeHasExplicitErrorStringMethod(methods[typeName])

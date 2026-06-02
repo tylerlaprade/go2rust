@@ -1044,7 +1044,7 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
     }
 }
 
-impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> node<K, V> {
+impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> node<K, V> {
     pub fn entry(&self) -> Arc<StdMutex<Option<entry<K, V>>>> {
         if !(*self.is_entry.clone().lock().unwrap().as_ref().unwrap()) {
         panic!("called entry on non-entry node");

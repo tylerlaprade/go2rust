@@ -965,6 +965,105 @@ type Holder struct {
 	}
 }
 
+func TestGenericStructAnyMethodWithoutTypeParamUseDoesNotRequireCloneBound(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Bucket[T any] struct {
+	next *Bucket[T]
+}
+
+func (b *Bucket[T]) Clear() {
+	b.next = nil
+}
+
+type Holder struct {
+	bucket Bucket[any]
+}
+
+func Use(h *Holder) {
+	h.bucket.Clear()
+}
+`)
+
+	if strings.Contains(rust, "impl<T: Any + Clone + 'static> Bucket<T> {\n    pub fn clear") {
+		t.Fatalf("generic method that does not use T should not require Clone for Bucket[any]:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl<T: Any + 'static> Bucket<T> {\n    pub fn clear") {
+		t.Fatalf("generic method that does not use T should use declaration-level bounds:\n%s", rust)
+	}
+}
+
+func TestGenericStructMethodCallingTypeParamHelperKeepsCloneBound(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Node[T any] struct{}
+
+func newNode[T any]() Node[T] {
+	return Node[T]{}
+}
+
+type Bucket[T any] struct {
+	node Node[T]
+}
+
+func (b *Bucket[T]) Reset() {
+	b.node = newNode[T]()
+}
+
+func (b *Bucket[T]) Clear() {
+}
+`)
+
+	if !strings.Contains(rust, "impl<T: Any + Clone + 'static> Bucket<T> {\n    pub fn reset") {
+		t.Fatalf("generic method calling a helper instantiated with T should keep Clone bounds:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl<T: Any + 'static> Bucket<T> {\n    pub fn clear") {
+		t.Fatalf("generic method that does not use T should stay in declaration-bound impl:\n%s", rust)
+	}
+}
+
+func TestGenericStructMethodCallingCloneBoundMethodKeepsCloneBound(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Node[T any] struct{}
+
+func newNode[T any]() Node[T] {
+	return Node[T]{}
+}
+
+type Bucket[T any] struct {
+	node Node[T]
+}
+
+func (b *Bucket[T]) resetSlow() {
+	b.node = newNode[T]()
+}
+
+func (b *Bucket[T]) Reset() {
+	b.resetSlow()
+}
+
+func (b *Bucket[T]) Clear() {
+}
+`)
+
+	if !strings.Contains(rust, "impl<T: Any + Clone + 'static> Bucket<T> {\n    pub fn reset_slow") {
+		t.Fatalf("helper-instantiating method should require Clone bounds:\n%s", rust)
+	}
+	cloneImplStart := strings.Index(rust, "impl<T: Any + Clone + 'static> Bucket<T> {\n    pub fn reset_slow")
+	declImplRelStart := -1
+	if cloneImplStart >= 0 {
+		declImplRelStart = strings.Index(rust[cloneImplStart:], "impl<T: Any + 'static> Bucket<T> {\n    pub fn clear")
+	}
+	if declImplRelStart < 0 {
+		t.Fatalf("unrelated method should stay in declaration-bound impl:\n%s", rust)
+	}
+	declImplStart := cloneImplStart + declImplRelStart
+	if cloneImplStart < 0 || declImplStart < 0 || cloneImplStart > declImplStart || !strings.Contains(rust[cloneImplStart:declImplStart], "pub fn reset(&mut self)") {
+		t.Fatalf("method calling clone-bound method should share clone-bound impl:\n%s", rust)
+	}
+}
+
 func TestGenericStructWithUnusedTypeParamsAddsPhantomData(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
