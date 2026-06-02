@@ -19,6 +19,7 @@ QUEUE_LIMIT="${RALPH_ANALYST_QUEUE_LIMIT:-5}"
 RUN_TIMEOUT_MINS="${RALPH_ANALYST_TIMEOUT_MINS:-10}"
 POLL_SECS="${RALPH_ANALYST_POLL_SECS:-30}"
 KEEP_AWAKE_PID=""
+TEMP_FILES=()
 
 fail() {
     echo "ralph analyst: $*" >&2
@@ -58,12 +59,36 @@ start_keep_awake() {
     fi
 }
 
+make_temp_file() {
+    local var_name="$1"
+    local template="$2"
+    local file
+    if ! file=$(mktemp "${TMPDIR:-/tmp}/$template" 2>/dev/null); then
+        return 1
+    fi
+    TEMP_FILES+=("$file")
+    printf -v "$var_name" '%s' "$file"
+}
+
+cleanup_temp_files() {
+    local file
+    for file in "${TEMP_FILES[@]}"; do
+        [ -n "$file" ] && rm -f "$file"
+    done
+}
+
+cleanup_stale_analyst_artifacts() {
+    [ "${RALPH_ANALYST_CLEAN_STALE:-1}" = "0" ] && return
+    "$ROOT_DIR/cleanup.sh" --age-minutes "${RALPH_ANALYST_CLEAN_AGE_MINUTES:-60}" --keep-repo-artifacts >/dev/null
+}
+
 cleanup() {
     local exit_code=$?
     if [ -n "$KEEP_AWAKE_PID" ]; then
         kill "$KEEP_AWAKE_PID" 2>/dev/null || true
         wait "$KEEP_AWAKE_PID" 2>/dev/null || true
     fi
+    cleanup_temp_files
     if [ "$exit_code" -eq 130 ]; then
         printf "\r\033[K"
         echo "Ralph analyst interrupted."
@@ -202,6 +227,7 @@ validate_positive_integer "$POLL_SECS" "RALPH_ANALYST_POLL_SECS"
 
 mkdir -p "$ANALYSIS_DIR" "$LOGDIR"
 cd "$ROOT_DIR"
+cleanup_stale_analyst_artifacts
 
 require_command codex
 TIMEOUT_BIN="$(resolve_timeout_bin)"
@@ -223,9 +249,9 @@ for ((i = 1; i <= MAX_ITERATIONS; i++)); do
 
     TIMESTAMP=$(date +%Y%m%d-%H%M%S)
     LOGFILE="$LOGDIR/analysis-${TIMESTAMP}.log"
-    BEFORE_SNAPSHOT="$(mktemp)"
-    AFTER_SNAPSHOT="$(mktemp)"
-    NEW_SNAPSHOT="$(mktemp)"
+    make_temp_file BEFORE_SNAPSHOT "go2rust-ralph-snapshot.XXXXXX" || fail "mktemp failed (likely no space left on device)"
+    make_temp_file AFTER_SNAPSHOT "go2rust-ralph-snapshot.XXXXXX" || fail "mktemp failed (likely no space left on device)"
+    make_temp_file NEW_SNAPSHOT "go2rust-ralph-snapshot.XXXXXX" || fail "mktemp failed (likely no space left on device)"
     snapshot_queue "$BEFORE_SNAPSHOT"
 
     FULL_PROMPT="$(build_prompt "$(queue_summary)")"

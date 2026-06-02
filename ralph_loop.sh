@@ -50,6 +50,31 @@ mkdir -p "$LOGDIR"
 
 SPINNER_PID=""
 TOOL_DESC_FILE=""
+ITER_STDERR=""
+TEMP_FILES=()
+
+make_temp_file() {
+    local var_name="$1"
+    local template="$2"
+    local file
+    if ! file=$(mktemp "${TMPDIR:-/tmp}/$template" 2>/dev/null); then
+        return 1
+    fi
+    TEMP_FILES+=("$file")
+    printf -v "$var_name" '%s' "$file"
+}
+
+cleanup_temp_files() {
+    local file
+    for file in "${TEMP_FILES[@]}"; do
+        [ -n "$file" ] && rm -f "$file"
+    done
+}
+
+cleanup_stale_loop_artifacts() {
+    [ "${RALPH_LOOP_CLEAN_STALE:-1}" = "0" ] && return
+    "$ROOT_DIR/cleanup.sh" --age-minutes "${RALPH_LOOP_CLEAN_AGE_MINUTES:-60}" --keep-repo-artifacts >/dev/null
+}
 
 cleanup() {
     local exit_code=$?
@@ -62,9 +87,7 @@ cleanup() {
         kill "$KEEP_AWAKE_PID" 2>/dev/null || true
         wait "$KEEP_AWAKE_PID" 2>/dev/null || true
     fi
-    if [ -n "${TOOL_DESC_FILE:-}" ]; then
-        rm -f "$TOOL_DESC_FILE"
-    fi
+    cleanup_temp_files
     if [ "$exit_code" -eq 130 ]; then
         echo "Loop interrupted."
     fi
@@ -224,6 +247,7 @@ require_command hk
 TIMEOUT_BIN="$(resolve_timeout_bin)"
 validate_positive_integer "$MAX_ITERATIONS" "max_iterations"
 validate_positive_integer "$MAX_TURNS" "max_turns"
+cleanup_stale_loop_artifacts
 
 BASE_PROMPT='Fix XFAIL tests. Follow the protocol in LOOP_PROTOCOL.md. HARD RULE: if ./test.sh shows any previously-passing test now failing, revert your changes immediately with git checkout -- go/ before trying anything else.'
 
@@ -305,12 +329,12 @@ for ((i = 1; i <= MAX_ITERATIONS; i++)); do
     PROMPT=$(build_prompt "$ANALYSIS_TASK")
 
     # Shared file for latest tool description
-    if ! TOOL_DESC_FILE=$(mktemp 2>/dev/null); then
+    if ! make_temp_file TOOL_DESC_FILE "go2rust-ralph-desc.XXXXXX"; then
         event "ABORT: mktemp failed (likely no space left on device)"
         TOOL_DESC_FILE=""
         break
     fi
-    if ! ITER_STDERR=$(mktemp 2>/dev/null); then
+    if ! make_temp_file ITER_STDERR "go2rust-ralph-stderr.XXXXXX"; then
         event "ABORT: mktemp failed (likely no space left on device)"
         rm -f "$TOOL_DESC_FILE"
         TOOL_DESC_FILE=""

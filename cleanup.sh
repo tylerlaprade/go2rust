@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
     cat <<'EOF'
-Usage: ./cleanup.sh [--dry-run] [--sizes] [--summary] [--age-minutes N] [--keep-repo-artifacts]
+Usage: ./cleanup.sh [--dry-run] [--sizes] [--summary] [--age-minutes N] [--keep-repo-artifacts] [--keep-loop-logs]
 
 Remove stale go2rust temporary roots and ignored local build artifacts.
 
@@ -14,6 +14,7 @@ Options:
                         space without removing anything.
   --age-minutes N       Only remove temp paths older than N minutes (default: 60).
   --keep-repo-artifacts Keep ignored root build artifacts such as ./go2rust.
+  --keep-loop-logs      Keep ignored Ralph/Codex loop logs.
   -h, --help            Show this help.
 EOF
 }
@@ -24,6 +25,7 @@ show_sizes=false
 summary=false
 age_minutes="${GO2RUST_CLEANUP_AGE_MINUTES:-60}"
 remove_repo_artifacts=true
+remove_loop_logs=true
 candidate_count=0
 total_kib=0
 
@@ -53,6 +55,10 @@ while [ "$#" -gt 0 ]; do
             ;;
         --keep-repo-artifacts)
             remove_repo_artifacts=false
+            shift
+            ;;
+        --keep-loop-logs)
+            remove_loop_logs=false
             shift
             ;;
         -h|--help)
@@ -142,7 +148,7 @@ maybe_remove_temp_dir() {
 
 cleanup_temp_root() {
     local root="$1"
-    [ -d "$root" ] || return
+    [ -d "$root" ] || return 0
 
     local -a age_args=()
     if [ "$age_minutes" -gt 0 ]; then
@@ -168,16 +174,38 @@ cleanup_temp_root() {
         -name 'go2rust-tests-list.*' -o \
         -name 'go2rust-rust-diff.*' -o \
         -name 'go2rust-stdout.*' -o \
-        -name 'go2rust-stderr.*' \
+        -name 'go2rust-stderr.*' -o \
+        -name 'go2rust-ralph-desc.*' -o \
+        -name 'go2rust-ralph-stderr.*' -o \
+        -name 'go2rust-ralph-snapshot.*' \
     \) -print 2>/dev/null)
 }
 
+cleanup_repo_log_dir() {
+    local dir="$1"
+    [ -d "$dir" ] || return 0
+
+    local -a age_args=()
+    if [ "$age_minutes" -gt 0 ]; then
+        age_args=(-mmin +"$age_minutes")
+    fi
+
+    while IFS= read -r file; do
+        remove_path "$file"
+    done < <(find "$dir" -maxdepth 1 "${age_args[@]}" -type f -name '*.log' -print 2>/dev/null)
+}
+
 if [ "$remove_repo_artifacts" = true ]; then
-    for path in "$repo_root/go2rust" "$repo_root/transpiler" "$repo_root/test" "$repo_root/go/go"; do
+    for path in "$repo_root/go2rust" "$repo_root/transpiler" "$repo_root/test" "$repo_root/go/go" "$repo_root/target"; do
         if [ -e "$path" ] && ! git -C "$repo_root" ls-files --error-unmatch "${path#$repo_root/}" >/dev/null 2>&1; then
             remove_path "$path"
         fi
     done
+fi
+
+if [ "$remove_loop_logs" = true ]; then
+    cleanup_repo_log_dir "$repo_root/.ralph-loop-logs"
+    cleanup_repo_log_dir "$repo_root/.codex-loop-logs"
 fi
 
 tmp_roots=()
