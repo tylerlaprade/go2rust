@@ -22,8 +22,7 @@ pub(crate) const N_CHILDREN_MASK: i32 = N_CHILDREN - 1;
 ///
 /// The zero HashTrieMap is empty and ready to use.
 /// It must not be copied after first use.
-#[derive(Clone)]
-pub struct HashTrieMap<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> {
+pub struct HashTrieMap<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> {
     pub inited: Arc<StdMutex<Option<atomic_Uint32>>>,
     pub init_mu: Arc<StdMutex<Option<Mutex>>>,
     pub root: Arc<StdMutex<Option<GoAtomicPointer<indirect<K, V>>>>>,
@@ -32,26 +31,32 @@ pub struct HashTrieMap<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + 
     pub seed: Arc<StdMutex<Option<usize>>>,
 }
 
-impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> HashTrieMap<K, V> {
+impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> HashTrieMap<K, V> {
     pub fn __go_value_clone(&self) -> Self {
         Self { inited: { let __guard = self.inited.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, init_mu: { let __guard = self.init_mu.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, root: { let __guard = self.root.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, key_hash: self.key_hash.clone(), val_equal: self.val_equal.clone(), seed: { let __guard = self.seed.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
     }
 }
 
+impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> Clone for HashTrieMap<K, V> {
+    fn clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
 
-impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> Default for HashTrieMap<K, V> {
+
+impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> Default for HashTrieMap<K, V> {
     fn default() -> Self {
         Self { inited: Arc::new(StdMutex::new(Some(Default::default()))), init_mu: Arc::new(StdMutex::new(Some(Mutex::default()))), root: Arc::new(StdMutex::new(Some(Default::default()))), key_hash: Arc::new(StdMutex::new(None)), val_equal: Arc::new(StdMutex::new(None)), seed: Arc::new(StdMutex::new(Some(0))) }
     }
 }
 
-impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> std::fmt::Display for HashTrieMap<K, V> {
+impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> std::fmt::Display for HashTrieMap<K, V> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {} {} {} {} {}}}", (*self.inited.lock().unwrap().as_ref().unwrap()), (*self.init_mu.lock().unwrap().as_ref().unwrap()), (*self.root.lock().unwrap().as_ref().unwrap()), "<func>", "<func>", (*self.seed.lock().unwrap().as_ref().unwrap()))
     }
 }
 
-impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> GoJsonDecode for HashTrieMap<K, V> {
+impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> GoJsonDecode for HashTrieMap<K, V> {
     fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
         let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
         let mut out = Self::default();
@@ -67,8 +72,7 @@ pub type equalFunc = Arc<StdMutex<Option<Box<dyn FnMut(Arc<StdMutex<Option<usize
 
 
 /// indirect is an internal node in the hash-trie.
-#[derive(Clone)]
-pub struct indirect<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> {
+pub struct indirect<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> {
     pub node: Arc<StdMutex<Option<node<K, V>>>>,
     pub dead: Arc<StdMutex<Option<atomic_Bool>>>,
     pub mu: Arc<StdMutex<Option<Mutex>>>,
@@ -76,26 +80,32 @@ pub struct indirect<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Sen
     pub children: Arc<StdMutex<Option<[GoAtomicPointer<node<K, V>>; 16]>>>,
 }
 
-impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> indirect<K, V> {
+impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> indirect<K, V> {
     pub fn __go_value_clone(&self) -> Self {
         Self { node: { let __guard = self.node.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, dead: { let __guard = self.dead.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, mu: { let __guard = self.mu.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, parent: self.parent.clone(), children: { let __guard = self.children.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) } }
     }
 }
 
+impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> Clone for indirect<K, V> {
+    fn clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
 
-impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> Default for indirect<K, V> {
+
+impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> Default for indirect<K, V> {
     fn default() -> Self {
         Self { node: Arc::new(StdMutex::new(Some(Default::default()))), dead: Arc::new(StdMutex::new(Some(Default::default()))), mu: Arc::new(StdMutex::new(Some(Mutex::default()))), parent: Arc::new(StdMutex::new(None)), children: Arc::new(StdMutex::new(Some(std::array::from_fn(|_| Default::default())))) }
     }
 }
 
-impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> std::fmt::Display for indirect<K, V> {
+impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> std::fmt::Display for indirect<K, V> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {} {} {} {}}}", (*self.node.lock().unwrap().as_ref().unwrap()), (*self.dead.lock().unwrap().as_ref().unwrap()), (*self.mu.lock().unwrap().as_ref().unwrap()), { let __guard = self.parent.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, format_slice(&self.children))
     }
 }
 
-impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> GoJsonDecode for indirect<K, V> {
+impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> GoJsonDecode for indirect<K, V> {
     fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
         let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
         let mut out = Self::default();
@@ -105,34 +115,39 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
 
 
 /// entry is a leaf node in the hash-trie.
-#[derive(Clone)]
-pub struct entry<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> {
+pub struct entry<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> {
     pub node: Arc<StdMutex<Option<node<K, V>>>>,
     pub overflow: Arc<StdMutex<Option<GoAtomicPointer<entry<K, V>>>>>,
     pub key: Arc<StdMutex<Option<K>>>,
     pub value: Arc<StdMutex<Option<V>>>,
 }
 
-impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> entry<K, V> {
+impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> entry<K, V> {
     pub fn __go_value_clone(&self) -> Self {
         Self { node: { let __guard = self.node.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, overflow: { let __guard = self.overflow.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, key: self.key.clone(), value: self.value.clone() }
     }
 }
 
+impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> Clone for entry<K, V> {
+    fn clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
 
-impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> Default for entry<K, V> {
+
+impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> Default for entry<K, V> {
     fn default() -> Self {
         Self { node: Arc::new(StdMutex::new(Some(Default::default()))), overflow: Arc::new(StdMutex::new(Some(Default::default()))), key: Arc::new(StdMutex::new(None)), value: Arc::new(StdMutex::new(None)) }
     }
 }
 
-impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> std::fmt::Display for entry<K, V> where K: std::fmt::Display, V: std::fmt::Display {
+impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> std::fmt::Display for entry<K, V> where K: std::fmt::Display, V: std::fmt::Display {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {} {} {}}}", (*self.node.lock().unwrap().as_ref().unwrap()), (*self.overflow.lock().unwrap().as_ref().unwrap()), (*self.key.lock().unwrap().as_ref().unwrap()), (*self.value.lock().unwrap().as_ref().unwrap()))
     }
 }
 
-impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> GoJsonDecode for entry<K, V> {
+impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> GoJsonDecode for entry<K, V> {
     fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
         let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
         let mut out = Self::default();
@@ -143,32 +158,38 @@ impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'sta
 
 /// node is the header for a node. It's polymorphic and
 /// is actually either an entry or an indirect.
-#[derive(Debug, Clone)]
-pub struct node<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> {
+#[derive(Debug)]
+pub struct node<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> {
     pub is_entry: Arc<StdMutex<Option<bool>>>,
     pub __go_phantom: std::marker::PhantomData<(K, V)>,
 }
 
-impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> node<K, V> {
+impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> node<K, V> {
     pub fn __go_value_clone(&self) -> Self {
         Self { is_entry: { let __guard = self.is_entry.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) }, __go_phantom: std::marker::PhantomData }
     }
 }
 
+impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> Clone for node<K, V> {
+    fn clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
 
-impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> Default for node<K, V> {
+
+impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> Default for node<K, V> {
     fn default() -> Self {
         Self { is_entry: Arc::new(StdMutex::new(Some(false))), __go_phantom: std::marker::PhantomData }
     }
 }
 
-impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> std::fmt::Display for node<K, V> {
+impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> std::fmt::Display for node<K, V> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{}}}", (*self.is_entry.lock().unwrap().as_ref().unwrap()))
     }
 }
 
-impl<K: Any + Clone + Send + Sync + 'static, V: Any + Clone + Send + Sync + 'static> GoJsonDecode for node<K, V> {
+impl<K: Any + Send + Sync + 'static, V: Any + Send + Sync + 'static> GoJsonDecode for node<K, V> {
     fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
         let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
         let mut out = Self::default();

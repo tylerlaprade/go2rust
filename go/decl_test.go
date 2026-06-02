@@ -555,7 +555,7 @@ func TestStructWithSourceMappedStdlibFieldDoesNotDeriveDebug(t *testing.T) {
 	goPackageImports = map[string]string{"abi": "internal/abi"}
 
 	var out strings.Builder
-	writeStructDerive(&out, "Iter", structType)
+	writeStructDerive(&out, "Iter", structType, true)
 	got := out.String()
 	if strings.Contains(got, "Debug") {
 		t.Fatalf("struct with source-mapped stdlib field should not derive Debug:\n%s", got)
@@ -918,7 +918,7 @@ func (h *Holder[T]) Get() T {
 }
 `)
 
-	wantDecl := "pub struct Holder<T: Any + Clone + 'static> {"
+	wantDecl := "pub struct Holder<T: Any + 'static> {"
 	if !strings.Contains(rust, wantDecl) {
 		t.Fatalf("generic struct declaration should carry type parameters, want %q:\n%s", wantDecl, rust)
 	}
@@ -929,9 +929,9 @@ func (h *Holder[T]) Get() T {
 		t.Fatalf("instantiated generic field should keep type arguments:\n%s", rust)
 	}
 	for _, want := range []string{
-		"impl<T: Any + Clone + 'static> Holder<T> {",
+		"impl<T: Any + 'static> Holder<T> {",
 		"impl<T: Any + Clone + 'static> Holder<T> {\n    pub fn get",
-		"impl<T: Any + Clone + 'static> std::fmt::Display for Holder<T> where T: std::fmt::Display {",
+		"impl<T: Any + 'static> std::fmt::Display for Holder<T> where T: std::fmt::Display {",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("generic struct impl should carry type parameters, missing %q:\n%s", want, rust)
@@ -939,6 +939,29 @@ func (h *Holder[T]) Get() T {
 	}
 	if strings.Contains(rust, "impl Unknown") || strings.Contains(rust, "impl Holder {\n    pub fn get") {
 		t.Fatalf("generic receiver method should lower under Holder<T>, not Unknown or bare Holder:\n%s", rust)
+	}
+}
+
+func TestGenericStructAnyInstantiationDoesNotRequireCloneBound(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Bucket[T any] struct {
+	next *Bucket[T]
+}
+
+type Holder struct {
+	bucket Bucket[any]
+}
+`)
+
+	if strings.Contains(rust, "pub struct Bucket<T: Any + Clone") {
+		t.Fatalf("generic struct declaration should not require Clone for any instantiations:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl<T: Any + 'static> Clone for Bucket<T>") {
+		t.Fatalf("generic struct should use a clone impl with declaration-level bounds:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub bucket: Rc<RefCell<Option<Bucket<Box<dyn Any>>>>>") {
+		t.Fatalf("struct field should still instantiate Bucket[any] with the any representation:\n%s", rust)
 	}
 }
 
@@ -971,7 +994,7 @@ type Entry[K any, V any] struct {
 }
 `)
 
-	want := "impl<K: Any + Clone + 'static, V: Any + Clone + 'static> std::fmt::Display for Entry<K, V> where K: std::fmt::Display, V: std::fmt::Display {"
+	want := "impl<K: Any + 'static, V: Any + 'static> std::fmt::Display for Entry<K, V> where K: std::fmt::Display, V: std::fmt::Display {"
 	if !strings.Contains(rust, want) {
 		t.Fatalf("generic struct Display impl should bound formatted type parameters, missing %q:\n%s", want, rust)
 	}
@@ -998,10 +1021,10 @@ type Holder[K any, V any] struct {
 }
 `)
 
-	if strings.Contains(rust, "impl<K: Any + Clone + 'static, V: Any + Clone + 'static> std::fmt::Display for Indirect<K, V> where K: std::fmt::Display") {
+	if strings.Contains(rust, "impl<K: Any + 'static, V: Any + 'static> std::fmt::Display for Indirect<K, V> where K: std::fmt::Display") {
 		t.Fatalf("Display bounds from Node should not leak through Indirect's named field:\n%s", rust)
 	}
-	want := "impl<K: Any + Clone + 'static, V: Any + Clone + 'static> std::fmt::Display for Holder<K, V> where K: std::fmt::Display, V: std::fmt::Display {"
+	want := "impl<K: Any + 'static, V: Any + 'static> std::fmt::Display for Holder<K, V> where K: std::fmt::Display, V: std::fmt::Display {"
 	if !strings.Contains(rust, want) {
 		t.Fatalf("Display bounds from Entry should still propagate through Holder, missing %q:\n%s", want, rust)
 	}

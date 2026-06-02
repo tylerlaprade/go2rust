@@ -2745,7 +2745,7 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 			body.WriteString("\n\n")
 		}
 		*first = false
-		writeStructDerive(body, "", structType)
+		writeStructDerive(body, "", structType, true)
 		body.WriteString("pub struct ")
 		body.WriteString(typeName)
 		body.WriteString(" {\n")

@@ -572,7 +572,7 @@ func isPointerType(typ types.Type) bool {
 	return ok
 }
 
-func writeStructDerive(out *strings.Builder, structName string, structType *ast.StructType) {
+func writeStructDerive(out *strings.Builder, structName string, structType *ast.StructType, deriveClone bool) {
 	hasTraitField := structHasTraitField(structType)
 	canDeriveDebug := !hasTraitField && structCanDeriveDebug(structType)
 	needsCustomDefault := structNeedsCustomDefault(structType)
@@ -584,7 +584,9 @@ func writeStructDerive(out *strings.Builder, structName string, structType *ast.
 	if canDeriveDebug {
 		traits = append(traits, "Debug")
 	}
-	traits = append(traits, "Clone")
+	if deriveClone {
+		traits = append(traits, "Clone")
+	}
 	if !needsCustomDefault {
 		traits = append(traits, "Default")
 	}
@@ -883,6 +885,15 @@ func generateStructValueClone(out *strings.Builder, structName string, structTyp
 	}
 	writeRustPhantomValue(out, generics, &needComma)
 	out.WriteString(" }\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+}
+
+func generateStructClone(out *strings.Builder, structName string, generics rustTypeGenerics) {
+	rustStructName := RustTypeNameForUse(structName)
+	writeRustTraitImplHeader(out, generics, "Clone", rustStructName)
+	out.WriteString("    fn clone(&self) -> Self {\n")
+	out.WriteString("        self.__go_value_clone()\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n")
 }
@@ -1403,6 +1414,14 @@ func writeFunctionTypeParams(out *strings.Builder, fnType *ast.FuncType) {
 }
 
 func rustTypeGenericsForTypeSpec(typeSpec *ast.TypeSpec) rustTypeGenerics {
+	return rustTypeGenericsForTypeSpecWithParam(typeSpec, rustFunctionTypeParam)
+}
+
+func rustTypeGenericsForDeclarationTypeSpec(typeSpec *ast.TypeSpec) rustTypeGenerics {
+	return rustTypeGenericsForTypeSpecWithParam(typeSpec, rustTypeDeclarationParam)
+}
+
+func rustTypeGenericsForTypeSpecWithParam(typeSpec *ast.TypeSpec, paramFunc func(*ast.Ident) string) rustTypeGenerics {
 	if typeSpec == nil || typeSpec.TypeParams == nil || len(typeSpec.TypeParams.List) == 0 {
 		return rustTypeGenerics{}
 	}
@@ -1410,7 +1429,7 @@ func rustTypeGenericsForTypeSpec(typeSpec *ast.TypeSpec) rustTypeGenerics {
 	var useParams []string
 	for _, field := range typeSpec.TypeParams.List {
 		for _, name := range field.Names {
-			declParams = append(declParams, rustFunctionTypeParam(name))
+			declParams = append(declParams, paramFunc(name))
 			useParams = append(useParams, RustTypeNameForUse(name.Name))
 		}
 	}
@@ -1424,7 +1443,7 @@ func rustTypeGenericsForTypeSpec(typeSpec *ast.TypeSpec) rustTypeGenerics {
 }
 
 func rustTypeGenericsForStructTypeSpec(typeSpec *ast.TypeSpec, structType *ast.StructType) rustTypeGenerics {
-	generics := rustTypeGenericsForTypeSpec(typeSpec)
+	generics := rustTypeGenericsForDeclarationTypeSpec(typeSpec)
 	generics.Phantom = rustUnusedTypeParamsForStruct(typeSpec, structType)
 	return generics
 }
@@ -1758,6 +1777,14 @@ func writeRustPhantomType(out *strings.Builder, params []string) {
 }
 
 func rustFunctionTypeParam(name *ast.Ident) string {
+	return rustTypeParam(name, true)
+}
+
+func rustTypeDeclarationParam(name *ast.Ident) string {
+	return rustTypeParam(name, false)
+}
+
+func rustTypeParam(name *ast.Ident, includeClone bool) string {
 	rustName := RustTypeNameForUse(name.Name)
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
@@ -1769,7 +1796,10 @@ func rustFunctionTypeParam(name *ast.Ident) string {
 	}
 	if goTypeParamHasComparableConstraint(obj.Type()) {
 		TrackImport("Any")
-		bounds := []string{"Any", "Clone"}
+		bounds := []string{"Any"}
+		if includeClone {
+			bounds = append(bounds, "Clone")
+		}
 		if NeedsConcurrentWrapper() {
 			bounds = append(bounds, "Send", "Sync")
 		}
@@ -1778,7 +1808,10 @@ func rustFunctionTypeParam(name *ast.Ident) string {
 	}
 	if goTypeParamHasAnyConstraint(obj.Type()) {
 		TrackImport("Any")
-		bounds := []string{"Any", "Clone"}
+		bounds := []string{"Any"}
+		if includeClone {
+			bounds = append(bounds, "Clone")
+		}
 		if NeedsConcurrentWrapper() {
 			bounds = append(bounds, "Send", "Sync")
 		}
@@ -1787,7 +1820,10 @@ func rustFunctionTypeParam(name *ast.Ident) string {
 	}
 	if goTypeParamHasStringByteSliceConstraint(obj.Type()) {
 		NeedGoByteSequence()
-		bounds := []string{"GoByteSequence", "Clone"}
+		bounds := []string{"GoByteSequence"}
+		if includeClone {
+			bounds = append(bounds, "Clone")
+		}
 		if NeedsConcurrentWrapper() {
 			bounds = append(bounds, "Send", "Sync")
 		}
@@ -1796,7 +1832,10 @@ func rustFunctionTypeParam(name *ast.Ident) string {
 	}
 	if goTypeParamHasIntegerConstraint(obj.Type()) {
 		NeedGoInteger()
-		bounds := []string{"GoInteger", "Clone"}
+		bounds := []string{"GoInteger"}
+		if includeClone {
+			bounds = append(bounds, "Clone")
+		}
 		if NeedsConcurrentWrapper() {
 			bounds = append(bounds, "Send", "Sync")
 		}
@@ -1804,7 +1843,11 @@ func rustFunctionTypeParam(name *ast.Ident) string {
 		return rustName + ": " + strings.Join(bounds, " + ")
 	}
 	if traitName, ok := goTypeParamOrderedTraitConstraintName(obj.Type()); ok {
-		bounds := []string{traitName, "Clone", "PartialOrd"}
+		bounds := []string{traitName}
+		if includeClone {
+			bounds = append(bounds, "Clone")
+		}
+		bounds = append(bounds, "PartialOrd")
 		if goTypeParamHasStringConstraint(obj.Type()) {
 			bounds = append(bounds, "ToString")
 		}
@@ -1815,7 +1858,11 @@ func rustFunctionTypeParam(name *ast.Ident) string {
 		return rustName + ": " + strings.Join(bounds, " + ")
 	}
 	if goTypeParamHasOrderedConstraint(obj.Type()) {
-		bounds := []string{"Clone", "PartialOrd"}
+		var bounds []string
+		if includeClone {
+			bounds = append(bounds, "Clone")
+		}
+		bounds = append(bounds, "PartialOrd")
 		if goTypeParamHasStringConstraint(obj.Type()) {
 			bounds = append(bounds, "ToString")
 		}
@@ -1826,7 +1873,10 @@ func rustFunctionTypeParam(name *ast.Ident) string {
 		return rustName + ": " + strings.Join(bounds, " + ")
 	}
 	if goTypeParamHasPointerConstraint(obj.Type()) {
-		bounds := []string{"Clone"}
+		var bounds []string
+		if includeClone {
+			bounds = append(bounds, "Clone")
+		}
 		if NeedsConcurrentWrapper() {
 			bounds = append(bounds, "Send", "Sync")
 		}
@@ -1837,7 +1887,10 @@ func rustFunctionTypeParam(name *ast.Ident) string {
 	if !ok {
 		return rustName
 	}
-	bounds := []string{traitName, "Clone"}
+	bounds := []string{traitName}
+	if includeClone {
+		bounds = append(bounds, "Clone")
+	}
 	if NeedsConcurrentWrapper() {
 		bounds = append(bounds, "Send", "Sync")
 	}
@@ -3988,7 +4041,8 @@ func emitStructTypeDeclBody(out *strings.Builder, typeSpec *ast.TypeSpec, t *ast
 	registerStructDef(structName, t)
 	setStructDefPhantomTypeParams(structName, generics.Phantom)
 
-	writeStructDerive(out, structName, t)
+	deriveClone := typeSpec.TypeParams == nil || len(typeSpec.TypeParams.List) == 0
+	writeStructDerive(out, structName, t, deriveClone)
 	out.WriteString("pub struct ")
 	out.WriteString(rustTypeName)
 	out.WriteString(generics.Decl)
@@ -4026,6 +4080,10 @@ func emitStructTypeDeclBody(out *strings.Builder, typeSpec *ast.TypeSpec, t *ast
 	out.WriteString("}\n\n")
 
 	generateStructValueClone(out, structName, t, generics)
+	if !deriveClone {
+		out.WriteString("\n")
+		generateStructClone(out, structName, generics)
+	}
 	out.WriteString("\n")
 
 	generateStructDefault(out, structName, t, generics)
