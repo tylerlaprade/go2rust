@@ -3154,12 +3154,15 @@ func writeStructGoValueCloneTraitImpls(out *strings.Builder, first *bool, types 
 		typeSpec   *ast.TypeSpec
 	}, 0)
 	for _, t := range types {
-		if t.spec == nil || t.spec.Name == nil || prunedTypeNames[t.spec.Name.Name] {
+		if t.spec == nil || t.spec.Name == nil || t.spec.Assign != 0 || prunedTypeNames[t.spec.Name.Name] {
 			continue
 		}
 		structType, ok := t.spec.Type.(*ast.StructType)
 		if !ok {
-			continue
+			structType = definedTypeUnderlyingStructAST(t.spec.Type)
+			if structType == nil {
+				continue
+			}
 		}
 		structs = append(structs, struct {
 			name       string

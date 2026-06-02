@@ -828,6 +828,60 @@ type term struct {
 	}
 }
 
+func TestDefinedStructTypeUsedAsGoValueCloneGenericArgImplementsTrait(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Term term
+
+type Type interface {
+	Underlying() Type
+}
+
+type term struct {
+	typ Type
+}
+
+func first[T any](values []T) T {
+	return values[0]
+}
+
+func use(terms []Term) Term {
+	return first(terms)
+}
+`)
+
+	if !strings.Contains(rust, "pub fn first<T: Any + GoValueClone + 'static>") {
+		t.Fatalf("generic helper returning a direct type-param element should require GoValueClone:\n%s", rust)
+	}
+	want := "impl GoValueClone for Term {\n    fn go_value_clone(&self) -> Self {\n        self.__go_value_clone()\n    }\n}"
+	if !strings.Contains(rust, want) {
+		t.Fatalf("defined struct type used as a GoValueClone generic argument should implement the trait, missing %q:\n%s", want, rust)
+	}
+}
+
+func TestStructAliasUsedAsGoValueCloneGenericArgDoesNotEmitAliasTraitImpl(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Alias = Target
+
+type Target struct {
+	name string
+}
+
+func first[T any](values []T) T {
+	return values[0]
+}
+
+func use(values []Alias) Alias {
+	return first(values)
+}
+`)
+
+	if strings.Contains(rust, "impl GoValueClone for Alias") {
+		t.Fatalf("struct alias should not get its own GoValueClone impl because it does not emit a local Rust struct:\n%s", rust)
+	}
+}
+
 func TestStructDefaultUsesBareDefaultForChannelField(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
