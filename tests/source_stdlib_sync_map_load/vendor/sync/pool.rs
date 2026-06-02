@@ -334,7 +334,7 @@ impl Pool {
         runtime_proc_unpin();
         (*allPoolsMu.lock().unwrap().as_ref().unwrap()).lock();
         __defer_stack.push(Box::new(move || {
-        (*allPoolsMu.lock().unwrap().as_mut().unwrap()).unlock();
+        (*allPoolsMu.lock().unwrap().as_ref().unwrap()).unlock();
     }));
         let mut pid = runtime_proc_pin();
                 // poolCleanup won't be called while we are pinned.
@@ -471,4 +471,25 @@ pub(crate) fn __go_init_functions() {
 pub(crate) fn __go_init_all() {
     self::__go_init_globals();
     self::__go_init_0();
+}
+
+
+impl GoValueClone for Pool {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for poolLocalInternal {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for poolLocal {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
 }

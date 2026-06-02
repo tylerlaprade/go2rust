@@ -3204,6 +3204,107 @@ func lockPackageMutex() {
 	}
 }
 
+func TestSourceMappedMutexFieldUnlockUnwrapsGeneratedValue(t *testing.T) {
+	rust := transpileTypedConcurrentPackageWithMapping(t, "sync", `package sync
+
+type Mutex struct{}
+
+func (m *Mutex) Lock() {}
+func (m *Mutex) Unlock() {}
+
+type Once struct {
+	m Mutex
+}
+
+func (o *Once) slow() {
+	go func() {}()
+	o.m.Lock()
+	defer o.m.Unlock()
+}
+`, map[string]string{"sync": "sync"})
+
+	if strings.Contains(rust, ".m.unlock();") {
+		t.Fatalf("source-mapped mutex field unlock should unwrap the generated Mutex value:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".m.lock().unwrap().as_ref().unwrap()).lock();") ||
+		!strings.Contains(rust, ".m.lock().unwrap().as_ref().unwrap()).unlock();") {
+		t.Fatalf("source-mapped mutex field lock/unlock should call methods on the inner generated Mutex value:\n%s", rust)
+	}
+}
+
+func TestSourceMappedMutexFieldTryLockUnwrapsGeneratedValue(t *testing.T) {
+	rust := transpileTypedConcurrentPackageWithMapping(t, "sync", `package sync
+
+type Mutex struct{}
+
+func (m *Mutex) TryLock() bool { return true }
+
+type RWMutex struct {
+	w Mutex
+}
+
+func (rw *RWMutex) TryLock() bool {
+	go func() {}()
+	return rw.w.TryLock()
+}
+`, map[string]string{"sync": "sync"})
+
+	if strings.Contains(rust, ".w.try_lock()") {
+		t.Fatalf("source-mapped mutex field TryLock should not call std::sync::Mutex::try_lock on the wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".w.lock().unwrap().as_ref().unwrap()).try_lock()") {
+		t.Fatalf("source-mapped mutex field TryLock should call the generated Mutex method on the inner value:\n%s", rust)
+	}
+}
+
+func TestSourceMappedEmbeddedSyncMutexDeferUnlockUsesEmbeddedField(t *testing.T) {
+	rust := transpileTypedConcurrentPackageWithMapping(t, "reflect", `package reflect
+
+import "sync"
+
+var cache struct {
+	sync.Mutex
+	n int
+}
+
+func use() {
+	go func() {}()
+	cache.Lock()
+	defer cache.Unlock()
+}
+`, map[string]string{"sync": "sync"})
+
+	if strings.Contains(rust, ".as_mut().unwrap()).unlock();") {
+		t.Fatalf("deferred promoted source-mapped sync.Mutex unlock should not call Unlock on the containing anonymous struct:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".mutex.unlock();") {
+		t.Fatalf("deferred promoted source-mapped sync.Mutex unlock should call through the embedded mutex field:\n%s", rust)
+	}
+}
+
+func TestSourceMappedEmbeddedSyncMutexDefaultUsesGeneratedDefault(t *testing.T) {
+	rust := transpileTypedConcurrentPackageWithMapping(t, "reflect", `package reflect
+
+import "sync"
+
+var cache struct {
+	sync.Mutex
+	n int
+}
+
+func use() {
+	go func() {}()
+}
+`, map[string]string{"sync": "sync"})
+
+	if strings.Contains(rust, "sync::mutex::Mutex::new()") {
+		t.Fatalf("source-mapped sync.Mutex field default should use the generated Default impl, not the helper new constructor:\n%s", rust)
+	}
+	if !strings.Contains(rust, "mutex: Default::default()") {
+		t.Fatalf("source-mapped sync.Mutex field default should initialize the embedded field with Default::default():\n%s", rust)
+	}
+}
+
 func TestMutexGuardNameStableAcrossFileSetBase(t *testing.T) {
 	source := `package main
 
@@ -3250,12 +3351,18 @@ func transpileTypedRegressionWithPrefixFile(t *testing.T, source string, prefixS
 func transpileTypedConcurrentRegressionWithMapping(t *testing.T, src string, packageMapping map[string]string) string {
 	t.Helper()
 
+	return transpileTypedConcurrentPackageWithMapping(t, "", src, packageMapping)
+}
+
+func transpileTypedConcurrentPackageWithMapping(t *testing.T, packagePath string, src string, packageMapping map[string]string) string {
+	t.Helper()
+
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", src, parser.ParseComments)
 	if err != nil {
 		t.Fatalf("ParseFile(main.go) error = %v", err)
 	}
-	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	typeInfo, err := NewTypeInfoWithImporter(packagePath, []*ast.File{file}, fset, nil)
 	if err != nil {
 		t.Fatalf("NewTypeInfo() error = %v", err)
 	}

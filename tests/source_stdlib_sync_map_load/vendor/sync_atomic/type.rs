@@ -413,3 +413,45 @@ pub(crate) fn __go_init_functions() {
 
 pub(crate) fn __go_init_all() {
 }
+
+
+impl GoValueClone for Bool {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl<T: Any + Send + Sync + 'static> GoValueClone for Pointer<T> {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for Uint32 {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for Uint64 {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for noCopy {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for align64 {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}

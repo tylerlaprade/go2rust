@@ -5290,22 +5290,24 @@ func writeTypeParamHandleEquality(out *strings.Builder, expr *ast.BinaryExpr) bo
 	if !leftOK || !rightOK || leftParam.Obj() != rightParam.Obj() {
 		return false
 	}
+	if !goTypeParamHasComparableConstraint(leftParam) {
+		return false
+	}
 	var left, right strings.Builder
 	if !writeTypeParamHandleExpression(&left, expr.X) || !writeTypeParamHandleExpression(&right, expr.Y) {
 		return false
 	}
 	trackWrapperImports()
+	NeedGoComparable()
 	out.WriteString("{ let __left = ")
 	out.WriteString(left.String())
 	out.WriteString("; let __right = ")
 	out.WriteString(right.String())
-	out.WriteString("; let __both_nil = (*__left")
+	out.WriteString("; let __left_guard = __left")
 	WriteBorrowMethod(out, false)
-	out.WriteString(").is_none() && (*__right")
+	out.WriteString("; let __right_guard = __right")
 	WriteBorrowMethod(out, false)
-	out.WriteString(").is_none(); let __eq = __both_nil || ")
-	out.WriteString(GetOuterWrapperType())
-	out.WriteString("::ptr_eq(&__left, &__right); ")
+	out.WriteString("; let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (None, None) => true, (Some(__left_value), Some(__right_value)) => GoComparable::go_eq(__left_value, __right_value), _ => false }; ")
 	if expr.Op == token.NEQ {
 		out.WriteString("!")
 	}
@@ -16126,7 +16128,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				fieldType := typeInfo.GetType(fieldSel)
 				isBareSyncFieldMethodCall = isGoSyncNamedType(fieldType)
 			}
-			if isBareSyncFieldMethodCall {
+			if isBareSyncFieldMethodCall && !isLocalSourceMappedSyncMutexFieldSelector(fieldSel) {
 				// sync fields are bare helper types, not wrapped fields.
 				TranspileExpression(out, fieldSel.X)
 				out.WriteString(".")

@@ -13,6 +13,7 @@ use crate::runtime2::*;
 use crate::rwmutex::*;
 use crate::waitgroup::*;
 
+use std::any::Any;
 use std::fmt::{Display, Formatter};
 
 /// noCopy may be added to structs which must not be copied
@@ -53,5 +54,11 @@ impl noCopy {
     }
 
     pub fn unlock(&self) {
+    }
+}
+
+impl GoValueClone for noCopy {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
     }
 }

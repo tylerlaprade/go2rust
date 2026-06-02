@@ -1034,12 +1034,12 @@ func substList[T comparable](in []T, subst func(T) T) []T {
 	if !strings.Contains(rust, "Vec<Rc<RefCell<Option<T>>>>") {
 		t.Fatalf("generic []T should store wrapped element handles:\n%s", rust)
 	}
-	if !strings.Contains(rust, "pub fn subst_list<T: Any + GoValueClone + 'static>") ||
+	if !strings.Contains(rust, "pub fn subst_list<T: Any + GoComparable + GoValueClone + 'static>") ||
 		strings.Contains(rust, "PartialEq") {
 		t.Fatalf("generic comparable type parameter should not require raw Rust PartialEq:\n%s", rust)
 	}
-	if !strings.Contains(rust, "::ptr_eq(&__left, &__right)") {
-		t.Fatalf("generic comparable handle values should compare handles:\n%s", rust)
+	if !strings.Contains(rust, "GoComparable::go_eq(__left_value, __right_value)") {
+		t.Fatalf("generic comparable handle values should use GoComparable value comparison:\n%s", rust)
 	}
 	if strings.Contains(rust, "Vec<T>") {
 		t.Fatalf("generic []T should not store bare type parameters:\n%s", rust)
@@ -1053,6 +1053,28 @@ func substList[T comparable](in []T, subst func(T) T) []T {
 	}
 	if strings.Contains(rust, "Box::new((*u.borrow().as_ref().unwrap()).clone()) as Box<dyn Any") {
 		t.Fatalf("generic []T assignment should not box the replacement value as Any:\n%s", rust)
+	}
+}
+
+func TestComparableGenericStructMethodKeepsGoComparableBound(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type HashTrieMap[K comparable, V any] struct {
+	seed uintptr
+}
+
+func (ht *HashTrieMap[K, V]) load(key K) (value V) {
+	var m map[K]V
+	_ = m
+	return value
+}
+`)
+
+	if !strings.Contains(rust, "pub struct HashTrieMap<K: Any + GoComparable + 'static, V: Any + 'static>") {
+		t.Fatalf("comparable generic struct should require GoComparable for K:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl<K: Any + GoComparable + GoValueClone + 'static, V: Any + GoValueClone + 'static> HashTrieMap<K, V>") {
+		t.Fatalf("method impl with direct K/V values should keep GoComparable plus GoValueClone bounds:\n%s", rust)
 	}
 }
 

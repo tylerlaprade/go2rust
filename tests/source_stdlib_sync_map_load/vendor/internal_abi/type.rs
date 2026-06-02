@@ -4742,3 +4742,101 @@ pub(crate) fn __go_init_functions() {
 pub(crate) fn __go_init_all() {
     self::__go_init_globals();
 }
+
+
+impl GoValueClone for Type {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for Method {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for UncommonType {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for Imethod {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for ArrayType {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for ChanType {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for structTypeUncommon {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for InterfaceType {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for SliceType {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for FuncType {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for PtrType {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for StructField {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for StructType {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for Name {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}

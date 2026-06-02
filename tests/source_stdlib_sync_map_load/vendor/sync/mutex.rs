@@ -90,3 +90,9 @@ impl Mutex {
         (*self.mu.lock().unwrap().as_mut().unwrap()).unlock();
     }
 }
+
+impl GoValueClone for Mutex {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}

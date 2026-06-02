@@ -1042,6 +1042,10 @@ func writeStructDefaultValue(out *strings.Builder, fieldType ast.Expr) {
 		}
 	}
 	if isSyncParam(fieldType) {
+		if isSourceMappedSyncParam(fieldType) {
+			out.WriteString("Default::default()")
+			return
+		}
 		out.WriteString(goTypeToRustBase(fieldType))
 		out.WriteString("::new()")
 		return
@@ -1938,7 +1942,8 @@ func rustTypeParam(name *ast.Ident, cloneBounds []string) string {
 	}
 	if goTypeParamHasComparableConstraint(obj.Type()) {
 		TrackImport("Any")
-		bounds := []string{"Any"}
+		NeedGoComparable()
+		bounds := []string{"Any", "GoComparable"}
 		bounds = appendTypeParamCloneBounds(bounds, cloneBounds, true)
 		if NeedsConcurrentWrapper() {
 			bounds = append(bounds, "Send", "Sync")

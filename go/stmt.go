@@ -7712,6 +7712,26 @@ func isSourceMappedSyncMutexType(typ types.Type) bool {
 	return ok && isSourceMappedPackagePath(named.Obj().Pkg().Path())
 }
 
+func isLocalSourceMappedSyncMutexFieldSelector(sel *ast.SelectorExpr) bool {
+	if sel == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	named, ok := syncMutexNamedType(typeInfo.GetType(sel))
+	if !ok || !isSourceMappedPackagePath(named.Obj().Pkg().Path()) {
+		return false
+	}
+	selection := typeInfo.info.Selections[sel]
+	if selection == nil || selection.Kind() != types.FieldVal {
+		return false
+	}
+	field, ok := selection.Obj().(*types.Var)
+	return ok && field.Pkg() == named.Obj().Pkg()
+}
+
 func promotedFieldPath(recv types.Type, indexes []int) ([]string, bool) {
 	var fields []string
 	current := recv
@@ -7830,6 +7850,17 @@ func writeMutexReceiverRef(out *strings.Builder, receiver mutexReceiverInfo) {
 	out.WriteString(".as_ref().unwrap())")
 }
 
+func writeSourceMappedMutexReceiverRef(out *strings.Builder, receiver mutexReceiverInfo) {
+	if sel, ok := unwrapParens(receiver.expr).(*ast.SelectorExpr); ok && isLocalSourceMappedSyncMutexFieldSelector(sel) {
+		out.WriteString("(*")
+		writeMutexReceiver(out, receiver)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap())")
+		return
+	}
+	writeMutexReceiverRef(out, receiver)
+}
+
 func writeMutexReceiverCloneValue(out *strings.Builder, receiver mutexReceiverInfo) {
 	writeMutexReceiverRef(out, receiver)
 	out.WriteString(".clone()")
@@ -7863,7 +7894,7 @@ func writeMutexLockStatement(out *strings.Builder, expr ast.Expr) bool {
 		return false
 	}
 	if receiver.sourceMapped {
-		writeMutexReceiverRef(out, receiver)
+		writeSourceMappedMutexReceiverRef(out, receiver)
 		out.WriteString(".lock();")
 		return true
 	}
@@ -7912,7 +7943,7 @@ func writeMutexUnlockStatement(out *strings.Builder, expr ast.Expr) bool {
 		return false
 	}
 	if receiver.sourceMapped {
-		writeMutexReceiverRef(out, receiver)
+		writeSourceMappedMutexReceiverRef(out, receiver)
 		out.WriteString(".unlock();")
 		return true
 	}
@@ -12816,7 +12847,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			// Regular defer call
 			out.WriteString("__defer_stack.push(Box::new(move || {\n")
 			out.WriteString("        ")
-			TranspileCall(out, s.Call)
+			if receiver, ok := mutexUnlockReceiver(s.Call); ok && receiver.sourceMapped {
+				writeSourceMappedMutexReceiverRef(out, receiver)
+				out.WriteString(".unlock()")
+			} else {
+				TranspileCall(out, s.Call)
+			}
 			out.WriteString(";\n")
 			out.WriteString("    }))")
 		}

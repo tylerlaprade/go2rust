@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoComparable, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, GoValueClone, format_slice, format_slice_values, format_slice_wrapped, go_any_clone, go_lookup_embedded_owner, go_register_embedded_owner};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoComparable, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_lookup_embedded_owner, go_register_embedded_owner};
 
 use crate::hashtriemap::*;
 use crate::runtime::*;
@@ -270,5 +270,11 @@ impl Mutex {
                 // so new coming goroutines won't acquire it.
         runtime__semrelease(self.sema.clone(), Arc::new(StdMutex::new(Some(true))), Arc::new(StdMutex::new(Some(2))));
     }
+    }
+}
+
+impl GoValueClone for Mutex {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
     }
 }

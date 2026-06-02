@@ -1450,6 +1450,24 @@ func isSyncParam(expr ast.Expr) bool {
 	return false
 }
 
+func isSourceMappedSyncParam(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
+		typ = ptr.Elem()
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	return named.Obj().Pkg().Path() == "sync" &&
+		isSourceMappedPackagePath(named.Obj().Pkg().Path()) &&
+		isBareSyncTypeName(named.Obj().Name())
+}
+
 func goCollectionElemTypeToRust(expr ast.Expr) string {
 	if isFunctionSignatureTypeExpr(expr) {
 		return GoTypeToRust(expr)

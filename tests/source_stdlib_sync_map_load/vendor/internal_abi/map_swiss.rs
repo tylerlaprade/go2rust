@@ -281,3 +281,9 @@ impl SwissMapType {
         embedded_ref.uncommon()
     }
 }
+
+impl GoValueClone for SwissMapType {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}

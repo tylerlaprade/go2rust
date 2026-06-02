@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoComparable, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, GoValueClone, format_slice, format_slice_values, format_slice_wrapped, go_any_clone, go_lookup_embedded_owner, go_register_embedded_owner};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoComparable, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_lookup_embedded_owner, go_register_embedded_owner};
 
 use crate::mutex::*;
 use crate::runtime::*;
@@ -1074,4 +1074,32 @@ pub fn new_entry_node<K: Any + GoComparable + GoValueClone + Send + Sync + 'stat
 ///go:linkname runtime_rand runtime.rand
 pub fn runtime_rand() -> u64 {
     1u64
+}
+
+
+impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> GoValueClone for HashTrieMap<K, V> {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> GoValueClone for indirect<K, V> {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> GoValueClone for entry<K, V> {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> GoValueClone for node<K, V> {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
 }

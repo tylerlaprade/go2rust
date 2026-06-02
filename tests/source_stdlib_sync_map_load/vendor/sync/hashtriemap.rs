@@ -167,3 +167,9 @@ impl Map {
         (*self.m.lock().unwrap().as_mut().unwrap()).range(f.clone());
     }
 }
+
+impl GoValueClone for Map {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}

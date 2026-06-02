@@ -17,6 +17,7 @@ use crate::switch::*;
 use crate::symtab::*;
 use crate::r#type::*;
 
+use std::any::Any;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
@@ -53,5 +54,12 @@ impl GoJsonDecode for EmptyInterface {
         let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
         let mut out = Self::default();
         Ok(out)
+    }
+}
+
+
+impl GoValueClone for EmptyInterface {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
     }
 }

@@ -78,3 +78,10 @@ impl GoJsonDecode for AnonymousStruct1 {
         Ok(out)
     }
 }
+
+
+impl GoValueClone for notifyList {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}

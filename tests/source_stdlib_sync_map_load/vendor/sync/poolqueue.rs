@@ -484,3 +484,30 @@ impl poolChainElt {
         embedded_ref.unpack(ptrs)
     }
 }
+
+impl GoValueClone for poolDequeue {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for eface {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for poolChain {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
+
+
+impl GoValueClone for poolChainElt {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}
