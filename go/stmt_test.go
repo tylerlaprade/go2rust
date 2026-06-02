@@ -4323,6 +4323,12 @@ func store[T any](ok bool, value T) (T, bool) {
 	return zero, false
 }
 
+func storeNamedWithDefer[T any]() (previous T, loaded bool) {
+	defer func() {}()
+	var zero T
+	return zero, false
+}
+
 func named[T any]() (value T, ok bool) {
 	return
 }
@@ -4353,6 +4359,10 @@ func call[T any](h *holder[T]) {
 	if !strings.Contains(rust, "let mut zero: Rc<RefCell<Option<T>>> = Rc::new(RefCell::new(None));") &&
 		!strings.Contains(rust, "let mut zero: Arc<Mutex<Option<T>>> = Arc::new(Mutex::new(None));") {
 		t.Fatalf("var zero T should initialize the generic value handle to None:\n%s", rust)
+	}
+	if strings.Contains(rust, "zero.borrow().as_ref().unwrap()") ||
+		strings.Contains(rust, "zero.lock().unwrap().as_ref().unwrap()") {
+		t.Fatalf("returning var zero T through named results should not unwrap a nil generic handle:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let mut value: Rc<RefCell<Option<T>>> = Rc::new(RefCell::new(None));") &&
 		!strings.Contains(rust, "let mut value: Arc<Mutex<Option<T>>> = Arc::new(Mutex::new(None));") {

@@ -239,6 +239,9 @@ func writeFuncDeclResultTypes(out *strings.Builder, fn *ast.FuncDecl) {
 			return
 		}
 	}
+	if writeArrayElemPtrFuncDeclResultTypes(out, fn) {
+		return
+	}
 	if sig, ok := funcDeclSignatureFromTypeInfo(fn); ok && writeSignatureResultTypes(out, sig) {
 		return
 	}

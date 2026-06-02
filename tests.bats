@@ -2344,6 +2344,10 @@ run_xfail_test() {
     run_test "tests/source_stdlib_path_filepath_isabs"
 }
 
+@test "source_stdlib_sync_map_load" {
+    run_test "tests/source_stdlib_sync_map_load"
+}
+
 @test "star_pointer_incdec" {
     run_test "tests/star_pointer_incdec"
 }
@@ -2902,10 +2906,6 @@ run_xfail_test() {
 
 @test "XFAIL: parallel_assign_receiver_value_field_swap" {
     run_xfail_test "tests/XFAIL/parallel_assign_receiver_value_field_swap"
-}
-
-@test "XFAIL: source_stdlib_sync_map_load" {
-    run_xfail_test "tests/XFAIL/source_stdlib_sync_map_load"
 }
 
 @test "XFAIL: stateful_goroutines" {

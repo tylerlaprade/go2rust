@@ -893,6 +893,9 @@ func prefixExternalPackageModuleImports(rustCode, selfModule string, moduleNames
 }
 
 func prefixSharedStdlibStubImport(rustCode string) string {
+	if strings.TrimSpace(rustCode) == "" {
+		return fmt.Sprintf("use %s::*;\n", sharedStdlibStubCrateName)
+	}
 	return fmt.Sprintf("use %s::*;\n\n%s", sharedStdlibStubCrateName, rustCode)
 }
 

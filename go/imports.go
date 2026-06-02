@@ -149,6 +149,8 @@ type HelperTracker struct {
 	needsAnyEq                      bool
 	needsAnyClone                   bool
 	needsGoValueClone               bool
+	needsGoComparable               bool
+	needsEmbeddedOwnerRegistry      bool
 	needsGoByteSequence             bool
 	needsGoInteger                  bool
 	needsGoChannel                  bool
@@ -252,6 +254,14 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	if ht.needsGoValueClone {
 		generateGoValueClone(&result)
+	}
+
+	if ht.needsGoComparable {
+		generateGoComparable(&result)
+	}
+
+	if ht.needsEmbeddedOwnerRegistry {
+		generateEmbeddedOwnerRegistry(&result)
 	}
 
 	if ht.needsGoByteSequence {
@@ -382,6 +392,8 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsAnyEq ||
 		ht.needsAnyClone ||
 		ht.needsGoValueClone ||
+		ht.needsGoComparable ||
+		ht.needsEmbeddedOwnerRegistry ||
 		ht.needsGoByteSequence ||
 		ht.needsGoInteger ||
 		ht.needsGoChannel ||
@@ -509,6 +521,12 @@ func (ht *HelperTracker) ImportNames() []string {
 	if ht.needsGoValueClone {
 		add("GoValueClone")
 	}
+	if ht.needsGoComparable {
+		add("GoComparable")
+	}
+	if ht.needsEmbeddedOwnerRegistry {
+		add("go_lookup_embedded_owner", "go_register_embedded_owner")
+	}
 	if ht.needsGoByteSequence {
 		add("GoByteSequence")
 	}
@@ -561,7 +579,7 @@ func (ht *HelperTracker) ImportNames() []string {
 		add("GoFile")
 	}
 	if ht.needsSliceElemPtr {
-		add("GoPtr", "GoSliceElemPtr", "GoSliceElemRef", "GoSliceElemMutRef")
+		add("GoPtr", "GoSliceElemPtr", "GoSliceElemRef", "GoSliceElemMutRef", "GoArrayElemPtr", "GoArrayElemRef", "GoArrayElemMutRef")
 	}
 	if ht.needsGoTime {
 		add("GoTime", "go_time_civil_from_days")
@@ -1052,6 +1070,149 @@ fn go_any_values_eq(left: &dyn Any, right: &dyn Any) -> bool {
     if let Some(v) = left.downcast_ref::<bool>() { return right.downcast_ref::<bool>().map_or(false, |r| v == r); }
     if let Some(v) = left.downcast_ref::<char>() { return right.downcast_ref::<char>().map_or(false, |r| v == r); }
     panic!("interface comparison with uncomparable dynamic type")
+}
+`)
+}
+
+func generateGoComparable(out *strings.Builder) {
+	TrackImport("Any")
+	anyType := "dyn Any"
+	if NeedsConcurrentWrapper() {
+		anyType = "dyn Any + Send + Sync"
+	}
+	boxType := "Box<" + anyType + ">"
+	out.WriteString(`
+pub trait GoComparable {
+    fn go_eq(&self, other: &Self) -> bool;
+    fn go_hash(&self, seed: usize) -> usize;
+}
+
+fn go_hash_value<T: std::hash::Hash>(value: &T, seed: usize) -> usize {
+    let mut __hasher = std::collections::hash_map::DefaultHasher::new();
+    std::hash::Hash::hash(&seed, &mut __hasher);
+    std::hash::Hash::hash(value, &mut __hasher);
+    std::hash::Hasher::finish(&__hasher) as usize
+}
+
+macro_rules! impl_go_comparable_hash {
+    ($($t:ty),* $(,)?) => {
+        $(impl GoComparable for $t {
+            fn go_eq(&self, other: &Self) -> bool { self == other }
+            fn go_hash(&self, seed: usize) -> usize { go_hash_value(self, seed) }
+        })*
+    };
+}
+
+impl_go_comparable_hash!(bool, char, i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, String, &'static str);
+
+impl GoComparable for f32 {
+    fn go_eq(&self, other: &Self) -> bool { self == other }
+    fn go_hash(&self, seed: usize) -> usize { go_hash_value(&self.to_bits(), seed) }
+}
+
+impl GoComparable for f64 {
+    fn go_eq(&self, other: &Self) -> bool { self == other }
+    fn go_hash(&self, seed: usize) -> usize { go_hash_value(&self.to_bits(), seed) }
+}
+
+fn go_any_comparable_eq(left: &(` + anyType + `), right: &(` + anyType + `)) -> bool {
+    if left.type_id() != right.type_id() {
+        return false;
+    }
+    if let Some(v) = left.downcast_ref::<i32>() { return right.downcast_ref::<i32>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<i64>() { return right.downcast_ref::<i64>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<i8>() { return right.downcast_ref::<i8>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<i16>() { return right.downcast_ref::<i16>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<u32>() { return right.downcast_ref::<u32>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<u64>() { return right.downcast_ref::<u64>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<u8>() { return right.downcast_ref::<u8>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<u16>() { return right.downcast_ref::<u16>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<usize>() { return right.downcast_ref::<usize>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<isize>() { return right.downcast_ref::<isize>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<f64>() { return right.downcast_ref::<f64>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<f32>() { return right.downcast_ref::<f32>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<String>() { return right.downcast_ref::<String>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<&str>() { return right.downcast_ref::<&str>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<bool>() { return right.downcast_ref::<bool>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<char>() { return right.downcast_ref::<char>().map_or(false, |r| v == r); }
+    panic!("interface comparison with uncomparable dynamic type")
+}
+
+fn go_any_comparable_hash(value: &(` + anyType + `), seed: usize) -> usize {
+    if let Some(v) = value.downcast_ref::<i32>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    if let Some(v) = value.downcast_ref::<i64>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    if let Some(v) = value.downcast_ref::<i8>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    if let Some(v) = value.downcast_ref::<i16>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    if let Some(v) = value.downcast_ref::<u32>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    if let Some(v) = value.downcast_ref::<u64>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    if let Some(v) = value.downcast_ref::<u8>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    if let Some(v) = value.downcast_ref::<u16>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    if let Some(v) = value.downcast_ref::<usize>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    if let Some(v) = value.downcast_ref::<isize>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    if let Some(v) = value.downcast_ref::<f64>() { return go_hash_value(&(value.type_id(), v.to_bits()), seed); }
+    if let Some(v) = value.downcast_ref::<f32>() { return go_hash_value(&(value.type_id(), v.to_bits()), seed); }
+    if let Some(v) = value.downcast_ref::<String>() { return go_hash_value(&(value.type_id(), v), seed); }
+    if let Some(v) = value.downcast_ref::<&str>() { return go_hash_value(&(value.type_id(), v), seed); }
+    if let Some(v) = value.downcast_ref::<bool>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    if let Some(v) = value.downcast_ref::<char>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    panic!("interface hash with uncomparable dynamic type")
+}
+
+impl GoComparable for ` + boxType + ` {
+    fn go_eq(&self, other: &Self) -> bool { go_any_comparable_eq(self.as_ref(), other.as_ref()) }
+    fn go_hash(&self, seed: usize) -> usize { go_any_comparable_hash(self.as_ref(), seed) }
+}
+`)
+}
+
+func generateEmbeddedOwnerRegistry(out *strings.Builder) {
+	TrackImport("Any")
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString(`
+fn go_embedded_owner_registry() -> &'static std::sync::Mutex<std::collections::HashMap<usize, Box<dyn Any + Send + Sync>>> {
+    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, Box<dyn Any + Send + Sync>>>> = std::sync::OnceLock::new();
+    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+fn go_register_embedded_owner<T: Send + Sync + 'static>(embedded_key: usize, owner: Arc<Mutex<Option<T>>>) {
+    go_embedded_owner_registry().lock().unwrap().insert(embedded_key, Box::new(owner));
+}
+
+fn go_lookup_embedded_owner<T: Send + Sync + 'static>(embedded_key: usize, target: &str) -> Arc<Mutex<Option<T>>> {
+    let registry = go_embedded_owner_registry().lock().unwrap();
+    let owner = registry.get(&embedded_key).unwrap_or_else(|| panic!("embedded owner registry missing {}", target));
+    owner
+        .downcast_ref::<Arc<Mutex<Option<T>>>>()
+        .unwrap_or_else(|| panic!("embedded owner registry type mismatch for {}", target))
+        .clone()
+}
+`)
+		return
+	}
+	TrackImport("Rc")
+	TrackImport("RefCell")
+	out.WriteString(`
+thread_local! {
+    static GO_EMBEDDED_OWNER_REGISTRY: RefCell<std::collections::HashMap<usize, Box<dyn Any>>> = RefCell::new(std::collections::HashMap::new());
+}
+
+fn go_register_embedded_owner<T: 'static>(embedded_key: usize, owner: Rc<RefCell<Option<T>>>) {
+    GO_EMBEDDED_OWNER_REGISTRY.with(|registry| {
+        registry.borrow_mut().insert(embedded_key, Box::new(owner));
+    });
+}
+
+fn go_lookup_embedded_owner<T: 'static>(embedded_key: usize, target: &str) -> Rc<RefCell<Option<T>>> {
+    GO_EMBEDDED_OWNER_REGISTRY.with(|registry| {
+        let registry = registry.borrow();
+        let owner = registry.get(&embedded_key).unwrap_or_else(|| panic!("embedded owner registry missing {}", target));
+        owner
+            .downcast_ref::<Rc<RefCell<Option<T>>>>()
+            .unwrap_or_else(|| panic!("embedded owner registry type mismatch for {}", target))
+            .clone()
+    })
 }
 `)
 }
@@ -2434,6 +2595,22 @@ struct GoSliceElemMutRef<T: Clone> {
     value: Option<T>,
 }
 
+#[derive(Clone)]
+struct GoArrayElemPtr<T: Clone, const N: usize> {
+    array: Arc<Mutex<Option<[T; N]>>>,
+    index: usize,
+}
+
+struct GoArrayElemRef<T: Clone> {
+    value: Option<T>,
+}
+
+struct GoArrayElemMutRef<T: Clone, const N: usize> {
+    array: Arc<Mutex<Option<[T; N]>>>,
+    index: usize,
+    value: Option<T>,
+}
+
 impl<T: Clone> GoSliceElemPtr<T> {
     fn new(slice: Arc<Mutex<Option<Vec<T>>>>, index: usize) -> Self {
         GoSliceElemPtr { slice, index }
@@ -2450,6 +2627,28 @@ impl<T: Clone> GoSliceElemPtr<T> {
         let guard = self.slice.lock().unwrap();
         GoSliceElemMutRef {
             slice: self.slice.clone(),
+            index: self.index,
+            value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
+        }
+    }
+}
+
+impl<T: Clone, const N: usize> GoArrayElemPtr<T, N> {
+    fn new(array: Arc<Mutex<Option<[T; N]>>>, index: usize) -> Self {
+        GoArrayElemPtr { array, index }
+    }
+
+    fn borrow(&self) -> GoArrayElemRef<T> {
+        let guard = self.array.lock().unwrap();
+        GoArrayElemRef {
+            value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
+        }
+    }
+
+    fn borrow_mut(&self) -> GoArrayElemMutRef<T, N> {
+        let guard = self.array.lock().unwrap();
+        GoArrayElemMutRef {
+            array: self.array.clone(),
             index: self.index,
             value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
         }
@@ -2482,6 +2681,38 @@ impl<T: Clone> Drop for GoSliceElemMutRef<T> {
     fn drop(&mut self) {
         if let Some(value) = self.value.clone() {
             if let Some(values) = self.slice.lock().unwrap().as_mut() {
+                values[self.index] = value;
+            }
+        }
+    }
+}
+
+impl<T: Clone> std::ops::Deref for GoArrayElemRef<T> {
+    type Target = Option<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl<T: Clone, const N: usize> std::ops::Deref for GoArrayElemMutRef<T, N> {
+    type Target = Option<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl<T: Clone, const N: usize> std::ops::DerefMut for GoArrayElemMutRef<T, N> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
+    }
+}
+
+impl<T: Clone, const N: usize> Drop for GoArrayElemMutRef<T, N> {
+    fn drop(&mut self) {
+        if let Some(value) = self.value.clone() {
+            if let Some(values) = self.array.lock().unwrap().as_mut() {
                 values[self.index] = value;
             }
         }
@@ -2540,6 +2771,22 @@ struct GoSliceElemMutRef<T: Clone> {
     value: Option<T>,
 }
 
+#[derive(Clone)]
+struct GoArrayElemPtr<T: Clone, const N: usize> {
+    array: Rc<RefCell<Option<[T; N]>>>,
+    index: usize,
+}
+
+struct GoArrayElemRef<T: Clone> {
+    value: Option<T>,
+}
+
+struct GoArrayElemMutRef<T: Clone, const N: usize> {
+    array: Rc<RefCell<Option<[T; N]>>>,
+    index: usize,
+    value: Option<T>,
+}
+
 impl<T: Clone> GoSliceElemPtr<T> {
     fn new(slice: Rc<RefCell<Option<Vec<T>>>>, index: usize) -> Self {
         GoSliceElemPtr { slice, index }
@@ -2556,6 +2803,28 @@ impl<T: Clone> GoSliceElemPtr<T> {
         let guard = self.slice.borrow();
         GoSliceElemMutRef {
             slice: self.slice.clone(),
+            index: self.index,
+            value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
+        }
+    }
+}
+
+impl<T: Clone, const N: usize> GoArrayElemPtr<T, N> {
+    fn new(array: Rc<RefCell<Option<[T; N]>>>, index: usize) -> Self {
+        GoArrayElemPtr { array, index }
+    }
+
+    fn borrow(&self) -> GoArrayElemRef<T> {
+        let guard = self.array.borrow();
+        GoArrayElemRef {
+            value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
+        }
+    }
+
+    fn borrow_mut(&self) -> GoArrayElemMutRef<T, N> {
+        let guard = self.array.borrow();
+        GoArrayElemMutRef {
+            array: self.array.clone(),
             index: self.index,
             value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
         }
@@ -2588,6 +2857,38 @@ impl<T: Clone> Drop for GoSliceElemMutRef<T> {
     fn drop(&mut self) {
         if let Some(value) = self.value.clone() {
             if let Some(values) = self.slice.borrow_mut().as_mut() {
+                values[self.index] = value;
+            }
+        }
+    }
+}
+
+impl<T: Clone> std::ops::Deref for GoArrayElemRef<T> {
+    type Target = Option<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl<T: Clone, const N: usize> std::ops::Deref for GoArrayElemMutRef<T, N> {
+    type Target = Option<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl<T: Clone, const N: usize> std::ops::DerefMut for GoArrayElemMutRef<T, N> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
+    }
+}
+
+impl<T: Clone, const N: usize> Drop for GoArrayElemMutRef<T, N> {
+    fn drop(&mut self) {
+        if let Some(value) = self.value.clone() {
+            if let Some(values) = self.array.borrow_mut().as_mut() {
                 values[self.index] = value;
             }
         }

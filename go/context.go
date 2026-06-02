@@ -33,6 +33,8 @@ type PackageState struct {
 	SliceElemPtrReturnFuncs       map[*types.Func]sliceElemPtrReturnInfo
 	SliceElemPtrSliceReturnFuncs  map[*types.Func]sliceElemPtrSliceReturnInfo
 	SliceElemPtrSliceParamFuncs   map[*types.Func]map[int]string
+	ArrayElemPtrResultFuncs       map[*types.Func]map[int]arrayElemPtrInfo
+	ArrayElemPtrResultFuncNames   map[string]map[int]arrayElemPtrInfo
 	MapKeyStructTypes             map[string]bool
 	ComparableStructTypes         map[string]bool
 	PackageConstants              map[string]string
@@ -136,6 +138,8 @@ func NewPackageState() *PackageState {
 		SliceElemPtrReturnFuncs:       make(map[*types.Func]sliceElemPtrReturnInfo),
 		SliceElemPtrSliceReturnFuncs:  make(map[*types.Func]sliceElemPtrSliceReturnInfo),
 		SliceElemPtrSliceParamFuncs:   make(map[*types.Func]map[int]string),
+		ArrayElemPtrResultFuncs:       make(map[*types.Func]map[int]arrayElemPtrInfo),
+		ArrayElemPtrResultFuncNames:   make(map[string]map[int]arrayElemPtrInfo),
 		MapKeyStructTypes:             make(map[string]bool),
 		ComparableStructTypes:         make(map[string]bool),
 		PackageConstants:              make(map[string]string),
@@ -272,6 +276,12 @@ func (ctx *TranspileContext) ensureDefaults() {
 		}
 		if ctx.Package.SliceElemPtrSliceParamFuncs == nil {
 			ctx.Package.SliceElemPtrSliceParamFuncs = make(map[*types.Func]map[int]string)
+		}
+		if ctx.Package.ArrayElemPtrResultFuncs == nil {
+			ctx.Package.ArrayElemPtrResultFuncs = make(map[*types.Func]map[int]arrayElemPtrInfo)
+		}
+		if ctx.Package.ArrayElemPtrResultFuncNames == nil {
+			ctx.Package.ArrayElemPtrResultFuncNames = make(map[string]map[int]arrayElemPtrInfo)
 		}
 		if ctx.Package.MethodsByType == nil {
 			ctx.Package.MethodsByType = make(map[string][]*ast.FuncDecl)
@@ -687,6 +697,22 @@ func NeedGoValueClone() {
 		helpers.needsGoValueClone = true
 		helpers.needsAnyClone = true
 		TrackImport("Any")
+	}
+}
+
+// NeedGoComparable marks that we need the GoComparable helper trait.
+func NeedGoComparable() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoComparable = true
+		TrackImport("Any")
+	}
+}
+
+func NeedEmbeddedOwnerRegistry() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsEmbeddedOwnerRegistry = true
+		TrackImport("Any")
+		trackWrapperImports()
 	}
 }
 

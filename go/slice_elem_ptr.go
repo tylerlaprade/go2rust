@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"strconv"
 	"strings"
 )
 
@@ -13,8 +14,20 @@ type sliceElemPtrCandidate struct {
 	sawSliceAddr bool
 }
 
+type arrayElemPtrInfo struct {
+	elemRustType string
+	arrayLen     int64
+}
+
+type arrayElemPtrCandidate struct {
+	info         arrayElemPtrInfo
+	valid        bool
+	sawArrayAddr bool
+}
+
 var currentSliceElemPtrCandidates map[types.Object]string
 var currentSliceElemPtrSliceCandidates map[types.Object]string
+var currentArrayElemPtrCandidates map[types.Object]arrayElemPtrInfo
 var currentSliceElemPtrReturn *sliceElemPtrReturnInfo
 var currentSliceElemPtrSliceReturn *sliceElemPtrSliceReturnInfo
 
@@ -29,11 +42,14 @@ type sliceElemPtrSliceReturnInfo struct {
 func setSliceElemPtrCandidates(body *ast.BlockStmt) func() {
 	oldPtr := currentSliceElemPtrCandidates
 	oldSlice := currentSliceElemPtrSliceCandidates
+	oldArray := currentArrayElemPtrCandidates
 	currentSliceElemPtrCandidates = collectSliceElemPtrCandidates(body)
 	currentSliceElemPtrSliceCandidates = collectSliceElemPtrSliceCandidates(body)
+	currentArrayElemPtrCandidates = collectArrayElemPtrCandidates(body)
 	return func() {
 		currentSliceElemPtrCandidates = oldPtr
 		currentSliceElemPtrSliceCandidates = oldSlice
+		currentArrayElemPtrCandidates = oldArray
 	}
 }
 
@@ -43,11 +59,14 @@ func setSliceElemPtrCandidatesForFunc(fn *ast.FuncDecl) func() {
 	}
 	oldPtr := currentSliceElemPtrCandidates
 	oldSlice := currentSliceElemPtrSliceCandidates
+	oldArray := currentArrayElemPtrCandidates
 	currentSliceElemPtrCandidates = collectSliceElemPtrCandidates(fn.Body)
 	currentSliceElemPtrSliceCandidates = collectSliceElemPtrSliceCandidatesForFunc(fn)
+	currentArrayElemPtrCandidates = collectArrayElemPtrCandidatesForFunc(fn)
 	return func() {
 		currentSliceElemPtrCandidates = oldPtr
 		currentSliceElemPtrSliceCandidates = oldSlice
+		currentArrayElemPtrCandidates = oldArray
 	}
 }
 
@@ -83,6 +102,152 @@ func sliceElemPtrSliceCandidateForExpr(expr ast.Expr) (string, bool) {
 	return sliceElemPtrSliceCandidateForDecl(ident)
 }
 
+func arrayElemPtrCandidateForDecl(name *ast.Ident) (arrayElemPtrInfo, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && currentArrayElemPtrCandidates != nil {
+		if obj := typeInfo.GetObject(name); obj != nil {
+			info, ok := currentArrayElemPtrCandidates[obj]
+			return info, ok
+		}
+	}
+	return arrayElemPtrInfo{}, false
+}
+
+func arrayElemPtrResultInfosForFunc(fn *ast.FuncDecl) map[int]arrayElemPtrInfo {
+	typeInfo := GetTypeInfo()
+	if fn == nil || fn.Type == nil || fn.Type.Results == nil || typeInfo == nil {
+		return nil
+	}
+	candidates := currentArrayElemPtrCandidates
+	if candidates == nil {
+		candidates = collectArrayElemPtrCandidatesForFunc(fn)
+	}
+	if candidates == nil {
+		return nil
+	}
+	result := map[int]arrayElemPtrInfo{}
+	resultIndex := 0
+	for _, field := range fn.Type.Results.List {
+		if len(field.Names) == 0 {
+			resultIndex++
+			continue
+		}
+		for _, name := range field.Names {
+			if name.Name != "_" {
+				if obj := typeInfo.GetObject(name); obj != nil {
+					if info, ok := candidates[obj]; ok {
+						result[resultIndex] = info
+					}
+				}
+			}
+			resultIndex++
+		}
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	registerArrayElemPtrResultInfosForDecl(fn, result)
+	return result
+}
+
+func registerArrayElemPtrResultInfosForDecl(fn *ast.FuncDecl, result map[int]arrayElemPtrInfo) {
+	if len(result) == 0 {
+		return
+	}
+	fnObj, ok := sliceElemPtrReturnFuncObject(fn)
+	if !ok {
+		return
+	}
+	ctx := GetTranspileContext()
+	if ctx == nil || ctx.Package == nil {
+		return
+	}
+	if ctx.Package.ArrayElemPtrResultFuncs == nil {
+		ctx.Package.ArrayElemPtrResultFuncs = make(map[*types.Func]map[int]arrayElemPtrInfo)
+	}
+	if ctx.Package.ArrayElemPtrResultFuncNames == nil {
+		ctx.Package.ArrayElemPtrResultFuncNames = make(map[string]map[int]arrayElemPtrInfo)
+	}
+	ctx.Package.ArrayElemPtrResultFuncs[fnObj] = result
+	ctx.Package.ArrayElemPtrResultFuncNames[fnObj.FullName()] = result
+}
+
+func arrayElemPtrResultInfosForFuncObject(fn *types.Func) (map[int]arrayElemPtrInfo, bool) {
+	ctx := GetTranspileContext()
+	if fn == nil || ctx == nil || ctx.Package == nil {
+		return nil, false
+	}
+	if result, ok := ctx.Package.ArrayElemPtrResultFuncs[fn]; ok {
+		return result, true
+	}
+	result, ok := ctx.Package.ArrayElemPtrResultFuncNames[fn.FullName()]
+	return result, ok
+}
+
+func arrayElemPtrResultInfoForCall(call *ast.CallExpr, resultIndex int) (arrayElemPtrInfo, bool) {
+	typeInfo := GetTypeInfo()
+	fn, ok := callFunctionObjectFromTypeInfo(typeInfo, call)
+	if !ok {
+		return arrayElemPtrInfo{}, false
+	}
+	infos, ok := arrayElemPtrResultInfosForFuncObject(fn)
+	if !ok {
+		return arrayElemPtrInfo{}, false
+	}
+	info, ok := infos[resultIndex]
+	return info, ok
+}
+
+func writeArrayElemPtrFuncDeclResultTypes(out *strings.Builder, fn *ast.FuncDecl) bool {
+	resultInfos := arrayElemPtrResultInfosForFunc(fn)
+	if len(resultInfos) == 0 {
+		return false
+	}
+	sig, ok := funcDeclSignatureFromTypeInfo(fn)
+	if !ok || sig.Results() == nil || sig.Results().Len() == 0 {
+		return false
+	}
+	results := sig.Results()
+	out.WriteString(" -> ")
+	if results.Len() == 1 {
+		if info, ok := resultInfos[0]; ok {
+			out.WriteString(arrayElemPtrOptionRustType(info))
+		} else {
+			out.WriteString(goTypesReturnTypeToRust(results.At(0).Type()))
+		}
+		return true
+	}
+	out.WriteString("(")
+	for i := 0; i < results.Len(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		if info, ok := resultInfos[i]; ok {
+			out.WriteString(arrayElemPtrOptionRustType(info))
+		} else {
+			out.WriteString(goTypesReturnTypeToRust(results.At(i).Type()))
+		}
+	}
+	out.WriteString(")")
+	return true
+}
+
+func registerArrayElemPtrNamedReturnVars(fn *ast.FuncDecl) {
+	if fn == nil || fn.Type == nil || fn.Type.Results == nil {
+		return
+	}
+	for _, result := range fn.Type.Results.List {
+		for _, name := range result.Names {
+			if name.Name == "_" {
+				continue
+			}
+			if info, ok := arrayElemPtrCandidateForDecl(name); ok {
+				registerArrayElemPtrVar(name.Name, info)
+			}
+		}
+	}
+}
+
 func registerSliceElemPtrReturnsFromFiles(files []*ast.File) {
 	for _, file := range files {
 		registerSliceElemPtrReturnsFromFile(file)
@@ -101,6 +266,7 @@ func registerSliceElemPtrReturnsFromFile(file *ast.File) {
 		}
 		registerSliceElemPtrReturnDecl(fn)
 		registerSliceElemPtrSliceReturnDecl(fn)
+		arrayElemPtrResultInfosForFunc(fn)
 	}
 }
 
@@ -559,6 +725,18 @@ func registerSliceElemPtrVar(name string, elemRustType string) {
 	}
 }
 
+func registerArrayElemPtrVar(name string, info arrayElemPtrInfo) {
+	NeedSliceElemPtr()
+	if vt := GetVarTable(); vt != nil {
+		vt.Register(name, &VarInfo{
+			WrapLevel:   WrapOption,
+			RustType:    arrayElemPtrOptionRustType(info),
+			Source:      SourceLocal,
+			PointerKind: PointerArrayElem,
+		})
+	}
+}
+
 func collectSliceElemPtrCandidates(body *ast.BlockStmt) map[types.Object]string {
 	typeInfo := GetTypeInfo()
 	if body == nil || typeInfo == nil || typeInfo.info == nil {
@@ -688,6 +866,173 @@ func collectSliceElemPtrCandidates(body *ast.BlockStmt) map[types.Object]string 
 		result = nil
 	}
 	return result
+}
+
+func collectArrayElemPtrCandidates(body *ast.BlockStmt) map[types.Object]arrayElemPtrInfo {
+	return collectArrayElemPtrCandidatesWithSeeds(body, nil)
+}
+
+func collectArrayElemPtrCandidatesForFunc(fn *ast.FuncDecl) map[types.Object]arrayElemPtrInfo {
+	if fn == nil {
+		return nil
+	}
+	return collectArrayElemPtrCandidatesWithSeeds(fn.Body, arrayElemPtrResultCandidateSeeds(fn))
+}
+
+func collectArrayElemPtrCandidatesWithSeeds(body *ast.BlockStmt, seeds map[types.Object]*arrayElemPtrCandidate) map[types.Object]arrayElemPtrInfo {
+	typeInfo := GetTypeInfo()
+	if body == nil || typeInfo == nil || typeInfo.info == nil {
+		return nil
+	}
+
+	candidates := map[types.Object]*arrayElemPtrCandidate{}
+	for obj, state := range seeds {
+		candidates[obj] = state
+	}
+
+	ast.Inspect(body, func(node ast.Node) bool {
+		switch n := node.(type) {
+		case *ast.FuncLit:
+			return false
+		case *ast.ValueSpec:
+			if _, ok := n.Type.(*ast.StarExpr); !ok {
+				return true
+			}
+			for i, name := range n.Names {
+				if name.Name == "_" {
+					continue
+				}
+				obj := typeInfo.GetObject(name)
+				if obj == nil {
+					continue
+				}
+				elemRustType, ok := sliceElemPtrRustTypeForPointerType(obj.Type())
+				if !ok {
+					continue
+				}
+				state := &arrayElemPtrCandidate{
+					info:  arrayElemPtrInfo{elemRustType: elemRustType},
+					valid: true,
+				}
+				if len(n.Values) > i {
+					rhsInfo, ok, sawArrayAddr := isArrayElemPtrAssignmentValue(n.Values[i])
+					state.valid = ok
+					state.sawArrayAddr = sawArrayAddr
+					if sawArrayAddr {
+						state.info = rhsInfo
+					}
+				}
+				candidates[obj] = state
+			}
+		case *ast.AssignStmt:
+			if n.Tok == token.DEFINE {
+				for i, lhs := range n.Lhs {
+					ident, ok := lhs.(*ast.Ident)
+					if !ok || ident.Name == "_" {
+						continue
+					}
+					obj := typeInfo.GetObject(ident)
+					if obj == nil {
+						continue
+					}
+					if _, exists := candidates[obj]; exists {
+						continue
+					}
+					elemRustType, ok := sliceElemPtrRustTypeForPointerType(obj.Type())
+					if !ok {
+						continue
+					}
+					rhsInfo, ok, sawArrayAddr := isArrayElemPtrAssignmentValue(assignmentRHSForLHS(n, i))
+					if !ok {
+						continue
+					}
+					info := arrayElemPtrInfo{elemRustType: elemRustType}
+					if sawArrayAddr {
+						info = rhsInfo
+					}
+					candidates[obj] = &arrayElemPtrCandidate{
+						info:         info,
+						valid:        true,
+						sawArrayAddr: sawArrayAddr,
+					}
+				}
+				return true
+			}
+			if n.Tok != token.ASSIGN {
+				return true
+			}
+			for i, lhs := range n.Lhs {
+				ident, ok := lhs.(*ast.Ident)
+				if !ok {
+					continue
+				}
+				obj := typeInfo.GetObject(ident)
+				if obj == nil {
+					continue
+				}
+				state := candidates[obj]
+				if state == nil || !state.valid {
+					continue
+				}
+				rhsInfo, ok, sawArrayAddr := isArrayElemPtrAssignmentValue(assignmentRHSForLHS(n, i))
+				if !ok {
+					state.valid = false
+					continue
+				}
+				if sawArrayAddr {
+					if state.sawArrayAddr && (state.info.elemRustType != rhsInfo.elemRustType || state.info.arrayLen != rhsInfo.arrayLen) {
+						state.valid = false
+						continue
+					}
+					state.info = rhsInfo
+					state.sawArrayAddr = true
+				}
+			}
+		}
+		return true
+	})
+
+	result := map[types.Object]arrayElemPtrInfo{}
+	for obj, state := range candidates {
+		if state.valid && state.sawArrayAddr && state.info.elemRustType != "" && state.info.arrayLen >= 0 {
+			result[obj] = state.info
+		}
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	return result
+}
+
+func arrayElemPtrResultCandidateSeeds(fn *ast.FuncDecl) map[types.Object]*arrayElemPtrCandidate {
+	typeInfo := GetTypeInfo()
+	if fn == nil || fn.Type == nil || fn.Type.Results == nil || typeInfo == nil || typeInfo.info == nil {
+		return nil
+	}
+	seeds := map[types.Object]*arrayElemPtrCandidate{}
+	for _, result := range fn.Type.Results.List {
+		for _, name := range result.Names {
+			if name.Name == "_" {
+				continue
+			}
+			obj := typeInfo.GetObject(name)
+			if obj == nil {
+				continue
+			}
+			elemRustType, ok := sliceElemPtrRustTypeForPointerType(obj.Type())
+			if !ok {
+				continue
+			}
+			seeds[obj] = &arrayElemPtrCandidate{
+				info:  arrayElemPtrInfo{elemRustType: elemRustType},
+				valid: true,
+			}
+		}
+	}
+	if len(seeds) == 0 {
+		return nil
+	}
+	return seeds
 }
 
 func collectSliceElemPtrSliceCandidates(body *ast.BlockStmt) map[types.Object]string {
@@ -874,6 +1219,23 @@ func isSliceElemPtrAssignmentValue(expr ast.Expr) (bool, bool) {
 	return typeInfo.IsPointer(expr), false
 }
 
+func isArrayElemPtrAssignmentValue(expr ast.Expr) (arrayElemPtrInfo, bool, bool) {
+	expr = unwrapParens(expr)
+	if expr == nil {
+		return arrayElemPtrInfo{}, false, false
+	}
+	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" {
+		return arrayElemPtrInfo{}, true, false
+	}
+	if info, ok := arrayElemPtrAddressInfo(expr); ok {
+		return info, true, true
+	}
+	if ident, ok := expr.(*ast.Ident); ok && isArrayElemPtrVar(ident.Name) {
+		return arrayElemPtrInfo{}, true, false
+	}
+	return arrayElemPtrInfo{}, false, false
+}
+
 func sliceElemPtrAddressElemRustType(expr ast.Expr) (string, bool) {
 	unary, ok := unwrapParens(expr).(*ast.UnaryExpr)
 	if !ok || unary.Op != token.AND {
@@ -898,26 +1260,118 @@ func sliceElemPtrAddressElemRustType(expr ast.Expr) (string, bool) {
 }
 
 func arrayElemAddressPointerRustType(expr ast.Expr) (string, bool) {
+	if info, ok := arrayElemPtrAddressInfo(expr); ok {
+		return arrayElemPtrOptionRustType(info), true
+	}
+	return "", false
+}
+
+func arrayElemPtrAddressInfo(expr ast.Expr) (arrayElemPtrInfo, bool) {
 	unary, ok := unwrapParens(expr).(*ast.UnaryExpr)
 	if !ok || unary.Op != token.AND {
-		return "", false
+		return arrayElemPtrInfo{}, false
 	}
 	indexExpr, ok := unwrapParens(unary.X).(*ast.IndexExpr)
 	if !ok {
-		return "", false
+		return arrayElemPtrInfo{}, false
 	}
+	return arrayElemPtrAddressInfoForIndex(indexExpr)
+}
+
+func arrayElemPtrAddressInfoForIndex(indexExpr *ast.IndexExpr) (arrayElemPtrInfo, bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.GetType(indexExpr.X) == nil {
-		return "", false
+		return arrayElemPtrInfo{}, false
 	}
-	if !typeInfo.IsArray(indexExpr.X) && !typeInfo.IsPointerToArray(indexExpr.X) {
-		return "", false
+	arrayType, ok := arrayTypeForExpr(indexExpr.X, typeInfo)
+	if !ok {
+		return arrayElemPtrInfo{}, false
+	}
+	elemRustType := goTypesCollectionElemTypeToRust(coreType(arrayType.Elem()))
+	if elemRustType == "" {
+		return arrayElemPtrInfo{}, false
+	}
+	return arrayElemPtrInfo{elemRustType: elemRustType, arrayLen: arrayType.Len()}, true
+}
+
+func arrayTypeForExpr(expr ast.Expr, typeInfo *TypeInfo) (*types.Array, bool) {
+	if typeInfo == nil {
+		return nil, false
 	}
 	typ := typeInfo.GetType(expr)
 	if typ == nil {
-		return "", false
+		return nil, false
 	}
-	return goTypesTypeToRust(typ), true
+	if arrayType, ok := coreUnderlyingType(typ).(*types.Array); ok {
+		return arrayType, true
+	}
+	if ptr, ok := types.Unalias(typ).Underlying().(*types.Pointer); ok {
+		if arrayType, ok := coreUnderlyingType(ptr.Elem()).(*types.Array); ok {
+			return arrayType, true
+		}
+	}
+	return nil, false
+}
+
+func arrayElemPtrOptionRustType(info arrayElemPtrInfo) string {
+	return "Option<" + arrayElemPtrRustType(info) + ">"
+}
+
+func arrayElemPtrRustType(info arrayElemPtrInfo) string {
+	return "GoArrayElemPtr<" + info.elemRustType + ", " + strconv.FormatInt(info.arrayLen, 10) + ">"
+}
+
+func writeArrayElemPtrNewExpression(out *strings.Builder, indexExpr *ast.IndexExpr) bool {
+	if _, ok := arrayElemPtrAddressInfoForIndex(indexExpr); !ok {
+		return false
+	}
+	NeedSliceElemPtr()
+	out.WriteString("GoArrayElemPtr::new(")
+	writeArrayElemPtrSequenceHandle(out, indexExpr)
+	out.WriteString(", ")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString(")")
+	return true
+}
+
+func writeArrayElemPtrSequenceHandle(out *strings.Builder, indexExpr *ast.IndexExpr) {
+	typeInfo := GetTypeInfo()
+	if pointerArray, ok := pointerToArrayDerefOperand(indexExpr.X, typeInfo); ok {
+		TranspileExpressionContext(out, pointerArray, LValue)
+		out.WriteString(".clone()")
+		return
+	}
+	TranspileExpressionContext(out, indexExpr.X, LValue)
+	out.WriteString(".clone()")
+}
+
+func writeArrayElemPtrOptionValue(out *strings.Builder, rhs ast.Expr) bool {
+	if ident, ok := unwrapParens(rhs).(*ast.Ident); ok {
+		if ident.Name == "nil" {
+			out.WriteString("None")
+			return true
+		}
+		if isArrayElemPtrVar(ident.Name) {
+			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(".clone()")
+			return true
+		}
+	}
+	unary, ok := unwrapParens(rhs).(*ast.UnaryExpr)
+	if !ok || unary.Op != token.AND {
+		return false
+	}
+	indexExpr, ok := unwrapParens(unary.X).(*ast.IndexExpr)
+	if !ok {
+		return false
+	}
+	if _, ok := arrayElemPtrAddressInfoForIndex(indexExpr); !ok {
+		return false
+	}
+	out.WriteString("Some(")
+	writeArrayElemPtrNewExpression(out, indexExpr)
+	out.WriteString(")")
+	return true
 }
 
 func unwrapParens(expr ast.Expr) ast.Expr {
@@ -1184,6 +1638,30 @@ func writeSliceElemPtrDerefLValue(out *strings.Builder, ident *ast.Ident) {
 func writeSliceElemPtrBorrow(out *strings.Builder, ident *ast.Ident, mutable bool) {
 	out.WriteString(RustIdentForUse(ident))
 	if info, ok := sliceElemPtrVarInfo(ident.Name); ok && info.WrapLevel == WrapOption {
+		out.WriteString(".as_ref().unwrap()")
+	}
+	if mutable {
+		out.WriteString(".borrow_mut()")
+	} else {
+		out.WriteString(".borrow()")
+	}
+}
+
+func writeArrayElemPtrDerefRead(out *strings.Builder, ident *ast.Ident) {
+	out.WriteString("{ let __v = (*")
+	writeArrayElemPtrBorrow(out, ident, false)
+	out.WriteString(".as_ref().unwrap()).clone(); __v }")
+}
+
+func writeArrayElemPtrDerefLValue(out *strings.Builder, ident *ast.Ident) {
+	out.WriteString("(*")
+	writeArrayElemPtrBorrow(out, ident, true)
+	out.WriteString(".as_mut().unwrap())")
+}
+
+func writeArrayElemPtrBorrow(out *strings.Builder, ident *ast.Ident, mutable bool) {
+	out.WriteString(RustIdentForUse(ident))
+	if info, ok := arrayElemPtrVarInfo(ident.Name); ok && info.WrapLevel == WrapOption {
 		out.WriteString(".as_ref().unwrap()")
 	}
 	if mutable {

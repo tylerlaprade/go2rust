@@ -3849,6 +3849,48 @@ func load(vals []eface, i int) any {
 	}
 }
 
+func TestUnsafePointerConversionFromEmbeddedFirstFieldUsesOwnerRegistry(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "unsafe"
+
+type node struct {
+	isEntry bool
+}
+
+type entry struct {
+	node
+	value int
+}
+
+func newEntry(value int) *entry {
+	return &entry{node: node{isEntry: true}, value: value}
+}
+
+func (n *node) entry() *entry {
+	if !n.isEntry {
+		panic("not entry")
+	}
+	return (*entry)(unsafe.Pointer(n))
+}
+
+func use() int {
+	e := newEntry(7)
+	return e.node.entry().value
+}
+`)
+
+	if strings.Contains(rust, `unimplemented!("unsafe.Pointer conversion to entry")`) {
+		t.Fatalf("embedded first-field unsafe conversion should not use the generic unsupported path:\n%s", rust)
+	}
+	if !strings.Contains(rust, "go_register_embedded_owner(__embedded_key, __owner.clone())") {
+		t.Fatalf("pointer composite literal should register its embedded field owner:\n%s", rust)
+	}
+	if !strings.Contains(rust, `go_lookup_embedded_owner::<entry>(*__ptr_guard.as_ref().unwrap(), "entry")`) {
+		t.Fatalf("embedded first-field unsafe conversion should use typed owner lookup:\n%s", rust)
+	}
+}
+
 func TestUnsafePointerDerefNilComparisonUsesPointerValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -4030,11 +4072,17 @@ func TestInternalABITypeOfMapTypeCallUsesTypedMapIntrinsic(t *testing.T) {
 			t.Fatalf("internal/abi.TypeOf(map).MapType should not route through erased Any runtime path %q:\n%s", forbidden, got)
 		}
 	}
+	for _, forbidden := range []string{"wrapping_mul(2654435761usize)", "unwrap_or(0); __key_value"} {
+		if strings.Contains(got, forbidden) {
+			t.Fatalf("internal/abi.TypeOf(map).MapType should not hash erased pointer values via %q:\n%s", forbidden, got)
+		}
+	}
 	for _, want := range []string{
 		"internal_abi::SwissMapType::default()",
 		"internal_abi::Kind(Arc::new(Mutex::new(Some(internal_abi::MAP as u8))))",
 		"let __hasher: Box<dyn FnMut(Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<usize>>>) -> usize + Send + Sync>",
-		"wrapping_mul(2654435761usize).wrapping_add(__seed_value)",
+		"as *const Mutex<Option<String>>",
+		"GoComparable::go_hash(__key_value, __seed_value)",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("missing %q in:\n%s", want, got)
@@ -5438,7 +5486,7 @@ func use[T any](b *box[T], value T) {
 	}
 }
 
-func TestTypeParamSliceElementEqualityUsesHandleComparison(t *testing.T) {
+func TestComparableTypeParamSliceElementEqualityUsesGoComparison(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
 func same[S ~[]E, E comparable](left, right S, i int) bool {
@@ -5446,11 +5494,11 @@ func same[S ~[]E, E comparable](left, right S, i int) bool {
 }
 `)
 
-	if strings.Contains(rust, "__tmp_x != __tmp_y") {
+	if strings.Contains(rust, "__tmp_x != __tmp_y") || strings.Contains(rust, "::ptr_eq(&__left, &__right)") {
 		t.Fatalf("type-parameter slice element equality should not compare raw generic values:\n%s", rust)
 	}
-	if !strings.Contains(rust, "::ptr_eq(&__left, &__right)") {
-		t.Fatalf("type-parameter slice element equality should use handle comparison:\n%s", rust)
+	if !strings.Contains(rust, "GoComparable::go_eq(__left_value, __right_value)") {
+		t.Fatalf("type-parameter slice element equality should use Go comparable value comparison:\n%s", rust)
 	}
 }
 

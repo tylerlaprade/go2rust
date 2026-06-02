@@ -1575,6 +1575,10 @@ func registerCallResultSyntaxInfo(lhs ast.Expr, call *ast.CallExpr) {
 		registerSliceElemPtrVar(ident.Name, info.elemRustType)
 		return
 	}
+	if info, ok := arrayElemPtrResultInfoForCall(call, 0); ok {
+		registerArrayElemPtrVar(ident.Name, info)
+		return
+	}
 	if arrayType, ok := call.Fun.(*ast.ArrayType); ok && arrayType.Len == nil {
 		localCollectionKinds[ident.Name] = "slice"
 		localRangeElemRustTypes[ident.Name] = goCollectionElemTypeToRust(arrayType.Elt)
@@ -1625,6 +1629,10 @@ func registerCallTupleResultSyntaxInfo(lhs []ast.Expr, call *ast.CallExpr) {
 			for i := 0; i < results.Len() && i < len(lhs); i++ {
 				ident, ok := lhs[i].(*ast.Ident)
 				if !ok || ident.Name == "_" {
+					continue
+				}
+				if info, ok := arrayElemPtrResultInfoForCall(call, i); ok {
+					registerArrayElemPtrVar(ident.Name, info)
 					continue
 				}
 				resultType := types.Unalias(results.At(i).Type())
@@ -4447,6 +4455,35 @@ func writePointerNamedReturnAssignment(out *strings.Builder, name *ast.Ident, re
 	return true
 }
 
+func writeDirectTypeParamNamedReturnAssignment(out *strings.Builder, name *ast.Ident, resultType ast.Expr, rhs ast.Expr) bool {
+	if name == nil || name.Name == "_" || resultType == nil || rhs == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	expected := typeInfo.GetType(resultType)
+	actual := typeInfo.GetType(rhs)
+	if expected == nil || actual == nil {
+		return false
+	}
+	if !isDirectTypeParamType(expected) || !isDirectTypeParamType(actual) || !types.AssignableTo(actual, expected) {
+		return false
+	}
+	out.WriteString(RustLocalIdent(name.Name))
+	out.WriteString(" = ")
+	if ident, ok := unwrapParens(rhs).(*ast.Ident); ok {
+		out.WriteString(RustIdentForUse(ident))
+		out.WriteString(".clone()")
+		return true
+	}
+	if !writeTypeParamHandleExpression(out, rhs) {
+		out.WriteString(`/* ERROR: type-parameter named return assignment requires handle expression */ unimplemented!("type-parameter named return assignment")`)
+	}
+	return true
+}
+
 func writeStdlibInterfaceNamedReturnAssignment(out *strings.Builder, name *ast.Ident, resultType ast.Expr, rhs ast.Expr) bool {
 	if name == nil || name.Name == "_" {
 		return false
@@ -6106,6 +6143,13 @@ func writePointerHandleSelectorTarget(out *strings.Builder, sel *ast.SelectorExp
 		if isSliceElemPtrVar(ident.Name) {
 			out.WriteString("(*")
 			writeSliceElemPtrBorrow(out, ident, true)
+			out.WriteString(".as_mut().unwrap()).")
+			out.WriteString(fieldInfo.FieldName)
+			return true
+		}
+		if isArrayElemPtrVar(ident.Name) {
+			out.WriteString("(*")
+			writeArrayElemPtrBorrow(out, ident, true)
 			out.WriteString(".as_mut().unwrap()).")
 			out.WriteString(fieldInfo.FieldName)
 			return true
@@ -8754,7 +8798,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					!writeLocalInterfaceNamedReturnAssignment(out, names[i], resultType, result) &&
 					!writeErrorChannelNamedReturnAssignment(out, names[i], resultType, result) &&
 					!writeFunctionNamedReturnAssignment(out, names[i], resultType, result) &&
-					!writePointerNamedReturnAssignment(out, names[i], resultType, result) {
+					!writePointerNamedReturnAssignment(out, names[i], resultType, result) &&
+					!writeDirectTypeParamNamedReturnAssignment(out, names[i], resultType, result) {
 					TranspileStatementSimple(out, &ast.AssignStmt{
 						Lhs: []ast.Expr{names[i]},
 						Tok: token.ASSIGN,
@@ -9890,6 +9935,12 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								if !writeSliceElemPtrOptionValue(out, s.Rhs[0]) {
 									out.WriteString("/* ERROR: slice element pointer assignment requires nil or &slice[index] */ unimplemented!(\"slice element pointer assignment\")")
 								}
+							} else if ident, ok := s.Lhs[0].(*ast.Ident); ok && isArrayElemPtrVar(ident.Name) {
+								TranspileExpressionContext(out, ident, LValue)
+								out.WriteString(" = ")
+								if !writeArrayElemPtrOptionValue(out, s.Rhs[0]) {
+									out.WriteString("/* ERROR: array element pointer assignment requires nil or &array[index] */ unimplemented!(\"array element pointer assignment\")")
+								}
 							} else if writeErrorChannelReceiveAssignment(out, s.Lhs[0], s.Rhs[0]) {
 							} else if star, ok := s.Lhs[0].(*ast.StarExpr); ok {
 								// Check if LHS is a dereference (*p = value)
@@ -9900,6 +9951,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString("{ ")
 									out.WriteString("let new_val = ")
 									if !writeSliceElemPtrDerefAssignmentValue(out, star, s.Rhs[0]) {
+										TranspileExpression(out, s.Rhs[0])
+									}
+									out.WriteString("; *")
+									out.WriteString(RustIdentForUse(ident))
+									out.WriteString(".as_ref().unwrap().borrow_mut() = Some(new_val); }")
+								} else if ident, ok := star.X.(*ast.Ident); ok && isArrayElemPtrVar(ident.Name) {
+									out.WriteString("{ ")
+									out.WriteString("let new_val = ")
+									var expected types.Type
+									if typeInfo := GetTypeInfo(); typeInfo != nil {
+										expected = typeInfo.GetType(star)
+									}
+									if !writePointerDerefAssignmentValue(out, s.Rhs[0], expected) {
 										TranspileExpression(out, s.Rhs[0])
 									}
 									out.WriteString("; *")
@@ -10321,6 +10385,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								// e.g. `alt := &slice[i]` -> Option<GoSliceElemPtr<T>>
 								isSliceElemPtrShortDecl := false
 								var sliceElemPtrRustType string
+								isArrayElemPtrShortDecl := false
+								var arrayElemPtrShortDeclInfo arrayElemPtrInfo
 								if s.Tok == token.DEFINE && len(s.Lhs) == 1 && len(s.Rhs) == 1 {
 									if lhsIdent, ok := s.Lhs[0].(*ast.Ident); ok && lhsIdent.Name != "_" {
 										if elemType, ok := sliceElemPtrCandidateForDecl(lhsIdent); ok {
@@ -10336,6 +10402,15 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 													isSliceElemPtrShortDecl = true
 													sliceElemPtrRustType = info.elemRustType
 													registerSliceElemPtrVar(lhsIdent.Name, sliceElemPtrRustType)
+												}
+											}
+										}
+										if !isSliceElemPtrShortDecl {
+											if info, ok := arrayElemPtrCandidateForDecl(lhsIdent); ok {
+												if _, rhsOk, sawArrayAddr := isArrayElemPtrAssignmentValue(s.Rhs[0]); rhsOk && sawArrayAddr {
+													isArrayElemPtrShortDecl = true
+													arrayElemPtrShortDeclInfo = info
+													registerArrayElemPtrVar(lhsIdent.Name, arrayElemPtrShortDeclInfo)
 												}
 											}
 										}
@@ -10371,6 +10446,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString(": Option<GoSliceElemPtr<")
 										out.WriteString(sliceElemPtrRustType)
 										out.WriteString(">>")
+									} else if isArrayElemPtrShortDecl && i == 0 {
+										out.WriteString(": ")
+										out.WriteString(arrayElemPtrOptionRustType(arrayElemPtrShortDeclInfo))
 									} else if s.Tok == token.DEFINE && len(s.Lhs) == 1 && len(s.Rhs) == 1 {
 										if ident, ok := lhs.(*ast.Ident); ok && ident.Name != "_" {
 											if elemRustType, ok := sliceElemPtrSliceCandidateForDecl(ident); ok {
@@ -10402,6 +10480,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												out.WriteString("Some(")
 												TranspileExpression(out, rhs)
 												out.WriteString(")")
+											} else if isArrayElemPtrShortDecl && i == 0 {
+												if !writeArrayElemPtrOptionValue(out, rhs) {
+													out.WriteString("/* ERROR: array element pointer initializer requires nil or &array[index] */ unimplemented!(\"array element pointer initializer\")")
+												}
 											} else {
 												// Taking address - don't wrap, the & operator will handle it
 												TranspileExpression(out, rhs)
@@ -10723,6 +10805,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							}
 							out.WriteString(RustLocalIdent(name.Name))
 							sliceElemPtrRustType, isSliceElemPtr := sliceElemPtrCandidateForDecl(name)
+							arrayElemPtrInfo, isArrayElemPtr := arrayElemPtrCandidateForDecl(name)
 							if isSliceElemPtr {
 								registerSliceElemPtrVar(name.Name, sliceElemPtrRustType)
 							} else if valueSpec.Type == nil && len(valueSpec.Values) > i {
@@ -10734,13 +10817,16 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									}
 								}
 							}
+							if isArrayElemPtr {
+								registerArrayElemPtrVar(name.Name, arrayElemPtrInfo)
+							}
 
 							// Add type annotation if type is specified (skip for sync types and local interfaces)
 							isLocalInterface := false
 							if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok && localInterfaces[typeIdent.Name] {
 								isLocalInterface = true
 							}
-							if valueSpec.Type != nil && name.Name != "_" && !isSyncType && !isSliceElemPtr && !isLocalInterface {
+							if valueSpec.Type != nil && name.Name != "_" && !isSyncType && !isSliceElemPtr && !isArrayElemPtr && !isLocalInterface {
 								if _, isFunctionType := functionTypeRustNameFromTypeExpr(valueSpec.Type); !isFunctionType {
 									if vt := GetVarTable(); vt != nil {
 										vt.Register(name.Name, &VarInfo{
@@ -10757,12 +10843,14 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString("Option<GoSliceElemPtr<")
 									out.WriteString(sliceElemPtrRustType)
 									out.WriteString(">>")
+								} else if isArrayElemPtr {
+									out.WriteString(arrayElemPtrOptionRustType(arrayElemPtrInfo))
 								} else if elemRustType, ok := sliceElemPtrSliceCandidateForDecl(name); ok {
 									out.WriteString(sliceElemPtrSliceRustType(elemRustType))
 								} else {
 									out.WriteString(GoTypeToRust(valueSpec.Type))
 								}
-							} else if valueSpec.Type == nil && !isSliceElemPtr && len(valueSpec.Values) > i {
+							} else if valueSpec.Type == nil && !isSliceElemPtr && !isArrayElemPtr && len(valueSpec.Values) > i {
 								if rustType, ok := localMakeSliceTypeAnnotation(valueSpec.Values[i]); ok {
 									out.WriteString(": ")
 									out.WriteString(rustType)
@@ -10775,6 +10863,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								if isSliceElemPtr {
 									if !writeSliceElemPtrOptionValue(out, valueSpec.Values[i]) {
 										out.WriteString("/* ERROR: slice element pointer initializer requires nil or &slice[index] */ unimplemented!(\"slice element pointer initializer\")")
+									}
+								} else if isArrayElemPtr {
+									if !writeArrayElemPtrOptionValue(out, valueSpec.Values[i]) {
+										out.WriteString("/* ERROR: array element pointer initializer requires nil or &array[index] */ unimplemented!(\"array element pointer initializer\")")
 									}
 								} else if ident, ok := valueSpec.Values[i].(*ast.Ident); ok && ident.Name == "nil" {
 									// Initializing with nil
@@ -10961,6 +11053,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							} else {
 								// Default initialization for uninitialized vars
 								if isSliceElemPtr {
+									out.WriteString(" = None")
+								} else if isArrayElemPtr {
 									out.WriteString(" = None")
 								} else if valueSpec.Type != nil && writeNilZeroValueInitializerFromTypeInfo(out, valueSpec.Type) {
 									// nil zero value supplied from go/types

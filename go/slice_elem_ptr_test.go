@@ -155,38 +155,252 @@ func alias(x, y nat) bool {
 	}
 }
 
-func TestArrayElemAddressDoesNotUseSliceElemPtr(t *testing.T) {
-	rust := transpileTypedRegression(t, `package main
+func TestArrayElemAddressUsesArrayElemPtr(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
-func update() {
+func update() int {
 	nums := [2]int{1, 2}
-	_ = &nums[0]
+	p := &nums[0]
+	*p = 7
+	return nums[0]
 }
 `)
 
 	if strings.Contains(rust, "GoSliceElemPtr::new") {
 		t.Fatalf("array element address should not use the slice element pointer helper:\n%s", rust)
 	}
-	if !strings.Contains(rust, "array element address requires pointer support") {
-		t.Fatalf("array element address should fail loudly until array element pointers are supported:\n%s", rust)
+	if strings.Contains(rust, "array element address requires pointer support") {
+		t.Fatalf("array element address should use array element pointer support:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut p: Option<GoArrayElemPtr<i32, 2>> = Some(GoArrayElemPtr::new(nums.clone(), (0) as usize))") {
+		t.Fatalf("array element pointer short declaration should preserve array identity and index:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*p.as_ref().unwrap().borrow_mut() = Some(new_val)") {
+		t.Fatalf("array element pointer dereference assignment should write back through the array helper:\n%s", rust)
 	}
 }
 
-func TestArrayElemAddressShortDeclDoesNotUseSliceElemPtr(t *testing.T) {
+func TestArrayElemAddressShortDeclUsesArrayElemPtr(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
 func update() {
 	var recent [2][4]uint64
 	cache := &recent[0]
 	_ = cache
+	_ = *cache
 }
 `)
 
-	if strings.Contains(rust, "GoSliceElemPtr") {
+	if strings.Contains(rust, "GoSliceElemPtr::new") {
 		t.Fatalf("array element address short declaration should not use slice element pointer helpers:\n%s", rust)
 	}
-	if !strings.Contains(rust, "array element address requires pointer support") {
-		t.Fatalf("array element address short declaration should fail loudly until array element pointers are supported:\n%s", rust)
+	if strings.Contains(rust, "cache.borrow()") {
+		t.Fatalf("array element pointer variable should not use normal wrapped-value borrows:\n%s", rust)
+	}
+	if strings.Contains(rust, "array element address requires pointer support") {
+		t.Fatalf("array element address short declaration should use array element pointer support:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut cache: Option<GoArrayElemPtr<[u64; 4], 2>> = Some(GoArrayElemPtr::new(recent.clone(), (0) as usize))") {
+		t.Fatalf("array element address short declaration should preserve array length and element type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "cache.as_ref().unwrap().borrow()") {
+		t.Fatalf("array element pointer dereference read should borrow through the array helper:\n%s", rust)
+	}
+}
+
+func TestDeclaredArrayElemPointerVarUsesArrayElemPtr(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type child struct {
+	value int
+}
+
+func (c *child) Load() int {
+	return c.value
+}
+
+func (c *child) Store(next child) {
+	c.value = next.value
+}
+
+type indirect struct {
+	children [16]child
+}
+
+func find(i *indirect, hash uint, shift uint) int {
+	var slot *child
+	for shift != 0 {
+		slot = &i.children[(hash>>shift)&15]
+		return slot.Load()
+	}
+	return 0
+}
+`)
+
+	if !strings.Contains(rust, "let mut slot: Option<GoArrayElemPtr<child, 16>> = None") {
+		t.Fatalf("declared array element pointer variable should use the array element pointer helper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "slot = Some(GoArrayElemPtr::new(") {
+		t.Fatalf("array element pointer assignment should preserve array identity and index:\n%s", rust)
+	}
+	if !strings.Contains(rust, "slot.as_ref().unwrap().borrow().as_ref().unwrap()).load(") {
+		t.Fatalf("array element pointer method call should borrow through the array helper:\n%s", rust)
+	}
+}
+
+func TestArrayElemPointerMutatingMethodCallUsesMutableBorrow(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+func storeInt(dst *int, value int) {
+	*dst = value
+}
+
+type child struct {
+	value int
+}
+
+func (c *child) Store(next child) {
+	storeInt(&c.value, next.value)
+}
+
+type indirect struct {
+	children [16]child
+}
+
+func update(i *indirect, hash uint, shift uint, next child) {
+	var slot *child
+	for shift != 0 {
+		slot = &i.children[(hash>>shift)&15]
+		slot.Store(next)
+		return
+	}
+}
+`)
+
+	if strings.Contains(rust, "slot.as_ref().unwrap().borrow().as_ref().unwrap()).store(") {
+		t.Fatalf("mutating array element pointer method call should not borrow a cloned element immutably:\n%s", rust)
+	}
+	if !strings.Contains(rust, "slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).store(") {
+		t.Fatalf("mutating array element pointer method call should write back through a mutable array helper borrow:\n%s", rust)
+	}
+}
+
+func TestNamedReturnArrayElemPointerUsesArrayElemPtr(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type child struct {
+	value int
+}
+
+func (c *child) Load() int {
+	return c.value
+}
+
+func (c *child) Store(next child) {
+	c.value = next.value
+}
+
+type indirect struct {
+	children [16]child
+}
+
+type box[T any] struct {
+	root *indirect
+}
+
+func find(i *indirect, hash uint, shift uint) (slot *child, value int) {
+	for shift != 0 {
+		slot = &i.children[(hash>>shift)&15]
+		value = slot.Load()
+		return
+	}
+	return
+}
+
+func find4(i *indirect, hash uint, shift uint) (node *indirect, hashShift uint, slot *child, value int) {
+	for shift != 0 {
+		node = i
+		hashShift = shift
+		slot = &i.children[(hash>>shift)&15]
+		value = slot.Load()
+		return
+	}
+	return
+}
+
+func (b *box[T]) find4(hash uint, shift uint) (node *indirect, hashShift uint, slot *child, value int) {
+	for shift != 0 {
+		node = b.root
+		hashShift = shift
+		slot = &b.root.children[(hash>>shift)&15]
+		value = slot.Load()
+		return
+	}
+	return
+}
+
+func use(i *indirect, hash uint, shift uint) int {
+	slot, _ := find(i, hash, shift)
+	return slot.Load()
+}
+
+func pair() (child, bool) {
+	return child{}, true
+}
+
+func useAfterMixedTuple(i *indirect, hash uint, shift uint) (swapped bool) {
+	slot, _ := find(i, hash, shift)
+	e, swapped := pair()
+	if !swapped {
+		return false
+	}
+	slot.Store(e)
+	return true
+}
+
+func useAfterMixedTupleWithBlank(i *indirect, hash uint, shift uint) (swapped bool) {
+	go func() {}()
+	_, _, slot, _ := find4(i, hash, shift)
+	if i != nil {
+		defer slot.Load()
+	}
+	e, swapped := pair()
+	if !swapped {
+		return false
+	}
+	slot.Store(e)
+	return true
+}
+
+func (b *box[T]) useAfterGenericMethodTuple(hash uint, shift uint) (swapped bool) {
+	go func() {}()
+	_, _, slot, _ := b.find4(hash, shift)
+	e, swapped := pair()
+	if !swapped {
+		return false
+	}
+	slot.Store(e)
+	return true
+}
+`)
+
+	if !strings.Contains(rust, "-> (Option<GoArrayElemPtr<child, 16>>, i32)") {
+		t.Fatalf("named array element pointer result should use the array element pointer helper in the signature:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Option<GoArrayElemPtr<child, 16>>, i32)") {
+		t.Fatalf("third named array element pointer result should use the array element pointer helper in the signature:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut slot: Option<GoArrayElemPtr<child, 16>> = None") {
+		t.Fatalf("named array element pointer result should initialize to a nil array element pointer:\n%s", rust)
+	}
+	if !strings.Contains(rust, "slot = Some(GoArrayElemPtr::new(") {
+		t.Fatalf("named array element pointer assignment should preserve array identity and index:\n%s", rust)
+	}
+	if !strings.Contains(rust, "slot.as_ref().unwrap().borrow().as_ref().unwrap()).load(") {
+		t.Fatalf("named array element pointer method call should borrow through the array helper:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __recv = slot.clone(); let __recv_ptr") {
+		t.Fatalf("array element pointer call result should not use normal pointer receiver lowering:\n%s", rust)
 	}
 }
 

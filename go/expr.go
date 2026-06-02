@@ -5294,6 +5294,23 @@ func writeTypeParamHandleEquality(out *strings.Builder, expr *ast.BinaryExpr) bo
 		return false
 	}
 	trackWrapperImports()
+	if goTypeParamHasComparableConstraint(leftParam) {
+		NeedGoComparable()
+		out.WriteString("{ let __left = ")
+		out.WriteString(left.String())
+		out.WriteString("; let __right = ")
+		out.WriteString(right.String())
+		out.WriteString("; let __left_guard = __left")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; let __right_guard = __right")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (None, None) => true, (Some(__left_value), Some(__right_value)) => GoComparable::go_eq(__left_value, __right_value), _ => false }; ")
+		if expr.Op == token.NEQ {
+			out.WriteString("!")
+		}
+		out.WriteString("__eq }")
+		return true
+	}
 	out.WriteString("{ let __left = ")
 	out.WriteString(left.String())
 	out.WriteString("; let __right = ")
@@ -6596,10 +6613,11 @@ func writeInternalABITypeOfMapTypeCall(out *strings.Builder, call *ast.CallExpr)
 		out.WriteString(`unimplemented!("type info required to lower internal/abi.TypeOf(map).MapType")`)
 		return true
 	}
-	if _, ok := coreUnderlyingType(argType).(*types.Map); !ok {
+	mapType, ok := coreUnderlyingType(argType).(*types.Map)
+	if !ok {
 		return false
 	}
-	writeInternalABIMapTypeValue(out)
+	writeInternalABIMapTypeValue(out, mapType)
 	return true
 }
 
@@ -6638,14 +6656,19 @@ func isInternalABITypeOfCall(call *ast.CallExpr) bool {
 	return ok && pkgName.Imported() != nil && pkgName.Imported().Path() == "internal/abi"
 }
 
-func writeInternalABIMapTypeValue(out *strings.Builder) {
+func writeInternalABIMapTypeValue(out *strings.Builder, mapType *types.Map) {
 	qualifier := internalABICrateQualifier()
 	outer := GetOuterWrapperType()
 	inner := GetInnerWrapperType()
+	keyRustType := "()"
+	if mapType != nil && mapType.Key() != nil {
+		keyRustType = goTypesTypeToRust(mapType.Key())
+	}
 	traitSuffix := ""
 	if NeedsConcurrentWrapper() {
 		traitSuffix = " + Send + Sync"
 	}
+	NeedGoComparable()
 
 	WriteWrapperPrefix(out)
 	out.WriteString("{ let mut __type = ")
@@ -6679,9 +6702,15 @@ func writeInternalABIMapTypeValue(out *strings.Builder) {
 	out.WriteString(traitSuffix)
 	out.WriteString("> = Box::new(|__key, __seed| { let __key_value = __key")
 	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().copied().unwrap_or(0); let __seed_value = __seed")
+	out.WriteString(".as_ref().copied().expect(\"internal/abi map hasher requires a key pointer\"); let __seed_value = __seed")
 	WriteBorrowMethod(out, false)
-	out.WriteString(".as_ref().copied().unwrap_or(0); __key_value.wrapping_mul(2654435761usize).wrapping_add(__seed_value) }); *__map_type.hasher")
+	out.WriteString(".as_ref().copied().unwrap_or(0); let __key_ref = unsafe { &*(__key_value as *const ")
+	out.WriteString(inner)
+	out.WriteString("<Option<")
+	out.WriteString(keyRustType)
+	out.WriteString(">>) }; let __key_guard = __key_ref")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; match __key_guard.as_ref() { Some(__key_value) => GoComparable::go_hash(__key_value, __seed_value), None => __seed_value } }); *__map_type.hasher")
 	WriteBorrowMethod(out, true)
 	out.WriteString(" = Some(__hasher); __map_type }")
 	WriteWrapperSuffix(out)
@@ -8709,6 +8738,40 @@ func expressionNeedsGoValueClone(expr ast.Expr) bool {
 	return ok
 }
 
+func writeEmbeddedOwnerPointerCompositeLiteral(out *strings.Builder, lit *ast.CompositeLit) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || lit == nil {
+		return false
+	}
+	typ := typeInfo.GetType(lit)
+	if typ == nil {
+		return false
+	}
+	structUnder, ok := coreUnderlyingType(typ).(*types.Struct)
+	if !ok || structUnder.NumFields() == 0 || !structUnder.Field(0).Anonymous() {
+		return false
+	}
+	structTypeName := typesStructLiteralName(typ, structUnder)
+	if structTypeName == "" {
+		return false
+	}
+	embeddedFieldName := ToSnakeCase(structUnder.Field(0).Name())
+	NeedEmbeddedOwnerRegistry()
+	trackWrapperImports()
+	out.WriteString("{ let __owner = ")
+	WriteWrapperPrefix(out)
+	writeTypesStructCompositeLiteral(out, structTypeName, typ, structUnder, lit.Elts)
+	WriteWrapperSuffix(out)
+	out.WriteString("; let __embedded_key = { let __owner_guard = __owner")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __embedded = __owner_guard.as_ref().unwrap().")
+	out.WriteString(embeddedFieldName)
+	out.WriteString(".clone(); let __embedded_guard = __embedded")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner }")
+	return true
+}
+
 func writeIdentExpression(out *strings.Builder, e *ast.Ident, ctx ExprContext, varName string) {
 	if isCurrentReceiverIdent(e) {
 		// Named type receivers (e.g. `(cmap CommentMap)` where CommentMap is
@@ -8758,6 +8821,11 @@ func writeIdentExpression(out *strings.Builder, e *ast.Ident, ctx ExprContext, v
 	} else if e.Name[0] >= 'A' && e.Name[0] <= 'Z' && e.Name != "String" && lookupVarInfo(e.Name) == nil && !isLocalVarIdent(e) {
 		// Likely a constant - convert to UPPER_SNAKE_CASE
 		out.WriteString(rustConstName(e.Name))
+	} else if isSliceElemPtrVar(e.Name) || isArrayElemPtrVar(e.Name) {
+		out.WriteString(varName)
+		if ctx == RValue {
+			out.WriteString(".clone()")
+		}
 	} else if varType, isRangeVar := rangeLoopVars[e.Name]; isRangeVar {
 		// Check if this is a wrapped type (contains Arc)
 		if isWrappedRangeVarType(varType) {
@@ -9643,6 +9711,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					return
 				}
 				if typeInfo.IsArray(indexExpr.X) || typeInfo.IsPointerToArray(indexExpr.X) {
+					if writeArrayElemPtrNewExpression(out, indexExpr) {
+						return
+					}
 					out.WriteString("/* ERROR: Array element address requires array element pointer support */ unimplemented!(\"array element address requires pointer support\")")
 					return
 				}
@@ -9650,10 +9721,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 			// Check if we're taking address of a struct literal
 			if compositeLit, isCompositeLit := e.X.(*ast.CompositeLit); isCompositeLit {
-				// For struct literals, wrap the whole thing
-				WriteWrapperPrefix(out)
-				TranspileExpressionContext(out, compositeLit, AddressOf)
-				WriteWrapperSuffix(out)
+				if !writeEmbeddedOwnerPointerCompositeLiteral(out, compositeLit) {
+					// For struct literals, wrap the whole thing
+					WriteWrapperPrefix(out)
+					TranspileExpressionContext(out, compositeLit, AddressOf)
+					WriteWrapperSuffix(out)
+				}
 			} else if writePointerSlotAddress(out, e.X) {
 				// Addressing a pointer variable or field produces a slot that stores the pointer handle.
 			} else if writeBareIdentAddress(out, e.X) {
@@ -9669,6 +9742,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					writeSliceElemPtrDerefRead(out, ident)
 				} else {
 					writeSliceElemPtrDerefLValue(out, ident)
+				}
+				break
+			}
+			if ident, ok := e.X.(*ast.Ident); ok && isArrayElemPtrVar(ident.Name) {
+				if ctx == RValue {
+					writeArrayElemPtrDerefRead(out, ident)
+				} else {
+					writeArrayElemPtrDerefLValue(out, ident)
 				}
 				break
 			}
@@ -9741,6 +9822,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				writeSliceElemPtrDerefRead(out, ident)
 			} else {
 				writeSliceElemPtrDerefLValue(out, ident)
+			}
+			break
+		}
+		if ident, ok := e.X.(*ast.Ident); ok && isArrayElemPtrVar(ident.Name) {
+			if ctx == RValue {
+				writeArrayElemPtrDerefRead(out, ident)
+			} else {
+				writeArrayElemPtrDerefLValue(out, ident)
 			}
 			break
 		}
@@ -9832,6 +9921,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString(".is_some()")
 					return
 				}
+				if leftIdent, ok := e.X.(*ast.Ident); ok && isArrayElemPtrVar(leftIdent.Name) {
+					out.WriteString(RustIdentForUse(leftIdent))
+					out.WriteString(".is_some()")
+					return
+				}
 				out.WriteString("(*")
 				TranspileExpressionContext(out, e.X, LValue)
 				WriteBorrowMethod(out, false)
@@ -9839,6 +9933,11 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				return
 			} else if e.Op.String() == "==" {
 				if leftIdent, ok := e.X.(*ast.Ident); ok && isSliceElemPtrVar(leftIdent.Name) {
+					out.WriteString(RustIdentForUse(leftIdent))
+					out.WriteString(".is_none()")
+					return
+				}
+				if leftIdent, ok := e.X.(*ast.Ident); ok && isArrayElemPtrVar(leftIdent.Name) {
 					out.WriteString(RustIdentForUse(leftIdent))
 					out.WriteString(".is_none()")
 					return
@@ -13107,6 +13206,9 @@ func writePointerTypeConversion(out *strings.Builder, target ast.Expr, source as
 }
 
 func writePointerTypeConversionFromUnsafePointer(out *strings.Builder, target ast.Expr, source ast.Expr) {
+	if writeEmbeddedOwnerPointerConversion(out, target, source) {
+		return
+	}
 	targetType := pointerConversionTargetTypeToRust(target)
 	trackWrapperImports()
 	if NeedsConcurrentWrapper() {
@@ -13128,6 +13230,82 @@ func writePointerTypeConversionFromUnsafePointer(out *strings.Builder, target as
 	out.WriteString(">(")
 	writeUnsafePointerConversionUnsupported(out, targetType)
 	out.WriteString(") } }))")
+}
+
+func writeEmbeddedOwnerPointerConversion(out *strings.Builder, target ast.Expr, source ast.Expr) bool {
+	targetType, sourceArg, ok := embeddedOwnerConversionTypes(target, source)
+	if !ok {
+		return false
+	}
+	targetRust := pointerConversionTargetTypeToRust(target)
+	NeedEmbeddedOwnerRegistry()
+	trackWrapperImports()
+	out.WriteString("{ let __ptr = ")
+	writeUnsafePointerConversionSource(out, source)
+	if NeedsConcurrentWrapper() {
+		out.WriteString("; let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { ")
+		writeTypedWrappedNone(out, targetRust)
+		out.WriteString(" } else { go_lookup_embedded_owner::<")
+		out.WriteString(targetRust)
+		out.WriteString(">(*__ptr_guard.as_ref().unwrap(), \"")
+		out.WriteString(targetRust)
+		out.WriteString("\") } }")
+		return true
+	}
+	out.WriteString("; let __ptr_guard = __ptr.borrow(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { ")
+	writeTypedWrappedNone(out, targetRust)
+	out.WriteString(" } else { go_lookup_embedded_owner::<")
+	out.WriteString(targetRust)
+	out.WriteString(">(*__ptr_guard.as_ref().unwrap(), \"")
+	out.WriteString(targetRust)
+	out.WriteString("\") } }")
+	_ = targetType
+	_ = sourceArg
+	return true
+}
+
+func embeddedOwnerConversionTypes(target ast.Expr, source ast.Expr) (types.Type, ast.Expr, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || source == nil {
+		return nil, nil, false
+	}
+	targetType, ok := typeInfoTypeForTypeExpr(target)
+	if !ok || targetType == nil {
+		return nil, nil, false
+	}
+	targetStruct, ok := coreUnderlyingType(targetType).(*types.Struct)
+	if !ok || targetStruct.NumFields() == 0 || !targetStruct.Field(0).Anonymous() {
+		return nil, nil, false
+	}
+	sourceArg, ok := unsafePointerCallArg(source)
+	if !ok {
+		return nil, nil, false
+	}
+	sourceType := typeInfo.GetType(sourceArg)
+	ptr, ok := types.Unalias(sourceType).Underlying().(*types.Pointer)
+	if !ok {
+		return nil, nil, false
+	}
+	if !types.Identical(types.Unalias(targetStruct.Field(0).Type()), types.Unalias(ptr.Elem())) {
+		return nil, nil, false
+	}
+	return targetType, sourceArg, true
+}
+
+func unsafePointerCallArg(expr ast.Expr) (ast.Expr, bool) {
+	call, ok := unwrapParens(expr).(*ast.CallExpr)
+	if !ok || len(call.Args) != 1 {
+		return nil, false
+	}
+	sel, ok := unwrapParens(call.Fun).(*ast.SelectorExpr)
+	if !ok || sel.Sel == nil || sel.Sel.Name != "Pointer" {
+		return nil, false
+	}
+	pkg, ok := unwrapParens(sel.X).(*ast.Ident)
+	if !ok || pkg.Name != "unsafe" {
+		return nil, false
+	}
+	return call.Args[0], true
 }
 
 func writeUnsafePointerConversionSource(out *strings.Builder, source ast.Expr) {
@@ -15844,6 +16022,15 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				needsMut := methodCallNeedsMutableReceiver(sel)
 				out.WriteString("(*")
 				writeSliceElemPtrBorrow(out, ident, needsMut)
+				if needsMut {
+					out.WriteString(".as_mut().unwrap()).")
+				} else {
+					out.WriteString(".as_ref().unwrap()).")
+				}
+			} else if isArrayElemPtrVar(ident.Name) {
+				needsMut := methodCallNeedsMutableReceiver(sel)
+				out.WriteString("(*")
+				writeArrayElemPtrBorrow(out, ident, needsMut)
 				if needsMut {
 					out.WriteString(".as_mut().unwrap()).")
 				} else {

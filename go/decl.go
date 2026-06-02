@@ -1912,7 +1912,8 @@ func rustTypeParam(name *ast.Ident, cloneBounds []string) string {
 	}
 	if goTypeParamHasComparableConstraint(obj.Type()) {
 		TrackImport("Any")
-		bounds := []string{"Any"}
+		NeedGoComparable()
+		bounds := []string{"Any", "GoComparable"}
 		bounds = appendTypeParamCloneBounds(bounds, cloneBounds, true)
 		if NeedsConcurrentWrapper() {
 			bounds = append(bounds, "Send", "Sync")
@@ -3309,6 +3310,7 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	defer restoreSliceElemPtrCandidates()
 	restoreSliceElemPtrReturn := pushCurrentSliceElemPtrReturn(fn)
 	defer restoreSliceElemPtrReturn()
+	registerArrayElemPtrNamedReturnVars(fn)
 
 	// Check if this function uses defer statements
 	hasDefer := checkHasDefer(fn.Body.List)
@@ -3346,6 +3348,11 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 					}
 					out.WriteString(RustLocalIdent(name.Name))
 					out.WriteString(": ")
+					if info, ok := arrayElemPtrCandidateForDecl(name); ok {
+						out.WriteString(arrayElemPtrOptionRustType(info))
+						out.WriteString(" = None;\n")
+						continue
+					}
 					out.WriteString(GoTypeToRust(result.Type))
 					// Initialize with wrapped default values
 					out.WriteString(" = ")
@@ -6527,6 +6534,12 @@ func writeNamedReturnDeclarations(out *strings.Builder, fnType *ast.FuncType) {
 			}
 			out.WriteString(RustLocalIdent(name.Name))
 			out.WriteString(": ")
+			if info, ok := arrayElemPtrCandidateForDecl(name); ok {
+				out.WriteString(arrayElemPtrOptionRustType(info))
+				out.WriteString(" = None;\n")
+				wrote = true
+				continue
+			}
 			out.WriteString(GoTypeToRust(result.Type))
 			out.WriteString(" = ")
 
@@ -7180,6 +7193,12 @@ func methodMutatesReceiverWithMethodMap(fn *ast.FuncDecl, receiverName string, r
 				return false
 			}
 		case *ast.CallExpr:
+			for _, arg := range stmt.Args {
+				if callArgumentMayMutateReceiver(arg, receiverName) {
+					mutates = true
+					return false
+				}
+			}
 			sel, ok := stmt.Fun.(*ast.SelectorExpr)
 			if !ok {
 				return true
@@ -7210,6 +7229,11 @@ func methodMutatesReceiverWithMethodMap(fn *ast.FuncDecl, receiverName string, r
 		return true
 	})
 	return mutates
+}
+
+func callArgumentMayMutateReceiver(arg ast.Expr, receiverName string) bool {
+	unary, ok := unwrapParens(arg).(*ast.UnaryExpr)
+	return ok && unary.Op == token.AND && exprReferencesReceiver(unary.X, receiverName)
 }
 
 // callIsFprintfWritingToReceiver reports whether call is `fmt.Fprintf(<recv>,
@@ -7440,6 +7464,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 				}
 			}
 		}
+		registerArrayElemPtrNamedReturnVars(fn)
 	}
 
 	if writeRuntimeLinkedFunctionBody(out, fn, "        ") {

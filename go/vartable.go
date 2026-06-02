@@ -28,6 +28,7 @@ type PointerKind int
 const (
 	PointerDefault PointerKind = iota
 	PointerSliceElem
+	PointerArrayElem
 )
 
 // VarInfo holds metadata about a variable tracked by VarTable.
@@ -129,5 +130,17 @@ func sliceElemPtrVarInfo(name string) (*VarInfo, bool) {
 
 func isSliceElemPtrVar(name string) bool {
 	_, ok := sliceElemPtrVarInfo(name)
+	return ok
+}
+
+func arrayElemPtrVarInfo(name string) (*VarInfo, bool) {
+	if info := lookupVarInfo(name); info != nil && info.PointerKind == PointerArrayElem {
+		return info, true
+	}
+	return nil, false
+}
+
+func isArrayElemPtrVar(name string) bool {
+	_, ok := arrayElemPtrVarInfo(name)
 	return ok
 }

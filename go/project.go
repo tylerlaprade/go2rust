@@ -561,6 +561,9 @@ func prefixSiblingModuleImports(rustCode, selfModule string, moduleNames []strin
 	if imports.Len() == 0 {
 		return rustCode
 	}
+	if strings.TrimSpace(rustCode) == "" {
+		return imports.String()
+	}
 	imports.WriteString("\n")
 	imports.WriteString(rustCode)
 	return imports.String()
@@ -575,6 +578,9 @@ func prefixPackageHelperImports(rustCode string, helpers *HelperTracker, omitSha
 	}
 	if len(names) == 0 {
 		return rustCode
+	}
+	if strings.TrimSpace(rustCode) == "" {
+		return "use crate::{" + strings.Join(names, ", ") + "};\n"
 	}
 	return "use crate::{" + strings.Join(names, ", ") + "};\n\n" + rustCode
 }

@@ -56,6 +56,24 @@ import . "internal/types/errors"
 	}
 }
 
+func TestModuleImportPrefixesDoNotAddBlankLineForEmptyBody(t *testing.T) {
+	sibling := prefixSiblingModuleImports("", "compiletype", []string{"compiletype", "escape"})
+	if sibling != "use crate::escape::*;\n" {
+		t.Fatalf("empty module sibling imports should not add a trailing blank line: %q", sibling)
+	}
+
+	helpers := &HelperTracker{needsFormatSlice: true}
+	helperImports := prefixPackageHelperImports("", helpers, false)
+	if helperImports != "use crate::{format_slice, format_slice_values, format_slice_wrapped};\n" {
+		t.Fatalf("empty module helper imports should not add a trailing blank line: %q", helperImports)
+	}
+
+	shared := prefixSharedStdlibStubImport("")
+	if shared != "use go2rust_stdlib_stubs::*;\n" {
+		t.Fatalf("empty module shared stub import should not add a trailing blank line: %q", shared)
+	}
+}
+
 func TestPackageLoaderMainASTByPathUsesWorkDirForRelativeCompiledFiles(t *testing.T) {
 	tempDir := t.TempDir()
 	workDir := filepath.Join(tempDir, "go")
