@@ -236,7 +236,7 @@ impl poolDequeue {
                 // Queue is full.
         let mut slot: Option<GoSliceElemPtr<eface>> = Some(GoSliceElemPtr::new(self.vals.clone(), ({ let __tmp_x = head; let __tmp_y = (*Arc::new(StdMutex::new(Some(({ let __tmp_x = ((*self.vals.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y }) as usize));
                 // Check if the head slot has been released by popTail.
-        let mut typ = { let __target = (*slot.as_ref().unwrap().borrow().as_ref().unwrap()).typ.clone(); let __guard = __target.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) };
+        let mut typ = { let __target = (*slot.as_ref().unwrap().borrow().as_ref().unwrap()).typ.clone(); let __guard = __target.lock().unwrap(); Arc::new(StdMutex::new((*__guard).clone())) };
         if (*typ.lock().unwrap()).is_some() {
                 // Another goroutine is still cleaning up the tail, so
                 // the queue is actually still full.

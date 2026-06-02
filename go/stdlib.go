@@ -1891,7 +1891,9 @@ func transpileAtomicLoadPointer(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString("{ let __target = ")
 	writeAtomicTarget(out, call.Args[0])
 	if NeedsConcurrentWrapper() {
-		out.WriteString("; let __guard = __target.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }")
+		out.WriteString("; let __guard = __target.lock().unwrap(); Arc::new(")
+		out.WriteString(GetInnerWrapperType())
+		out.WriteString("::new((*__guard).clone())) }")
 	} else {
 		out.WriteString("; let __guard = __target.borrow(); Rc::new(RefCell::new((*__guard).clone())) }")
 	}

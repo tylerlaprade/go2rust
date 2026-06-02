@@ -86,6 +86,40 @@ func forceConcurrent() {
 	}
 }
 
+func TestAtomicLoadPointerUsesAliasedWrapperMutexWhenLocalTypeUsesMutex(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import (
+	"sync/atomic"
+	"unsafe"
+)
+
+type Mutex struct{}
+
+type slot struct {
+	typ unsafe.Pointer
+}
+
+func load(s *slot) unsafe.Pointer {
+	return atomic.LoadPointer(&s.typ)
+}
+
+func forceConcurrent() {
+	go func() {}()
+}
+`)
+
+	if !strings.Contains(rust, "use std::sync::{Arc, Mutex as StdMutex};") {
+		t.Fatalf("wrapper mutex import should be aliased around local Mutex type:\n%s", rust)
+	}
+	if strings.Contains(rust, "Arc::new(Mutex::new((*__guard).clone()))") {
+		t.Fatalf("atomic.LoadPointer should use the aliased StdMutex wrapper constructor:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Arc::new(StdMutex::new((*__guard).clone()))") {
+		t.Fatalf("atomic.LoadPointer should construct the wrapper through StdMutex:\n%s", rust)
+	}
+}
+
 func TestWrapperMutexImportAliasesWhenSiblingModuleExportsMutex(t *testing.T) {
 	fset := token.NewFileSet()
 	mutexFile, err := parser.ParseFile(fset, "mutex.go", `package internal_sync
