@@ -56,6 +56,26 @@ func TestTestScriptStaleSweepRespectsOwnerPidMarkers(t *testing.T) {
 	}
 }
 
+func TestTestScriptStaleSweepScansCanonicalTempRoots(t *testing.T) {
+	data, err := os.ReadFile("../test.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(test.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`add_stale_tmp_root "${TMPDIR:-}"`,
+		`add_stale_tmp_root "/tmp"`,
+		`add_stale_tmp_root "/private/tmp"`,
+		`case "$root" in`,
+		`*/) root="${root%/}" ;;`,
+		`case ":$seen_roots:" in`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("test.sh stale-temp sweep should scan canonical temp roots; missing %q", want)
+		}
+	}
+}
+
 func TestScriptsUseNamedGo2RustTempPaths(t *testing.T) {
 	testSh, err := os.ReadFile("../test.sh")
 	if err != nil {

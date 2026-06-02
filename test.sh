@@ -61,15 +61,38 @@ maybe_remove_stale_temp_dir() {
 cleanup_stale_test_artifacts() {
     [ "${GO2RUST_TEST_CLEAN_STALE:-1}" = "0" ] && return
 
-    local tmp_root="${TMPDIR:-/tmp}"
+    local tmp_roots=()
+    add_stale_tmp_root() {
+        local root="$1"
+        [ -n "$root" ] || return
+        case "$root" in
+            */) root="${root%/}" ;;
+        esac
+        [ -n "$root" ] || return
+        tmp_roots+=("$root")
+    }
 
-    find "$tmp_root" -maxdepth 1 \( -name 'go2rust-test.*' -o -name 'go2rust-bats-shards.*' -o -name 'go2rust-cargo-target.*' -o -name 'go2rust-test-binary.*' -o -name 'go2rust-go-cache.*' \) -type d -prune -print 2>/dev/null | while IFS= read -r dir; do
-        maybe_remove_stale_temp_dir "$dir"
+    add_stale_tmp_root "${TMPDIR:-}"
+    add_stale_tmp_root "/tmp"
+    add_stale_tmp_root "/private/tmp"
+
+    local seen_roots=""
+    local tmp_root
+    for tmp_root in "${tmp_roots[@]}"; do
+        [ -d "$tmp_root" ] || continue
+        case ":$seen_roots:" in
+            *":$tmp_root:"*) continue ;;
+        esac
+        seen_roots="$seen_roots:$tmp_root"
+
+        find "$tmp_root" -maxdepth 1 \( -name 'go2rust-test.*' -o -name 'go2rust-bats-shards.*' -o -name 'go2rust-cargo-target.*' -o -name 'go2rust-test-binary.*' -o -name 'go2rust-go-cache.*' \) -type d -prune -print 2>/dev/null | while IFS= read -r dir; do
+            maybe_remove_stale_temp_dir "$dir"
+        done
+        find "$tmp_root" -maxdepth 1 \( -name 'go2rust-rust-work.*' \) -type d -prune -print 2>/dev/null | while IFS= read -r dir; do
+            maybe_remove_stale_temp_dir "$dir"
+        done
+        find "$tmp_root" -maxdepth 1 \( -name 'go2rust-tests-list.*' -o -name 'go2rust-rust-diff.*' -o -name 'go2rust-stdout.*' -o -name 'go2rust-stderr.*' \) -type f -delete 2>/dev/null
     done
-    find "$tmp_root" -maxdepth 1 \( -name 'go2rust-rust-work.*' \) -type d -prune -print 2>/dev/null | while IFS= read -r dir; do
-        maybe_remove_stale_temp_dir "$dir"
-    done
-    find "$tmp_root" -maxdepth 1 \( -name 'go2rust-tests-list.*' -o -name 'go2rust-rust-diff.*' -o -name 'go2rust-stdout.*' -o -name 'go2rust-stderr.*' \) -type f -delete 2>/dev/null
 }
 
 # Generate test cases and update the GENERATED TESTS section in tests.bats
