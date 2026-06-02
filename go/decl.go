@@ -148,7 +148,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 					ptrSlice:           ptrSlice,
 					ptrToSlice:         ptrToSlice,
 					ptrToPtrSlice:      ptrToPtrSlice,
-					isPointer:          isPointer,
+					isPointer:          isPointer || syncAtomicPointerDisplayField(structName, field, name),
 					interfaceSlice:     interfaceSlice,
 					zeroLenArray:       zeroLenArray,
 				})
@@ -355,6 +355,65 @@ func structDisplayFieldIsPointer(expr ast.Expr) bool {
 	}
 	_, ok = types.Unalias(typ).Underlying().(*types.Pointer)
 	return ok
+}
+
+func typeSpecIsSyncAtomicPointer(typeSpec *ast.TypeSpec) bool {
+	if typeSpec == nil || typeSpec.Name == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	obj, ok := typeInfo.GetObject(typeSpec.Name).(*types.TypeName)
+	return ok && obj.Pkg() != nil && obj.Pkg().Path() == "sync/atomic" && obj.Name() == "Pointer"
+}
+
+func currentPackageIsSyncAtomic() bool {
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && typeInfo.pkg != nil && typeInfo.pkg.Path() == "sync/atomic"
+}
+
+func fieldTypeIsUnsafePointer(field *ast.Field) bool {
+	if field == nil || field.Type == nil {
+		return false
+	}
+	typ, ok := typeInfoTypeForTypeExpr(field.Type)
+	return ok && isUnsafePointerLikeType(typ)
+}
+
+func syncAtomicPointerStorageField(typeSpec *ast.TypeSpec, field *ast.Field, name *ast.Ident) bool {
+	return typeSpecIsSyncAtomicPointer(typeSpec) &&
+		field != nil &&
+		name != nil &&
+		name.Name == "v" &&
+		fieldTypeIsUnsafePointer(field)
+}
+
+func syncAtomicPointerDisplayField(structName string, field *ast.Field, name *ast.Ident) bool {
+	return currentPackageIsSyncAtomic() &&
+		structName == "Pointer" &&
+		field != nil &&
+		name != nil &&
+		name.Name == "v" &&
+		fieldTypeIsUnsafePointer(field)
+}
+
+func syncAtomicPointerStorageRustType(typeSpec *ast.TypeSpec) string {
+	trackWrapperImports()
+	typeParam := "T"
+	if typeSpec != nil && typeSpec.TypeParams != nil && len(typeSpec.TypeParams.List) > 0 {
+		for _, name := range typeSpec.TypeParams.List[0].Names {
+			if name != nil && name.Name != "" {
+				typeParam = RustTypeNameForUse(name.Name)
+				break
+			}
+		}
+	}
+	outerWrapper := GetOuterWrapperType()
+	innerWrapper := GetInnerWrapperType()
+	pointerHandle := outerWrapper + "<" + innerWrapper + "<Option<" + typeParam + ">>>"
+	return outerWrapper + "<" + innerWrapper + "<Option<" + pointerHandle + ">>>"
 }
 
 // arrayFieldNestedInnerIsPointer reports whether expr is a nested slice ([][]X)
@@ -997,7 +1056,7 @@ func writeStructDefaultValue(out *strings.Builder, fieldType ast.Expr) {
 	out.WriteString("Default::default()")
 }
 
-func generateStructDefault(out *strings.Builder, structName string, structType *ast.StructType, generics rustTypeGenerics) {
+func generateStructDefault(out *strings.Builder, typeSpec *ast.TypeSpec, structName string, structType *ast.StructType, generics rustTypeGenerics) {
 	if !structNeedsCustomDefault(structType) {
 		return
 	}
@@ -1015,7 +1074,11 @@ func generateStructDefault(out *strings.Builder, structName string, structType *
 				needComma = true
 				out.WriteString(rustStructFieldName(name, fieldIndex, nameIndex))
 				out.WriteString(": ")
-				writeStructDefaultValue(out, field.Type)
+				if syncAtomicPointerStorageField(typeSpec, field, name) {
+					WriteWrappedNone(out)
+				} else {
+					writeStructDefaultValue(out, field.Type)
+				}
 			}
 		} else {
 			if needComma {
@@ -3573,6 +3636,9 @@ func writeSyncAtomicRuntimeLinkedBody(out *strings.Builder, fn *ast.FuncDecl, in
 	if fn == nil || fn.Name == nil {
 		return false
 	}
+	if writeSyncAtomicPointerMethodBody(out, fn, indent) {
+		return true
+	}
 	switch fn.Name.Name {
 	case "LoadInt32", "LoadInt64", "LoadUint32", "LoadUint64", "LoadUintptr":
 		writeSyncAtomicLoadScalarBody(out, fn, indent)
@@ -3610,6 +3676,122 @@ func writeSyncAtomicRuntimeLinkedBody(out *strings.Builder, fn *ast.FuncDecl, in
 	default:
 		return false
 	}
+}
+
+func writeSyncAtomicPointerMethodBody(out *strings.Builder, fn *ast.FuncDecl, indent string) bool {
+	if !runtimeLinkedReceiverIsNamed(fn, "Pointer") {
+		return false
+	}
+	switch fn.Name.Name {
+	case "Load":
+		writeSyncAtomicPointerLoadMethodBody(out, indent)
+		return true
+	case "Store":
+		valName := RustLocalIdent(functionParamName(fn, 0, "val"))
+		writeSyncAtomicPointerStoredOption(out, valName, "__stored", indent)
+		out.WriteString(indent)
+		out.WriteString("*self.v")
+		WriteBorrowMethod(out, true)
+		out.WriteString(" = __stored;\n")
+		return true
+	case "Swap":
+		newName := RustLocalIdent(functionParamName(fn, 0, "new"))
+		writeSyncAtomicPointerStoredOption(out, newName, "__stored", indent)
+		out.WriteString(indent)
+		out.WriteString("let mut __guard = self.v")
+		WriteBorrowMethod(out, true)
+		out.WriteString(";\n")
+		out.WriteString(indent)
+		out.WriteString("let __old = __guard.as_ref().cloned().unwrap_or_else(|| ")
+		WriteWrappedNone(out)
+		out.WriteString(");\n")
+		out.WriteString(indent)
+		out.WriteString("*__guard = __stored;\n")
+		out.WriteString(indent)
+		out.WriteString("__old\n")
+		return true
+	case "CompareAndSwap":
+		oldName := RustLocalIdent(functionParamName(fn, 0, "old"))
+		newName := RustLocalIdent(functionParamName(fn, 1, "new"))
+		writeSyncAtomicPointerCompareAndSwapMethodBody(out, oldName, newName, indent)
+		return true
+	default:
+		return false
+	}
+}
+
+func writeSyncAtomicPointerLoadMethodBody(out *strings.Builder, indent string) {
+	out.WriteString(indent)
+	out.WriteString("let __guard = self.v")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("__guard.as_ref().cloned().unwrap_or_else(|| ")
+	WriteWrappedNone(out)
+	out.WriteString(")\n")
+}
+
+func writeSyncAtomicPointerStoredOption(out *strings.Builder, paramName string, localName string, indent string) {
+	out.WriteString(indent)
+	out.WriteString("let ")
+	out.WriteString(localName)
+	out.WriteString(" = if ")
+	out.WriteString(paramName)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".is_some() { Some(")
+	out.WriteString(paramName)
+	out.WriteString(".clone()) } else { None };\n")
+}
+
+func writeSyncAtomicPointerCompareAndSwapMethodBody(out *strings.Builder, oldName string, newName string, indent string) {
+	writeSyncAtomicPointerStoredOption(out, newName, "__new_value", indent)
+	out.WriteString(indent)
+	out.WriteString("let __old_is_nil = ")
+	out.WriteString(oldName)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".is_none();\n")
+	out.WriteString(indent)
+	out.WriteString("let mut __guard = self.v")
+	WriteBorrowMethod(out, true)
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("let __matches = match __guard.as_ref() {\n")
+	out.WriteString(indent)
+	out.WriteString("    Some(__current) => {\n")
+	out.WriteString(indent)
+	out.WriteString("        if __old_is_nil {\n")
+	out.WriteString(indent)
+	out.WriteString("            __current")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".is_none()\n")
+	out.WriteString(indent)
+	out.WriteString("        } else {\n")
+	out.WriteString(indent)
+	out.WriteString("            ")
+	out.WriteString(GetOuterWrapperType())
+	out.WriteString("::ptr_eq(__current, &")
+	out.WriteString(oldName)
+	out.WriteString(")\n")
+	out.WriteString(indent)
+	out.WriteString("        }\n")
+	out.WriteString(indent)
+	out.WriteString("    }\n")
+	out.WriteString(indent)
+	out.WriteString("    None => __old_is_nil,\n")
+	out.WriteString(indent)
+	out.WriteString("};\n")
+	out.WriteString(indent)
+	out.WriteString("if __matches {\n")
+	out.WriteString(indent)
+	out.WriteString("    *__guard = __new_value;\n")
+	out.WriteString(indent)
+	out.WriteString("    true\n")
+	out.WriteString(indent)
+	out.WriteString("} else {\n")
+	out.WriteString(indent)
+	out.WriteString("    false\n")
+	out.WriteString(indent)
+	out.WriteString("}\n")
 }
 
 func writeSyncAtomicLoadScalarBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
@@ -4395,7 +4577,11 @@ func emitStructTypeDeclBody(out *strings.Builder, typeSpec *ast.TypeSpec, t *ast
 				out.WriteString("    pub ")
 				out.WriteString(rustStructFieldName(name, fieldIndex, nameIndex))
 				out.WriteString(": ")
-				out.WriteString(GoTypeToRust(field.Type))
+				if syncAtomicPointerStorageField(typeSpec, field, name) {
+					out.WriteString(syncAtomicPointerStorageRustType(typeSpec))
+				} else {
+					out.WriteString(GoTypeToRust(field.Type))
+				}
 				out.WriteString(",\n")
 			}
 		} else {
@@ -4419,7 +4605,7 @@ func emitStructTypeDeclBody(out *strings.Builder, typeSpec *ast.TypeSpec, t *ast
 	}
 	out.WriteString("\n")
 
-	generateStructDefault(out, structName, t, generics)
+	generateStructDefault(out, typeSpec, structName, t, generics)
 	if structNeedsCustomDefault(t) {
 		out.WriteString("\n")
 	}

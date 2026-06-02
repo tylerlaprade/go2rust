@@ -3027,7 +3027,7 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 		body.WriteString("}\n")
 		generateStructValueClone(body, typeName, structType, rustTypeGenerics{})
 		body.WriteString("\n")
-		generateStructDefault(body, typeName, structType, rustTypeGenerics{})
+		generateStructDefault(body, nil, typeName, structType, rustTypeGenerics{})
 		body.WriteString("\n")
 		generateStructDisplay(body, typeName, structType, rustTypeGenerics{})
 		generateStructJsonDecode(body, typeName, structType, rustTypeGenerics{})

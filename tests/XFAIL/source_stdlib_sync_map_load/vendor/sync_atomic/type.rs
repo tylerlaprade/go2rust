@@ -48,7 +48,7 @@ impl GoJsonDecode for Bool {
 pub struct Pointer<T: Any + Send + Sync + 'static> {
     pub __blank_0_0: Arc<Mutex<Option<[Arc<Mutex<Option<T>>>; 0]>>>,
     pub __blank_1_0: Arc<Mutex<Option<noCopy>>>,
-    pub v: Arc<Mutex<Option<usize>>>,
+    pub v: Arc<Mutex<Option<Arc<Mutex<Option<T>>>>>>,
 }
 
 impl<T: Any + Send + Sync + 'static> Pointer<T> {
@@ -66,13 +66,13 @@ impl<T: Any + Send + Sync + 'static> Clone for Pointer<T> {
 
 impl<T: Any + Send + Sync + 'static> Default for Pointer<T> {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Arc::new(Mutex::new(None)))))), __blank_1_0: Arc::new(Mutex::new(Some(noCopy::default()))), v: Arc::new(Mutex::new(Some(0))) }
+        Self { __blank_0_0: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Arc::new(Mutex::new(None)))))), __blank_1_0: Arc::new(Mutex::new(Some(noCopy::default()))), v: Arc::new(Mutex::new(None)) }
     }
 }
 
 impl<T: Any + Send + Sync + 'static> std::fmt::Display for Pointer<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", "[]", (*self.__blank_1_0.lock().unwrap().as_ref().unwrap()), (*self.v.lock().unwrap().as_ref().unwrap()))
+        write!(f, "{{{} {} {}}}", "[]", (*self.__blank_1_0.lock().unwrap().as_ref().unwrap()), { let __guard = self.v.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
     }
 }
 
@@ -245,26 +245,50 @@ impl Bool {
 impl<T: Any + Send + Sync + 'static> Pointer<T> {
     /// Load atomically loads and returns the value stored in x.
     pub fn load(&self) -> Arc<Mutex<Option<T>>> {
-        Arc::new(Mutex::new({ let __ptr = load_pointer(self.v.clone()).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<T>(unimplemented!("unsafe.Pointer conversion to T")) } }))
+        let __guard = self.v.lock().unwrap();
+        __guard.as_ref().cloned().unwrap_or_else(|| Arc::new(Mutex::new(None)))
     }
 
     /// Store atomically stores val into x.
     pub fn store(&self, val: Arc<Mutex<Option<T>>>) {
-        store_pointer(self.v.clone(), Arc::new(Mutex::new(Some(Arc::as_ptr(&val) as usize))));
+        let __stored = if val.lock().unwrap().is_some() { Some(val.clone()) } else { None };
+        *self.v.lock().unwrap() = __stored;
     }
 
     /// Swap atomically stores new into x and returns the previous value.
     pub fn swap(&self, new: Arc<Mutex<Option<T>>>) -> Arc<Mutex<Option<T>>> {
     let mut old: Arc<Mutex<Option<T>>> = Arc::new(Mutex::new(None));
 
-        Arc::new(Mutex::new({ let __ptr = swap_pointer(self.v.clone(), Arc::new(Mutex::new(Some(Arc::as_ptr(&new) as usize)))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<T>(unimplemented!("unsafe.Pointer conversion to T")) } }))
+        let __stored = if new.lock().unwrap().is_some() { Some(new.clone()) } else { None };
+        let mut __guard = self.v.lock().unwrap();
+        let __old = __guard.as_ref().cloned().unwrap_or_else(|| Arc::new(Mutex::new(None)));
+        *__guard = __stored;
+        __old
     }
 
     /// CompareAndSwap executes the compare-and-swap operation for x.
     pub fn compare_and_swap(&self, old: Arc<Mutex<Option<T>>>, new: Arc<Mutex<Option<T>>>) -> bool {
     let mut swapped: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
 
-        compare_and_swap_pointer(self.v.clone(), Arc::new(Mutex::new(Some(Arc::as_ptr(&old) as usize))), Arc::new(Mutex::new(Some(Arc::as_ptr(&new) as usize))))
+        let __new_value = if new.lock().unwrap().is_some() { Some(new.clone()) } else { None };
+        let __old_is_nil = old.lock().unwrap().is_none();
+        let mut __guard = self.v.lock().unwrap();
+        let __matches = match __guard.as_ref() {
+            Some(__current) => {
+                if __old_is_nil {
+                    __current.lock().unwrap().is_none()
+                } else {
+                    Arc::ptr_eq(__current, &old)
+                }
+            }
+            None => __old_is_nil,
+        };
+        if __matches {
+            *__guard = __new_value;
+            true
+        } else {
+            false
+        }
     }
 }
 

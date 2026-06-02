@@ -2,6 +2,7 @@ package main
 
 import (
 	"go/ast"
+	"go/importer"
 	"go/parser"
 	"go/token"
 	"go/types"
@@ -241,6 +242,76 @@ func TestTranspileSyncAtomicRuntimeIntrinsicsUseWrappedAddressBodies(t *testing.
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("missing %q in:\n%s", want, got)
+		}
+	}
+}
+
+func TestTranspileSyncAtomicPointerUsesTypedHandleSlot(t *testing.T) {
+	const src = `package atomic
+
+import "unsafe"
+
+type noCopy struct{}
+
+type Pointer[T any] struct {
+	_ [0]*T
+	_ noCopy
+	v unsafe.Pointer
+}
+
+func LoadPointer(addr *unsafe.Pointer) (val unsafe.Pointer)
+func StorePointer(addr *unsafe.Pointer, val unsafe.Pointer)
+func SwapPointer(addr *unsafe.Pointer, new unsafe.Pointer) (old unsafe.Pointer)
+func CompareAndSwapPointer(addr *unsafe.Pointer, old, new unsafe.Pointer) (swapped bool)
+
+func (x *Pointer[T]) Load() *T { return (*T)(LoadPointer(&x.v)) }
+func (x *Pointer[T]) Store(val *T) { StorePointer(&x.v, unsafe.Pointer(val)) }
+func (x *Pointer[T]) Swap(new *T) (old *T) { return (*T)(SwapPointer(&x.v, unsafe.Pointer(new))) }
+func (x *Pointer[T]) CompareAndSwap(old, new *T) (swapped bool) {
+	return CompareAndSwapPointer(&x.v, unsafe.Pointer(old), unsafe.Pointer(new))
+}
+`
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "type.go", src, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(type.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfoWithImporter("sync/atomic", []*ast.File{file}, fset, importer.Default())
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter(sync/atomic) error = %v", err)
+	}
+	prevCD := GetConcurrencyDetector()
+	cd := NewConcurrencyDetector()
+	cd.hasGoroutines = true
+	SetConcurrencyDetector(cd)
+	t.Cleanup(func() {
+		SetConcurrencyDetector(prevCD)
+	})
+
+	rust := transpileParsedRegression(t, file, fset, typeInfo)
+
+	for _, forbidden := range []string{
+		"pub v: Arc<Mutex<Option<usize>>>",
+		"unsafe.Pointer conversion to T",
+		"load_pointer(self.v.clone())",
+		"store_pointer(self.v.clone()",
+		"swap_pointer(self.v.clone()",
+		"compare_and_swap_pointer(self.v.clone()",
+	} {
+		if strings.Contains(rust, forbidden) {
+			t.Fatalf("sync/atomic Pointer should use a typed pointer-handle slot, found %q:\n%s", forbidden, rust)
+		}
+	}
+	for _, want := range []string{
+		"pub v: Arc<Mutex<Option<Arc<Mutex<Option<T>>>>>>",
+		"v: Arc::new(Mutex::new(None))",
+		"__guard.as_ref().cloned().unwrap_or_else(|| Arc::new(Mutex::new(None)))",
+		"let __stored = if val.lock().unwrap().is_some() { Some(val.clone()) } else { None };",
+		"let __stored = if new.lock().unwrap().is_some() { Some(new.clone()) } else { None };",
+		"Arc::ptr_eq(__current, &old)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing %q in sync/atomic Pointer lowering:\n%s", want, rust)
 		}
 	}
 }
