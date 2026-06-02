@@ -6,6 +6,7 @@ import (
 	"go/build"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -90,5 +91,16 @@ func TestIsStdlibPackageDoesNotShellOutForUnknownPackage(t *testing.T) {
 		t.Fatalf("isStdlibPackage must not invoke GOROOT/bin/go for unknown packages")
 	} else if !errors.Is(err, os.ErrNotExist) {
 		t.Fatal(err)
+	}
+}
+
+func TestStdlibPackageCacheAvoidsSyncMapBridgeDependency(t *testing.T) {
+	data, err := os.ReadFile("stdlib_concurrency.go")
+	if err != nil {
+		t.Fatalf("ReadFile(stdlib_concurrency.go) error = %v", err)
+	}
+	source := string(data)
+	if strings.Contains(source, `"sync"`) || strings.Contains(source, "sync.Map") {
+		t.Fatalf("stdlib package cache should not force the self-transpiled binary through sync.Map bridge methods")
 	}
 }

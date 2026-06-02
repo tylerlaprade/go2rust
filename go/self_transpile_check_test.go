@@ -37,6 +37,8 @@ func TestSelfTranspileDefaultSourceStdlibPackages(t *testing.T) {
 		"regexp",
 		"regexp/syntax",
 		"path/filepath",
+		"sync",
+		"sync/atomic",
 		"text/scanner",
 		"unicode",
 		"unicode/utf8",
@@ -93,6 +95,22 @@ func TestSelfTranspileBehaviorSuiteSupportsFocusedFixtures(t *testing.T) {
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("self_transpile_check.sh should pass focused behavior fixtures through ./test.sh; missing %q", want)
+		}
+	}
+}
+
+func TestSelfTranspileBehaviorSuiteCopiesCleanupScript(t *testing.T) {
+	data, err := os.ReadFile("../self_transpile_check.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(self_transpile_check.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`cp "$repo_root/cleanup.sh" "$suite/cleanup.sh"`,
+		`chmod +x "$suite/test.sh" "$suite/cleanup.sh"`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("self_transpile_check.sh behavior suite should copy cleanup tooling; missing %q", want)
 		}
 	}
 }

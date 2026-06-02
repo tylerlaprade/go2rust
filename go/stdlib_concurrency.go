@@ -6,7 +6,6 @@ import (
 	importpath "path"
 	"path/filepath"
 	"strings"
-	"sync"
 )
 
 // asyncStdlibFunctions contains stdlib functions that spawn goroutines
@@ -41,7 +40,7 @@ var asyncStdlibFunctions = map[string]bool{
 	"signal.Notify":    true,
 }
 
-var stdlibPackageCache sync.Map
+var stdlibPackageCache = map[string]bool{}
 
 // syncStdlibFunctions contains stdlib functions known to be synchronous.
 // These functions don't spawn goroutines and don't pass user data to
@@ -268,12 +267,12 @@ func isStdlibPackage(pkgName string) bool {
 		return false
 	}
 	cacheKey := goroot + "\x00" + pkgName
-	if cached, ok := stdlibPackageCache.Load(cacheKey); ok {
-		return cached.(bool)
+	if cached, ok := stdlibPackageCache[cacheKey]; ok {
+		return cached
 	}
 
 	ok := gorootPackageDirHasGoFiles(goroot, pkgName)
-	stdlibPackageCache.Store(cacheKey, ok)
+	stdlibPackageCache[cacheKey] = ok
 	return ok
 }
 
