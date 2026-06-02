@@ -181,12 +181,33 @@ func TestCleanupScriptCanReportArtifactSizes(t *testing.T) {
 	for _, want := range []string{
 		`--sizes`,
 		`show_sizes=false`,
-		`du -sh "$path"`,
+		`path_size_kib()`,
+		`du -sk "$1"`,
 		`would remove: $path$size`,
 		`removing: $path$size`,
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("cleanup.sh should support size-aware cleanup output; missing %q", want)
+		}
+	}
+}
+
+func TestCleanupScriptCanSummarizeReclaimableSpace(t *testing.T) {
+	data, err := os.ReadFile("../cleanup.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(cleanup.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`--summary`,
+		`summary=false`,
+		`dry_run=true`,
+		`show_sizes=true`,
+		`total_kib=$((total_kib + size_kib))`,
+		`Total reclaimable: $(format_kib "$total_kib") across $candidate_count path(s)`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("cleanup.sh should summarize reclaimable artifact space; missing %q", want)
 		}
 	}
 }

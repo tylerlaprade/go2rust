@@ -3,13 +3,15 @@ set -euo pipefail
 
 usage() {
     cat <<'EOF'
-Usage: ./cleanup.sh [--dry-run] [--sizes] [--age-minutes N] [--keep-repo-artifacts]
+Usage: ./cleanup.sh [--dry-run] [--sizes] [--summary] [--age-minutes N] [--keep-repo-artifacts]
 
 Remove stale go2rust temporary roots and ignored local build artifacts.
 
 Options:
   --dry-run             Print paths that would be removed.
   --sizes               Include each path's disk usage in cleanup output.
+  --summary             Print matching paths, sizes, and the total reclaimable
+                        space without removing anything.
   --age-minutes N       Only remove temp paths older than N minutes (default: 60).
   --keep-repo-artifacts Keep ignored root build artifacts such as ./go2rust.
   -h, --help            Show this help.
@@ -19,8 +21,11 @@ EOF
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 dry_run=false
 show_sizes=false
+summary=false
 age_minutes="${GO2RUST_CLEANUP_AGE_MINUTES:-60}"
 remove_repo_artifacts=true
+candidate_count=0
+total_kib=0
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -29,6 +34,12 @@ while [ "$#" -gt 0 ]; do
             shift
             ;;
         --sizes)
+            show_sizes=true
+            shift
+            ;;
+        --summary)
+            summary=true
+            dry_run=true
             show_sizes=true
             shift
             ;;
@@ -63,12 +74,40 @@ case "$age_minutes" in
         ;;
 esac
 
+path_size_kib() {
+    du -sk "$1" 2>/dev/null | awk '{ print $1 }'
+}
+
+format_kib() {
+    local kib="$1"
+    awk -v kib="$kib" 'BEGIN {
+        split("K M G T", units, " ")
+        value = kib
+        unit = 1
+        while (value >= 1024 && unit < 4) {
+            value = value / 1024
+            unit++
+        }
+        if (unit == 1 || value >= 10) {
+            printf "%.0f%s", value, units[unit]
+        } else {
+            printf "%.1f%s", value, units[unit]
+        }
+    }'
+}
+
 remove_path() {
     local path="$1"
     local size=""
     if [ "$show_sizes" = true ]; then
-        size=" ($(du -sh "$path" 2>/dev/null | awk '{ print $1 }'))"
+        local size_kib
+        size_kib=$(path_size_kib "$path")
+        if [ -n "$size_kib" ]; then
+            total_kib=$((total_kib + size_kib))
+            size=" ($(format_kib "$size_kib"))"
+        fi
     fi
+    candidate_count=$((candidate_count + 1))
     if [ "$dry_run" = true ]; then
         echo "would remove: $path$size"
     else
@@ -110,7 +149,9 @@ cleanup_temp_root() {
         age_args=(-mmin +"$age_minutes")
     fi
 
-    find "$root" -maxdepth 1 "${age_args[@]}" -type d \( \
+    while IFS= read -r dir; do
+        maybe_remove_temp_dir "$dir"
+    done < <(find "$root" -maxdepth 1 "${age_args[@]}" -type d \( \
         -name 'go2rust-self.*' -o \
         -name 'go2rust-test.*' -o \
         -name 'go2rust-bats-shards.*' -o \
@@ -118,18 +159,16 @@ cleanup_temp_root() {
         -name 'go2rust-test-binary.*' -o \
         -name 'go2rust-go-cache.*' -o \
         -name 'go2rust-rust-work.*' \
-    \) -print 2>/dev/null | while IFS= read -r dir; do
-        maybe_remove_temp_dir "$dir"
-    done
+    \) -print 2>/dev/null)
 
-    find "$root" -maxdepth 1 "${age_args[@]}" -type f \( \
+    while IFS= read -r file; do
+        remove_path "$file"
+    done < <(find "$root" -maxdepth 1 "${age_args[@]}" -type f \( \
         -name 'go2rust-tests-list.*' -o \
         -name 'go2rust-rust-diff.*' -o \
         -name 'go2rust-stdout.*' -o \
         -name 'go2rust-stderr.*' \
-    \) -print 2>/dev/null | while IFS= read -r file; do
-        remove_path "$file"
-    done
+    \) -print 2>/dev/null)
 }
 
 if [ "$remove_repo_artifacts" = true ]; then
@@ -156,3 +195,7 @@ for root in "${tmp_roots[@]}"; do
     seen_roots="$seen_roots:$root"
     cleanup_temp_root "$root"
 done
+
+if [ "$summary" = true ]; then
+    echo "Total reclaimable: $(format_kib "$total_kib") across $candidate_count path(s)"
+fi
