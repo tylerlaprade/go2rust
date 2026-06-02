@@ -172,6 +172,25 @@ func TestCleanupScriptRemovesKnownGo2RustArtifacts(t *testing.T) {
 	}
 }
 
+func TestCleanupScriptCanReportArtifactSizes(t *testing.T) {
+	data, err := os.ReadFile("../cleanup.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(cleanup.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`--sizes`,
+		`show_sizes=false`,
+		`du -sh "$path"`,
+		`would remove: $path$size`,
+		`removing: $path$size`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("cleanup.sh should support size-aware cleanup output; missing %q", want)
+		}
+	}
+}
+
 func TestBatsFixtureTimeoutKillsLingeringChildren(t *testing.T) {
 	data, err := os.ReadFile("../tests.bats")
 	if err != nil {

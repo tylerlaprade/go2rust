@@ -3,12 +3,13 @@ set -euo pipefail
 
 usage() {
     cat <<'EOF'
-Usage: ./cleanup.sh [--dry-run] [--age-minutes N] [--keep-repo-artifacts]
+Usage: ./cleanup.sh [--dry-run] [--sizes] [--age-minutes N] [--keep-repo-artifacts]
 
 Remove stale go2rust temporary roots and ignored local build artifacts.
 
 Options:
   --dry-run             Print paths that would be removed.
+  --sizes               Include each path's disk usage in cleanup output.
   --age-minutes N       Only remove temp paths older than N minutes (default: 60).
   --keep-repo-artifacts Keep ignored root build artifacts such as ./go2rust.
   -h, --help            Show this help.
@@ -17,6 +18,7 @@ EOF
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 dry_run=false
+show_sizes=false
 age_minutes="${GO2RUST_CLEANUP_AGE_MINUTES:-60}"
 remove_repo_artifacts=true
 
@@ -24,6 +26,10 @@ while [ "$#" -gt 0 ]; do
     case "$1" in
         --dry-run)
             dry_run=true
+            shift
+            ;;
+        --sizes)
+            show_sizes=true
             shift
             ;;
         --age-minutes)
@@ -59,9 +65,16 @@ esac
 
 remove_path() {
     local path="$1"
+    local size=""
+    if [ "$show_sizes" = true ]; then
+        size=" ($(du -sh "$path" 2>/dev/null | awk '{ print $1 }'))"
+    fi
     if [ "$dry_run" = true ]; then
-        echo "would remove: $path"
+        echo "would remove: $path$size"
     else
+        if [ "$show_sizes" = true ]; then
+            echo "removing: $path$size"
+        fi
         rm -rf "$path"
     fi
 }
