@@ -115,7 +115,7 @@ Runtime guidance:
 - Prefer the default parallel fixture mode when the machine has memory headroom.
 - Use `./test.sh -n 1 ...` only for memory pressure, hard-to-read interleaving, or self-transpile follow-up checks.
 - Treat `Passing: 0/0` as an invalid run, not success.
-- For repeated local validation, prefer temp caches such as `GOCACHE=/private/tmp/go2rust-go-cache` and remove them afterward.
+- For focused Go unit tests, prefer `./go_test.sh -run ...`; it wraps `go test ./go` with a disposable `GOCACHE`.
 - For expensive Rust validation, set `CARGO_TARGET_DIR` to a temp directory.
 
 ## Self-Hosting

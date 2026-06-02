@@ -126,6 +126,28 @@ func TestTestScriptDefaultsGoCacheToTemp(t *testing.T) {
 	}
 }
 
+func TestGoTestScriptUsesOwnedTempGoCache(t *testing.T) {
+	data, err := os.ReadFile("../go_test.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(go_test.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`GO_TEST_GOCACHE_DIR=""`,
+		`"$repo_root/cleanup.sh" --age-minutes "${GO2RUST_GO_TEST_CLEAN_AGE_MINUTES:-60}" --keep-repo-artifacts`,
+		`GO_TEST_GOCACHE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-go-cache.XXXXXX")`,
+		`echo "$$" > "$GO_TEST_GOCACHE_DIR/go2rust-test.pid"`,
+		`export GOCACHE="$GO_TEST_GOCACHE_DIR"`,
+		`[ -n "$GO_TEST_GOCACHE_DIR" ]`,
+		`rm -rf "$GO_TEST_GOCACHE_DIR"`,
+		`go test ./go "$@"`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("go_test.sh should run focused Go tests with an owned temp GOCACHE; missing %q", want)
+		}
+	}
+}
+
 func TestTestScriptDefaultJobsRespectMemoryHeadroom(t *testing.T) {
 	data, err := os.ReadFile("../test.sh")
 	if err != nil {
