@@ -3180,6 +3180,30 @@ func lockPackageMutex() {
 	}
 }
 
+func TestSourceMappedPackageMutexLockUsesGeneratedMethods(t *testing.T) {
+	rust := transpileTypedConcurrentRegressionWithMapping(t, `package main
+
+import "sync"
+
+var mu sync.Mutex
+
+func lockPackageMutex() {
+	mu.Lock()
+	defer mu.Unlock()
+}
+`, map[string]string{"sync": "sync"})
+
+	if strings.Contains(rust, ".guard()") {
+		t.Fatalf("source-mapped sync.Mutex should call the generated lock method, not the GoMutex guard helper:\n%s", rust)
+	}
+	if strings.Contains(rust, "// mu.Unlock() handled by RAII guard") {
+		t.Fatalf("source-mapped sync.Mutex defer should not be suppressed as a GoMutex RAII guard:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".lock();") || !strings.Contains(rust, ".unlock();") {
+		t.Fatalf("source-mapped sync.Mutex should emit generated lock and unlock method calls:\n%s", rust)
+	}
+}
+
 func TestMutexGuardNameStableAcrossFileSetBase(t *testing.T) {
 	source := `package main
 
@@ -3220,6 +3244,29 @@ func transpileTypedRegressionWithPrefixFile(t *testing.T, source string, prefixS
 		t.Fatalf("NewTypeInfo error = %v", err)
 	}
 	rust, _, _ := Transpile(file, fset, typeInfo)
+	return rust
+}
+
+func transpileTypedConcurrentRegressionWithMapping(t *testing.T, src string, packageMapping map[string]string) string {
+	t.Helper()
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", src, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	prevConcurrencyDetector := globalConcurrencyDetector
+	cd := NewConcurrencyDetector()
+	cd.AnalyzeProject([]*ast.File{file})
+	SetConcurrencyDetector(cd)
+	t.Cleanup(func() {
+		SetConcurrencyDetector(prevConcurrencyDetector)
+	})
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, packageMapping)
 	return rust
 }
 

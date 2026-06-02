@@ -327,17 +327,27 @@ impl Pool {
     }
 
     pub fn pin_slow(&self) -> (Arc<StdMutex<Option<poolLocal>>>, i32) {
+        let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
+
                 // Retry under the mutex.
                 // Can not lock the mutex while pinned.
         runtime_proc_unpin();
-        let __mutex_guard_source_6909 = (*allPoolsMu.lock().unwrap().as_ref().unwrap()).clone(); let __mutex_guard_6909 = __mutex_guard_source_6909.guard();
-        // mu.Unlock() handled by RAII guard
+        (*allPoolsMu.lock().unwrap().as_ref().unwrap()).lock();
+        __defer_stack.push(Box::new(move || {
+        (*allPoolsMu.lock().unwrap().as_ref().unwrap()).unlock();
+    }));
         let mut pid = runtime_proc_pin();
                 // poolCleanup won't be called while we are pinned.
         let mut s = Arc::new(StdMutex::new(Some({ let __selector_holder = self.local_size.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         let mut l = Arc::new(StdMutex::new(Some({ let __selector_holder = self.local.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         if { let __tmp_x = (*Arc::new(StdMutex::new(Some(pid as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
+        {
+        // Execute deferred functions
+        while let Some(f) = __defer_stack.pop() {
+            f();
+        }
         return (index_local(Arc::new(StdMutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some(pid)))), pid);
+    }
     }
         if { let __nil_target = self.local.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = { let __collection_holder = { let __append_target = allPools.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(self.clone()); __append_target.clone() }.clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *allPools.lock().unwrap() = new_val; };
@@ -347,7 +357,13 @@ impl Pool {
         let mut local: Arc<StdMutex<Option<Vec<poolLocal>>>> = Arc::new(StdMutex::new(Some(vec![Default::default(); (size) as usize])));
         { let __target = self.local.clone(); let __stored = { let __value = Arc::new(StdMutex::new(Some({ let __seq_holder = local.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))); let __guard = __value.lock().unwrap(); (*__guard).clone() }; *__target.lock().unwrap() = __stored; };
         runtime__store_reluintptr(self.local_size.clone(), Arc::new(StdMutex::new(Some(size as usize))));
+        {
+        // Execute deferred functions
+        while let Some(f) = __defer_stack.pop() {
+            f();
+        }
         return (unimplemented!("slice element pointer return requires pointer representation support"), pid);
+    }
     }
 }
 

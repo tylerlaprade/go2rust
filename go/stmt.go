@@ -7578,8 +7578,9 @@ func rhsEmittedRustCast(rhs ast.Expr) string {
 }
 
 type mutexReceiverInfo struct {
-	expr   ast.Expr
-	fields []string
+	expr         ast.Expr
+	fields       []string
+	sourceMapped bool
 }
 
 // mutexLockReceiver returns the receiver for a Lock() call on a sync.Mutex field.
@@ -7606,7 +7607,7 @@ func syncMutexMethodReceiver(expr ast.Expr, methodName string) (mutexReceiverInf
 	}
 	fieldType := typeInfo.GetType(sel.X)
 	if isSyncMutexType(fieldType) {
-		return mutexReceiverInfo{expr: sel.X}, true
+		return mutexReceiverInfo{expr: sel.X, sourceMapped: isSourceMappedSyncMutexType(fieldType)}, true
 	}
 	if typeInfo.info == nil {
 		return mutexReceiverInfo{}, false
@@ -7631,19 +7632,34 @@ func syncMutexMethodReceiver(expr ast.Expr, methodName string) (mutexReceiverInf
 	if !ok {
 		return mutexReceiverInfo{}, false
 	}
-	return mutexReceiverInfo{expr: sel.X, fields: fields}, true
+	return mutexReceiverInfo{expr: sel.X, fields: fields, sourceMapped: isSourceMappedSyncMutexType(sig.Recv().Type())}, true
 }
 
-func isSyncMutexType(typ types.Type) bool {
+func syncMutexNamedType(typ types.Type) (*types.Named, bool) {
 	if typ == nil {
-		return false
+		return nil, false
 	}
 	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
 		typ = ptr.Elem()
 	}
 	named, ok := types.Unalias(typ).(*types.Named)
-	return ok && named.Obj() != nil && named.Obj().Pkg() != nil &&
-		named.Obj().Pkg().Path() == "sync" && named.Obj().Name() == "Mutex"
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return nil, false
+	}
+	if named.Obj().Pkg().Path() != "sync" || named.Obj().Name() != "Mutex" {
+		return nil, false
+	}
+	return named, true
+}
+
+func isSyncMutexType(typ types.Type) bool {
+	_, ok := syncMutexNamedType(typ)
+	return ok
+}
+
+func isSourceMappedSyncMutexType(typ types.Type) bool {
+	named, ok := syncMutexNamedType(typ)
+	return ok && isSourceMappedPackagePath(named.Obj().Pkg().Path())
 }
 
 func promotedFieldPath(recv types.Type, indexes []int) ([]string, bool) {
@@ -7796,6 +7812,11 @@ func writeMutexLockStatement(out *strings.Builder, expr ast.Expr) bool {
 	if !ok {
 		return false
 	}
+	if receiver.sourceMapped {
+		writeMutexReceiverRef(out, receiver)
+		out.WriteString(".lock();")
+		return true
+	}
 	if currentLoopDepth > 0 {
 		writeMutexReceiverRef(out, receiver)
 		out.WriteString(".lock();")
@@ -7840,6 +7861,11 @@ func writeMutexUnlockStatement(out *strings.Builder, expr ast.Expr) bool {
 	if !ok {
 		return false
 	}
+	if receiver.sourceMapped {
+		writeMutexReceiverRef(out, receiver)
+		out.WriteString(".unlock();")
+		return true
+	}
 	key, ok := mutexReceiverKey(receiver)
 	if !ok {
 		return false
@@ -7863,8 +7889,8 @@ func isMutexUnlockDefer(call *ast.CallExpr) bool {
 	if !ok || sel.Sel.Name != "Unlock" {
 		return false
 	}
-	_, ok = syncMutexMethodReceiver(call, "Unlock")
-	return ok
+	receiver, ok := syncMutexMethodReceiver(call, "Unlock")
+	return ok && !receiver.sourceMapped
 }
 
 // channelElementIsGoError reports whether a channel expression carries Go error values.
