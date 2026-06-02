@@ -1120,6 +1120,10 @@ run_xfail_test() {
     run_test "tests/generic_any_method_value_copy"
 }
 
+@test "generic_comparable_pointer_identity" {
+    run_test "tests/generic_comparable_pointer_identity"
+}
+
 @test "generic_function_type_alias" {
     run_test "tests/generic_function_type_alias"
 }

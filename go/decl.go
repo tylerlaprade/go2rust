@@ -903,6 +903,32 @@ func generateStructPartialEq(out *strings.Builder, structName string, structType
 	out.WriteString("}\n")
 }
 
+func structNeedsPointerComparableIdentity(structName string) bool {
+	if structName == "" || currentContext == nil || currentContext.Package == nil {
+		return false
+	}
+	return currentContext.Package.PointerComparablePointeeTypes[structName]
+}
+
+func generateStructPointerComparableIdentity(out *strings.Builder, structName string, generics rustTypeGenerics) {
+	if !structNeedsPointerComparableIdentity(structName) {
+		return
+	}
+	NeedGoComparable()
+	rustStructName := RustTypeNameForUse(structName)
+	writeRustTraitImplHeader(out, generics, "GoComparable", rustStructName)
+	out.WriteString("    fn go_eq(&self, other: &Self) -> bool {\n")
+	out.WriteString("        std::ptr::eq(self, other)\n")
+	out.WriteString("    }\n")
+	out.WriteString("    fn go_hash(&self, seed: usize) -> usize {\n")
+	out.WriteString("        let mut __hasher = std::collections::hash_map::DefaultHasher::new();\n")
+	out.WriteString("        std::hash::Hash::hash(&seed, &mut __hasher);\n")
+	out.WriteString("        std::hash::Hash::hash(&(self as *const Self as usize), &mut __hasher);\n")
+	out.WriteString("        std::hash::Hasher::finish(&__hasher) as usize\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+}
+
 func generateStructOrd(out *strings.Builder, structName string, structType *ast.StructType, generics rustTypeGenerics) {
 	if !structNeedsCustomOrd(structName, structType) {
 		return
@@ -2290,6 +2316,30 @@ func localInterfaceNeedsGoValueCloneImpl(ifaceName string) bool {
 		return false
 	}
 	return ctx.Package.LocalInterfaceGoValueClone[ifaceName]
+}
+
+func writeLocalInterfaceGoComparableImpl(out *strings.Builder, ifaceName, traitSnake string) {
+	NeedGoComparable()
+	out.WriteString("\n\nimpl GoComparable for ")
+	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+	out.WriteString(" {\n")
+	out.WriteString("    fn go_eq(&self, other: &Self) -> bool {\n")
+	out.WriteString("        self.__go_eq_")
+	out.WriteString(traitSnake)
+	out.WriteString("(other.as_ref())\n")
+	out.WriteString("    }\n")
+	out.WriteString("    fn go_hash(&self, _seed: usize) -> usize {\n")
+	out.WriteString("        panic!(\"interface hash with uncomparable dynamic type\")\n")
+	out.WriteString("    }\n")
+	out.WriteString("}")
+}
+
+func localInterfaceNeedsGoComparableImpl(ifaceName string) bool {
+	ctx := GetTranspileContext()
+	if ctx == nil || ctx.Package == nil || ctx.Package.LocalInterfaceGoComparable == nil {
+		return false
+	}
+	return ctx.Package.LocalInterfaceGoComparable[ifaceName]
 }
 
 func writeAssignableInterfaceObjectAdapters(out *strings.Builder, ifaceName string) {
@@ -4679,6 +4729,7 @@ func emitStructTypeDeclBody(out *strings.Builder, typeSpec *ast.TypeSpec, t *ast
 		generateStructDebug(out, structName, generics)
 	}
 	generateStructPartialEq(out, structName, t, generics)
+	generateStructPointerComparableIdentity(out, structName, generics)
 	generateStructOrd(out, structName, t, generics)
 	generateStructJsonDecode(out, structName, t, generics)
 }
@@ -4779,6 +4830,9 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		out.WriteString("}")
 		if localInterfaceNeedsGoValueCloneImpl(rustTypeName) {
 			writeLocalInterfaceGoValueCloneImpl(out, rustTypeName, traitSnake)
+		}
+		if localInterfaceNeedsGoComparableImpl(rustTypeName) {
+			writeLocalInterfaceGoComparableImpl(out, rustTypeName, traitSnake)
 		}
 		writeEmbeddedTraitObjectAdapters(out, rustTypeName, embeddedTraits)
 		writeAssignableInterfaceObjectAdapters(out, rustTypeName)

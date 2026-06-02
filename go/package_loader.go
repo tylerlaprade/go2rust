@@ -16,15 +16,16 @@ import (
 
 // PackageLoader loads Go packages with full type information
 type PackageLoader struct {
-	workDir             string
-	mainPkg             *packages.Package
-	allPackages         map[string]*packages.Package // import path -> package
-	packageMapping      map[string]string            // Go import -> Rust crate name
-	packageTypeModules  map[string]map[string]string // import path -> Go type name -> Rust module name
-	packageStates       map[string]*PackageState
-	comparableByPackage map[string]map[string]bool
-	concurrencyDetector *ConcurrencyDetector
-	fileSet             *token.FileSet
+	workDir                    string
+	mainPkg                    *packages.Package
+	allPackages                map[string]*packages.Package // import path -> package
+	packageMapping             map[string]string            // Go import -> Rust crate name
+	packageTypeModules         map[string]map[string]string // import path -> Go type name -> Rust module name
+	packageStates              map[string]*PackageState
+	comparableByPackage        map[string]map[string]bool
+	pointerComparableByPackage map[string]map[string]bool
+	concurrencyDetector        *ConcurrencyDetector
+	fileSet                    *token.FileSet
 }
 
 const sharedStdlibStubCrateName = "go2rust_stdlib_stubs"
@@ -33,12 +34,13 @@ const sourceStdlibPackagesEnv = "GO2RUST_SOURCE_STDLIB_PACKAGES"
 // NewPackageLoader creates a new package loader
 func NewPackageLoader(workDir string) *PackageLoader {
 	return &PackageLoader{
-		workDir:             workDir,
-		allPackages:         make(map[string]*packages.Package),
-		packageMapping:      make(map[string]string),
-		packageTypeModules:  make(map[string]map[string]string),
-		packageStates:       make(map[string]*PackageState),
-		comparableByPackage: make(map[string]map[string]bool),
+		workDir:                    workDir,
+		allPackages:                make(map[string]*packages.Package),
+		packageMapping:             make(map[string]string),
+		packageTypeModules:         make(map[string]map[string]string),
+		packageStates:              make(map[string]*PackageState),
+		comparableByPackage:        make(map[string]map[string]bool),
+		pointerComparableByPackage: make(map[string]map[string]bool),
 	}
 }
 
@@ -505,6 +507,7 @@ func (pl *PackageLoader) TranspileAll() error {
 	registerInterfaceMethodMutableReceivers(allPackageTypes)
 	SetSourceFunctionDeclsByFunc(pl.collectSourceFunctionDeclsByFunc())
 	pl.comparableByPackage = pl.collectComparableStructTypesByPackage()
+	pl.pointerComparableByPackage = pl.collectPointerComparablePointeeTypesByPackage()
 
 	// Transpile external packages first
 	for _, pkgPath := range pl.orderedPackagePaths() {
@@ -582,7 +585,62 @@ func (pl *PackageLoader) collectComparableStructTypesByPackage() map[string]map[
 	return result
 }
 
+func (pl *PackageLoader) collectPointerComparablePointeeTypesByPackage() map[string]map[string]bool {
+	result := make(map[string]map[string]bool)
+	for _, pkgPath := range pl.orderedAllPackagePaths() {
+		pkg := pl.allPackages[pkgPath]
+		if pkg == nil || pkg.TypesInfo == nil {
+			continue
+		}
+		for _, instance := range pkg.TypesInfo.Instances {
+			if instance.TypeArgs == nil {
+				continue
+			}
+			for i := 0; i < instance.TypeArgs.Len(); i++ {
+				ptr, ok := types.Unalias(instance.TypeArgs.At(i)).(*types.Pointer)
+				if !ok {
+					continue
+				}
+				markPointerComparablePointeeByPackage(result, ptr.Elem())
+			}
+		}
+	}
+	return result
+}
+
 func markComparableStructTypeByPackage(result map[string]map[string]bool, typ types.Type) {
+	if typ == nil {
+		return
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return
+	}
+	if _, ok := named.Underlying().(*types.Struct); !ok {
+		return
+	}
+	pkgPath := named.Obj().Pkg().Path()
+	if result[pkgPath] == nil {
+		result[pkgPath] = make(map[string]bool)
+	}
+	result[pkgPath][named.Obj().Name()] = true
+}
+
+func markPointerComparablePointee(dst map[string]bool, typ types.Type) {
+	if dst == nil || typ == nil {
+		return
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil {
+		return
+	}
+	if _, ok := named.Underlying().(*types.Struct); !ok {
+		return
+	}
+	dst[named.Obj().Name()] = true
+}
+
+func markPointerComparablePointeeByPackage(result map[string]map[string]bool, typ types.Type) {
 	if typ == nil {
 		return
 	}
@@ -737,6 +795,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	defer SetTypeInfo(parentTypeInfo)
 	pkgState.FunctionBoundKinds = genericFunctionBoundKinds(collectPackageFunctions(pkg.Syntax))
 	pkgState.LocalInterfaceGoValueClone = collectLocalInterfaceGoValueCloneTypes(pkg.Syntax, pkgState.FunctionBoundKinds)
+	pkgState.LocalInterfaceGoComparable = collectLocalInterfaceGoComparableTypes(pkg.Syntax)
 	packageAnalysis := analyzeTranspileFiles(pkg.Syntax, pkgTypeInfo)
 	pkgState.MapKeyStructTypes = packageAnalysis.mapKeyStructTypes
 	pkgState.ComparableStructTypes = make(map[string]bool)
@@ -745,6 +804,13 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	}
 	for name := range pl.comparableByPackage[pkg.PkgPath] {
 		pkgState.ComparableStructTypes[name] = true
+	}
+	pkgState.PointerComparablePointeeTypes = make(map[string]bool)
+	for name := range packageAnalysis.pointerComparablePointees {
+		pkgState.PointerComparablePointeeTypes[name] = true
+	}
+	for name := range pl.pointerComparableByPackage[pkg.PkgPath] {
+		pkgState.PointerComparablePointeeTypes[name] = true
 	}
 
 	// Generate lib.rs with all modules

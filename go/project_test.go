@@ -330,6 +330,72 @@ func use(items []item) item {
 	}
 }
 
+func TestSharedGoComparableTraitCrossesTranspiledCrates(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+func Contains[E comparable](values []E, target E) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+type item struct {
+	offset int
+}
+
+func use(items []*item, target *item) bool {
+	return dep.Contains(items, target)
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "use go2rust_stdlib_stubs::*;") {
+		t.Fatalf("root package should import shared stdlib helpers, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "impl GoComparable for item") {
+		t.Fatalf("root pointer-comparable type should implement shared GoComparable, got:\n%s", mainRS)
+	}
+
+	depRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_dep", "mod.rs"))
+	if !strings.Contains(depRS, "pub fn contains<E: Any + GoComparable + GoValueClone + 'static>") {
+		t.Fatalf("dependency generic helper should require shared GoComparable, got:\n%s", depRS)
+	}
+	if strings.Contains(depRS, "pub trait GoComparable") {
+		t.Fatalf("dependency crate should use the shared GoComparable helper, not define its own, got:\n%s", depRS)
+	}
+
+	sharedLib := mustReadFile(t, filepath.Join(tempDir, "vendor", sharedStdlibStubCrateName, "lib.rs"))
+	if !strings.Contains(sharedLib, "pub trait GoComparable") {
+		t.Fatalf("shared stdlib helper crate should define GoComparable, got:\n%s", sharedLib)
+	}
+}
+
 func TestImportedGenericGoValueCloneHelperAcceptsLocalInterface(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
@@ -387,6 +453,76 @@ func use(specs []Spec) Spec {
 	depRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_dep", "mod.rs"))
 	if !strings.Contains(depRS, "pub fn first<E: Any + GoValueClone + 'static>") {
 		t.Fatalf("dependency generic helper should require shared GoValueClone, got:\n%s", depRS)
+	}
+}
+
+func TestImportedGenericGoComparableHelperAcceptsLocalInterface(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+func Contains[E comparable](values []E, target E) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "types.go"), `package main
+
+type Spec interface {
+	specNode()
+}
+
+type Item struct {
+	id int
+}
+
+func (Item) specNode() {}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+func use(specs []Spec, target Spec) bool {
+	return dep.Contains(specs, target)
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "types.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	typesRS := mustReadFile(t, filepath.Join(tempDir, "types.rs"))
+	want := "impl GoComparable for Box<dyn Spec> {\n    fn go_eq(&self, other: &Self) -> bool {\n        self.__go_eq_spec(other.as_ref())\n    }"
+	if !strings.Contains(typesRS, want) {
+		t.Fatalf("local interface used as a GoComparable generic argument should implement the trait, missing %q:\n%s", want, typesRS)
+	}
+
+	depRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_dep", "mod.rs"))
+	if !strings.Contains(depRS, "pub fn contains<E: Any + GoComparable + GoValueClone + 'static>") {
+		t.Fatalf("dependency generic helper should require shared GoComparable, got:\n%s", depRS)
+	}
+	if strings.Contains(depRS, "pub trait GoComparable") {
+		t.Fatalf("dependency crate should use the shared GoComparable helper, not define its own, got:\n%s", depRS)
 	}
 }
 
@@ -5043,6 +5179,39 @@ func isStdPkg(path string) bool {
 	}
 	if !strings.Contains(rust, "search::<Vec<String>, String>") {
 		t.Fatalf("source-mapped ordered binary search should use raw String slice elements:\n%s", rust)
+	}
+}
+
+func TestSourceStdlibComparablePointerIndexEmitsPointerIdentityComparable(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "lookup.go", `package types
+
+import "slices"
+
+type TypeParam struct {
+	name string
+}
+
+func indexOf(tparams []*TypeParam, t *TypeParam) int {
+	return slices.Index(tparams, t)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(lookup.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"slices": "slices"})
+	if !strings.Contains(rust, "slices::index::<Vec<Rc<RefCell<Option<TypeParam>>>>, TypeParam>") &&
+		!strings.Contains(rust, "slices::index::<Vec<Arc<Mutex<Option<TypeParam>>>>, TypeParam>") {
+		t.Fatalf("source-mapped slices.Index over pointer slices should keep the existing raw pointee ABI:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl GoComparable for TypeParam") ||
+		!strings.Contains(rust, "std::ptr::eq(self, other)") {
+		t.Fatalf("source-mapped slices.Index over pointer slices should give the pointee pointer-identity GoComparable semantics:\n%s", rust)
 	}
 }
 

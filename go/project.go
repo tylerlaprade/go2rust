@@ -275,6 +275,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	packageState := NewPackageState()
 	packageState.MapKeyStructTypes = packageAnalysis.mapKeyStructTypes
 	packageState.ComparableStructTypes = packageAnalysis.comparableStructTypes
+	packageState.PointerComparablePointeeTypes = packageAnalysis.pointerComparablePointees
 	pg.usePackageHelpers = len(astFiles) > 1
 	session := NewTranspileSession(pg.typeInfo, pg.packageMapping)
 	session.PackageTypeModuleNames = pg.packageTypeModules
@@ -297,6 +298,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	}
 	packageState.FunctionBoundKinds = genericFunctionBoundKinds(collectPackageFunctions(astFiles))
 	packageState.LocalInterfaceGoValueClone = collectLocalInterfaceGoValueCloneTypes(astFiles, packageState.FunctionBoundKinds)
+	packageState.LocalInterfaceGoComparable = collectLocalInterfaceGoComparableTypes(astFiles)
 	packageState.ImportedInterfaceImpls = packageAnalysis.importedInterfaceImpls
 	packageState.ExternalLocalInterfaceImpls = packageAnalysis.externalLocalInterfaceImpls(collectPackageInterfaceDecls(astFiles))
 	registerPackageTypeFactsFromFiles(astFiles)

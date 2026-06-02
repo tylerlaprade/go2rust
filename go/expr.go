@@ -12244,6 +12244,12 @@ func funcLitReturnOverridesForExpected(funcLit *ast.FuncLit, expected types.Type
 		if actual == nil {
 			continue
 		}
+		if _, ok := types.Unalias(actual).(*types.Pointer); ok {
+			overrides[i] = funcLitReturnOverride{
+				rustType: goTypesTypeToRust(actual),
+			}
+			continue
+		}
 		overrides[i] = funcLitReturnOverride{
 			rustType:     goTypesTypeToRustWrapped(actual),
 			forceWrapped: true,
@@ -17034,13 +17040,10 @@ func writeTypeArgsFromInstance(out *strings.Builder, instance types.Instance) {
 		if i > 0 {
 			out.WriteString(", ")
 		}
-		// A Rust type parameter is the RAW type; values of param type are
-		// stored wrapped as Arc<Mutex<Option<N>>> in the generic signature.
-		// goTypesTypeToRust already yields the raw form for value/struct args
-		// (int -> i32, T -> T), but for a pointer arg (*Ident) it yields the
-		// wrapped handle Arc<Mutex<Option<Ident>>> — which would make N the
-		// handle (not impl'ing the bound interface, and double-wrapping the
-		// signature). Emit the pointee's raw type so N matches the convention.
+		// A Rust type parameter follows the existing raw-value convention used
+		// by generic signatures. Pointer Go type arguments therefore use the
+		// pointee type here; the analysis pass records that the pointee needs
+		// pointer-identity GoComparable semantics.
 		typeArg := instance.TypeArgs.At(i)
 		if ptr, ok := types.Unalias(typeArg).(*types.Pointer); ok {
 			out.WriteString(goTypesTypeToRust(ptr.Elem()))

@@ -175,6 +175,7 @@ var structDefs = make(map[string]*StructDef)
 type transpileFileAnalysis struct {
 	comparableStructTypes       map[string]bool
 	mapKeyStructTypes           map[string]bool
+	pointerComparablePointees   map[string]bool
 	localInterfaceEqualityTypes map[string]bool
 	functionLocalInterfaces     map[string]*ast.InterfaceType
 	importedInterfaceImpls      map[string]map[string]*types.Interface
@@ -187,6 +188,7 @@ func newTranspileFileAnalysis() *transpileFileAnalysis {
 	return &transpileFileAnalysis{
 		comparableStructTypes:       make(map[string]bool),
 		mapKeyStructTypes:           make(map[string]bool),
+		pointerComparablePointees:   make(map[string]bool),
 		localInterfaceEqualityTypes: make(map[string]bool),
 		functionLocalInterfaces:     make(map[string]*ast.InterfaceType),
 		importedInterfaceImpls:      make(map[string]map[string]*types.Interface),
@@ -203,8 +205,27 @@ func analyzeTranspileFiles(files []*ast.File, mapKeyTypeInfo *TypeInfo) *transpi
 	for _, file := range files {
 		analysis.inspect(file, typeInfo, mapKeyTypeInfo)
 	}
+	analysis.recordPointerComparablePointees(typeInfo)
 	analysis.recordImportedOrderedConstraintImpls(typeInfo)
 	return analysis
+}
+
+func (analysis *transpileFileAnalysis) recordPointerComparablePointees(typeInfo *TypeInfo) {
+	if analysis == nil || typeInfo == nil || typeInfo.info == nil {
+		return
+	}
+	for _, instance := range typeInfo.info.Instances {
+		if instance.TypeArgs == nil {
+			continue
+		}
+		for i := 0; i < instance.TypeArgs.Len(); i++ {
+			ptr, ok := types.Unalias(instance.TypeArgs.At(i)).(*types.Pointer)
+			if !ok {
+				continue
+			}
+			markPointerComparablePointee(analysis.pointerComparablePointees, ptr.Elem())
+		}
+	}
 }
 
 func (analysis *transpileFileAnalysis) inspect(file *ast.File, typeInfo *TypeInfo, mapKeyTypeInfo *TypeInfo) {
@@ -2212,6 +2233,63 @@ func collectLocalInterfaceGoValueCloneTypes(files []*ast.File, boundKinds map[*a
 	return interfaces
 }
 
+func collectLocalInterfaceGoComparableTypes(files []*ast.File) map[string]bool {
+	interfaces := make(map[string]bool)
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return interfaces
+	}
+	for _, file := range files {
+		ast.Inspect(file, func(node ast.Node) bool {
+			call, ok := node.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+			fn, ok := callFunctionObjectFromTypeInfo(typeInfo, call)
+			if !ok || fn == nil {
+				return true
+			}
+			comparableIndexes := comparableTypeParamIndexes(fn)
+			if len(comparableIndexes) == 0 {
+				return true
+			}
+			instance, ok := genericCallInstanceFromTypeInfo(typeInfo, call)
+			if !ok {
+				return true
+			}
+			for _, index := range comparableIndexes {
+				if index >= instance.TypeArgs.Len() {
+					continue
+				}
+				ifaceName, ok := localNamedInterfaceTypeNameFromTypes(instance.TypeArgs.At(index))
+				if !ok {
+					continue
+				}
+				interfaces[RustTypeNameForUse(ifaceName)] = true
+			}
+			return true
+		})
+	}
+	return interfaces
+}
+
+func comparableTypeParamIndexes(fn *types.Func) []int {
+	if fn == nil {
+		return nil
+	}
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok || sig.TypeParams() == nil {
+		return nil
+	}
+	var indexes []int
+	for i := 0; i < sig.TypeParams().Len(); i++ {
+		if goTypeParamHasComparableConstraint(sig.TypeParams().At(i)) {
+			indexes = append(indexes, i)
+		}
+	}
+	return indexes
+}
+
 func genericCallInstanceFromTypeInfo(typeInfo *TypeInfo, call *ast.CallExpr) (types.Instance, bool) {
 	if typeInfo == nil || typeInfo.info == nil || typeInfo.info.Instances == nil || call == nil {
 		return types.Instance{}, false
@@ -2538,6 +2616,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.LocalInterfaceGoValueClone) == 0 {
 		currentContext.Package.LocalInterfaceGoValueClone = collectLocalInterfaceGoValueCloneTypes([]*ast.File{file}, currentContext.Package.FunctionBoundKinds)
 	}
+	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.LocalInterfaceGoComparable) == 0 {
+		currentContext.Package.LocalInterfaceGoComparable = collectLocalInterfaceGoComparableTypes([]*ast.File{file})
+	}
 
 	// Transpile the body
 	var body strings.Builder
@@ -2556,6 +2637,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		}
 		for name := range currentContext.Package.MapKeyStructTypes {
 			comparableStructTypes[name] = true
+		}
+		for name := range fileAnalysis.pointerComparablePointees {
+			currentContext.Package.PointerComparablePointeeTypes[name] = true
 		}
 	}
 	localInterfaceEqualityTypes = fileAnalysis.localInterfaceEqualityTypes

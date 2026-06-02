@@ -354,6 +354,7 @@ func (ut *UnifiedTranspiler) transpilePackage(pkg *PackageInfo) error {
 	defer SetTranspileContext(parentCtx)
 	pkgState.FunctionBoundKinds = genericFunctionBoundKinds(collectPackageFunctions(pkg.ASTFiles))
 	pkgState.LocalInterfaceGoValueClone = collectLocalInterfaceGoValueCloneTypes(pkg.ASTFiles, pkgState.FunctionBoundKinds)
+	pkgState.LocalInterfaceGoComparable = collectLocalInterfaceGoComparableTypes(pkg.ASTFiles)
 	registerPackageTypeFactsFromFiles(pkg.ASTFiles)
 	registerFunctionSignaturesFromFiles(pkg.ASTFiles)
 

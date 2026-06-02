@@ -20,6 +20,7 @@ type PackageState struct {
 	FunctionNameOverrides         map[string]string
 	FunctionBoundKinds            map[*ast.FuncDecl]genericMethodBoundKind
 	LocalInterfaceGoValueClone    map[string]bool
+	LocalInterfaceGoComparable    map[string]bool
 	GlobalNameOverrides           map[string]string
 	MethodNameOverrides           map[string]string
 	MethodsByType                 map[string][]*ast.FuncDecl
@@ -39,6 +40,7 @@ type PackageState struct {
 	ArrayElemPtrResultFuncNames   map[string]map[int]arrayElemPtrInfo
 	MapKeyStructTypes             map[string]bool
 	ComparableStructTypes         map[string]bool
+	PointerComparablePointeeTypes map[string]bool
 	PackageConstants              map[string]string
 	PackageConstantTypeNames      map[string]string
 	ConstantNameOverrides         map[string]string
@@ -127,6 +129,7 @@ func NewPackageState() *PackageState {
 		FunctionNameOverrides:         make(map[string]string),
 		FunctionBoundKinds:            make(map[*ast.FuncDecl]genericMethodBoundKind),
 		LocalInterfaceGoValueClone:    make(map[string]bool),
+		LocalInterfaceGoComparable:    make(map[string]bool),
 		GlobalNameOverrides:           make(map[string]string),
 		MethodNameOverrides:           make(map[string]string),
 		MethodsByType:                 make(map[string][]*ast.FuncDecl),
@@ -146,6 +149,7 @@ func NewPackageState() *PackageState {
 		ArrayElemPtrResultFuncNames:   make(map[string]map[int]arrayElemPtrInfo),
 		MapKeyStructTypes:             make(map[string]bool),
 		ComparableStructTypes:         make(map[string]bool),
+		PointerComparablePointeeTypes: make(map[string]bool),
 		PackageConstants:              make(map[string]string),
 		PackageConstantTypeNames:      make(map[string]string),
 		ConstantNameOverrides:         make(map[string]string),
@@ -271,6 +275,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		}
 		if ctx.Package.LocalInterfaceGoValueClone == nil {
 			ctx.Package.LocalInterfaceGoValueClone = make(map[string]bool)
+		}
+		if ctx.Package.LocalInterfaceGoComparable == nil {
+			ctx.Package.LocalInterfaceGoComparable = make(map[string]bool)
 		}
 		if ctx.Package.GlobalNameOverrides == nil {
 			ctx.Package.GlobalNameOverrides = make(map[string]string)
@@ -720,6 +727,9 @@ func NeedGoComparable() {
 		helpers.needsGoComparable = true
 		TrackImport("Any")
 	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsGoComparable = true
+	})
 }
 
 func NeedEmbeddedOwnerRegistry() {

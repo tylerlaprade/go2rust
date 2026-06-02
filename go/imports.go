@@ -197,6 +197,7 @@ func (ht *HelperTracker) withoutSharedStdlibHelpers() *HelperTracker {
 		helperCopy.needsAnyClone = false
 	}
 	helperCopy.needsGoValueClone = false
+	helperCopy.needsGoComparable = false
 	return &helperCopy
 }
 
@@ -217,6 +218,9 @@ func (ht *HelperTracker) sharedStdlibHelpersOnly() *HelperTracker {
 	if ht.needsGoValueClone {
 		helperCopy.needsAnyClone = true
 		helperCopy.needsGoValueClone = true
+	}
+	if ht.needsGoComparable {
+		helperCopy.needsGoComparable = true
 	}
 	if ht.needsGoRWMutex {
 		helperCopy.needsGoRWMutex = true

@@ -1056,6 +1056,39 @@ func substList[T comparable](in []T, subst func(T) T) []T {
 	}
 }
 
+func TestGenericComparablePointerInstantiationEmitsPointerIdentityComparable(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Var struct {
+	name string
+}
+
+func substList[T comparable](in []T, subst func(T) T) []T {
+	for i, t := range in {
+		if u := subst(t); u != t {
+			out := make([]T, len(in))
+			copy(out, in)
+			out[i] = u
+			return out
+		}
+	}
+	return nil
+}
+
+func use(vars []*Var, subst func(*Var) *Var) []*Var {
+	return substList(vars, subst)
+}
+`)
+
+	if !strings.Contains(rust, "subst_list::<Var>") {
+		t.Fatalf("generic comparable pointer instantiation should keep the existing raw pointee ABI:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl GoComparable for Var") ||
+		!strings.Contains(rust, "std::ptr::eq(self, other)") {
+		t.Fatalf("generic comparable pointer instantiation should give the pointee pointer-identity GoComparable semantics:\n%s", rust)
+	}
+}
+
 func TestComparableGenericStructMethodKeepsGoComparableBound(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

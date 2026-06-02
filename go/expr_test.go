@@ -5629,6 +5629,30 @@ func check[S ~[]E, E int | string](data S, i int) bool {
 	}
 }
 
+func TestGenericFuncLiteralPointerResultKeepsPointerHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Var struct{}
+
+func apply[T comparable](value T, f func(T) T) T {
+	return f(value)
+}
+
+func use(a *Var) *Var {
+	return apply(a, func(*Var) *Var { return a })
+}
+`)
+
+	if strings.Contains(rust, "Rc<RefCell<Option<Rc<RefCell<Option<Var>>>>>>") ||
+		strings.Contains(rust, "Arc<Mutex<Option<Arc<Mutex<Option<Var>>>>>>") {
+		t.Fatalf("function literal returning a pointer for generic T should not nest the pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box<dyn FnMut(Rc<RefCell<Option<Var>>>) -> Rc<RefCell<Option<Var>>>>") &&
+		!strings.Contains(rust, "Box<dyn FnMut(Arc<Mutex<Option<Var>>>) -> Arc<Mutex<Option<Var>>>>") {
+		t.Fatalf("function literal returning a pointer for generic T should keep the pointer handle ABI:\n%s", rust)
+	}
+}
+
 func TestSliceConstrainedTypeParamCompositeLiteralUsesSliceRepresentation(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
