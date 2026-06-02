@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoAtomicPointer, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_slice, format_slice_values, format_slice_wrapped};
+use crate::{GoAtomicPointer, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_slice, format_slice_values, format_slice_wrapped, go_any_eq};
 
 use crate::cond::*;
 use crate::hashtriemap::*;
@@ -285,8 +285,8 @@ impl poolDequeue {
                 // reading the value to take back ownership of this
                 // slot.
                 // We successfully took back slot.
-        let mut val = Arc::new(StdMutex::new({ let __ptr = Arc::new(StdMutex::new(Some(unimplemented!("unsafe.Pointer conversion from slice element pointer")))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<Box<dyn Any + Send + Sync>>(unimplemented!("unsafe.Pointer conversion to Box<dyn Any + Send + Sync>")) } }));
-        if { let __tmp_x = (*val.lock().unwrap().as_ref().unwrap()); let __tmp_y = dequeueNil(Arc::new(StdMutex::new(None::<AnonymousStruct1>))); __tmp_x == __tmp_y } {
+        let mut val = Arc::new(StdMutex::new({ let __ptr = Arc::new(StdMutex::new(Some({ let __unsupported: usize = unimplemented!("unsafe.Pointer conversion from slice element pointer"); __unsupported }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<Box<dyn Any + Send + Sync>>(unimplemented!("unsafe.Pointer conversion to Box<dyn Any + Send + Sync>")) } }));
+        if { let __right_holder = Arc::new(StdMutex::new(Some(Box::new(dequeueNil(Arc::new(StdMutex::new(None::<AnonymousStruct1>)))) as Box<dyn Any + Send + Sync>))); go_any_eq(&val, &__right_holder) } {
         *val.lock().unwrap() = None;
     }
                 // Zero the slot. Unlike popTail, this isn't racing with
@@ -325,8 +325,8 @@ impl poolDequeue {
                 // we own the slot at tail.
                 // Success.
                 // We now own slot.
-        let mut val = Arc::new(StdMutex::new({ let __ptr = Arc::new(StdMutex::new(Some(unimplemented!("unsafe.Pointer conversion from slice element pointer")))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<Box<dyn Any + Send + Sync>>(unimplemented!("unsafe.Pointer conversion to Box<dyn Any + Send + Sync>")) } }));
-        if { let __tmp_x = (*val.lock().unwrap().as_ref().unwrap()); let __tmp_y = dequeueNil(Arc::new(StdMutex::new(None::<AnonymousStruct1>))); __tmp_x == __tmp_y } {
+        let mut val = Arc::new(StdMutex::new({ let __ptr = Arc::new(StdMutex::new(Some({ let __unsupported: usize = unimplemented!("unsafe.Pointer conversion from slice element pointer"); __unsupported }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<Box<dyn Any + Send + Sync>>(unimplemented!("unsafe.Pointer conversion to Box<dyn Any + Send + Sync>")) } }));
+        if { let __right_holder = Arc::new(StdMutex::new(Some(Box::new(dequeueNil(Arc::new(StdMutex::new(None::<AnonymousStruct1>)))) as Box<dyn Any + Send + Sync>))); go_any_eq(&val, &__right_holder) } {
         *val.lock().unwrap() = None;
     }
                 // Tell pushHead that we're done with this slot. Zeroing the

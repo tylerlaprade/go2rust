@@ -4246,6 +4246,39 @@ func writeEmptyInterfaceEquality(out *strings.Builder, expr *ast.BinaryExpr) boo
 	return true
 }
 
+func writeEmptyInterfaceConcreteEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
+	if expr == nil || expr.Op != token.EQL && expr.Op != token.NEQ {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	xIsInterface := isEmptyInterfaceType(typeInfo.GetType(expr.X))
+	yIsInterface := isEmptyInterfaceType(typeInfo.GetType(expr.Y))
+	if xIsInterface == yIsInterface {
+		return false
+	}
+	NeedAnyEq()
+	if expr.Op == token.NEQ {
+		out.WriteString("!")
+	}
+	if xIsInterface {
+		out.WriteString("{ let __right_holder = ")
+		writeEmptyInterfaceCallArgumentValue(out, expr.Y)
+		out.WriteString("; go_any_eq(&")
+		TranspileExpressionContext(out, expr.X, LValue)
+		out.WriteString(", &__right_holder) }")
+		return true
+	}
+	out.WriteString("{ let __left_holder = ")
+	writeEmptyInterfaceCallArgumentValue(out, expr.X)
+	out.WriteString("; go_any_eq(&__left_holder, &")
+	TranspileExpressionContext(out, expr.Y, LValue)
+	out.WriteString(") }")
+	return true
+}
+
 func expectedTypeFromParamExpr(expr ast.Expr) types.Type {
 	if expr == nil {
 		return nil
@@ -9672,6 +9705,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		if writeEmptyInterfaceEquality(out, e) {
 			return
 		}
+		if writeEmptyInterfaceConcreteEquality(out, e) {
+			return
+		}
 		if writeCurrentReceiverPointerComparison(out, e) {
 			return
 		}
@@ -13837,7 +13873,7 @@ func writeUnsafePointerConversion(out *strings.Builder, arg ast.Expr) {
 				return
 			}
 			if isSliceElemPtrVar(ident.Name) {
-				out.WriteString(`unimplemented!("unsafe.Pointer conversion from slice element pointer")`)
+				out.WriteString(`{ let __unsupported: usize = unimplemented!("unsafe.Pointer conversion from slice element pointer"); __unsupported }`)
 				WriteWrapperSuffix(out)
 				return
 			}

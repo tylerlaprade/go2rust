@@ -228,6 +228,30 @@ func same(x interface{}, y interface{}) bool {
 	}
 }
 
+func TestEmptyInterfaceConcreteEqualityBoxesConcreteSide(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Mutex struct{}
+
+type P *struct{}
+
+func same(x any) bool {
+	go func() {}()
+	return x == P(nil)
+}
+`)
+
+	if strings.Contains(rust, "__tmp_x == __tmp_y") && strings.Contains(rust, "Box<dyn Any") {
+		t.Fatalf("empty-interface concrete equality should not compare Box<dyn Any> values directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(P(Arc::new(StdMutex::new(None::<AnonymousStruct1>)))) as Box<dyn Any + Send + Sync>") {
+		t.Fatalf("empty-interface concrete equality should box the concrete side:\n%s", rust)
+	}
+	if !strings.Contains(rust, "go_any_eq(&x, &__right_holder)") {
+		t.Fatalf("empty-interface concrete equality should use go_any_eq:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceReferenceCallArgumentUsesCurrentReceiver(t *testing.T) {
 	prevReceiver := currentReceiver
 	currentReceiver = "k"
@@ -3819,6 +3843,9 @@ func load(vals []eface, i int) any {
 	}
 	if !strings.Contains(rust, `unimplemented!("unsafe.Pointer conversion from slice element pointer`) {
 		t.Fatalf("unsafe.Pointer conversion from slice element pointer should fail loudly at the typed boundary:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __unsupported: usize = unimplemented!") {
+		t.Fatalf("unsafe.Pointer conversion from slice element pointer should anchor the unsupported pointer value as usize:\n%s", rust)
 	}
 }
 
