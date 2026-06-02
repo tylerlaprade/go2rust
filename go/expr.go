@@ -3861,8 +3861,9 @@ func generatedFunctionParamTypeForCall(call *ast.CallExpr, index int, fallback t
 }
 
 type sourceFunctionDeclInfo struct {
-	decl *ast.FuncDecl
-	info *types.Info
+	decl      *ast.FuncDecl
+	info      *types.Info
+	boundKind genericMethodBoundKind
 }
 
 type sourceFunctionParamKey struct {

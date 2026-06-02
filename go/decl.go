@@ -2267,6 +2267,27 @@ func writeEmbeddedTraitObjectAdapters(out *strings.Builder, ifaceName string, em
 	}
 }
 
+func writeLocalInterfaceGoValueCloneImpl(out *strings.Builder, ifaceName, traitSnake string) {
+	NeedGoValueClone()
+	out.WriteString("\n\nimpl GoValueClone for ")
+	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+	out.WriteString(" {\n")
+	out.WriteString("    fn go_value_clone(&self) -> Self {\n")
+	out.WriteString("        self.__go_clone_box_")
+	out.WriteString(traitSnake)
+	out.WriteString("()\n")
+	out.WriteString("    }\n")
+	out.WriteString("}")
+}
+
+func localInterfaceNeedsGoValueCloneImpl(ifaceName string) bool {
+	ctx := GetTranspileContext()
+	if ctx == nil || ctx.Package == nil || ctx.Package.LocalInterfaceGoValueClone == nil {
+		return false
+	}
+	return ctx.Package.LocalInterfaceGoValueClone[ifaceName]
+}
+
 func writeAssignableInterfaceObjectAdapters(out *strings.Builder, ifaceName string) {
 	sourceNamed, _ := localInterfaceNamedTypeByName(ifaceName)
 	if sourceNamed == nil {
@@ -4752,6 +4773,9 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		out.WriteString("()\n")
 		out.WriteString("    }\n")
 		out.WriteString("}")
+		if localInterfaceNeedsGoValueCloneImpl(rustTypeName) {
+			writeLocalInterfaceGoValueCloneImpl(out, rustTypeName, traitSnake)
+		}
 		writeEmbeddedTraitObjectAdapters(out, rustTypeName, embeddedTraits)
 		writeAssignableInterfaceObjectAdapters(out, rustTypeName)
 		if iface := localInterfaceTypesByName(typeSpec.Name.Name); interfaceEmbedsOnlyOrderedTerms(iface) {

@@ -1191,6 +1191,35 @@ func use(files []File) File {
 	}
 }
 
+func TestLocalInterfaceUsedAsGoValueCloneGenericArgImplementsTrait(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Spec interface {
+	specNode()
+}
+
+type ImportSpec struct{}
+
+func (*ImportSpec) specNode() {}
+
+func first[E any](values []E) E {
+	return values[0]
+}
+
+func use(specs []Spec) Spec {
+	return first(specs)
+}
+`)
+
+	if !strings.Contains(rust, "pub fn first<E: Any + GoValueClone + 'static>") {
+		t.Fatalf("generic helper returning a direct type-param element should require GoValueClone:\n%s", rust)
+	}
+	want := "impl GoValueClone for Box<dyn Spec> {\n    fn go_value_clone(&self) -> Self {\n        self.__go_clone_box_spec()\n    }\n}"
+	if !strings.Contains(rust, want) {
+		t.Fatalf("local interface used as a GoValueClone generic argument should implement the trait, missing %q:\n%s", want, rust)
+	}
+}
+
 func TestGenericOrderedFunctionPropagatesCloneBoundFromCalledFunction(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

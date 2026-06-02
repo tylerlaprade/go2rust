@@ -523,10 +523,18 @@ func (pl *PackageLoader) TranspileAll() error {
 
 func (pl *PackageLoader) collectSourceFunctionDeclsByFunc() map[*types.Func]sourceFunctionDeclInfo {
 	decls := make(map[*types.Func]sourceFunctionDeclInfo)
+	parentTypeInfo := GetTypeInfo()
+	defer SetTypeInfo(parentTypeInfo)
 	for _, pkg := range pl.allPackages {
 		if pkg == nil || pkg.TypesInfo == nil {
 			continue
 		}
+		typeInfo := &TypeInfo{
+			info: pkg.TypesInfo,
+			pkg:  pkg.Types,
+		}
+		SetTypeInfo(typeInfo)
+		boundKinds := genericFunctionBoundKinds(collectPackageFunctions(pkg.Syntax))
 		for _, file := range pkg.Syntax {
 			for _, decl := range file.Decls {
 				fnDecl, ok := decl.(*ast.FuncDecl)
@@ -538,8 +546,9 @@ func (pl *PackageLoader) collectSourceFunctionDeclsByFunc() map[*types.Func]sour
 					continue
 				}
 				decls[fn] = sourceFunctionDeclInfo{
-					decl: fnDecl,
-					info: pkg.TypesInfo,
+					decl:      fnDecl,
+					info:      pkg.TypesInfo,
+					boundKind: boundKinds[fnDecl],
 				}
 			}
 		}
@@ -727,6 +736,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	SetTypeInfo(pkgTypeInfo)
 	defer SetTypeInfo(parentTypeInfo)
 	pkgState.FunctionBoundKinds = genericFunctionBoundKinds(collectPackageFunctions(pkg.Syntax))
+	pkgState.LocalInterfaceGoValueClone = collectLocalInterfaceGoValueCloneTypes(pkg.Syntax, pkgState.FunctionBoundKinds)
 	packageAnalysis := analyzeTranspileFiles(pkg.Syntax, pkgTypeInfo)
 	pkgState.MapKeyStructTypes = packageAnalysis.mapKeyStructTypes
 	pkgState.ComparableStructTypes = make(map[string]bool)

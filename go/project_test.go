@@ -330,6 +330,66 @@ func use(items []item) item {
 	}
 }
 
+func TestImportedGenericGoValueCloneHelperAcceptsLocalInterface(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+func First[E any](values []E) E {
+	return values[0]
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "types.go"), `package main
+
+type Spec interface {
+	specNode()
+}
+
+type ImportSpec struct{}
+
+func (*ImportSpec) specNode() {}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+func use(specs []Spec) Spec {
+	return dep.First(specs)
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "types.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	typesRS := mustReadFile(t, filepath.Join(tempDir, "types.rs"))
+	want := "impl GoValueClone for Box<dyn Spec> {\n    fn go_value_clone(&self) -> Self {\n        self.__go_clone_box_spec()\n    }\n}"
+	if !strings.Contains(typesRS, want) {
+		t.Fatalf("local interface used with imported GoValueClone generic helper should implement the trait, missing %q:\n%s", want, typesRS)
+	}
+
+	depRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_dep", "mod.rs"))
+	if !strings.Contains(depRS, "pub fn first<E: Any + GoValueClone + 'static>") {
+		t.Fatalf("dependency generic helper should require shared GoValueClone, got:\n%s", depRS)
+	}
+}
+
 func TestImportedGenericSelectorCallWrapsFunctionIdentifierArgument(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

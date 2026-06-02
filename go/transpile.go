@@ -2159,6 +2159,94 @@ func genericFunctionBoundKinds(functions []*ast.FuncDecl) map[*ast.FuncDecl]gene
 	return boundKinds
 }
 
+func collectLocalInterfaceGoValueCloneTypes(files []*ast.File, boundKinds map[*ast.FuncDecl]genericMethodBoundKind) map[string]bool {
+	interfaces := make(map[string]bool)
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return interfaces
+	}
+	functionByObject := make(map[*types.Func]*ast.FuncDecl)
+	for _, fn := range collectPackageFunctions(files) {
+		if fn == nil || fn.Name == nil {
+			continue
+		}
+		obj, ok := typeInfo.info.Defs[fn.Name].(*types.Func)
+		if !ok || obj == nil {
+			continue
+		}
+		functionByObject[obj] = fn
+	}
+	for _, file := range files {
+		ast.Inspect(file, func(node ast.Node) bool {
+			call, ok := node.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+			fn, ok := callFunctionObjectFromTypeInfo(typeInfo, call)
+			if !ok || fn == nil {
+				return true
+			}
+			boundKind := genericMethodBoundNone
+			if localFn := functionByObject[fn]; localFn != nil && boundKinds != nil {
+				boundKind = boundKinds[localFn]
+			} else if sourceInfo, ok := sourceFunctionDeclsByFunc[fn]; ok {
+				boundKind = sourceInfo.boundKind
+			}
+			if boundKind&genericMethodBoundGoValueClone == 0 {
+				return true
+			}
+			instance, ok := genericCallInstanceFromTypeInfo(typeInfo, call)
+			if !ok {
+				return true
+			}
+			for i := 0; i < instance.TypeArgs.Len(); i++ {
+				ifaceName, ok := localNamedInterfaceTypeNameFromTypes(instance.TypeArgs.At(i))
+				if !ok {
+					continue
+				}
+				interfaces[RustTypeNameForUse(ifaceName)] = true
+			}
+			return true
+		})
+	}
+	return interfaces
+}
+
+func genericCallInstanceFromTypeInfo(typeInfo *TypeInfo, call *ast.CallExpr) (types.Instance, bool) {
+	if typeInfo == nil || typeInfo.info == nil || typeInfo.info.Instances == nil || call == nil {
+		return types.Instance{}, false
+	}
+	ident := genericCallInstanceIdent(call.Fun)
+	if ident == nil {
+		return types.Instance{}, false
+	}
+	instance, ok := typeInfo.info.Instances[ident]
+	if !ok || instance.TypeArgs == nil || instance.TypeArgs.Len() == 0 {
+		return types.Instance{}, false
+	}
+	return instance, true
+}
+
+func genericCallInstanceIdent(fun ast.Expr) *ast.Ident {
+	switch e := unwrapParens(fun).(type) {
+	case *ast.Ident:
+		return e
+	case *ast.SelectorExpr:
+		return e.Sel
+	case *ast.IndexExpr:
+		_, ident, ok := genericFunctionTargetFromBase(e.X)
+		if ok {
+			return ident
+		}
+	case *ast.IndexListExpr:
+		_, ident, ok := genericFunctionTargetFromBase(e.X)
+		if ok {
+			return ident
+		}
+	}
+	return nil
+}
+
 func functionCalledBoundKind(typeInfo *TypeInfo, fn *ast.FuncDecl, functionByObject map[types.Object]*ast.FuncDecl, boundKinds map[*ast.FuncDecl]genericMethodBoundKind) genericMethodBoundKind {
 	if typeInfo == nil || typeInfo.info == nil || fn == nil || fn.Body == nil {
 		return genericMethodBoundNone
@@ -2446,6 +2534,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	}
 	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.FunctionBoundKinds) == 0 {
 		currentContext.Package.FunctionBoundKinds = genericFunctionBoundKinds(collectPackageFunctions([]*ast.File{file}))
+	}
+	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.LocalInterfaceGoValueClone) == 0 {
+		currentContext.Package.LocalInterfaceGoValueClone = collectLocalInterfaceGoValueCloneTypes([]*ast.File{file}, currentContext.Package.FunctionBoundKinds)
 	}
 
 	// Transpile the body
