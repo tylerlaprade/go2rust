@@ -1938,8 +1938,7 @@ func rustTypeParam(name *ast.Ident, cloneBounds []string) string {
 	}
 	if goTypeParamHasComparableConstraint(obj.Type()) {
 		TrackImport("Any")
-		NeedGoComparable()
-		bounds := []string{"Any", "GoComparable"}
+		bounds := []string{"Any"}
 		bounds = appendTypeParamCloneBounds(bounds, cloneBounds, true)
 		if NeedsConcurrentWrapper() {
 			bounds = append(bounds, "Send", "Sync")

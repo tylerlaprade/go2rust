@@ -5295,23 +5295,6 @@ func writeTypeParamHandleEquality(out *strings.Builder, expr *ast.BinaryExpr) bo
 		return false
 	}
 	trackWrapperImports()
-	if goTypeParamHasComparableConstraint(leftParam) {
-		NeedGoComparable()
-		out.WriteString("{ let __left = ")
-		out.WriteString(left.String())
-		out.WriteString("; let __right = ")
-		out.WriteString(right.String())
-		out.WriteString("; let __left_guard = __left")
-		WriteBorrowMethod(out, false)
-		out.WriteString("; let __right_guard = __right")
-		WriteBorrowMethod(out, false)
-		out.WriteString("; let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (None, None) => true, (Some(__left_value), Some(__right_value)) => GoComparable::go_eq(__left_value, __right_value), _ => false }; ")
-		if expr.Op == token.NEQ {
-			out.WriteString("!")
-		}
-		out.WriteString("__eq }")
-		return true
-	}
 	out.WriteString("{ let __left = ")
 	out.WriteString(left.String())
 	out.WriteString("; let __right = ")
