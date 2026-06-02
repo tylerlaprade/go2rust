@@ -15,6 +15,91 @@ _test_sh_cleanup() {
 }
 trap _test_sh_cleanup EXIT
 
+# Parse command line arguments before acquiring the test lock or rewriting
+# tests.bats. Read-only exits such as --help should not dirty the repo or wait
+# behind a running fixture suite.
+VERBOSE=false
+JOBS=""
+TIMEOUT="15s"
+HELP=false
+TEST_NAMES=()
+
+i=1
+skip_next=false
+for arg in "$@"; do
+    if [ "$skip_next" = true ]; then
+        skip_next=false
+        i=$((i+1))
+        continue
+    fi
+
+    case $arg in
+        -h|--help)
+            HELP=true
+            ;;
+        -v|--verbose)
+            VERBOSE=true
+            ;;
+        -n|--jobs)
+            # Next argument should be the number
+            eval "JOBS=\${$((i+1))}"
+            skip_next=true
+            ;;
+        -n*)
+            # -n4 format
+            JOBS="${arg#-n}"
+            ;;
+        --jobs=*)
+            # --jobs=4 format
+            JOBS="${arg#--jobs=}"
+            ;;
+        -t|--timeout)
+            # Next argument should be the timeout
+            eval "TIMEOUT=\${$((i+1))}"
+            skip_next=true
+            ;;
+        -t*)
+            # -t30s format
+            TIMEOUT="${arg#-t}"
+            ;;
+        --timeout=*)
+            # --timeout=30s format
+            TIMEOUT="${arg#--timeout=}"
+            ;;
+        -*)
+            echo "Unknown option: $arg"
+            exit 1
+            ;;
+        *)
+            # Not a flag, assume it's a test name
+            TEST_NAMES+=("$arg")
+            ;;
+    esac
+    i=$((i+1))
+done
+
+# Show help if requested
+if [ "$HELP" = true ]; then
+    echo ""
+    echo "Usage: $0 [options] [test_names...]"
+    echo ""
+    echo "Options:"
+    echo "  -v, --verbose      Show XFAIL tests in output"
+    echo "  -n, --jobs N       Number of parallel jobs (default: auto-detect from CPU and memory)"
+    echo "  -t, --timeout TIME Timeout per test (default: 60s)"
+    echo "  -h, --help         Show this help message"
+    echo ""
+    echo "Arguments:"
+    echo "  test_names         Specific tests to run (default: all tests)"
+    echo ""
+    echo "Examples:"
+    echo "  $0                  # Run all tests"
+    echo "  $0 hello_world      # Run specific test"
+    echo "  $0 -v methods_basic # Run specific test with verbose output"
+    echo "  $0 -n 1 foo bar     # Run multiple tests sequentially"
+    exit 0
+fi
+
 # Single-instance lock. Concurrent ./test.sh runs would corrupt the in-place
 # tests.bats rewrite below and the startup sweep would clobber active per-test
 # workspaces. mkdir is atomic. The lock dir name avoids the 'go2rust-test.*'
@@ -157,89 +242,6 @@ rm "$temp_file"
 TEMP_FILE=""
 
 echo "Updated tests.bats with $(grep -c '^@test' tests.bats) tests"
-
-# Parse command line arguments
-VERBOSE=false
-JOBS=""
-TIMEOUT="15s"
-HELP=false
-TEST_NAMES=()
-
-i=1
-skip_next=false
-for arg in "$@"; do
-    if [ "$skip_next" = true ]; then
-        skip_next=false
-        i=$((i+1))
-        continue
-    fi
-    
-    case $arg in
-        -h|--help)
-            HELP=true
-            ;;
-        -v|--verbose)
-            VERBOSE=true
-            ;;
-        -n|--jobs)
-            # Next argument should be the number
-            eval "JOBS=\${$((i+1))}"
-            skip_next=true
-            ;;
-        -n*)
-            # -n4 format
-            JOBS="${arg#-n}"
-            ;;
-        --jobs=*)
-            # --jobs=4 format
-            JOBS="${arg#--jobs=}"
-            ;;
-        -t|--timeout)
-            # Next argument should be the timeout
-            eval "TIMEOUT=\${$((i+1))}"
-            skip_next=true
-            ;;
-        -t*)
-            # -t30s format
-            TIMEOUT="${arg#-t}"
-            ;;
-        --timeout=*)
-            # --timeout=30s format
-            TIMEOUT="${arg#--timeout=}"
-            ;;
-        -*)
-            echo "Unknown option: $arg"
-            exit 1
-            ;;
-        *)
-            # Not a flag, assume it's a test name
-            TEST_NAMES+=("$arg")
-            ;;
-    esac
-    i=$((i+1))
-done
-
-# Show help if requested
-if [ "$HELP" = true ]; then
-    echo ""
-    echo "Usage: $0 [options] [test_names...]"
-    echo ""
-    echo "Options:"
-    echo "  -v, --verbose      Show XFAIL tests in output"
-    echo "  -n, --jobs N       Number of parallel jobs (default: auto-detect from CPU and memory)"
-    echo "  -t, --timeout TIME Timeout per test (default: 60s)"
-    echo "  -h, --help         Show this help message"
-    echo ""
-    echo "Arguments:"
-    echo "  test_names         Specific tests to run (default: all tests)"
-    echo ""
-    echo "Examples:"
-    echo "  $0                  # Run all tests"
-    echo "  $0 hello_world      # Run specific test"
-    echo "  $0 -v methods_basic # Run specific test with verbose output"
-    echo "  $0 -n 1 foo bar     # Run multiple tests sequentially"
-    exit 0
-fi
 
 # Run tests
 if ! command -v bats >/dev/null 2>&1; then

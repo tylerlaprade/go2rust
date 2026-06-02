@@ -126,6 +126,24 @@ func TestTestScriptDefaultsGoCacheToTemp(t *testing.T) {
 	}
 }
 
+func TestTestScriptHelpExitsBeforeGeneratedFiles(t *testing.T) {
+	data, err := os.ReadFile("../test.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(test.sh) error = %v", err)
+	}
+	script := string(data)
+	parseIndex := strings.Index(script, "# Parse command line arguments before acquiring the test lock")
+	helpExitIndex := strings.Index(script, `if [ "$HELP" = true ]; then`)
+	lockIndex := strings.Index(script, "# Single-instance lock")
+	generateIndex := strings.Index(script, "# Generate test cases and update the GENERATED TESTS section in tests.bats")
+	if parseIndex < 0 || helpExitIndex < 0 || lockIndex < 0 || generateIndex < 0 {
+		t.Fatalf("test.sh should parse help before lock/generation; parse=%d help=%d lock=%d generate=%d", parseIndex, helpExitIndex, lockIndex, generateIndex)
+	}
+	if parseIndex > lockIndex || helpExitIndex > lockIndex || helpExitIndex > generateIndex {
+		t.Fatalf("test.sh --help should exit before acquiring the test lock or rewriting tests.bats")
+	}
+}
+
 func TestGoTestScriptUsesOwnedTempGoCache(t *testing.T) {
 	data, err := os.ReadFile("../go_test.sh")
 	if err != nil {
