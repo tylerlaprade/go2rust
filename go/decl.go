@@ -3388,6 +3388,61 @@ func writeRuntimeLinkedFunctionBody(out *strings.Builder, fn *ast.FuncDecl, inde
 		return false
 	}
 	switch functionPackagePath(fn) {
+	case "sync":
+		switch fn.Name.Name {
+		case "runtime_registerPoolCleanup":
+			out.WriteString(indent)
+			out.WriteString("let _ = ")
+			out.WriteString(RustLocalIdent(functionParamName(fn, 0, "cleanup")))
+			out.WriteString(";\n")
+			return true
+		case "runtime_procPin":
+			out.WriteString(indent)
+			out.WriteString("0\n")
+			return true
+		case "runtime_procUnpin":
+			return true
+		case "runtime_LoadAcquintptr":
+			ptrName := RustLocalIdent(functionParamName(fn, 0, "ptr"))
+			out.WriteString(indent)
+			out.WriteString("let __value = (*")
+			out.WriteString(ptrName)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).clone();\n")
+			out.WriteString(indent)
+			out.WriteString("__value\n")
+			return true
+		case "runtime_StoreReluintptr":
+			ptrName := RustLocalIdent(functionParamName(fn, 0, "ptr"))
+			valName := RustLocalIdent(functionParamName(fn, 1, "val"))
+			out.WriteString(indent)
+			out.WriteString("let __stored = (*")
+			out.WriteString(valName)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).clone();\n")
+			out.WriteString(indent)
+			out.WriteString("*")
+			out.WriteString(ptrName)
+			WriteBorrowMethod(out, true)
+			out.WriteString(".as_mut().unwrap() = __stored;\n")
+			out.WriteString(indent)
+			out.WriteString("__stored\n")
+			return true
+		case "runtime_randn":
+			out.WriteString(indent)
+			out.WriteString("let _ = ")
+			out.WriteString(RustLocalIdent(functionParamName(fn, 0, "n")))
+			out.WriteString(";\n")
+			out.WriteString(indent)
+			out.WriteString("0\n")
+			return true
+		case "runtime_notifyListCheck":
+			out.WriteString(indent)
+			out.WriteString("let _ = ")
+			out.WriteString(RustLocalIdent(functionParamName(fn, 0, "size")))
+			out.WriteString(";\n")
+			return true
+		}
 	case "syscall":
 		switch fn.Name.Name {
 		case "runtime_envs":

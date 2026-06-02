@@ -79,6 +79,84 @@ func TestTranspileSyscallRuntimeLinkedFunctionsUseHostEnv(t *testing.T) {
 	}
 }
 
+func TestTranspileSyncRuntimeLinkedFunctionsUseLocalRuntimeBodies(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	currentTypeInfo = &TypeInfo{pkg: types.NewPackage("sync", "sync")}
+	t.Cleanup(func() {
+		currentTypeInfo = prevTypeInfo
+	})
+	prevCD := GetConcurrencyDetector()
+	cd := NewConcurrencyDetector()
+	cd.hasGoroutines = true
+	SetConcurrencyDetector(cd)
+	t.Cleanup(func() {
+		SetConcurrencyDetector(prevCD)
+	})
+
+	fset := token.NewFileSet()
+	var out strings.Builder
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("runtime_registerPoolCleanup"),
+		Type: &ast.FuncType{Params: &ast.FieldList{List: []*ast.Field{{
+			Names: []*ast.Ident{ast.NewIdent("cleanup")},
+			Type:  &ast.FuncType{},
+		}}}},
+	}, fset, nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("runtime_procPin"),
+		Type: &ast.FuncType{Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("int")}}}},
+	}, fset, nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("runtime_procUnpin"),
+		Type: &ast.FuncType{},
+	}, fset, nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("runtime_LoadAcquintptr"),
+		Type: &ast.FuncType{
+			Params:  &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("ptr")}, Type: &ast.StarExpr{X: ast.NewIdent("uintptr")}}}},
+			Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("uintptr")}}},
+		},
+	}, fset, nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("runtime_StoreReluintptr"),
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{List: []*ast.Field{
+				{Names: []*ast.Ident{ast.NewIdent("ptr")}, Type: &ast.StarExpr{X: ast.NewIdent("uintptr")}},
+				{Names: []*ast.Ident{ast.NewIdent("val")}, Type: ast.NewIdent("uintptr")},
+			}},
+			Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("uintptr")}}},
+		},
+	}, fset, nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("runtime_randn"),
+		Type: &ast.FuncType{
+			Params:  &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("n")}, Type: ast.NewIdent("uint32")}}},
+			Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("uint32")}}},
+		},
+	}, fset, nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("runtime_notifyListCheck"),
+		Type: &ast.FuncType{Params: &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("size")}, Type: ast.NewIdent("uintptr")}}}},
+	}, fset, nil)
+
+	got := out.String()
+	if strings.Contains(got, "Go function declaration has no body") {
+		t.Fatalf("sync runtime-linked declarations should not use the generic bodyless fallback:\n%s", got)
+	}
+	for _, want := range []string{
+		"let _ = cleanup;",
+		"0\n}",
+		"let _ = n;",
+		"let __value = (*ptr.lock().unwrap().as_ref().unwrap()).clone();",
+		"*ptr.lock().unwrap().as_mut().unwrap() = __stored;",
+		"let _ = size;",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %q in:\n%s", want, got)
+		}
+	}
+}
+
 func TestTranspileInternalABIFuncPCIntrinsicsUseFunctionTypeID(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	currentTypeInfo = &TypeInfo{pkg: types.NewPackage("internal/abi", "abi")}

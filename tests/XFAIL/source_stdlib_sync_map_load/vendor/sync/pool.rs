@@ -374,7 +374,8 @@ impl poolLocal {
 ///
 ///go:linkname runtime_randn runtime.randn
 pub fn runtime_randn(n: Arc<StdMutex<Option<u32>>>) -> u32 {
-    unimplemented!("Go function declaration has no body");
+    let _ = n;
+    0
 }
 
 
@@ -434,29 +435,31 @@ pub fn index_local(l: Arc<StdMutex<Option<usize>>>, i: Arc<StdMutex<Option<i32>>
 
 /// Implemented in runtime.
 pub fn runtime_register_pool_cleanup(cleanup: Arc<StdMutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>) {
-    unimplemented!("Go function declaration has no body");
+    let _ = cleanup;
 }
 
 
 pub fn runtime_proc_pin() -> i32 {
-    unimplemented!("Go function declaration has no body");
+    0
 }
 
 
 pub fn runtime_proc_unpin() {
-    unimplemented!("Go function declaration has no body");
 }
 
 
 ///go:linkname runtime_LoadAcquintptr internal/runtime/atomic.LoadAcquintptr
 pub fn runtime__load_acquintptr(ptr: Arc<StdMutex<Option<usize>>>) -> usize {
-    unimplemented!("Go function declaration has no body");
+    let __value = (*ptr.lock().unwrap().as_ref().unwrap()).clone();
+    __value
 }
 
 
 ///go:linkname runtime_StoreReluintptr internal/runtime/atomic.StoreReluintptr
 pub fn runtime__store_reluintptr(ptr: Arc<StdMutex<Option<usize>>>, val: Arc<StdMutex<Option<usize>>>) -> usize {
-    unimplemented!("Go function declaration has no body");
+    let __stored = (*val.lock().unwrap().as_ref().unwrap()).clone();
+    *ptr.lock().unwrap().as_mut().unwrap() = __stored;
+    __stored
 }
 
 

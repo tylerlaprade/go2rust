@@ -43,7 +43,7 @@ impl GoJsonDecode for AnonymousStruct1 {
 
 /// Ensure that sync and runtime agree on size of notifyList.
 pub fn runtime_notify_list_check(size: Arc<StdMutex<Option<usize>>>) {
-    unimplemented!("Go function declaration has no body");
+    let _ = size;
 }
 
 
