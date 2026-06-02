@@ -726,6 +726,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	parentTypeInfo := GetTypeInfo()
 	SetTypeInfo(pkgTypeInfo)
 	defer SetTypeInfo(parentTypeInfo)
+	pkgState.FunctionBoundKinds = genericFunctionBoundKinds(collectPackageFunctions(pkg.Syntax))
 	packageAnalysis := analyzeTranspileFiles(pkg.Syntax, pkgTypeInfo)
 	pkgState.MapKeyStructTypes = packageAnalysis.mapKeyStructTypes
 	pkgState.ComparableStructTypes = make(map[string]bool)

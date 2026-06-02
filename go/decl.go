@@ -1486,10 +1486,27 @@ func writeFunctionDeclTypeParams(out *strings.Builder, fn *ast.FuncDecl) {
 		return
 	}
 	paramFunc := rustTypeDeclarationParam
-	if genericFunctionUsesDirectTypeParamValue(fn) {
+	boundKind := genericFunctionBoundKind(fn)
+	if boundKind&genericMethodBoundRustClone != 0 && boundKind&genericMethodBoundGoValueClone != 0 {
+		paramFunc = rustCloneAndGoValueCloneTypeParam
+	} else if boundKind&genericMethodBoundRustClone != 0 {
+		paramFunc = rustFunctionTypeParam
+	} else if boundKind&genericMethodBoundGoValueClone != 0 {
 		paramFunc = rustGoValueCloneTypeParam
 	}
 	writeFunctionTypeParamsWithParam(out, fn.Type, paramFunc)
+}
+
+func genericFunctionBoundKind(fn *ast.FuncDecl) genericMethodBoundKind {
+	if ctx := GetTranspileContext(); ctx != nil && ctx.Package != nil && ctx.Package.FunctionBoundKinds != nil {
+		if boundKind, ok := ctx.Package.FunctionBoundKinds[fn]; ok {
+			return boundKind
+		}
+	}
+	if genericFunctionUsesDirectTypeParamValue(fn) {
+		return genericMethodBoundGoValueClone
+	}
+	return genericMethodBoundNone
 }
 
 func writeFunctionTypeParamsWithParam(out *strings.Builder, fnType *ast.FuncType, paramFunc func(*ast.Ident) string) {

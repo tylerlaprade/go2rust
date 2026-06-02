@@ -295,6 +295,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	if packageImports != nil {
 		SetPackageImports(packageImports)
 	}
+	packageState.FunctionBoundKinds = genericFunctionBoundKinds(collectPackageFunctions(astFiles))
 	packageState.ImportedInterfaceImpls = packageAnalysis.importedInterfaceImpls
 	packageState.ExternalLocalInterfaceImpls = packageAnalysis.externalLocalInterfaceImpls(collectPackageInterfaceDecls(astFiles))
 	registerPackageTypeFactsFromFiles(astFiles)

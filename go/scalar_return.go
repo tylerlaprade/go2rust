@@ -411,6 +411,10 @@ func callFunctionObjectFromTypeInfo(typeInfo *TypeInfo, call *ast.CallExpr) (*ty
 		if fn, ok := typeInfo.info.Uses[fun.Sel].(*types.Func); ok {
 			return fn, true
 		}
+	case *ast.IndexExpr:
+		return callFunctionObjectFromTypeInfo(typeInfo, &ast.CallExpr{Fun: fun.X})
+	case *ast.IndexListExpr:
+		return callFunctionObjectFromTypeInfo(typeInfo, &ast.CallExpr{Fun: fun.X})
 	default:
 	}
 	return nil, false

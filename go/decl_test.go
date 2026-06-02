@@ -1145,6 +1145,55 @@ func Less[T Ordered](x, y T) bool {
 	}
 }
 
+func TestGenericFunctionPropagatesGoValueCloneBoundFromCalledFunction(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func touch[E any](data []E) {
+	var value E = data[0]
+	_ = value
+}
+
+func caller[E any](data []E) {
+	touch(data)
+}
+`)
+
+	if !strings.Contains(rust, "pub fn touch<E: Any + GoValueClone + 'static>") {
+		t.Fatalf("helper with direct type-param element use should require GoValueClone:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn caller<E: Any + GoValueClone + 'static>") {
+		t.Fatalf("caller should propagate GoValueClone required by the called helper:\n%s", rust)
+	}
+}
+
+func TestGenericOrderedFunctionPropagatesCloneBoundFromCalledFunction(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Ordered interface {
+	~int | ~string
+}
+
+func order2[E Ordered](data []E) {
+	var value E = data[0]
+	_ = value
+}
+
+func median[E Ordered](data []E) {
+	order2(data)
+}
+`)
+
+	if !strings.Contains(rust, "pub fn order2<E: Ordered + Clone + PartialOrd + 'static>") {
+		t.Fatalf("ordered helper with direct type-param element use should require Clone:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn median<E: Ordered + Clone + PartialOrd + 'static>") {
+		t.Fatalf("ordered caller should propagate Clone required by the called helper:\n%s", rust)
+	}
+	if strings.Contains(rust, "pub fn median<E: Ordered + GoValueClone") {
+		t.Fatalf("ordered caller should not emit GoValueClone for ordered constraints:\n%s", rust)
+	}
+}
+
 func TestGenericStructDeclCarriesTypeParamsIntoImpls(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

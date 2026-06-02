@@ -18,6 +18,7 @@ type TranspileSession struct {
 type PackageState struct {
 	FunctionSignatures            map[string]*FunctionSignature
 	FunctionNameOverrides         map[string]string
+	FunctionBoundKinds            map[*ast.FuncDecl]genericMethodBoundKind
 	GlobalNameOverrides           map[string]string
 	MethodNameOverrides           map[string]string
 	MethodsByType                 map[string][]*ast.FuncDecl
@@ -123,6 +124,7 @@ func NewPackageState() *PackageState {
 	return &PackageState{
 		FunctionSignatures:            make(map[string]*FunctionSignature),
 		FunctionNameOverrides:         make(map[string]string),
+		FunctionBoundKinds:            make(map[*ast.FuncDecl]genericMethodBoundKind),
 		GlobalNameOverrides:           make(map[string]string),
 		MethodNameOverrides:           make(map[string]string),
 		MethodsByType:                 make(map[string][]*ast.FuncDecl),
@@ -261,6 +263,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		}
 		if ctx.Package.FunctionNameOverrides == nil {
 			ctx.Package.FunctionNameOverrides = make(map[string]string)
+		}
+		if ctx.Package.FunctionBoundKinds == nil {
+			ctx.Package.FunctionBoundKinds = make(map[*ast.FuncDecl]genericMethodBoundKind)
 		}
 		if ctx.Package.GlobalNameOverrides == nil {
 			ctx.Package.GlobalNameOverrides = make(map[string]string)

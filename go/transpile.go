@@ -2094,6 +2094,104 @@ func genericMethodUnionBoundKind(typeMethods []*ast.FuncDecl) genericMethodBound
 	return union
 }
 
+func collectPackageFunctions(files []*ast.File) []*ast.FuncDecl {
+	var functions []*ast.FuncDecl
+	for _, file := range files {
+		if file == nil {
+			continue
+		}
+		for _, decl := range file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Recv != nil {
+				continue
+			}
+			functions = append(functions, fn)
+		}
+	}
+	return functions
+}
+
+func genericFunctionBoundKinds(functions []*ast.FuncDecl) map[*ast.FuncDecl]genericMethodBoundKind {
+	boundKinds := make(map[*ast.FuncDecl]genericMethodBoundKind)
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return boundKinds
+	}
+	functionByObject := make(map[types.Object]*ast.FuncDecl)
+	for _, fn := range functions {
+		if fn == nil || fn.Name == nil {
+			continue
+		}
+		if obj := typeInfo.info.Defs[fn.Name]; obj != nil {
+			functionByObject[obj] = fn
+		}
+	}
+
+	for _, fn := range functions {
+		var boundKind genericMethodBoundKind
+		if genericFunctionUsesDirectTypeParamValue(fn) {
+			boundKind |= genericMethodBoundGoValueClone
+		}
+		boundKinds[fn] = boundKind
+	}
+	if len(functionByObject) == 0 {
+		return boundKinds
+	}
+
+	changed := true
+	for changed {
+		changed = false
+		for _, fn := range functions {
+			if boundKinds[fn]&genericMethodBoundRustClone != 0 && boundKinds[fn]&genericMethodBoundGoValueClone != 0 {
+				continue
+			}
+			calledBound := functionCalledBoundKind(typeInfo, fn, functionByObject, boundKinds)
+			if calledBound == genericMethodBoundNone {
+				continue
+			}
+			nextBound := boundKinds[fn] | calledBound
+			if nextBound != boundKinds[fn] {
+				boundKinds[fn] = nextBound
+				changed = true
+			}
+		}
+	}
+	return boundKinds
+}
+
+func functionCalledBoundKind(typeInfo *TypeInfo, fn *ast.FuncDecl, functionByObject map[types.Object]*ast.FuncDecl, boundKinds map[*ast.FuncDecl]genericMethodBoundKind) genericMethodBoundKind {
+	if typeInfo == nil || typeInfo.info == nil || fn == nil || fn.Body == nil {
+		return genericMethodBoundNone
+	}
+	calledBound := genericMethodBoundNone
+	ast.Inspect(fn.Body, func(node ast.Node) bool {
+		if calledBound&genericMethodBoundRustClone != 0 && calledBound&genericMethodBoundGoValueClone != 0 || node == nil {
+			return false
+		}
+		call, ok := node.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		targetObj, ok := callFunctionObjectFromTypeInfo(typeInfo, call)
+		if !ok {
+			return true
+		}
+		target := functionByObject[targetObj]
+		if target == nil {
+			return true
+		}
+		nextBound := calledBound | boundKinds[target]
+		if nextBound != calledBound {
+			calledBound = nextBound
+			if calledBound&genericMethodBoundRustClone != 0 && calledBound&genericMethodBoundGoValueClone != 0 {
+				return false
+			}
+		}
+		return true
+	})
+	return calledBound
+}
+
 func methodCalledBoundKind(typeInfo *TypeInfo, method *ast.FuncDecl, methodByObject map[types.Object]*ast.FuncDecl, methodByName map[string]*ast.FuncDecl, boundKinds map[*ast.FuncDecl]genericMethodBoundKind) genericMethodBoundKind {
 	if typeInfo == nil || typeInfo.info == nil || method == nil || method.Body == nil {
 		return genericMethodBoundNone
@@ -2345,6 +2443,9 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	}
 	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.MethodsByType) == 0 {
 		currentContext.Package.MethodsByType = collectPackageMethods([]*ast.File{file})
+	}
+	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.FunctionBoundKinds) == 0 {
+		currentContext.Package.FunctionBoundKinds = genericFunctionBoundKinds(collectPackageFunctions([]*ast.File{file}))
 	}
 
 	// Transpile the body
