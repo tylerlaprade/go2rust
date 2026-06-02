@@ -1671,8 +1671,9 @@ func pushCallFuncLitSiblingCaptureClones(call *ast.CallExpr) func() {
 }
 
 type syncOnceReceiverInfo struct {
-	expr   ast.Expr
-	fields []string
+	expr         ast.Expr
+	fields       []string
+	sourceMapped bool
 }
 
 func isSyncOnceDoCall(call *ast.CallExpr) bool {
@@ -1692,8 +1693,8 @@ func syncOnceDoReceiver(call *ast.CallExpr) (syncOnceReceiverInfo, bool) {
 	if typeInfo == nil {
 		return syncOnceReceiverInfo{}, false
 	}
-	if isGoSyncOnceMethodReceiver(typeInfo.GetType(sel.X)) {
-		return syncOnceReceiverInfo{expr: sel.X}, true
+	if receiverType := typeInfo.GetType(sel.X); isGoSyncOnceMethodReceiver(receiverType) {
+		return syncOnceReceiverInfo{expr: sel.X, sourceMapped: isSourceMappedSyncOnceType(receiverType)}, true
 	}
 	if typeInfo.info == nil {
 		return syncOnceReceiverInfo{}, false
@@ -1718,7 +1719,7 @@ func syncOnceDoReceiver(call *ast.CallExpr) (syncOnceReceiverInfo, bool) {
 	if !ok {
 		return syncOnceReceiverInfo{}, false
 	}
-	return syncOnceReceiverInfo{expr: sel.X, fields: fields}, true
+	return syncOnceReceiverInfo{expr: sel.X, fields: fields, sourceMapped: isSourceMappedSyncOnceType(sig.Recv().Type())}, true
 }
 
 func isGoSyncOnceMethodReceiver(typ types.Type) bool {
@@ -1729,6 +1730,20 @@ func isGoSyncOnceMethodReceiver(typ types.Type) bool {
 		typ = ptr.Elem()
 	}
 	return isGoSyncOnceNamedType(typ)
+}
+
+func isSourceMappedSyncOnceType(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
+		typ = ptr.Elem()
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	return ok && named.Obj() != nil && named.Obj().Pkg() != nil &&
+		named.Obj().Pkg().Path() == "sync" &&
+		named.Obj().Name() == "Once" &&
+		isSourceMappedPackagePath(named.Obj().Pkg().Path())
 }
 
 func isSyncOnceDoFuncLitCall(call *ast.CallExpr) bool {
@@ -1792,6 +1807,17 @@ func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
 		return false
 	}
 	funcLit := call.Args[0].(*ast.FuncLit)
+	if receiver.sourceMapped {
+		out.WriteString("{ let __once = ")
+		writeSyncOnceReceiverClone(out, receiver)
+		out.WriteString("; __once.r#do(")
+		WriteWrapperPrefix(out)
+		TranspileFuncLitBox(out, funcLit)
+		WriteWrapperSuffix(out)
+		out.WriteString(") }")
+		return true
+	}
+
 	hasClosureDefer := funcLit.Body != nil && checkHasDefer(funcLit.Body.List)
 	oldFunctionHasDefer := currentFunctionHasDefer
 	currentFunctionHasDefer = hasClosureDefer
@@ -1847,7 +1873,13 @@ func writeSyncOnceDoFunctionValueCall(out *strings.Builder, call *ast.CallExpr) 
 	out.WriteString("{ let __once = ")
 	writeSyncOnceReceiverClone(out, receiver)
 	out.WriteString("; __once.r#do(")
+	if receiver.sourceMapped {
+		WriteWrapperPrefix(out)
+	}
 	out.WriteString(arg.String())
+	if receiver.sourceMapped {
+		WriteWrapperSuffix(out)
+	}
 	out.WriteString(") }")
 	return true
 }

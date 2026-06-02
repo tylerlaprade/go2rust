@@ -5227,6 +5227,61 @@ func initHolder() {
 	}
 }
 
+func TestSourceMappedSyncOnceDoFuncLitWrapsGeneratedArgument(t *testing.T) {
+	rust := transpileTypedConcurrentPackageWithMapping(t, "internal/godebug", `package godebug
+
+import "sync"
+
+type Setting struct {
+	once sync.Once
+	n int
+}
+
+func (s *Setting) Value() {
+	go func() {}()
+	s.once.Do(func() {
+		s.n++
+	})
+}
+`, map[string]string{"sync": "sync"})
+
+	if strings.Contains(rust, "__once.r#do(||") {
+		t.Fatalf("source-mapped sync.Once.Do should not pass a raw closure:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__once.r#do(Arc::new(Mutex::new(Some(") ||
+		!strings.Contains(rust, "Box::new(move ||") {
+		t.Fatalf("source-mapped sync.Once.Do should wrap function literal arguments in the generated func() handle type:\n%s", rust)
+	}
+}
+
+func TestSourceMappedSyncOnceDoMethodValueWrapsGeneratedArgument(t *testing.T) {
+	rust := transpileTypedConcurrentPackageWithMapping(t, "internal/godebug", `package godebug
+
+import "sync"
+
+type Setting struct {
+	nonDefaultOnce sync.Once
+	n int
+}
+
+func (s *Setting) IncNonDefault() {
+	go func() {}()
+	s.nonDefaultOnce.Do(s.register)
+}
+
+func (s *Setting) register() {
+	s.n++
+}
+`, map[string]string{"sync": "sync"})
+
+	if strings.Contains(rust, "__once.r#do({ let __recv = self.clone(); Box::new") {
+		t.Fatalf("source-mapped sync.Once.Do should not pass a raw method-value closure:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__once.r#do(Arc::new(Mutex::new(Some({ let mut __recv = self.clone(); Box::new") {
+		t.Fatalf("source-mapped sync.Once.Do should wrap method-value arguments in the generated func() handle type:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoMethodFunctionParameterPassesHandle(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()
