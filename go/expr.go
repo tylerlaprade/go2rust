@@ -13040,6 +13040,9 @@ func writeUnsafePointerLikeUintptrConversion(out *strings.Builder, arg ast.Expr)
 		out.WriteString(".0")
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()) as usize")
+	} else if isExpressionResultBare(arg) {
+		TranspileExpression(out, arg)
+		out.WriteString(" as usize")
 	} else {
 		out.WriteString("(*")
 		writeUnsafePointerLikeHandle(out, arg)

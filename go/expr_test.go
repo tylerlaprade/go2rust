@@ -3695,6 +3695,26 @@ func methods(p unsafe.Pointer, n int) []Method {
 	}
 }
 
+func TestUintptrConversionFromUnsafePointerArrayIndexKeepsIndexedScalarBare(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "unsafe"
+
+func addr(x any) uintptr {
+	go func() {}()
+	return uintptr((*[2]unsafe.Pointer)(unsafe.Pointer(&x))[1])
+}
+`)
+
+	if strings.Contains(rust, "].clone() }.borrow()") ||
+		strings.Contains(rust, "].clone() }.lock()") {
+		t.Fatalf("uintptr conversion from unsafe pointer array index should not borrow the indexed scalar:\n%s", rust)
+	}
+	if !strings.Contains(rust, "].clone()") {
+		t.Fatalf("uintptr conversion from unsafe pointer array index should keep the indexed scalar value:\n%s", rust)
+	}
+}
+
 func TestUnsafePointerToPointerConversionUsesTypedUnsupportedPointee(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

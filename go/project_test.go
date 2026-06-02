@@ -4599,6 +4599,44 @@ func main() {
 	}
 }
 
+func TestSourceStdlibSyncPoolRaceAddrGeneratedIndexScalarIsBare(t *testing.T) {
+	t.Setenv(sourceStdlibPackagesEnv, "sync,internal/sync")
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/source-stdlib-sync
+
+go 1.24
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "sync"
+
+func main() {
+	var m sync.Map
+	m.Store("key", "value")
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	poolRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "sync", "pool.rs"))
+	if strings.Contains(poolRS, "].clone() }.borrow()") ||
+		strings.Contains(poolRS, "].clone() }.lock()") {
+		snippet := poolRS
+		if start := strings.Index(poolRS, "pub fn pool_race_addr"); start >= 0 {
+			end := start + 1200
+			if end > len(poolRS) {
+				end = len(poolRS)
+			}
+			snippet = poolRS[start:end]
+		}
+		t.Fatalf("source stdlib poolRaceAddr uintptr index should stay bare, got:\n%s", snippet)
+	}
+}
+
 func TestMappedImportedTypeUsesDeclaringModulePath(t *testing.T) {
 	fset := token.NewFileSet()
 	mutexPkg := parsePackageForReachabilityTest(t, fset, "example.com/internal/sync", "mutex.go", `package sync
