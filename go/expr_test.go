@@ -3964,6 +3964,84 @@ func boxMap() any {
 	}
 }
 
+func TestMapCallArgumentToAnyBoxesMapHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func typeOf(a any) {}
+
+func use[K comparable, V any](m map[K]V) {
+	typeOf(m)
+}
+`)
+
+	if strings.Contains(rust, "Box::new((*m.borrow().as_ref().unwrap()).clone()) as Box<dyn Any") ||
+		strings.Contains(rust, "Box::new((*m.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any") {
+		t.Fatalf("map value passed to any should box the map handle, not clone the BTreeMap:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(m.clone()) as Box<dyn Any") {
+		t.Fatalf("map value passed to any should clone the map handle into Any:\n%s", rust)
+	}
+}
+
+func TestInternalABITypeOfMapTypeCallUsesTypedMapIntrinsic(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevContext := GetTranspileContext()
+	prevCD := GetConcurrencyDetector()
+	t.Cleanup(func() {
+		currentTypeInfo = prevTypeInfo
+		SetTranspileContext(prevContext)
+		SetConcurrencyDetector(prevCD)
+	})
+
+	cd := NewConcurrencyDetector()
+	cd.hasGoroutines = true
+	SetConcurrencyDetector(cd)
+
+	abiIdent := ast.NewIdent("abi")
+	mIdent := ast.NewIdent("m")
+	call := &ast.CallExpr{Fun: &ast.SelectorExpr{
+		X:   &ast.CallExpr{Fun: &ast.SelectorExpr{X: abiIdent, Sel: ast.NewIdent("TypeOf")}, Args: []ast.Expr{mIdent}},
+		Sel: ast.NewIdent("MapType"),
+	}}
+
+	abiPkg := types.NewPackage("internal/abi", "abi")
+	currentPkg := types.NewPackage("internal/sync", "sync")
+	mapType := types.NewMap(types.Typ[types.String], types.Typ[types.Int])
+	currentTypeInfo = &TypeInfo{
+		info: &types.Info{
+			Uses: map[*ast.Ident]types.Object{
+				abiIdent: types.NewPkgName(token.NoPos, currentPkg, "abi", abiPkg),
+				mIdent:   types.NewVar(token.NoPos, currentPkg, "m", mapType),
+			},
+			Types: map[ast.Expr]types.TypeAndValue{
+				mIdent: {Type: mapType},
+			},
+		},
+		pkg: currentPkg,
+	}
+	SetTranspileContext(&TranspileContext{PackageMapping: map[string]string{"internal/abi": "internal_abi"}})
+
+	var out strings.Builder
+	TranspileExpression(&out, call)
+	got := out.String()
+
+	for _, forbidden := range []string{"type_of(", ".map_type()", "unsupported Rust Any payload"} {
+		if strings.Contains(got, forbidden) {
+			t.Fatalf("internal/abi.TypeOf(map).MapType should not route through erased Any runtime path %q:\n%s", forbidden, got)
+		}
+	}
+	for _, want := range []string{
+		"internal_abi::SwissMapType::default()",
+		"internal_abi::Kind(Arc::new(Mutex::new(Some(internal_abi::MAP as u8))))",
+		"let __hasher: Box<dyn FnMut(Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<usize>>>) -> usize + Send + Sync>",
+		"wrapping_mul(2654435761usize).wrapping_add(__seed_value)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %q in:\n%s", want, got)
+		}
+	}
+}
+
 func TestTypedNilChannelAnyVarInitializerBoxesTypedNilChannel(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

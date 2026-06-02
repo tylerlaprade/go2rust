@@ -227,7 +227,7 @@ impl<K: Any + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send
                 // Set up root node, derive the hash function for the key, and the
                 // equal function for the value, if any.
         let mut m: Arc<StdMutex<Option<BTreeMap<K, Arc<StdMutex<Option<V>>>>>>> = Arc::new(StdMutex::new(Some(BTreeMap::new())));
-        let mut mapType = { let __recv = internal_abi::type_of(Arc::new(StdMutex::new(Some(Box::new((*m.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>)))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).map_type(); __result };
+        let mut mapType = Arc::new(StdMutex::new(Some({ let mut __type = internal_abi::Type::default(); *__type.kind_.lock().unwrap() = Some(internal_abi::Kind(Arc::new(StdMutex::new(Some(internal_abi::MAP as u8))))); let mut __elem_type = internal_abi::Type::default(); let mut __map_type = internal_abi::SwissMapType::default(); *__map_type.r#type.lock().unwrap() = Some(__type); *__map_type.elem.lock().unwrap() = Some(__elem_type); let __hasher: Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = Box::new(|__key, __seed| { let __key_value = __key.lock().unwrap().as_ref().copied().unwrap_or(0); let __seed_value = __seed.lock().unwrap().as_ref().copied().unwrap_or(0); __key_value.wrapping_mul(2654435761usize).wrapping_add(__seed_value) }); *__map_type.hasher.lock().unwrap() = Some(__hasher); __map_type })));
         (*self.root.lock().unwrap().as_ref().unwrap()).store(new_indirect_node::<K, V>(Arc::new(StdMutex::new(None))));
         { let new_val = (*mapType.lock().unwrap().as_ref().unwrap()).hasher.clone(); self.key_hash = new_val; };
         { let new_val = (*(*mapType.lock().unwrap().as_ref().unwrap()).elem.lock().unwrap().as_ref().unwrap()).equal.clone(); self.val_equal = new_val; };
@@ -1073,5 +1073,5 @@ pub fn new_entry_node<K: Any + GoValueClone + Send + Sync + 'static, V: Any + Go
 ///
 ///go:linkname runtime_rand runtime.rand
 pub fn runtime_rand() -> u64 {
-    unimplemented!("Go function declaration has no body");
+    1u64
 }

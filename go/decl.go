@@ -3503,6 +3503,13 @@ func writeRuntimeLinkedFunctionBody(out *strings.Builder, fn *ast.FuncDecl, inde
 			writeInternalABITypeOfIntrinsicBody(out, fn, indent)
 			return true
 		}
+	case "internal/sync":
+		switch fn.Name.Name {
+		case "runtime_rand":
+			out.WriteString(indent)
+			out.WriteString("1u64\n")
+			return true
+		}
 	case "internal/bytealg":
 		switch fn.Name.Name {
 		case "Count":

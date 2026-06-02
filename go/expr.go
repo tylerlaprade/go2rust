@@ -6558,6 +6558,7 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 		typeInfo := GetTypeInfo()
 		if _, ok := typedNilConversionType(call); ok {
 			TranspileExpression(out, call)
+		} else if writeAnyHandleBoxInnerValue(out, expr) {
 		} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
 			out.WriteString("{ let __v = ")
 			TranspileExpression(out, call)
@@ -6567,6 +6568,7 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 		} else if !writeOwnedExpressionValue(out, expr) {
 			writeMaybeUnwrappedExpression(out, expr)
 		}
+	} else if writeAnyHandleBoxInnerValue(out, expr) {
 	} else if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsPointer(expr) {
 		TranspileExpressionContext(out, expr, LValue)
 		out.WriteString(".clone()")
@@ -6577,6 +6579,155 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 	}
 	out.WriteString(") as ")
 	out.WriteString(rustAnyTraitObject())
+}
+
+func writeInternalABITypeOfMapTypeCall(out *strings.Builder, call *ast.CallExpr) bool {
+	arg, ok := internalABITypeOfMapTypeArg(call)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString(`unimplemented!("type info required to lower internal/abi.TypeOf(map).MapType")`)
+		return true
+	}
+	argType := typeInfo.GetType(arg)
+	if argType == nil {
+		out.WriteString(`unimplemented!("type info required to lower internal/abi.TypeOf(map).MapType")`)
+		return true
+	}
+	if _, ok := coreUnderlyingType(argType).(*types.Map); !ok {
+		return false
+	}
+	writeInternalABIMapTypeValue(out)
+	return true
+}
+
+func internalABITypeOfMapTypeArg(call *ast.CallExpr) (ast.Expr, bool) {
+	if call == nil {
+		return nil, false
+	}
+	mapTypeSel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok || mapTypeSel.Sel == nil || mapTypeSel.Sel.Name != "MapType" {
+		return nil, false
+	}
+	typeOfCall, ok := unwrapParens(mapTypeSel.X).(*ast.CallExpr)
+	if !ok || len(typeOfCall.Args) != 1 || !isInternalABITypeOfCall(typeOfCall) {
+		return nil, false
+	}
+	return typeOfCall.Args[0], true
+}
+
+func isInternalABITypeOfCall(call *ast.CallExpr) bool {
+	if call == nil {
+		return false
+	}
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok || sel.Sel == nil || sel.Sel.Name != "TypeOf" {
+		return false
+	}
+	base, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	pkgName, ok := typeInfo.info.Uses[base].(*types.PkgName)
+	return ok && pkgName.Imported() != nil && pkgName.Imported().Path() == "internal/abi"
+}
+
+func writeInternalABIMapTypeValue(out *strings.Builder) {
+	qualifier := internalABICrateQualifier()
+	outer := GetOuterWrapperType()
+	inner := GetInnerWrapperType()
+	traitSuffix := ""
+	if NeedsConcurrentWrapper() {
+		traitSuffix = " + Send + Sync"
+	}
+
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let mut __type = ")
+	out.WriteString(qualifier)
+	out.WriteString("Type::default(); *__type.kind_")
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(")
+	out.WriteString(qualifier)
+	out.WriteString("Kind(")
+	WriteWrapperPrefix(out)
+	out.WriteString(qualifier)
+	out.WriteString("MAP as u8")
+	WriteWrapperSuffix(out)
+	out.WriteString(")); let mut __elem_type = ")
+	out.WriteString(qualifier)
+	out.WriteString("Type::default(); let mut __map_type = ")
+	out.WriteString(qualifier)
+	out.WriteString("SwissMapType::default(); *__map_type.r#type")
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(__type); *__map_type.elem")
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(__elem_type); let __hasher: Box<dyn FnMut(")
+	out.WriteString(outer)
+	out.WriteString("<")
+	out.WriteString(inner)
+	out.WriteString("<Option<usize>>>, ")
+	out.WriteString(outer)
+	out.WriteString("<")
+	out.WriteString(inner)
+	out.WriteString("<Option<usize>>>) -> usize")
+	out.WriteString(traitSuffix)
+	out.WriteString("> = Box::new(|__key, __seed| { let __key_value = __key")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().copied().unwrap_or(0); let __seed_value = __seed")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().copied().unwrap_or(0); __key_value.wrapping_mul(2654435761usize).wrapping_add(__seed_value) }); *__map_type.hasher")
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(__hasher); __map_type }")
+	WriteWrapperSuffix(out)
+}
+
+func internalABICrateQualifier() string {
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.pkg != nil && typeInfo.pkg.Path() == "internal/abi" {
+		return ""
+	}
+	if ctx := GetTranspileContext(); ctx != nil && ctx.PackageMapping != nil {
+		if crateName := ctx.PackageMapping["internal/abi"]; crateName != "" {
+			return crateName + "::"
+		}
+	}
+	return "internal_abi::"
+}
+
+func writeAnyHandleBoxInnerValue(out *strings.Builder, expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || expr == nil {
+		return false
+	}
+	if call, ok := expr.(*ast.CallExpr); ok {
+		if _, ok := typedNilConversionType(call); ok {
+			return false
+		}
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil || !anyBoxedConcreteValueKeepsHandle(typ) {
+		return false
+	}
+	TranspileExpressionContext(out, expr, LValue)
+	out.WriteString(".clone()")
+	return true
+}
+
+func anyBoxedConcreteValueKeepsHandle(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	switch types.Unalias(typ).Underlying().(type) {
+	case *types.Pointer, *types.Slice, *types.Map, *types.Chan, *types.Signature:
+		return true
+	default:
+		return false
+	}
 }
 
 func writeBareAnyReferenceWrappedClone(out *strings.Builder, expr ast.Expr) bool {
@@ -15405,6 +15556,10 @@ func writeStringsBuilderRawScalarArg(out *strings.Builder, arg ast.Expr) {
 }
 
 func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
+	if writeInternalABITypeOfMapTypeCall(out, call) {
+		return
+	}
+
 	// Check if this is a stdlib function we need to replace
 	if handler := GetStdlibHandler(call); handler != nil {
 		handler(out, call)
@@ -16123,49 +16278,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					}
 				} else {
 					// Need to box the value as Box<dyn Any>
-					outerWrapper := GetOuterWrapperType()
-					innerWrapper := GetInnerWrapperType()
-					out.WriteString(outerWrapper + "::new(" + innerWrapper + "::new(Some(Box::new(")
-
-					// Check if the argument is a wrapped variable that needs unwrapping
-					isWrappedVar := false
-					if ident, ok := arg.(*ast.Ident); ok {
-						switch ident.Name {
-						case "nil", "true", "false":
-							// Not wrapped vars
-						default:
-							if _, isConst := localConstants[ident.Name]; !isConst {
-								if _, isRange := rangeLoopVars[ident.Name]; !isRange {
-									isWrappedVar = true
-								}
-							}
-						}
-					}
-
-					if isWrappedVar {
-						ident := arg.(*ast.Ident)
-						// Variable — unwrap to get the inner value, then box it
-						out.WriteString("(*")
-						out.WriteString(EscapeRustIdent(ident.Name))
-						WriteBorrowMethod(out, false)
-						out.WriteString(".as_ref().unwrap()).clone()")
-					} else {
-						// Literal or expression — emit without wrapping
-						// TranspileExpression may add wrapper, so capture and strip it
-						var buf strings.Builder
-						TranspileExpression(&buf, arg)
-						s := buf.String()
-						wrapPrefix := outerWrapper + "::new(" + innerWrapper + "::new(Some("
-						wrapSuffix := ")))"
-						if strings.HasPrefix(s, wrapPrefix) && strings.HasSuffix(s, wrapSuffix) {
-							out.WriteString(s[len(wrapPrefix) : len(s)-len(wrapSuffix)])
-						} else {
-							out.WriteString(s)
-						}
-					}
-					out.WriteString(") as ")
-					out.WriteString(rustAnyTraitObject())
-					out.WriteString(")))")
+					WriteWrapperPrefix(out)
+					writeInterfaceBoxedValue(out, arg)
+					WriteWrapperSuffix(out)
 				}
 				continue
 			}

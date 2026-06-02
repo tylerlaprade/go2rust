@@ -157,6 +157,28 @@ func TestTranspileSyncRuntimeLinkedFunctionsUseLocalRuntimeBodies(t *testing.T) 
 	}
 }
 
+func TestTranspileInternalSyncRuntimeRandUsesLocalRuntimeBody(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	currentTypeInfo = &TypeInfo{pkg: types.NewPackage("internal/sync", "sync")}
+	t.Cleanup(func() {
+		currentTypeInfo = prevTypeInfo
+	})
+
+	var out strings.Builder
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("runtime_rand"),
+		Type: &ast.FuncType{Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("uint64")}}}},
+	}, token.NewFileSet(), nil)
+
+	got := out.String()
+	if strings.Contains(got, "Go function declaration has no body") {
+		t.Fatalf("internal/sync runtime_rand should not use the generic bodyless fallback:\n%s", got)
+	}
+	if !strings.Contains(got, "1u64") {
+		t.Fatalf("internal/sync runtime_rand should emit a deterministic local body:\n%s", got)
+	}
+}
+
 func TestTranspileSyncAtomicRuntimeIntrinsicsUseWrappedAddressBodies(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	currentTypeInfo = &TypeInfo{pkg: types.NewPackage("sync/atomic", "atomic")}
