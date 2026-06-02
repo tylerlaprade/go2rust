@@ -2878,6 +2878,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/file_operations"
 }
 
+@test "XFAIL: generic_any_method_value_copy" {
+    run_xfail_test "tests/XFAIL/generic_any_method_value_copy"
+}
+
 @test "XFAIL: generic_type_param_method_call" {
     run_xfail_test "tests/XFAIL/generic_type_param_method_call"
 }

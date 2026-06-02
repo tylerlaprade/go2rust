@@ -1,0 +1,8 @@
+[package]
+name = "generic_any_method_value_copy"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "generic_any_method_value_copy"
+path = "main.rs"
