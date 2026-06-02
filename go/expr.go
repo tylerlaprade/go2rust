@@ -12111,6 +12111,10 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 
+	if writeNamedPointerNilConversion(out, call) {
+		return
+	}
+
 	if target, ok := typedPointerTypeConversionTarget(call); ok {
 		writePointerTypeConversion(out, target, call.Args[0])
 		return
@@ -12592,6 +12596,33 @@ func writeTypedNilConversion(out *strings.Builder, call *ast.CallExpr) bool {
 		return true
 	}
 	writeTypedWrappedNone(out, goTypesTypeToRust(targetType))
+	return true
+}
+
+func writeNamedPointerNilConversion(out *strings.Builder, call *ast.CallExpr) bool {
+	if call == nil || len(call.Args) != 1 {
+		return false
+	}
+	ident, ok := call.Args[0].(*ast.Ident)
+	if !ok || ident.Name != "nil" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsTypeConversion(call) {
+		return false
+	}
+	named, ok := typeInfo.GetType(call).(*types.Named)
+	if !ok {
+		return false
+	}
+	ptr, ok := types.Unalias(named.Underlying()).(*types.Pointer)
+	if !ok {
+		return false
+	}
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("(")
+	writeTypedWrappedNone(out, goTypesTypeToRust(ptr.Elem()))
+	out.WriteString(")")
 	return true
 }
 
@@ -14010,7 +14041,9 @@ func writeTypeAssertionInputClone(out *strings.Builder, expr ast.Expr) {
 func writeTypedWrappedNone(out *strings.Builder, innerType string) {
 	trackWrapperImports()
 	if NeedsConcurrentWrapper() {
-		out.WriteString("Arc::new(Mutex::new(None::<")
+		out.WriteString("Arc::new(")
+		out.WriteString(GetInnerWrapperType())
+		out.WriteString("::new(None::<")
 		out.WriteString(innerType)
 		out.WriteString(">))")
 		return

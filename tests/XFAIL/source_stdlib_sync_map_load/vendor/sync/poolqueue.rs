@@ -246,7 +246,7 @@ impl poolDequeue {
                 // the queue is actually still full.
                 // The head slot is free, so we own it.
         if (*val.lock().unwrap()).is_none() {
-        { let new_val = Box::new(dequeueNil(Arc::new(StdMutex::new(Some(None))))) as Box<dyn Any + Send + Sync>; *val.lock().unwrap() = Some(new_val); };
+        { let new_val = Box::new(dequeueNil(Arc::new(StdMutex::new(None::<AnonymousStruct1>)))) as Box<dyn Any + Send + Sync>; *val.lock().unwrap() = Some(new_val); };
     }
         { let _ = (*val.lock().unwrap().as_ref().unwrap()); unimplemented!("unsafe.Pointer dereference assignment"); };
                 // Increment head. This passes ownership of slot to popTail
@@ -286,7 +286,7 @@ impl poolDequeue {
                 // slot.
                 // We successfully took back slot.
         let mut val = Arc::new(StdMutex::new({ let __ptr = Arc::new(StdMutex::new(Some(Arc::as_ptr(&slot) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<Box<dyn Any + Send + Sync>>(unimplemented!("unsafe.Pointer conversion to Box<dyn Any + Send + Sync>")) } }));
-        if { let __tmp_x = (*val.lock().unwrap().as_ref().unwrap()); let __tmp_y = dequeueNil(Arc::new(StdMutex::new(Some(None)))); __tmp_x == __tmp_y } {
+        if { let __tmp_x = (*val.lock().unwrap().as_ref().unwrap()); let __tmp_y = dequeueNil(Arc::new(StdMutex::new(None::<AnonymousStruct1>))); __tmp_x == __tmp_y } {
         *val.lock().unwrap() = None;
     }
                 // Zero the slot. Unlike popTail, this isn't racing with
@@ -326,7 +326,7 @@ impl poolDequeue {
                 // Success.
                 // We now own slot.
         let mut val = Arc::new(StdMutex::new({ let __ptr = Arc::new(StdMutex::new(Some(Arc::as_ptr(&slot) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<Box<dyn Any + Send + Sync>>(unimplemented!("unsafe.Pointer conversion to Box<dyn Any + Send + Sync>")) } }));
-        if { let __tmp_x = (*val.lock().unwrap().as_ref().unwrap()); let __tmp_y = dequeueNil(Arc::new(StdMutex::new(Some(None)))); __tmp_x == __tmp_y } {
+        if { let __tmp_x = (*val.lock().unwrap().as_ref().unwrap()); let __tmp_y = dequeueNil(Arc::new(StdMutex::new(None::<AnonymousStruct1>))); __tmp_x == __tmp_y } {
         *val.lock().unwrap() = None;
     }
                 // Tell pushHead that we're done with this slot. Zeroing the

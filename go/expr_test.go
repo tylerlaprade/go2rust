@@ -3434,6 +3434,32 @@ func zero() Value {
 	}
 }
 
+func TestNamedPointerNilConversionConstructsNamedHandle(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Mutex struct{}
+
+type P *struct{}
+
+func box() any {
+	go func() {}()
+	var x any
+	x = P(nil)
+	return x
+}
+`)
+
+	if strings.Contains(rust, "Some(None)") {
+		t.Fatalf("named pointer nil conversion should not double-wrap nil:\n%s", rust)
+	}
+	if strings.Contains(rust, "P(Arc::new(Mutex::new") {
+		t.Fatalf("named pointer nil conversion should use the aliased wrapper mutex:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(P(Arc::new(StdMutex::new(None::<AnonymousStruct1>)))) as Box<dyn Any + Send + Sync>") {
+		t.Fatalf("named pointer nil conversion should construct the named pointer handle before boxing as any:\n%s", rust)
+	}
+}
+
 func TestFuncLiteralReturningAnyBoxesUnsafePointerCall(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
