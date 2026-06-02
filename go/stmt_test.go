@@ -1672,8 +1672,10 @@ func use(all map[string]Object) {
 	if strings.Contains(rust, "let new_val = (*resolve(") {
 		t.Fatalf("interface range var assignment from call should not unwrap the returned handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "obj = resolve(") || !strings.Contains(rust, ".clone()") {
-		t.Fatalf("interface range var assignment from call should replace the handle:\n%s", rust)
+	if !strings.Contains(rust, "let __iface_handle = resolve(") ||
+		(!strings.Contains(rust, "*obj.borrow_mut() = (*__iface_guard).clone();") &&
+			!strings.Contains(rust, "*obj.lock().unwrap() = (*__iface_guard).clone();")) {
+		t.Fatalf("interface range var assignment from call should copy the returned interface value into the existing slot:\n%s", rust)
 	}
 }
 
@@ -1700,9 +1702,53 @@ func assign(k Type, e Type) (Type, Type) {
 		t.Fatalf("parallel interface assignment temp should copy the interface handle, not the boxed value:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let __tmp_0 = k.clone();") ||
-		!strings.Contains(rust, "key = __tmp_0;") ||
-		!strings.Contains(rust, "elem = __tmp_1;") {
-		t.Fatalf("parallel interface assignment should replace interface handles from temps:\n%s", rust)
+		!strings.Contains(rust, "let __iface_handle = __tmp_0;") ||
+		!strings.Contains(rust, "let __iface_handle = __tmp_1;") ||
+		(!strings.Contains(rust, "*key.borrow_mut() = (*__iface_guard).clone();") &&
+			!strings.Contains(rust, "*key.lock().unwrap() = (*__iface_guard).clone();")) ||
+		(!strings.Contains(rust, "*elem.borrow_mut() = (*__iface_guard).clone();") &&
+			!strings.Contains(rust, "*elem.lock().unwrap() = (*__iface_guard).clone();")) {
+		t.Fatalf("parallel interface assignment should copy temp interface values into existing slots:\n%s", rust)
+	}
+}
+
+func TestClosureCaptureSeesReboundInterfaceAssignment(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Expr interface {
+	exprNode()
+}
+
+type Ident struct{}
+
+func (*Ident) exprNode() {}
+
+func grouped() int {
+	var typ Expr
+	var source Expr
+	add := func() int {
+		if typ == nil {
+			return -1
+		}
+		return 1
+	}
+	source = &Ident{}
+	typ = source
+	return add()
+}
+`)
+
+	if !strings.Contains(rust, "let typ_closure_clone = typ.clone();") {
+		t.Fatalf("closure should capture the interface variable slot:\n%s", rust)
+	}
+	if strings.Contains(rust, "typ = source.clone()") ||
+		strings.Contains(rust, "typ = Rc::new") {
+		t.Fatalf("interface assignment after closure creation should not replace the captured slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __iface_handle = source.clone();") ||
+		(!strings.Contains(rust, "*typ.borrow_mut() = (*__iface_guard).clone();") &&
+			!strings.Contains(rust, "*typ.lock().unwrap() = (*__iface_guard).clone();")) {
+		t.Fatalf("interface assignment after closure creation should copy into the existing slot:\n%s", rust)
 	}
 }
 
@@ -5923,9 +5969,11 @@ func Walk(v Visitor, node Node) {
 		t.Fatalf("assignment from a method call on the same interface handle should not borrow the assigned variable directly:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let __recv = v.clone();") ||
-		(!strings.Contains(rust, "v = { let __recv = v.clone(); let __result = (*__recv.borrow().as_ref().unwrap()).visit") &&
-			!strings.Contains(rust, "v = { let __recv = v.clone(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).visit")) ||
-		!strings.Contains(rust, "__result }") {
+		(!strings.Contains(rust, "let __iface_handle = { let __recv = v.clone(); let __result = (*__recv.borrow().as_ref().unwrap()).visit") &&
+			!strings.Contains(rust, "let __iface_handle = { let __recv = v.clone(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).visit")) ||
+		!strings.Contains(rust, "__result }") ||
+		(!strings.Contains(rust, "*v.borrow_mut() = (*__iface_guard).clone();") &&
+			!strings.Contains(rust, "*v.lock().unwrap() = (*__iface_guard).clone();")) {
 		t.Fatalf("assignment from a method call on the same interface handle should clone the receiver before assignment:\n%s", rust)
 	}
 }
@@ -6330,9 +6378,9 @@ func assign(m Method, typ Type) Method {
 		strings.Contains(rust, ".lock().unwrap().as_ref().unwrap()).r#type =") {
 		t.Fatalf("local interface field assignment should not replace the field through an immutable struct borrow:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".borrow_mut().as_mut().unwrap()).r#type =") &&
-		!strings.Contains(rust, ".lock().unwrap().as_mut().unwrap()).r#type =") {
-		t.Fatalf("local interface field assignment should borrow the struct mutably:\n%s", rust)
+	if !strings.Contains(rust, "*(*m.borrow_mut().as_mut().unwrap()).r#type.borrow_mut() =") &&
+		!strings.Contains(rust, "*(*m.lock().unwrap().as_mut().unwrap()).r#type.lock().unwrap() =") {
+		t.Fatalf("local interface field assignment should borrow the struct mutably and update the field slot:\n%s", rust)
 	}
 }
 
@@ -6670,21 +6718,25 @@ func TestImportedTranspiledInterfaceAssignmentCopiesHandle(t *testing.T) {
 		t.Fatal("imported source-mapped interface assignment should copy the interface handle")
 	}
 	rust := out.String()
-	if strings.Contains(rust, "*key.borrow") || strings.Contains(rust, "*key.lock") || strings.Contains(rust, "Some(other") {
-		t.Fatalf("interface handle assignment should replace the handle, not wrap it inside the slot:\n%s", rust)
+	if strings.Contains(rust, "Some(other") {
+		t.Fatalf("interface handle assignment should not wrap an existing handle inside the slot:\n%s", rust)
 	}
-	if !strings.Contains(rust, "key = other.clone()") {
-		t.Fatalf("interface handle assignment should clone the RHS handle:\n%s", rust)
+	if !strings.Contains(rust, "let __iface_handle = other.clone()") ||
+		(!strings.Contains(rust, "*key.borrow_mut() = (*__iface_guard).clone();") &&
+			!strings.Contains(rust, "*key.lock().unwrap() = (*__iface_guard).clone();")) {
+		t.Fatalf("interface handle assignment should copy the RHS interface value into the existing slot:\n%s", rust)
 	}
 
 	out.Reset()
 	writeParallelAssignmentTarget(&out, lhs, "__tmp_0", rhs)
 	rust = out.String()
-	if strings.Contains(rust, "*key.borrow") || strings.Contains(rust, "*key.lock") || strings.Contains(rust, "Some(__tmp_0") {
-		t.Fatalf("parallel interface handle assignment should replace the handle, not wrap it inside the slot:\n%s", rust)
+	if strings.Contains(rust, "Some(__tmp_0") {
+		t.Fatalf("parallel interface handle assignment should not wrap an existing handle inside the slot:\n%s", rust)
 	}
-	if !strings.Contains(rust, "key = __tmp_0;") {
-		t.Fatalf("parallel interface handle assignment should use the captured RHS handle:\n%s", rust)
+	if !strings.Contains(rust, "let __iface_handle = __tmp_0") ||
+		(!strings.Contains(rust, "*key.borrow_mut() = (*__iface_guard).clone();") &&
+			!strings.Contains(rust, "*key.lock().unwrap() = (*__iface_guard).clone();")) {
+		t.Fatalf("parallel interface handle assignment should copy the captured RHS interface value into the existing slot:\n%s", rust)
 	}
 }
 

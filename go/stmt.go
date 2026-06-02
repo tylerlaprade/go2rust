@@ -4554,14 +4554,9 @@ func writeLocalInterfaceHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs
 		return true
 	}
 
-	if sel, ok := lhs.(*ast.SelectorExpr); ok && writePointerHandleSelectorTarget(out, sel) {
-		// Selector handle fields need the outer struct borrowed mutably so the
-		// field handle itself can be replaced.
-	} else {
-		TranspileExpressionContext(out, lhs, LValue)
-	}
-	out.WriteString(" = ")
-	writeLocalInterfaceHandleAssignmentValue(out, lhs, rhs, lhsType, true)
+	writeTranspiledInterfaceSlotAssignmentFromHandle(out, lhs, func() {
+		writeLocalInterfaceHandleAssignmentValue(out, lhs, rhs, lhsType, true)
+	})
 	return true
 }
 
@@ -4610,16 +4605,30 @@ func transpiledInterfaceHandleAssignmentTypes(lhs ast.Expr, rhs ast.Expr) bool {
 	return types.AssignableTo(rhsType, lhsType)
 }
 
-func writeTranspiledInterfaceHandleAssignmentTarget(out *strings.Builder, lhs ast.Expr, value string) {
+func writeTranspiledInterfaceAssignmentTarget(out *strings.Builder, lhs ast.Expr) {
 	if sel, ok := lhs.(*ast.SelectorExpr); ok && writePointerHandleSelectorTarget(out, sel) {
-		// Selector handle fields need the outer struct borrowed mutably so the
-		// field handle itself can be replaced.
+		// Selector handle fields need the outer struct borrowed mutably before
+		// the field slot can be updated.
 	} else {
 		TranspileExpressionContext(out, lhs, LValue)
 	}
-	out.WriteString(" = ")
-	out.WriteString(value)
-	out.WriteString(";")
+}
+
+func writeTranspiledInterfaceSlotAssignmentFromHandle(out *strings.Builder, lhs ast.Expr, writeHandle func()) {
+	out.WriteString("{ let __iface_handle = ")
+	writeHandle()
+	out.WriteString("; let __iface_guard = __iface_handle")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; *")
+	writeTranspiledInterfaceAssignmentTarget(out, lhs)
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = (*__iface_guard).clone(); }")
+}
+
+func writeTranspiledInterfaceHandleAssignmentTarget(out *strings.Builder, lhs ast.Expr, value string) {
+	writeTranspiledInterfaceSlotAssignmentFromHandle(out, lhs, func() {
+		out.WriteString(value)
+	})
 }
 
 // writeConcreteToTranspiledInterfaceAssignment boxes a concrete value assigned
@@ -4658,13 +4667,9 @@ func writeConcreteToTranspiledInterfaceAssignment(out *strings.Builder, lhs ast.
 	if !types.AssignableTo(rhsType, lhsType) {
 		return false
 	}
-	if sel, ok := lhs.(*ast.SelectorExpr); ok && writePointerHandleSelectorTarget(out, sel) {
-		// Selector handle fields need the outer struct borrowed mutably.
-	} else {
-		TranspileExpressionContext(out, lhs, LValue)
-	}
-	out.WriteString(" = ")
-	writeLocalInterfaceWrappedConstruction(out, rhs, ifaceName, lhsType)
+	writeTranspiledInterfaceSlotAssignmentFromHandle(out, lhs, func() {
+		writeLocalInterfaceWrappedConstruction(out, rhs, ifaceName, lhsType)
+	})
 	return true
 }
 

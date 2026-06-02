@@ -595,6 +595,10 @@ run_xfail_test() {
     run_test "tests/closure_map_assignment_capture"
 }
 
+@test "closure_rebound_handle_capture" {
+    run_test "tests/closure_rebound_handle_capture"
+}
+
 @test "closure_receiver_func_param_fnmut" {
     run_test "tests/closure_receiver_func_param_fnmut"
 }
