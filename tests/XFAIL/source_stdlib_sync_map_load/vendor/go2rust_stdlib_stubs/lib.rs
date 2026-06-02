@@ -235,7 +235,7 @@ where
 
 pub mod goarch {
     use super::*;
-    pub const PTR_SIZE: i32 = 0;
+    pub const PTR_SIZE: i32 = 8;
 }
 
 

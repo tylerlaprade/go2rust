@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"go/ast"
+	"go/constant"
 	"go/types"
 	"os"
 	"path/filepath"
@@ -35,9 +36,10 @@ type externalPromotedMethod struct {
 }
 
 type externalPackageStub struct {
-	Functions map[string]externalPackageStubFunction
-	Constants map[string]string
-	Variables map[string]string
+	Functions      map[string]externalPackageStubFunction
+	Constants      map[string]string
+	ConstantValues map[string]constant.Value
+	Variables      map[string]string
 }
 
 type externalPackageStubFunction struct {
@@ -563,7 +565,7 @@ func RegisterExternalPackageSelector(sel *ast.SelectorExpr) {
 		}
 		RegisterExternalPackageStubFunction(pkgName, ToSnakeCase(sel.Sel.Name), sig)
 	case *types.Const:
-		RegisterExternalPackageStubConstant(pkgName, rustConstName(sel.Sel.Name), obj.Type())
+		RegisterExternalPackageStubConstantValue(pkgName, rustConstName(sel.Sel.Name), obj.Type(), obj.Val())
 	case *types.Var:
 		RegisterExternalPackageStubVariable(pkgName, rustPackageGlobalName(sel.Sel.Name), obj.Type())
 	}
@@ -847,6 +849,10 @@ func RegisterExternalTypeStubFieldByRustType(typeName string, fieldName string, 
 }
 
 func RegisterExternalPackageStubConstant(pkgName string, constName string, constType types.Type) {
+	RegisterExternalPackageStubConstantValue(pkgName, constName, constType, nil)
+}
+
+func RegisterExternalPackageStubConstantValue(pkgName string, constName string, constType types.Type, constValue constant.Value) {
 	if pkgName == "" || constName == "" || constType == nil {
 		return
 	}
@@ -858,6 +864,11 @@ func RegisterExternalPackageStubConstant(pkgName string, constName string, const
 	}
 	pkg := ensureExternalPackageStub(pkgName)
 	pkg.Constants[constName] = goTypesConstTypeToRust(constType)
+	if constValue != nil {
+		pkg.ConstantValues[constName] = constValue
+	} else {
+		delete(pkg.ConstantValues, constName)
+	}
 }
 
 func RegisterExternalPackageStubVariable(pkgName string, varName string, varType types.Type) {
@@ -880,9 +891,10 @@ func ensureExternalPackageStub(pkgName string) *externalPackageStub {
 	stubs := currentExternalPackageStubs()
 	if stubs[pkgName] == nil {
 		stubs[pkgName] = &externalPackageStub{
-			Functions: make(map[string]externalPackageStubFunction),
-			Constants: make(map[string]string),
-			Variables: make(map[string]string),
+			Functions:      make(map[string]externalPackageStubFunction),
+			Constants:      make(map[string]string),
+			ConstantValues: make(map[string]constant.Value),
+			Variables:      make(map[string]string),
 		}
 	}
 	if stubs[pkgName].Functions == nil {
@@ -890,6 +902,9 @@ func ensureExternalPackageStub(pkgName string) *externalPackageStub {
 	}
 	if stubs[pkgName].Constants == nil {
 		stubs[pkgName].Constants = make(map[string]string)
+	}
+	if stubs[pkgName].ConstantValues == nil {
+		stubs[pkgName].ConstantValues = make(map[string]constant.Value)
 	}
 	if stubs[pkgName].Variables == nil {
 		stubs[pkgName].Variables = make(map[string]string)
@@ -1399,9 +1414,10 @@ func mergeExternalPackageStubs(dst map[string]*externalPackageStub, src map[stri
 		dstStub := dst[pkgName]
 		if dstStub == nil {
 			dstStub = &externalPackageStub{
-				Functions: make(map[string]externalPackageStubFunction),
-				Constants: make(map[string]string),
-				Variables: make(map[string]string),
+				Functions:      make(map[string]externalPackageStubFunction),
+				Constants:      make(map[string]string),
+				ConstantValues: make(map[string]constant.Value),
+				Variables:      make(map[string]string),
 			}
 			dst[pkgName] = dstStub
 		}
@@ -1411,6 +1427,9 @@ func mergeExternalPackageStubs(dst map[string]*externalPackageStub, src map[stri
 		if dstStub.Constants == nil {
 			dstStub.Constants = make(map[string]string)
 		}
+		if dstStub.ConstantValues == nil {
+			dstStub.ConstantValues = make(map[string]constant.Value)
+		}
 		if dstStub.Variables == nil {
 			dstStub.Variables = make(map[string]string)
 		}
@@ -1419,6 +1438,11 @@ func mergeExternalPackageStubs(dst map[string]*externalPackageStub, src map[stri
 		}
 		for name, constantType := range srcStub.Constants {
 			dstStub.Constants[name] = constantType
+		}
+		for name, constantValue := range srcStub.ConstantValues {
+			if constantValue != nil {
+				dstStub.ConstantValues[name] = constantValue
+			}
 		}
 		for name, variableType := range srcStub.Variables {
 			dstStub.Variables[name] = variableType
@@ -4129,7 +4153,7 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 			out.WriteString(": ")
 			out.WriteString(pkg.Constants[constName])
 			out.WriteString(" = ")
-			writeExternalStubConstDefaultValue(out, pkg.Constants[constName], integerTypes)
+			writeExternalPackageStubConstValue(out, pkg, constName, integerTypes)
 			out.WriteString(";\n")
 		}
 		if len(constNames) > 0 && (len(pkg.Functions) > 0 || len(pkg.Variables) > 0) {
@@ -4315,12 +4339,14 @@ func writeAstPackageStub(out *strings.Builder, pkg *externalPackageStub, integer
 		out.WriteString(": ")
 		out.WriteString(pkg.Constants[constName])
 		out.WriteString(" = ")
-		if pkg.Constants[constName] == "ast_ChanDir" && constName == "S_E_N_D" {
-			out.WriteString("ast_ChanDir(1)")
-		} else if pkg.Constants[constName] == "ast_ChanDir" && constName == "R_E_C_V" {
-			out.WriteString("ast_ChanDir(2)")
-		} else {
-			writeExternalStubConstDefaultValue(out, pkg.Constants[constName], integerTypes)
+		if !writeExternalPackageStubConstLiteral(out, pkg, constName, integerTypes) {
+			if pkg.Constants[constName] == "ast_ChanDir" && constName == "S_E_N_D" {
+				out.WriteString("ast_ChanDir(1)")
+			} else if pkg.Constants[constName] == "ast_ChanDir" && constName == "R_E_C_V" {
+				out.WriteString("ast_ChanDir(2)")
+			} else {
+				writeExternalStubConstDefaultValue(out, pkg.Constants[constName], integerTypes)
+			}
 		}
 		out.WriteString(";\n")
 	}
@@ -4752,7 +4778,7 @@ func writeParserPackageStub(out *strings.Builder, pkg *externalPackageStub, inte
 		out.WriteString(": ")
 		out.WriteString(pkg.Constants[constName])
 		out.WriteString(" = ")
-		writeExternalStubConstDefaultValue(out, pkg.Constants[constName], integerTypes)
+		writeExternalPackageStubConstValue(out, pkg, constName, integerTypes)
 		out.WriteString(";\n")
 	}
 	if len(constNames) > 0 && (len(pkg.Variables) > 0 || len(pkg.Functions) > 0) {
@@ -4817,7 +4843,9 @@ func writeTokenPackageStub(out *strings.Builder, pkg *externalPackageStub, integ
 			out.WriteString(strconv.Itoa(value))
 			out.WriteString(")")
 		} else {
-			writeExternalStubConstDefaultValue(out, constTypes[constName], integerTypes)
+			if !writeExternalPackageStubConstLiteral(out, pkg, constName, integerTypes) {
+				writeExternalStubConstDefaultValue(out, constTypes[constName], integerTypes)
+			}
 		}
 		out.WriteString(";\n")
 	}
@@ -5753,7 +5781,7 @@ func writeStrconvPackageStub(out *strings.Builder, pkg *externalPackageStub, int
 		out.WriteString(": ")
 		out.WriteString(pkg.Constants[constName])
 		out.WriteString(" = ")
-		writeExternalStubConstDefaultValue(out, pkg.Constants[constName], integerTypes)
+		writeExternalPackageStubConstValue(out, pkg, constName, integerTypes)
 		out.WriteString(";\n")
 	}
 	if len(constNames) > 0 && len(pkg.Functions) > 0 {
@@ -5927,7 +5955,7 @@ func writeBuildPackageStub(out *strings.Builder, pkg *externalPackageStub, integ
 		out.WriteString(": ")
 		out.WriteString(pkg.Constants[constName])
 		out.WriteString(" = ")
-		writeExternalStubConstDefaultValue(out, pkg.Constants[constName], integerTypes)
+		writeExternalPackageStubConstValue(out, pkg, constName, integerTypes)
 		out.WriteString(";\n")
 	}
 	if len(constNames) > 0 && (len(pkg.Variables) > 0 || len(pkg.Functions) > 0) {
@@ -6295,7 +6323,7 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 		out.WriteString(": ")
 		out.WriteString(pkg.Constants[constName])
 		out.WriteString(" = ")
-		writeExternalStubConstDefaultValue(out, pkg.Constants[constName], integerTypes)
+		writeExternalPackageStubConstValue(out, pkg, constName, integerTypes)
 		out.WriteString(";\n")
 	}
 	if len(constNames) > 0 && (len(pkg.Variables) > 0 || len(pkg.Functions) > 0) {
@@ -6527,7 +6555,7 @@ func writeFilepathPackageStub(out *strings.Builder, pkg *externalPackageStub, in
 			out.WriteString(": ")
 			out.WriteString(pkg.Constants[constName])
 			out.WriteString(" = ")
-			writeExternalStubConstDefaultValue(out, pkg.Constants[constName], integerTypes)
+			writeExternalPackageStubConstValue(out, pkg, constName, integerTypes)
 			out.WriteString(";\n")
 		}
 	}
@@ -6816,7 +6844,7 @@ func writeExecPackageStub(out *strings.Builder, pkg *externalPackageStub, intege
 		out.WriteString(": ")
 		out.WriteString(pkg.Constants[constName])
 		out.WriteString(" = ")
-		writeExternalStubConstDefaultValue(out, pkg.Constants[constName], integerTypes)
+		writeExternalPackageStubConstValue(out, pkg, constName, integerTypes)
 		out.WriteString(";\n")
 	}
 	if len(constNames) > 0 && (len(pkg.Functions) > 0 || len(pkg.Variables) > 0) {
@@ -7317,6 +7345,97 @@ func writeExternalStubDefaultValue(out *strings.Builder, rustType string) {
 		return
 	}
 	out.WriteString("Default::default()")
+}
+
+func writeExternalPackageStubConstValue(out *strings.Builder, pkg *externalPackageStub, constName string, integerTypes map[string]string) {
+	if writeExternalPackageStubConstLiteral(out, pkg, constName, integerTypes) {
+		return
+	}
+	rustType := ""
+	if pkg != nil && pkg.Constants != nil {
+		rustType = pkg.Constants[constName]
+	}
+	writeExternalStubConstDefaultValue(out, rustType, integerTypes)
+}
+
+func writeExternalPackageStubConstLiteral(out *strings.Builder, pkg *externalPackageStub, constName string, integerTypes map[string]string) bool {
+	rustType := ""
+	if pkg != nil && pkg.Constants != nil {
+		rustType = pkg.Constants[constName]
+	}
+	if constValue := externalPackageStubConstValue(pkg, constName); constValue != nil {
+		return writeExternalStubConstLiteral(out, rustType, constValue, integerTypes)
+	}
+	return false
+}
+
+func externalPackageStubConstValue(pkg *externalPackageStub, constName string) constant.Value {
+	if pkg == nil || pkg.ConstantValues == nil {
+		return nil
+	}
+	return pkg.ConstantValues[constName]
+}
+
+func writeExternalStubConstLiteral(out *strings.Builder, rustType string, constValue constant.Value, integerTypes map[string]string) bool {
+	if constValue == nil {
+		return false
+	}
+	if integerTypes[rustType] != "" {
+		intValue := constant.ToInt(constValue)
+		if intValue.Kind() != constant.Int {
+			return false
+		}
+		out.WriteString(rustType)
+		out.WriteString("(")
+		out.WriteString(intValue.String())
+		out.WriteString(")")
+		return true
+	}
+	switch rustType {
+	case "String":
+		if constValue.Kind() != constant.String {
+			return false
+		}
+		out.WriteString(strconv.Quote(constant.StringVal(constValue)))
+		return true
+	case "bool":
+		if constValue.Kind() != constant.Bool {
+			return false
+		}
+		out.WriteString(strconv.FormatBool(constant.BoolVal(constValue)))
+		return true
+	case "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "usize":
+		intValue := constant.ToInt(constValue)
+		if intValue.Kind() != constant.Int {
+			return false
+		}
+		out.WriteString(intValue.String())
+		return true
+	case "f32":
+		floatValue, ok := constant.Float32Val(constant.ToFloat(constValue))
+		if !ok {
+			return false
+		}
+		out.WriteString(rustFloatConstLiteral(float64(floatValue), 32))
+		return true
+	case "f64":
+		floatValue, ok := constant.Float64Val(constant.ToFloat(constValue))
+		if !ok {
+			return false
+		}
+		out.WriteString(rustFloatConstLiteral(floatValue, 64))
+		return true
+	default:
+		return false
+	}
+}
+
+func rustFloatConstLiteral(value float64, bitSize int) string {
+	lit := strconv.FormatFloat(value, 'g', -1, bitSize)
+	if !strings.ContainsAny(lit, ".eE") {
+		lit += ".0"
+	}
+	return lit
 }
 
 // MACHINERY: const default-value emitter for stub variable declarations.

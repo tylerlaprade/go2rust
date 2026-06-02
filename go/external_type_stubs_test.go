@@ -2,6 +2,7 @@ package main
 
 import (
 	goast "go/ast"
+	goconstant "go/constant"
 	gotoken "go/token"
 	gotypes "go/types"
 	"os"
@@ -116,6 +117,72 @@ func TestGenericExternalPackageStubFunctionUsesSignatureTypeParams(t *testing.T)
 	}
 	if strings.Contains(got, "pub fn clip<T0>") || strings.Contains(got, "pub fn clip<S, E, T0>") {
 		t.Fatalf("generic external stub should not invent value-parameter generics:\n%s", got)
+	}
+}
+
+func TestExternalPackageStubConstantsPreserveGoTypesValues(t *testing.T) {
+	got := generateExternalStubs(
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		map[string]*externalPackageStub{
+			"goarch": {
+				Constants: map[string]string{
+					"PTR_SIZE": "i32",
+				},
+				ConstantValues: map[string]goconstant.Value{
+					"PTR_SIZE": goconstant.MakeInt64(8),
+				},
+			},
+		},
+	)
+
+	if !strings.Contains(got, "pub const PTR_SIZE: i32 = 8;") {
+		t.Fatalf("external package stub constants should preserve go/types values:\n%s", got)
+	}
+	if strings.Contains(got, "pub const PTR_SIZE: i32 = 0;") {
+		t.Fatalf("external package stub constants must not silently default typed values:\n%s", got)
+	}
+}
+
+func TestRegisterExternalPackageSelectorPreservesConstValue(t *testing.T) {
+	prevContext := currentContext
+	prevTypeInfo := GetTypeInfo()
+	prevImports := goPackageImports
+	ctx := &TranspileContext{
+		Package: NewPackageState(),
+		File:    NewFileState(NewImportTracker(), &HelperTracker{}, nil),
+	}
+	SetTranspileContext(ctx)
+	goPackageImports = map[string]string{"goarch": "internal/goarch"}
+	defer func() {
+		SetTranspileContext(prevContext)
+		SetTypeInfo(prevTypeInfo)
+		goPackageImports = prevImports
+	}()
+
+	pkg := gotypes.NewPackage("internal/goarch", "goarch")
+	selIdent := goast.NewIdent("PtrSize")
+	SetTypeInfo(&TypeInfo{
+		info: &gotypes.Info{
+			Uses: map[*goast.Ident]gotypes.Object{
+				selIdent: gotypes.NewConst(gotoken.NoPos, pkg, "PtrSize", gotypes.Typ[gotypes.Int], goconstant.MakeInt64(8)),
+			},
+		},
+	})
+
+	RegisterExternalPackageSelector(&goast.SelectorExpr{X: goast.NewIdent("goarch"), Sel: selIdent})
+
+	stub := ctx.File.ExternalPackageStubs["goarch"]
+	if stub == nil {
+		t.Fatalf("goarch selector should register an external package stub")
+	}
+	if got := stub.ConstantValues["PTR_SIZE"]; got == nil || got.String() != "8" {
+		t.Fatalf("goarch PtrSize value was not preserved, got %#v", got)
 	}
 }
 
