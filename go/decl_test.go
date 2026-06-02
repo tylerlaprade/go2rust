@@ -1166,6 +1166,31 @@ func caller[E any](data []E) {
 	}
 }
 
+func TestStructUsedAsGoValueCloneGenericArgImplementsTrait(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type File struct {
+	name string
+}
+
+func first[E any](values []E) E {
+	return values[0]
+}
+
+func use(files []File) File {
+	return first(files)
+}
+`)
+
+	if !strings.Contains(rust, "pub fn first<E: Any + GoValueClone + 'static>") {
+		t.Fatalf("generic helper returning a direct type-param element should require GoValueClone:\n%s", rust)
+	}
+	want := "impl GoValueClone for File {\n    fn go_value_clone(&self) -> Self {\n        self.__go_value_clone()\n    }\n}"
+	if !strings.Contains(rust, want) {
+		t.Fatalf("struct used as a GoValueClone generic argument should implement the trait, missing %q:\n%s", want, rust)
+	}
+}
+
 func TestGenericOrderedFunctionPropagatesCloneBoundFromCalledFunction(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

@@ -976,6 +976,15 @@ func generateStructClone(out *strings.Builder, structName string, generics rustT
 	out.WriteString("}\n")
 }
 
+func generateStructGoValueClone(out *strings.Builder, structName string, generics rustTypeGenerics) {
+	rustStructName := RustTypeNameForUse(structName)
+	writeRustTraitImplHeader(out, generics, "GoValueClone", rustStructName)
+	out.WriteString("    fn go_value_clone(&self) -> Self {\n")
+	out.WriteString("        self.__go_value_clone()\n")
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+}
+
 func writeStructCloneField(out *strings.Builder, fieldName string, fieldType ast.Expr) {
 	if structCloneFieldKeepsHandle(fieldType) {
 		out.WriteString("self.")

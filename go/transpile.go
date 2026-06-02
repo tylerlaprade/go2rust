@@ -3021,6 +3021,8 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		TranspilePackageInitAll(&body, hasGlobals, functionNames)
 	}
 
+	writeStructGoValueCloneTraitImpls(&body, &first, types, prunedTypeNames)
+
 	// Now build the final output with only needed imports
 	var output strings.Builder
 	helpersForFile := helpers
@@ -3049,6 +3051,31 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	output.WriteString(body.String())
 
 	return output.String(), imports, fileExternalPackages
+}
+
+func writeStructGoValueCloneTraitImpls(out *strings.Builder, first *bool, types []struct {
+	spec *ast.TypeSpec
+	decl *ast.GenDecl
+}, prunedTypeNames map[string]bool) {
+	helpers := activeHelperTracker()
+	if helpers == nil || !helpers.needsGoValueClone {
+		return
+	}
+	for _, t := range types {
+		if t.spec == nil || t.spec.Name == nil || prunedTypeNames[t.spec.Name.Name] {
+			continue
+		}
+		structType, ok := t.spec.Type.(*ast.StructType)
+		if !ok {
+			continue
+		}
+		if !*first {
+			out.WriteString("\n\n")
+		}
+		*first = false
+		generics := rustTypeGenericsForStructTypeSpec(t.spec, structType)
+		generateStructGoValueClone(out, t.spec.Name.Name, generics)
+	}
 }
 
 func reserveFileRustTypeNames(imports *ImportTracker, types []struct {
