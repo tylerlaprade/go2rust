@@ -5237,6 +5237,9 @@ func localMakeSliceTypeAnnotation(rhs ast.Expr) (string, bool) {
 	if !ok || arrayType.Len != nil {
 		return "", false
 	}
+	if structElt, ok := arrayType.Elt.(*ast.StructType); ok {
+		generateAnonymousStructType(structElt)
+	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
 		return "", false

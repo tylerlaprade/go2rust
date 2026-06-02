@@ -6813,3 +6813,22 @@ func (c *Checker) packageObjects(objects []Object) {
 		t.Fatalf("type-asserted pointer call argument should clone the pointer handle:\n%s", rust)
 	}
 }
+
+func TestMakeAnonymousStructSliceShortDeclRegistersElementType(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func count() int {
+	structs := make([]struct {
+		name string
+	}, 0)
+	return len(structs)
+}
+`)
+
+	if strings.Contains(rust, "/* unknown struct */") {
+		t.Fatalf("make([]struct{...}) short declaration should use the generated anonymous struct type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Vec<AnonymousStruct1>") || !strings.Contains(rust, "Vec::<AnonymousStruct1>::with_capacity") {
+		t.Fatalf("make([]struct{...}) short declaration should annotate and initialize with the anonymous struct type:\n%s", rust)
+	}
+}
