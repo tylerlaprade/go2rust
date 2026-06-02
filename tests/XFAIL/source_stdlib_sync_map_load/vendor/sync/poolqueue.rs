@@ -285,7 +285,7 @@ impl poolDequeue {
                 // reading the value to take back ownership of this
                 // slot.
                 // We successfully took back slot.
-        let mut val = Arc::new(StdMutex::new({ let __ptr = Arc::new(StdMutex::new(Some(Arc::as_ptr(&slot) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<Box<dyn Any + Send + Sync>>(unimplemented!("unsafe.Pointer conversion to Box<dyn Any + Send + Sync>")) } }));
+        let mut val = Arc::new(StdMutex::new({ let __ptr = Arc::new(StdMutex::new(Some(unimplemented!("unsafe.Pointer conversion from slice element pointer")))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<Box<dyn Any + Send + Sync>>(unimplemented!("unsafe.Pointer conversion to Box<dyn Any + Send + Sync>")) } }));
         if { let __tmp_x = (*val.lock().unwrap().as_ref().unwrap()); let __tmp_y = dequeueNil(Arc::new(StdMutex::new(None::<AnonymousStruct1>))); __tmp_x == __tmp_y } {
         *val.lock().unwrap() = None;
     }
@@ -325,7 +325,7 @@ impl poolDequeue {
                 // we own the slot at tail.
                 // Success.
                 // We now own slot.
-        let mut val = Arc::new(StdMutex::new({ let __ptr = Arc::new(StdMutex::new(Some(Arc::as_ptr(&slot) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<Box<dyn Any + Send + Sync>>(unimplemented!("unsafe.Pointer conversion to Box<dyn Any + Send + Sync>")) } }));
+        let mut val = Arc::new(StdMutex::new({ let __ptr = Arc::new(StdMutex::new(Some(unimplemented!("unsafe.Pointer conversion from slice element pointer")))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<Box<dyn Any + Send + Sync>>(unimplemented!("unsafe.Pointer conversion to Box<dyn Any + Send + Sync>")) } }));
         if { let __tmp_x = (*val.lock().unwrap().as_ref().unwrap()); let __tmp_y = dequeueNil(Arc::new(StdMutex::new(None::<AnonymousStruct1>))); __tmp_x == __tmp_y } {
         *val.lock().unwrap() = None;
     }

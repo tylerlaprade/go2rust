@@ -3798,6 +3798,30 @@ func load(slot unsafe.Pointer) any {
 	}
 }
 
+func TestUnsafePointerConversionFromSliceElementPointerIsLoudUnsupported(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "unsafe"
+
+type eface struct {
+	typ, val unsafe.Pointer
+}
+
+func load(vals []eface, i int) any {
+	go func() {}()
+	slot := &vals[i]
+	return *(*any)(unsafe.Pointer(slot))
+}
+`)
+
+	if strings.Contains(rust, "Arc::as_ptr(&slot)") {
+		t.Fatalf("unsafe.Pointer conversion from slice element pointer should not treat the helper as an Arc handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, `unimplemented!("unsafe.Pointer conversion from slice element pointer`) {
+		t.Fatalf("unsafe.Pointer conversion from slice element pointer should fail loudly at the typed boundary:\n%s", rust)
+	}
+}
+
 func TestUnsafePointerDerefNilComparisonUsesPointerValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

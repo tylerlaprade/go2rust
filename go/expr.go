@@ -13836,6 +13836,11 @@ func writeUnsafePointerConversion(out *strings.Builder, arg ast.Expr) {
 				WriteWrapperSuffix(out)
 				return
 			}
+			if isSliceElemPtrVar(ident.Name) {
+				out.WriteString(`unimplemented!("unsafe.Pointer conversion from slice element pointer")`)
+				WriteWrapperSuffix(out)
+				return
+			}
 		}
 		out.WriteString(GetOuterWrapperType())
 		out.WriteString("::as_ptr(&")
