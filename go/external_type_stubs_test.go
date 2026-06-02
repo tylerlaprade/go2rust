@@ -149,6 +149,35 @@ func TestExternalPackageStubConstantsPreserveGoTypesValues(t *testing.T) {
 	}
 }
 
+func TestExternalPackageStubStringConstantsUseStaticStr(t *testing.T) {
+	got := generateExternalStubs(
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		map[string]*externalPackageStub{
+			"goos": {
+				Constants: map[string]string{
+					"G_O_O_S": "&'static str",
+				},
+				ConstantValues: map[string]goconstant.Value{
+					"G_O_O_S": goconstant.MakeString("darwin"),
+				},
+			},
+		},
+	)
+
+	if !strings.Contains(got, `pub const G_O_O_S: &'static str = "darwin";`) {
+		t.Fatalf("external string constants should use a Rust const-compatible string type:\n%s", got)
+	}
+	if strings.Contains(got, `pub const G_O_O_S: String = "darwin";`) {
+		t.Fatalf("external string constants must not emit non-const String values:\n%s", got)
+	}
+}
+
 func TestRegisterExternalPackageSelectorPreservesConstValue(t *testing.T) {
 	prevContext := currentContext
 	prevTypeInfo := GetTypeInfo()
@@ -183,6 +212,46 @@ func TestRegisterExternalPackageSelectorPreservesConstValue(t *testing.T) {
 	}
 	if got := stub.ConstantValues["PTR_SIZE"]; got == nil || got.String() != "8" {
 		t.Fatalf("goarch PtrSize value was not preserved, got %#v", got)
+	}
+}
+
+func TestRegisterExternalPackageSelectorPreservesStringConstType(t *testing.T) {
+	prevContext := currentContext
+	prevTypeInfo := GetTypeInfo()
+	prevImports := goPackageImports
+	ctx := &TranspileContext{
+		Package: NewPackageState(),
+		File:    NewFileState(NewImportTracker(), &HelperTracker{}, nil),
+	}
+	SetTranspileContext(ctx)
+	goPackageImports = map[string]string{"goos": "internal/goos"}
+	defer func() {
+		SetTranspileContext(prevContext)
+		SetTypeInfo(prevTypeInfo)
+		goPackageImports = prevImports
+	}()
+
+	pkg := gotypes.NewPackage("internal/goos", "goos")
+	selIdent := goast.NewIdent("GOOS")
+	SetTypeInfo(&TypeInfo{
+		info: &gotypes.Info{
+			Uses: map[*goast.Ident]gotypes.Object{
+				selIdent: gotypes.NewConst(gotoken.NoPos, pkg, "GOOS", gotypes.Typ[gotypes.String], goconstant.MakeString("darwin")),
+			},
+		},
+	})
+
+	RegisterExternalPackageSelector(&goast.SelectorExpr{X: goast.NewIdent("goos"), Sel: selIdent})
+
+	stub := ctx.File.ExternalPackageStubs["goos"]
+	if stub == nil {
+		t.Fatalf("goos selector should register an external package stub")
+	}
+	if got := stub.Constants["G_O_O_S"]; got != "&'static str" {
+		t.Fatalf("goos GOOS should register as a Rust const-compatible string, got %q", got)
+	}
+	if got := stub.ConstantValues["G_O_O_S"]; got == nil || goconstant.StringVal(got) != "darwin" {
+		t.Fatalf("goos GOOS value was not preserved, got %#v", got)
 	}
 }
 

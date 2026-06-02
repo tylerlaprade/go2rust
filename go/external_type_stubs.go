@@ -7392,7 +7392,7 @@ func writeExternalStubConstLiteral(out *strings.Builder, rustType string, constV
 		return true
 	}
 	switch rustType {
-	case "String":
+	case "String", "&'static str":
 		if constValue.Kind() != constant.String {
 			return false
 		}
@@ -7446,6 +7446,8 @@ func writeExternalStubConstDefaultValue(out *strings.Builder, rustType string, i
 		return
 	}
 	switch rustType {
+	case "&'static str":
+		out.WriteString("\"\"")
 	case "String":
 		out.WriteString("String::new()")
 	case "bool":

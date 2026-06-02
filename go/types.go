@@ -1710,8 +1710,8 @@ func goTypesMapValueToRust(t types.Type) string {
 func goTypesConstTypeToRust(t types.Type) string {
 	if basic, ok := t.Underlying().(*types.Basic); ok {
 		switch basic.Kind() {
-		case types.UntypedString:
-			return "String"
+		case types.String, types.UntypedString:
+			return "&'static str"
 		case types.UntypedBool:
 			return "bool"
 		case types.UntypedInt, types.UntypedRune:
