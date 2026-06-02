@@ -91,7 +91,7 @@ if [ "$HELP" = true ]; then
     echo "  -v, --verbose      Show XFAIL tests in output"
     echo "  -n, --jobs N       Number of parallel jobs (default: auto-detect from CPU and memory)"
     echo "  -t, --timeout TIME Timeout per test (default: 60s)"
-    echo "  --low-memory       Run one fixture at a time and use low-memory Cargo settings"
+    echo "  --low-memory       Run one fixture at a time"
     echo "  -h, --help         Show this help message"
     echo ""
     echo "Arguments:"
@@ -224,14 +224,18 @@ export SHOW_XFAIL_ERRORS
 # (OOM, kill -9, etc.) — SIGKILL bypasses the run_test EXIT trap.
 cleanup_stale_test_artifacts
 
+# Fixture-level parallelism controls suite throughput. Keep each nested Cargo
+# invocation low-memory by default so parallel fixtures do not multiply rustc
+# worker pools.
+export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}"
+export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
+export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
+export CARGO_PROFILE_DEV_INCREMENTAL="${CARGO_PROFILE_DEV_INCREMENTAL:-false}"
+export RUSTFLAGS="${RUSTFLAGS:--Awarnings -C debuginfo=0}"
+
 case "$LOW_MEMORY" in
     1|true|TRUE|yes|YES)
         JOBS=1
-        export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}"
-        export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
-        export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"
-        export CARGO_PROFILE_DEV_INCREMENTAL="${CARGO_PROFILE_DEV_INCREMENTAL:-false}"
-        export RUSTFLAGS="${RUSTFLAGS:--Awarnings -C debuginfo=0}"
         ;;
 esac
 

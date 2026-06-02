@@ -20,7 +20,8 @@ Environment:
   CARGO_HOME=<path>       Override the temporary Cargo registry/cache home.
   CARGO_TARGET_DIR=<path> Override the temporary Cargo target directory.
   GOFLAGS=<flags>         Override Go build/load flags (default: -tags=purego).
-  GO2RUST_BEHAVIOR_JOBS=N Number of behavior-suite shards (default: 3).
+  GO2RUST_BEHAVIOR_JOBS=N Number of behavior-suite shards (default: auto via
+                      test.sh memory detection).
   GO2RUST_BEHAVIOR_TIMEOUT=TIME Per-test behavior timeout (default: 30s).
   GO2RUST_BEHAVIOR_TESTS="name [name...]"
                       Restrict --behavior-suite to specific fixture names.
@@ -162,9 +163,13 @@ if [ "$behavior_suite" = true ]; then
             # shellcheck disable=SC2206
             behavior_tests=(${GO2RUST_BEHAVIOR_TESTS})
         fi
+        behavior_args=(-t "${GO2RUST_BEHAVIOR_TIMEOUT:-30s}")
+        if [ -n "${GO2RUST_BEHAVIOR_JOBS:-}" ]; then
+            behavior_args=(-n "$GO2RUST_BEHAVIOR_JOBS" "${behavior_args[@]}")
+        fi
         GO2RUST_TEST_BINARY="$CARGO_TARGET_DIR/debug/go" \
             GOCACHE="${GOCACHE:-$work/go-build-cache}" \
-            ./test.sh -n "${GO2RUST_BEHAVIOR_JOBS:-3}" -t "${GO2RUST_BEHAVIOR_TIMEOUT:-30s}" "${behavior_tests[@]}"
+            ./test.sh "${behavior_args[@]}" "${behavior_tests[@]}"
     )
 fi
 

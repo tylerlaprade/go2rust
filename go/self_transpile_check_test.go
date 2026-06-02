@@ -99,6 +99,28 @@ func TestSelfTranspileBehaviorSuiteSupportsFocusedFixtures(t *testing.T) {
 	}
 }
 
+func TestSelfTranspileBehaviorSuiteUsesAutoJobsByDefault(t *testing.T) {
+	data, err := os.ReadFile("../self_transpile_check.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(self_transpile_check.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`GO2RUST_BEHAVIOR_JOBS=N Number of behavior-suite shards (default: auto via`,
+		`behavior_args=(-t "${GO2RUST_BEHAVIOR_TIMEOUT:-30s}")`,
+		`if [ -n "${GO2RUST_BEHAVIOR_JOBS:-}" ]; then`,
+		`behavior_args=(-n "$GO2RUST_BEHAVIOR_JOBS" "${behavior_args[@]}")`,
+		`./test.sh "${behavior_args[@]}" "${behavior_tests[@]}"`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("self_transpile_check.sh behavior suite should let test.sh auto-select jobs by default; missing %q", want)
+		}
+	}
+	if strings.Contains(script, `./test.sh -n "${GO2RUST_BEHAVIOR_JOBS:-3}"`) {
+		t.Fatalf("self_transpile_check.sh should not force three behavior jobs by default")
+	}
+}
+
 func TestSelfTranspileBehaviorSuiteCopiesCleanupScript(t *testing.T) {
 	data, err := os.ReadFile("../self_transpile_check.sh")
 	if err != nil {

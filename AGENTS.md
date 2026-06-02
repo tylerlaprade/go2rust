@@ -113,7 +113,7 @@ Runtime guidance:
 
 - Run only one `./test.sh` process at a time; it rewrites generated Bats files.
 - Prefer the default parallel fixture mode when the machine has memory headroom.
-- Use `./test.sh --low-memory ...` for memory pressure; it forces one fixture at a time and applies low-memory Cargo settings. Use `./test.sh -n 1 ...` only when you specifically need sequential fixture output without changing Cargo settings.
+- `./test.sh` caps nested Cargo work by default; fixture parallelism is the main concurrency knob. Use `./test.sh --low-memory ...` for memory pressure; it forces one fixture at a time. Use `./test.sh -n 1 ...` only when you specifically need sequential fixture output.
 - Treat `Passing: 0/0` as an invalid run, not success.
 - For focused Go unit tests, prefer `./go_test.sh -run ...`; it wraps `go test ./go` with a disposable `GOCACHE`.
 - For expensive Rust validation, set `CARGO_TARGET_DIR` to a temp directory.
@@ -129,10 +129,10 @@ Self-transpiling is not the first validation step. Start with a focused fixture 
 - Use copied temp workspaces for self-transpile checks. Remove them afterward unless the user explicitly asks to inspect one.
 - `KEEP_SELF_TRANSPILE=1` is for short-lived inspection only.
 - `self_transpile_check.sh` defaults Cargo to a low-memory profile: single-job Cargo, no incremental, no debug info unless overridden.
-- Focused compile check: `GOCACHE=/private/tmp/go2rust-go-cache ./self_transpile_check.sh --cargo-check --package <crate>`
-- Broad compile check: `GOCACHE=/private/tmp/go2rust-go-cache ./self_transpile_check.sh --cargo-check`
-- Behavior gate: `GOCACHE=/private/tmp/go2rust-go-cache GO2RUST_BEHAVIOR_JOBS=3 GO2RUST_BEHAVIOR_TIMEOUT=60s ./self_transpile_check.sh --behavior-suite`
-- Focused behavior gate: add `GO2RUST_BEHAVIOR_TESTS="fixture_one fixture_two"` to run a small generated-binary behavior slice while debugging.
+- Focused compile check: `./self_transpile_check.sh --cargo-check --package <crate>`
+- Broad compile check: `./self_transpile_check.sh --cargo-check`
+- Behavior gate: `GO2RUST_BEHAVIOR_TIMEOUT=60s ./self_transpile_check.sh --behavior-suite`
+- Focused behavior gate: add `GO2RUST_BEHAVIOR_TESTS="fixture_one fixture_two"` to run a small generated-binary behavior slice while debugging. Set `GO2RUST_BEHAVIOR_JOBS=N` only when overriding `test.sh`'s memory-aware job detection.
 - The behavior gate builds the generated Rust transpiler and runs `./test.sh` against that generated binary inside a copied test workspace.
 - The copied behavior suite strips committed `.rs`, `Cargo.toml`, and `Cargo.lock` snapshots before running so the generated binary must recreate outputs.
 - Generated Rust compiling is not enough. Self-hosting requires behavior equivalence.

@@ -22,6 +22,7 @@ func TestCleanupScriptSweepsAllGeneratedTempRoots(t *testing.T) {
 		"go2rust-stdout.*",
 		"go2rust-stderr.*",
 		"go2rust-test-binary.*",
+		"go2rust-go-cache",
 		"go2rust-go-cache.*",
 	} {
 		if !strings.Contains(script, want) {
@@ -228,7 +229,7 @@ func TestTestScriptDefaultJobsRespectCurrentMemoryPressure(t *testing.T) {
 	}
 }
 
-func TestTestScriptLowMemoryModeBoundsJobsAndCargo(t *testing.T) {
+func TestTestScriptLowMemoryModeBoundsJobs(t *testing.T) {
 	data, err := os.ReadFile("../test.sh")
 	if err != nil {
 		t.Fatalf("ReadFile(test.sh) error = %v", err)
@@ -238,6 +239,21 @@ func TestTestScriptLowMemoryModeBoundsJobsAndCargo(t *testing.T) {
 		`LOW_MEMORY="${GO2RUST_LOW_MEMORY:-0}"`,
 		`--low-memory`,
 		`JOBS=1`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("test.sh low-memory mode should force sequential fixture execution; missing %q", want)
+		}
+	}
+}
+
+func TestTestScriptCapsNestedCargoByDefault(t *testing.T) {
+	data, err := os.ReadFile("../test.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(test.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`Fixture-level parallelism controls suite throughput`,
 		`export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}"`,
 		`export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"`,
 		`export CARGO_PROFILE_DEV_DEBUG="${CARGO_PROFILE_DEV_DEBUG:-0}"`,
@@ -245,7 +261,7 @@ func TestTestScriptLowMemoryModeBoundsJobsAndCargo(t *testing.T) {
 		`export RUSTFLAGS="${RUSTFLAGS:--Awarnings -C debuginfo=0}"`,
 	} {
 		if !strings.Contains(script, want) {
-			t.Fatalf("test.sh low-memory mode should bound jobs and Cargo memory use; missing %q", want)
+			t.Fatalf("test.sh should cap nested Cargo memory use by default; missing %q", want)
 		}
 	}
 }
@@ -309,6 +325,7 @@ func TestCleanupScriptRemovesKnownGo2RustArtifacts(t *testing.T) {
 		`go2rust-bats-shards.*`,
 		`go2rust-cargo-target.*`,
 		`go2rust-test-binary.*`,
+		`go2rust-go-cache`,
 		`go2rust-go-cache.*`,
 		`go2rust-rust-work.*`,
 		`go2rust-tests-list.*`,

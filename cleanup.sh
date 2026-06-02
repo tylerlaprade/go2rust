@@ -157,6 +157,7 @@ cleanup_temp_root() {
         -name 'go2rust-bats-shards.*' -o \
         -name 'go2rust-cargo-target.*' -o \
         -name 'go2rust-test-binary.*' -o \
+        -name 'go2rust-go-cache' -o \
         -name 'go2rust-go-cache.*' -o \
         -name 'go2rust-rust-work.*' \
     \) -print 2>/dev/null)
