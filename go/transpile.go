@@ -3057,10 +3057,11 @@ func writeStructGoValueCloneTraitImpls(out *strings.Builder, first *bool, types 
 	spec *ast.TypeSpec
 	decl *ast.GenDecl
 }, prunedTypeNames map[string]bool) {
-	helpers := activeHelperTracker()
-	if helpers == nil || !helpers.needsGoValueClone {
-		return
-	}
+	structs := make([]struct {
+		name       string
+		structType *ast.StructType
+		typeSpec   *ast.TypeSpec
+	}, 0)
 	for _, t := range types {
 		if t.spec == nil || t.spec.Name == nil || prunedTypeNames[t.spec.Name.Name] {
 			continue
@@ -3069,13 +3070,37 @@ func writeStructGoValueCloneTraitImpls(out *strings.Builder, first *bool, types 
 		if !ok {
 			continue
 		}
+		structs = append(structs, struct {
+			name       string
+			structType *ast.StructType
+			typeSpec   *ast.TypeSpec
+		}{name: t.spec.Name.Name, structType: structType, typeSpec: t.spec})
+	}
+	if len(structs) == 0 {
+		return
+	}
+	if !structGoValueCloneTraitImplsNeeded() {
+		return
+	}
+	for _, t := range structs {
 		if !*first {
 			out.WriteString("\n\n")
 		}
 		*first = false
-		generics := rustTypeGenericsForStructTypeSpec(t.spec, structType)
-		generateStructGoValueClone(out, t.spec.Name.Name, generics)
+		generics := rustTypeGenericsForStructTypeSpec(t.typeSpec, t.structType)
+		generateStructGoValueClone(out, t.name, generics)
 	}
+}
+
+func structGoValueCloneTraitImplsNeeded() bool {
+	if helpers := activeHelperTracker(); helpers != nil && helpers.needsGoValueClone {
+		return true
+	}
+	if ctx := GetTranspileContext(); ctx != nil && ctx.UsePackageExternalStubs {
+		NeedGoValueClone()
+		return true
+	}
+	return false
 }
 
 func reserveFileRustTypeNames(imports *ImportTracker, types []struct {

@@ -703,6 +703,10 @@ func NeedGoValueClone() {
 		helpers.needsAnyClone = true
 		TrackImport("Any")
 	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsGoValueClone = true
+		helpers.needsAnyClone = true
+	})
 }
 
 // NeedGoComparable marks that we need the GoComparable helper trait.

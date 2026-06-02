@@ -269,6 +269,67 @@ func use(items []item, x int) int {
 	}
 }
 
+func TestSharedGoValueCloneTraitCrossesTranspiledCrates(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+func First[E any](values []E) E {
+	return values[0]
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+type item struct {
+	offset int
+}
+
+func use(items []item) item {
+	return dep.First(items)
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "use go2rust_stdlib_stubs::*;") {
+		t.Fatalf("root package should import shared stdlib helpers, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "impl GoValueClone for item") {
+		t.Fatalf("root struct passed to imported generic helper should implement shared GoValueClone, got:\n%s", mainRS)
+	}
+
+	depRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_dep", "mod.rs"))
+	if !strings.Contains(depRS, "pub fn first<E: Any + GoValueClone + 'static>") {
+		t.Fatalf("dependency generic helper should require shared GoValueClone, got:\n%s", depRS)
+	}
+	if strings.Contains(depRS, "pub trait GoValueClone") {
+		t.Fatalf("dependency crate should use the shared GoValueClone helper, not define its own, got:\n%s", depRS)
+	}
+
+	sharedLib := mustReadFile(t, filepath.Join(tempDir, "vendor", sharedStdlibStubCrateName, "lib.rs"))
+	if !strings.Contains(sharedLib, "pub trait GoValueClone") {
+		t.Fatalf("shared stdlib helper crate should define GoValueClone, got:\n%s", sharedLib)
+	}
+}
+
 func TestImportedGenericSelectorCallWrapsFunctionIdentifierArgument(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

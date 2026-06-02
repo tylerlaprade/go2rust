@@ -193,6 +193,10 @@ func (ht *HelperTracker) withoutSharedStdlibHelpers() *HelperTracker {
 	helperCopy.needsGoChannel = false
 	helperCopy.needsGoContext = false
 	helperCopy.needsGoTime = false
+	if helperCopy.needsGoValueClone {
+		helperCopy.needsAnyClone = false
+	}
+	helperCopy.needsGoValueClone = false
 	return &helperCopy
 }
 
@@ -209,6 +213,10 @@ func (ht *HelperTracker) sharedStdlibHelpersOnly() *HelperTracker {
 	}
 	if ht.needsGoTime {
 		helperCopy.needsGoTime = true
+	}
+	if ht.needsGoValueClone {
+		helperCopy.needsAnyClone = true
+		helperCopy.needsGoValueClone = true
 	}
 	if ht.needsGoRWMutex {
 		helperCopy.needsGoRWMutex = true
@@ -889,9 +897,14 @@ func writeAnyCloneTypeArms(out *strings.Builder, anyCloneTypes map[string]bool, 
 
 func generateAnyClone(out *strings.Builder, anyCloneTypes map[string]bool) {
 	TrackImport("Any")
+	visibility := ""
+	if generatingPublicHelpers {
+		visibility = "pub "
+	}
 	if NeedsConcurrentWrapper() {
-		out.WriteString(`
-fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
+		out.WriteString("\n")
+		out.WriteString(visibility)
+		out.WriteString(`fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
     if let Some(v) = value.downcast_ref::<i32>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
     if let Some(v) = value.downcast_ref::<i64>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
     if let Some(v) = value.downcast_ref::<i8>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
@@ -916,8 +929,9 @@ fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
 `)
 		return
 	}
-	out.WriteString(`
-fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_any_clone(value: &dyn Any) -> Box<dyn Any> {
     if let Some(v) = value.downcast_ref::<i32>() { return Box::new(*v) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<i64>() { return Box::new(*v) as Box<dyn Any>; }
     if let Some(v) = value.downcast_ref::<i8>() { return Box::new(*v) as Box<dyn Any>; }

@@ -1318,6 +1318,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsFormatAnySlice = dst.needsFormatAnySlice || src.needsFormatAnySlice
 	dst.needsAnyEq = dst.needsAnyEq || src.needsAnyEq
 	dst.needsAnyClone = dst.needsAnyClone || src.needsAnyClone
+	dst.needsGoValueClone = dst.needsGoValueClone || src.needsGoValueClone
 	if len(src.anyCloneTypes) > 0 {
 		if dst.anyCloneTypes == nil {
 			dst.anyCloneTypes = make(map[string]bool)
