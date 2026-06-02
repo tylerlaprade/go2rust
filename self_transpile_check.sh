@@ -84,6 +84,24 @@ cleanup_stale_self_workspaces() {
     "$repo_root/cleanup.sh" --age-minutes "${GO2RUST_SELF_CLEAN_AGE_MINUTES:-60}" --keep-repo-artifacts >/dev/null
 }
 
+copy_behavior_suite_tests() {
+    local suite="$1"
+    if command -v rsync >/dev/null 2>&1; then
+        mkdir -p "$suite/tests"
+        rsync -a \
+            --exclude='*.rs' \
+            --exclude='Cargo.toml' \
+            --exclude='Cargo.lock' \
+            "$repo_root/tests/" "$suite/tests/"
+        return
+    fi
+
+    cp -R "$repo_root/tests" "$suite/tests"
+    find "$suite/tests" -name "*.rs" -type f -delete
+    find "$suite/tests" -name "Cargo.toml" -type f -delete
+    find "$suite/tests" -name "Cargo.lock" -type f -delete
+}
+
 cleanup_stale_self_workspaces
 work=$(mktemp -d "$tmp_root/go2rust-self.XXXXXX")
 keep=${KEEP_SELF_TRANSPILE:-0}
@@ -171,10 +189,7 @@ if [ "$behavior_suite" = true ]; then
     cp "$repo_root/tests.bats" "$suite/tests.bats"
     cp "$repo_root/go.mod" "$suite/go.mod"
     cp "$repo_root/go.sum" "$suite/go.sum"
-    cp -R "$repo_root/tests" "$suite/tests"
-    find "$suite/tests" -name "*.rs" -type f -delete
-    find "$suite/tests" -name "Cargo.toml" -type f -delete
-    find "$suite/tests" -name "Cargo.lock" -type f -delete
+    copy_behavior_suite_tests "$suite"
 
     (
         cd "$suite"

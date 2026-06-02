@@ -158,6 +158,28 @@ func TestSelfTranspileBehaviorSuiteCopiesCleanupScript(t *testing.T) {
 	}
 }
 
+func TestSelfTranspileBehaviorSuiteSkipsGeneratedSnapshotCopy(t *testing.T) {
+	data, err := os.ReadFile("../self_transpile_check.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(self_transpile_check.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`copy_behavior_suite_tests()`,
+		`command -v rsync`,
+		`rsync -a`,
+		`--exclude='*.rs'`,
+		`--exclude='Cargo.toml'`,
+		`--exclude='Cargo.lock'`,
+		`copy_behavior_suite_tests "$suite"`,
+		`find "$suite/tests" -name "*.rs" -type f -delete`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("self_transpile_check.sh should avoid copying generated snapshots into behavior suites; missing %q", want)
+		}
+	}
+}
+
 func TestSelfTranspileWorkspaceRecordsOwnerPid(t *testing.T) {
 	data, err := os.ReadFile("../self_transpile_check.sh")
 	if err != nil {
