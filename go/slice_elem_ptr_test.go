@@ -208,6 +208,44 @@ func update() {
 	}
 }
 
+func TestArrayElemPointerToArraySupportsLenIndexRangeAndElemAddress(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+func load(slot *uint64) uint64 {
+	return *slot
+}
+
+func update(ch uint64) uint64 {
+	var recent [2][4]uint64
+	cache := &recent[uint(ch)%uint(len(recent))]
+	var total uint64
+	for i := 0; i < len(cache); i++ {
+		total += load(&cache[i])
+	}
+	for _, x := range cache {
+		total += x
+	}
+	return total
+}
+`)
+
+	if strings.Contains(rust, "GoArrayElemPtr::new(cache.clone()") {
+		t.Fatalf("address of an element through a pointer-to-array should not treat the pointer helper as an array handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "cache.borrow()") || strings.Contains(rust, "cache.lock()") {
+		t.Fatalf("pointer-to-array operations should borrow through GoArrayElemPtr, not normal wrapper handles:\n%s", rust)
+	}
+	if !strings.Contains(rust, "< (4 as i32)") {
+		t.Fatalf("len(cache) should use the typed pointer-to-array length:\n%s", rust)
+	}
+	if !strings.Contains(rust, "load(Rc::new(RefCell::new({ let __seq = cache.as_ref().unwrap().borrow(); Some(__seq.as_ref().unwrap()[") {
+		t.Fatalf("read-only &cache[i] call argument should borrow the pointed-to array element:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __range_values = { let __seq = cache.as_ref().unwrap().borrow(); __seq.as_ref().unwrap().clone() }; for x in __range_values.iter().copied()") {
+		t.Fatalf("range over cache should materialize the pointed-to array through GoArrayElemPtr:\n%s", rust)
+	}
+}
+
 func TestDeclaredArrayElemPointerVarUsesArrayElemPtr(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

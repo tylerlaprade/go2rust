@@ -1295,6 +1295,9 @@ func writeIntegerRangeLimit(out *strings.Builder, expr ast.Expr) {
 }
 
 func writeRangeLengthExpression(out *strings.Builder, expr ast.Expr) {
+	if writePointerToArrayLen(out, expr) {
+		return
+	}
 	if rangeTargetNeedsWrappedSliceGuard(expr) {
 		out.WriteString("({ let __range_holder = ")
 		if isNamedSliceExpression(expr) {
@@ -11413,7 +11416,13 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			rangeValuesVar = "__range_values"
 			closeRangeGuard = true
 		} else if needsSliceValues && !isMap && !isString && (isSlice || isArray) {
-			if rangeTargetNeedsWrappedSliceGuard(s.X) {
+			if ident, ok := unwrapParens(s.X).(*ast.Ident); ok && arrayElemPtrIdentPointsToArray(ident) {
+				out.WriteString("{ let __range_values = ")
+				writeArrayElemPtrPointedArrayClone(out, ident)
+				out.WriteString("; ")
+				rangeValuesVar = "__range_values"
+				closeRangeGuard = true
+			} else if rangeTargetNeedsWrappedSliceGuard(s.X) {
 				out.WriteString("{ let __range_holder = ")
 				writeWrappedHandleExpression(out, s.X)
 				out.WriteString(".clone(); let __range_guard = __range_holder")

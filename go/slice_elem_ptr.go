@@ -1283,6 +1283,9 @@ func arrayElemPtrAddressInfoForIndex(indexExpr *ast.IndexExpr) (arrayElemPtrInfo
 	if typeInfo == nil || typeInfo.GetType(indexExpr.X) == nil {
 		return arrayElemPtrInfo{}, false
 	}
+	if ident, ok := unwrapParens(indexExpr.X).(*ast.Ident); ok && arrayElemPtrIdentPointsToArray(ident) {
+		return arrayElemPtrInfo{}, false
+	}
 	arrayType, ok := arrayTypeForExpr(indexExpr.X, typeInfo)
 	if !ok {
 		return arrayElemPtrInfo{}, false
@@ -1322,6 +1325,10 @@ func arrayElemPtrRustType(info arrayElemPtrInfo) string {
 }
 
 func writeArrayElemPtrNewExpression(out *strings.Builder, indexExpr *ast.IndexExpr) bool {
+	if ident, ok := unwrapParens(indexExpr.X).(*ast.Ident); ok && arrayElemPtrIdentPointsToArray(ident) {
+		out.WriteString(`unimplemented!("array element address through pointer-to-array requires nested pointer representation")`)
+		return true
+	}
 	if _, ok := arrayElemPtrAddressInfoForIndex(indexExpr); !ok {
 		return false
 	}
@@ -1371,6 +1378,107 @@ func writeArrayElemPtrOptionValue(out *strings.Builder, rhs ast.Expr) bool {
 	out.WriteString("Some(")
 	writeArrayElemPtrNewExpression(out, indexExpr)
 	out.WriteString(")")
+	return true
+}
+
+func arrayElemPtrIdentPointsToArray(ident *ast.Ident) bool {
+	_, ok := arrayElemPtrIdentPointedArrayType(ident)
+	return ok
+}
+
+func arrayElemPtrIdentPointedArrayType(ident *ast.Ident) (*types.Array, bool) {
+	if ident == nil || !isArrayElemPtrVar(ident.Name) {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, false
+	}
+	typ := typeInfo.GetType(ident)
+	if typ == nil {
+		return nil, false
+	}
+	ptr, ok := types.Unalias(typ).Underlying().(*types.Pointer)
+	if !ok {
+		return nil, false
+	}
+	arrayType, ok := coreUnderlyingType(ptr.Elem()).(*types.Array)
+	return arrayType, ok
+}
+
+func writeArrayElemPtrPointedArrayClone(out *strings.Builder, ident *ast.Ident) bool {
+	if !arrayElemPtrIdentPointsToArray(ident) {
+		return false
+	}
+	out.WriteString("{ let __seq = ")
+	writeArrayElemPtrBorrow(out, ident, false)
+	out.WriteString("; __seq.as_ref().unwrap().clone() }")
+	return true
+}
+
+func writeArrayElemPtrPointedArrayIndexValue(out *strings.Builder, expr ast.Expr, index ast.Expr) bool {
+	ident, ok := unwrapParens(expr).(*ast.Ident)
+	if !ok || !arrayElemPtrIdentPointsToArray(ident) {
+		return false
+	}
+	out.WriteString("{ let __seq = ")
+	writeArrayElemPtrBorrow(out, ident, false)
+	out.WriteString("; __seq.as_ref().unwrap()[")
+	writeExpressionAsUsize(out, index)
+	out.WriteString("].clone() }")
+	return true
+}
+
+func arrayElemPtrAddressElemRustType(expr ast.Expr) (string, bool) {
+	unary, ok := unwrapParens(expr).(*ast.UnaryExpr)
+	if !ok || unary.Op != token.AND {
+		return "", false
+	}
+	indexExpr, ok := unwrapParens(unary.X).(*ast.IndexExpr)
+	if !ok {
+		return "", false
+	}
+	ident, ok := unwrapParens(indexExpr.X).(*ast.Ident)
+	if !ok || !arrayElemPtrIdentPointsToArray(ident) {
+		return "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return "", false
+	}
+	elemType := typeInfo.GetArrayOrSliceElemType(indexExpr.X)
+	if elemType == nil {
+		return "", false
+	}
+	elemRustType := goTypesCollectionElemTypeToRust(elemType)
+	if elemRustType == "" {
+		return "", false
+	}
+	return elemRustType, true
+}
+
+func writeArrayElemPtrAddressReadOnlyWrapper(out *strings.Builder, expr ast.Expr) bool {
+	unary, ok := unwrapParens(expr).(*ast.UnaryExpr)
+	if !ok || unary.Op != token.AND {
+		return false
+	}
+	indexExpr, ok := unwrapParens(unary.X).(*ast.IndexExpr)
+	if !ok {
+		return false
+	}
+	ident, ok := unwrapParens(indexExpr.X).(*ast.Ident)
+	if !ok || !arrayElemPtrIdentPointsToArray(ident) {
+		return false
+	}
+	trackWrapperImports()
+	out.WriteString(GetOuterWrapperType())
+	out.WriteString("::new(")
+	out.WriteString(GetInnerWrapperType())
+	out.WriteString("::new({ let __seq = ")
+	writeArrayElemPtrBorrow(out, ident, false)
+	out.WriteString("; Some(__seq.as_ref().unwrap()[")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("].clone()) }))")
 	return true
 }
 
@@ -1554,6 +1662,12 @@ func writeReadOnlySliceElemPtrPointerCallArgument(out *strings.Builder, call *as
 		TranspileExpression(out, arg)
 		out.WriteString(".borrow()).clone()))")
 		return true
+	}
+	if elemRustType, ok := arrayElemPtrAddressElemRustType(arg); ok {
+		if elemRustType != goTypesTypeToRust(ptr.Elem()) {
+			return false
+		}
+		return writeArrayElemPtrAddressReadOnlyWrapper(out, arg)
 	}
 	ident, ok := unwrapParens(arg).(*ast.Ident)
 	if !ok {

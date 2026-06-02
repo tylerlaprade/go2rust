@@ -4223,6 +4223,10 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 
+		if writePointerToArrayLen(out, call.Args[0]) {
+			return
+		}
+
 		// len() returns the length of arrays, slices, maps, strings, or channels
 		if isExpressionResultBare(call.Args[0]) {
 			// Bare value (range var, index result, etc.) - access directly
@@ -4243,6 +4247,19 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(".as_ref().unwrap()).len()")
 		}
 	}
+}
+
+func writePointerToArrayLen(out *strings.Builder, expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsPointerToArray(expr) {
+		return false
+	}
+	arrayType, ok := arrayTypeForExpr(expr, typeInfo)
+	if !ok {
+		return false
+	}
+	out.WriteString(strconv.FormatInt(arrayType.Len(), 10))
+	return true
 }
 
 func writePointerDerefSliceLen(out *strings.Builder, expr ast.Expr) bool {

@@ -10421,6 +10421,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Named slice element emitted by helper.
 			} else if writeNamedArrayIndexValue(out, e.X, e.Index) {
 				// Named array element emitted by helper.
+			} else if writeArrayElemPtrPointedArrayIndexValue(out, e.X, e.Index) {
+				// Pointer-to-array helper read.
 			} else if writePointerDerefSequenceIndexValue(out, e.X, e.Index) {
 				// Pointer-to-slice/array dereference yields a bare sequence value.
 			} else {
