@@ -3744,6 +3744,12 @@ func writeRuntimeLinkedFunctionBody(out *strings.Builder, fn *ast.FuncDecl, inde
 			writeInternalGodebugWriteBody(out, fn, indent)
 			return true
 		}
+	case "internal/syscall/unix":
+		switch fn.Name.Name {
+		case "ARC4Random":
+			writeInternalSyscallUnixARC4RandomBody(out, fn, indent)
+			return true
+		}
 	case "crypto/internal/boring/sig":
 		switch fn.Name.Name {
 		case "BoringCrypto", "FIPSOnly", "StandardCrypto":
@@ -3765,6 +3771,30 @@ func writeRuntimeLinkedFunctionBody(out *strings.Builder, fn *ast.FuncDecl, inde
 		}
 	}
 	return false
+}
+
+func writeInternalSyscallUnixARC4RandomBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	paramName := functionParamName(fn, 0, "p")
+	out.WriteString(indent)
+	out.WriteString("let __arc4_holder = ")
+	out.WriteString(RustLocalIdent(paramName))
+	out.WriteString(".clone();\n")
+	out.WriteString(indent)
+	out.WriteString("let mut __arc4_guard = __arc4_holder")
+	WriteBorrowMethod(out, true)
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("if let Some(__arc4_bytes) = __arc4_guard.as_mut() {\n")
+	out.WriteString(indent)
+	out.WriteString("    if !__arc4_bytes.is_empty() {\n")
+	out.WriteString(indent)
+	out.WriteString("        let mut __arc4_file = std::fs::File::open(\"/dev/urandom\").expect(\"internal/syscall/unix.ARC4Random failed to open /dev/urandom\");\n")
+	out.WriteString(indent)
+	out.WriteString("        std::io::Read::read_exact(&mut __arc4_file, __arc4_bytes.as_mut_slice()).expect(\"internal/syscall/unix.ARC4Random failed to read /dev/urandom\");\n")
+	out.WriteString(indent)
+	out.WriteString("    }\n")
+	out.WriteString(indent)
+	out.WriteString("}\n")
 }
 
 func writeSyncAtomicRuntimeLinkedBody(out *strings.Builder, fn *ast.FuncDecl, indent string) bool {

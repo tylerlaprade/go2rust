@@ -65,6 +65,48 @@ func StandardCrypto()
 	}
 }
 
+func TestInternalSyscallUnixARC4RandomUsesRuntimeBody(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	currentTypeInfo = &TypeInfo{pkg: types.NewPackage("internal/syscall/unix", "unix")}
+	t.Cleanup(func() {
+		currentTypeInfo = prevTypeInfo
+	})
+
+	fset := token.NewFileSet()
+	var out strings.Builder
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("ARC4Random"),
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{List: []*ast.Field{{
+				Names: []*ast.Ident{ast.NewIdent("p")},
+				Type:  &ast.ArrayType{Elt: ast.NewIdent("byte")},
+			}}},
+		},
+		Body: &ast.BlockStmt{List: []ast.Stmt{&ast.ExprStmt{X: ast.NewIdent("sourceBodyShouldNotRun")}}},
+	}, fset, nil)
+
+	got := out.String()
+	for _, bad := range []string{"sourceBodyShouldNotRun", "Go function declaration has no body", "syscall_syscall"} {
+		if strings.Contains(got, bad) {
+			t.Fatalf("internal/syscall/unix.ARC4Random should use the runtime body, found %q in:\n%s", bad, got)
+		}
+	}
+	for _, bad := range []string{"wrapping_mul(31)", "wrapping_add(17)"} {
+		if strings.Contains(got, bad) {
+			t.Fatalf("internal/syscall/unix.ARC4Random should not synthesize deterministic bytes, found %q in:\n%s", bad, got)
+		}
+	}
+	for _, want := range []string{
+		`std::fs::File::open("/dev/urandom")`,
+		"std::io::Read::read_exact(&mut __arc4_file, __arc4_bytes.as_mut_slice())",
+		"internal/syscall/unix.ARC4Random failed to read /dev/urandom",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %q in ARC4Random runtime body:\n%s", want, got)
+		}
+	}
+}
+
 func TestTranspileSyscallRuntimeLinkedFunctionsUseHostEnv(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	currentTypeInfo = &TypeInfo{pkg: types.NewPackage("syscall", "syscall")}
