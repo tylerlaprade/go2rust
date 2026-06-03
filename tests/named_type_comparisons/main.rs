@@ -18,7 +18,9 @@ impl Display for Kind {
 
 impl PartialEq for Kind {
     fn eq(&self, other: &Self) -> bool {
-        self.0.borrow().as_ref().unwrap() == other.0.borrow().as_ref().unwrap()
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left == __right
     }
 }
 
@@ -30,7 +32,9 @@ impl PartialEq<i8> for Kind {
 
 impl PartialOrd for Kind {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.borrow().as_ref().unwrap().partial_cmp(other.0.borrow().as_ref().unwrap())
+        let __left = { self.0.borrow().as_ref().cloned() };
+        let __right = { other.0.borrow().as_ref().cloned() };
+        __left.partial_cmp(&__right)
     }
 }
 

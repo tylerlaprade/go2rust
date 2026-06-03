@@ -4133,6 +4133,53 @@ func (c Code) Check() bool {
 	}
 }
 
+func TestConcurrentNumericTypeDefinitionComparisonCopiesBeforeComparing(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+type Code uint8
+
+func start() {
+	go func() {}()
+}
+
+func same(c Code) bool {
+	return c == c
+}
+
+func ordered(c Code) bool {
+	return c <= c
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "self.0.lock().unwrap().as_ref().unwrap() == other.0.lock().unwrap().as_ref().unwrap()") {
+		t.Fatalf("named scalar PartialEq should not hold self while locking other:\n%s", mainRS)
+	}
+	if strings.Contains(mainRS, "self.0.lock().unwrap().as_ref().unwrap().partial_cmp(other.0.lock().unwrap().as_ref().unwrap())") {
+		t.Fatalf("named scalar PartialOrd should not hold self while locking other:\n%s", mainRS)
+	}
+	for _, want := range []string{
+		"let __left = { self.0.lock().unwrap().as_ref().cloned() };",
+		"let __right = { other.0.lock().unwrap().as_ref().cloned() };",
+		"__left == __right",
+		"__left.partial_cmp(&__right)",
+	} {
+		if !strings.Contains(mainRS, want) {
+			t.Fatalf("named scalar comparison should copy values before comparing, missing %q:\n%s", want, mainRS)
+		}
+	}
+}
+
 func TestCrossFileNamedIntegerShiftShortDeclStoresNamedValue(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
