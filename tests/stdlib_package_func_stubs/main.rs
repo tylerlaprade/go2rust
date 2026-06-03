@@ -1765,15 +1765,15 @@ impl constant_Value {
 
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct parser_Mode(pub u32);
+pub struct parser_Mode(pub u64);
 
-impl PartialEq<u32> for parser_Mode {
-    fn eq(&self, other: &u32) -> bool {
+impl PartialEq<u64> for parser_Mode {
+    fn eq(&self, other: &u64) -> bool {
         self.0 == *other
     }
 }
 
-impl PartialEq<parser_Mode> for u32 {
+impl PartialEq<parser_Mode> for u64 {
     fn eq(&self, other: &parser_Mode) -> bool {
         *self == other.0
     }
@@ -2300,7 +2300,7 @@ pub mod ast {
 
 pub mod binary {
     use super::*;
-    pub const MAX_VARINT_LEN64: i32 = 0;
+    pub const MAX_VARINT_LEN64: i32 = 10;
 }
 
 
@@ -2382,7 +2382,7 @@ pub mod parser {
         }
     }
 
-    pub const SKIP_OBJECT_RESOLUTION: parser_Mode = parser_Mode(0);
+    pub const SKIP_OBJECT_RESOLUTION: parser_Mode = parser_Mode(64);
 
     fn go_parser_error(message: String) -> Box<dyn std::error::Error + Send + Sync> {
         Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, message))
@@ -3172,7 +3172,7 @@ pub mod types {
 fn main() {
     if false {
         let mut fset = token::new_file_set();
-        let (mut f, _) = parser::parse_file(fset.clone(), "a.go".to_string(), "package p; type A = int".to_string(), { let __go_arg = parser::SKIP_OBJECT_RESOLUTION; __go_arg });
+        let (mut f, _) = parser::parse_file(fset.clone(), "a.go".to_string(), "package p; type A = int".to_string(), parser::SKIP_OBJECT_RESOLUTION);
         { let (__tmp_0, __tmp_1) = { let __recv = Arc::new(Mutex::new(Some(types_Config::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).check("p".to_string(), fset.clone(), Arc::new(Mutex::new(Some(vec![f.clone()]))), Arc::new(Mutex::new(Some(types_Info::default())))); __result }; };
         let _ = types::new_checker(Arc::new(Mutex::new(Some(types_Config::default()))), fset.clone(), types::new_package("p".to_string(), "p".to_string()), Arc::new(Mutex::new(Some(types_Info::default()))));
         let mut alias: Arc<Mutex<Option<types_Alias>>> = Arc::new(Mutex::new(None));
@@ -3180,7 +3180,7 @@ fn main() {
         let _ = binary::MAX_VARINT_LEN64;
         let _ = types::Typ();
         let mut dir = Arc::new(Mutex::new(Some(ast::S_E_N_D)));
-        { let new_val = ast_ChanDir(ast::S_E_N_D as i32 | ast::R_E_C_V as i32 as i32); *dir.lock().unwrap() = Some(new_val); };
+        { let new_val = ast_ChanDir((((ast::S_E_N_D).0 as i32) | ((ast::R_E_C_V).0 as i32)) as i32); *dir.lock().unwrap() = Some(new_val); };
         let _ = { let __v = (*dir.lock().unwrap().as_ref().unwrap()).clone(); __v };
     }
     println!("{}", format!("{}", "ok".to_string()));

@@ -73,15 +73,22 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 			return true
 		}
 	}
-	if isConstantExpression(expr) {
-		TranspileConstExpr(out, expr, 0)
-		return true
-	}
 	if binary, ok := expr.(*ast.BinaryExpr); ok {
 		return writeNamedIntegerBinaryPrimitiveExpression(out, binary)
 	}
 	if unary, ok := expr.(*ast.UnaryExpr); ok {
 		return writeNamedIntegerUnaryPrimitiveExpression(out, unary)
+	}
+	primitiveType := ""
+	if basic, ok := types.Unalias(named.Underlying()).(*types.Basic); ok {
+		primitiveType, _ = rustCastTypeForDefinedUnderlying(basic.Name())
+	}
+	if writeNamedIntegerPrimitiveConstOperand(out, expr, primitiveType) {
+		return true
+	}
+	if isConstantExpression(expr) {
+		TranspileConstExpr(out, expr, 0)
+		return true
 	}
 	if writeUnaryIntegerLiteral(out, expr) {
 		return true
@@ -235,6 +242,14 @@ func writeNamedIntegerPrimitiveConstOperand(out *strings.Builder, expr ast.Expr,
 	constObj, ok := obj.(*types.Const)
 	if !ok || constObj.Val() == nil || constObj.Val().Kind() != constant.Int {
 		return false
+	}
+	if named, ok := types.Unalias(constObj.Type()).(*types.Named); ok && stdlibStubSelectorConstHasNamedType(expr, named) {
+		out.WriteString("((")
+		TranspileExpression(out, expr)
+		out.WriteString(").0 as ")
+		out.WriteString(primitiveType)
+		out.WriteString(")")
+		return true
 	}
 	TranspileExpression(out, expr)
 	out.WriteString(" as ")

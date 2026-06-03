@@ -2478,6 +2478,26 @@ func chanDir() types.ChanDir {
 	}
 }
 
+func TestStdlibStubNamedIntegerConstBinaryAssignmentUsesInnerValues(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "go/ast"
+
+func f() {
+	dir := ast.SEND
+	dir = ast.SEND | ast.RECV
+	_ = dir
+}
+`)
+
+	if strings.Contains(rust, "ast::S_E_N_D as i32") || strings.Contains(rust, "ast::R_E_C_V as i32") {
+		t.Fatalf("stdlib stub named integer const operands must not cast the named wrapper directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "((ast::S_E_N_D).0 as i32) | ((ast::R_E_C_V).0 as i32)") {
+		t.Fatalf("stdlib stub named integer const operands should use their inner primitive values:\n%s", rust)
+	}
+}
+
 // Regression: when a Go package has two functions whose snake-case names
 // collide (e.g. `Walk` vs `walk`, both → `walk`), the per-package rename
 // (`assignPackageFunctionNames`) and the per-file rename
