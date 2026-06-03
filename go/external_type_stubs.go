@@ -4255,9 +4255,21 @@ impl %s {
         self.is_dir
     }
 `, name, name, name, name, stringType, wrappedExternalStubExpr("String", "self.name.clone()"))
+	if method, ok := methods["mode"]; ok && len(method.ReturnTypes) == 1 {
+		fmt.Fprintf(out, `    pub fn mode(&self) -> %s {
+        if self.is_dir {
+            %s
+        } else {
+            %s
+        }
+    }
+`, method.ReturnTypes[0],
+			wrappedExternalStubExpr("fs_FileMode", "fs_FileMode(1u32 << 31)"),
+			wrappedExternalStubExpr("fs_FileMode", "fs_FileMode(0)"))
+	}
 	methodNames := make([]string, 0, len(methods))
 	for methodName := range methods {
-		if methodName == "name" || methodName == "size" || methodName == "is_dir" {
+		if methodName == "name" || methodName == "size" || methodName == "is_dir" || methodName == "mode" {
 			continue
 		}
 		methodNames = append(methodNames, methodName)
