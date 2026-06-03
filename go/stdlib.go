@@ -108,6 +108,7 @@ func init() {
 		"strings.Trim":             transpileStringsTrim,
 		"strconv.Itoa":             transpileStrconvItoa,
 		"strconv.Atoi":             transpileStrconvAtoi,
+		"strconv.ParseBool":        transpileStrconvParseBool,
 		"strconv.FormatFloat":      transpileStrconvFormatFloat,
 		"strconv.FormatInt":        transpileStrconvFormatInt,
 		"strconv.Quote":            transpileStrconvQuote,
@@ -2855,6 +2856,28 @@ func transpileStrconvAtoi(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString("Box::<dyn StdError + Send + Sync>::from(format!(\"strconv.Atoi: parsing \\\"{}\\\": invalid syntax\", __atoi_input)))))) } }")
 		} else {
 			out.WriteString("Box::<dyn StdError>::from(format!(\"strconv.Atoi: parsing \\\"{}\\\": invalid syntax\", __atoi_input)))))) } }")
+		}
+	}
+}
+
+func transpileStrconvParseBool(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) > 0 {
+		out.WriteString("{ let __parse_bool_input = ")
+		writeStringSequenceValue(out, call.Args[0])
+		out.WriteString("; match __parse_bool_input.as_str() { ")
+		out.WriteString("\"1\" | \"t\" | \"T\" | \"TRUE\" | \"true\" | \"True\" => (true, ")
+		WriteWrappedNone(out)
+		out.WriteString("), ")
+		out.WriteString("\"0\" | \"f\" | \"F\" | \"FALSE\" | \"false\" | \"False\" => (false, ")
+		WriteWrappedNone(out)
+		out.WriteString("), ")
+		TrackImport("Error")
+		out.WriteString("_ => (false, ")
+		WriteWrapperPrefix(out)
+		if NeedsConcurrentWrapper() {
+			out.WriteString("Box::<dyn StdError + Send + Sync>::from(format!(\"strconv.ParseBool: parsing \\\"{}\\\": invalid syntax\", __parse_bool_input)))))) } }")
+		} else {
+			out.WriteString("Box::<dyn StdError>::from(format!(\"strconv.ParseBool: parsing \\\"{}\\\": invalid syntax\", __parse_bool_input)))))) } }")
 		}
 	}
 }

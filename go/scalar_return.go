@@ -459,6 +459,8 @@ func stdlibHandlerResultUsesBareScalar(call *ast.CallExpr, index int) bool {
 	switch key {
 	case "strconv.Atoi":
 		return index == 0
+	case "strconv.ParseBool":
+		return index == 0
 	case "strings.Cut":
 		return index == 2
 	case "sort.Search":

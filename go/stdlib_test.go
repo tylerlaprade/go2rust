@@ -677,6 +677,38 @@ func render(k Kind) string {
 	}
 }
 
+func TestStrconvParseBoolLowersTupleWithBareBool(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"os"
+	"strconv"
+)
+
+func debugEnabled() bool {
+	debug, _ := strconv.ParseBool(os.Getenv("GOPACKAGESDEBUG"))
+	return debug
+}
+`)
+
+	if strings.Contains(rust, "strconv::parse_bool") {
+		t.Fatalf("strconv.ParseBool should lower at the typed call site without using the bridge:\n%s", rust)
+	}
+	for _, want := range []string{
+		"let __parse_bool_input =",
+		"\"1\" | \"t\" | \"T\" | \"TRUE\" | \"true\" | \"True\" => (true,",
+		"\"0\" | \"f\" | \"F\" | \"FALSE\" | \"false\" | \"False\" => (false,",
+		"let (mut debug, _) =",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("strconv.ParseBool lowering missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "debug.borrow()") || strings.Contains(rust, "debug.lock()") {
+		t.Fatalf("strconv.ParseBool bool result should remain bare after short declaration:\n%s", rust)
+	}
+}
+
 func TestBuiltinPrintUsesRustStderrMacro(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
