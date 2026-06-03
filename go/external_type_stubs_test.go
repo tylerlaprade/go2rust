@@ -689,6 +689,32 @@ func TestOsGetwdStubUsesCurrentDir(t *testing.T) {
 	}
 }
 
+func TestOsIsPathSeparatorStubUsesHostPathRules(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"is_path_separator": {
+				ParamCount:  1,
+				ReturnTypes: []string{"bool"},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.IsPathSeparator should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"downcast_ref::<u8>()",
+		"downcast_ref::<" + wrappedExternalStubType("u8") + ">",
+		"#[cfg(windows)]",
+		"c == b'/'",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.IsPathSeparator shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestIoCopyStubMatchesBareCountReturnSignature(t *testing.T) {
 	var out strings.Builder
 	writeIoCopyStub(&out, externalPackageStubFunction{

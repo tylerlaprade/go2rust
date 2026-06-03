@@ -6357,6 +6357,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeOsGetwdFunction(out, pkg.Functions[funcName])
 		} else if funcName == "getenv" {
 			writeOsGetenvFunction(out, pkg.Functions[funcName])
+		} else if funcName == "is_path_separator" {
+			writeOsIsPathSeparatorFunction(out, pkg.Functions[funcName])
 		} else if funcName == "mkdir_all" {
 			writeOsMkdirAllFunction(out, pkg.Functions[funcName])
 		} else if funcName == "read_file" {
@@ -6451,6 +6453,42 @@ func writeOsGetwdFunction(out *strings.Builder, fn externalPackageStubFunction) 
 	out.WriteString(wrappedExternalStubExpr("String", "String::new()"))
 	out.WriteString(", io_error(err)),\n")
 	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.IsPathSeparator follows host OS path separator rules.
+func writeOsIsPathSeparatorFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	u8Wrapper := wrappedExternalStubType("u8")
+	u8Borrow := externalStubBorrowExpr("v")
+	i32Wrapper := wrappedExternalStubType("i32")
+	i32Borrow := externalStubBorrowExpr("v")
+
+	out.WriteString("    pub fn is_path_separator<T0: 'static>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let c = if let Some(v) = (&_arg0 as &dyn Any).downcast_ref::<u8>() {\n")
+	out.WriteString("            *v\n")
+	out.WriteString("        } else if let Some(v) = (&_arg0 as &dyn Any).downcast_ref::<i32>() {\n")
+	out.WriteString("            *v as u8\n")
+	out.WriteString("        } else if let Some(v) = (&_arg0 as &dyn Any).downcast_ref::<")
+	out.WriteString(u8Wrapper)
+	out.WriteString(">() {\n")
+	out.WriteString("            ")
+	out.WriteString(u8Borrow)
+	out.WriteString(".as_ref().copied().unwrap_or_default()\n")
+	out.WriteString("        } else if let Some(v) = (&_arg0 as &dyn Any).downcast_ref::<")
+	out.WriteString(i32Wrapper)
+	out.WriteString(">() {\n")
+	out.WriteString("            ")
+	out.WriteString(i32Borrow)
+	out.WriteString(".as_ref().copied().unwrap_or_default() as u8\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            panic!(\"os.IsPathSeparator bridge: expected byte argument\")\n")
+	out.WriteString("        };\n")
+	out.WriteString("        #[cfg(windows)]\n")
+	out.WriteString("        { c == b'/' || c == b'\\\\' }\n")
+	out.WriteString("        #[cfg(not(windows))]\n")
+	out.WriteString("        { c == b'/' }\n")
 	out.WriteString("    }\n")
 }
 
