@@ -327,7 +327,8 @@ func callReturnsBareScalar(call *ast.CallExpr) bool {
 	if typeInfo.IsTypeConversion(call) {
 		return false
 	}
-	if !callUsesGeneratedReturnSignature(call) {
+	usesGeneratedReturnSignature := callUsesGeneratedReturnSignature(call)
+	if !usesGeneratedReturnSignature && !stdlibHandlerResultUsesBareScalar(call, 0) {
 		return false
 	}
 	sig, ok := callSignatureFromTypeInfo(call)
@@ -460,6 +461,10 @@ func stdlibHandlerResultUsesBareScalar(call *ast.CallExpr, index int) bool {
 		return index == 0
 	case "strings.Cut":
 		return index == 2
+	case "sort.Search":
+		return index == 0
+	case "sort.Find":
+		return index == 0 || index == 1
 	default:
 		return false
 	}

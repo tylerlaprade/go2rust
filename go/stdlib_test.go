@@ -102,6 +102,337 @@ func (ra ranges) Len() int {
 	}
 }
 
+func TestSortSliceLowersToIndexSortWithoutReflectlite(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sort"
+
+func order(names []string) {
+	sort.Slice(names, func(i, j int) bool {
+		return names[i] < names[j]
+	})
+}
+`)
+
+	if strings.Contains(rust, "sort::slice") ||
+		strings.Contains(rust, "reflectlite") ||
+		strings.Contains(rust, "Box::new(names") {
+		t.Fatalf("sort.Slice should lower at the typed call site without boxing through reflectlite:\n%s", rust)
+	}
+	for _, want := range []string{
+		"let __sort_target = ",
+		".clone(); let __sort_less = ",
+		"__less(",
+		"__sort_values.swap(__sort_j, __sort_j - 1)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("sort.Slice lowering missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestSortSearchLowersBinarySearchWithoutBridge(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sort"
+
+func findAtLeast(values []int, target int) int {
+	return sort.Search(len(values), func(i int) bool {
+		return values[i] >= target
+	})
+}
+`)
+
+	if strings.Contains(rust, "sort::search") {
+		t.Fatalf("sort.Search should lower at the typed call site without using the bridge:\n%s", rust)
+	}
+	for _, want := range []string{
+		"while __sort_i < __sort_j",
+		"let __sort_h =",
+		"__pred(",
+		"__sort_i }",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("sort.Search lowering missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestSortSearchShortDeclResultRegistersBareIndex(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sort"
+
+func contains(values []int, target int) bool {
+	i := sort.Search(len(values), func(pos int) bool {
+		return values[pos] >= target
+	})
+	return i < len(values) && values[i] == target
+}
+`)
+
+	if strings.Contains(rust, "sort::search") {
+		t.Fatalf("sort.Search should lower at the typed call site without using the bridge:\n%s", rust)
+	}
+	if strings.Contains(rust, "i.borrow()") || strings.Contains(rust, "i.lock()") {
+		t.Fatalf("sort.Search result short declaration should register i as a bare scalar:\n%s", rust)
+	}
+	for _, want := range []string{
+		"let mut i = { let mut __sort_i: i32 = 0;",
+		"i <",
+		"[(i) as usize]",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("sort.Search short-decl lowering missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestSortFindLowersBinarySearchTupleWithoutBridge(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sort"
+
+func findValue(values []int, target int) (int, bool) {
+	return sort.Find(len(values), func(i int) int {
+		if values[i] < target {
+			return 1
+		}
+		if values[i] > target {
+			return -1
+		}
+		return 0
+	})
+}
+`)
+
+	if strings.Contains(rust, "sort::find") {
+		t.Fatalf("sort.Find should lower at the typed call site without using the bridge:\n%s", rust)
+	}
+	for _, want := range []string{
+		"while __sort_i < __sort_j",
+		"let __sort_found =",
+		"__cmp(",
+		"(__sort_i, __sort_found)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("sort.Find lowering missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestSortInterfaceSortLowersToLenLessSwapWithoutBridge(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sort"
+
+type items []int
+
+func (x items) Len() int {
+	return len(x)
+}
+
+func (x items) Less(i, j int) bool {
+	return x[i] < x[j]
+}
+
+func (x items) Swap(i, j int) {
+	x[i], x[j] = x[j], x[i]
+}
+
+func order(x items) {
+	sort.Sort(x)
+}
+`)
+
+	if strings.Contains(rust, "sort::sort") {
+		t.Fatalf("sort.Sort should lower at the typed call site without using the bridge:\n%s", rust)
+	}
+	for _, want := range []string{
+		"let mut __sort_data = (*x",
+		"let __sort_len = __sort_data.len()",
+		"__sort_data.less(",
+		"__sort_data.swap(",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("sort.Sort lowering missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestSortInterfaceSortPointerReceiverBorrowsReceiverWithoutBridge(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sort"
+
+type items []int
+
+func (x *items) Len() int {
+	return len(*x)
+}
+
+func (x *items) Less(i, j int) bool {
+	return (*x)[i] < (*x)[j]
+}
+
+func (x *items) Swap(i, j int) {
+	(*x)[i], (*x)[j] = (*x)[j], (*x)[i]
+}
+
+func order(x *items) {
+	sort.Sort(x)
+}
+`)
+
+	if strings.Contains(rust, "sort::sort") {
+		t.Fatalf("sort.Sort on pointer receiver should lower without using the bridge:\n%s", rust)
+	}
+	if strings.Contains(rust, "__recv_ptr") {
+		t.Fatalf("sort.Sort on pointer receiver should not cast the wrapped pointee to a raw named-slice pointer:\n%s", rust)
+	}
+	for _, want := range []string{
+		"let mut __sort_data = (*x",
+		"let __sort_len = __sort_data.len()",
+		"__sort_data.less(",
+		"__sort_data.swap(",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("sort.Sort pointer lowering missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestSortInterfaceSortCurrentNamedSliceReceiverUsesInnerHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sort"
+
+type items []int
+
+func (x items) Len() int {
+	return len(x)
+}
+
+func (x items) Less(i, j int) bool {
+	return x[i] < x[j]
+}
+
+func (x items) Swap(i, j int) {
+	x[i], x[j] = x[j], x[i]
+}
+
+func (x items) order() {
+	sort.Sort(x)
+}
+`)
+
+	if strings.Contains(rust, "sort::sort") {
+		t.Fatalf("sort.Sort on a named-slice receiver should lower without using the bridge:\n%s", rust)
+	}
+	for _, want := range []string{
+		"let mut __sort_data = items(self.0.clone())",
+		"let __sort_len = __sort_data.len()",
+		"__sort_data.less(",
+		"__sort_data.swap(",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("sort.Sort receiver lowering missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestSortInterfaceSortNamedStructLiteralUsesBareReceiver(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sort"
+
+type ranges struct {
+	p *[]int
+}
+
+func (ra ranges) Len() int {
+	return len(*ra.p)
+}
+
+func (ra ranges) Less(i, j int) bool {
+	return (*ra.p)[i] < (*ra.p)[j]
+}
+
+func (ra ranges) Swap(i, j int) {
+	(*ra.p)[i], (*ra.p)[j] = (*ra.p)[j], (*ra.p)[i]
+}
+
+func order(p *[]int) {
+	sort.Sort(ranges{p})
+}
+`)
+
+	if strings.Contains(rust, "sort::sort") {
+		t.Fatalf("sort.Sort on a named struct literal should lower without using the bridge:\n%s", rust)
+	}
+	if strings.Contains(rust, "ranges { p: p.clone(), ..Default::default() }.borrow()") ||
+		strings.Contains(rust, "ranges { p: p.clone(), ..Default::default() }.lock()") {
+		t.Fatalf("sort.Sort on a named struct literal should use the bare literal as the receiver:\n%s", rust)
+	}
+	for _, want := range []string{
+		"let mut __sort_data = ranges { p: p.clone(), ..Default::default() }",
+		"let __sort_len = __sort_data.len()",
+		"__sort_data.less(",
+		"__sort_data.swap(",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("sort.Sort struct-literal lowering missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestSortInterfaceSortNamedSliceConversionUsesBareReceiver(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "sort"
+
+type pkg struct {
+	path string
+}
+
+type byPath []*pkg
+
+func (p byPath) Len() int {
+	return len(p)
+}
+
+func (p byPath) Less(i, j int) bool {
+	return p[i].path < p[j].path
+}
+
+func (p byPath) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+
+func order(list []*pkg) {
+	sort.Sort(byPath(list))
+}
+`)
+
+	if strings.Contains(rust, "sort::sort") {
+		t.Fatalf("sort.Sort on a named slice conversion should lower without using the bridge:\n%s", rust)
+	}
+	if strings.Contains(rust, "byPath(list.clone()).borrow()") ||
+		strings.Contains(rust, "byPath(list.clone()).lock()") {
+		t.Fatalf("sort.Sort on a named slice conversion should use the bare conversion as the receiver:\n%s", rust)
+	}
+	for _, want := range []string{
+		"let mut __sort_data = byPath(list.clone())",
+		"let __sort_len = __sort_data.len()",
+		"__sort_data.less(",
+		"__sort_data.swap(",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("sort.Sort named-slice conversion lowering missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestFmtFprintfSourceMappedStringsBuilderUsesGeneratedWriteString(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

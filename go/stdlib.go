@@ -114,6 +114,12 @@ func init() {
 		"errors.New":               transpileErrorsNew,
 		"sort.Strings":             transpileSortStrings,
 		"sort.Ints":                transpileSortInts,
+		"sort.Sort":                transpileSortInterfaceSort,
+		"sort.Stable":              transpileSortInterfaceSort,
+		"sort.Search":              transpileSortSearch,
+		"sort.Find":                transpileSortFind,
+		"sort.Slice":               transpileSortSlice,
+		"sort.SliceStable":         transpileSortSlice,
 		"slices.Sort":              transpileSlicesSort,
 		"slices.SortFunc":          transpileSlicesSortFunc,
 		"slices.Contains":          transpileSlicesContains,
@@ -2389,6 +2395,184 @@ func transpileSlicesSort(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
 		transpileNilSafeSort(out, call.Args[0])
 	}
+}
+
+func transpileSortSearch(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 2 {
+		return
+	}
+	out.WriteString("{ let mut __sort_i: i32 = 0; let mut __sort_j: i32 = (")
+	TranspileExpression(out, call.Args[0])
+	out.WriteString(") as i32; let __sort_pred = ")
+	if !writeFunctionValueHandle(out, call.Args[1]) {
+		TranspileExpression(out, call.Args[1])
+	}
+	out.WriteString("; while __sort_i < __sort_j { let __sort_h = (((__sort_i as u32 + __sort_j as u32) >> 1) as i32); let __sort_ok = { let mut __pred_guard = __sort_pred")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; let __pred = __pred_guard.as_mut().expect(\"sort.Search predicate is nil\"); __pred(")
+	writeSortIndexArg(out, "__sort_h")
+	out.WriteString(") }; if !__sort_ok { __sort_i = __sort_h + 1; } else { __sort_j = __sort_h; } } __sort_i }")
+}
+
+func transpileSortFind(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 2 {
+		return
+	}
+	out.WriteString("{ let __sort_n: i32 = (")
+	TranspileExpression(out, call.Args[0])
+	out.WriteString(") as i32; let mut __sort_i: i32 = 0; let mut __sort_j: i32 = __sort_n; let __sort_cmp = ")
+	if !writeFunctionValueHandle(out, call.Args[1]) {
+		TranspileExpression(out, call.Args[1])
+	}
+	out.WriteString("; while __sort_i < __sort_j { let __sort_h = (((__sort_i as u32 + __sort_j as u32) >> 1) as i32); let __sort_order = { let mut __cmp_guard = __sort_cmp")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; let __cmp = __cmp_guard.as_mut().expect(\"sort.Find comparator is nil\"); __cmp(")
+	writeSortIndexArg(out, "__sort_h")
+	out.WriteString(") }; if __sort_order > 0 { __sort_i = __sort_h + 1; } else { __sort_j = __sort_h; } } let __sort_found = __sort_i < __sort_n && { let mut __cmp_guard = __sort_cmp")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; let __cmp = __cmp_guard.as_mut().expect(\"sort.Find comparator is nil\"); __cmp(")
+	writeSortIndexArg(out, "__sort_i")
+	out.WriteString(") == 0 }; (__sort_i, __sort_found) }")
+}
+
+func transpileSortInterfaceSort(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 1 {
+		return
+	}
+	arg := call.Args[0]
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.GetType(arg) == nil {
+		out.WriteString("/* ERROR: Type information required for sort.Sort */ unimplemented!(\"type info required for sort.Sort\")")
+		return
+	}
+	out.WriteString("{ let mut __sort_data = ")
+	if !writeSortInterfaceReceiverValue(out, arg, typeInfo.GetType(arg)) {
+		TranspileExpressionContext(out, arg, LValue)
+	}
+	out.WriteString("; let __sort_len = __sort_data.len(); for __sort_i in 1..(__sort_len as usize) { let mut __sort_j = __sort_i as i32; while __sort_j > 0 { if !__sort_data.less(")
+	writeSortInterfaceMethodArgs(out, []string{"__sort_j", "__sort_j - 1"})
+	out.WriteString(") { break; } __sort_data.swap(")
+	writeSortInterfaceMethodArgs(out, []string{"__sort_j", "__sort_j - 1"})
+	out.WriteString("); __sort_j -= 1; } } }")
+}
+
+func transpileSortSlice(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) < 2 {
+		return
+	}
+	out.WriteString("{ let __sort_target = ")
+	TranspileExpressionContext(out, call.Args[0], LValue)
+	out.WriteString(".clone(); let __sort_less = ")
+	if !writeFunctionValueHandle(out, call.Args[1]) {
+		TranspileExpression(out, call.Args[1])
+	}
+	out.WriteString("; let __sort_len = { let __sort_guard = __sort_target")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __sort_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; ")
+	out.WriteString("for __sort_i in 1..__sort_len { let mut __sort_j = __sort_i; while __sort_j > 0 { let __should_swap = { let mut __less_guard = __sort_less")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; let __less = __less_guard.as_mut().expect(\"sort.Slice less function is nil\"); __less(")
+	writeSortIndexArg(out, "__sort_j as i32")
+	out.WriteString(", ")
+	writeSortIndexArg(out, "(__sort_j - 1) as i32")
+	out.WriteString(") }; if !__should_swap { break; } { let mut __sort_guard = __sort_target")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.swap(__sort_j, __sort_j - 1); } } __sort_j -= 1; } } }")
+}
+
+func writeSortInterfaceReceiverValue(out *strings.Builder, arg ast.Expr, typ types.Type) bool {
+	named, ok := sortInterfaceNamedReceiverType(typ)
+	if !ok {
+		return false
+	}
+	rustType := goTypesTypeToRust(named)
+	if sortInterfaceArgEmitsBareNamedValue(arg, named) {
+		TranspileExpression(out, arg)
+		return true
+	}
+	if sortInterfaceArgExposesNamedInnerHandle(arg, named) {
+		out.WriteString(rustType)
+		out.WriteString("(")
+		TranspileExpressionContext(out, arg, LValue)
+		out.WriteString(".clone())")
+		return true
+	}
+	out.WriteString("(*")
+	TranspileExpressionContext(out, arg, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()")
+	return true
+}
+
+func sortInterfaceNamedReceiverType(typ types.Type) (*types.Named, bool) {
+	if typ == nil {
+		return nil, false
+	}
+	unaliased := types.Unalias(typ)
+	if ptr, ok := unaliased.(*types.Pointer); ok {
+		if named, ok := types.Unalias(ptr.Elem()).(*types.Named); ok {
+			return named, true
+		}
+		return nil, false
+	}
+	if named, ok := unaliased.(*types.Named); ok {
+		return named, true
+	}
+	return nil, false
+}
+
+func sortInterfaceArgEmitsBareNamedValue(arg ast.Expr, named *types.Named) bool {
+	expr := unwrapParens(arg)
+	if named == nil {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil || !types.Identical(types.Unalias(typ), types.Unalias(named)) {
+		return false
+	}
+	if call, ok := expr.(*ast.CallExpr); ok && typeInfo.IsTypeConversion(call) && !typeConversionEmitsWrappedValue(call) {
+		return true
+	}
+	if _, ok := expr.(*ast.CompositeLit); !ok {
+		return false
+	}
+	switch types.Unalias(typ).Underlying().(type) {
+	case *types.Struct, *types.Array, *types.Slice:
+		return true
+	default:
+		return false
+	}
+}
+
+func sortInterfaceArgExposesNamedInnerHandle(arg ast.Expr, named *types.Named) bool {
+	ident, ok := unwrapParens(arg).(*ast.Ident)
+	if !ok || !isCurrentReceiverIdent(ident) || named == nil || named.Obj() == nil {
+		return false
+	}
+	if currentReceiverType != named.Obj().Name() {
+		return false
+	}
+	_, isTypeDef := LookupTypeDefinition(currentReceiverType)
+	return isTypeDef
+}
+
+func writeSortInterfaceMethodArgs(out *strings.Builder, args []string) {
+	for i, arg := range args {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		writeSortIndexArg(out, arg)
+	}
+}
+
+func writeSortIndexArg(out *strings.Builder, value string) {
+	WriteWrapperPrefix(out)
+	out.WriteString(value)
+	WriteWrapperSuffix(out)
 }
 
 func transpileNilSafeSort(out *strings.Builder, arg ast.Expr) {
