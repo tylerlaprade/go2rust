@@ -89,7 +89,7 @@ func (pg *ProjectGenerator) checkForExternalPackages() error {
 	fileSet := token.NewFileSet()
 
 	for _, filename := range pg.goFiles {
-		file, err := parser.ParseFile(fileSet, filename, nil, parser.ImportsOnly)
+		file, err := parser.ParseFile(fileSet, filename, nil, parser.ImportsOnly|parser.SkipObjectResolution)
 		if err != nil {
 			continue // Skip files with parse errors
 		}
@@ -131,7 +131,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	var astFiles []*ast.File
 	astFilesByPath := make(map[string]*ast.File, len(pg.goFiles))
 	for _, filename := range pg.goFiles {
-		file, err := parser.ParseFile(fileSet, filename, nil, parser.ParseComments)
+		file, err := parser.ParseFile(fileSet, filename, nil, parser.ParseComments|parser.SkipObjectResolution)
 		if err != nil {
 			return fmt.Errorf("parse error in %s: %v", filename, err)
 		}

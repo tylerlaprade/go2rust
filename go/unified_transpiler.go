@@ -188,7 +188,7 @@ func (ut *UnifiedTranspiler) parseAllPackages() error {
 	// Parse main package files
 	fmt.Fprintf(os.Stderr, "Parsing main package files...\n")
 	for _, file := range ut.mainPackage.GoFiles {
-		ast, err := parser.ParseFile(ut.fileSet, file, nil, parser.ParseComments)
+		ast, err := parser.ParseFile(ut.fileSet, file, nil, parser.ParseComments|parser.SkipObjectResolution)
 		if err != nil {
 			return fmt.Errorf("failed to parse %s: %v", file, err)
 		}
@@ -205,7 +205,7 @@ func (ut *UnifiedTranspiler) parseAllPackages() error {
 	for pkgPath, pkg := range ut.vendorPackages {
 		fmt.Fprintf(os.Stderr, "Parsing package %s...\n", pkgPath)
 		for _, file := range pkg.GoFiles {
-			ast, err := parser.ParseFile(ut.fileSet, file, nil, parser.ParseComments)
+			ast, err := parser.ParseFile(ut.fileSet, file, nil, parser.ParseComments|parser.SkipObjectResolution)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: Failed to parse %s: %v\n", file, err)
 				continue

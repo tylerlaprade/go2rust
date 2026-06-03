@@ -413,7 +413,7 @@ func (pl *PackageLoader) loadLocalModulePackage(importPath, modulePath string) (
 			continue
 		}
 		filename := filepath.Join(dir, name)
-		file, err := parser.ParseFile(fileSet, filename, nil, parser.ParseComments)
+		file, err := parser.ParseFile(fileSet, filename, nil, parser.ParseComments|parser.SkipObjectResolution)
 		if err != nil {
 			return nil, err
 		}

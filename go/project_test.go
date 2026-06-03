@@ -96,6 +96,66 @@ func TestPackageLoaderMainASTByPathUsesWorkDirForRelativeCompiledFiles(t *testin
 	}
 }
 
+func TestProductionParseFileCallsSkipObjectResolution(t *testing.T) {
+	for _, filename := range []string{"project.go", "package_loader.go", "transpile.go", "unified_transpiler.go"} {
+		t.Run(filename, func(t *testing.T) {
+			fset := token.NewFileSet()
+			source, err := os.ReadFile(filename)
+			if err != nil {
+				t.Fatalf("ReadFile(%s) error = %v", filename, err)
+			}
+			file, err := parser.ParseFile(fset, filename, source, parser.ParseComments|parser.SkipObjectResolution)
+			if err != nil {
+				t.Fatalf("ParseFile(%s) error = %v", filename, err)
+			}
+
+			ast.Inspect(file, func(n ast.Node) bool {
+				call, ok := n.(*ast.CallExpr)
+				if !ok || !isParserParseFileCall(call) {
+					return true
+				}
+				if len(call.Args) < 4 {
+					t.Fatalf("%s: parser.ParseFile call has %d args", fset.Position(call.Pos()), len(call.Args))
+				}
+				if !parseFileModeIncludesSkipObjectResolution(call.Args[3]) {
+					t.Fatalf("%s: production parser.ParseFile call must include parser.SkipObjectResolution", fset.Position(call.Pos()))
+				}
+				return true
+			})
+		})
+	}
+}
+
+func isParserParseFileCall(call *ast.CallExpr) bool {
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok || sel.Sel.Name != "ParseFile" {
+		return false
+	}
+	pkg, ok := sel.X.(*ast.Ident)
+	return ok && pkg.Name == "parser"
+}
+
+func parseFileModeIncludesSkipObjectResolution(expr ast.Expr) bool {
+	if isParserSkipObjectResolution(expr) {
+		return true
+	}
+	binary, ok := expr.(*ast.BinaryExpr)
+	if !ok || binary.Op != token.OR {
+		return false
+	}
+	return parseFileModeIncludesSkipObjectResolution(binary.X) ||
+		parseFileModeIncludesSkipObjectResolution(binary.Y)
+}
+
+func isParserSkipObjectResolution(expr ast.Expr) bool {
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok || sel.Sel.Name != "SkipObjectResolution" {
+		return false
+	}
+	pkg, ok := sel.X.(*ast.Ident)
+	return ok && pkg.Name == "parser"
+}
+
 func TestPackageLoaderNormalizePackageFilePathDoesNotDoubleRelativeWorkDir(t *testing.T) {
 	loader := &PackageLoader{workDir: "go"}
 

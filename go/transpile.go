@@ -2640,7 +2640,7 @@ func Transpile(file *ast.File, fileSet *token.FileSet, typeInfo *TypeInfo) (stri
 // for projects with dependencies, use the file-based pipeline instead.
 func TranspileSource(source string) (string, error) {
 	fileSet := token.NewFileSet()
-	file, err := parser.ParseFile(fileSet, "input.go", source, parser.ParseComments)
+	file, err := parser.ParseFile(fileSet, "input.go", source, parser.ParseComments|parser.SkipObjectResolution)
 	if err != nil {
 		return "", fmt.Errorf("parse error: %v", err)
 	}
