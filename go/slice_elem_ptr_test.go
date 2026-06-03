@@ -723,6 +723,34 @@ func Lookup(name string) *Info {
 	}
 }
 
+func TestSliceElemPointerReturnMethodCallBorrowsElement(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type action struct {
+	desc int
+}
+
+func (a *action) describef(desc int) {
+	a.desc = desc
+}
+
+func later(actions []action) *action {
+	return &actions[0]
+}
+
+func use(actions []action) {
+	later(actions).describef(1)
+}
+`)
+
+	if strings.Contains(rust, "__recv.lock()") || strings.Contains(rust, "__recv.borrow()") {
+		t.Fatalf("method call on slice element pointer return should not treat the receiver option as a normal pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__recv.as_ref().unwrap().borrow_mut()") {
+		t.Fatalf("method call on slice element pointer return should borrow the returned element pointer:\n%s", rust)
+	}
+}
+
 func TestSliceElemPointerReturnVariableFlowsThroughCall(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

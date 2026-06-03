@@ -16360,6 +16360,41 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					out.WriteString(".as_ref().unwrap()).")
 				}
 			}
+		} else if receiverCall, ok := sel.X.(*ast.CallExpr); ok {
+			if _, ok := sliceElemPtrReturnInfoForCall(receiverCall); ok {
+				needsMut := methodCallNeedsMutableReceiver(sel)
+				out.WriteString("{ let __recv = ")
+				TranspileExpression(out, receiverCall)
+				out.WriteString("; let __result = (*__recv.as_ref().unwrap()")
+				if needsMut {
+					out.WriteString(".borrow_mut().as_mut().unwrap()).")
+				} else {
+					out.WriteString(".borrow().as_ref().unwrap()).")
+				}
+				closeReceiverBlock = true
+			} else if methodReceiverExpressionNeedsUnwrap(sel.X) {
+				needsMut := methodCallNeedsMutableReceiver(sel)
+				out.WriteString("{ let __recv = ")
+				restoreForceInnerClones := func() {}
+				prevForceInnerClones := forceInnerFuncLitCaptureClones
+				forceInnerFuncLitCaptureClones = true
+				restoreForceInnerClones = func() {
+					forceInnerFuncLitCaptureClones = prevForceInnerClones
+				}
+				TranspileExpression(out, sel.X)
+				restoreForceInnerClones()
+				out.WriteString("; let __result = (*__recv")
+				WriteBorrowMethod(out, needsMut)
+				if needsMut {
+					out.WriteString(".as_mut().unwrap()).")
+				} else {
+					out.WriteString(".as_ref().unwrap()).")
+				}
+				closeReceiverBlock = true
+			} else {
+				TranspileExpression(out, sel.X)
+				out.WriteString(".")
+			}
 		} else if methodReceiverExpressionNeedsUnwrap(sel.X) {
 			needsMut := methodCallNeedsMutableReceiver(sel)
 			out.WriteString("{ let __recv = ")
