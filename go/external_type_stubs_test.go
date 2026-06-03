@@ -661,6 +661,34 @@ func TestOsGetenvStubUsesHostEnv(t *testing.T) {
 	}
 }
 
+func TestOsGetwdStubUsesCurrentDir(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"getwd": {
+				ReturnTypes: []string{
+					wrappedExternalStubType("String"),
+					wrappedExternalStubType(externalStubErrorInnerType()),
+				},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.Getwd should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"std::env::current_dir()",
+		"path.to_string_lossy().into_owned()",
+		"String::new()",
+		"io_error(err)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.Getwd shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestIoCopyStubMatchesBareCountReturnSignature(t *testing.T) {
 	var out strings.Builder
 	writeIoCopyStub(&out, externalPackageStubFunction{

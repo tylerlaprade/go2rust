@@ -6353,6 +6353,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 		}
 		if funcName == "exit" {
 			writeOsExitFunction(out)
+		} else if funcName == "getwd" {
+			writeOsGetwdFunction(out, pkg.Functions[funcName])
 		} else if funcName == "getenv" {
 			writeOsGetenvFunction(out, pkg.Functions[funcName])
 		} else if funcName == "mkdir_all" {
@@ -6381,7 +6383,8 @@ func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
 	_, needsReadDir := pkg.Functions["read_dir"]
 	_, needsReadFile := pkg.Functions["read_file"]
 	_, needsWriteFile := pkg.Functions["write_file"]
-	return needsStat || needsMkdirAll || needsReadDir || needsReadFile || needsWriteFile
+	_, needsGetwd := pkg.Functions["getwd"]
+	return needsStat || needsMkdirAll || needsReadDir || needsReadFile || needsWriteFile || needsGetwd
 }
 
 // PERMANENT: not scaffold — OS error types map to Rust std::io::Error, no transpilable Go source.
@@ -6432,6 +6435,22 @@ func writeOsGetenvFunction(out *strings.Builder, fn externalPackageStubFunction)
 	out.WriteString("        ")
 	out.WriteString(wrappedExternalStubExpr("String", "std::env::var(key).unwrap_or_default()"))
 	out.WriteString("\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.Getwd maps to std::env::current_dir in the host process environment.
+func writeOsGetwdFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn getwd() -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        match std::env::current_dir() {\n")
+	out.WriteString("            Ok(path) => (")
+	out.WriteString(wrappedExternalStubExpr("String", "path.to_string_lossy().into_owned()"))
+	out.WriteString(", no_error()),\n")
+	out.WriteString("            Err(err) => (")
+	out.WriteString(wrappedExternalStubExpr("String", "String::new()"))
+	out.WriteString(", io_error(err)),\n")
+	out.WriteString("        }\n")
 	out.WriteString("    }\n")
 }
 
