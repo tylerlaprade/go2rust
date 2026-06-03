@@ -6132,7 +6132,9 @@ func writePointerHandleSelectorTarget(out *strings.Builder, sel *ast.SelectorExp
 	if ident, ok := sel.X.(*ast.Ident); ok {
 		if isCurrentReceiverIdent(ident) {
 			baseName := "self"
-			if currentCaptureRenames != nil {
+			if currentReceiverRustAlias != "" {
+				baseName = currentReceiverRustAlias
+			} else if currentCaptureRenames != nil {
 				if renamed, exists := currentCaptureRenames[ident.Name]; exists {
 					baseName = RustLocalIdent(renamed)
 				}

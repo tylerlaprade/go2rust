@@ -5354,6 +5354,42 @@ func initFakeLines() {
 	}
 }
 
+func TestSourceMappedSyncOnceDoReceiverFieldAssignmentUsesOriginalReceiver(t *testing.T) {
+	rust := transpileTypedConcurrentPackageWithMapping(t, "internal/godebug", `package godebug
+
+import "sync"
+
+type Setting struct {
+	once sync.Once
+	setting *setting
+}
+
+type setting struct {
+	value int
+}
+
+func lookup() *setting {
+	return &setting{value: 7}
+}
+
+func (s *Setting) Value() int {
+	s.once.Do(func() {
+		s.setting = lookup()
+	})
+	return s.setting.value
+}
+`, map[string]string{"sync": "sync"})
+
+	if strings.Contains(rust, "s_closure_clone.setting = new_val") {
+		t.Fatalf("source sync.Once.Do closure should not assign receiver fields on a cloned receiver:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __recv_ptr = self as *mut Setting as usize") ||
+		!strings.Contains(rust, "let __recv_ref: &mut Setting = unsafe { &mut *(__recv_ptr as *mut Setting) }") ||
+		!strings.Contains(rust, "__recv_ref.setting = new_val") {
+		t.Fatalf("source sync.Once.Do closure should assign receiver fields through the original pointer receiver:\n%s", rust)
+	}
+}
+
 func TestSourceMappedSyncWaitGroupFieldAddWrapsSourceArgument(t *testing.T) {
 	rust := transpileTypedConcurrentPackageWithMapping(t, "golang.org/x/sync/errgroup", `package errgroup
 

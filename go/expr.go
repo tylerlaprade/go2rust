@@ -1837,6 +1837,9 @@ func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
 	}
 	funcLit := call.Args[0].(*ast.FuncLit)
 	if receiver.wrapFuncArg {
+		if writeSourceSyncOnceDoPointerReceiverFuncLitCall(out, receiver, funcLit) {
+			return true
+		}
 		out.WriteString("{ let __once = ")
 		writeSyncOnceReceiverClone(out, receiver)
 		out.WriteString("; __once.r#do(")
@@ -1884,6 +1887,83 @@ func writeSyncOnceDoFuncLitCall(out *strings.Builder, call *ast.CallExpr) bool {
 	}
 	out.WriteString("    }); }")
 	return true
+}
+
+func writeSourceSyncOnceDoPointerReceiverFuncLitCall(out *strings.Builder, receiver syncOnceReceiverInfo, funcLit *ast.FuncLit) bool {
+	if !sourceSyncOnceFuncLitCapturesOnlyCurrentPointerReceiver(funcLit) || currentReceiverType == "" {
+		return false
+	}
+	hasClosureDefer := funcLit.Body != nil && checkHasDefer(funcLit.Body.List)
+	oldFunctionHasDefer := currentFunctionHasDefer
+	currentFunctionHasDefer = hasClosureDefer
+	defer func() { currentFunctionHasDefer = oldFunctionHasDefer }()
+
+	out.WriteString("{ let __once = ")
+	writeSyncOnceReceiverClone(out, receiver)
+	out.WriteString("; let __recv_ptr = self as *mut ")
+	out.WriteString(currentReceiverType)
+	out.WriteString(" as usize; __once.r#do(")
+	WriteWrapperPrefix(out)
+	out.WriteString("Box::new(move || {\n")
+	out.WriteString("        let __recv_ref: &mut ")
+	out.WriteString(currentReceiverType)
+	out.WriteString(" = unsafe { &mut *(__recv_ptr as *mut ")
+	out.WriteString(currentReceiverType)
+	out.WriteString(") };\n")
+
+	prevAlias := currentReceiverRustAlias
+	currentReceiverRustAlias = "__recv_ref"
+	defer func() { currentReceiverRustAlias = prevAlias }()
+	prevRenames := snapshotCaptureRenames()
+	currentCaptureRenames = nil
+	defer func() { currentCaptureRenames = prevRenames }()
+	prevReturnTail := currentReturnStatementIsTail
+	currentReturnStatementIsTail = false
+	defer func() { currentReturnStatementIsTail = prevReturnTail }()
+
+	if hasClosureDefer {
+		out.WriteString("        let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();\n")
+	}
+	if funcLit.Body != nil {
+		for i, stmt := range funcLit.Body.List {
+			out.WriteString("        ")
+			if i == len(funcLit.Body.List)-1 {
+				TranspileTailStatement(out, stmt, funcLit.Type, nil, nil, nil, "")
+			} else {
+				TranspileStatementSimple(out, stmt, funcLit.Type, nil)
+			}
+			out.WriteString("\n")
+		}
+		if hasClosureDefer {
+			var lastStmt ast.Stmt
+			if len(funcLit.Body.List) > 0 {
+				lastStmt = funcLit.Body.List[len(funcLit.Body.List)-1]
+			}
+			if _, lastIsReturn := lastStmt.(*ast.ReturnStmt); !lastIsReturn {
+				out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
+				out.WriteString("            f();\n")
+				out.WriteString("        }\n")
+			}
+		}
+	}
+	out.WriteString("    }) as Box<dyn FnMut() -> () + Send + Sync>")
+	WriteWrapperSuffix(out)
+	out.WriteString(") }")
+	return true
+}
+
+func sourceSyncOnceFuncLitCapturesOnlyCurrentPointerReceiver(funcLit *ast.FuncLit) bool {
+	if currentReceiver == "" || currentReceiverObject == nil {
+		return false
+	}
+	if _, ok := types.Unalias(currentReceiverObject.Type()).(*types.Pointer); !ok {
+		return false
+	}
+	captured := capturedVarsForFuncLit(funcLit)
+	if !captured[currentReceiver] || len(captured) != 1 {
+		return false
+	}
+	return funcLitCapturesCurrentReceiver(funcLit)
 }
 
 func writeSyncOnceDoFunctionValueCall(out *strings.Builder, call *ast.CallExpr) bool {
