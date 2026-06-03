@@ -3564,6 +3564,9 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	var lastPos token.Pos = fn.Body.Lbrace
 	if functionHasGoto(fn) {
 		prevStmt = TranspileGotoStatementList(out, fn.Body.List, fn.Type, fileSet, comments, &lastPos, "    ")
+		if lastStmt := lastNonEmptyStmt(fn.Body.List); lastStmt != nil && stmtTerminates(lastStmt) {
+			out.WriteString("    unreachable!()\n")
+		}
 	} else {
 		for i, stmt := range fn.Body.List {
 			// Add blank line if there was one in the source
@@ -7665,15 +7668,22 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 
 	var prevStmt ast.Stmt
 	var lastPos token.Pos = fn.Body.Lbrace
-	for i, stmt := range fn.Body.List {
-		out.WriteString("        ")
-		if i == len(fn.Body.List)-1 {
-			TranspileTailStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, "        ")
-		} else {
-			TranspileStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, "        ")
+	if functionHasGoto(fn) {
+		prevStmt = TranspileGotoStatementList(out, fn.Body.List, fn.Type, fileSet, comments, &lastPos, "        ")
+		if lastStmt := lastNonEmptyStmt(fn.Body.List); lastStmt != nil && stmtTerminates(lastStmt) {
+			out.WriteString("        unreachable!()\n")
 		}
-		out.WriteString("\n")
-		prevStmt = stmt
+	} else {
+		for i, stmt := range fn.Body.List {
+			out.WriteString("        ")
+			if i == len(fn.Body.List)-1 {
+				TranspileTailStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, "        ")
+			} else {
+				TranspileStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, "        ")
+			}
+			out.WriteString("\n")
+			prevStmt = stmt
+		}
 	}
 
 	lastTerminates := prevStmt != nil && stmtTerminates(prevStmt)

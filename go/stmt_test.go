@@ -743,6 +743,104 @@ slow:
 	}
 }
 
+func TestMethodForwardGotoUsesLabelBlock(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type scanner struct {
+	offset int
+	src []byte
+}
+
+func (s *scanner) scan() string {
+	offs := s.offset
+	for i, b := range s.src[s.offset:] {
+		if b == ' ' {
+			s.offset += i
+			goto exit
+		}
+	}
+	s.offset = len(s.src)
+
+exit:
+	return string(s.src[offs:s.offset])
+}
+`)
+
+	if strings.Contains(rust, "TODO: unsupported goto exit") {
+		t.Fatalf("method body goto should be lowered through the goto planner:\n%s", rust)
+	}
+	if !strings.Contains(rust, "'exit: {") || !strings.Contains(rust, "break 'exit") {
+		t.Fatalf("method body forward goto should lower to a labeled block:\n%s", rust)
+	}
+}
+
+func TestMethodBackwardGotoAtBodyStartUsesLoopLabel(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type scanner struct {
+	skip bool
+	n int
+}
+
+func (s *scanner) scan() int {
+scanAgain:
+	if s.n < 0 {
+		return 0
+	}
+	s.n++
+	if s.skip {
+		s.skip = false
+		goto scanAgain
+	}
+	return s.n
+}
+`)
+
+	if !strings.Contains(rust, "'scan_again: loop {") {
+		t.Fatalf("method body backward label should emit a Rust loop label:\n%s", rust)
+	}
+	if !strings.Contains(rust, "continue 'scan_again") {
+		t.Fatalf("method body backward goto should continue the emitted loop label:\n%s", rust)
+	}
+}
+
+func TestForwardGotoIntervalsNestAcrossLaterLabels(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func bits(zero, high bool) int {
+	out := 0
+	if zero {
+		out = 1
+		goto out
+	}
+	if high {
+		goto overflow
+	}
+	out = 2
+	goto out
+
+overflow:
+	out = 3
+
+out:
+	return out
+}
+`)
+
+	outLabel := strings.Index(rust, "'out: {")
+	overflowLabel := strings.Index(rust, "'overflow: {")
+	breakOut := strings.Index(rust, "break 'out")
+	if outLabel < 0 || overflowLabel < 0 {
+		t.Fatalf("overlapping forward gotos should emit both label blocks:\n%s", rust)
+	}
+	if outLabel > overflowLabel {
+		t.Fatalf("later out label should wrap the earlier overflow interval:\n%s", rust)
+	}
+	if breakOut >= 0 && outLabel > breakOut {
+		t.Fatalf("break 'out should be inside an emitted out label block:\n%s", rust)
+	}
+}
+
 func TestMultiShortDeclLenCapWrapsGoInt(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
@@ -6507,6 +6605,34 @@ func (s *scanner) advance() {
 	}
 	if !strings.Contains(rust, "let __rhs = (rdOffset as i32);") {
 		t.Fatalf("compound assignment to int field should cast usize range index to i32:\n%s", rust)
+	}
+}
+
+func TestRangeOverSliceExpressionBindsFieldBoundBeforeIterator(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type scanner struct {
+	rdOffset int
+	src []byte
+}
+
+func (s *scanner) advance() {
+	for rdOffset, b := range s.src[s.rdOffset:] {
+		if b == ' ' {
+			s.rdOffset += rdOffset
+			break
+		}
+	}
+}
+`)
+
+	if strings.Contains(rust, "__seq[(*self.rd_offset.clone().lock().unwrap().as_ref().unwrap()) as usize..]") ||
+		strings.Contains(rust, "__seq[(*self.rd_offset.clone().borrow().as_ref().unwrap()) as usize..]") {
+		t.Fatalf("slice range should not keep the field-bound borrow in the iterator expression:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __low = (*self.rd_offset.clone()") ||
+		!strings.Contains(rust, "__seq[__low..].to_vec()") {
+		t.Fatalf("slice range should bind the field bound before slicing:\n%s", rust)
 	}
 }
 

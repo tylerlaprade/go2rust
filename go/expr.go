@@ -1086,13 +1086,16 @@ func writePointerDerefSequenceSliceExpression(out *strings.Builder, slice *ast.S
 	TranspileExpressionContext(out, star.X, LValue)
 	out.WriteString(".clone(); let __slice_guard = __slice_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); __seq[")
+	out.WriteString("; let __seq = __slice_guard.as_ref().cloned().unwrap_or_default()")
+	lowTemp := writeOptionalSliceBoundTemp(out, "__low", slice.Low)
+	highTemp := writeOptionalSliceBoundTemp(out, "__high", slice.High)
+	out.WriteString("; __seq[")
 	if slice.Low != nil {
-		writeExpressionAsUsize(out, slice.Low)
+		writeSliceBound(out, slice.Low, "__low", lowTemp)
 	}
 	out.WriteString("..")
 	if slice.High != nil {
-		writeExpressionAsUsize(out, slice.High)
+		writeSliceBound(out, slice.High, "__high", highTemp)
 	}
 	out.WriteString("].to_vec() }")
 	WriteWrapperSuffix(out)
@@ -1148,6 +1151,37 @@ func writeStringSliceValue(out *strings.Builder, expr ast.Expr, low ast.Expr, hi
 		out.WriteString("__high")
 	}
 	out.WriteString("].to_string() }")
+}
+
+func sliceBoundNeedsLocalTemp(expr ast.Expr) bool {
+	switch unwrapParens(expr).(type) {
+	case *ast.BasicLit, *ast.Ident:
+		return false
+	default:
+		return true
+	}
+}
+
+func writeOptionalSliceBoundTemp(out *strings.Builder, name string, expr ast.Expr) bool {
+	if expr == nil || !sliceBoundNeedsLocalTemp(expr) {
+		return false
+	}
+	out.WriteString("; let ")
+	out.WriteString(name)
+	out.WriteString(" = ")
+	writeExpressionAsUsize(out, expr)
+	return true
+}
+
+func writeSliceBound(out *strings.Builder, expr ast.Expr, tempName string, useTemp bool) {
+	if expr == nil {
+		return
+	}
+	if useTemp {
+		out.WriteString(tempName)
+		return
+	}
+	writeExpressionAsUsize(out, expr)
 }
 
 func methodReceiverExpressionNeedsUnwrap(expr ast.Expr) bool {
@@ -8910,7 +8944,16 @@ func writeClonedWrappedExpression(out *strings.Builder, expr ast.Expr, holderNam
 	out.WriteString(holderName)
 	WriteBorrowMethod(out, false)
 	out.WriteString("; let __cloned = ")
-	if expressionNeedsGoValueClone(expr) {
+	if unnamedSliceExpression(expr) {
+		if rangeSliceElementIsEmptyInterface(expr) {
+			NeedAnyClone()
+			out.WriteString(guardName)
+			out.WriteString(".as_ref().map(|__v| __v.iter().map(|__e| go_any_clone(__e.as_ref())).collect::<Vec<_>>()).unwrap_or_default()")
+		} else {
+			out.WriteString(guardName)
+			out.WriteString(".as_ref().cloned().unwrap_or_default()")
+		}
+	} else if expressionNeedsGoValueClone(expr) {
 		out.WriteString(guardName)
 		out.WriteString(".as_ref().unwrap().__go_value_clone()")
 	} else {
@@ -8921,6 +8964,22 @@ func writeClonedWrappedExpression(out *strings.Builder, expr ast.Expr, holderNam
 	out.WriteString("; drop(")
 	out.WriteString(guardName)
 	out.WriteString("); __cloned }")
+}
+
+func unnamedSliceExpression(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || expr == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	if _, _, ok := namedSliceTypeFromType(typ); ok {
+		return false
+	}
+	_, ok := types.Unalias(typ).Underlying().(*types.Slice)
+	return ok
 }
 
 func expressionNeedsGoValueClone(expr ast.Expr) bool {
@@ -10692,23 +10751,26 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			WriteWrapperPrefix(out)
 			out.WriteString("{ let __seq = ")
 			writeClonedWrappedExpression(out, e.X, "__seq_holder", "__seq_guard")
+			lowTemp := writeOptionalSliceBoundTemp(out, "__low", e.Low)
+			highTemp := writeOptionalSliceBoundTemp(out, "__high", e.High)
+			maxTemp := writeOptionalSliceBoundTemp(out, "__max", e.Max)
 			out.WriteString("; let _slice = &__seq[")
 			if e.Low != nil {
-				writeExpressionAsUsize(out, e.Low)
+				writeSliceBound(out, e.Low, "__low", lowTemp)
 			} else {
 				out.WriteString("0")
 			}
 			out.WriteString("..")
 			if e.High != nil {
-				writeExpressionAsUsize(out, e.High)
+				writeSliceBound(out, e.High, "__high", highTemp)
 			}
 			out.WriteString("]; let mut _v = Vec::with_capacity((")
 			out.WriteString("(")
-			writeExpressionAsUsize(out, e.Max)
+			writeSliceBound(out, e.Max, "__max", maxTemp)
 			out.WriteString(") - ")
 			if e.Low != nil {
 				out.WriteString("(")
-				writeExpressionAsUsize(out, e.Low)
+				writeSliceBound(out, e.Low, "__low", lowTemp)
 				out.WriteString(")")
 			} else {
 				out.WriteString("0")
@@ -10729,13 +10791,16 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			writeNamedSliceInnerHandleClone(out, sliceSubject)
 			out.WriteString("; let __slice_guard = __slice_holder")
 			WriteBorrowMethod(out, false)
-			out.WriteString("; let __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); __seq[")
+			out.WriteString("; let __seq = __slice_guard.as_ref().cloned().unwrap_or_default()")
+			lowTemp := writeOptionalSliceBoundTemp(out, "__low", e.Low)
+			highTemp := writeOptionalSliceBoundTemp(out, "__high", e.High)
+			out.WriteString("; __seq[")
 			if e.Low != nil {
-				writeExpressionAsUsize(out, e.Low)
+				writeSliceBound(out, e.Low, "__low", lowTemp)
 			}
 			out.WriteString("..")
 			if e.High != nil {
-				writeExpressionAsUsize(out, e.High)
+				writeSliceBound(out, e.High, "__high", highTemp)
 			}
 			out.WriteString("].to_vec() }")
 			WriteWrapperSuffix(out)
@@ -10746,13 +10811,15 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			WriteWrapperPrefix(out)
 			out.WriteString("{ let __seq = ")
 			TranspileExpressionContext(out, e.X, LValue)
+			lowTemp := writeOptionalSliceBoundTemp(out, "__low", e.Low)
+			highTemp := writeOptionalSliceBoundTemp(out, "__high", e.High)
 			out.WriteString("; __seq[")
 			if e.Low != nil {
-				writeExpressionAsUsize(out, e.Low)
+				writeSliceBound(out, e.Low, "__low", lowTemp)
 			}
 			out.WriteString("..")
 			if e.High != nil {
-				writeExpressionAsUsize(out, e.High)
+				writeSliceBound(out, e.High, "__high", highTemp)
 			}
 			out.WriteString("].to_vec() }")
 			WriteWrapperSuffix(out)
@@ -10760,15 +10827,17 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			WriteWrapperPrefix(out)
 			out.WriteString("{ let __seq = ")
 			writeClonedWrappedExpression(out, e.X, "__seq_holder", "__seq_guard")
+			lowTemp := writeOptionalSliceBoundTemp(out, "__low", e.Low)
+			highTemp := writeOptionalSliceBoundTemp(out, "__high", e.High)
 			out.WriteString("; __seq[")
 			if e.Low != nil {
 				// Indices will unwrap themselves in RValue context if needed
-				writeExpressionAsUsize(out, e.Low)
+				writeSliceBound(out, e.Low, "__low", lowTemp)
 			}
 			out.WriteString("..")
 			if e.High != nil {
 				// Indices will unwrap themselves in RValue context if needed
-				writeExpressionAsUsize(out, e.High)
+				writeSliceBound(out, e.High, "__high", highTemp)
 			}
 			out.WriteString("].to_vec() }")
 			WriteWrapperSuffix(out)

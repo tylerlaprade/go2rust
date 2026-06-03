@@ -1949,6 +1949,33 @@ func walk(s *ast.LabeledStmt) {
 	}
 }
 
+func TestSliceSelectorArgumentDefaultsNilSliceToEmpty(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Field struct{}
+
+type FieldList struct {
+	List []*Field
+}
+
+func walkList[N any](list []N) {
+	for range list {
+	}
+}
+
+func walk(n *FieldList) {
+	walkList(n.List)
+}
+`)
+
+	if !strings.Contains(rust, "__selector_guard.as_ref().cloned().unwrap_or_default()") {
+		t.Fatalf("slice selector argument should clone nil slices as empty values:\n%s", rust)
+	}
+	if strings.Contains(rust, "(*__selector_guard.as_ref().unwrap()).clone()") {
+		t.Fatalf("slice selector argument should not unwrap nil slices:\n%s", rust)
+	}
+}
+
 func TestSourceMappedFunctionValueBoxUsesWrappedInterfaceParam(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

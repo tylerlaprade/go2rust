@@ -3,6 +3,7 @@ package main
 import (
 	"go/ast"
 	"go/token"
+	"sort"
 	"strings"
 )
 
@@ -27,18 +28,22 @@ func functionHasGoto(fn *ast.FuncDecl) bool {
 }
 
 type gotoPlan struct {
-	labelIndex map[string]int
-	backward   map[string]bool
-	forward    map[string]bool
-	modes      map[string]string
+	labelIndex       map[string]int
+	firstForwardGoto map[string]int
+	lastBackwardGoto map[string]int
+	backward         map[string]bool
+	forward          map[string]bool
+	modes            map[string]string
 }
 
 func buildGotoPlan(stmts []ast.Stmt) gotoPlan {
 	plan := gotoPlan{
-		labelIndex: make(map[string]int),
-		backward:   make(map[string]bool),
-		forward:    make(map[string]bool),
-		modes:      make(map[string]string),
+		labelIndex:       make(map[string]int),
+		firstForwardGoto: make(map[string]int),
+		lastBackwardGoto: make(map[string]int),
+		backward:         make(map[string]bool),
+		forward:          make(map[string]bool),
+		modes:            make(map[string]string),
 	}
 	labelPos := make(map[string]token.Pos)
 	for i, stmt := range stmts {
@@ -49,7 +54,7 @@ func buildGotoPlan(stmts []ast.Stmt) gotoPlan {
 		}
 	}
 
-	for _, stmt := range stmts {
+	for i, stmt := range stmts {
 		ast.Inspect(stmt, func(node ast.Node) bool {
 			branch, ok := node.(*ast.BranchStmt)
 			if !ok || branch.Tok != token.GOTO || branch.Label == nil {
@@ -63,12 +68,21 @@ func buildGotoPlan(stmts []ast.Stmt) gotoPlan {
 			if pos < branch.Pos() {
 				plan.backward[label] = true
 				plan.modes[label] = "continue"
+				if last, ok := plan.lastBackwardGoto[label]; !ok || i > last {
+					plan.lastBackwardGoto[label] = i
+				}
 			} else if !plan.backward[label] {
 				plan.forward[label] = true
 				plan.modes[label] = "break"
+				if first, ok := plan.firstForwardGoto[label]; !ok || i < first {
+					plan.firstForwardGoto[label] = i
+				}
 			}
 			return true
 		})
+	}
+	for label := range plan.backward {
+		plan.lastBackwardGoto[label] = len(stmts) - 1
 	}
 	return plan
 }
@@ -80,66 +94,125 @@ func TranspileGotoStatementList(out *strings.Builder, stmts []ast.Stmt, fnType *
 	defer func() { currentGotoLabelModes = oldModes }()
 
 	var prevStmt ast.Stmt
+	forwardStarts := forwardLabelStarts(plan)
+	type backwardBlock struct {
+		label string
+		end   int
+	}
+	var forwardStack []string
+	var backwardStack []backwardBlock
+	currentIndent := func() string {
+		return indent + strings.Repeat("    ", len(forwardStack)+len(backwardStack))
+	}
+	closeForwardLabel := func(label string) {
+		for len(forwardStack) > 0 {
+			top := forwardStack[len(forwardStack)-1]
+			out.WriteString(indent)
+			out.WriteString(strings.Repeat("    ", len(forwardStack)+len(backwardStack)-1))
+			out.WriteString("}\n")
+			forwardStack = forwardStack[:len(forwardStack)-1]
+			if top == label {
+				return
+			}
+		}
+	}
+	openBackwardLabel := func(label string) {
+		out.WriteString(currentIndent())
+		out.WriteString("'")
+		out.WriteString(label)
+		out.WriteString(": loop {\n")
+		backwardStack = append(backwardStack, backwardBlock{
+			label: label,
+			end:   plan.lastBackwardGoto[label],
+		})
+	}
+	closeBackwardLabelsEndingAt := func(index int) {
+		for len(backwardStack) > 0 && backwardStack[len(backwardStack)-1].end == index {
+			top := backwardStack[len(backwardStack)-1]
+			out.WriteString(currentIndent())
+			out.WriteString("break '")
+			out.WriteString(top.label)
+			out.WriteString(";\n")
+			out.WriteString(indent)
+			out.WriteString(strings.Repeat("    ", len(forwardStack)+len(backwardStack)-1))
+			out.WriteString("};\n")
+			backwardStack = backwardStack[:len(backwardStack)-1]
+		}
+	}
+
 	for i := 0; i < len(stmts); {
 		stmt := stmts[i]
+		if prevStmt != nil && hasBlankLineBetween(fileSet, prevStmt.End(), stmt.Pos()) {
+			out.WriteString("\n")
+		}
+		for _, label := range forwardStarts[i] {
+			out.WriteString(currentIndent())
+			out.WriteString("'")
+			out.WriteString(label)
+			out.WriteString(": {\n")
+			forwardStack = append(forwardStack, label)
+		}
 		if labeled, ok := stmt.(*ast.LabeledStmt); ok {
 			label := ToSnakeCase(labeled.Label.Name)
 			if plan.backward[label] {
-				writeBlankLineBetweenGotoStatements(out, prevStmt, stmt, fileSet)
-				out.WriteString(indent)
-				out.WriteString("'")
-				out.WriteString(label)
-				out.WriteString(": loop {\n")
-				emitGotoStatement(out, labeled.Stmt, fnType, fileSet, comments, lastPos, indent+"    ")
-				out.WriteString(indent)
-				out.WriteString("    break '")
-				out.WriteString(label)
-				out.WriteString(";\n")
-				out.WriteString(indent)
-				out.WriteString("}\n")
+				openBackwardLabel(label)
+				emitGotoStatement(out, labeled.Stmt, fnType, fileSet, comments, lastPos, currentIndent())
+				closeBackwardLabelsEndingAt(i)
 				prevStmt = stmt
 				i++
 				continue
 			}
-			emitGotoStatement(out, labeled.Stmt, fnType, fileSet, comments, lastPos, indent)
+			if plan.forward[label] {
+				closeForwardLabel(label)
+				emitGotoStatement(out, labeled.Stmt, fnType, fileSet, comments, lastPos, currentIndent())
+				prevStmt = labeled
+				i++
+				continue
+			}
+			emitGotoStatement(out, labeled.Stmt, fnType, fileSet, comments, lastPos, currentIndent())
 			prevStmt = stmt
 			i++
 			continue
 		}
-
-		nextForwardLabel := findNextForwardLabel(stmts, plan, i)
-		if nextForwardLabel >= 0 {
-			labeled := stmts[nextForwardLabel].(*ast.LabeledStmt)
-			label := ToSnakeCase(labeled.Label.Name)
-			blockStart := findFirstGotoToLabel(stmts, label, i, nextForwardLabel)
-			for j := i; j < blockStart; j++ {
-				writeBlankLineBetweenGotoStatements(out, prevStmt, stmts[j], fileSet)
-				emitGotoStatement(out, stmts[j], fnType, fileSet, comments, lastPos, indent)
-				prevStmt = stmts[j]
-			}
-			writeBlankLineBetweenGotoStatements(out, prevStmt, stmts[blockStart], fileSet)
-			out.WriteString(indent)
-			out.WriteString("'")
-			out.WriteString(label)
-			out.WriteString(": {\n")
-			for j := blockStart; j < nextForwardLabel; j++ {
-				emitGotoStatement(out, stmts[j], fnType, fileSet, comments, lastPos, indent+"    ")
-				prevStmt = stmts[j]
-			}
-			out.WriteString(indent)
-			out.WriteString("}\n")
-			emitGotoStatement(out, labeled.Stmt, fnType, fileSet, comments, lastPos, indent)
-			prevStmt = labeled
-			i = nextForwardLabel + 1
-			continue
-		}
-
-		writeBlankLineBetweenGotoStatements(out, prevStmt, stmt, fileSet)
-		emitGotoStatement(out, stmt, fnType, fileSet, comments, lastPos, indent)
+		emitGotoStatement(out, stmt, fnType, fileSet, comments, lastPos, currentIndent())
+		closeBackwardLabelsEndingAt(i)
 		prevStmt = stmt
 		i++
 	}
+	for len(backwardStack) > 0 {
+		top := backwardStack[len(backwardStack)-1]
+		out.WriteString(currentIndent())
+		out.WriteString("break '")
+		out.WriteString(top.label)
+		out.WriteString(";\n")
+		out.WriteString(indent)
+		out.WriteString(strings.Repeat("    ", len(forwardStack)+len(backwardStack)-1))
+		out.WriteString("};\n")
+		backwardStack = backwardStack[:len(backwardStack)-1]
+	}
+	for len(forwardStack) > 0 {
+		closeForwardLabel(forwardStack[len(forwardStack)-1])
+	}
 	return prevStmt
+}
+
+func forwardLabelStarts(plan gotoPlan) map[int][]string {
+	starts := make(map[int][]string)
+	for label := range plan.forward {
+		start, ok := plan.firstForwardGoto[label]
+		if !ok {
+			continue
+		}
+		starts[start] = append(starts[start], label)
+	}
+	for start := range starts {
+		labels := starts[start]
+		sort.Slice(labels, func(i, j int) bool {
+			return plan.labelIndex[labels[i]] > plan.labelIndex[labels[j]]
+		})
+		starts[start] = labels
+	}
+	return starts
 }
 
 func findNextForwardLabel(stmts []ast.Stmt, plan gotoPlan, start int) int {
