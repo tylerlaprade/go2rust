@@ -10448,6 +10448,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								// e.g. `alt := &slice[i]` -> Option<GoSliceElemPtr<T>>
 								isSliceElemPtrShortDecl := false
 								var sliceElemPtrRustType string
+								isGoPtrShortDecl := false
+								var goPtrShortDeclElemRustType string
 								isArrayElemPtrShortDecl := false
 								var arrayElemPtrShortDeclInfo arrayElemPtrInfo
 								if s.Tok == token.DEFINE && len(s.Lhs) == 1 && len(s.Rhs) == 1 {
@@ -10465,6 +10467,19 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 													isSliceElemPtrShortDecl = true
 													sliceElemPtrRustType = info.elemRustType
 													registerSliceElemPtrVar(lhsIdent.Name, sliceElemPtrRustType)
+												}
+											}
+										}
+										if !isSliceElemPtrShortDecl {
+											if sel, ok := unwrapParens(s.Rhs[0]).(*ast.SelectorExpr); ok {
+												if info, ok := sliceElemPtrFieldInfoForSelector(sel); ok {
+													isGoPtrShortDecl = true
+													goPtrShortDeclElemRustType = info.elemRustType
+													var goType types.Type
+													if typeInfo := GetTypeInfo(); typeInfo != nil {
+														goType = typeInfo.GetType(s.Rhs[0])
+													}
+													registerGoPtrVar(lhsIdent.Name, goPtrShortDeclElemRustType, goType)
 												}
 											}
 										}
@@ -10509,6 +10524,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										out.WriteString(": Option<GoSliceElemPtr<")
 										out.WriteString(sliceElemPtrRustType)
 										out.WriteString(">>")
+									} else if isGoPtrShortDecl && i == 0 {
+										out.WriteString(": GoPtr<")
+										out.WriteString(goPtrShortDeclElemRustType)
+										out.WriteString(">")
 									} else if isArrayElemPtrShortDecl && i == 0 {
 										out.WriteString(": ")
 										out.WriteString(arrayElemPtrOptionRustType(arrayElemPtrShortDeclInfo))

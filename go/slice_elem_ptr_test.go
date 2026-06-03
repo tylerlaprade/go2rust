@@ -668,6 +668,56 @@ func load(s *setting, name string) bool {
 	}
 }
 
+func TestSliceElemPointerGoPtrLocalSelectorBorrowsField(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type Inst struct {
+	Op int
+	Out int
+}
+
+type runner struct {
+	inst *Inst
+}
+
+func (i Inst) matchRune(c int) bool {
+	return i.Op == c
+}
+
+func assign(r *runner, prog []Inst) {
+	r.inst = &prog[0]
+}
+
+func step(r *runner) int {
+	i := r.inst
+	if i.matchRune(2) {
+		return i.Out
+	}
+	switch i.Op {
+	case 1:
+		return i.Out
+	}
+	return 0
+}
+
+func forceConcurrent(ch chan bool) {
+	go func() {
+		ch <- true
+	}()
+}
+`)
+
+	if strings.Contains(rust, "i.lock()") {
+		t.Fatalf("local copied from GoPtr field should not be treated as a normal pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __ptr_value = i.borrow(); __ptr_value.as_ref().unwrap().op.clone()") {
+		t.Fatalf("local copied from GoPtr field should borrow through GoPtr before selecting a field:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __recv_value = i.borrow(); let __result = (*__recv_value.as_ref().unwrap()).match_rune(") {
+		t.Fatalf("local copied from GoPtr field should borrow through GoPtr before calling value methods:\n%s", rust)
+	}
+}
+
 func TestSliceElemPointerDirectReturnUsesSliceElemPtr(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

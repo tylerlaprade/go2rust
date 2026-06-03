@@ -9627,6 +9627,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					writePackageGlobalPointerFieldSelector(out, globalIdent, fieldInfo, e, ctx)
 					break
 				}
+				if writeGoPtrLocalFieldSelector(out, ident, fieldInfo, e, ctx) {
+					break
+				}
 				if writeSliceElemPtrFieldSelector(out, ident, fieldInfo, e, ctx) {
 					break
 				}
@@ -16246,6 +16249,15 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				} else {
 					out.WriteString(".as_ref().unwrap()).")
 				}
+			} else if isGoPtrVar(ident.Name) {
+				if methodCallNeedsMutableReceiver(sel) {
+					out.WriteString(`unimplemented!("GoPtr local method call requires mutable receiver support")`)
+					return
+				}
+				out.WriteString("{ let __recv_value = ")
+				out.WriteString(rustIdentForUseWithCapture(ident))
+				out.WriteString(".borrow(); let __result = (*__recv_value.as_ref().unwrap()).")
+				closeReceiverBlock = true
 			} else if isArrayElemPtrVar(ident.Name) {
 				needsMut := methodCallNeedsMutableReceiver(sel)
 				out.WriteString("(*")
