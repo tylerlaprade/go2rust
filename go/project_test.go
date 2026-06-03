@@ -5139,6 +5139,60 @@ func fromNamedMethod(named *types.Named) NamedOrAlias {
 	}
 }
 
+func TestSourceMappedPointerAssertionCandidatesUseWrappers(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "objectpath.go", `package objectpath
+
+import "go/types"
+
+type hasElem interface {
+	Elem() types.Type
+}
+
+type hasTypeParams interface {
+	TypeParams() *types.TypeParamList
+}
+
+func elem(t types.Type) (hasElem, bool) {
+	v, ok := t.(hasElem)
+	return v, ok
+}
+
+func typeParams(t types.Type) (hasTypeParams, bool) {
+	v, ok := t.(hasTypeParams)
+	return v, ok
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(objectpath.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"go/types": "go_types"})
+	for _, bad := range []string{
+		"downcast_ref::<go_types::Array>()",
+		"downcast_ref::<go_types::Named>()",
+	} {
+		if strings.Contains(rust, bad) {
+			t.Fatalf("source-mapped pointer assertion should not downcast to the pointee, found %q:\n%s", bad, rust)
+		}
+	}
+	for _, want := range []string{
+		"downcast_ref::<go_types::ArrayPtr>()",
+		"downcast_ref::<go_types::NamedPtr>()",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("source-mapped pointer assertion should downcast to pointer wrappers, missing %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "let __recv_guard = self.0.borrow();\n        let __recv = __recv_guard.as_ref().unwrap();\n        go_types::Named::type_params(__recv)") {
+		t.Fatalf("source-mapped pointer local-interface impl should mutably borrow methods that require mutable receivers:\n%s", rust)
+	}
+}
+
 func TestProjectGeneratorPreservesLoaderInterfaceMutabilityForMainImpl(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
