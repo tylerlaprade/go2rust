@@ -9732,6 +9732,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				writePackageGlobalStructFieldSelector(out, base, fieldInfo, e, ctx)
 				break
 			}
+			if base, ok := e.X.(*ast.SelectorExpr); ok && writeSliceElemPtrFieldPointeeSelector(out, base, fieldInfo, e, ctx) {
+				break
+			}
 
 			if fieldInfo.IsPromoted {
 				// Accessing promoted field through embedded struct(s)
@@ -10090,6 +10093,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			if leftIdent, ok := packageGlobalPointerIdent(e.X); ok {
 				writePackageGlobalPointerNilComparison(out, leftIdent, e.Op)
+				return
+			}
+			if writeSliceElemPtrFieldNilComparison(out, e.X, e.Op) {
 				return
 			}
 			if writeSelectorNilComparison(out, e.X, e.Op) {

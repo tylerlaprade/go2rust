@@ -33,6 +33,14 @@ var currentSliceElemPtrSliceReturn *sliceElemPtrSliceReturnInfo
 
 type sliceElemPtrReturnInfo struct {
 	elemRustType string
+	ownerPkgPath string
+	elemType     types.Type
+}
+
+type sliceElemPtrFieldInfo struct {
+	elemRustType string
+	ownerPkgPath string
+	elemType     types.Type
 }
 
 type sliceElemPtrSliceReturnInfo struct {
@@ -255,6 +263,262 @@ func registerSliceElemPtrReturnsFromFiles(files []*ast.File) {
 	registerSliceElemPtrSliceParamsFromFiles(files)
 }
 
+func registerSliceElemPtrFieldsFromFiles(files []*ast.File) {
+	typeInfo := GetTypeInfo()
+	ctx := GetTranspileContext()
+	if typeInfo == nil || typeInfo.info == nil || ctx == nil || ctx.Package == nil {
+		return
+	}
+	if ctx.Package.SliceElemPtrFields == nil {
+		ctx.Package.SliceElemPtrFields = make(map[string]sliceElemPtrFieldInfo)
+	}
+	for _, file := range files {
+		if file == nil {
+			continue
+		}
+		for _, decl := range file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Body == nil {
+				continue
+			}
+			localCandidates := collectSliceElemPtrCandidates(fn.Body)
+			ast.Inspect(fn.Body, func(node ast.Node) bool {
+				switch n := node.(type) {
+				case *ast.FuncLit:
+					return false
+				case *ast.AssignStmt:
+					for i, lhs := range n.Lhs {
+						sel, ok := unwrapParens(lhs).(*ast.SelectorExpr)
+						if !ok {
+							continue
+						}
+						rhs := assignmentRHSForLHS(n, i)
+						if rhs == nil {
+							continue
+						}
+						registerSliceElemPtrFieldAssignment(sel, rhs, localCandidates)
+					}
+				}
+				return true
+			})
+		}
+	}
+}
+
+func registerSliceElemPtrFieldAssignment(sel *ast.SelectorExpr, rhs ast.Expr, localCandidates map[types.Object]string) {
+	key, fieldInfo, ok := sliceElemPtrFieldKeyForSelector(sel)
+	if !ok {
+		return
+	}
+	rhsElemType, rhsElemRustType, ok := sliceElemPtrValueElemType(rhs, localCandidates)
+	if !ok || !sliceElemPtrElemCompatible(rhsElemType, rhsElemRustType, fieldInfo) {
+		return
+	}
+	ctx := GetTranspileContext()
+	if ctx == nil || ctx.Package == nil {
+		return
+	}
+	ctx.Package.SliceElemPtrFields[key] = fieldInfo
+	if ctx.Session != nil {
+		if ctx.Session.SliceElemPtrFields == nil {
+			ctx.Session.SliceElemPtrFields = make(map[string]sliceElemPtrFieldInfo)
+		}
+		ctx.Session.SliceElemPtrFields[key] = fieldInfo
+	}
+}
+
+func sliceElemPtrValueElemType(expr ast.Expr, localCandidates map[types.Object]string) (types.Type, string, bool) {
+	if elemType, elemRustType, ok := sliceElemPtrAddressElemType(expr); ok {
+		return elemType, elemRustType, true
+	}
+	if call, ok := unwrapParens(expr).(*ast.CallExpr); ok {
+		if info, ok := sliceElemPtrReturnInfoForCall(call); ok {
+			return info.elemType, info.elemRustType, true
+		}
+	}
+	if ident, ok := unwrapParens(expr).(*ast.Ident); ok {
+		if info, ok := sliceElemPtrVarInfo(ident.Name); ok && info.RustType != "" {
+			typeInfo := GetTypeInfo()
+			var elemType types.Type
+			if typeInfo != nil {
+				elemType, _ = sliceElemPtrPointerElemType(typeInfo.GetType(ident))
+			}
+			return elemType, info.RustType, true
+		}
+		if localCandidates != nil {
+			typeInfo := GetTypeInfo()
+			if typeInfo == nil {
+				return nil, "", false
+			}
+			obj := typeInfo.GetObject(ident)
+			if obj == nil {
+				return nil, "", false
+			}
+			elemRustType, ok := localCandidates[obj]
+			elemType, _ := sliceElemPtrPointerElemType(typeInfo.GetType(ident))
+			return elemType, elemRustType, ok
+		}
+	}
+	return nil, "", false
+}
+
+func sliceElemPtrElemCompatible(rhsElemType types.Type, rhsElemRustType string, fieldInfo sliceElemPtrFieldInfo) bool {
+	if rhsElemType != nil && fieldInfo.elemType != nil && types.Identical(coreType(rhsElemType), coreType(fieldInfo.elemType)) {
+		return true
+	}
+	return rhsElemRustType != "" && rhsElemRustType == fieldInfo.elemRustType
+}
+
+func sliceElemPtrPointerElemType(t types.Type) (types.Type, bool) {
+	if t == nil {
+		return nil, false
+	}
+	ptr, ok := types.Unalias(t).Underlying().(*types.Pointer)
+	if !ok {
+		return nil, false
+	}
+	return coreType(ptr.Elem()), true
+}
+
+func sliceElemPtrFieldKeyForSelector(sel *ast.SelectorExpr) (string, sliceElemPtrFieldInfo, bool) {
+	typeInfo := GetTypeInfo()
+	if sel == nil || typeInfo == nil || typeInfo.info == nil {
+		return "", sliceElemPtrFieldInfo{}, false
+	}
+	selection := typeInfo.info.Selections[sel]
+	if selection == nil || selection.Kind() != types.FieldVal || len(selection.Index()) == 0 {
+		return "", sliceElemPtrFieldInfo{}, false
+	}
+	field, ok := selection.Obj().(*types.Var)
+	if !ok || field == nil {
+		return "", sliceElemPtrFieldInfo{}, false
+	}
+	owner, ok := sliceElemPtrFieldOwnerNamed(selection)
+	if !ok {
+		return "", sliceElemPtrFieldInfo{}, false
+	}
+	ptr, ok := types.Unalias(field.Type()).Underlying().(*types.Pointer)
+	if !ok {
+		return "", sliceElemPtrFieldInfo{}, false
+	}
+	key := sliceElemPtrFieldKey(owner, field.Name())
+	if key == "" {
+		return "", sliceElemPtrFieldInfo{}, false
+	}
+	elemType := coreType(ptr.Elem())
+	elemRustType := goTypesCollectionElemTypeToRust(elemType)
+	if elemRustType == "" {
+		return "", sliceElemPtrFieldInfo{}, false
+	}
+	ownerPkgPath := ""
+	if owner.Obj() != nil && owner.Obj().Pkg() != nil {
+		ownerPkgPath = owner.Obj().Pkg().Path()
+	}
+	return key, sliceElemPtrFieldInfo{elemRustType: elemRustType, ownerPkgPath: ownerPkgPath, elemType: elemType}, true
+}
+
+func sliceElemPtrFieldOwnerNamed(selection *types.Selection) (*types.Named, bool) {
+	if selection == nil || len(selection.Index()) == 0 {
+		return nil, false
+	}
+	current := selection.Recv()
+	var owner *types.Named
+	for _, fieldIndex := range selection.Index() {
+		if ptr, ok := types.Unalias(current).Underlying().(*types.Pointer); ok {
+			current = ptr.Elem()
+		}
+		if named, ok := types.Unalias(current).(*types.Named); ok {
+			owner = named
+			current = named.Underlying()
+		}
+		st, ok := types.Unalias(current).Underlying().(*types.Struct)
+		if !ok || fieldIndex < 0 || fieldIndex >= st.NumFields() {
+			return nil, false
+		}
+		current = st.Field(fieldIndex).Type()
+	}
+	if owner == nil || owner.Obj() == nil {
+		return nil, false
+	}
+	return owner, true
+}
+
+func sliceElemPtrFieldKey(named *types.Named, fieldName string) string {
+	if named == nil || named.Obj() == nil || fieldName == "" {
+		return ""
+	}
+	pkgPath := ""
+	if pkg := named.Obj().Pkg(); pkg != nil {
+		pkgPath = pkg.Path()
+	}
+	return pkgPath + "." + named.Obj().Name() + "." + fieldName
+}
+
+func sliceElemPtrFieldKeyForTypeSpecField(typeSpec *ast.TypeSpec, fieldName string) string {
+	typeInfo := GetTypeInfo()
+	if typeSpec == nil || typeSpec.Name == nil || fieldName == "" || typeInfo == nil || typeInfo.info == nil {
+		return ""
+	}
+	obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName)
+	if !ok || obj == nil {
+		return ""
+	}
+	named, ok := types.Unalias(obj.Type()).(*types.Named)
+	if !ok {
+		return ""
+	}
+	return sliceElemPtrFieldKey(named, fieldName)
+}
+
+func sliceElemPtrFieldInfoForTypeSpecField(typeSpec *ast.TypeSpec, fieldName string) (sliceElemPtrFieldInfo, bool) {
+	key := sliceElemPtrFieldKeyForTypeSpecField(typeSpec, fieldName)
+	if key == "" {
+		return sliceElemPtrFieldInfo{}, false
+	}
+	return sliceElemPtrFieldInfoForKey(key)
+}
+
+func sliceElemPtrFieldInfoForStructNameField(structName string, fieldName string) (sliceElemPtrFieldInfo, bool) {
+	typeInfo := GetTypeInfo()
+	if structName == "" || fieldName == "" || typeInfo == nil || typeInfo.pkg == nil || typeInfo.pkg.Scope() == nil {
+		return sliceElemPtrFieldInfo{}, false
+	}
+	obj, ok := typeInfo.pkg.Scope().Lookup(structName).(*types.TypeName)
+	if !ok || obj == nil {
+		return sliceElemPtrFieldInfo{}, false
+	}
+	named, ok := types.Unalias(obj.Type()).(*types.Named)
+	if !ok {
+		return sliceElemPtrFieldInfo{}, false
+	}
+	return sliceElemPtrFieldInfoForKey(sliceElemPtrFieldKey(named, fieldName))
+}
+
+func sliceElemPtrFieldInfoForSelector(sel *ast.SelectorExpr) (sliceElemPtrFieldInfo, bool) {
+	key, _, ok := sliceElemPtrFieldKeyForSelector(sel)
+	if !ok {
+		return sliceElemPtrFieldInfo{}, false
+	}
+	return sliceElemPtrFieldInfoForKey(key)
+}
+
+func sliceElemPtrFieldInfoForKey(key string) (sliceElemPtrFieldInfo, bool) {
+	ctx := GetTranspileContext()
+	if key == "" || ctx == nil {
+		return sliceElemPtrFieldInfo{}, false
+	}
+	if ctx.Package != nil {
+		if info, ok := ctx.Package.SliceElemPtrFields[key]; ok {
+			return info, true
+		}
+	}
+	if ctx.Session != nil {
+		info, ok := ctx.Session.SliceElemPtrFields[key]
+		return info, ok
+	}
+	return sliceElemPtrFieldInfo{}, false
+}
+
 func registerSliceElemPtrReturnsFromFile(file *ast.File) {
 	if file == nil {
 		return
@@ -279,6 +543,9 @@ func registerSliceElemPtrReturnDecl(fn *ast.FuncDecl) {
 	if !ok {
 		return
 	}
+	if fnObj.Pkg() != nil {
+		info.ownerPkgPath = fnObj.Pkg().Path()
+	}
 	ctx := GetTranspileContext()
 	if ctx == nil || ctx.Package == nil {
 		return
@@ -286,7 +553,17 @@ func registerSliceElemPtrReturnDecl(fn *ast.FuncDecl) {
 	if ctx.Package.SliceElemPtrReturnFuncs == nil {
 		ctx.Package.SliceElemPtrReturnFuncs = make(map[*types.Func]sliceElemPtrReturnInfo)
 	}
+	if ctx.Package.SliceElemPtrReturnFuncNames == nil {
+		ctx.Package.SliceElemPtrReturnFuncNames = make(map[string]sliceElemPtrReturnInfo)
+	}
 	ctx.Package.SliceElemPtrReturnFuncs[fnObj] = info
+	ctx.Package.SliceElemPtrReturnFuncNames[fnObj.FullName()] = info
+	if ctx.Session != nil {
+		if ctx.Session.SliceElemPtrReturnFuncNames == nil {
+			ctx.Session.SliceElemPtrReturnFuncNames = make(map[string]sliceElemPtrReturnInfo)
+		}
+		ctx.Session.SliceElemPtrReturnFuncNames[fnObj.FullName()] = info
+	}
 }
 
 func registerSliceElemPtrSliceReturnDecl(fn *ast.FuncDecl) {
@@ -326,6 +603,16 @@ func sliceElemPtrReturnInfoForFunc(fn *types.Func) (sliceElemPtrReturnInfo, bool
 		return sliceElemPtrReturnInfo{}, false
 	}
 	info, ok := ctx.Package.SliceElemPtrReturnFuncs[fn]
+	if ok {
+		return info, true
+	}
+	if info, ok := ctx.Package.SliceElemPtrReturnFuncNames[fn.FullName()]; ok {
+		return info, true
+	}
+	if ctx.Session != nil {
+		info, ok := ctx.Session.SliceElemPtrReturnFuncNames[fn.FullName()]
+		return info, ok
+	}
 	return info, ok
 }
 
@@ -425,6 +712,7 @@ func sliceElemPtrReturnInfoForDecl(fn *ast.FuncDecl) (sliceElemPtrReturnInfo, bo
 	candidates := collectSliceElemPtrCandidates(fn.Body)
 
 	var elemRustType string
+	var elemType types.Type
 	sawSliceElemReturn := false
 	valid := true
 	ast.Inspect(fn.Body, func(node ast.Node) bool {
@@ -443,9 +731,10 @@ func sliceElemPtrReturnInfoForDecl(fn *ast.FuncDecl) (sliceElemPtrReturnInfo, bo
 			if ident, ok := result.(*ast.Ident); ok && ident.Name == "nil" {
 				return true
 			}
-			if typ, ok := sliceElemPtrAddressElemRustType(result); ok {
+			if resultElemType, typ, ok := sliceElemPtrAddressElemType(result); ok {
 				if elemRustType == "" {
 					elemRustType = typ
+					elemType = resultElemType
 				}
 				if elemRustType != typ {
 					valid = false
@@ -467,6 +756,7 @@ func sliceElemPtrReturnInfoForDecl(fn *ast.FuncDecl) (sliceElemPtrReturnInfo, bo
 			}
 			if elemRustType == "" {
 				elemRustType = typ
+				elemType, _ = sliceElemPtrPointerElemType(typeInfo.GetType(result))
 			}
 			if elemRustType != typ {
 				valid = false
@@ -479,7 +769,7 @@ func sliceElemPtrReturnInfoForDecl(fn *ast.FuncDecl) (sliceElemPtrReturnInfo, bo
 	if !valid || !sawSliceElemReturn || elemRustType == "" {
 		return sliceElemPtrReturnInfo{}, false
 	}
-	return sliceElemPtrReturnInfo{elemRustType: elemRustType}, true
+	return sliceElemPtrReturnInfo{elemRustType: elemRustType, elemType: elemType}, true
 }
 
 func sliceElemPtrSliceReturnInfoForDecl(fn *ast.FuncDecl) (sliceElemPtrSliceReturnInfo, bool) {
@@ -719,6 +1009,19 @@ func registerSliceElemPtrVar(name string, elemRustType string) {
 			RustType:    "Option<GoSliceElemPtr<" + elemRustType + ">>",
 			Source:      SourceLocal,
 			PointerKind: PointerSliceElem,
+		})
+	}
+}
+
+func registerGoPtrVar(name string, elemRustType string, goType types.Type) {
+	NeedSliceElemPtr()
+	if vt := GetVarTable(); vt != nil {
+		vt.Register(name, &VarInfo{
+			WrapLevel:   WrapNone,
+			RustType:    "GoPtr<" + elemRustType + ">",
+			Source:      SourceLocal,
+			PointerKind: PointerGoPtr,
+			GoType:      goType,
 		})
 	}
 }
@@ -1235,26 +1538,31 @@ func isArrayElemPtrAssignmentValue(expr ast.Expr) (arrayElemPtrInfo, bool, bool)
 }
 
 func sliceElemPtrAddressElemRustType(expr ast.Expr) (string, bool) {
+	_, elemRustType, ok := sliceElemPtrAddressElemType(expr)
+	return elemRustType, ok
+}
+
+func sliceElemPtrAddressElemType(expr ast.Expr) (types.Type, string, bool) {
 	unary, ok := unwrapParens(expr).(*ast.UnaryExpr)
 	if !ok || unary.Op != token.AND {
-		return "", false
+		return nil, "", false
 	}
 	indexExpr, ok := unwrapParens(unary.X).(*ast.IndexExpr)
 	if !ok {
-		return "", false
+		return nil, "", false
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.GetType(indexExpr.X) == nil || typeInfo.IsMap(indexExpr.X) {
-		return "", false
+		return nil, "", false
 	}
 	if !typeInfo.IsSlice(indexExpr.X) {
-		return "", false
+		return nil, "", false
 	}
 	elemType := typeInfo.GetSliceElemType(indexExpr.X)
 	if elemType == nil {
-		return "", false
+		return nil, "", false
 	}
-	return goTypesCollectionElemTypeToRust(elemType), true
+	return coreType(elemType), goTypesCollectionElemTypeToRust(elemType), true
 }
 
 func arrayElemAddressPointerRustType(expr ast.Expr) (string, bool) {
@@ -1602,6 +1910,202 @@ func writeSliceElemPtrSliceSlotValue(out *strings.Builder, rhs ast.Expr, elemRus
 	return false
 }
 
+func writeSliceElemPtrFieldAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
+	sel, ok := unwrapParens(lhs).(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	fieldInfo, ok := sliceElemPtrFieldInfoForSelector(sel)
+	if !ok {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	if !writeSliceElemPtrFieldValueWithInfo(out, rhs, fieldInfo) {
+		out.WriteString(`unimplemented!("slice element pointer field assignment requires compatible pointer value")`)
+	}
+	out.WriteString("; ")
+	if !writePointerHandleSelectorTarget(out, sel) {
+		TranspileExpressionContext(out, sel, LValue)
+	}
+	out.WriteString(" = new_val; }")
+	return true
+}
+
+func writeSliceElemPtrFieldValue(out *strings.Builder, rhs ast.Expr, elemRustType string) bool {
+	return writeSliceElemPtrFieldValueWithInfo(out, rhs, sliceElemPtrFieldInfo{elemRustType: elemRustType})
+}
+
+func writeSliceElemPtrFieldValueWithInfo(out *strings.Builder, rhs ast.Expr, fieldInfo sliceElemPtrFieldInfo) bool {
+	helperPrefix := sliceElemPtrFieldHelperPrefix(fieldInfo)
+	if call, ok := unwrapParens(rhs).(*ast.CallExpr); ok {
+		if info, ok := sliceElemPtrReturnInfoForCall(call); ok {
+			if !sliceElemPtrElemCompatible(info.elemType, info.elemRustType, fieldInfo) {
+				return false
+			}
+			writeSliceElemPtrFieldCallValue(out, call, info, fieldInfo, helperPrefix)
+			return true
+		}
+	}
+	if ident, ok := unwrapParens(rhs).(*ast.Ident); ok {
+		if ident.Name == "nil" {
+			needSliceElemPtrFieldHelper(helperPrefix)
+			out.WriteString(helperPrefix)
+			out.WriteString("GoPtr::nil()")
+			return true
+		}
+		if isSliceElemPtrVar(ident.Name) {
+			needSliceElemPtrFieldHelper(helperPrefix)
+			out.WriteString(helperPrefix)
+			out.WriteString("GoPtr::slice_elem_opt(")
+			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(".clone())")
+			return true
+		}
+	}
+	if sel, ok := unwrapParens(rhs).(*ast.SelectorExpr); ok {
+		if rhsFieldInfo, ok := sliceElemPtrFieldInfoForSelector(sel); ok && sliceElemPtrElemCompatible(rhsFieldInfo.elemType, rhsFieldInfo.elemRustType, fieldInfo) {
+			TranspileExpressionContext(out, rhs, LValue)
+			out.WriteString(".clone()")
+			return true
+		}
+	}
+	if rhsElemType, rhsElemRustType, ok := sliceElemPtrAddressElemType(rhs); ok {
+		if !sliceElemPtrElemCompatible(rhsElemType, rhsElemRustType, fieldInfo) {
+			return false
+		}
+		writeSliceElemPtrFieldAddressValue(out, rhs, helperPrefix)
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if rhsElemRustType, ok := sliceElemPtrRustTypeForPointerType(typeInfo.GetType(rhs)); ok {
+		rhsElemType, _ := sliceElemPtrPointerElemType(typeInfo.GetType(rhs))
+		if !sliceElemPtrElemCompatible(rhsElemType, rhsElemRustType, fieldInfo) {
+			return false
+		}
+		needSliceElemPtrFieldHelper(helperPrefix)
+		out.WriteString(helperPrefix)
+		out.WriteString("GoPtr::local(")
+		writePointerHandleValueClone(out, rhs)
+		out.WriteString(")")
+		return true
+	}
+	return false
+}
+
+func writeSliceElemPtrFieldCallValue(out *strings.Builder, call *ast.CallExpr, returnInfo sliceElemPtrReturnInfo, fieldInfo sliceElemPtrFieldInfo, helperPrefix string) {
+	needSliceElemPtrFieldHelper(helperPrefix)
+	if returnInfo.ownerPkgPath == "" || returnInfo.ownerPkgPath == fieldInfo.ownerPkgPath {
+		out.WriteString(helperPrefix)
+		out.WriteString("GoPtr::slice_elem_opt(")
+		TranspileExpression(out, call)
+		out.WriteString(")")
+		return
+	}
+	out.WriteString("match ")
+	TranspileExpression(out, call)
+	out.WriteString(" { Some(__ptr) => ")
+	out.WriteString(helperPrefix)
+	out.WriteString("GoPtr::slice_elem(")
+	out.WriteString(helperPrefix)
+	out.WriteString("GoSliceElemPtr::new(__ptr.slice_handle(), __ptr.index())), None => ")
+	out.WriteString(helperPrefix)
+	out.WriteString("GoPtr::nil() }")
+}
+
+func writeSliceElemPtrFieldAddressValue(out *strings.Builder, rhs ast.Expr, helperPrefix string) bool {
+	unary, ok := unwrapParens(rhs).(*ast.UnaryExpr)
+	if !ok || unary.Op != token.AND {
+		return false
+	}
+	indexExpr, ok := unwrapParens(unary.X).(*ast.IndexExpr)
+	if !ok {
+		return false
+	}
+	needSliceElemPtrFieldHelper(helperPrefix)
+	out.WriteString(helperPrefix)
+	out.WriteString("GoPtr::slice_elem(")
+	out.WriteString(helperPrefix)
+	out.WriteString("GoSliceElemPtr::new(")
+	TranspileExpressionContext(out, indexExpr.X, LValue)
+	out.WriteString(".clone(), ")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("))")
+	return true
+}
+
+func needSliceElemPtrFieldHelper(helperPrefix string) {
+	if helperPrefix == "" {
+		NeedSliceElemPtr()
+	}
+}
+
+func sliceElemPtrFieldHelperPrefix(info sliceElemPtrFieldInfo) string {
+	if info.ownerPkgPath == "" {
+		return ""
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.pkg != nil && typeInfo.pkg.Path() == info.ownerPkgPath {
+		return ""
+	}
+	ctx := GetTranspileContext()
+	if ctx == nil || ctx.PackageMapping == nil {
+		return ""
+	}
+	crateName := ctx.PackageMapping[info.ownerPkgPath]
+	if crateName == "" {
+		return ""
+	}
+	TrackGeneratedCrateDependency(crateName)
+	return crateName + "::"
+}
+
+func writeSliceElemPtrFieldNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) bool {
+	if op != token.EQL && op != token.NEQ {
+		return false
+	}
+	sel, ok := unwrapParens(expr).(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	if _, ok := sliceElemPtrFieldInfoForSelector(sel); !ok {
+		return false
+	}
+	out.WriteString("{ let __ptr_field = ")
+	TranspileExpressionContext(out, sel, LValue)
+	out.WriteString(".clone(); ")
+	if op == token.NEQ {
+		out.WriteString("!")
+	}
+	out.WriteString("__ptr_field.is_nil() }")
+	return true
+}
+
+func writeSliceElemPtrFieldPointeeSelector(out *strings.Builder, base *ast.SelectorExpr, fieldInfo FieldAccessInfo, expr *ast.SelectorExpr, ctx ExprContext) bool {
+	if _, ok := sliceElemPtrFieldInfoForSelector(base); !ok {
+		return false
+	}
+	if ctx != RValue {
+		out.WriteString(`unimplemented!("slice element pointer field selector requires rvalue support")`)
+		return true
+	}
+	if fieldInfo.IsPromoted {
+		out.WriteString(`unimplemented!("slice element pointer field selector requires promoted-field support")`)
+		return true
+	}
+	out.WriteString("(*{ let __ptr_value = ")
+	TranspileExpressionContext(out, base, LValue)
+	out.WriteString(".borrow(); __ptr_value.as_ref().unwrap().")
+	out.WriteString(fieldInfo.FieldName)
+	out.WriteString(".clone() }")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()")
+	writeSelectorRValueClose(out, expr)
+	return true
+}
+
 func writeSliceElemPtrSliceReturnValue(out *strings.Builder, result ast.Expr, resultIndex int) bool {
 	info, ok := currentFunctionSliceElemPtrSliceReturnInfo()
 	if !ok {
@@ -1824,4 +2328,39 @@ func writeSliceElemPtrFieldSelector(out *strings.Builder, ident *ast.Ident, fiel
 	out.WriteString(".as_ref().unwrap()")
 	writeSelectorRValueClose(out, sel)
 	return true
+}
+
+func writeGoPtrLocalFieldSelector(out *strings.Builder, ident *ast.Ident, fieldInfo FieldAccessInfo, sel *ast.SelectorExpr, ctx ExprContext) bool {
+	if !isGoPtrVar(ident.Name) {
+		return false
+	}
+	if fieldInfo.IsPromoted {
+		out.WriteString(`unimplemented!("GoPtr local field selector requires promoted-field support")`)
+		return true
+	}
+	if ctx == LValue || ctx == AddressOf {
+		writeGoPtrLocalFieldHandle(out, ident, fieldInfo)
+		return true
+	}
+	if typeInfoIsPointerExpr(sel) || selectorExpressionKeepsHandle(sel) {
+		writeGoPtrLocalFieldHandle(out, ident, fieldInfo)
+		return true
+	}
+	out.WriteString("(*{ let __ptr_value = ")
+	out.WriteString(RustIdentForUse(ident))
+	out.WriteString(".borrow(); __ptr_value.as_ref().unwrap().")
+	out.WriteString(fieldInfo.FieldName)
+	out.WriteString(".clone() }")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()")
+	writeSelectorRValueClose(out, sel)
+	return true
+}
+
+func writeGoPtrLocalFieldHandle(out *strings.Builder, ident *ast.Ident, fieldInfo FieldAccessInfo) {
+	out.WriteString("{ let __ptr_value = ")
+	out.WriteString(RustIdentForUse(ident))
+	out.WriteString(".borrow(); __ptr_value.as_ref().unwrap().")
+	out.WriteString(fieldInfo.FieldName)
+	out.WriteString(".clone() }")
 }

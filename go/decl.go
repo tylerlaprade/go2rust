@@ -101,6 +101,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		ptrToSlice         bool
 		ptrToPtrSlice      bool
 		isPointer          bool
+		goPtr              bool
 		interfaceSlice     bool
 		zeroLenArray       bool
 	}
@@ -132,6 +133,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		}
 		if len(field.Names) > 0 {
 			for nameIndex, name := range field.Names {
+				_, goPtrField := sliceElemPtrFieldInfoForStructNameField(structName, name.Name)
 				fields = append(fields, fieldEntry{
 					name:               rustStructFieldName(name, fieldIndex, nameIndex),
 					isEmbedded:         false,
@@ -149,6 +151,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 					ptrToSlice:         ptrToSlice,
 					ptrToPtrSlice:      ptrToPtrSlice,
 					isPointer:          isPointer || syncAtomicPointerDisplayField(structName, field, name),
+					goPtr:              goPtrField,
 					interfaceSlice:     interfaceSlice,
 					zeroLenArray:       zeroLenArray,
 				})
@@ -173,6 +176,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 				ptrToSlice:         ptrToSlice,
 				ptrToPtrSlice:      ptrToPtrSlice,
 				isPointer:          isPointer,
+				goPtr:              false,
 				interfaceSlice:     interfaceSlice,
 				zeroLenArray:       zeroLenArray,
 			})
@@ -248,6 +252,10 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			out.WriteString("format_slice_wrapped_stringer(&self.")
 			out.WriteString(ToSnakeCase(f.name))
 			out.WriteString(")")
+		} else if f.goPtr {
+			out.WriteString("{ if self.")
+			out.WriteString(ToSnakeCase(f.name))
+			out.WriteString(".is_nil() { \"<nil>\".to_string() } else { \"<ptr>\".to_string() } }")
 		} else if f.isPointer {
 			out.WriteString("{ let __guard = self.")
 			out.WriteString(ToSnakeCase(f.name))
@@ -1113,7 +1121,10 @@ func generateStructDefault(out *strings.Builder, typeSpec *ast.TypeSpec, structN
 				needComma = true
 				out.WriteString(rustStructFieldName(name, fieldIndex, nameIndex))
 				out.WriteString(": ")
-				if syncAtomicPointerStorageField(typeSpec, field, name) {
+				if _, ok := sliceElemPtrFieldInfoForTypeSpecField(typeSpec, name.Name); ok {
+					NeedSliceElemPtr()
+					out.WriteString("GoPtr::nil()")
+				} else if syncAtomicPointerStorageField(typeSpec, field, name) {
 					WriteWrappedNone(out)
 				} else {
 					writeStructDefaultValue(out, field.Type)
@@ -1228,9 +1239,19 @@ func generateStructJsonDecode(out *strings.Builder, structName string, structTyp
 			out.WriteString(") {\n")
 			out.WriteString("            out.")
 			out.WriteString(ToSnakeCase(name.Name))
-			out.WriteString(" = <")
-			out.WriteString(GoTypeToRust(field.Type))
-			out.WriteString(" as GoJsonDecode>::go_json_decode(field_value)?;\n")
+			out.WriteString(" = ")
+			if _, ok := sliceElemPtrFieldInfoForStructNameField(structName, name.Name); ok {
+				NeedSliceElemPtr()
+				out.WriteString("GoPtr::local(")
+				out.WriteString("<")
+				out.WriteString(GoTypeToRust(field.Type))
+				out.WriteString(" as GoJsonDecode>::go_json_decode(field_value)?)")
+			} else {
+				out.WriteString("<")
+				out.WriteString(GoTypeToRust(field.Type))
+				out.WriteString(" as GoJsonDecode>::go_json_decode(field_value)?")
+			}
+			out.WriteString(";\n")
 			out.WriteString("        }\n")
 		}
 	}
@@ -4685,7 +4706,12 @@ func emitStructTypeDeclBody(out *strings.Builder, typeSpec *ast.TypeSpec, t *ast
 				out.WriteString("    pub ")
 				out.WriteString(rustStructFieldName(name, fieldIndex, nameIndex))
 				out.WriteString(": ")
-				if syncAtomicPointerStorageField(typeSpec, field, name) {
+				if fieldInfo, ok := sliceElemPtrFieldInfoForTypeSpecField(typeSpec, name.Name); ok {
+					NeedSliceElemPtr()
+					out.WriteString("GoPtr<")
+					out.WriteString(fieldInfo.elemRustType)
+					out.WriteString(">")
+				} else if syncAtomicPointerStorageField(typeSpec, field, name) {
 					out.WriteString(syncAtomicPointerStorageRustType(typeSpec))
 				} else {
 					out.WriteString(GoTypeToRust(field.Type))

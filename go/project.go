@@ -304,6 +304,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	registerPackageTypeFactsFromFiles(astFiles)
 	registerFunctionSignaturesFromFiles(astFiles)
 	registerSliceElemPtrReturnsFromFiles(astFiles)
+	registerSliceElemPtrFieldsFromFiles(astFiles)
 
 	nonMainModuleNames := pg.nonMainModuleNames(astFilesByPath)
 	for _, filename := range pg.goFiles {

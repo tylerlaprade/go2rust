@@ -16,16 +16,18 @@ import (
 
 // PackageLoader loads Go packages with full type information
 type PackageLoader struct {
-	workDir                    string
-	mainPkg                    *packages.Package
-	allPackages                map[string]*packages.Package // import path -> package
-	packageMapping             map[string]string            // Go import -> Rust crate name
-	packageTypeModules         map[string]map[string]string // import path -> Go type name -> Rust module name
-	packageStates              map[string]*PackageState
-	comparableByPackage        map[string]map[string]bool
-	pointerComparableByPackage map[string]map[string]bool
-	concurrencyDetector        *ConcurrencyDetector
-	fileSet                    *token.FileSet
+	workDir                     string
+	mainPkg                     *packages.Package
+	allPackages                 map[string]*packages.Package // import path -> package
+	packageMapping              map[string]string            // Go import -> Rust crate name
+	packageTypeModules          map[string]map[string]string // import path -> Go type name -> Rust module name
+	packageStates               map[string]*PackageState
+	sliceElemPtrReturnFuncNames map[string]sliceElemPtrReturnInfo
+	sliceElemPtrFields          map[string]sliceElemPtrFieldInfo
+	comparableByPackage         map[string]map[string]bool
+	pointerComparableByPackage  map[string]map[string]bool
+	concurrencyDetector         *ConcurrencyDetector
+	fileSet                     *token.FileSet
 }
 
 const sharedStdlibStubCrateName = "go2rust_stdlib_stubs"
@@ -34,13 +36,15 @@ const sourceStdlibPackagesEnv = "GO2RUST_SOURCE_STDLIB_PACKAGES"
 // NewPackageLoader creates a new package loader
 func NewPackageLoader(workDir string) *PackageLoader {
 	return &PackageLoader{
-		workDir:                    workDir,
-		allPackages:                make(map[string]*packages.Package),
-		packageMapping:             make(map[string]string),
-		packageTypeModules:         make(map[string]map[string]string),
-		packageStates:              make(map[string]*PackageState),
-		comparableByPackage:        make(map[string]map[string]bool),
-		pointerComparableByPackage: make(map[string]map[string]bool),
+		workDir:                     workDir,
+		allPackages:                 make(map[string]*packages.Package),
+		packageMapping:              make(map[string]string),
+		packageTypeModules:          make(map[string]map[string]string),
+		packageStates:               make(map[string]*PackageState),
+		sliceElemPtrReturnFuncNames: make(map[string]sliceElemPtrReturnInfo),
+		sliceElemPtrFields:          make(map[string]sliceElemPtrFieldInfo),
+		comparableByPackage:         make(map[string]map[string]bool),
+		pointerComparableByPackage:  make(map[string]map[string]bool),
 	}
 }
 
@@ -489,6 +493,7 @@ func (pl *PackageLoader) TranspileAll() error {
 	// block compilation of the subset the program actually uses.
 	SetSourceStdlibReachable(pl.computeSourceStdlibReachable())
 	pl.packageTypeModules = pl.collectPackageTypeModuleNames()
+	pl.collectSliceElemPtrFacts()
 
 	resetPackageMethodReceiverMutability()
 	var allPackageTypes []*types.Package
@@ -742,6 +747,45 @@ func (pl *PackageLoader) collectPackageTypeModuleNames() map[string]map[string]s
 	return typeModules
 }
 
+func (pl *PackageLoader) collectSliceElemPtrFacts() {
+	pl.withEachPackageTypeContext(func(pkg *packages.Package) {
+		registerSliceElemPtrReturnsFromFiles(pkg.Syntax)
+	})
+	pl.withEachPackageTypeContext(func(pkg *packages.Package) {
+		registerSliceElemPtrFieldsFromFiles(pkg.Syntax)
+	})
+}
+
+func (pl *PackageLoader) withEachPackageTypeContext(fn func(*packages.Package)) {
+	parentCtx := GetTranspileContext()
+	parentTypeInfo := GetTypeInfo()
+	defer SetTranspileContext(parentCtx)
+	defer SetTypeInfo(parentTypeInfo)
+
+	for _, pkgPath := range pl.orderedAllPackagePaths() {
+		pkg := pl.allPackages[pkgPath]
+		if pkg == nil || len(pkg.Syntax) == 0 || pkg.TypesInfo == nil || pkg.Types == nil {
+			continue
+		}
+		pkgTypeInfo := &TypeInfo{
+			info: pkg.TypesInfo,
+			pkg:  pkg.Types,
+		}
+		pkgState := NewPackageState()
+		session := NewTranspileSession(pkgTypeInfo, pl.packageMapping)
+		session.PackageTypeModuleNames = pl.packageTypeModules
+		session.SliceElemPtrReturnFuncNames = pl.sliceElemPtrReturnFuncNames
+		session.SliceElemPtrFields = pl.sliceElemPtrFields
+		SetTranspileContext(&TranspileContext{
+			Session:        session,
+			Package:        pkgState,
+			PackageMapping: pl.packageMapping,
+		})
+		SetTypeInfo(pkgTypeInfo)
+		fn(pkg)
+	}
+}
+
 // transpilePackage transpiles a single package
 func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	if len(pkg.Syntax) == 0 {
@@ -782,6 +826,8 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	pkgState.MethodsByType = collectPackageMethods(pkg.Syntax)
 	session := NewTranspileSession(pkgTypeInfo, pl.packageMapping)
 	session.PackageTypeModuleNames = pl.packageTypeModules
+	session.SliceElemPtrReturnFuncNames = pl.sliceElemPtrReturnFuncNames
+	session.SliceElemPtrFields = pl.sliceElemPtrFields
 	SetTranspileContext(&TranspileContext{
 		Session:                 session,
 		Package:                 pkgState,
@@ -826,6 +872,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	registerPackageTypeFactsFromFiles(pkg.Syntax)
 	registerFunctionSignaturesFromFiles(pkg.Syntax)
 	registerSliceElemPtrReturnsFromFiles(pkg.Syntax)
+	registerSliceElemPtrFieldsFromFiles(pkg.Syntax)
 
 	var generatedModules []generatedRustModule
 	var initModules []generatedInitModule

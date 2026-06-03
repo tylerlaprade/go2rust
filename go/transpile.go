@@ -2889,6 +2889,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 		registerFunctionSignatureDecl(fn)
 	}
 	registerSliceElemPtrReturnsFromFiles([]*ast.File{file})
+	registerSliceElemPtrFieldsFromFiles([]*ast.File{file})
 	functionNames := assignFunctionNames(functions)
 	if parentCtx == nil && currentContext != nil && currentContext.Package != nil {
 		functionOverrideNames := currentContext.Package.FunctionNameOverrides

@@ -2598,50 +2598,58 @@ func generateSliceElemPtrHelper(out *strings.Builder) {
 		TrackImport("Mutex")
 		out.WriteString(`
 #[derive(Clone)]
-struct GoSliceElemPtr<T: Clone> {
+pub struct GoSliceElemPtr<T: Clone> {
     slice: Arc<Mutex<Option<Vec<T>>>>,
     index: usize,
 }
 
-struct GoSliceElemRef<T: Clone> {
+pub struct GoSliceElemRef<T: Clone> {
     value: Option<T>,
 }
 
-struct GoSliceElemMutRef<T: Clone> {
+pub struct GoSliceElemMutRef<T: Clone> {
     slice: Arc<Mutex<Option<Vec<T>>>>,
     index: usize,
     value: Option<T>,
 }
 
 #[derive(Clone)]
-struct GoArrayElemPtr<T: Clone, const N: usize> {
+pub struct GoArrayElemPtr<T: Clone, const N: usize> {
     array: Arc<Mutex<Option<[T; N]>>>,
     index: usize,
 }
 
-struct GoArrayElemRef<T: Clone> {
+pub struct GoArrayElemRef<T: Clone> {
     value: Option<T>,
 }
 
-struct GoArrayElemMutRef<T: Clone, const N: usize> {
+pub struct GoArrayElemMutRef<T: Clone, const N: usize> {
     array: Arc<Mutex<Option<[T; N]>>>,
     index: usize,
     value: Option<T>,
 }
 
 impl<T: Clone> GoSliceElemPtr<T> {
-    fn new(slice: Arc<Mutex<Option<Vec<T>>>>, index: usize) -> Self {
+    pub fn new(slice: Arc<Mutex<Option<Vec<T>>>>, index: usize) -> Self {
         GoSliceElemPtr { slice, index }
     }
 
-    fn borrow(&self) -> GoSliceElemRef<T> {
+    pub fn slice_handle(&self) -> Arc<Mutex<Option<Vec<T>>>> {
+        self.slice.clone()
+    }
+
+    pub fn index(&self) -> usize {
+        self.index
+    }
+
+    pub fn borrow(&self) -> GoSliceElemRef<T> {
         let guard = self.slice.lock().unwrap();
         GoSliceElemRef {
             value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
         }
     }
 
-    fn borrow_mut(&self) -> GoSliceElemMutRef<T> {
+    pub fn borrow_mut(&self) -> GoSliceElemMutRef<T> {
         let guard = self.slice.lock().unwrap();
         GoSliceElemMutRef {
             slice: self.slice.clone(),
@@ -2652,18 +2660,18 @@ impl<T: Clone> GoSliceElemPtr<T> {
 }
 
 impl<T: Clone, const N: usize> GoArrayElemPtr<T, N> {
-    fn new(array: Arc<Mutex<Option<[T; N]>>>, index: usize) -> Self {
+    pub fn new(array: Arc<Mutex<Option<[T; N]>>>, index: usize) -> Self {
         GoArrayElemPtr { array, index }
     }
 
-    fn borrow(&self) -> GoArrayElemRef<T> {
+    pub fn borrow(&self) -> GoArrayElemRef<T> {
         let guard = self.array.lock().unwrap();
         GoArrayElemRef {
             value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
         }
     }
 
-    fn borrow_mut(&self) -> GoArrayElemMutRef<T, N> {
+    pub fn borrow_mut(&self) -> GoArrayElemMutRef<T, N> {
         let guard = self.array.lock().unwrap();
         GoArrayElemMutRef {
             array: self.array.clone(),
@@ -2738,18 +2746,18 @@ impl<T: Clone, const N: usize> Drop for GoArrayElemMutRef<T, N> {
 }
 
 #[derive(Clone)]
-enum GoPtr<T: Clone> {
+pub enum GoPtr<T: Clone> {
     Nil,
     Local(Arc<Mutex<Option<T>>>),
     SliceElem(GoSliceElemPtr<T>),
 }
 
 impl<T: Clone> GoPtr<T> {
-    fn nil() -> Self {
+    pub fn nil() -> Self {
         GoPtr::Nil
     }
 
-    fn local(value: Arc<Mutex<Option<T>>>) -> Self {
+    pub fn local(value: Arc<Mutex<Option<T>>>) -> Self {
         if value.lock().unwrap().is_none() {
             GoPtr::Nil
         } else {
@@ -2757,14 +2765,46 @@ impl<T: Clone> GoPtr<T> {
         }
     }
 
-    fn slice_elem(value: GoSliceElemPtr<T>) -> Self {
+    pub fn slice_elem(value: GoSliceElemPtr<T>) -> Self {
         GoPtr::SliceElem(value)
     }
 
-    fn slice_elem_opt(value: Option<GoSliceElemPtr<T>>) -> Self {
+    pub fn slice_elem_opt(value: Option<GoSliceElemPtr<T>>) -> Self {
         match value {
             Some(value) => GoPtr::SliceElem(value),
             None => GoPtr::Nil,
+        }
+    }
+
+    pub fn is_nil(&self) -> bool {
+        match self {
+            GoPtr::Nil => true,
+            GoPtr::Local(value) => value.lock().unwrap().is_none(),
+            GoPtr::SliceElem(value) => value.borrow().is_none(),
+        }
+    }
+
+    pub fn borrow(&self) -> Option<T> {
+        match self {
+            GoPtr::Nil => None,
+            GoPtr::Local(value) => (*value.lock().unwrap()).clone(),
+            GoPtr::SliceElem(value) => (*value.borrow()).clone(),
+        }
+    }
+}
+
+impl<T: Clone> Default for GoPtr<T> {
+    fn default() -> Self {
+        GoPtr::Nil
+    }
+}
+
+impl<T: Clone> std::fmt::Debug for GoPtr<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.is_nil() {
+            write!(f, "<nil>")
+        } else {
+            write!(f, "<ptr>")
         }
     }
 }
@@ -2774,50 +2814,58 @@ impl<T: Clone> GoPtr<T> {
 		TrackImport("RefCell")
 		out.WriteString(`
 #[derive(Clone)]
-struct GoSliceElemPtr<T: Clone> {
+pub struct GoSliceElemPtr<T: Clone> {
     slice: Rc<RefCell<Option<Vec<T>>>>,
     index: usize,
 }
 
-struct GoSliceElemRef<T: Clone> {
+pub struct GoSliceElemRef<T: Clone> {
     value: Option<T>,
 }
 
-struct GoSliceElemMutRef<T: Clone> {
+pub struct GoSliceElemMutRef<T: Clone> {
     slice: Rc<RefCell<Option<Vec<T>>>>,
     index: usize,
     value: Option<T>,
 }
 
 #[derive(Clone)]
-struct GoArrayElemPtr<T: Clone, const N: usize> {
+pub struct GoArrayElemPtr<T: Clone, const N: usize> {
     array: Rc<RefCell<Option<[T; N]>>>,
     index: usize,
 }
 
-struct GoArrayElemRef<T: Clone> {
+pub struct GoArrayElemRef<T: Clone> {
     value: Option<T>,
 }
 
-struct GoArrayElemMutRef<T: Clone, const N: usize> {
+pub struct GoArrayElemMutRef<T: Clone, const N: usize> {
     array: Rc<RefCell<Option<[T; N]>>>,
     index: usize,
     value: Option<T>,
 }
 
 impl<T: Clone> GoSliceElemPtr<T> {
-    fn new(slice: Rc<RefCell<Option<Vec<T>>>>, index: usize) -> Self {
+    pub fn new(slice: Rc<RefCell<Option<Vec<T>>>>, index: usize) -> Self {
         GoSliceElemPtr { slice, index }
     }
 
-    fn borrow(&self) -> GoSliceElemRef<T> {
+    pub fn slice_handle(&self) -> Rc<RefCell<Option<Vec<T>>>> {
+        self.slice.clone()
+    }
+
+    pub fn index(&self) -> usize {
+        self.index
+    }
+
+    pub fn borrow(&self) -> GoSliceElemRef<T> {
         let guard = self.slice.borrow();
         GoSliceElemRef {
             value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
         }
     }
 
-    fn borrow_mut(&self) -> GoSliceElemMutRef<T> {
+    pub fn borrow_mut(&self) -> GoSliceElemMutRef<T> {
         let guard = self.slice.borrow();
         GoSliceElemMutRef {
             slice: self.slice.clone(),
@@ -2828,18 +2876,18 @@ impl<T: Clone> GoSliceElemPtr<T> {
 }
 
 impl<T: Clone, const N: usize> GoArrayElemPtr<T, N> {
-    fn new(array: Rc<RefCell<Option<[T; N]>>>, index: usize) -> Self {
+    pub fn new(array: Rc<RefCell<Option<[T; N]>>>, index: usize) -> Self {
         GoArrayElemPtr { array, index }
     }
 
-    fn borrow(&self) -> GoArrayElemRef<T> {
+    pub fn borrow(&self) -> GoArrayElemRef<T> {
         let guard = self.array.borrow();
         GoArrayElemRef {
             value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
         }
     }
 
-    fn borrow_mut(&self) -> GoArrayElemMutRef<T, N> {
+    pub fn borrow_mut(&self) -> GoArrayElemMutRef<T, N> {
         let guard = self.array.borrow();
         GoArrayElemMutRef {
             array: self.array.clone(),
@@ -2914,18 +2962,18 @@ impl<T: Clone, const N: usize> Drop for GoArrayElemMutRef<T, N> {
 }
 
 #[derive(Clone)]
-enum GoPtr<T: Clone> {
+pub enum GoPtr<T: Clone> {
     Nil,
     Local(Rc<RefCell<Option<T>>>),
     SliceElem(GoSliceElemPtr<T>),
 }
 
 impl<T: Clone> GoPtr<T> {
-    fn nil() -> Self {
+    pub fn nil() -> Self {
         GoPtr::Nil
     }
 
-    fn local(value: Rc<RefCell<Option<T>>>) -> Self {
+    pub fn local(value: Rc<RefCell<Option<T>>>) -> Self {
         if value.borrow().is_none() {
             GoPtr::Nil
         } else {
@@ -2933,14 +2981,46 @@ impl<T: Clone> GoPtr<T> {
         }
     }
 
-    fn slice_elem(value: GoSliceElemPtr<T>) -> Self {
+    pub fn slice_elem(value: GoSliceElemPtr<T>) -> Self {
         GoPtr::SliceElem(value)
     }
 
-    fn slice_elem_opt(value: Option<GoSliceElemPtr<T>>) -> Self {
+    pub fn slice_elem_opt(value: Option<GoSliceElemPtr<T>>) -> Self {
         match value {
             Some(value) => GoPtr::SliceElem(value),
             None => GoPtr::Nil,
+        }
+    }
+
+    pub fn is_nil(&self) -> bool {
+        match self {
+            GoPtr::Nil => true,
+            GoPtr::Local(value) => value.borrow().is_none(),
+            GoPtr::SliceElem(value) => value.borrow().is_none(),
+        }
+    }
+
+    pub fn borrow(&self) -> Option<T> {
+        match self {
+            GoPtr::Nil => None,
+            GoPtr::Local(value) => (*value.borrow()).clone(),
+            GoPtr::SliceElem(value) => (*value.borrow()).clone(),
+        }
+    }
+}
+
+impl<T: Clone> Default for GoPtr<T> {
+    fn default() -> Self {
+        GoPtr::Nil
+    }
+}
+
+impl<T: Clone> std::fmt::Debug for GoPtr<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.is_nil() {
+            write!(f, "<nil>")
+        } else {
+            write!(f, "<ptr>")
         }
     }
 }

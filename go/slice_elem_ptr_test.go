@@ -587,7 +587,7 @@ func makeName() Name {
 	}
 }
 
-func TestSliceElemPointerFieldAssignmentFailsLoudly(t *testing.T) {
+func TestSliceElemPointerFieldAssignmentUsesGoPtrField(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
 type Name struct {
@@ -599,15 +599,15 @@ func setName(n *Name, b []byte) {
 }
 `)
 
-	if strings.Contains(rust, "bytes = GoSliceElemPtr::new") {
-		t.Fatalf("slice element pointer field assignment should not emit an incompatible helper value:\n%s", rust)
+	if !strings.Contains(rust, "pub bytes: GoPtr<u8>") {
+		t.Fatalf("slice element pointer field should use GoPtr storage:\n%s", rust)
 	}
-	if !strings.Contains(rust, `unimplemented!("slice element pointer cannot assign to pointer field")`) {
-		t.Fatalf("slice element pointer field assignment should fail loudly:\n%s", rust)
+	if !strings.Contains(rust, "GoPtr::slice_elem(GoSliceElemPtr::new(b.clone(), (0) as usize))") {
+		t.Fatalf("slice element pointer field assignment should preserve backing slice identity:\n%s", rust)
 	}
 }
 
-func TestSliceElemPointerLocalFieldAssignmentFailsLoudly(t *testing.T) {
+func TestSliceElemPointerLocalFieldAssignmentUsesGoPtrField(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
 type Name struct {
@@ -620,11 +620,51 @@ func setName(n *Name, b []byte) {
 }
 `)
 
-	if strings.Contains(rust, "let new_val = p.clone();") {
-		t.Fatalf("slice element pointer local field assignment should not emit an incompatible helper value:\n%s", rust)
+	if !strings.Contains(rust, "pub bytes: GoPtr<u8>") {
+		t.Fatalf("slice element pointer local field should use GoPtr storage:\n%s", rust)
 	}
-	if !strings.Contains(rust, `unimplemented!("slice element pointer cannot assign to pointer field")`) {
-		t.Fatalf("slice element pointer local field assignment should fail loudly:\n%s", rust)
+	if !strings.Contains(rust, "GoPtr::slice_elem_opt(p.clone())") {
+		t.Fatalf("slice element pointer local field assignment should preserve backing slice identity:\n%s", rust)
+	}
+}
+
+func TestSliceElemPointerReturnAssignedFieldUsesGoPtrField(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type Info struct {
+	Opaque bool
+}
+
+var All = []Info{{Opaque: true}}
+
+func Lookup(name string) *Info {
+	return &All[0]
+}
+
+type setting struct {
+	info *Info
+}
+
+func load(s *setting, name string) bool {
+	s.info = Lookup(name)
+	return s.info != nil && s.info.Opaque
+}
+`)
+
+	if !strings.Contains(rust, "pub info: GoPtr<Info>") {
+		t.Fatalf("slice element pointer return field should use GoPtr storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoPtr::slice_elem_opt(lookup(") {
+		t.Fatalf("slice element pointer return assignment should preserve backing slice identity:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".info.is_nil()") {
+		t.Fatalf("slice element pointer field nil comparison should use GoPtr nil state:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".info.borrow()") {
+		t.Fatalf("slice element pointer field read should borrow through GoPtr:\n%s", rust)
+	}
+	if strings.Contains(rust, `unimplemented!("slice element pointer cannot assign to pointer field")`) {
+		t.Fatalf("slice element pointer return field assignment should not fail loudly once GoPtr storage is selected:\n%s", rust)
 	}
 }
 

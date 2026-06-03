@@ -10117,6 +10117,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									// Map assignment replaces the map handle, matching Go map-header semantics.
 								} else if writePackageGlobalPointerNilAssignment(out, s.Lhs[0], s.Rhs[0]) {
 									// Package-global pointer nil preserves the global slot and replaces the stored handle.
+								} else if writeSliceElemPtrFieldAssignment(out, s.Lhs[0], s.Rhs[0]) {
+									// GoPtr fields preserve pointer identity for slice element addresses.
 								} else if ident, ok := s.Rhs[0].(*ast.Ident); ok && ident.Name == "nil" {
 									// Assigning nil to pointer
 									out.WriteString("*")

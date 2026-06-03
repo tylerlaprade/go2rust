@@ -9,9 +9,11 @@ import (
 
 // TranspileSession holds run-scoped state shared across package transpilation.
 type TranspileSession struct {
-	TypeInfo               *TypeInfo
-	PackageMapping         map[string]string            // Go import path -> Rust crate name
-	PackageTypeModuleNames map[string]map[string]string // Go import path -> Go type name -> Rust module name
+	TypeInfo                    *TypeInfo
+	PackageMapping              map[string]string            // Go import path -> Rust crate name
+	PackageTypeModuleNames      map[string]map[string]string // Go import path -> Go type name -> Rust module name
+	SliceElemPtrReturnFuncNames map[string]sliceElemPtrReturnInfo
+	SliceElemPtrFields          map[string]sliceElemPtrFieldInfo
 }
 
 // PackageState holds package-scoped registries that should be shared across files.
@@ -34,8 +36,10 @@ type PackageState struct {
 	FunctionTypeAliases           map[string]bool
 	FunctionTypeAliasBoxTypes     map[string]string
 	SliceElemPtrReturnFuncs       map[*types.Func]sliceElemPtrReturnInfo
+	SliceElemPtrReturnFuncNames   map[string]sliceElemPtrReturnInfo
 	SliceElemPtrSliceReturnFuncs  map[*types.Func]sliceElemPtrSliceReturnInfo
 	SliceElemPtrSliceParamFuncs   map[*types.Func]map[int]string
+	SliceElemPtrFields            map[string]sliceElemPtrFieldInfo
 	ArrayElemPtrResultFuncs       map[*types.Func]map[int]arrayElemPtrInfo
 	ArrayElemPtrResultFuncNames   map[string]map[int]arrayElemPtrInfo
 	MapKeyStructTypes             map[string]bool
@@ -118,8 +122,10 @@ type TranspileContext struct {
 
 func NewTranspileSession(typeInfo *TypeInfo, packageMapping map[string]string) *TranspileSession {
 	return &TranspileSession{
-		TypeInfo:       typeInfo,
-		PackageMapping: packageMapping,
+		TypeInfo:                    typeInfo,
+		PackageMapping:              packageMapping,
+		SliceElemPtrReturnFuncNames: make(map[string]sliceElemPtrReturnInfo),
+		SliceElemPtrFields:          make(map[string]sliceElemPtrFieldInfo),
 	}
 }
 
@@ -143,8 +149,10 @@ func NewPackageState() *PackageState {
 		FunctionTypeAliases:           make(map[string]bool),
 		FunctionTypeAliasBoxTypes:     make(map[string]string),
 		SliceElemPtrReturnFuncs:       make(map[*types.Func]sliceElemPtrReturnInfo),
+		SliceElemPtrReturnFuncNames:   make(map[string]sliceElemPtrReturnInfo),
 		SliceElemPtrSliceReturnFuncs:  make(map[*types.Func]sliceElemPtrSliceReturnInfo),
 		SliceElemPtrSliceParamFuncs:   make(map[*types.Func]map[int]string),
+		SliceElemPtrFields:            make(map[string]sliceElemPtrFieldInfo),
 		ArrayElemPtrResultFuncs:       make(map[*types.Func]map[int]arrayElemPtrInfo),
 		ArrayElemPtrResultFuncNames:   make(map[string]map[int]arrayElemPtrInfo),
 		MapKeyStructTypes:             make(map[string]bool),
@@ -263,6 +271,14 @@ func (ctx *TranspileContext) ensureDefaults() {
 	if ctx.Session != nil && ctx.PackageMapping == nil {
 		ctx.PackageMapping = ctx.Session.PackageMapping
 	}
+	if ctx.Session != nil {
+		if ctx.Session.SliceElemPtrReturnFuncNames == nil {
+			ctx.Session.SliceElemPtrReturnFuncNames = make(map[string]sliceElemPtrReturnInfo)
+		}
+		if ctx.Session.SliceElemPtrFields == nil {
+			ctx.Session.SliceElemPtrFields = make(map[string]sliceElemPtrFieldInfo)
+		}
+	}
 	if ctx.Package != nil {
 		if ctx.Package.FunctionSignatures == nil {
 			ctx.Package.FunctionSignatures = make(map[string]*FunctionSignature)
@@ -288,11 +304,17 @@ func (ctx *TranspileContext) ensureDefaults() {
 		if ctx.Package.SliceElemPtrReturnFuncs == nil {
 			ctx.Package.SliceElemPtrReturnFuncs = make(map[*types.Func]sliceElemPtrReturnInfo)
 		}
+		if ctx.Package.SliceElemPtrReturnFuncNames == nil {
+			ctx.Package.SliceElemPtrReturnFuncNames = make(map[string]sliceElemPtrReturnInfo)
+		}
 		if ctx.Package.SliceElemPtrSliceReturnFuncs == nil {
 			ctx.Package.SliceElemPtrSliceReturnFuncs = make(map[*types.Func]sliceElemPtrSliceReturnInfo)
 		}
 		if ctx.Package.SliceElemPtrSliceParamFuncs == nil {
 			ctx.Package.SliceElemPtrSliceParamFuncs = make(map[*types.Func]map[int]string)
+		}
+		if ctx.Package.SliceElemPtrFields == nil {
+			ctx.Package.SliceElemPtrFields = make(map[string]sliceElemPtrFieldInfo)
 		}
 		if ctx.Package.ArrayElemPtrResultFuncs == nil {
 			ctx.Package.ArrayElemPtrResultFuncs = make(map[*types.Func]map[int]arrayElemPtrInfo)
