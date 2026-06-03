@@ -1585,12 +1585,29 @@ func methodCallUsesBareArguments(sel *ast.SelectorExpr) bool {
 	}
 	if ident, ok := sel.X.(*ast.Ident); ok {
 		_, isRangeVar := rangeLoopVars[ident.Name]
-		return !isRangeVar && isGoSyncNamedType(typeInfo.GetType(ident))
+		if isRangeVar {
+			return false
+		}
+		if info := lookupVarInfo(ident.Name); info != nil && isSyncHelperRustType(info.RustType) {
+			return true
+		}
+		typ := typeInfo.GetType(ident)
+		return isGoSyncNamedType(typ) && !isSourceMappedGoSyncNamedType(typ)
 	}
 	if fieldSel, ok := sel.X.(*ast.SelectorExpr); ok {
-		return isGoSyncNamedType(typeInfo.GetType(fieldSel))
+		typ := typeInfo.GetType(fieldSel)
+		return isGoSyncNamedType(typ) && !isSourceMappedGoSyncNamedType(typ)
 	}
 	return false
+}
+
+func isSyncHelperRustType(rustType string) bool {
+	switch strings.TrimPrefix(rustType, "&") {
+	case "WaitGroup", "GoMutex", "GoRWMutex", "GoOnce":
+		return true
+	default:
+		return false
+	}
 }
 
 func methodCallFuncLitArgCapturesReceiver(call *ast.CallExpr, receiver string) bool {

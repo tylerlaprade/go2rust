@@ -1509,6 +1509,22 @@ func isGoSyncNamedType(typ types.Type) bool {
 	return named.Obj().Pkg().Path() == "sync" && isBareSyncTypeName(named.Obj().Name())
 }
 
+func isSourceMappedGoSyncNamedType(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
+		typ = ptr.Elem()
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	return named.Obj().Pkg().Path() == "sync" &&
+		isBareSyncTypeName(named.Obj().Name()) &&
+		isSourceMappedPackagePath(named.Obj().Pkg().Path())
+}
+
 func isGoSyncOnceNamedType(typ types.Type) bool {
 	named, ok := types.Unalias(typ).(*types.Named)
 	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {

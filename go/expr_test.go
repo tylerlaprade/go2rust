@@ -5354,6 +5354,48 @@ func initFakeLines() {
 	}
 }
 
+func TestSourceMappedSyncWaitGroupFieldAddWrapsSourceArgument(t *testing.T) {
+	rust := transpileTypedConcurrentPackageWithMapping(t, "golang.org/x/sync/errgroup", `package errgroup
+
+import "sync"
+
+type Group struct {
+	wg sync.WaitGroup
+}
+
+func (g *Group) Go() {
+	go func() {}()
+	g.wg.Add(1)
+}
+`, map[string]string{"sync": "sync"})
+
+	if strings.Contains(rust, ".wg.add(1)") {
+		t.Fatalf("source-mapped sync.WaitGroup field should not pass a raw helper argument:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".wg.add(Arc::new(Mutex::new(Some(1))))") {
+		t.Fatalf("source-mapped sync.WaitGroup field should wrap Add arguments for source sync::WaitGroup:\n%s", rust)
+	}
+}
+
+func TestSourceMappedLocalSyncWaitGroupAddUsesHelperArgument(t *testing.T) {
+	rust := transpileTypedConcurrentPackageWithMapping(t, "golang.org/x/tools/internal/gcimporter", `package gcimporter
+
+import "sync"
+
+func wait() {
+	var wg sync.WaitGroup
+	wg.Add(1)
+}
+`, map[string]string{"sync": "sync"})
+
+	if strings.Contains(rust, "wg.add(Arc::new(Mutex::new(Some(1))))") {
+		t.Fatalf("local sync.WaitGroup variables lower to the helper and should not wrap Add arguments:\n%s", rust)
+	}
+	if !strings.Contains(rust, "wg.add(1)") {
+		t.Fatalf("local sync.WaitGroup variables should pass raw helper arguments:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoMethodFunctionParameterPassesHandle(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	defer func() { currentTypeInfo = prevTypeInfo }()
