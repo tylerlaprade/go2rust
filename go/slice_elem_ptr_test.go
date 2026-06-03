@@ -628,7 +628,7 @@ func setName(n *Name, b []byte) {
 	}
 }
 
-func TestSliceElemPointerReturnFailsLoudlyInsteadOfInvalidHelper(t *testing.T) {
+func TestSliceElemPointerDirectReturnUsesSliceElemPtr(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
 type entry struct {
@@ -640,11 +640,46 @@ func pick(bucket []entry) *entry {
 }
 `)
 
-	if strings.Contains(rust, "return GoSliceElemPtr::new") {
-		t.Fatalf("slice element pointer return should not emit an incompatible helper value:\n%s", rust)
+	if !strings.Contains(rust, "fn pick(bucket: Rc<RefCell<Option<Vec<entry>>>>) -> Option<GoSliceElemPtr<entry>>") &&
+		!strings.Contains(rust, "fn pick(bucket: Arc<Mutex<Option<Vec<entry>>>>) -> Option<GoSliceElemPtr<entry>>") {
+		t.Fatalf("direct slice element pointer return should expose the slice element pointer representation:\n%s", rust)
 	}
-	if !strings.Contains(rust, `unimplemented!("slice element pointer return requires pointer representation support")`) {
-		t.Fatalf("direct slice element pointer return should fail loudly until generic pointer fields can hold it:\n%s", rust)
+	if strings.Contains(rust, `unimplemented!("slice element pointer return requires pointer representation support")`) {
+		t.Fatalf("direct slice element pointer return should not hit the loud fallback:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some(GoSliceElemPtr::new(bucket.clone(),") {
+		t.Fatalf("direct slice element pointer return should preserve slice/index identity:\n%s", rust)
+	}
+}
+
+func TestPackageGlobalSliceElemPointerDirectReturnUsesSliceElemPtr(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type Info struct {
+	Name string
+}
+
+var All = []Info{{Name: "panicnil"}}
+
+func Lookup(name string) *Info {
+	for i := 0; i < len(All); i++ {
+		if name == All[i].Name {
+			return &All[i]
+		}
+	}
+	return nil
+}
+`)
+
+	if !strings.Contains(rust, "fn lookup(name: Rc<RefCell<Option<String>>>) -> Option<GoSliceElemPtr<Info>>") &&
+		!strings.Contains(rust, "fn lookup(name: Arc<Mutex<Option<String>>>) -> Option<GoSliceElemPtr<Info>>") {
+		t.Fatalf("package-global slice element pointer return should expose the slice element pointer representation:\n%s", rust)
+	}
+	if strings.Contains(rust, `unimplemented!("slice element pointer return requires pointer representation support")`) {
+		t.Fatalf("package-global slice element pointer return should not hit the loud fallback:\n%s", rust)
+	}
+	if !strings.Contains(rust, "return Some(GoSliceElemPtr::new(") {
+		t.Fatalf("package-global slice element pointer return should preserve slice/index identity:\n%s", rust)
 	}
 }
 

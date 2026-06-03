@@ -426,7 +426,6 @@ func sliceElemPtrReturnInfoForDecl(fn *ast.FuncDecl) (sliceElemPtrReturnInfo, bo
 
 	var elemRustType string
 	sawSliceElemReturn := false
-	sawSliceElemLocalReturn := false
 	valid := true
 	ast.Inspect(fn.Body, func(node ast.Node) bool {
 		if !valid {
@@ -474,11 +473,10 @@ func sliceElemPtrReturnInfoForDecl(fn *ast.FuncDecl) (sliceElemPtrReturnInfo, bo
 				return false
 			}
 			sawSliceElemReturn = true
-			sawSliceElemLocalReturn = true
 		}
 		return true
 	})
-	if !valid || !sawSliceElemReturn || !sawSliceElemLocalReturn || elemRustType == "" {
+	if !valid || !sawSliceElemReturn || elemRustType == "" {
 		return sliceElemPtrReturnInfo{}, false
 	}
 	return sliceElemPtrReturnInfo{elemRustType: elemRustType}, true
