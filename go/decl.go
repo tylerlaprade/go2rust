@@ -3744,6 +3744,12 @@ func writeRuntimeLinkedFunctionBody(out *strings.Builder, fn *ast.FuncDecl, inde
 			writeInternalGodebugWriteBody(out, fn, indent)
 			return true
 		}
+	case "crypto/internal/boring/sig":
+		switch fn.Name.Name {
+		case "BoringCrypto", "FIPSOnly", "StandardCrypto":
+			// The Go stdlib implements these signature markers in assembly as no-ops.
+			return true
+		}
 	case "strings":
 		switch fn.Name.Name {
 		case "copyCheck":

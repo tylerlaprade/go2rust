@@ -45,6 +45,7 @@ func TestSelfTranspileDefaultSourceStdlibPackages(t *testing.T) {
 		"hash/maphash",
 		"crypto/rand",
 		"crypto/internal/boring",
+		"crypto/internal/boring/sig",
 		"crypto/internal/fips140",
 		"crypto/internal/fips140deps/godebug",
 		"crypto/internal/sysrand",

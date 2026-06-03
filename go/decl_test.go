@@ -34,6 +34,37 @@ func TestTranspileFunctionWithoutBodyDoesNotPanic(t *testing.T) {
 	}
 }
 
+func TestCryptoBoringSigBodylessFunctionsEmitNoOps(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "sig.go", `package sig
+
+func BoringCrypto()
+func FIPSOnly()
+func StandardCrypto()
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(sig.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfoWithImporter("crypto/internal/boring/sig", []*ast.File{file}, fset, importer.Default())
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter(crypto/internal/boring/sig) error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"crypto/internal/boring/sig": "crypto_internal_boring_sig"})
+	if strings.Contains(rust, `Go function declaration has no body`) || strings.Contains(rust, "unimplemented!") {
+		t.Fatalf("boring sig assembly no-op declarations should not use bodyless fallback:\n%s", rust)
+	}
+	for _, want := range []string{
+		"pub fn boring_crypto() {\n}\n",
+		"pub fn f_i_p_s_only() {\n}\n",
+		"pub fn standard_crypto() {\n}\n",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("missing no-op %q in:\n%s", want, rust)
+		}
+	}
+}
+
 func TestTranspileSyscallRuntimeLinkedFunctionsUseHostEnv(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	currentTypeInfo = &TypeInfo{pkg: types.NewPackage("syscall", "syscall")}
