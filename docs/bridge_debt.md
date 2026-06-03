@@ -165,6 +165,33 @@ in the first place.
 - Removal trigger: transpiler can lower `go/types.Basic` definition and methods.
 - Added: 2026-05-27 (backfill)
 
+### types-tuple
+
+- Location: `go/external_type_stubs.go:3452` (`writeTypesTupleStub`)
+- Go symbol: `go/types.Tuple`
+- Transpiler gap: vendored `go/types` source does not yet transpile cleanly, so callers that store a `*types.Tuple` through the `types.Type` interface still hit the bridge.
+- Fixture: `tests/stdlib_interface_ident_argument/main.go`.
+- Removal trigger: transpiler can lower `go/types.Tuple` from source and route `types.NewTuple` through that generated package.
+- Added: 2026-06-03
+
+### types-type-name-param
+
+- Location: `go/external_type_stubs.go:3520` (`writeTypesTypeNameStub`, `writeTypesTypeParamStub`)
+- Go symbol: `go/types.TypeName` and `go/types.TypeParam`
+- Transpiler gap: vendored `go/types` source does not yet transpile cleanly, so type-parameter values stored through the `types.Type` interface still hit the bridge.
+- Fixture: `tests/stdlib_interface_map_value_assignment/main.go`.
+- Removal trigger: transpiler can lower `go/types.TypeName`, `go/types.TypeParam`, and their object/type relationships from source.
+- Added: 2026-06-03
+
+### types-tuple-name-param-constructors
+
+- Location: `go/external_type_stubs.go:7501` (`writeTypesNewTupleFunction`, `writeTypesNewTypeNameFunction`, `writeTypesNewTypeParamFunction`)
+- Go symbol: `go/types.NewTuple`, `go/types.NewTypeName`, and `go/types.NewTypeParam`
+- Transpiler gap: same vendored-`go/types` source gap as `types-tuple` and `types-type-name-param`.
+- Fixture: `tests/stdlib_interface_ident_argument/main.go`; `tests/stdlib_interface_map_value_assignment/main.go`.
+- Removal trigger: retired together with `types-tuple` and `types-type-name-param`.
+- Added: 2026-06-03
+
 ### types-info-helpers
 
 - Location: `go/external_type_stubs.go:3150`

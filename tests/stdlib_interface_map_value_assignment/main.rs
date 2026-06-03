@@ -172,6 +172,23 @@ impl token_Token {
 }
 
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct types_Package;
+
+impl std::fmt::Display for types_Package {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<types_Package>")
+    }
+}
+
+
+impl types_Package {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+}
+
+
 #[derive(Clone)]
 pub struct types_Type {
     pub __go_id: usize,
@@ -226,32 +243,135 @@ impl Ord for types_Type {
 }
 
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct types_TypeName;
+pub trait GoTypesTokenPosArg {
+    fn __go_into_token_pos_arg(self) -> token_Pos;
+}
 
-impl std::fmt::Display for types_TypeName {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<types_TypeName>")
+impl GoTypesTokenPosArg for token_Pos {
+    fn __go_into_token_pos_arg(self) -> token_Pos { self }
+}
+
+impl GoTypesTokenPosArg for i32 {
+    fn __go_into_token_pos_arg(self) -> token_Pos { token_Pos(self) }
+}
+
+impl GoTypesTokenPosArg for Arc<Mutex<Option<token_Pos>>> {
+    fn __go_into_token_pos_arg(self) -> token_Pos {
+        self.lock().unwrap().as_ref().copied().unwrap_or_default()
     }
 }
 
+pub trait GoTypesPackageArg {
+    fn __go_into_types_package_arg(self) -> Arc<Mutex<Option<types_Package>>>;
+}
+
+impl GoTypesPackageArg for () {
+    fn __go_into_types_package_arg(self) -> Arc<Mutex<Option<types_Package>>> {
+        Arc::new(Mutex::new(None::<types_Package>))
+    }
+}
+
+impl GoTypesPackageArg for Arc<Mutex<Option<types_Package>>> {
+    fn __go_into_types_package_arg(self) -> Arc<Mutex<Option<types_Package>>> { self }
+}
+
+pub trait GoTypesOptionalTypeArg {
+    fn __go_into_optional_types_type_arg(self) -> Arc<Mutex<Option<types_Type>>>;
+}
+
+impl GoTypesOptionalTypeArg for () {
+    fn __go_into_optional_types_type_arg(self) -> Arc<Mutex<Option<types_Type>>> {
+        Arc::new(Mutex::new(None::<types_Type>))
+    }
+}
+
+impl GoTypesOptionalTypeArg for Arc<Mutex<Option<types_Type>>> {
+    fn __go_into_optional_types_type_arg(self) -> Arc<Mutex<Option<types_Type>>> { self }
+}
+
+pub trait GoTypesStringArg {
+    fn __go_into_string_arg(self) -> String;
+}
+
+impl GoTypesStringArg for String {
+    fn __go_into_string_arg(self) -> String { self }
+}
+
+impl<'a> GoTypesStringArg for &'a str {
+    fn __go_into_string_arg(self) -> String { self.to_string() }
+}
+
+impl<'a> GoTypesStringArg for &'a String {
+    fn __go_into_string_arg(self) -> String { self.clone() }
+}
+
+impl GoTypesStringArg for Arc<Mutex<Option<String>>> {
+    fn __go_into_string_arg(self) -> String {
+        self.lock().unwrap().as_ref().cloned().unwrap_or_default()
+    }
+}
+
+pub trait GoTypesTypeNameArg {
+    fn __go_into_type_name_arg(self) -> Arc<Mutex<Option<types_TypeName>>>;
+}
+
+impl GoTypesTypeNameArg for () {
+    fn __go_into_type_name_arg(self) -> Arc<Mutex<Option<types_TypeName>>> {
+        Arc::new(Mutex::new(None::<types_TypeName>))
+    }
+}
+
+impl GoTypesTypeNameArg for Arc<Mutex<Option<types_TypeName>>> {
+    fn __go_into_type_name_arg(self) -> Arc<Mutex<Option<types_TypeName>>> { self }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct types_TypeName {
+    pub __go_pos: token_Pos,
+    pub __go_pkg: Arc<Mutex<Option<types_Package>>>,
+    pub __go_name: String,
+    pub __go_type: Arc<Mutex<Option<types_Type>>>,
+}
+
+impl std::fmt::Display for types_TypeName {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.__go_string())
+    }
+}
 
 impl types_TypeName {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
     }
-}
-
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct types_TypeParam;
-
-impl std::fmt::Display for types_TypeParam {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<types_TypeParam>")
+    fn __go_string(&self) -> String {
+        let type_guard = self.__go_type.lock().unwrap();
+        if let Some(typ) = type_guard.as_ref() {
+            if typ.downcast_ref::<types_TypeParam>().is_some() {
+                return format!("type parameter {} <nil>", self.__go_name);
+            }
+        }
+        format!("type {}", self.__go_name)
     }
 }
 
+
+#[derive(Debug, Clone, Default)]
+pub struct types_TypeParam {
+    pub __go_obj: Arc<Mutex<Option<types_TypeName>>>,
+    pub __go_constraint: Arc<Mutex<Option<types_Type>>>,
+    pub __go_index: i32,
+}
+
+impl std::fmt::Display for types_TypeParam {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let obj_guard = self.__go_obj.lock().unwrap();
+        if let Some(obj) = obj_guard.as_ref() {
+            write!(f, "{}", obj.__go_name)
+        } else {
+            write!(f, "<types_TypeParam>")
+        }
+    }
+}
 
 impl types_TypeParam {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
@@ -358,24 +478,35 @@ pub mod token {
 
 pub mod types {
     use super::*;
-    pub fn new_type_name<T0, T1, T2, T3>(_arg0: T0, _arg1: T1, _arg2: T2, _arg3: T3) -> Arc<Mutex<Option<types_TypeName>>> {
-        panic!("new_type_name bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    pub fn new_type_name<T0: GoTypesTokenPosArg, T1: GoTypesPackageArg, T2: GoTypesStringArg, T3: GoTypesOptionalTypeArg>(_arg0: T0, _arg1: T1, _arg2: T2, _arg3: T3) -> Arc<Mutex<Option<types_TypeName>>> {
+        let value = types_TypeName { __go_pos: _arg0.__go_into_token_pos_arg(), __go_pkg: _arg1.__go_into_types_package_arg(), __go_name: _arg2.__go_into_string_arg(), __go_type: _arg3.__go_into_optional_types_type_arg() };
+        Arc::new(Mutex::new(Some::<types_TypeName>(value)))
     }
 
-    pub fn new_type_param<T0, T1>(_arg0: T0, _arg1: T1) -> Arc<Mutex<Option<types_TypeParam>>> {
-        panic!("new_type_param bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    pub fn new_type_param<T0: GoTypesTypeNameArg, T1: GoTypesOptionalTypeArg>(_arg0: T0, _arg1: T1) -> Arc<Mutex<Option<types_TypeParam>>> {
+        let obj = _arg0.__go_into_type_name_arg();
+        let param = types_TypeParam { __go_obj: obj.clone(), __go_constraint: _arg1.__go_into_optional_types_type_arg(), __go_index: -1 };
+        {
+            let mut obj_guard = obj.lock().unwrap();
+            if let Some(obj_value) = obj_guard.as_mut() {
+                obj_value.__go_type = Arc::new(Mutex::new(Some::<types_Type>(types_Type::__go_from(param.clone()))));
+            } else {
+                panic!("types.NewTypeParam bridge: nil TypeName object")
+            }
+        }
+        Arc::new(Mutex::new(Some::<types_TypeParam>(param)))
     }
 }
 
 
 pub fn remember(values: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<types_Type>>>>>>>) {
-    let mut tn = types::new_type_name({ let __go_arg = token::NO_POS; __go_arg }, (), "T".to_string(), ());
+    let mut tn = types::new_type_name(token::NO_POS, (), "T".to_string(), ());
     let mut tp = types::new_type_param(tn.clone(), ());
     { let __map_key = "T".to_string(); let __map_value = { let __arg = tp.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<types_Type> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) }; (*values.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
 }
 
 pub fn literal() -> Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<types_Type>>>>>>> {
-    let mut tn = types::new_type_name({ let __go_arg = token::NO_POS; __go_arg }, (), "U".to_string(), ());
+    let mut tn = types::new_type_name(token::NO_POS, (), "U".to_string(), ());
     let mut tp = types::new_type_param(tn.clone(), ());
     return Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<types_Type>>>>::from([("U".to_string(), { let __arg = tp.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<types_Type> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) })]))));
 }

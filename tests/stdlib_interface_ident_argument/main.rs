@@ -7,15 +7,72 @@ fn __go_next_external_interface_id() -> usize {
 
 
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct types_Tuple;
+pub trait GoTypesTupleArgs {
+    fn __go_tuple_len(self) -> usize;
+}
+
+impl GoTypesTupleArgs for () {
+    fn __go_tuple_len(self) -> usize { 0 }
+}
+
+impl<T0> GoTypesTupleArgs for (T0, ) {
+    fn __go_tuple_len(self) -> usize { 1 }
+}
+
+impl<T0, T1> GoTypesTupleArgs for (T0, T1, ) {
+    fn __go_tuple_len(self) -> usize { 2 }
+}
+
+impl<T0, T1, T2> GoTypesTupleArgs for (T0, T1, T2, ) {
+    fn __go_tuple_len(self) -> usize { 3 }
+}
+
+impl<T0, T1, T2, T3> GoTypesTupleArgs for (T0, T1, T2, T3, ) {
+    fn __go_tuple_len(self) -> usize { 4 }
+}
+
+impl<T0, T1, T2, T3, T4> GoTypesTupleArgs for (T0, T1, T2, T3, T4, ) {
+    fn __go_tuple_len(self) -> usize { 5 }
+}
+
+impl<T0, T1, T2, T3, T4, T5> GoTypesTupleArgs for (T0, T1, T2, T3, T4, T5, ) {
+    fn __go_tuple_len(self) -> usize { 6 }
+}
+
+impl<T0, T1, T2, T3, T4, T5, T6> GoTypesTupleArgs for (T0, T1, T2, T3, T4, T5, T6, ) {
+    fn __go_tuple_len(self) -> usize { 7 }
+}
+
+impl<T0, T1, T2, T3, T4, T5, T6, T7> GoTypesTupleArgs for (T0, T1, T2, T3, T4, T5, T6, T7, ) {
+    fn __go_tuple_len(self) -> usize { 8 }
+}
+
+impl<T0, T1, T2, T3, T4, T5, T6, T7, T8> GoTypesTupleArgs for (T0, T1, T2, T3, T4, T5, T6, T7, T8, ) {
+    fn __go_tuple_len(self) -> usize { 9 }
+}
+
+impl<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> GoTypesTupleArgs for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, ) {
+    fn __go_tuple_len(self) -> usize { 10 }
+}
+
+impl<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> GoTypesTupleArgs for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, ) {
+    fn __go_tuple_len(self) -> usize { 11 }
+}
+
+impl<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> GoTypesTupleArgs for (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, ) {
+    fn __go_tuple_len(self) -> usize { 12 }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct types_Tuple {
+    pub __go_len: usize,
+}
 
 impl std::fmt::Display for types_Tuple {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "<types_Tuple>")
     }
 }
-
 
 impl types_Tuple {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
@@ -87,8 +144,8 @@ impl From<types_Tuple> for types_Type {
 
 pub mod types {
     use super::*;
-    pub fn new_tuple<T0>(_arg0: T0) -> Arc<Mutex<Option<types_Tuple>>> {
-        panic!("new_tuple bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    pub fn new_tuple<T0: GoTypesTupleArgs>(_arg0: T0) -> Arc<Mutex<Option<types_Tuple>>> {
+        Arc::new(Mutex::new(Some::<types_Tuple>(types_Tuple { __go_len: _arg0.__go_tuple_len() })))
     }
 }
 
