@@ -381,6 +381,32 @@ impl os_File {
     pub fn read<T0>(&self, _arg0: T0) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
         (Rc::new(RefCell::new(Some::<i32>(0))), Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
     }
+
+    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+        let offset = if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<i64>() {
+            *v
+        } else if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<i64>>>>() {
+            v.borrow().as_ref().copied().unwrap_or_default()
+        } else {
+            0
+        };
+        let data = self.__go_read_all();
+        let mut n = 0i32;
+        if offset >= 0 {
+            let start = offset as usize;
+            if start < data.len() {
+                if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
+                    let mut guard = v.borrow_mut();
+                    if let Some(target) = guard.as_mut() {
+                        let count = std::cmp::min(target.len(), data.len() - start);
+                        target[..count].copy_from_slice(&data[start..start + count]);
+                        n = count as i32;
+                    }
+                }
+            }
+        }
+        (Rc::new(RefCell::new(Some::<i32>(n))), Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
+    }
 }
 
 
@@ -393,7 +419,54 @@ impl From<os_File> for io_Reader {
 
 pub mod os {
     use super::*;
-    pub fn open<T0>(_arg0: T0) -> (Rc<RefCell<Option<os_File>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-        panic!("open bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    use std::path::Path;
+
+    pub trait GoStringArg {
+        fn into_go_string(self) -> String;
+    }
+
+    impl GoStringArg for String {
+        fn into_go_string(self) -> String {
+            self
+        }
+    }
+
+    impl<'a> GoStringArg for &'a str {
+        fn into_go_string(self) -> String {
+            self.to_string()
+        }
+    }
+
+    impl<'a> GoStringArg for &'a String {
+        fn into_go_string(self) -> String {
+            self.clone()
+        }
+    }
+
+    impl GoStringArg for Rc<RefCell<Option<String>>> {
+        fn into_go_string(self) -> String {
+            self.borrow().as_ref().cloned().unwrap_or_default()
+        }
+    }
+
+    type GoError = Rc<RefCell<Option<Box<dyn std::error::Error>>>>;
+
+    fn no_error() -> GoError {
+        Rc::new(RefCell::new(None))
+    }
+
+    fn io_error(err: std::io::Error) -> GoError {
+        Rc::new(RefCell::new(Some(Box::new(err))))
+    }
+
+    pub fn open<T0: GoStringArg>(_arg0: T0) -> (Rc<RefCell<Option<os_File>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+        let path = _arg0.into_go_string();
+        match std::fs::read(&path) {
+            Ok(data) => {
+                let file = os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(data)), __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), __go_wait_for_close: false };
+                (Rc::new(RefCell::new(Some::<os_File>(file))), no_error())
+            }
+            Err(err) => (Rc::new(RefCell::new(None::<os_File>)), io_error(err)),
+        }
     }
 }

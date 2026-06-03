@@ -792,6 +792,59 @@ func TestOsLstatStubUsesSymlinkMetadata(t *testing.T) {
 	}
 }
 
+func TestOsOpenStubReadsFileBytes(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"open": {
+				ParamCount: 1,
+				ReturnTypes: []string{
+					wrappedExternalStubType("os_File"),
+					wrappedExternalStubType(externalStubErrorInnerType()),
+				},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.Open should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"std::fs::read(&path)",
+		"os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(data))",
+		"None::<os_File>",
+		"io_error(err)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.Open shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestIoReadCloserCloseDispatchesToOsFile(t *testing.T) {
+	var out strings.Builder
+	writeExternalInterfaceStub(&out, "io_ReadCloser", map[string]externalTypeStubMethod{
+		"close": {
+			ReturnTypes: []string{
+				wrappedExternalStubType(externalStubErrorInnerType()),
+			},
+		},
+	})
+	got := out.String()
+	if strings.Contains(got, "generic stub method body has no implementation") {
+		t.Fatalf("io.ReadCloser Close should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"if let Some(file) = self.downcast_ref::<os_File>()",
+		"return file.close();",
+		"unsupported concrete receiver",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("io.ReadCloser Close shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestIoCopyStubMatchesBareCountReturnSignature(t *testing.T) {
 	var out strings.Builder
 	writeIoCopyStub(&out, externalPackageStubFunction{

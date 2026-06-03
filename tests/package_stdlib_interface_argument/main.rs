@@ -3,14 +3,22 @@ use std::cell::{RefCell};
 use std::error::Error as StdError;
 use std::rc::{Rc};
 
+
+thread_local! {
+    static __GO_OS_ARGS: std::rc::Rc<std::cell::RefCell<Option<Vec<String>>>> =
+        std::rc::Rc::new(std::cell::RefCell::new(Some(std::env::args().collect::<Vec<String>>())));
+}
+
+fn go_os_args() -> std::rc::Rc<std::cell::RefCell<Option<Vec<String>>>> {
+    __GO_OS_ARGS.with(|args| args.clone())
+}
+
 fn main() {
     example_com_package_stdlib_interface_argument_helper::__go_init_all();
 
-    let __go_os_args = Rc::new(RefCell::new(Some(std::env::args().collect::<Vec<String>>())));
-
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    let (mut f, mut err) = os::open((*__go_os_args.clone().borrow().as_ref().unwrap())[(0) as usize].clone());
+    let (mut f, mut err) = os::open((*go_os_args().borrow().as_ref().unwrap())[(0) as usize].clone());
     if (*err.borrow()).is_some() {
         panic!("{}", (*err.borrow().as_ref().unwrap()));
     }

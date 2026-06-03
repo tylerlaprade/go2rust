@@ -1802,6 +1802,11 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 			stubs["os_File"] = true
 		}
 	}
+	if methodsByType["io_ReadCloser"] != nil {
+		if _, ok := methodsByType["io_ReadCloser"]["close"]; ok {
+			stubs["os_File"] = true
+		}
+	}
 	if packageStubs["ast"] != nil {
 		for _, typ := range packageStubs["ast"].Constants {
 			if typ == "ast_ChanDir" {
@@ -2786,37 +2791,37 @@ impl os_File {
         (%s, %s)
     }
 
-	    pub fn read<T0>(&self, _arg0: T0) -> (%s, %s) {
-	        (%s, %s)
-	    }
+    pub fn read<T0>(&self, _arg0: T0) -> (%s, %s) {
+        (%s, %s)
+    }
 
-	    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (%s, %s) {
-	        let offset = if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<i64>() {
-	            *v
-	        } else if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<%s>() {
-	            v%s.as_ref().copied().unwrap_or_default()
-	        } else {
-	            0
-	        };
-	        let data = self.__go_read_all();
-	        let mut n = 0i32;
-	        if offset >= 0 {
-	            let start = offset as usize;
-	            if start < data.len() {
-	                if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
-	                    let mut guard = v%s;
-	                    if let Some(target) = guard.as_mut() {
-	                        let count = std::cmp::min(target.len(), data.len() - start);
-	                        target[..count].copy_from_slice(&data[start..start + count]);
-	                        n = count as i32;
-	                    }
-	                }
-	            }
-	        }
-	        (%s, %s)
-	    }
-	}
-	`,
+    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (%s, %s) {
+        let offset = if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<i64>() {
+            *v
+        } else if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<%s>() {
+            v%s.as_ref().copied().unwrap_or_default()
+        } else {
+            0
+        };
+        let data = self.__go_read_all();
+        let mut n = 0i32;
+        if offset >= 0 {
+            let start = offset as usize;
+            if start < data.len() {
+                if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
+                    let mut guard = v%s;
+                    if let Some(target) = guard.as_mut() {
+                        let count = std::cmp::min(target.len(), data.len() - start);
+                        target[..count].copy_from_slice(&data[start..start + count]);
+                        n = count as i32;
+                    }
+                }
+            }
+        }
+        (%s, %s)
+    }
+}
+`,
 		errorType, noneError,
 		intType, errorType, vecType, vecBorrow, wrappedExternalStubExpr("i32", "n"), noneError,
 		intType, errorType, stringType, stringBorrow, wrappedExternalStubExpr("i32", "n"), noneError,
@@ -3103,6 +3108,8 @@ func writeExternalInterfaceStub(out *strings.Builder, name string, methods map[s
 			writeTypesTypeUnderlyingMethod(out)
 		} else if externalInterfaceCarriesSourcePos(name) && methodName == "pos" {
 			writeExternalInterfacePosMethod(out)
+		} else if name == "io_ReadCloser" && methodName == "close" {
+			writeIoReadCloserCloseMethod(out, methods[methodName])
 		} else {
 			writeExternalTypeStubMethod(out, name, methodName, methods[methodName])
 		}
@@ -3182,6 +3189,19 @@ func externalInterfaceCarriesSourcePos(name string) bool {
 func writeExternalInterfacePosMethod(out *strings.Builder) {
 	out.WriteString("    pub fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {\n")
 	out.WriteString("        Arc::new(Mutex::new(Some(token_Pos(self.__go_pos))))\n")
+	out.WriteString("    }\n")
+}
+
+// Interface dispatch bridge for io.ReadCloser backed by os.File.
+// Unsupported concrete receivers panic loudly instead of synthesizing success.
+func writeIoReadCloserCloseMethod(out *strings.Builder, method externalTypeStubMethod) {
+	out.WriteString("    pub fn close(&self) -> ")
+	writeExternalStubReturnType(out, method.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        if let Some(file) = self.downcast_ref::<os_File>() {\n")
+	out.WriteString("            return file.close();\n")
+	out.WriteString("        }\n")
+	out.WriteString("        panic!(\"io_ReadCloser.close bridge: unsupported concrete receiver; transpile io/os source or add a specific dispatch - see AGENTS.md\")\n")
 	out.WriteString("    }\n")
 }
 
@@ -6385,6 +6405,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeOsLstatFunction(out, pkg.Functions[funcName])
 		} else if funcName == "mkdir_all" {
 			writeOsMkdirAllFunction(out, pkg.Functions[funcName])
+		} else if funcName == "open" {
+			writeOsOpenFunction(out, pkg.Functions[funcName])
 		} else if funcName == "read_file" {
 			writeOsReadFileFunction(out, pkg.Functions[funcName])
 		} else if funcName == "read_dir" {
@@ -6406,12 +6428,13 @@ func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
 	}
 	_, needsStat := pkg.Functions["stat"]
 	_, needsMkdirAll := pkg.Functions["mkdir_all"]
+	_, needsOpen := pkg.Functions["open"]
 	_, needsReadDir := pkg.Functions["read_dir"]
 	_, needsReadFile := pkg.Functions["read_file"]
 	_, needsWriteFile := pkg.Functions["write_file"]
 	_, needsGetwd := pkg.Functions["getwd"]
 	_, needsLstat := pkg.Functions["lstat"]
-	return needsStat || needsMkdirAll || needsReadDir || needsReadFile || needsWriteFile || needsGetwd || needsLstat
+	return needsStat || needsMkdirAll || needsOpen || needsReadDir || needsReadFile || needsWriteFile || needsGetwd || needsLstat
 }
 
 // PERMANENT: not scaffold — OS error types map to Rust std::io::Error, no transpilable Go source.
@@ -6565,6 +6588,26 @@ func writeOsLstatFunction(out *strings.Builder, fn externalPackageStubFunction) 
 	out.WriteString("            }\n")
 	out.WriteString("            Err(err) => (")
 	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo::default()"))
+	out.WriteString(", io_error(err)),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.Open maps to std::fs::read for the read-oriented os.File stub.
+func writeOsOpenFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn open<T0: GoStringArg>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        match std::fs::read(&path) {\n")
+	out.WriteString("            Ok(data) => {\n")
+	out.WriteString("                let file = os_File { __go_data: std::sync::Arc::new(std::sync::Mutex::new(data)), __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), __go_wait_for_close: false };\n")
+	out.WriteString("                (")
+	out.WriteString(wrappedExternalStubExpr("os_File", "file"))
+	out.WriteString(", no_error())\n")
+	out.WriteString("            }\n")
+	out.WriteString("            Err(err) => (")
+	out.WriteString(wrappedExternalStubNoneExpr("os_File"))
 	out.WriteString(", io_error(err)),\n")
 	out.WriteString("        }\n")
 	out.WriteString("    }\n")
