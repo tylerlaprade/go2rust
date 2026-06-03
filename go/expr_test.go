@@ -4242,10 +4242,46 @@ func unsafeValues(p *byte, n int, b []byte, s string) (string, []byte, unsafe.Po
 	if strings.Contains(rust, "unsafe::") {
 		t.Fatalf("unsafe compiler intrinsics should not be emitted as Rust module calls:\n%s", rust)
 	}
-	for _, name := range []string{"unsafe.String", "unsafe.Slice", "unsafe.Add", "unsafe.SliceData", "unsafe.StringData"} {
+	for _, name := range []string{"unsafe.String", "unsafe.Slice", "unsafe.Add", "unsafe.StringData"} {
 		if !strings.Contains(rust, `unimplemented!("`+name+` requires unsafe intrinsic support")`) {
 			t.Fatalf("%s should emit a loud unsupported intrinsic marker:\n%s", name, rust)
 		}
+	}
+	if strings.Contains(rust, `unimplemented!("unsafe.SliceData requires unsafe intrinsic support")`) {
+		t.Fatalf("unsafe.Pointer(unsafe.SliceData(slice)) should lower through the typed slice-data pointer path:\n%s", rust)
+	}
+}
+
+func TestUnsafePointerSliceDataConversionUsesSliceDataPointer(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "unsafe"
+
+func ptr(b []byte) uintptr {
+	if len(b) == 0 {
+		return 0
+	}
+	return uintptr(unsafe.Pointer(unsafe.SliceData(b)))
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := Transpile(file, fset, typeInfo)
+	if strings.Contains(rust, "unsafe.SliceData requires unsafe intrinsic support") {
+		t.Fatalf("unsafe.Pointer(unsafe.SliceData(slice)) should not use unsupported fallback:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__v.as_mut_ptr() as usize") {
+		t.Fatalf("unsafe.Pointer(unsafe.SliceData(slice)) should use the slice data pointer:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut __slice_guard = __slice_holder") {
+		t.Fatalf("unsafe.Pointer(unsafe.SliceData(slice)) should borrow the slice mutably before as_mut_ptr:\n%s", rust)
 	}
 }
 

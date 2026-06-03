@@ -14412,6 +14412,15 @@ func writeUnsafePointerConversion(out *strings.Builder, arg ast.Expr) {
 		WriteWrapperSuffix(out)
 		return
 	}
+	if sliceDataArg, ok := unsafeSliceDataCallArg(arg, typeInfo); ok {
+		if writeUnsafeSliceDataPointer(out, sliceDataArg) {
+			WriteWrapperSuffix(out)
+			return
+		}
+		out.WriteString("/* ERROR: Type information required for unsafe.SliceData */ unimplemented!(\"type info required for unsafe.SliceData\")")
+		WriteWrapperSuffix(out)
+		return
+	}
 	if writeUnsafePointerAddressOfBareLocal(out, arg) {
 		WriteWrapperSuffix(out)
 		return
@@ -14479,6 +14488,67 @@ func addressOfIndexExpr(expr ast.Expr) (*ast.IndexExpr, bool) {
 	}
 	indexExpr, ok := unwrapParens(unary.X).(*ast.IndexExpr)
 	return indexExpr, ok
+}
+
+func unsafeSliceDataCallArg(expr ast.Expr, typeInfo *TypeInfo) (ast.Expr, bool) {
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil, false
+	}
+	call, ok := unwrapParens(expr).(*ast.CallExpr)
+	if !ok || len(call.Args) != 1 {
+		return nil, false
+	}
+	sel, ok := unwrapParens(call.Fun).(*ast.SelectorExpr)
+	if !ok || sel.Sel == nil {
+		return nil, false
+	}
+	pkgIdent, ok := unwrapParens(sel.X).(*ast.Ident)
+	if !ok {
+		return nil, false
+	}
+	pkgName, ok := typeInfo.info.Uses[pkgIdent].(*types.PkgName)
+	if !ok || pkgName.Imported() == nil || pkgName.Imported().Path() != "unsafe" {
+		return nil, false
+	}
+	switch obj := typeInfo.info.Uses[sel.Sel].(type) {
+	case *types.Builtin:
+		if obj.Name() != "SliceData" {
+			return nil, false
+		}
+	case *types.Func:
+		if obj.Pkg() == nil || obj.Pkg().Path() != "unsafe" || obj.Name() != "SliceData" {
+			return nil, false
+		}
+	default:
+		return nil, false
+	}
+	return call.Args[0], true
+}
+
+func writeUnsafeSliceDataPointer(out *strings.Builder, sliceExpr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(sliceExpr)
+	if typ == nil {
+		return false
+	}
+	if _, ok := types.Unalias(typ).Underlying().(*types.Slice); !ok {
+		return false
+	}
+
+	out.WriteString("{ let __slice_holder = ")
+	if _, _, ok := namedSliceTypeForExpr(sliceExpr); ok {
+		writeNamedSliceInnerHandleClone(out, sliceExpr)
+	} else {
+		TranspileExpressionContext(out, sliceExpr, LValue)
+		out.WriteString(".clone()")
+	}
+	out.WriteString("; let mut __slice_guard = __slice_holder")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; match __slice_guard.as_mut() { Some(__v) => __v.as_mut_ptr() as usize, None => 0usize } }")
+	return true
 }
 
 func writeUnsafePointerIndexedElementAddress(out *strings.Builder, indexExpr *ast.IndexExpr) bool {
