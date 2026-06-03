@@ -3356,6 +3356,20 @@ func writeCurrentReceiverLocalAssignment(out *strings.Builder, lhs ast.Expr, rhs
 	if !ok || !isCurrentReceiverIdent(ident) || currentReceiverRustAlias == "" {
 		return false
 	}
+	if currentReceiverRustAliasIsPointerHandle {
+		out.WriteString("{ let new_val = ")
+		if rhsIdent, ok := rhs.(*ast.Ident); ok && rhsIdent.Name == "nil" {
+			WriteWrappedNone(out)
+		} else if assignmentRHSReturnsWrappedValue(rhs) {
+			TranspileExpression(out, rhs)
+		} else if !writeOwnedExpressionValue(out, rhs) {
+			TranspileExpression(out, rhs)
+		}
+		out.WriteString("; ")
+		out.WriteString(currentReceiverRustAlias)
+		out.WriteString(" = new_val; }")
+		return true
+	}
 	out.WriteString("{ let new_val = ")
 	if writeCurrentReceiverNamedTypeAssignmentValue(out, rhs) {
 		out.WriteString("; ")
@@ -4879,6 +4893,9 @@ func writePointerReturnValue(out *strings.Builder, result ast.Expr, expected ast
 	if !isPointerReturnExpression(result, expected) {
 		return false
 	}
+	if writeCurrentReceiverPointerHandleReturnValue(out, result, expected) {
+		return true
+	}
 	if writeSliceElemPtrReturnValue(out, result) {
 		return true
 	}
@@ -4896,6 +4913,19 @@ func writePointerReturnValue(out *strings.Builder, result ast.Expr, expected ast
 	default:
 		TranspileExpression(out, result)
 	}
+	return true
+}
+
+func writeCurrentReceiverPointerHandleReturnValue(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
+	ident, ok := result.(*ast.Ident)
+	if !ok || !currentReceiverRustAliasIsPointerHandle || !isCurrentReceiverIdent(ident) {
+		return false
+	}
+	if !isPointerReturnExpression(result, expected) {
+		return false
+	}
+	out.WriteString(currentReceiverRustName())
+	out.WriteString(".clone()")
 	return true
 }
 
@@ -9111,6 +9141,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							continue
 						}
 						if isCurrentReceiverIdent(ident) {
+							if writeCurrentReceiverPointerHandleReturnValue(out, ident, returnResultTypeExpr(fnType, i)) {
+								continue
+							}
 							if writeStdlibInterfaceCallArgumentConversion(out, ident, expectedTypeFromParamExpr(returnResultTypeExpr(fnType, i))) {
 								continue
 							}

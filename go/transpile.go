@@ -38,8 +38,13 @@ var currentReceiverObject types.Object
 var currentReceiverType string
 
 // currentReceiverRustAlias tracks a mutable Rust local copy used when a Go
-// value receiver is reassigned inside its method body.
+// receiver is reassigned inside its method body.
 var currentReceiverRustAlias string
+
+// currentReceiverRustAliasIsPointerHandle records the narrow case where the
+// reassigned receiver must remain nil-able because the Go method compares it
+// against nil.
+var currentReceiverRustAliasIsPointerHandle bool
 
 // currentTypeMethods tracks the current impl block's method set for receiver self-call analysis
 var currentTypeMethods = []*ast.FuncDecl{}

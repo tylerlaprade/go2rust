@@ -88,6 +88,7 @@ type FileState struct {
 	CurrentReceiver              string
 	CurrentReceiverType          string
 	CurrentReceiverRustAlias     string
+	CurrentReceiverAliasIsHandle bool
 	CurrentTypeMethods           []*ast.FuncDecl
 	CurrentFunctionHasDefer      bool
 	CurrentCaptureRenames        map[string]string
@@ -538,6 +539,7 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 		ctx.File.CurrentReceiver = currentReceiver
 		ctx.File.CurrentReceiverType = currentReceiverType
 		ctx.File.CurrentReceiverRustAlias = currentReceiverRustAlias
+		ctx.File.CurrentReceiverAliasIsHandle = currentReceiverRustAliasIsPointerHandle
 		ctx.File.CurrentTypeMethods = currentTypeMethods
 		ctx.File.CurrentFunctionHasDefer = currentFunctionHasDefer
 		ctx.File.CurrentCaptureRenames = currentCaptureRenames
@@ -605,6 +607,7 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 		currentReceiver = ctx.File.CurrentReceiver
 		currentReceiverType = ctx.File.CurrentReceiverType
 		currentReceiverRustAlias = ctx.File.CurrentReceiverRustAlias
+		currentReceiverRustAliasIsPointerHandle = ctx.File.CurrentReceiverAliasIsHandle
 		currentTypeMethods = ctx.File.CurrentTypeMethods
 		if currentTypeMethods == nil {
 			currentTypeMethods = []*ast.FuncDecl{}

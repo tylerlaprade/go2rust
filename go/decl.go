@@ -6976,6 +6976,51 @@ func methodReassignsReceiver(fn *ast.FuncDecl) bool {
 	return found
 }
 
+func methodReceiverComparedToNil(fn *ast.FuncDecl) bool {
+	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 || fn.Body == nil {
+		return false
+	}
+	receiverName := receiverNameForMethod(fn)
+	if receiverName == "" {
+		return false
+	}
+	found := false
+	ast.Inspect(fn.Body, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		if _, ok := n.(*ast.FuncLit); ok {
+			return false
+		}
+		binary, ok := n.(*ast.BinaryExpr)
+		if !ok || (binary.Op != token.EQL && binary.Op != token.NEQ) {
+			return true
+		}
+		left, leftIsIdent := unwrapParens(binary.X).(*ast.Ident)
+		right, rightIsIdent := unwrapParens(binary.Y).(*ast.Ident)
+		if leftIsIdent && left.Name == receiverName && rightIsIdent && right.Name == "nil" {
+			found = true
+			return false
+		}
+		if rightIsIdent && right.Name == receiverName && leftIsIdent && left.Name == "nil" {
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
+}
+
+func methodNeedsPointerReceiverHandleAlias(fn *ast.FuncDecl) bool {
+	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 {
+		return false
+	}
+	if _, isPointer := fn.Recv.List[0].Type.(*ast.StarExpr); !isPointer {
+		return false
+	}
+	return methodReassignsReceiver(fn) && methodReceiverComparedToNil(fn)
+}
+
 func methodReassignsValueReceiver(fn *ast.FuncDecl) bool {
 	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 {
 		return false
@@ -7503,12 +7548,16 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		currentReceiverType = getReceiverType(recv.Type)
 	}
 	prevCurrentReceiverRustAlias := currentReceiverRustAlias
+	prevCurrentReceiverRustAliasIsPointerHandle := currentReceiverRustAliasIsPointerHandle
 	currentReceiverRustAlias = ""
+	currentReceiverRustAliasIsPointerHandle = false
 	if methodReassignsReceiver(fn) {
 		currentReceiverRustAlias = "__self"
+		currentReceiverRustAliasIsPointerHandle = methodNeedsPointerReceiverHandleAlias(fn)
 	}
 	defer func() {
 		currentReceiverRustAlias = prevCurrentReceiverRustAlias
+		currentReceiverRustAliasIsPointerHandle = prevCurrentReceiverRustAliasIsPointerHandle
 	}()
 
 	// Output doc comments if present (with indentation for methods)
@@ -7663,7 +7712,15 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 	if currentReceiverRustAlias != "" {
 		out.WriteString("        let mut ")
 		out.WriteString(currentReceiverRustAlias)
-		out.WriteString(" = self.clone();\n")
+		out.WriteString(" = ")
+		if currentReceiverRustAliasIsPointerHandle {
+			WriteWrapperOptionPrefix(out)
+			out.WriteString("Some(self.clone())")
+			WriteWrapperOptionSuffix(out)
+		} else {
+			out.WriteString("self.clone()")
+		}
+		out.WriteString(";\n")
 	}
 
 	var prevStmt ast.Stmt

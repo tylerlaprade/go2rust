@@ -1287,12 +1287,16 @@ func writeCurrentReceiverPointerMethodCallWithArgTemps(out *strings.Builder, sel
 		writeRegularMethodCallArgument(out, sel, call, arg, i)
 		out.WriteString("; ")
 	}
+	callReceiverName := receiverName
 	if useReceiverTemp {
-		out.WriteString("__recv")
-	} else {
-		out.WriteString(receiverName)
+		callReceiverName = "__recv"
 	}
-	out.WriteString(".")
+	if currentReceiverRustAliasIsPointerHandle {
+		writeCurrentReceiverPointerHandleMethodReceiver(out, callReceiverName, methodCallNeedsMutableReceiver(sel))
+	} else {
+		out.WriteString(callReceiverName)
+		out.WriteString(".")
+	}
 	out.WriteString(rustMethodSelectorName(sel))
 	out.WriteString("(")
 	positionalEnd := len(call.Args)
@@ -1323,6 +1327,17 @@ func writeCurrentReceiverPointerMethodCallWithArgTemps(out *strings.Builder, sel
 	}
 	out.WriteString(") }")
 	return true
+}
+
+func writeCurrentReceiverPointerHandleMethodReceiver(out *strings.Builder, receiverName string, needsMut bool) {
+	out.WriteString("(*")
+	out.WriteString(receiverName)
+	WriteBorrowMethod(out, needsMut)
+	if needsMut {
+		out.WriteString(".as_mut().unwrap()).")
+	} else {
+		out.WriteString(".as_ref().unwrap()).")
+	}
 }
 
 func writeBareMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr, arg ast.Expr, index int) {
@@ -5457,9 +5472,17 @@ func writeCurrentReceiverPointerComparison(out *strings.Builder, expr *ast.Binar
 		writePointerHandleExpression(out, otherExpr)
 		out.WriteString("; let __peer_guard = __peer")
 		WriteBorrowMethod(out, false)
-		out.WriteString("; let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = ")
-		out.WriteString(currentReceiverRustName())
-		out.WriteString(" as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); ")
+		out.WriteString("; let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); ")
+		if currentReceiverRustAliasIsPointerHandle {
+			out.WriteString("let __self_guard = ")
+			out.WriteString(currentReceiverRustName())
+			WriteBorrowMethod(out, false)
+			out.WriteString("; let __self_ptr = __self_guard.as_ref().map(|__v| __v as *const _ as usize); let __eq = __peer_ptr == __self_ptr; ")
+		} else {
+			out.WriteString("let __self_ptr = ")
+			out.WriteString(currentReceiverRustName())
+			out.WriteString(" as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); ")
+		}
 		if expr.Op == token.NEQ {
 			out.WriteString("!")
 		}
@@ -5468,6 +5491,17 @@ func writeCurrentReceiverPointerComparison(out *strings.Builder, expr *ast.Binar
 	}
 	if typeInfo := GetTypeInfo(); typeInfo == nil || !typeInfo.IsPointer(receiverExpr) {
 		return false
+	}
+	if currentReceiverRustAliasIsPointerHandle {
+		out.WriteString("{ let __self_guard = ")
+		out.WriteString(currentReceiverRustName())
+		WriteBorrowMethod(out, false)
+		if expr.Op == token.EQL {
+			out.WriteString("; __self_guard.is_none() }")
+		} else {
+			out.WriteString("; __self_guard.is_some() }")
+		}
+		return true
 	}
 	if expr.Op == token.EQL {
 		out.WriteString("false")
@@ -5480,6 +5514,11 @@ func writeCurrentReceiverPointerComparison(out *strings.Builder, expr *ast.Binar
 func writePointerHandleExpression(out *strings.Builder, expr ast.Expr) {
 	switch e := expr.(type) {
 	case *ast.Ident:
+		if currentReceiverRustAliasIsPointerHandle && isCurrentReceiverIdent(e) {
+			out.WriteString(currentReceiverRustName())
+			out.WriteString(".clone()")
+			return
+		}
 		if globalIdent, ok := packageGlobalPointerIdent(e); ok {
 			writePackageGlobalPointerHandleClone(out, globalIdent)
 			return
@@ -9642,8 +9681,15 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					}
 				} else {
 					// Direct field access
-					out.WriteString(receiverName)
-					out.WriteString(".")
+					if currentReceiverRustAliasIsPointerHandle {
+						out.WriteString("(*")
+						out.WriteString(receiverName)
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap()).")
+					} else {
+						out.WriteString(receiverName)
+						out.WriteString(".")
+					}
 					out.WriteString(fieldInfo.FieldName)
 					// For return statements, we need to clone the Arc
 					if ctx == RValue {
@@ -10148,6 +10194,17 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 			// Check if left side is the receiver (self)
 			if leftIdent, ok := e.X.(*ast.Ident); ok && isCurrentReceiverIdent(leftIdent) {
+				if currentReceiverRustAliasIsPointerHandle {
+					out.WriteString("{ let __self_guard = ")
+					out.WriteString(currentReceiverRustName())
+					WriteBorrowMethod(out, false)
+					if e.Op.String() == "!=" {
+						out.WriteString("; __self_guard.is_some() }")
+					} else if e.Op.String() == "==" {
+						out.WriteString("; __self_guard.is_none() }")
+					}
+					return
+				}
 				// Receiver nil check - this is a Go pattern that doesn't translate well
 				// In Rust, methods can't be called on None values
 				// We'll generate a false condition since self is never None in a method
@@ -16494,7 +16551,18 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 						receiverName = RustLocalIdent(renamed)
 					}
 				}
-				if methodCallFuncLitArgCapturesReceiver(call, ident.Name) {
+				if currentReceiverRustAliasIsPointerHandle {
+					needsMut := methodCallNeedsMutableReceiver(sel)
+					if methodCallFuncLitArgCapturesReceiver(call, ident.Name) {
+						out.WriteString("{ let __recv = ")
+						out.WriteString(receiverName)
+						out.WriteString(".clone(); let __result = ")
+						writeCurrentReceiverPointerHandleMethodReceiver(out, "__recv", needsMut)
+						closeReceiverBlock = true
+					} else {
+						writeCurrentReceiverPointerHandleMethodReceiver(out, receiverName, needsMut)
+					}
+				} else if methodCallFuncLitArgCapturesReceiver(call, ident.Name) {
 					out.WriteString("{ let mut __recv = ")
 					out.WriteString(receiverName)
 					out.WriteString(".clone(); let __result = __recv.")
