@@ -1987,6 +1987,8 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 				writeTypesCheckerFilesMethod(&out, method)
 			} else if name == "token_Pos" && methodName == "is_valid" {
 				writeTokenPosIsValidMethod(&out)
+			} else if name == "fs_FileMode" && methodName == "is_dir" {
+				writeFsFileModeIsDirMethod(&out)
 			} else {
 				writeExternalTypeStubMethod(&out, name, methodName, method)
 			}
@@ -4279,6 +4281,14 @@ impl %s {
 		writeExternalTypeStubMethod(out, name, methodName, methods[methodName])
 	}
 	out.WriteString("}\n")
+}
+
+// PERMANENT: not scaffold — io/fs.FileMode is OS-tied; Rust std::fs::Metadata is the long-term implementation.
+func writeFsFileModeIsDirMethod(out *strings.Builder) {
+	out.WriteString(`    pub fn is_dir(&self) -> bool {
+        (self.0 & (1u32 << 31)) != 0
+    }
+`)
 }
 
 // PERMANENT: not scaffold — io/fs.DirEntry is OS-tied; Rust std::fs::DirEntry is the long-term implementation.
