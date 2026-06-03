@@ -3595,6 +3595,9 @@ func sourceMappedPointerInterfaceWrapperType(arg ast.Expr, expected types.Type) 
 	if !isSourceMappedPackagePath(elemNamed.Obj().Pkg().Path()) {
 		return "", false
 	}
+	if !sourceMappedPointerWrapperAvailable(elemNamed) {
+		return "", false
+	}
 	return sourceMappedPointerWrapperTypeName(elemNamed), true
 }
 

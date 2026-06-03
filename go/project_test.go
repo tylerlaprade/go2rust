@@ -5235,6 +5235,43 @@ func objectAsAny(obj *ast.Object) any {
 	}
 }
 
+func TestSourceMappedPointerInterfaceReturnWithoutSourceWrapperBoxesPointee(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "importer.go", `package importer
+
+import (
+	"go/build"
+	"go/internal/srcimporter"
+	"go/token"
+	"go/types"
+)
+
+func sourceImporter(fset *token.FileSet) types.Importer {
+	return srcimporter.New(&build.Default, fset, make(map[string]*types.Package))
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(importer.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{
+		"go/build":                "go_build",
+		"go/internal/srcimporter": "go_internal_srcimporter",
+		"go/token":                "go_token",
+		"go/types":                "go_types",
+	})
+	if strings.Contains(rust, "ImporterPtr") {
+		t.Fatalf("source-mapped pointer return without a source-package wrapper should not use ImporterPtr:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new((*go_internal_srcimporter::new(") {
+		t.Fatalf("source-mapped pointer return without a source-package wrapper should box the pointee:\n%s", rust)
+	}
+}
+
 func TestProjectGeneratorPreservesLoaderInterfaceMutabilityForMainImpl(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
