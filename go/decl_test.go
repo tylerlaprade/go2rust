@@ -2764,6 +2764,81 @@ func (Outer) common() int { return 2 }
 	}
 }
 
+func TestCurrentReceiverPromotedMethodRustNameCollisionDelegatesToEmbedded(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type flag uintptr
+
+func (f flag) kind() int {
+	return int(f)
+}
+
+type Value struct {
+	flag
+}
+
+func (v Value) Kind() int {
+	return v.kind()
+}
+`)
+
+	implIndex := strings.LastIndex(rust, "impl Value {")
+	if implIndex < 0 {
+		t.Fatalf("generated Rust did not contain impl Value:\n%s", rust)
+	}
+	valueImpl := rust[implIndex:]
+	if nextImpl := strings.Index(valueImpl[len("impl Value {"):], "\nimpl "); nextImpl >= 0 {
+		valueImpl = valueImpl[:len("impl Value {")+nextImpl]
+	}
+	if strings.Contains(valueImpl, "self.kind()") {
+		t.Fatalf("current receiver promoted method call should not recurse through same Rust method name:\n%s", rust)
+	}
+	if !strings.Contains(valueImpl, "let __promoted_recv = self.flag.clone()") ||
+		!strings.Contains(valueImpl, "__promoted_ref.kind()") {
+		t.Fatalf("current receiver promoted method call should delegate through embedded field:\n%s", rust)
+	}
+}
+
+func TestCurrentReceiverNestedPromotedMethodRustNameCollisionDelegatesThroughPath(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type struct{}
+
+func (t *Type) Uncommon() int {
+	return 1
+}
+
+type InterfaceType struct {
+	Type
+}
+
+type interfaceType struct {
+	InterfaceType
+}
+
+func (t *interfaceType) uncommon() int {
+	return t.Uncommon()
+}
+`)
+
+	implIndex := strings.LastIndex(rust, "impl interfaceType {")
+	if implIndex < 0 {
+		t.Fatalf("generated Rust did not contain impl interfaceType:\n%s", rust)
+	}
+	interfaceImpl := rust[implIndex:]
+	if nextImpl := strings.Index(interfaceImpl[len("impl interfaceType {"):], "\nimpl "); nextImpl >= 0 {
+		interfaceImpl = interfaceImpl[:len("impl interfaceType {")+nextImpl]
+	}
+	if strings.Contains(interfaceImpl, "self.uncommon()") {
+		t.Fatalf("nested promoted method call should not recurse through same Rust method name:\n%s", rust)
+	}
+	if !strings.Contains(interfaceImpl, "let __promoted_recv_0 = self.interface_type.clone()") ||
+		!strings.Contains(interfaceImpl, "let __promoted_recv_1 = __promoted_ref_0.r#type.clone()") ||
+		!strings.Contains(interfaceImpl, "__promoted_ref_1.uncommon()") {
+		t.Fatalf("nested promoted method call should delegate through embedded field path:\n%s", rust)
+	}
+}
+
 func TestImportedTypeAliasDoesNotGetLocalImplBlock(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

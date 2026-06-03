@@ -16094,6 +16094,127 @@ func writeStringsBuilderRawScalarArg(out *strings.Builder, arg ast.Expr) {
 	TranspileExpression(out, arg)
 }
 
+func writeCurrentReceiverPromotedMethodCall(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr) bool {
+	recvIdent, ok := sel.X.(*ast.Ident)
+	if !ok || !isCurrentReceiverIdent(recvIdent) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	if !ok || selection.Kind() != types.MethodVal {
+		return false
+	}
+	indexes := selection.Index()
+	if len(indexes) < 2 {
+		return false
+	}
+	fields, ok := promotedFieldPath(selection.Recv(), indexes[:len(indexes)-1])
+	if !ok || len(fields) == 0 {
+		return false
+	}
+	fn, ok := selection.Obj().(*types.Func)
+	if !ok {
+		return false
+	}
+
+	receiverName := currentReceiverRustName()
+	if currentCaptureRenames != nil {
+		if renamed, exists := currentCaptureRenames[recvIdent.Name]; exists {
+			receiverName = RustLocalIdent(renamed)
+		}
+	}
+	needsMut := methodCallNeedsMutableReceiver(sel)
+
+	if len(fields) == 1 {
+		out.WriteString("{ let __promoted_recv = ")
+		out.WriteString(receiverName)
+		out.WriteString(".")
+		out.WriteString(fields[0])
+		out.WriteString(".clone(); ")
+		if needsMut {
+			out.WriteString("let mut __promoted_guard = __promoted_recv")
+			WriteBorrowMethod(out, true)
+			out.WriteString("; let __promoted_ref = __promoted_guard.as_mut().unwrap(); ")
+		} else {
+			out.WriteString("let __promoted_guard = __promoted_recv")
+			WriteBorrowMethod(out, false)
+			out.WriteString("; let __promoted_ref = __promoted_guard.as_ref().unwrap(); ")
+		}
+		out.WriteString("let __result = __promoted_ref.")
+		out.WriteString(rustMethodNameForTypesFunc(fn))
+		out.WriteString("(")
+		if !writeMethodCallArguments(out, sel, call, IsExternalStdlibSelectorMethod(sel), methodCallUsesBareArguments(sel)) {
+			for i, arg := range call.Args {
+				if i > 0 {
+					out.WriteString(", ")
+				}
+				writeRegularMethodCallArgument(out, sel, call, arg, i)
+			}
+		}
+		out.WriteString("); __result }")
+		return true
+	}
+
+	out.WriteString("{ ")
+	for i, field := range fields {
+		index := strconv.Itoa(i)
+		out.WriteString("let __promoted_recv_")
+		out.WriteString(index)
+		out.WriteString(" = ")
+		if i == 0 {
+			out.WriteString(receiverName)
+		} else {
+			out.WriteString("__promoted_ref_")
+			out.WriteString(strconv.Itoa(i - 1))
+		}
+		out.WriteString(".")
+		out.WriteString(field)
+		out.WriteString(".clone(); ")
+		finalField := i == len(fields)-1
+		if finalField && needsMut {
+			out.WriteString("let mut __promoted_guard_")
+			out.WriteString(index)
+			out.WriteString(" = __promoted_recv_")
+			out.WriteString(index)
+			WriteBorrowMethod(out, true)
+			out.WriteString("; let __promoted_ref_")
+			out.WriteString(index)
+			out.WriteString(" = __promoted_guard_")
+			out.WriteString(index)
+			out.WriteString(".as_mut().unwrap(); ")
+		} else {
+			out.WriteString("let __promoted_guard_")
+			out.WriteString(index)
+			out.WriteString(" = __promoted_recv_")
+			out.WriteString(index)
+			WriteBorrowMethod(out, false)
+			out.WriteString("; let __promoted_ref_")
+			out.WriteString(index)
+			out.WriteString(" = __promoted_guard_")
+			out.WriteString(index)
+			out.WriteString(".as_ref().unwrap(); ")
+		}
+	}
+	out.WriteString("let __result = __promoted_ref_")
+	out.WriteString(strconv.Itoa(len(fields) - 1))
+	out.WriteString(".")
+	out.WriteString(rustMethodNameForTypesFunc(fn))
+	out.WriteString("(")
+	if !writeMethodCallArguments(out, sel, call, IsExternalStdlibSelectorMethod(sel), methodCallUsesBareArguments(sel)) {
+		for i, arg := range call.Args {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			writeRegularMethodCallArgument(out, sel, call, arg, i)
+		}
+	}
+	out.WriteString("); __result }")
+	return true
+}
+
 func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	if writeInternalABITypeOfMapTypeCall(out, call) {
 		return
@@ -16325,6 +16446,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			return
 		}
 		if writeNilPointerReceiverMethodCall(out, sel, call) {
+			return
+		}
+		if writeCurrentReceiverPromotedMethodCall(out, sel, call) {
 			return
 		}
 
