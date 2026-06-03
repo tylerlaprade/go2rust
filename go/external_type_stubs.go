@@ -6359,6 +6359,8 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 			writeOsGetenvFunction(out, pkg.Functions[funcName])
 		} else if funcName == "is_path_separator" {
 			writeOsIsPathSeparatorFunction(out, pkg.Functions[funcName])
+		} else if funcName == "lstat" {
+			writeOsLstatFunction(out, pkg.Functions[funcName])
 		} else if funcName == "mkdir_all" {
 			writeOsMkdirAllFunction(out, pkg.Functions[funcName])
 		} else if funcName == "read_file" {
@@ -6386,7 +6388,8 @@ func osPackageStubNeedsFilesystemHelpers(pkg *externalPackageStub) bool {
 	_, needsReadFile := pkg.Functions["read_file"]
 	_, needsWriteFile := pkg.Functions["write_file"]
 	_, needsGetwd := pkg.Functions["getwd"]
-	return needsStat || needsMkdirAll || needsReadDir || needsReadFile || needsWriteFile || needsGetwd
+	_, needsLstat := pkg.Functions["lstat"]
+	return needsStat || needsMkdirAll || needsReadDir || needsReadFile || needsWriteFile || needsGetwd || needsLstat
 }
 
 // PERMANENT: not scaffold — OS error types map to Rust std::io::Error, no transpilable Go source.
@@ -6512,6 +6515,26 @@ func writeOsStatFunction(out *strings.Builder, fn externalPackageStubFunction) {
 	out.WriteString(" {\n")
 	out.WriteString("        let path = _arg0.into_go_string();\n")
 	out.WriteString("        match std::fs::metadata(&path) {\n")
+	out.WriteString("            Ok(metadata) => {\n")
+	out.WriteString("                let name = Path::new(&path).file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_else(|| path.clone());\n")
+	out.WriteString("                (")
+	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64 }"))
+	out.WriteString(", no_error())\n")
+	out.WriteString("            }\n")
+	out.WriteString("            Err(err) => (")
+	out.WriteString(wrappedExternalStubExpr("fs_FileInfo", "fs_FileInfo::default()"))
+	out.WriteString(", io_error(err)),\n")
+	out.WriteString("        }\n")
+	out.WriteString("    }\n")
+}
+
+// PERMANENT: not scaffold — os.Lstat maps to std::fs::symlink_metadata, syscall-tied.
+func writeOsLstatFunction(out *strings.Builder, fn externalPackageStubFunction) {
+	out.WriteString("    pub fn lstat<T0: GoStringArg>(_arg0: T0) -> ")
+	writeExternalStubReturnType(out, fn.ReturnTypes)
+	out.WriteString(" {\n")
+	out.WriteString("        let path = _arg0.into_go_string();\n")
+	out.WriteString("        match std::fs::symlink_metadata(&path) {\n")
 	out.WriteString("            Ok(metadata) => {\n")
 	out.WriteString("                let name = Path::new(&path).file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_else(|| path.clone());\n")
 	out.WriteString("                (")

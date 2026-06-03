@@ -715,6 +715,35 @@ func TestOsIsPathSeparatorStubUsesHostPathRules(t *testing.T) {
 	}
 }
 
+func TestOsLstatStubUsesSymlinkMetadata(t *testing.T) {
+	var out strings.Builder
+	writeOsPackageStub(&out, &externalPackageStub{
+		Functions: map[string]externalPackageStubFunction{
+			"lstat": {
+				ParamCount: 1,
+				ReturnTypes: []string{
+					wrappedExternalStubType("fs_FileInfo"),
+					wrappedExternalStubType(externalStubErrorInnerType()),
+				},
+			},
+		},
+	}, nil)
+	got := out.String()
+	if strings.Contains(got, "generic stub function body has no implementation") {
+		t.Fatalf("os.Lstat should not use the generic stub panic:\n%s", got)
+	}
+	for _, want := range []string{
+		"std::fs::symlink_metadata(&path)",
+		"fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64 }",
+		"fs_FileInfo::default()",
+		"io_error(err)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("os.Lstat shim should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestIoCopyStubMatchesBareCountReturnSignature(t *testing.T) {
 	var out strings.Builder
 	writeIoCopyStub(&out, externalPackageStubFunction{
