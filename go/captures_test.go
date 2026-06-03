@@ -477,6 +477,60 @@ func (check *Checker) run(pos Pos) {
 	}
 }
 
+func TestReceiverCallFuncLitUsesInnerCloneForOuterMethodArgCapture(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type action struct {
+	desc int
+	f func()
+}
+
+func (a *action) describef(desc int) {
+	a.desc = desc
+}
+
+type checker struct {
+	delayed []action
+}
+
+func (c *checker) later(f func()) *action {
+	i := len(c.delayed)
+	c.delayed = append(c.delayed, action{f: f})
+	return &c.delayed[i]
+}
+
+func (c *checker) use(pos int) {
+	c.later(func() {
+		_ = c.delayed
+		_ = pos
+	}).describef(pos)
+}
+`)
+
+	if !strings.Contains(rust, "let pos_closure_clone_closure_clone = pos_closure_clone.clone();") {
+		t.Fatalf("function literal in receiver call should clone captures also used by outer method args:\n%s", rust)
+	}
+
+	bodyStart := strings.Index(rust, "Box::new(move ||")
+	if bodyStart < 0 {
+		t.Fatalf("closure body not found:\n%s", rust)
+	}
+	body := rust[bodyStart:]
+	bodyEnd := strings.Index(body, "}) as Box<dyn")
+	if bodyEnd < 0 {
+		t.Fatalf("closure body end not found:\n%s", rust)
+	}
+	body = body[:bodyEnd]
+	if strings.Contains(body, "pos_closure_clone.clone()") {
+		t.Fatalf("moved closure should use the inner capture clone, not the outer call-chain clone:\n%s", rust)
+	}
+	if !strings.Contains(body, "pos_closure_clone_closure_clone.clone()") &&
+		!strings.Contains(body, "(*pos_closure_clone_closure_clone.borrow()") &&
+		!strings.Contains(body, "(*pos_closure_clone_closure_clone.lock()") {
+		t.Fatalf("moved closure should read pos through the inner capture clone:\n%s", rust)
+	}
+}
+
 func TestFuncLitRangeUsesCapturedRangeTargetClone(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

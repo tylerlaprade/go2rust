@@ -1634,27 +1634,31 @@ func callFuncLitSiblingCaptureNames(call *ast.CallExpr) map[string]bool {
 		return nil
 	}
 	capturedByFuncLit := make(map[string]bool)
-	for _, arg := range call.Args {
-		funcLit, ok := arg.(*ast.FuncLit)
-		if !ok {
-			continue
-		}
-		for name := range capturedVarsForFuncLit(funcLit) {
-			if _, renamed := currentCaptureRenames[name]; renamed {
-				capturedByFuncLit[name] = true
+	collectFuncLitCaptures := func(expr ast.Expr) {
+		ast.Inspect(expr, func(n ast.Node) bool {
+			funcLit, ok := n.(*ast.FuncLit)
+			if !ok {
+				return true
 			}
-		}
+			for name := range capturedVarsForFuncLit(funcLit) {
+				if _, renamed := currentCaptureRenames[name]; renamed {
+					capturedByFuncLit[name] = true
+				}
+			}
+			return false
+		})
+	}
+	collectFuncLitCaptures(call.Fun)
+	for _, arg := range call.Args {
+		collectFuncLitCaptures(arg)
 	}
 	if len(capturedByFuncLit) == 0 {
 		return nil
 	}
 
 	shared := make(map[string]bool)
-	for _, arg := range call.Args {
-		if _, ok := arg.(*ast.FuncLit); ok {
-			continue
-		}
-		ast.Inspect(arg, func(n ast.Node) bool {
+	markSharedUses := func(expr ast.Expr) {
+		ast.Inspect(expr, func(n ast.Node) bool {
 			switch node := n.(type) {
 			case *ast.FuncLit:
 				return false
@@ -1665,6 +1669,10 @@ func callFuncLitSiblingCaptureNames(call *ast.CallExpr) map[string]bool {
 			}
 			return true
 		})
+	}
+	markSharedUses(call.Fun)
+	for _, arg := range call.Args {
+		markSharedUses(arg)
 	}
 	if len(shared) == 0 {
 		return nil
@@ -1680,11 +1688,27 @@ func pushCallFuncLitSiblingCaptureClones(call *ast.CallExpr) func() {
 	prevForce := forceInnerFuncLitCaptureClones
 	prevNames := forceInnerFuncLitCaptureCloneNames
 	forceInnerFuncLitCaptureClones = true
-	forceInnerFuncLitCaptureCloneNames = names
+	forceInnerFuncLitCaptureCloneNames = mergeForcedInnerFuncLitCaptureCloneNames(prevForce, prevNames, names)
 	return func() {
 		forceInnerFuncLitCaptureClones = prevForce
 		forceInnerFuncLitCaptureCloneNames = prevNames
 	}
+}
+
+func mergeForcedInnerFuncLitCaptureCloneNames(prevForce bool, prevNames map[string]bool, names map[string]bool) map[string]bool {
+	if prevForce && prevNames == nil {
+		return nil
+	}
+	merged := make(map[string]bool)
+	for name := range names {
+		merged[name] = true
+	}
+	if prevForce {
+		for name := range prevNames {
+			merged[name] = true
+		}
+	}
+	return merged
 }
 
 type syncOnceReceiverInfo struct {
