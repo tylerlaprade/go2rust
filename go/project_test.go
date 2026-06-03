@@ -5052,6 +5052,10 @@ type positioner interface {
 func report(call *ast.CallExpr) positioner {
 	return call
 }
+
+func use(call *ast.CallExpr) positioner {
+	return report(call)
+}
 `, 0)
 	if err != nil {
 		t.Fatalf("ParseFile(types.go) error = %v", err)
@@ -5073,6 +5077,12 @@ func report(call *ast.CallExpr) positioner {
 	}
 	if !strings.Contains(rust, "go_ast::CallExpr::pos(__recv)") {
 		t.Fatalf("source-mapped pointer local-interface impl should delegate through the pointee:\n%s", rust)
+	}
+	if strings.Contains(rust, "Box::new((*call.") {
+		t.Fatalf("source-mapped pointer local-interface argument should not box the cloned pointee:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(go_ast::CallExprPtr(call.clone())) as Box<dyn positioner") {
+		t.Fatalf("source-mapped pointer local-interface argument should box the pointer wrapper:\n%s", rust)
 	}
 }
 

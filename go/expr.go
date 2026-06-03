@@ -3552,12 +3552,53 @@ func writePointerLocalInterfaceWrapperValue(out *strings.Builder, arg ast.Expr, 
 	return true
 }
 
+func sourceMappedPointerInterfaceWrapperType(arg ast.Expr, expected types.Type) (string, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || arg == nil || expected == nil {
+		return "", false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(expected); !ok {
+		return "", false
+	}
+	argType := typeInfo.GetType(arg)
+	if argType == nil || !types.AssignableTo(argType, expected) {
+		return "", false
+	}
+	ptr, ok := types.Unalias(argType).(*types.Pointer)
+	if !ok {
+		return "", false
+	}
+	elemNamed, ok := types.Unalias(ptr.Elem()).(*types.Named)
+	if !ok || elemNamed.Obj() == nil || elemNamed.Obj().Pkg() == nil {
+		return "", false
+	}
+	if typeInfo.pkg != nil && elemNamed.Obj().Pkg() == typeInfo.pkg {
+		return "", false
+	}
+	if !isSourceMappedPackagePath(elemNamed.Obj().Pkg().Path()) {
+		return "", false
+	}
+	return sourceMappedPointerWrapperTypeName(elemNamed), true
+}
+
 func sourceMappedPointerWrapperTypeName(named *types.Named) string {
 	rustType := goTypesNamedTypeToRust(named)
 	if idx := strings.Index(rustType, "<"); idx >= 0 {
 		return rustType[:idx] + "Ptr" + rustType[idx:]
 	}
 	return rustType + "Ptr"
+}
+
+func writeSourceMappedPointerInterfaceWrapperValue(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	wrapperType, ok := sourceMappedPointerInterfaceWrapperType(arg, expected)
+	if !ok {
+		return false
+	}
+	out.WriteString(wrapperType)
+	out.WriteString("(")
+	writePointerConcreteInterfaceHandle(out, arg)
+	out.WriteString(")")
+	return true
 }
 
 func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg ast.Expr, expectedIface types.Type) {
@@ -3581,6 +3622,9 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 		return
 	}
 	if writePointerLocalInterfaceWrapperValue(out, arg, expectedIface, "") {
+		return
+	}
+	if writeSourceMappedPointerInterfaceWrapperValue(out, arg, expectedIface) {
 		return
 	}
 	if ident, ok := arg.(*ast.Ident); ok {
