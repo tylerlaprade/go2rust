@@ -5193,6 +5193,48 @@ func typeParams(t types.Type) (hasTypeParams, bool) {
 	}
 }
 
+func TestSourceMappedPointerAssertionCandidateWithoutSourceInterfaceUsesPointee(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "parser.go", `package parser
+
+import (
+	"go/ast"
+	"go/token"
+)
+
+type hasPos interface {
+	Pos() token.Pos
+}
+
+func asHasPos(x any) (hasPos, bool) {
+	v, ok := x.(hasPos)
+	return v, ok
+}
+
+func objectAsAny(obj *ast.Object) any {
+	return obj
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(parser.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{
+		"go/ast":   "go_ast",
+		"go/token": "go_token",
+	})
+	if strings.Contains(rust, "ObjectPtr") {
+		t.Fatalf("source-mapped pointer candidate without a source-package wrapper should not use ObjectPtr:\n%s", rust)
+	}
+	if !strings.Contains(rust, "downcast_ref::<go_ast::Object>()") {
+		t.Fatalf("source-mapped pointer candidate without a source-package wrapper should downcast the pointee:\n%s", rust)
+	}
+}
+
 func TestProjectGeneratorPreservesLoaderInterfaceMutabilityForMainImpl(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

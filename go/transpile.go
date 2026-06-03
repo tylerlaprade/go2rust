@@ -598,7 +598,7 @@ func (analysis *transpileFileAnalysis) externalLocalInterfaceImpls(interfaces ma
 		if sourceIsInterface {
 			implRustType = rustLocalInterfaceTraitObject(rustType)
 			sourcePointerWrapper = false
-		} else if sourcePointerWrapper && isSourceMappedPackagePath(named.Obj().Pkg().Path()) {
+		} else if sourcePointerWrapper && sourceMappedPointerWrapperAvailable(named) {
 			implRustType = sourceMappedPointerWrapperTypeName(named)
 		} else {
 			sourcePointerWrapper = false
@@ -1333,10 +1333,40 @@ func localInterfaceAssertionCandidateRustType(named *types.Named, matchedForm ty
 	if typeInfo != nil && typeInfo.pkg != nil && named.Obj().Pkg() == typeInfo.pkg {
 		return pointerLocalInterfaceWrapperNameForUse(named.Obj().Name(), "")
 	}
-	if pkg := named.Obj().Pkg(); pkg != nil && isSourceMappedPackagePath(pkg.Path()) {
+	if sourceMappedPointerWrapperAvailable(named) {
 		return sourceMappedPointerWrapperTypeName(named)
 	}
 	return rustType
+}
+
+func sourceMappedPointerWrapperAvailable(named *types.Named) bool {
+	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	pkg := named.Obj().Pkg()
+	if !isSourceMappedPackagePath(pkg.Path()) || pkg.Scope() == nil {
+		return false
+	}
+	ptr := types.NewPointer(named)
+	for _, name := range pkg.Scope().Names() {
+		obj, ok := pkg.Scope().Lookup(name).(*types.TypeName)
+		if !ok {
+			continue
+		}
+		ifaceNamed, ok := types.Unalias(obj.Type()).(*types.Named)
+		if !ok {
+			continue
+		}
+		iface, ok := ifaceNamed.Underlying().(*types.Interface)
+		if !ok || iface.NumMethods() == 0 {
+			continue
+		}
+		iface.Complete()
+		if types.Implements(ptr, iface) {
+			return true
+		}
+	}
+	return false
 }
 
 func localInterfaceAssertionTarget(e *ast.TypeAssertExpr) (string, *types.Interface, types.Type, []localInterfaceAssertionCandidate, bool) {
