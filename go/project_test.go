@@ -5086,6 +5086,59 @@ func use(call *ast.CallExpr) positioner {
 	}
 }
 
+func TestSourceMappedPointerReturnBoxesWrapperForLocalInterface(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "typesinternal.go", `package typesinternal
+
+import "go/types"
+
+type NamedOrAlias interface {
+	types.Type
+	Obj() *types.TypeName
+	TypeArgs() *types.TypeList
+	TypeParams() *types.TypeParamList
+	SetTypeParams(tparams []*types.TypeParam)
+}
+
+func aliasOrigin(alias *types.Alias) *types.Alias {
+	return alias.Origin()
+}
+
+func fromAliasCall(alias *types.Alias) NamedOrAlias {
+	return aliasOrigin(alias)
+}
+
+func fromNamedMethod(named *types.Named) NamedOrAlias {
+	return named.Origin()
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(typesinternal.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"go/types": "go_types"})
+	for _, bad := range []string{
+		"Box::new((*alias_origin(alias.clone())",
+		"Box::new((*{ let __recv = named.clone()",
+	} {
+		if strings.Contains(rust, bad) {
+			t.Fatalf("source-mapped pointer return should not box the cloned pointee, found %q:\n%s", bad, rust)
+		}
+	}
+	for _, want := range []string{
+		"Box::new(go_types::AliasPtr(",
+		"Box::new(go_types::NamedPtr(",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("source-mapped pointer return should box the pointer wrapper, missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestProjectGeneratorPreservesLoaderInterfaceMutabilityForMainImpl(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

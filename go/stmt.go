@@ -2219,6 +2219,20 @@ func writeFunctionTypeAliasWrappedReturn(out *strings.Builder, result ast.Expr, 
 	WriteWrapperSuffix(out)
 }
 
+func writeSourceMappedPointerLocalInterfaceBox(out *strings.Builder, result ast.Expr, expected types.Type, interfaceName string) bool {
+	var pointerWrapper strings.Builder
+	if !writeSourceMappedPointerInterfaceWrapperValue(&pointerWrapper, result, expected) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("Box::new(")
+	out.WriteString(pointerWrapper.String())
+	out.WriteString(") as ")
+	out.WriteString(rustLocalInterfaceTraitObject(interfaceName))
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result ast.Expr, expected ast.Expr) bool {
 	interfaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(expectedTypeFromParamExpr(expected))
 	if !ok {
@@ -2277,6 +2291,9 @@ func writeLocalInterfaceConcreteReturnConversion(out *strings.Builder, result as
 					sourceNamed, sourceIsNamed := types.Unalias(sourceNamedType).(*types.Named)
 					targetInterface.Complete()
 					if sourceIsNamed && sourceNamed.Obj() != targetNamed.Obj() && types.Implements(sourceType, targetInterface) {
+						if writeSourceMappedPointerLocalInterfaceBox(out, result, targetType, interfaceName) {
+							return true
+						}
 						if call, ok := result.(*ast.CallExpr); ok && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) && (!typeInfo.IsTypeConversion(call) || typeConversionEmitsWrappedValue(call)) {
 							WriteWrapperPrefix(out)
 							out.WriteString("Box::new((*")
