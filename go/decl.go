@@ -4960,8 +4960,13 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			// Create a newtype wrapper in Rust
 			registerTypeDefinitionForTypeExpr(typeSpec.Name.Name, t)
 			canDeriveDebug := typeDefinitionCanDeriveDebug(typeSpec)
-			if canDeriveDebug {
+			customDefault, hasCustomDefault := typeDefinitionCustomDefaultValue(typeSpec)
+			if canDeriveDebug && !hasCustomDefault {
 				out.WriteString("#[derive(Debug, Clone, Default)]\n")
+			} else if canDeriveDebug {
+				out.WriteString("#[derive(Debug, Clone)]\n")
+			} else if hasCustomDefault {
+				out.WriteString("#[derive(Clone)]\n")
 			} else {
 				out.WriteString("#[derive(Clone, Default)]\n")
 			}
@@ -4970,6 +4975,17 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 			out.WriteString("(pub ")
 			out.WriteString(GoTypeToRust(t))
 			out.WriteString(");\n")
+			if hasCustomDefault {
+				out.WriteString("\nimpl Default for ")
+				out.WriteString(rustTypeName)
+				out.WriteString(" {\n")
+				out.WriteString("    fn default() -> Self {\n")
+				out.WriteString("        ")
+				out.WriteString(customDefault)
+				out.WriteString("\n")
+				out.WriteString("    }\n")
+				out.WriteString("}\n")
+			}
 
 			// Add Display implementation for displayable scalar type definitions
 			if IsStringerImplType(typeSpec.Name.Name) {
@@ -5113,6 +5129,28 @@ func typeDefinitionScalarUnderlyingDisplayable(typeSpec *ast.TypeSpec) bool {
 		}
 	}
 	return false
+}
+
+func typeDefinitionCustomDefaultValue(typeSpec *ast.TypeSpec) (string, bool) {
+	if typeSpec == nil || typeSpec.Name == nil {
+		return "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return "", false
+	}
+	obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName)
+	if !ok {
+		return "", false
+	}
+	named, ok := types.Unalias(obj.Type()).(*types.Named)
+	if !ok {
+		return "", false
+	}
+	if _, ok := types.Unalias(named.Underlying()).(*types.Array); !ok {
+		return "", false
+	}
+	return zeroValueForTypesType(named), true
 }
 
 func typeDefinitionMapUnderlyingDisplayable(typeSpec *ast.TypeSpec) bool {

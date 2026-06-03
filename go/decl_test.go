@@ -1887,6 +1887,27 @@ type RegArgs struct {
 	}
 }
 
+func TestNamedArrayDefaultInitializesInnerArray(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Bitmap [2]uint8
+
+func mark() Bitmap {
+	var b Bitmap
+	b[1] |= 3
+	return b
+}
+`)
+
+	if strings.Contains(rust, "#[derive(Debug, Clone, Default)]\npub struct Bitmap") {
+		t.Fatalf("named array type should not derive Default for an Option-backed array handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl Default for Bitmap") ||
+		!strings.Contains(rust, "Some(std::array::from_fn(|_| 0))") {
+		t.Fatalf("named array default should initialize the inner array handle:\n%s", rust)
+	}
+}
+
 func TestNamedMapTypeDefinitionUsesFormatMapDisplay(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
