@@ -12,7 +12,8 @@ Options:
   --sizes               Include each path's disk usage in cleanup output.
   --summary             Print matching paths, sizes, and the total reclaimable
                         space without removing anything.
-  --pressure            Print disk/process pressure plus cleanup candidates.
+  --pressure            Print disk/memory/process pressure plus cleanup
+                        candidates.
                         Does not remove anything. Defaults to --age-minutes 0
                         unless --age-minutes is also passed.
   --show-active         With --summary or --dry-run, print active marked temp
@@ -124,6 +125,25 @@ format_kib() {
     }'
 }
 
+vm_stat_pages_for_label() {
+    local snapshot="$1"
+    local label="$2"
+    printf '%s\n' "$snapshot" | awk -F: -v label="$label" '
+        $1 == label {
+            gsub(/[^0-9]/, "", $2)
+            print $2
+            exit
+        }
+    '
+}
+
+format_pages_kib() {
+    local pages="$1"
+    local page_size="$2"
+    [ -n "$pages" ] || pages=0
+    format_kib "$((pages * page_size / 1024))"
+}
+
 remove_path() {
     local path="$1"
     local size=""
@@ -162,6 +182,35 @@ pid_command() {
 print_pressure_report() {
     echo "Filesystem:"
     df -h "$repo_root" /private/tmp "${TMPDIR:-/tmp}" 2>/dev/null | awk 'NR == 1 || !seen[$1, $9]++'
+
+    local vm_stat_snapshot
+    vm_stat_snapshot=$(vm_stat 2>/dev/null || true)
+
+    echo
+    echo "Memory:"
+    if [ -n "$vm_stat_snapshot" ]; then
+        local page_size
+        page_size=$(printf '%s\n' "$vm_stat_snapshot" | awk -F'of | bytes' '/page size of/ { print $2; exit }')
+        case "$page_size" in
+            ''|*[!0-9]*) page_size=4096 ;;
+        esac
+
+        local free_pages speculative_pages compressed_pages compressor_pages pageouts swapouts
+        free_pages=$(vm_stat_pages_for_label "$vm_stat_snapshot" "Pages free")
+        speculative_pages=$(vm_stat_pages_for_label "$vm_stat_snapshot" "Pages speculative")
+        compressed_pages=$(vm_stat_pages_for_label "$vm_stat_snapshot" "Pages stored in compressor")
+        compressor_pages=$(vm_stat_pages_for_label "$vm_stat_snapshot" "Pages occupied by compressor")
+        pageouts=$(vm_stat_pages_for_label "$vm_stat_snapshot" "Pageouts")
+        swapouts=$(vm_stat_pages_for_label "$vm_stat_snapshot" "Swapouts")
+
+        echo "Free: $(format_pages_kib "$free_pages" "$page_size")"
+        echo "Speculative: $(format_pages_kib "$speculative_pages" "$page_size")"
+        echo "Compressed: $(format_pages_kib "$compressed_pages" "$page_size") stored / $(format_pages_kib "$compressor_pages" "$page_size") occupied"
+        echo "Pageouts: ${pageouts:-0} page(s)"
+        echo "Swapouts: ${swapouts:-0} page(s)"
+    else
+        echo "unavailable: vm_stat was denied or returned no data"
+    fi
 
     local process_cpu_snapshot
     process_cpu_snapshot=$(ps -axo pid,ppid,%cpu,%mem,rss,command -r 2>/dev/null || true)
