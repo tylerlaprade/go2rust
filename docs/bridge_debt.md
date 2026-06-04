@@ -1,40 +1,58 @@
 # Bridge Debt Registry
 
-This file is the source-of-truth list of hand-written Rust shims in
-`go/external_type_stubs.go`. Every `// TEMPORARY:` comment in that file MUST
-have a row here. The Go test `TestBridgeDebtRegistryCoversAllShims` (in
-`go/external_type_stubs_test.go`) compares the two counts and fails CI when
-they drift.
+This file is the source-of-truth list of hand-written Rust shims and
+bridge-like stdlib/external-package workarounds anywhere in the repo.
+Bridge debt is defined by behavior, not by path: any hand-written Rust or
+generator logic that substitutes for transpiling a Go stdlib/external package
+from source belongs here, even when it is called a handler, emitter, typed
+call-site lowering, adapter, helper, intrinsic, MACHINERY path, source-mapped
+compatibility layer, host helper, or generated vendor/test snapshot.
+The existing `go/stdlib.go` mapping layer is legacy support for ordinary
+non-source-mapped user-program calls; it is not a precedent for self-hosting
+source-stdlib work. Any new or widened mapping added because a source-transpiled
+stdlib package cannot compile or run belongs here.
+
+Every `// TEMPORARY:` comment in `go/external_type_stubs.go` MUST have a row
+here. The Go test `TestBridgeDebtRegistryCoversAllShims` (in
+`go/external_type_stubs_test.go`) compares that historical subset and fails CI
+when it drifts. That test is not a complete bridge-debt detector: bridge-like
+code outside `go/external_type_stubs.go` still requires a row before the code
+change, and a passing test is not evidence that no bridge debt was added.
 
 ## How to use this file
 
-**Adding a new shim is a regression.** The expectation each session is that
-this list shrinks or holds steady. See AGENTS.md → "Strategy: Transpile
-stdlib, don't bridge it" → "Hard rules" and "Checklist before editing
-`go/external_type_stubs.go`".
+**Adding bridge debt is a regression.** The expectation each session is that
+this list shrinks, or that the active source-stdlib target has a measured lower
+`--cargo-check` error count than the last commit that touched it. A flat list
+with no source-package error reduction is a stall, not progress. See
+AGENTS.md → "Strategy: Transpile stdlib, don't bridge it" → "Hard rules" and
+"Checklist before editing bridge-like code anywhere".
 
-If you must add a shim:
+If you must add bridge debt:
 
 1. Add the row to "## Shims" below first.
-2. Run `go test ./go -run TestBridgeDebtRegistryCoversAllShims`. It will fail.
-3. Add the `// TEMPORARY:` comment and shim code.
-4. Re-run the test. It should pass once counts match.
+2. Add a marker in the code that names the row slug and removal trigger.
+3. If the change adds or removes a `// TEMPORARY:` comment in
+   `go/external_type_stubs.go`, run
+   `go test ./go -run TestBridgeDebtRegistryCoversAllShims`. It will fail
+   until the row/comment counts match.
+4. Add the bridge code only after the row exists.
 
 Row format:
 
 - **Slug:** unique kebab-case identifier.
-- **Location:** `go/external_type_stubs.go:<line>` (update if the shim moves).
-- **Go symbol:** the stdlib entity the shim fakes (e.g., `go/types.Checker.Files`).
+- **Location:** file and function/line for the bridge site (update if it moves).
+- **Go symbol:** the stdlib/external-package entity the bridge fakes (e.g., `go/types.Checker.Files`).
 - **Transpiler gap:** one sentence on what `go2rust` cannot yet handle that
-  forces this shim. "TODO: investigate" is allowed only for rows backfilled
+  forces this bridge. "TODO: investigate" is allowed only for rows backfilled
   from existing shims. New rows must name a concrete gap.
 - **Fixture:** path to a fixture under `tests/XFAIL/` (or `tests/`) that
   exercises the gap. "TODO: add" is allowed only for backfilled rows.
 - **Removal trigger:** the condition under which this row gets deleted —
-  usually "transpiler can lower <gap>; vendor <pkg> and drop the shim."
+  usually "transpiler can lower <gap>; vendor <pkg> and drop the bridge."
 - **Added:** YYYY-MM-DD.
 
-When a row's removal trigger is met: delete the shim code, delete the row,
+When a row's removal trigger is met: delete the bridge code, delete the row,
 commit both together. The test will fail if you remove one without the other.
 
 ## The common infrastructure gap
@@ -58,13 +76,14 @@ Go 1.24 (re-run the pipeline for current numbers):
 
 Each error class (wrapped-type arithmetic, generics handling, type
 inference on wrapped values) is a focused fixture target. Per AGENTS.md
-rule 6, one such package is the active target at a time, opted into the
-pipeline and driven to zero errors until its shim retires here.
+rule 7, one such package is the active target at a time, opted into the
+pipeline and driven to zero errors until its bridge debt retires here.
 
 When a stdlib package compiles clean through the pipeline, retiring its
-row is mechanical: drop the matching `writeXxxStub` from
-`go/external_type_stubs.go`, drop the `// TEMPORARY:` comment, drop the
-row here.
+row is mechanical: drop the matching bridge code, drop its marker comment,
+and drop the row here. For historical rows in `go/external_type_stubs.go`,
+that usually means deleting a matching `writeXxxStub` and `// TEMPORARY:`
+comment.
 
 ## Shims
 
