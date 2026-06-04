@@ -6956,6 +6956,9 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 	if writeAnySliceCloneValueBox(out, expr) {
 		return
 	}
+	if writeStdlibInterfaceTypeConversionAnyBox(out, expr) {
+		return
+	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		RegisterAnyCloneType(typeInfo.GetType(expr))
 	}
@@ -6985,6 +6988,31 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 	}
 	out.WriteString(") as ")
 	out.WriteString(rustAnyTraitObject())
+}
+
+func writeStdlibInterfaceTypeConversionAnyBox(out *strings.Builder, expr ast.Expr) bool {
+	call, ok := unwrapParens(expr).(*ast.CallExpr)
+	if !ok || len(call.Args) != 1 {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsTypeConversion(call) {
+		return false
+	}
+	targetType := typeInfo.GetType(call)
+	if targetType == nil || !isStdlibNamedInterfaceValueType(types.Unalias(targetType)) {
+		return false
+	}
+	var value strings.Builder
+	if !writeStdlibInterfaceBareConversion(&value, call.Args[0], targetType) {
+		return false
+	}
+	RegisterAnyCloneType(targetType)
+	out.WriteString("Box::new(")
+	out.WriteString(value.String())
+	out.WriteString(") as ")
+	out.WriteString(rustAnyTraitObject())
+	return true
 }
 
 func writeInternalABITypeOfMapTypeCall(out *strings.Builder, call *ast.CallExpr) bool {

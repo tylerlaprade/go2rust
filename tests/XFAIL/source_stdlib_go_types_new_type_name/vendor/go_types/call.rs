@@ -1071,7 +1071,7 @@ impl crate::check::Checker {
     } }
         if (*exp.lock().unwrap()).is_none() {
         if is_valid_name(Arc::new(Mutex::new(Some({ let __arg_holder = sel.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
-        self.errorf(Arc::new(Mutex::new(Some(Box::new((*(*e.lock().unwrap().as_ref().unwrap()).sel.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(UNDECLARED_IMPORTED_NAME as i32))))))), Arc::new(Mutex::new(Some("undefined: %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __v = (*e.lock().unwrap().as_ref().unwrap()); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>]))));
+        self.errorf(Arc::new(Mutex::new(Some(Box::new((*(*e.lock().unwrap().as_ref().unwrap()).sel.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(UNDECLARED_IMPORTED_NAME as i32))))))), Arc::new(Mutex::new(Some("undefined: %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg = e.clone(); let __arg_guard = __arg.lock().unwrap(); __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(ast_Expr::default) }) as Box<dyn Any + Send + Sync>]))));
     }
         break 'error;
     }
@@ -1080,7 +1080,7 @@ impl crate::check::Checker {
         { let __iface_handle = (*(*pkg.lock().unwrap().as_ref().unwrap()).scope.lock().unwrap().as_ref().unwrap()).lookup(Arc::new(Mutex::new(Some({ let __arg_holder = sel.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *exp.lock().unwrap() = (*__iface_guard).clone(); };
         if (*exp.lock().unwrap()).is_none() {
         if !(*{ let __field = (*pkg.lock().unwrap().as_ref().unwrap()).fake.clone(); __field }.lock().unwrap().as_ref().unwrap()) && is_valid_name(Arc::new(Mutex::new(Some({ let __arg_holder = sel.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
-        self.errorf(Arc::new(Mutex::new(Some(Box::new((*(*e.lock().unwrap().as_ref().unwrap()).sel.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(UNDECLARED_IMPORTED_NAME as i32))))))), Arc::new(Mutex::new(Some("undefined: %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __v = (*e.lock().unwrap().as_ref().unwrap()); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>]))));
+        self.errorf(Arc::new(Mutex::new(Some(Box::new((*(*e.lock().unwrap().as_ref().unwrap()).sel.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(UNDECLARED_IMPORTED_NAME as i32))))))), Arc::new(Mutex::new(Some("undefined: %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg = e.clone(); let __arg_guard = __arg.lock().unwrap(); __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(ast_Expr::default) }) as Box<dyn Any + Send + Sync>]))));
     }
         break 'error;
     }
@@ -1213,7 +1213,7 @@ impl crate::check::Checker {
                         // TODO(rfindley): We should do better by refusing to check selectors in all cases where
                         // x.typ is incomplete.
             if { let __v = (*wantType.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        self.errorf(Arc::new(Mutex::new(Some(Box::new((*(*e.lock().unwrap().as_ref().unwrap()).sel.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(NOT_A_TYPE as i32))))))), Arc::new(Mutex::new(Some("%s is not a type".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __v = (*e.lock().unwrap().as_ref().unwrap()); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>]))));
+        self.errorf(Arc::new(Mutex::new(Some(Box::new((*(*e.lock().unwrap().as_ref().unwrap()).sel.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(NOT_A_TYPE as i32))))))), Arc::new(Mutex::new(Some("%s is not a type".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg = e.clone(); let __arg_guard = __arg.lock().unwrap(); __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(ast_Expr::default) }) as Box<dyn Any + Send + Sync>]))));
         break 'error;
     }
 

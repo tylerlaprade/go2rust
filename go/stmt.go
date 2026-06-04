@@ -571,6 +571,9 @@ func writeAnyBoxInnerValue(out *strings.Builder, expr ast.Expr) {
 // expr into a bare Box<dyn Any> trait object (the element slot of a []any, which
 // stores bare boxes).
 func writeBareAnyBox(out *strings.Builder, expr ast.Expr) {
+	if writeStdlibInterfaceTypeConversionAnyBox(out, expr) {
+		return
+	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		RegisterAnyCloneType(typeInfo.GetType(expr))
 	}

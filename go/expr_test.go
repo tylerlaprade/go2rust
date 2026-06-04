@@ -1871,6 +1871,28 @@ func use(values []ast.Expr) {
 	}
 }
 
+func TestStdlibInterfaceTypeConversionToAnyBoxesBareValue(t *testing.T) {
+	rust := transpileTypedConcurrentPackageWithMapping(t, "go/types", `package types
+
+import "go/ast"
+
+func report(args ...any) {}
+
+func use(e *ast.SelectorExpr) {
+	report(ast.Expr(e))
+}
+`, map[string]string{"go/types": "go_types"})
+
+	if strings.Contains(rust, "let __owned = (*__v.lock().unwrap()") ||
+		strings.Contains(rust, "let __owned = (*__v.borrow()") {
+		t.Fatalf("stdlib interface conversion boxed as any should not unwrap the converted bare value as a handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new({ let __arg = e.clone();") ||
+		!strings.Contains(rust, "map(|__v| (*__v).clone().into())") {
+		t.Fatalf("stdlib interface conversion boxed as any should box the converted bare value:\n%s", rust)
+	}
+}
+
 func TestVariadicEllipsisSelectorSliceKeepsHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
