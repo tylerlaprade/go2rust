@@ -152,8 +152,10 @@ in the first place.
 
 - Location: `go/external_type_stubs.go:2364`
 - Go symbol: `go/token.Token` enum
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
+- Transpiler gap: `go/token` source now lowers enough to exercise `Lookup`,
+  `Token.String`, and `Token.IsKeyword`; remaining work is shrinking callers
+  off the external `token_Token` stub surface.
+- Fixture: `tests/source_stdlib_go_token_lookup/`
 - Removal trigger: transpiler can lower `go/token` enum definitions.
 - Added: 2026-05-27 (backfill)
 
@@ -242,8 +244,10 @@ in the first place.
 
 - Location: `go/external_type_stubs.go:3713`
 - Go symbol: `go/token.Pos.IsValid`
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
+- Transpiler gap: `go/token` source now lowers enough to exercise
+  `Pos.IsValid`; remaining work is proving callers no longer need the external
+  `token_Pos` stub method.
+- Fixture: `tests/source_stdlib_go_token_lookup/`
 - Removal trigger: transpiler can lower `go/token.Pos.IsValid` source.
 - Added: 2026-05-27 (backfill)
 
@@ -296,8 +300,10 @@ in the first place.
 
 - Location: `go/external_type_stubs.go:4442`
 - Go symbol: `go/token` package
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
+- Transpiler gap: source package fixture covers `Lookup`, `Token.String`,
+  `Token.IsKeyword`, and `Pos.IsValid`; remaining work is shrinking external
+  `go/token` callers off the package bridge.
+- Fixture: `tests/source_stdlib_go_token_lookup/`
 - Removal trigger: transpiler can lower `go/token` source.
 - Added: 2026-05-27 (backfill)
 

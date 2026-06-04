@@ -2366,6 +2366,10 @@ run_xfail_test() {
     run_test "tests/sort_slice"
 }
 
+@test "source_stdlib_go_token_lookup" {
+    run_test "tests/source_stdlib_go_token_lookup"
+}
+
 @test "source_stdlib_path_filepath_isabs" {
     run_test "tests/source_stdlib_path_filepath_isabs"
 }

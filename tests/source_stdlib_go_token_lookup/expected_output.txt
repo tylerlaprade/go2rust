@@ -1,0 +1,3 @@
+func true
+IDENT false
+true false

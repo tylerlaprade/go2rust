@@ -1,0 +1,11 @@
+[package]
+name = "go_token"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "go_token"
+path = "lib.rs"
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
