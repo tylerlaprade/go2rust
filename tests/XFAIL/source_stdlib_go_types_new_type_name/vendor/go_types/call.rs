@@ -644,7 +644,7 @@ impl crate::check::Checker {
         { let __range_holder = elist.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, e) in __range_values.iter().enumerate() {
         let mut x: Arc<Mutex<Option<operand>>> = Arc::new(Mutex::new(Some(Default::default())));
         {
-        let mut ix = unpack_indexed_expr({ let __arg = e.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<ast_Node> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) });;
+        let mut ix = unpack_indexed_expr({ let __arg = (*e).clone(); Arc::new(Mutex::new(Some(__arg.into()))) });;
         if (*ix.lock().unwrap()).is_some() && self.index_expr(x.clone(), ix.clone()) {
             let (mut targs, mut xlist) = self.func_inst(Arc::new(Mutex::new(None)), (*x.lock().unwrap().as_ref().unwrap()).pos(), x.clone(), ix.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = infer.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
             if (*targs.lock().unwrap()).is_some() {

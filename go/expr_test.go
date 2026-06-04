@@ -1846,6 +1846,31 @@ func use(values []ast.Expr, i int) {
 	}
 }
 
+func TestStdlibInterfaceRangeValueConversionUsesRawValue(t *testing.T) {
+	rust := transpileTypedConcurrentPackageWithMapping(t, "go/types", `package types
+
+import "go/ast"
+
+func end(n ast.Node) {}
+
+func use(values []ast.Expr) {
+	for _, e := range values {
+		end(e)
+	}
+}
+`, map[string]string{"go/types": "go_types"})
+
+	if strings.Contains(rust, "__arg.borrow()") || strings.Contains(rust, "__arg.lock()") {
+		t.Fatalf("range stdlib interface value should convert as a raw value, not a handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __arg = e;") {
+		t.Fatalf("range stdlib interface value should clone the referenced range element:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__arg.into()") {
+		t.Fatalf("range stdlib interface value should convert into the target interface value:\n%s", rust)
+	}
+}
+
 func TestVariadicEllipsisSelectorSliceKeepsHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

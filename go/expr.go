@@ -4736,7 +4736,7 @@ func writeStdlibInterfaceCallArgumentConversion(out *strings.Builder, arg ast.Ex
 	}
 	if stdlibInterfaceConversionSourceIsRaw(arg) {
 		out.WriteString("{ let __arg = ")
-		TranspileExpression(out, arg)
+		writeStdlibInterfaceRawConversionSource(out, arg)
 		out.WriteString("; ")
 		WriteWrapperPrefix(out)
 		out.WriteString("__arg.into()")
@@ -4769,7 +4769,7 @@ func writeStdlibInterfaceBareConversion(out *strings.Builder, arg ast.Expr, expe
 	targetRust, _, _ := stdlibInterfaceArgumentConversion(arg, expectedType)
 	if stdlibInterfaceConversionSourceIsRaw(arg) {
 		out.WriteString("{ let __arg = ")
-		TranspileExpression(out, arg)
+		writeStdlibInterfaceRawConversionSource(out, arg)
 		out.WriteString("; __arg.into() }")
 		return true
 	}
@@ -4837,7 +4837,7 @@ func writeStdlibInterfaceComparableConversion(out *strings.Builder, arg ast.Expr
 	}
 	if stdlibInterfaceConversionSourceIsRaw(arg) {
 		out.WriteString("{ let __arg = ")
-		TranspileExpression(out, arg)
+		writeStdlibInterfaceRawConversionSource(out, arg)
 		out.WriteString("; __arg.into() }")
 		return true
 	}
@@ -4859,6 +4859,9 @@ func stdlibInterfaceConversionSourceIsRaw(arg ast.Expr) bool {
 	if stdlibInterfaceConversionSourceIsIndexedBareValue(arg) {
 		return true
 	}
+	if stdlibInterfaceConversionSourceIsRangeBareValue(arg) {
+		return true
+	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
 		return false
@@ -4872,6 +4875,33 @@ func stdlibInterfaceConversionSourceIsRaw(arg ast.Expr) bool {
 	}
 	_, ok := obj.(*types.Const)
 	return ok
+}
+
+func writeStdlibInterfaceRawConversionSource(out *strings.Builder, arg ast.Expr) {
+	if ident, ok := unwrapParens(arg).(*ast.Ident); ok {
+		if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar && !identShadowsRangeVar(ident) {
+			if writeOwnedRangeValue(out, ident) {
+				return
+			}
+		}
+	}
+	TranspileExpression(out, arg)
+}
+
+func stdlibInterfaceConversionSourceIsRangeBareValue(arg ast.Expr) bool {
+	ident, ok := unwrapParens(arg).(*ast.Ident)
+	if !ok || ident.Name == "nil" || ident.Name == "_" || identShadowsRangeVar(ident) {
+		return false
+	}
+	varType, isRangeVar := rangeLoopVars[ident.Name]
+	if !isRangeVar || isWrappedRangeVarType(varType) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	return isStdlibNamedInterfaceValueType(types.Unalias(typeInfo.GetType(ident)))
 }
 
 func stdlibInterfaceConversionSourceIsIndexedBareValue(arg ast.Expr) bool {
