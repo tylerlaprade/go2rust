@@ -3904,6 +3904,15 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 			return
 		}
 		if isVarBare(ident.Name) {
+			if typeInfo := GetTypeInfo(); typeInfo != nil {
+				if typ := typeInfo.GetType(ident); typ != nil {
+					if _, ok := types.Unalias(typ).Underlying().(*types.Interface); ok {
+						out.WriteString(varName)
+						out.WriteString(".clone()")
+						return
+					}
+				}
+			}
 			out.WriteString(varName)
 			return
 		}
@@ -6956,6 +6965,9 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 	if writeAnySliceCloneValueBox(out, expr) {
 		return
 	}
+	if writeBareInterfaceAnyBox(out, expr) {
+		return
+	}
 	if writeStdlibInterfaceTypeConversionAnyBox(out, expr) {
 		return
 	}
@@ -6988,6 +7000,30 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 	}
 	out.WriteString(") as ")
 	out.WriteString(rustAnyTraitObject())
+}
+
+func writeBareInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	if !ok || !isVarBare(ident.Name) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(ident)
+	if typ == nil {
+		return false
+	}
+	if _, ok := types.Unalias(typ).Underlying().(*types.Interface); !ok {
+		return false
+	}
+	RegisterAnyCloneType(typ)
+	out.WriteString("Box::new(")
+	out.WriteString(RustIdentForUse(ident))
+	out.WriteString(".clone()) as ")
+	out.WriteString(rustAnyTraitObject())
+	return true
 }
 
 func writeStdlibInterfaceTypeConversionAnyBox(out *strings.Builder, expr ast.Expr) bool {

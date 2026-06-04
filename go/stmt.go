@@ -2607,11 +2607,16 @@ func writeTypeSwitchOriginalBinding(out *strings.Builder, varName string, expr a
 		out.WriteString(";\n")
 		return
 	}
+	bindingIsBare := isExpressionResultBare(expr)
 	TranspileExpressionContext(out, expr, LValue)
 	out.WriteString(".clone();\n")
 	if vt := GetVarTable(); vt != nil {
+		wrapLevel := WrapFull
+		if bindingIsBare {
+			wrapLevel = WrapNone
+		}
 		info := &VarInfo{
-			WrapLevel: WrapFull,
+			WrapLevel: wrapLevel,
 			Source:    SourceLocal,
 		}
 		if typeInfo := GetTypeInfo(); typeInfo != nil {
@@ -2621,6 +2626,22 @@ func writeTypeSwitchOriginalBinding(out *strings.Builder, varName string, expr a
 		}
 		vt.Register(varName, info)
 	}
+}
+
+func typeSwitchBareInterfaceSubjectNeedsClone(expr ast.Expr) bool {
+	if !isExpressionResultBare(expr) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(expr)
+	if typ == nil {
+		return false
+	}
+	_, ok := types.Unalias(typ).Underlying().(*types.Interface)
+	return ok
 }
 
 func isLocalInterfaceRefIdent(expr ast.Expr) bool {
@@ -13253,6 +13274,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		} else if subjectIsLocalInterfaceRef {
 			out.WriteString("    let _ts_subject = ")
 			TranspileExpressionContext(out, expr, LValue)
+			if typeSwitchBareInterfaceSubjectNeedsClone(expr) {
+				out.WriteString(".clone()")
+			}
 			out.WriteString(";\n")
 			out.WriteString("    let _ts_is_nil = false;\n")
 			out.WriteString("    let _ts_val: Option<&dyn Any> = Some(_ts_subject.__go_as_any());\n")

@@ -700,7 +700,7 @@ impl crate::check::Checker {
         { let __range_holder = (*ix.lock().unwrap().as_ref().unwrap()).indices.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for mut arg in __range_values.iter().cloned() {
         let mut par: Arc<Mutex<Option<ast_Ident>>> = Arc::new(Mutex::new(None));
         {
-    let _ts_subject = arg;
+    let _ts_subject = arg.clone();
     let _ts_is_nil = false;
     let _ts_val: Option<&dyn Any> = Some(_ts_subject.__go_as_any());
     if _ts_val.and_then(|__v| __v.downcast_ref::<ast_Ident>()).is_some() {
@@ -713,7 +713,7 @@ impl crate::check::Checker {
         self.error(Arc::new(Mutex::new(Some(Box::new((*(*ix.lock().unwrap().as_ref().unwrap()).orig.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_SYNTAX_TREE as i32))))))), Arc::new(Mutex::new(Some("parameterized receiver contains nil parameters".to_string()))));;
     } else {
         let arg = arg.clone();
-        self.errorf(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = arg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(BAD_DECL as i32))))))), Arc::new(Mutex::new(Some("receiver type parameter %s must be an identifier".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = arg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));;
+        self.errorf(Arc::new(Mutex::new(Some(Box::new(arg.clone()) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(BAD_DECL as i32))))))), Arc::new(Mutex::new(Some("receiver type parameter %s must be an identifier".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(arg.clone()) as Box<dyn Any + Send + Sync>]))));;
     }
     }
         if (*par.lock().unwrap()).is_none() {

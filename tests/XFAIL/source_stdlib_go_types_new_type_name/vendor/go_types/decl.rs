@@ -733,7 +733,7 @@ impl crate::check::Checker {
         let mut last: Arc<Mutex<Option<ast_ValueSpec>>> = Arc::new(Mutex::new(None));;
         { let __range_holder = (*d.lock().unwrap().as_ref().unwrap()).specs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (iota, mut s) in __range_values.iter().cloned().enumerate() {
         {
-    let _ts_subject = s;
+    let _ts_subject = s.clone();
     let _ts_is_nil = false;
     let _ts_val: Option<&dyn Any> = Some(_ts_subject.__go_as_any());
     if _ts_val.and_then(|__v| __v.downcast_ref::<ast_ImportSpec>()).is_some() {
@@ -765,7 +765,7 @@ impl crate::check::Checker {
         { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn decl + Send + Sync>>>>) -> () + Send + Sync> = { let mut __f_guard = f.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn decl + Send + Sync>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::new(typeDecl { spec: s.clone(), ..Default::default() }) as Box<dyn decl + Send + Sync>)))) };;
     } else {
         let s = s.clone();
-        self.errorf(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_SYNTAX_TREE as i32))))))), Arc::new(Mutex::new(Some("unknown ast.Spec node %T".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));;
+        self.errorf(Arc::new(Mutex::new(Some(Box::new(s.clone()) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_SYNTAX_TREE as i32))))))), Arc::new(Mutex::new(Some("unknown ast.Spec node %T".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(s.clone()) as Box<dyn Any + Send + Sync>]))));;
     }
     }
     } };
