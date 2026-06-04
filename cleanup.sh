@@ -139,9 +139,7 @@ remove_path() {
     if [ "$dry_run" = true ]; then
         echo "would remove: $path$size"
     else
-        if [ "$show_sizes" = true ]; then
-            echo "removing: $path$size"
-        fi
+        echo "removing: $path$size"
         rm -rf "$path"
     fi
 }
@@ -165,12 +163,24 @@ print_pressure_report() {
     echo "Filesystem:"
     df -h "$repo_root" /private/tmp "${TMPDIR:-/tmp}" 2>/dev/null | awk 'NR == 1 || !seen[$1, $9]++'
 
+    local process_cpu_snapshot
+    process_cpu_snapshot=$(ps -axo pid,ppid,%cpu,%mem,rss,command -r 2>/dev/null || true)
+
+    local process_mem_snapshot
+    process_mem_snapshot=$(ps -axo pid,ppid,%mem,%cpu,rss,command -m 2>/dev/null || true)
+
     echo
     echo "Top CPU processes:"
-    local top_processes
-    top_processes=$(ps -axo pid,ppid,%cpu,%mem,rss,command -r 2>/dev/null | head -15 || true)
-    if [ -n "$top_processes" ]; then
-        printf '%s\n' "$top_processes"
+    if [ -n "$process_cpu_snapshot" ]; then
+        printf '%s\n' "$process_cpu_snapshot" | awk 'NR <= 15'
+    else
+        echo "unavailable: process listing was denied or returned no data"
+    fi
+
+    echo
+    echo "Top memory processes:"
+    if [ -n "$process_mem_snapshot" ]; then
+        printf '%s\n' "$process_mem_snapshot" | awk 'NR <= 15'
     else
         echo "unavailable: process listing was denied or returned no data"
     fi
@@ -178,11 +188,11 @@ print_pressure_report() {
     echo
     echo "Active go2rust validation processes:"
     local validation_processes
-    validation_processes=$(ps -axo pid,ppid,%cpu,%mem,rss,command -r 2>/dev/null |
+    validation_processes=$(printf '%s\n' "$process_cpu_snapshot" |
         awk 'NR > 1 && /(^|[[:space:]])(go2rust|cargo|rustc|test\.sh|self_transpile_check\.sh)([[:space:]]|$)/' |
-        head -25 || true)
+        awk 'NR <= 25')
     if [ -n "$validation_processes" ]; then
-        ps -axo pid,ppid,%cpu,%mem,rss,command -r 2>/dev/null | head -1 || true
+        printf '%s\n' "$process_cpu_snapshot" | awk 'NR == 1'
         printf '%s\n' "$validation_processes"
     else
         echo "none found, or process listing was denied"
@@ -335,4 +345,6 @@ if [ "$summary" = true ]; then
     if [ "$show_active" = true ]; then
         echo "Active skipped: $(format_kib "$active_kib") across $active_count path(s)"
     fi
+elif [ "$candidate_count" -eq 0 ]; then
+    echo "No cleanup candidates found."
 fi

@@ -487,6 +487,44 @@ func TestCleanupScriptCanSummarizeReclaimableSpace(t *testing.T) {
 	}
 }
 
+func TestCleanupScriptReportsPlainNoOp(t *testing.T) {
+	data, err := os.ReadFile("../cleanup.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(cleanup.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`elif [ "$candidate_count" -eq 0 ]; then`,
+		`echo "No cleanup candidates found."`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("cleanup.sh should report a plain no-op run; missing %q", want)
+		}
+	}
+}
+
+func TestCleanupPressureReportShowsProcessAndDiskPressure(t *testing.T) {
+	data, err := os.ReadFile("../cleanup.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(cleanup.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`--pressure`,
+		`print_pressure_report()`,
+		`echo "Filesystem:"`,
+		`echo "Top CPU processes:"`,
+		`echo "Top memory processes:"`,
+		`echo "Active go2rust validation processes:"`,
+		`Cleanup candidates:`,
+		`Active skipped: $(format_kib "$active_kib") across $active_count path(s)`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("cleanup.sh pressure report should expose %q", want)
+		}
+	}
+}
+
 func TestBatsFixtureTimeoutKillsLingeringChildren(t *testing.T) {
 	data, err := os.ReadFile("../tests.bats")
 	if err != nil {
