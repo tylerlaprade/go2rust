@@ -37,6 +37,11 @@ candidate_count=0
 total_kib=0
 active_count=0
 active_kib=0
+invoked_without_args=false
+
+if [ "$#" -eq 0 ]; then
+    invoked_without_args=true
+fi
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -396,4 +401,7 @@ if [ "$summary" = true ]; then
     fi
 elif [ "$candidate_count" -eq 0 ]; then
     echo "No cleanup candidates found."
+    if [ "$invoked_without_args" = true ]; then
+        echo "For disk/memory/process diagnostics, run: ./cleanup.sh --pressure --keep-repo-artifacts"
+    fi
 fi
