@@ -1,0 +1,22 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/go_types",
+    "vendor/internal_types_errors",
+]
+
+[package]
+name = "source_stdlib_go_types_new_type_name"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "source_stdlib_go_types_new_type_name"
+path = "main.rs"
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+go_types = { path = "vendor/go_types" }
+internal_types_errors = { path = "vendor/internal_types_errors" }

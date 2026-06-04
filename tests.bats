@@ -2934,6 +2934,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/parallel_assign_receiver_value_field_swap"
 }
 
+@test "XFAIL: source_stdlib_go_types_new_type_name" {
+    run_xfail_test "tests/XFAIL/source_stdlib_go_types_new_type_name"
+}
+
 @test "XFAIL: stateful_goroutines" {
     run_xfail_test "tests/XFAIL/stateful_goroutines"
 }
