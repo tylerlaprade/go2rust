@@ -4808,6 +4808,9 @@ func writeStdlibInterfaceComparableConversion(out *strings.Builder, arg ast.Expr
 }
 
 func stdlibInterfaceConversionSourceIsRaw(arg ast.Expr) bool {
+	if stdlibInterfaceConversionSourceIsIndexedBareValue(arg) {
+		return true
+	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
 		return false
@@ -4821,6 +4824,18 @@ func stdlibInterfaceConversionSourceIsRaw(arg ast.Expr) bool {
 	}
 	_, ok := obj.(*types.Const)
 	return ok
+}
+
+func stdlibInterfaceConversionSourceIsIndexedBareValue(arg ast.Expr) bool {
+	index, ok := unwrapParens(arg).(*ast.IndexExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isExpressionResultBare(index) {
+		return false
+	}
+	return isStdlibNamedInterfaceValueType(types.Unalias(typeInfo.GetType(index)))
 }
 
 func localConcreteToStdlibInterfaceConversion(arg ast.Expr, expectedType types.Type) (targetRust string, ok bool) {

@@ -1806,6 +1806,26 @@ func (c *checker) walk(values []ast.Expr) {
 	}
 }
 
+func TestStdlibInterfaceIndexedValueConversionUsesRawValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "go/ast"
+
+func end(n ast.Node) {}
+
+func use(values []ast.Expr, i int) {
+	end(values[i])
+}
+`)
+
+	if strings.Contains(rust, "__arg.borrow()") || strings.Contains(rust, "__arg.lock()") {
+		t.Fatalf("indexed stdlib interface value should convert as a raw value, not a handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__arg.into()") {
+		t.Fatalf("indexed stdlib interface value should convert into the target interface value:\n%s", rust)
+	}
+}
+
 func TestVariadicEllipsisSelectorSliceKeepsHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
