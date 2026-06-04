@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
     cat <<'EOF'
-Usage: ./cleanup.sh [--dry-run] [--sizes] [--summary] [--show-active] [--age-minutes N] [--keep-repo-artifacts] [--keep-loop-logs]
+Usage: ./cleanup.sh [--dry-run] [--sizes] [--summary] [--pressure] [--show-active] [--age-minutes N] [--keep-repo-artifacts]
 
 Remove stale go2rust temporary roots and ignored local build artifacts.
 
@@ -12,11 +12,13 @@ Options:
   --sizes               Include each path's disk usage in cleanup output.
   --summary             Print matching paths, sizes, and the total reclaimable
                         space without removing anything.
+  --pressure            Print disk/process pressure plus cleanup candidates.
+                        Does not remove anything. Defaults to --age-minutes 0
+                        unless --age-minutes is also passed.
   --show-active         With --summary or --dry-run, print active marked temp
                         roots that cleanup skips.
   --age-minutes N       Only remove temp paths older than N minutes (default: 60).
   --keep-repo-artifacts Keep ignored root build artifacts such as ./go2rust.
-  --keep-loop-logs      Keep ignored Ralph/Codex loop logs.
   -h, --help            Show this help.
 EOF
 }
@@ -25,10 +27,11 @@ repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 dry_run=false
 show_sizes=false
 summary=false
+pressure=false
 show_active=false
 age_minutes="${GO2RUST_CLEANUP_AGE_MINUTES:-60}"
+age_minutes_explicit=false
 remove_repo_artifacts=true
-remove_loop_logs=true
 candidate_count=0
 total_kib=0
 active_count=0
@@ -50,6 +53,14 @@ while [ "$#" -gt 0 ]; do
             show_sizes=true
             shift
             ;;
+        --pressure)
+            pressure=true
+            summary=true
+            dry_run=true
+            show_sizes=true
+            show_active=true
+            shift
+            ;;
         --show-active)
             show_active=true
             show_sizes=true
@@ -61,14 +72,11 @@ while [ "$#" -gt 0 ]; do
                 exit 2
             fi
             age_minutes="$2"
+            age_minutes_explicit=true
             shift 2
             ;;
         --keep-repo-artifacts)
             remove_repo_artifacts=false
-            shift
-            ;;
-        --keep-loop-logs)
-            remove_loop_logs=false
             shift
             ;;
         -h|--help)
@@ -89,6 +97,10 @@ case "$age_minutes" in
         exit 2
         ;;
 esac
+
+if [ "$pressure" = true ] && [ "$age_minutes_explicit" = false ]; then
+    age_minutes=0
+fi
 
 path_size_kib() {
     du -sk "$1" 2>/dev/null | awk '{ print $1 }'
@@ -147,6 +159,36 @@ pid_is_active() {
 pid_command() {
     local pid="$1"
     ps -p "$pid" -o command= 2>/dev/null || true
+}
+
+print_pressure_report() {
+    echo "Filesystem:"
+    df -h "$repo_root" /private/tmp "${TMPDIR:-/tmp}" 2>/dev/null | awk 'NR == 1 || !seen[$1, $9]++'
+
+    echo
+    echo "Top CPU processes:"
+    local top_processes
+    top_processes=$(ps -axo pid,ppid,%cpu,%mem,rss,command -r 2>/dev/null | head -15 || true)
+    if [ -n "$top_processes" ]; then
+        printf '%s\n' "$top_processes"
+    else
+        echo "unavailable: process listing was denied or returned no data"
+    fi
+
+    echo
+    echo "Active go2rust validation processes:"
+    local validation_processes
+    validation_processes=$(ps -axo pid,ppid,%cpu,%mem,rss,command -r 2>/dev/null |
+        awk 'NR > 1 && /(^|[[:space:]])(go2rust|cargo|rustc|test\.sh|self_transpile_check\.sh)([[:space:]]|$)/' |
+        head -25 || true)
+    if [ -n "$validation_processes" ]; then
+        ps -axo pid,ppid,%cpu,%mem,rss,command -r 2>/dev/null | head -1 || true
+        printf '%s\n' "$validation_processes"
+    else
+        echo "none found, or process listing was denied"
+    fi
+
+    echo
 }
 
 active_pid_from_file() {
@@ -219,11 +261,20 @@ cleanup_temp_root() {
         -name 'go2rust-cargo-home' -o \
         -name 'go2rust-cargo-home.*' -o \
         -name 'go2rust-cargo-target.*' -o \
+        -name 'go2rust-cargo-current' -o \
+        -name 'go2rust-shared-cargo-target' -o \
+        -name 'go2rust-source-stdlib-*-target' -o \
+        -name 'go2rust-heap-target' -o \
         -name 'go2rust-self-cargo-home' -o \
         -name 'go2rust-self-cargo-home.*' -o \
         -name 'go2rust-test-binary.*' -o \
         -name 'go2rust-go-cache' -o \
         -name 'go2rust-go-cache.*' -o \
+        -name 'go2rust-go-cache-current' -o \
+        -name 'go2rust-gen.*' -o \
+        -name 'go2rust-token-probe.*' -o \
+        -name 'go2rust-typeid.*' -o \
+        -name 'go2rust-anyptr.*' -o \
         -name 'go2rust-rust-work.*' \
     \) -print 2>/dev/null)
 
@@ -231,29 +282,14 @@ cleanup_temp_root() {
         remove_path "$file"
     done < <(find "$root" -maxdepth 1 "${age_args[@]}" -type f \( \
         -name 'go2rust-tests-list.*' -o \
+        -name 'go2rust-current' -o \
+        -name 'go2rust-probe-bin' -o \
         -name 'go2rust-debug-*.log' -o \
         -name 'go2rust-sample-*' -o \
         -name 'go2rust-rust-diff.*' -o \
         -name 'go2rust-stdout.*' -o \
-        -name 'go2rust-stderr.*' -o \
-        -name 'go2rust-ralph-desc.*' -o \
-        -name 'go2rust-ralph-stderr.*' -o \
-        -name 'go2rust-ralph-snapshot.*' \
+        -name 'go2rust-stderr.*' \
     \) -print 2>/dev/null)
-}
-
-cleanup_repo_log_dir() {
-    local dir="$1"
-    [ -d "$dir" ] || return 0
-
-    local -a age_args=()
-    if [ "$age_minutes" -gt 0 ]; then
-        age_args=(-mmin +"$age_minutes")
-    fi
-
-    while IFS= read -r file; do
-        remove_path "$file"
-    done < <(find "$dir" -maxdepth 1 "${age_args[@]}" -type f -name '*.log' -print 2>/dev/null)
 }
 
 if [ "$remove_repo_artifacts" = true ]; then
@@ -262,11 +298,6 @@ if [ "$remove_repo_artifacts" = true ]; then
             remove_path "$path"
         fi
     done
-fi
-
-if [ "$remove_loop_logs" = true ]; then
-    cleanup_repo_log_dir "$repo_root/.ralph-loop-logs"
-    cleanup_repo_log_dir "$repo_root/.codex-loop-logs"
 fi
 
 tmp_roots=()
@@ -283,6 +314,11 @@ add_tmp_root() {
 add_tmp_root "${TMPDIR:-}"
 add_tmp_root "/tmp"
 add_tmp_root "/private/tmp"
+
+if [ "$pressure" = true ]; then
+    print_pressure_report
+    echo "Cleanup candidates:"
+fi
 
 seen_roots=""
 for root in "${tmp_roots[@]}"; do
