@@ -1782,6 +1782,30 @@ func makeTuple() *Tuple {
 	}
 }
 
+func TestVariadicStdlibInterfaceRangeValueClonesElement(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "go/ast"
+
+type checker struct{}
+
+func (c *checker) use(args ...ast.Expr) {}
+
+func (c *checker) walk(values []ast.Expr) {
+	for _, expr := range values {
+		c.use(expr)
+	}
+}
+`)
+
+	if strings.Contains(rust, "vec![expr]") {
+		t.Fatalf("stdlib interface range value should not be packed by reference:\n%s", rust)
+	}
+	if !strings.Contains(rust, "vec![(*expr).clone()]") {
+		t.Fatalf("stdlib interface range value should be cloned as an owned variadic element:\n%s", rust)
+	}
+}
+
 func TestVariadicEllipsisSelectorSliceKeepsHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

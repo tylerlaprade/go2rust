@@ -1480,6 +1480,9 @@ func writeVariadicPackedElementValue(out *strings.Builder, arg ast.Expr, elemTyp
 				return
 			}
 		}
+		if ident, ok := arg.(*ast.Ident); ok && isStdlibNamedInterfaceValueType(types.Unalias(elemType)) && writeOwnedRangeValue(out, ident) {
+			return
+		}
 	}
 	if elemType != nil {
 		if _, ok := types.Unalias(elemType).Underlying().(*types.Slice); ok {
