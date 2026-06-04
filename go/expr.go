@@ -956,8 +956,10 @@ func writeIntPeerForLenCapBinaryOperand(out *strings.Builder, expr ast.Expr, oth
 func isExpressionResultBare(expr ast.Expr) bool {
 	switch e := expr.(type) {
 	case *ast.IndexExpr:
-		if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.IsMap(e.X) && mapValueTypeKeepsHandle(typeInfo.GetType(e)) {
-			return false
+		if typeInfo := GetTypeInfo(); typeInfo != nil {
+			if indexExpressionResultKeepsHandle(e, typeInfo) {
+				return false
+			}
 		}
 		// Array/slice/map indexing results are bare values (already cloned out of the wrapper)
 		return true
@@ -996,6 +998,48 @@ func isExpressionResultBare(expr ast.Expr) bool {
 	default:
 		return false
 	}
+}
+
+func indexExpressionResultKeepsHandle(expr *ast.IndexExpr, typeInfo *TypeInfo) bool {
+	if expr == nil || typeInfo == nil {
+		return false
+	}
+	if typeInfo.IsMap(expr.X) {
+		return mapValueTypeKeepsHandle(typeInfo.GetType(expr))
+	}
+	if isExpressionResultBare(expr.X) {
+		return false
+	}
+	elemType, ok := sequenceElementTypeForIndexExpr(expr.X, typeInfo)
+	if !ok {
+		return mapValueTypeKeepsHandle(typeInfo.GetType(expr))
+	}
+	return collectionElementTypeKeepsHandle(elemType)
+}
+
+func sequenceElementTypeForIndexExpr(expr ast.Expr, typeInfo *TypeInfo) (types.Type, bool) {
+	if expr == nil || typeInfo == nil {
+		return nil, false
+	}
+	typ := types.Unalias(typeInfo.GetType(expr))
+	if ptr, ok := typ.(*types.Pointer); ok {
+		typ = types.Unalias(ptr.Elem())
+	}
+	switch seq := types.Unalias(typ).Underlying().(type) {
+	case *types.Array:
+		return seq.Elem(), true
+	case *types.Slice:
+		return seq.Elem(), true
+	default:
+		return nil, false
+	}
+}
+
+func collectionElementTypeKeepsHandle(elem types.Type) bool {
+	if elem == nil {
+		return false
+	}
+	return isWrappedRangeVarType(goTypesCollectionElemTypeToRust(elem))
 }
 
 func isLocalVarIdent(ident *ast.Ident) bool {
@@ -3921,6 +3965,10 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 	if expectedIface != nil && argType != nil {
 		if _, argIsInterface := types.Unalias(argType).Underlying().(*types.Interface); argIsInterface {
 			if _, expectedIsInterface := types.Unalias(expectedIface).Underlying().(*types.Interface); expectedIsInterface && types.AssignableTo(argType, expectedIface) {
+				if isExpressionResultBare(arg) {
+					TranspileExpression(out, arg)
+					return
+				}
 				out.WriteString("(*")
 				TranspileExpressionContext(out, arg, LValue)
 				WriteBorrowMethod(out, false)

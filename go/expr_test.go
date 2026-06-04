@@ -367,6 +367,33 @@ func declare(obj object) {
 	}
 }
 
+func TestStubBackedInterfaceIndexArgumentBoxesBareValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"go/ast"
+	"go/token"
+)
+
+type positioner interface {
+	Pos() token.Pos
+}
+
+func report(pos positioner) {}
+
+func walk(args []ast.Expr) {
+	report(args[1])
+}
+`)
+
+	if strings.Contains(rust, "].clone().borrow()") || strings.Contains(rust, "].clone().lock()") {
+		t.Fatalf("indexed stub-backed interface argument should box the bare indexed value, not dereference it as a handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new((*args.borrow().as_ref().unwrap())[(1) as usize].clone()) as Box<dyn positioner") {
+		t.Fatalf("indexed stub-backed interface argument should box the indexed interface value:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceAdaptersIgnoreInterfaceTypedPackageVars(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -975,17 +1002,10 @@ func record() operand {
 }
 `)
 
-	if strings.Contains(rust, "typ: Rc::new(RefCell::new(Some({ let __seq") ||
-		strings.Contains(rust, "typ: Arc::new(Mutex::new(Some({ let __seq") {
-		t.Fatalf("local interface struct field should not store the indexed pointer handle:\n%s", rust)
-	}
-	boxedBlockIndex := strings.Contains(rust, "Box::new((*{ let __seq =") &&
-		(strings.Contains(rust, "}[0 as usize].clone() }.borrow().as_ref().unwrap()).clone()) as Box<dyn Type") ||
-			strings.Contains(rust, "}[0 as usize].clone() }.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Type"))
-	boxedPackageIndex := strings.Contains(rust, "Box::new((*(*Typ.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap()).clone()) as Box<dyn Type") ||
-		strings.Contains(rust, "Box::new((*(*Typ.lock().unwrap().as_ref().unwrap())[(0) as usize].clone().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Type")
-	if !boxedBlockIndex && !boxedPackageIndex {
-		t.Fatalf("local interface struct field should box the indexed pointer pointee:\n%s", rust)
+	boxedPackageIndex := strings.Contains(rust, "Box::new(BasicPtr((*Typ.borrow().as_ref().unwrap())[(0) as usize].clone().clone())) as Box<dyn Type") ||
+		strings.Contains(rust, "Box::new(BasicPtr((*Typ.lock().unwrap().as_ref().unwrap())[(0) as usize].clone().clone())) as Box<dyn Type + Send + Sync>")
+	if !boxedPackageIndex {
+		t.Fatalf("local interface struct field should box the indexed pointer wrapper:\n%s", rust)
 	}
 }
 
@@ -1752,9 +1772,9 @@ func use(x Type) {
 		strings.Contains(rust, "Some((*Typ.borrow().as_ref().unwrap())[(0) as usize].clone())") {
 		t.Fatalf("fixed local-interface argument should not wrap indexed pointer handles directly:\n%s", rust)
 	}
-	if !strings.Contains(rust, "make_sig(Rc::new(RefCell::new(Some(Box::new((*(*Typ.borrow().as_ref().unwrap())") &&
-		!strings.Contains(rust, "make_sig(Arc::new(Mutex::new(Some(Box::new((*(*Typ.lock().unwrap().as_ref().unwrap())") {
-		t.Fatalf("fixed local-interface argument should box the indexed pointer pointee:\n%s", rust)
+	if !strings.Contains(rust, "make_sig(Rc::new(RefCell::new(Some(Box::new(BasicPtr((*Typ.borrow().as_ref().unwrap())[(0) as usize].clone().clone())) as Box<dyn Type>)))") &&
+		!strings.Contains(rust, "make_sig(Arc::new(Mutex::new(Some(Box::new(BasicPtr((*Typ.lock().unwrap().as_ref().unwrap())[(0) as usize].clone().clone())) as Box<dyn Type + Send + Sync>)))") {
+		t.Fatalf("fixed local-interface argument should box the indexed pointer wrapper:\n%s", rust)
 	}
 }
 
