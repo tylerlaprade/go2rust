@@ -7455,6 +7455,11 @@ func writeWrappedStructFieldValueWithOwnerPackage(out *strings.Builder, value as
 		}
 	}
 
+	if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" && expectedFieldType != nil && structFieldHasNilZero(expectedFieldType) {
+		out.WriteString("Default::default()")
+		return
+	}
+
 	if writeUnknownExpectedSelectorHandleFieldValue(out, value, fieldExpr, expectedFieldType) {
 		return
 	}

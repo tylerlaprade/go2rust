@@ -3549,6 +3549,32 @@ func zero() Value {
 	}
 }
 
+func TestImportedInterfaceStructFieldNilUsesEmptyHandle(t *testing.T) {
+	rust := transpileTypedConcurrentPackageWithMapping(t, "go/types", `package types
+
+import "go/constant"
+
+type operand struct {
+	val constant.Value
+}
+
+func record(x *operand) {}
+
+func use() {
+	record(&operand{nil})
+}
+`, map[string]string{"go/constant": "go_constant", "go/types": "go_types"})
+	if strings.Contains(rust, "val: Rc::new(RefCell::new(Some(None)))") ||
+		strings.Contains(rust, "val: Arc::new(Mutex::new(Some(None)))") {
+		t.Fatalf("nil imported-interface struct field should not double-wrap nil:\n%s", rust)
+	}
+	if !strings.Contains(rust, "val: Rc::new(RefCell::new(None))") &&
+		!strings.Contains(rust, "val: Arc::new(Mutex::new(None))") &&
+		!strings.Contains(rust, "val: Default::default()") {
+		t.Fatalf("nil imported-interface struct field should clear the field handle:\n%s", rust)
+	}
+}
+
 func TestNamedPointerNilConversionConstructsNamedHandle(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
