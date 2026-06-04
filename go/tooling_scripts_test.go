@@ -21,9 +21,6 @@ func TestCleanupScriptSweepsAllGeneratedTempRoots(t *testing.T) {
 		"go2rust-rust-diff.*",
 		"go2rust-stdout.*",
 		"go2rust-stderr.*",
-		"go2rust-ralph-desc.*",
-		"go2rust-ralph-stderr.*",
-		"go2rust-ralph-snapshot.*",
 		"go2rust-test-binary.*",
 		"go2rust-go-cache",
 		"go2rust-go-cache.*",
@@ -113,25 +110,13 @@ func TestScriptsUseNamedGo2RustTempPaths(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadFile(tests.bats) error = %v", err)
 	}
-	ralphLoop, err := os.ReadFile("../ralph_loop.sh")
-	if err != nil {
-		t.Fatalf("ReadFile(ralph_loop.sh) error = %v", err)
-	}
-	ralphAnalyst, err := os.ReadFile("../ralph_analyst.sh")
-	if err != nil {
-		t.Fatalf("ReadFile(ralph_analyst.sh) error = %v", err)
-	}
-	combined := string(testSh) + "\n" + string(bats) + "\n" + string(ralphLoop) + "\n" + string(ralphAnalyst)
+	combined := string(testSh) + "\n" + string(bats)
 	for _, want := range []string{
 		`mktemp "${TMPDIR:-/tmp}/go2rust-tests-list.XXXXXX"`,
 		`mktemp -d "${TMPDIR:-/tmp}/go2rust-test-binary.XXXXXX"`,
 		`mktemp -d "${TMPDIR:-/tmp}/go2rust-go-cache.XXXXXX"`,
 		`mktemp -d "$tmp_root/go2rust-rust-work.XXXXXX"`,
 		`mktemp "$diff_root/go2rust-rust-diff.XXXXXX"`,
-		`mktemp "${TMPDIR:-/tmp}/$template"`,
-		`go2rust-ralph-desc.XXXXXX`,
-		`go2rust-ralph-stderr.XXXXXX`,
-		`go2rust-ralph-snapshot.XXXXXX`,
 	} {
 		if !strings.Contains(combined, want) {
 			t.Fatalf("scripts should use named go2rust temp path %q", want)
@@ -141,11 +126,6 @@ func TestScriptsUseNamedGo2RustTempPaths(t *testing.T) {
 		"temp_file=$(mktemp)",
 		"temp_dir=$(mktemp -d)",
 		"/tmp/go2rust-rust-diff.$$",
-		"TOOL_DESC_FILE=$(mktemp",
-		"ITER_STDERR=$(mktemp",
-		`BEFORE_SNAPSHOT="$(mktemp)"`,
-		`AFTER_SNAPSHOT="$(mktemp)"`,
-		`NEW_SNAPSHOT="$(mktemp)"`,
 	} {
 		if strings.Contains(combined, forbidden) {
 			t.Fatalf("scripts should not use anonymous temp path %q", forbidden)
@@ -414,9 +394,6 @@ func TestCleanupScriptRemovesKnownGo2RustArtifacts(t *testing.T) {
 		`go2rust-rust-diff.*`,
 		`go2rust-stdout.*`,
 		`go2rust-stderr.*`,
-		`go2rust-ralph-desc.*`,
-		`go2rust-ralph-stderr.*`,
-		`go2rust-ralph-snapshot.*`,
 		`self_transpile_check.pid`,
 		`go2rust-test.pid`,
 		`if [ "$age_minutes" -gt 0 ]; then`,
@@ -451,26 +428,6 @@ func TestCleanupSummaryCanReportActiveTempRoots(t *testing.T) {
 	}
 }
 
-func TestCleanupScriptCanRemoveLoopLogs(t *testing.T) {
-	data, err := os.ReadFile("../cleanup.sh")
-	if err != nil {
-		t.Fatalf("ReadFile(cleanup.sh) error = %v", err)
-	}
-	script := string(data)
-	for _, want := range []string{
-		`--keep-loop-logs`,
-		`remove_loop_logs=true`,
-		`cleanup_repo_log_dir()`,
-		`.ralph-loop-logs`,
-		`.codex-loop-logs`,
-		`-type f -name '*.log'`,
-	} {
-		if !strings.Contains(script, want) {
-			t.Fatalf("cleanup.sh should cover ignored loop logs; missing %q", want)
-		}
-	}
-}
-
 func TestCleanupScriptScansCanonicalTempRoots(t *testing.T) {
 	data, err := os.ReadFile("../cleanup.sh")
 	if err != nil {
@@ -486,50 +443,6 @@ func TestCleanupScriptScansCanonicalTempRoots(t *testing.T) {
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("cleanup.sh should scan canonical temp roots; missing %q", want)
-		}
-	}
-}
-
-func TestRalphScriptsDelegateStaleCleanup(t *testing.T) {
-	loop, err := os.ReadFile("../ralph_loop.sh")
-	if err != nil {
-		t.Fatalf("ReadFile(ralph_loop.sh) error = %v", err)
-	}
-	analyst, err := os.ReadFile("../ralph_analyst.sh")
-	if err != nil {
-		t.Fatalf("ReadFile(ralph_analyst.sh) error = %v", err)
-	}
-	for name, script := range map[string]string{
-		"ralph_loop.sh":    string(loop),
-		"ralph_analyst.sh": string(analyst),
-	} {
-		for _, want := range []string{
-			`cleanup_temp_files()`,
-			`cleanup.sh" --age-minutes`,
-			`--keep-repo-artifacts`,
-			`TEMP_FILES+=("$file")`,
-		} {
-			if !strings.Contains(script, want) {
-				t.Fatalf("%s should clean stale cleanup-managed temp files; missing %q", name, want)
-			}
-		}
-	}
-	for _, want := range []string{
-		`RALPH_LOOP_CLEAN_STALE`,
-		`RALPH_LOOP_CLEAN_AGE_MINUTES`,
-		`cleanup_stale_loop_artifacts`,
-	} {
-		if !strings.Contains(string(loop), want) {
-			t.Fatalf("ralph_loop.sh should expose stale cleanup controls; missing %q", want)
-		}
-	}
-	for _, want := range []string{
-		`RALPH_ANALYST_CLEAN_STALE`,
-		`RALPH_ANALYST_CLEAN_AGE_MINUTES`,
-		`cleanup_stale_analyst_artifacts`,
-	} {
-		if !strings.Contains(string(analyst), want) {
-			t.Fatalf("ralph_analyst.sh should expose stale cleanup controls; missing %q", want)
 		}
 	}
 }
