@@ -160,7 +160,10 @@ run_transpile_and_compare() {
     # -C debuginfo=0: No debug symbols (smaller binary, faster linking)
     local cargo_target_dir
     local remove_cargo_target=false
-    if [ -n "${GO2RUST_TEST_TMP:-}" ]; then
+    if [ -n "${GO2RUST_TEST_CARGO_TARGET_DIR:-}" ]; then
+        cargo_target_dir="$GO2RUST_TEST_CARGO_TARGET_DIR"
+        mkdir -p "$cargo_target_dir"
+    elif [ -n "${GO2RUST_TEST_TMP:-}" ]; then
         cargo_target_dir="$GO2RUST_TEST_TMP/cargo-target"
         mkdir -p "$cargo_target_dir"
     else
