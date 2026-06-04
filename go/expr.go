@@ -11058,6 +11058,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if typeInfo != nil && typeInfo.IsInterface(ident) {
 					isInterfaceSlice = true
 					interfaceName = ident.Name
+					if typeExprIsAliasToStubBackedExternalInterface(ident) {
+						isInterfaceSlice = false
+					}
 					if _, ok := transpiledNamedInterfaceTypeNameFromExpr(ident); ok {
 						wrapInterfaceElements = true
 					}

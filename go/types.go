@@ -1497,6 +1497,19 @@ func goCollectionElemTypeToRust(expr ast.Expr) string {
 	return goTypeToRustBase(expr)
 }
 
+func typeExprIsAliasToStubBackedExternalInterface(expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	if !ok || !IsTypeAlias(ident.Name) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(ident)).(*types.Named)
+	return ok && externalNamedIsInterface(named)
+}
+
 func isBareSyncTypeName(name string) bool {
 	return name == "WaitGroup" || name == "Mutex" || name == "RWMutex" || name == "Once"
 }
