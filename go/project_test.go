@@ -5197,6 +5197,17 @@ func TestRetiredFilepathBridgeSourceMapsByDefault(t *testing.T) {
 	}
 }
 
+func TestExternalNamedIntegerConversionSourceMapsTokenExplicitly(t *testing.T) {
+	path := filepath.Join("..", "tests", "external_named_integer_conversion", ".go2rust.toml")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+	if !strings.Contains(string(data), `source_stdlib_packages = "go/token"`) {
+		t.Fatalf("%s must source-map go/token explicitly so the fixture cannot regenerate through token_Pos stubs", path)
+	}
+}
+
 func TestPackageLoaderSourceStdlibDepsPatternIncludesTransitiveStdlibImports(t *testing.T) {
 	t.Setenv(sourceStdlibPackagesEnv, "go/types+deps")
 	tokenPkg := &packages.Package{Name: "token", PkgPath: "go/token", Imports: make(map[string]*packages.Package)}
