@@ -160,6 +160,10 @@ in the first place.
   `Token.String`, and `Token.IsKeyword`; the remaining removal check is proving
   callers no longer need the external `token_Token` stub surface.
 - Fixture: `tests/source_stdlib_go_token_lookup/`;
+  `tests/source_stdlib_go_token_fileset/` now source-maps `go/token` plus
+  its `cmp`, `slices`, `sync`, `sync/atomic`, and `internal/race`
+  dependencies to exercise `token.NewFileSet`, `FileSet.AddFile`, and
+  `FileSet.Position`;
   `tests/external_named_integer_conversion/` now source-maps `go/token` and
   emits `go_token::position::Pos` instead of the external `token_Pos` stub.
 - Removal trigger: transpiler can lower `go/token` enum definitions.
@@ -275,6 +279,10 @@ in the first place.
   the remaining removal check is proving callers no longer need the external
   `token_Pos` stub method.
 - Fixture: `tests/source_stdlib_go_token_lookup/`;
+  `tests/source_stdlib_go_token_fileset/` now source-maps `go/token` plus
+  its `cmp`, `slices`, `sync`, `sync/atomic`, and `internal/race`
+  dependencies to exercise `token.NewFileSet`, `FileSet.AddFile`, and
+  `FileSet.Position`;
   `tests/external_named_integer_conversion/` now source-maps `go/token` and
   emits `go_token::position::Pos` instead of the external `token_Pos` stub.
 - Removal trigger: transpiler can lower `go/token.Pos.IsValid` source.
@@ -366,11 +374,14 @@ in the first place.
 
 - Location: `go/external_type_stubs.go:4442`
 - Go symbol: `go/token` package
-- Transpiler gap: source package fixture covers `Lookup`, `Token.String`,
-  `Token.IsKeyword`, and `Pos.IsValid`; source-mapped `go/token.Pos` now
-  reaches source-mapped `go/types.NewTypeName`. Remaining work is shrinking
-  non-source-mapped external `go/token` callers off the package bridge.
+- Transpiler gap: source package fixtures cover `Lookup`, `Token.String`,
+  `Token.IsKeyword`, `Pos.IsValid`, and FileSet position lookup through
+  source-mapped `cmp`, `slices`, `sync`, `sync/atomic`, and `internal/race`;
+  source-mapped `go/token.Pos` now reaches source-mapped `go/types.NewTypeName`.
+  Remaining work is shrinking non-source-mapped external `go/token` callers off
+  the package bridge.
 - Fixture: `tests/source_stdlib_go_token_lookup/`;
+  `tests/source_stdlib_go_token_fileset/`;
   `tests/source_stdlib_go_token_types_bridge_arg/`
 - Removal trigger: transpiler can lower `go/token` source.
 - Added: 2026-05-27 (backfill)

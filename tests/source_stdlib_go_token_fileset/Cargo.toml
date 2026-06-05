@@ -1,0 +1,34 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/cmp",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/go_token",
+    "vendor/internal_abi",
+    "vendor/internal_race",
+    "vendor/internal_sync",
+    "vendor/slices",
+    "vendor/sync",
+    "vendor/sync_atomic",
+]
+
+[package]
+name = "source_stdlib_go_token_fileset"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "source_stdlib_go_token_fileset"
+path = "main.rs"
+
+[dependencies]
+cmp = { path = "vendor/cmp" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+go_token = { path = "vendor/go_token" }
+internal_abi = { path = "vendor/internal_abi" }
+internal_race = { path = "vendor/internal_race" }
+internal_sync = { path = "vendor/internal_sync" }
+slices = { path = "vendor/slices" }
+sync = { path = "vendor/sync" }
+sync_atomic = { path = "vendor/sync_atomic" }

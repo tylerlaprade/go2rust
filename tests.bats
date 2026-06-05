@@ -2414,6 +2414,10 @@ run_xfail_test() {
     run_test "tests/source_stdlib_go_parser_types_check_bridge_arg"
 }
 
+@test "source_stdlib_go_token_fileset" {
+    run_test "tests/source_stdlib_go_token_fileset"
+}
+
 @test "source_stdlib_go_token_lookup" {
     run_test "tests/source_stdlib_go_token_lookup"
 }
