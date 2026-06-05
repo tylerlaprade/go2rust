@@ -511,7 +511,11 @@ func TestCleanupPressureReportShowsProcessAndDiskPressure(t *testing.T) {
 	script := string(data)
 	for _, want := range []string{
 		`--pressure`,
+		`--top-temp`,
+		`GO2RUST_CLEANUP_TOP_TEMP_COUNT`,
 		`print_pressure_report()`,
+		`print_disk_hotspots()`,
+		`print_top_temp_paths()`,
 		`echo "Filesystem:"`,
 		`echo "Memory:"`,
 		`vm_stat`,
@@ -520,6 +524,8 @@ func TestCleanupPressureReportShowsProcessAndDiskPressure(t *testing.T) {
 		`echo "Top CPU processes:"`,
 		`echo "Top memory processes:"`,
 		`echo "Active go2rust validation processes:"`,
+		`echo "Disk usage quick scan:"`,
+		`echo "Largest temp paths:"`,
 		`Cleanup candidates:`,
 		`Active skipped: $(format_kib "$active_kib") across $active_count path(s)`,
 	} {

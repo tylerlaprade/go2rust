@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
     cat <<'EOF'
-Usage: ./cleanup.sh [--dry-run] [--sizes] [--summary] [--pressure] [--show-active] [--age-minutes N] [--keep-repo-artifacts]
+Usage: ./cleanup.sh [--dry-run] [--sizes] [--summary] [--pressure] [--show-active] [--age-minutes N] [--top-temp N] [--keep-repo-artifacts]
 
 Remove stale go2rust temporary roots and ignored local build artifacts.
 
@@ -19,6 +19,8 @@ Options:
   --show-active         With --summary or --dry-run, print active marked temp
                         roots that cleanup skips.
   --age-minutes N       Only remove temp paths older than N minutes (default: 60).
+  --top-temp N          With --pressure, print the N largest top-level temp
+                        paths from TMPDIR, /tmp, and /private/tmp (default: 8).
   --keep-repo-artifacts Keep ignored root build artifacts such as ./go2rust.
   -h, --help            Show this help.
 EOF
@@ -38,6 +40,7 @@ total_kib=0
 active_count=0
 active_kib=0
 invoked_without_args=false
+top_temp_count="${GO2RUST_CLEANUP_TOP_TEMP_COUNT:-8}"
 
 if [ "$#" -eq 0 ]; then
     invoked_without_args=true
@@ -81,6 +84,14 @@ while [ "$#" -gt 0 ]; do
             age_minutes_explicit=true
             shift 2
             ;;
+        --top-temp)
+            if [ "$#" -lt 2 ]; then
+                echo "error: --top-temp requires a value" >&2
+                exit 2
+            fi
+            top_temp_count="$2"
+            shift 2
+            ;;
         --keep-repo-artifacts)
             remove_repo_artifacts=false
             shift
@@ -104,12 +115,19 @@ case "$age_minutes" in
         ;;
 esac
 
+case "$top_temp_count" in
+    ''|*[!0-9]*)
+        echo "error: --top-temp must be a non-negative integer" >&2
+        exit 2
+        ;;
+esac
+
 if [ "$pressure" = true ] && [ "$age_minutes_explicit" = false ]; then
     age_minutes=0
 fi
 
 path_size_kib() {
-    du -sk "$1" 2>/dev/null | awk '{ print $1 }'
+    du -sk "$1" 2>/dev/null | awk '{ print $1 }' || true
 }
 
 format_kib() {
@@ -186,6 +204,65 @@ process_snapshot_by_memory() {
         return
     fi
     process_snapshot_from_aux || true
+}
+
+print_size_row() {
+    local label="$1"
+    local path="$2"
+    [ -e "$path" ] || return 0
+
+    local size_kib
+    size_kib=$(path_size_kib "$path")
+    [ -n "$size_kib" ] || return 0
+
+    printf "%8s  %s\n" "$(format_kib "$size_kib")" "$label"
+}
+
+print_disk_hotspots() {
+    echo
+    echo "Disk usage quick scan:"
+    print_size_row "repo" "$repo_root"
+    print_size_row "TMPDIR" "${TMPDIR:-/tmp}"
+    print_size_row "/private/tmp" "/private/tmp"
+    print_size_row "~/Library/Caches" "${HOME:-}/Library/Caches"
+    print_size_row "~/Library/Developer" "${HOME:-}/Library/Developer"
+    print_size_row "~/.cargo" "${HOME:-}/.cargo"
+}
+
+print_top_temp_paths() {
+    [ "$top_temp_count" -gt 0 ] || return
+
+    echo
+    echo "Largest temp paths:"
+
+    local rows
+    rows=$(
+        local seen_roots=""
+        for root in "${tmp_roots[@]}"; do
+            [ -n "$root" ] || continue
+            case ":$seen_roots:" in
+                *":$root:"*) continue ;;
+            esac
+            seen_roots="$seen_roots:$root"
+            [ -d "$root" ] || continue
+
+            while IFS= read -r path; do
+                local size_kib
+                size_kib=$(path_size_kib "$path")
+                [ -n "$size_kib" ] || continue
+                printf '%s\t%s\n' "$size_kib" "$path"
+            done < <(find "$root" -mindepth 1 -maxdepth 1 \( -type d -o -type f \) -print 2>/dev/null)
+        done | sort -nr | awk -v limit="$top_temp_count" 'NR <= limit'
+    )
+
+    if [ -z "$rows" ]; then
+        echo "none found"
+        return
+    fi
+
+    while IFS=$'\t' read -r size_kib path; do
+        printf "%8s  %s\n" "$(format_kib "$size_kib")" "$path"
+    done <<< "$rows"
 }
 
 remove_path() {
@@ -363,6 +440,9 @@ print_pressure_report() {
     else
         echo "none found, or process listing was denied"
     fi
+
+    print_disk_hotspots
+    print_top_temp_paths
 
     echo
 }
