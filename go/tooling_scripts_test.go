@@ -603,6 +603,18 @@ func TestBatsFixtureTimeoutKillsLingeringChildren(t *testing.T) {
 	if count := strings.Count(script, `timeout -k "$kill_after" "$timeout" bash -c`); count != 2 {
 		t.Fatalf("tests.bats should use timeout -k for run_test and run_xfail_test; got %d uses", count)
 	}
+	if strings.Contains(script, `if ! timeout -k "$kill_after" "$timeout" bash -c`) {
+		t.Fatalf("tests.bats should capture timeout's exit status before branching")
+	}
+	if count := strings.Count(script, "local exit_code=0\n    if timeout -k"); count != 2 {
+		t.Fatalf("tests.bats should run timeout in a status-preserving branch in run_test and run_xfail_test; got %d branches", count)
+	}
+	if count := strings.Count(script, "else\n        exit_code=$?\n    fi"); count != 2 {
+		t.Fatalf("tests.bats should preserve timeout exit status in run_test and run_xfail_test; got %d captures", count)
+	}
+	if count := strings.Count(script, `if [ $exit_code -eq 124 ]; then`); count != 2 {
+		t.Fatalf("tests.bats should report timeout exit status in run_test and run_xfail_test; got %d checks", count)
+	}
 }
 
 func TestBatsRunWithPrefixUsesPerTestTempRoot(t *testing.T) {

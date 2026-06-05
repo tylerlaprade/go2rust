@@ -222,7 +222,8 @@ run_test() {
 
     # Run the entire test with timeout
     # shellcheck disable=SC2016
-    if ! timeout -k "$kill_after" "$timeout" bash -c '
+    local exit_code=0
+    if timeout -k "$kill_after" "$timeout" bash -c '
         test_dir="$1"
         test_tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test.XXXXXX")
         echo "$$" > "$test_tmp_root/go2rust-test.pid"
@@ -273,8 +274,14 @@ run_test() {
         fi
         
         # Use the shared helper for transpilation and comparison
-        run_transpile_and_compare "$test_dir" "$go_output"    ' _ "$test_dir"; then
-        if [ $? -eq 124 ]; then
+        run_transpile_and_compare "$test_dir" "$go_output"
+    ' _ "$test_dir"; then
+        exit_code=0
+    else
+        exit_code=$?
+    fi
+    if [ $exit_code -ne 0 ]; then
+        if [ $exit_code -eq 124 ]; then
             echo "Test timed out after $timeout"
         fi
         return 1
@@ -296,7 +303,8 @@ run_xfail_test() {
     
     # Run the entire test with timeout
     # shellcheck disable=SC2016
-    if ! timeout -k "$kill_after" "$timeout" bash -c '
+    local exit_code=0
+    if timeout -k "$kill_after" "$timeout" bash -c '
         test_dir="$1"
         test_name="$2"
         test_tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test.XXXXXX")
@@ -351,7 +359,11 @@ run_xfail_test() {
         # Use the shared helper for transpilation and comparison
         run_transpile_and_compare "$test_dir" "$go_output"
     ' _ "$test_dir" "$test_name"; then
-        local exit_code=$?
+        exit_code=0
+    else
+        exit_code=$?
+    fi
+    if [ $exit_code -ne 0 ]; then
         if [ $exit_code -eq 124 ]; then
             echo "Test timed out after $timeout"
         elif [ $exit_code -eq 2 ]; then
