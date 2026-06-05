@@ -3482,3 +3482,36 @@ func (r byteReader) ReadByte() (byte, error) {
 		t.Fatalf("promoted external interface method should delegate through the embedded field:\n%s", rust)
 	}
 }
+
+func TestSourceMappedEmbeddedRawFieldPromotedMethodsUseFieldValue(t *testing.T) {
+	rust := transpileTypedConcurrentPackageWithMapping(t, "math/big", `package big
+
+import "sync"
+
+var divisors struct {
+	sync.Mutex
+	n int
+}
+
+func use() {
+	go func() {}()
+	divisors.Lock()
+	divisors.Unlock()
+}
+`, map[string]string{"sync": "sync"})
+
+	if strings.Contains(rust, "let mut guard = embedded.lock().unwrap()") ||
+		strings.Contains(rust, "let guard = embedded.lock().unwrap()") {
+		t.Fatalf("source-mapped raw embedded field should not be unwrapped as a handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn lock(&mut self)") {
+		t.Fatalf("mutable promoted source-mapped method should require a mutable receiver:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let embedded_ref = &mut self.mutex;") {
+		t.Fatalf("promoted source-mapped sync.Mutex method should borrow the raw field directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "embedded_ref.lock()") ||
+		!strings.Contains(rust, "embedded_ref.unlock()") {
+		t.Fatalf("promoted source-mapped sync.Mutex methods should delegate to the generated field value:\n%s", rust)
+	}
+}

@@ -2217,7 +2217,11 @@ func generateExternalPromotedMethod(out *strings.Builder, method externalPromote
 		}
 		out.WriteString(">")
 	}
-	out.WriteString("(&self")
+	if method.RawEmbeddedField && method.MutableReceiver {
+		out.WriteString("(&mut self")
+	} else {
+		out.WriteString("(&self")
+	}
 	for i := 0; i < params.Len(); i++ {
 		if method.GenericArguments {
 			fmt.Fprintf(out, ", _arg%d: T%d", i, i)
@@ -2244,19 +2248,30 @@ func generateExternalPromotedMethod(out *strings.Builder, method externalPromote
 		}
 	}
 	out.WriteString(" {\n")
-	out.WriteString("        let embedded = self.")
-	out.WriteString(method.EmbeddedFieldName)
-	out.WriteString(".clone();\n")
-	if method.MutableReceiver {
-		out.WriteString("        let mut guard = embedded")
-		WriteBorrowMethod(out, true)
+	if method.RawEmbeddedField {
+		out.WriteString("        let embedded_ref = ")
+		if method.MutableReceiver {
+			out.WriteString("&mut self.")
+		} else {
+			out.WriteString("&self.")
+		}
+		out.WriteString(method.EmbeddedFieldName)
 		out.WriteString(";\n")
-		out.WriteString("        let embedded_ref = guard.as_mut().unwrap();\n")
 	} else {
-		out.WriteString("        let guard = embedded")
-		WriteBorrowMethod(out, false)
-		out.WriteString(";\n")
-		out.WriteString("        let embedded_ref = guard.as_ref().unwrap();\n")
+		out.WriteString("        let embedded = self.")
+		out.WriteString(method.EmbeddedFieldName)
+		out.WriteString(".clone();\n")
+		if method.MutableReceiver {
+			out.WriteString("        let mut guard = embedded")
+			WriteBorrowMethod(out, true)
+			out.WriteString(";\n")
+			out.WriteString("        let embedded_ref = guard.as_mut().unwrap();\n")
+		} else {
+			out.WriteString("        let guard = embedded")
+			WriteBorrowMethod(out, false)
+			out.WriteString(";\n")
+			out.WriteString("        let embedded_ref = guard.as_ref().unwrap();\n")
+		}
 	}
 	out.WriteString("        ")
 	inputHelperQualifier := goPtrHelperQualifierForFunc(method.Func)

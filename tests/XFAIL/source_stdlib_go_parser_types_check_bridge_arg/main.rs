@@ -18,6 +18,7 @@ fn main() {
     internal_cpu::__go_init_all();
     internal_filepathlite::__go_init_all();
     internal_godebug::__go_init_all();
+    internal_godebugs::__go_init_all();
     internal_goexperiment::__go_init_all();
     internal_gover::__go_init_all();
     internal_goversion::__go_init_all();

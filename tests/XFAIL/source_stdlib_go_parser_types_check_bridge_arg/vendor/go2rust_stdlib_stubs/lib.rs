@@ -945,25 +945,6 @@ impl fs_FileInfo {
 }
 
 
-#[derive(Debug, Clone, Default)]
-pub struct godebugs_Info {
-    pub opaque: Arc<Mutex<Option<bool>>>,
-}
-
-impl std::fmt::Display for godebugs_Info {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<godebugs_Info>")
-    }
-}
-
-
-impl godebugs_Info {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
-    }
-}
-
-
 #[derive(Clone)]
 pub struct io_ByteScanner {
     pub __go_id: usize,
@@ -1674,14 +1655,6 @@ pub mod fs {
 pub mod goarch {
     use super::*;
     pub const PTR_SIZE: i32 = 8;
-}
-
-
-pub mod godebugs {
-    use super::*;
-    pub fn lookup<T0>(_arg0: T0) -> Arc<Mutex<Option<godebugs_Info>>> {
-        panic!("lookup bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
 }
 
 

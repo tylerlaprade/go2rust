@@ -459,7 +459,7 @@ pub struct setting {
     pub value: Arc<Mutex<Option<sync_atomic::r#type::Pointer<value>>>>,
     pub non_default_once: sync::once::Once,
     pub non_default: Arc<Mutex<Option<sync_atomic::r#type::Uint64>>>,
-    pub info: Arc<Mutex<Option<godebugs_Info>>>,
+    pub info: GoPtr<internal_godebugs::table::Info>,
 }
 
 impl setting {
@@ -471,13 +471,13 @@ impl setting {
 
 impl Default for setting {
     fn default() -> Self {
-        Self { value: Arc::new(Mutex::new(Some(Default::default()))), non_default_once: Default::default(), non_default: Arc::new(Mutex::new(Some(Default::default()))), info: Arc::new(Mutex::new(None)) }
+        Self { value: Arc::new(Mutex::new(Some(Default::default()))), non_default_once: Default::default(), non_default: Arc::new(Mutex::new(Some(Default::default()))), info: GoPtr::nil() }
     }
 }
 
 impl std::fmt::Display for setting {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.value.lock().unwrap().as_ref().unwrap()), (*self.non_default.lock().unwrap().as_ref().unwrap()), { let __guard = self.info.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        write!(f, "{{{} {} {}}}", (*self.value.lock().unwrap().as_ref().unwrap()), (*self.non_default.lock().unwrap().as_ref().unwrap()), { if self.info.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
     }
 }
 
@@ -597,7 +597,7 @@ impl Setting {
     }
 
     pub fn register(&self) {
-        if { let __nil_target = (*self.setting.lock().unwrap().as_ref().unwrap()).info.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } || (*(*(*self.setting.lock().unwrap().as_ref().unwrap()).info.lock().unwrap().as_ref().unwrap()).opaque.lock().unwrap().as_ref().unwrap()) {
+        if { let __ptr_field = (*self.setting.lock().unwrap().as_ref().unwrap()).info.clone(); __ptr_field.is_nil() } || (*{ let __ptr_value = (*self.setting.lock().unwrap().as_ref().unwrap()).info.borrow(); __ptr_value.as_ref().unwrap().opaque.clone() }.lock().unwrap().as_ref().unwrap()) {
         panic!("{}", format!("{}{}", "godebug: unexpected IncNonDefault of ".to_string(), (*self.name.clone().lock().unwrap().as_ref().unwrap())));
     }
         register_metric(Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "/godebug/non-default-behavior/".to_string())); __s.push_str(&format!("{}", (*self.name().lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", ":events".to_string())); __s }))), Arc::new(Mutex::new(Some({ let __recv = (*self.setting.lock().unwrap().as_ref().unwrap()).non_default.clone(); Box::new(move || -> u64 { (*__recv.lock().unwrap().as_mut().unwrap()).load() }) as Box<dyn FnMut() -> u64 + Send + Sync> }))));
@@ -614,7 +614,7 @@ impl Setting {
         { let __once = self.once.clone(); let __recv_ptr = self as *mut Setting as usize; __once.r#do(Arc::new(Mutex::new(Some(Box::new(move || {
         let __recv_ref: &mut Setting = unsafe { &mut *(__recv_ptr as *mut Setting) };
         { let new_val = lookup(__recv_ref.name()).clone(); __recv_ref.setting = new_val; };
-        if { let __nil_target = (*__recv_ref.setting.lock().unwrap().as_ref().unwrap()).info.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } && !__recv_ref.undocumented() {
+        if { let __ptr_field = (*__recv_ref.setting.lock().unwrap().as_ref().unwrap()).info.clone(); __ptr_field.is_nil() } && !__recv_ref.undocumented() {
         panic!("{}", format!("{}{}", "godebug: Value of name not listed in godebugs.All: ".to_string(), (*__recv_ref.name.clone().lock().unwrap().as_ref().unwrap())));
     }
     }) as Box<dyn FnMut() -> () + Send + Sync>)))) };
@@ -670,7 +670,7 @@ pub fn lookup(name: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<setting>>> {
         }
     }
     let mut s = Arc::new(Mutex::new(Some(setting::default())));
-    { let new_val = godebugs::lookup({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }).clone(); (*s.lock().unwrap().as_mut().unwrap()).info = new_val; };
+    { let new_val = match internal_godebugs::lookup(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) { Some(__ptr) => GoPtr::slice_elem(GoSliceElemPtr::new(__ptr.slice_handle(), __ptr.index())), None => GoPtr::nil() }; (*s.lock().unwrap().as_mut().unwrap()).info = new_val; };
     (*(*s.lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_mut().unwrap()).store(sync_atomic::GoPtr::local(empty.clone()));
     {
         let (mut v, mut loaded) = (*cache.lock().unwrap().as_ref().unwrap()).load_or_store(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new(s.clone()) as Box<dyn Any + Send + Sync>))));;

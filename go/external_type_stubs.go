@@ -35,6 +35,7 @@ type externalPromotedMethod struct {
 	Signature         *types.Signature
 	GenericArguments  bool
 	MutableReceiver   bool
+	RawEmbeddedField  bool
 }
 
 type externalPackageStub struct {
@@ -488,6 +489,7 @@ func collectExternalPromotedMethods(structDef *StructDef, existingRustNames map[
 				Signature:         sig,
 				GenericArguments:  stubBacked,
 				MutableReceiver:   !stubBacked && signatureHasPointerReceiver(sig),
+				RawEmbeddedField:  promotedExternalFieldUsesRawStorage(field.Type),
 			})
 		}
 	}
@@ -502,6 +504,10 @@ func collectExternalPromotedMethods(structDef *StructDef, existingRustNames map[
 		return 0
 	})
 	return promoted
+}
+
+func promotedExternalFieldUsesRawStorage(expr ast.Expr) bool {
+	return isSourceMappedSyncParam(expr)
 }
 
 func externalEmbeddedNamed(expr ast.Expr) (*types.Named, bool) {

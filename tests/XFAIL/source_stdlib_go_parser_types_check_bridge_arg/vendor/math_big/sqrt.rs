@@ -37,24 +37,18 @@ impl AnonymousStruct1 {
 }
 
 impl AnonymousStruct1 {
-    pub fn lock(&self) {
-        let embedded = self.mutex.clone();
-        let mut guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_mut().unwrap();
+    pub fn lock(&mut self) {
+        let embedded_ref = &mut self.mutex;
         embedded_ref.lock()
     }
 
-    pub fn try_lock(&self) -> bool {
-        let embedded = self.mutex.clone();
-        let mut guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_mut().unwrap();
+    pub fn try_lock(&mut self) -> bool {
+        let embedded_ref = &mut self.mutex;
         embedded_ref.try_lock()
     }
 
-    pub fn unlock(&self) {
-        let embedded = self.mutex.clone();
-        let mut guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_mut().unwrap();
+    pub fn unlock(&mut self) {
+        let embedded_ref = &mut self.mutex;
         embedded_ref.unlock()
     }
 }
@@ -227,10 +221,8 @@ impl AnonymousStruct2 {
 }
 
 impl AnonymousStruct2 {
-    pub fn r#do(&self, _arg0: Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>) {
-        let embedded = self.once.clone();
-        let mut guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_mut().unwrap();
+    pub fn r#do(&mut self, _arg0: Arc<Mutex<Option<Box<dyn FnMut() -> () + Send + Sync>>>>) {
+        let embedded_ref = &mut self.once;
         embedded_ref.r#do(_arg0)
     }
 }
