@@ -2710,22 +2710,7 @@ func writeEmbeddedTraitObjectMethod(out *strings.Builder, method *types.Func) {
 		out.WriteString(goTypesParamTypeToRust(p.Type()))
 	}
 	out.WriteString(")")
-	res := sig.Results()
-	switch res.Len() {
-	case 0:
-	case 1:
-		out.WriteString(" -> ")
-		out.WriteString(goTypesReturnTypeToRust(res.At(0).Type()))
-	default:
-		out.WriteString(" -> (")
-		for j := 0; j < res.Len(); j++ {
-			if j > 0 {
-				out.WriteString(", ")
-			}
-			out.WriteString(goTypesReturnTypeToRust(res.At(j).Type()))
-		}
-		out.WriteString(")")
-	}
+	writeInterfaceMethodResultTypesFromFunc(out, method)
 	out.WriteString(" {\n")
 	out.WriteString("        (**self).")
 	out.WriteString(ToSnakeCase(method.Name()))
@@ -2772,22 +2757,7 @@ func writeLocalInterfaceForwardMethodFromTypes(out *strings.Builder, method *typ
 		out.WriteString(goTypesParamTypeToRust(param.Type()))
 	}
 	out.WriteString(")")
-	res := sig.Results()
-	switch res.Len() {
-	case 0:
-	case 1:
-		out.WriteString(" -> ")
-		out.WriteString(goTypesReturnTypeToRust(res.At(0).Type()))
-	default:
-		out.WriteString(" -> (")
-		for j := 0; j < res.Len(); j++ {
-			if j > 0 {
-				out.WriteString(", ")
-			}
-			out.WriteString(goTypesReturnTypeToRust(res.At(j).Type()))
-		}
-		out.WriteString(")")
-	}
+	writeInterfaceMethodResultTypesFromFunc(out, method)
 	out.WriteString(" {\n")
 	out.WriteString("        ")
 	if receiverType != "" {
@@ -2811,6 +2781,45 @@ func writeLocalInterfaceForwardMethodFromTypes(out *strings.Builder, method *typ
 	}
 	out.WriteString(")\n")
 	out.WriteString("    }\n")
+}
+
+func writeGoTypesSignatureResultTypes(out *strings.Builder, sig *types.Signature) {
+	if sig == nil || sig.Results() == nil {
+		return
+	}
+	res := sig.Results()
+	switch res.Len() {
+	case 0:
+	case 1:
+		out.WriteString(" -> ")
+		out.WriteString(goTypesReturnTypeToRust(res.At(0).Type()))
+	default:
+		out.WriteString(" -> (")
+		for j := 0; j < res.Len(); j++ {
+			if j > 0 {
+				out.WriteString(", ")
+			}
+			out.WriteString(goTypesReturnTypeToRust(res.At(j).Type()))
+		}
+		out.WriteString(")")
+	}
+}
+
+func writeInterfaceMethodResultTypesFromFunc(out *strings.Builder, method *types.Func) bool {
+	if method == nil {
+		return false
+	}
+	sig, ok := method.Type().(*types.Signature)
+	if !ok {
+		return false
+	}
+	if resultInfos, ok := goPtrResultInfosForFuncObject(method); ok {
+		if writeGoPtrFuncResultTypesFromInfos(out, sig, resultInfos) {
+			return true
+		}
+	}
+	writeGoTypesSignatureResultTypes(out, sig)
+	return true
 }
 
 func writeAnonymousStructEmbeddedInterfaceImpls(out *strings.Builder, typeName string, structType *ast.StructType) {
@@ -2873,7 +2882,6 @@ func writeEmbeddedInterfaceFieldTraitMethod(out *strings.Builder, fieldName stri
 		return
 	}
 	params := sig.Params()
-	results := sig.Results()
 	methodName := rustMethodNameForTypesFunc(method)
 	mutableReceiver := interfaceMethodRequiresMutableReceiver(method)
 
@@ -2889,21 +2897,7 @@ func writeEmbeddedInterfaceFieldTraitMethod(out *strings.Builder, fieldName stri
 		fmt.Fprintf(out, ", _arg%d: %s", i, goTypesParamTypeToRust(params.At(i).Type()))
 	}
 	out.WriteString(")")
-	if results.Len() > 0 {
-		out.WriteString(" -> ")
-		if results.Len() == 1 {
-			out.WriteString(goTypesReturnTypeToRust(results.At(0).Type()))
-		} else {
-			out.WriteString("(")
-			for i := 0; i < results.Len(); i++ {
-				if i > 0 {
-					out.WriteString(", ")
-				}
-				out.WriteString(goTypesReturnTypeToRust(results.At(i).Type()))
-			}
-			out.WriteString(")")
-		}
-	}
+	writeInterfaceMethodResultTypesFromFunc(out, method)
 	out.WriteString(" {\n")
 	out.WriteString("        let embedded = self.")
 	out.WriteString(fieldName)
@@ -3197,22 +3191,7 @@ func writePointerLocalInterfaceForwardMethodFromTypes(out *strings.Builder, meth
 		out.WriteString(goTypesParamTypeToRust(param.Type()))
 	}
 	out.WriteString(")")
-	res := sig.Results()
-	switch res.Len() {
-	case 0:
-	case 1:
-		out.WriteString(" -> ")
-		out.WriteString(goTypesReturnTypeToRust(res.At(0).Type()))
-	default:
-		out.WriteString(" -> (")
-		for j := 0; j < res.Len(); j++ {
-			if j > 0 {
-				out.WriteString(", ")
-			}
-			out.WriteString(goTypesReturnTypeToRust(res.At(j).Type()))
-		}
-		out.WriteString(")")
-	}
+	writeInterfaceMethodResultTypesFromFunc(out, method)
 	out.WriteString(" {\n")
 	out.WriteString("        let ")
 	if mutableReceiver {
@@ -5286,6 +5265,7 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		// `&dyn SubTrait` upcasts to `&dyn SuperTrait` automatically.
 		TrackImport("Any")
 		embeddedTraits := embeddedLocalInterfaceNames(t)
+		ifaceTypes := localInterfaceTypesFromTypeSpec(typeSpec)
 		out.WriteString("pub trait ")
 		out.WriteString(rustTypeName)
 		out.WriteString(":")
@@ -5351,7 +5331,11 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 
 				out.WriteString(")")
 
-				writeFunctionResultTypes(out, funcType)
+				if methodObj := interfaceMethodByName(ifaceTypes, method.Names[0].Name); methodObj != nil {
+					writeInterfaceMethodResultTypesFromFunc(out, methodObj)
+				} else {
+					writeFunctionResultTypes(out, funcType)
+				}
 
 				out.WriteString(";\n")
 			}

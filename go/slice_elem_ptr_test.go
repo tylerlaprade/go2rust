@@ -1494,6 +1494,55 @@ func (r rtype) set(v int) {
 	}
 }
 
+func TestGoPtrInterfaceMethodReturnUsesConcreteGoPtrResult(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type Type struct {
+	Value int
+}
+
+type HasCommon interface {
+	common() *Type
+}
+
+type rtype struct {
+	*Type
+}
+
+func raw(addr uintptr) *Type {
+	return (*Type)(unsafe.Pointer(addr))
+}
+
+func forceFieldGoPtr(r rtype, addr uintptr, flag bool) *Type {
+	if flag {
+		return raw(addr)
+	}
+	return r.Type
+}
+
+func (r rtype) common() *Type {
+	return r.Type
+}
+
+func use(h HasCommon) *Type {
+	return h.common()
+}
+	`)
+
+	if !strings.Contains(rust, "pub trait HasCommon") || !strings.Contains(rust, "fn common(&self) -> GoPtr<Type>;") {
+		t.Fatalf("interface method returning a concrete GoPtr result should use GoPtr in the trait signature:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl HasCommon for rtype") || !strings.Contains(rust, "fn common(&self) -> GoPtr<Type>") {
+		t.Fatalf("interface implementation should match the concrete GoPtr-returning method:\n%s", rust)
+	}
+	if strings.Contains(rust, "fn common(&self) -> Rc<RefCell<Option<Type>>>") ||
+		strings.Contains(rust, "fn common(&self) -> Arc<Mutex<Option<Type>>>") {
+		t.Fatalf("interface method should not keep the old pointer wrapper result when the concrete method returns GoPtr:\n%s", rust)
+	}
+}
+
 func TestGoPtrLocalAssignedFromRegisteredFieldUsesGoPtr(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
@@ -3480,6 +3529,44 @@ func use(buf []byte) {
 	}
 	if !strings.Contains(rust, "leaf(p.clone())") {
 		t.Fatalf("forwarded GoPtr parameter should pass through to noescape callee:\n%s", rust)
+	}
+}
+
+func TestGoPtrParamPromotesNoEscapeBodylessExistingGoPtrArg(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type Type struct {
+	Value int
+}
+
+//go:noescape
+func touch(t *Type)
+
+func raw(addr uintptr) *Type {
+	return (*Type)(unsafe.Pointer(addr))
+}
+
+func get(addr uintptr) *Type {
+	return raw(addr)
+}
+
+func use(addr uintptr) {
+	t := get(addr)
+	touch(t)
+	touch(get(addr))
+}
+`)
+
+	if !strings.Contains(rust, "fn touch(t: GoPtr<Type>)") {
+		t.Fatalf("noescape bodyless function should accept existing GoPtr arguments directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "touch(t.clone())") {
+		t.Fatalf("noescape bodyless call should pass a GoPtr local directly:\n%s", rust)
+	}
+	if strings.Contains(rust, `unimplemented!("GoPtr parameter argument requires pointer-compatible value")`) {
+		t.Fatalf("noescape GoPtr call argument should not hit the unsupported GoPtr path:\n%s", rust)
 	}
 }
 

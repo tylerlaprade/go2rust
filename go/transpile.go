@@ -1240,22 +1240,7 @@ func writeAnonymousInterfaceTraitMethodSigFromTypes(out *strings.Builder, method
 		out.WriteString(goTypesParamTypeToRust(param.Type()))
 	}
 	out.WriteString(")")
-	res := sig.Results()
-	switch res.Len() {
-	case 0:
-	case 1:
-		out.WriteString(" -> ")
-		out.WriteString(goTypesReturnTypeToRust(res.At(0).Type()))
-	default:
-		out.WriteString(" -> (")
-		for j := 0; j < res.Len(); j++ {
-			if j > 0 {
-				out.WriteString(", ")
-			}
-			out.WriteString(goTypesReturnTypeToRust(res.At(j).Type()))
-		}
-		out.WriteString(")")
-	}
+	writeInterfaceMethodResultTypesFromFunc(out, method)
 	out.WriteString(";\n")
 }
 
@@ -1691,7 +1676,11 @@ func writeExternalLocalInterfaceMethod(out *strings.Builder, ifaceName string, m
 		}
 	}
 	out.WriteString(")")
-	writeFunctionResultTypes(out, funcType)
+	if methodObj != nil {
+		writeInterfaceMethodResultTypesFromFunc(out, methodObj)
+	} else {
+		writeFunctionResultTypes(out, funcType)
+	}
 	out.WriteString(" {\n")
 	if impl.sourcePointerWrapper {
 		methodRustName := RustFunctionName(methodName)

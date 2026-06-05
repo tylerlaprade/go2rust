@@ -678,6 +678,9 @@ func goPtrResultInfosForFuncObject(fn *types.Func) (map[int]goPtrResultInfo, boo
 			return result, true
 		}
 	}
+	if result, ok := goPtrResultInfosForLocalInterfaceMethod(fn); ok {
+		return result, true
+	}
 	if sourceFunctionDeclsByFunc != nil {
 		if sourceFn, sourceInfo, ok := sourceFunctionDeclObjectForFunc(fn); ok {
 			if result, ok := goPtrResultInfosForSourceDecl(sourceFn, sourceInfo); ok {
@@ -689,6 +692,94 @@ func goPtrResultInfosForFuncObject(fn *types.Func) (map[int]goPtrResultInfo, boo
 		return result, true
 	}
 	return nil, false
+}
+
+func goPtrResultInfosForLocalInterfaceMethod(fn *types.Func) (map[int]goPtrResultInfo, bool) {
+	if fn == nil {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil || typeInfo.pkg.Scope() == nil {
+		return nil, false
+	}
+	for _, name := range typeInfo.pkg.Scope().Names() {
+		obj, ok := typeInfo.pkg.Scope().Lookup(name).(*types.TypeName)
+		if !ok {
+			continue
+		}
+		named, ok := types.Unalias(obj.Type()).(*types.Named)
+		if !ok {
+			continue
+		}
+		iface, ok := types.Unalias(named.Underlying()).(*types.Interface)
+		if !ok {
+			continue
+		}
+		iface.Complete()
+		for i := 0; i < iface.NumMethods(); i++ {
+			if iface.Method(i) != fn {
+				continue
+			}
+			return goPtrResultInfosForInterfaceMethod(name, fn.Name())
+		}
+	}
+	return nil, false
+}
+
+func goPtrResultInfosForInterfaceMethod(ifaceName string, methodName string) (map[int]goPtrResultInfo, bool) {
+	if ifaceName == "" || methodName == "" {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil || typeInfo.pkg.Scope() == nil {
+		return nil, false
+	}
+	iface := localInterfaceTypesByName(ifaceName)
+	if iface == nil {
+		return nil, false
+	}
+	iface.Complete()
+	var result map[int]goPtrResultInfo
+	for _, typeName := range typeInfo.pkg.Scope().Names() {
+		if typeName == ifaceName {
+			continue
+		}
+		obj, ok := typeInfo.pkg.Scope().Lookup(typeName).(*types.TypeName)
+		if !ok {
+			continue
+		}
+		named, ok := types.Unalias(obj.Type()).(*types.Named)
+		if !ok {
+			continue
+		}
+		if _, isInterface := types.Unalias(named.Underlying()).(*types.Interface); isInterface {
+			continue
+		}
+		if !types.Implements(named, iface) && !types.Implements(types.NewPointer(named), iface) {
+			continue
+		}
+		method := methodDeclByName(methodsForReceiverType(typeName), methodName)
+		if method == nil {
+			continue
+		}
+		infos := goPtrResultInfosForFunc(method)
+		if len(infos) == 0 {
+			continue
+		}
+		if result == nil {
+			result = make(map[int]goPtrResultInfo)
+		}
+		for index, info := range infos {
+			if previous, exists := result[index]; exists && goPtrResultElemRustType(previous) != goPtrResultElemRustType(info) {
+				return nil, false
+			}
+			result[index] = info
+		}
+	}
+	if len(result) == 0 {
+		return nil, false
+	}
+	return result, true
 }
 
 func goPtrResultInfosForSourceDecl(sourceFn *types.Func, sourceInfo sourceFunctionDeclInfo) (map[int]goPtrResultInfo, bool) {
@@ -2437,7 +2528,7 @@ func registerGoPtrParamsFromFiles(files []*ast.File) {
 					for i, arg := range call.Args {
 						var argElemRustType string
 						if calleeNoEscapeBodyless && !calleeHasBody {
-							argElemRustType, ok = forwardedGoPtrArgElemRustType(arg, currentFn)
+							argElemRustType, ok = noEscapeBodylessGoPtrArgElemRustType(arg, currentFn, goPtrCandidates)
 						} else {
 							argElemRustType, ok = goPtrArgElemRustType(arg, currentFn, sliceCandidates, arrayCandidates, goPtrCandidates)
 						}
@@ -2756,6 +2847,39 @@ func forwardedGoPtrArgElemRustType(arg ast.Expr, currentFn *types.Func) (string,
 	obj := typeInfo.GetObject(ident)
 	if elemRustType, ok := goPtrParamElemRustTypeForObject(currentFn, obj); ok {
 		return elemRustType, true
+	}
+	return "", false
+}
+
+func noEscapeBodylessGoPtrArgElemRustType(arg ast.Expr, currentFn *types.Func, goPtrCandidates map[types.Object]goPtrResultInfo) (string, bool) {
+	if elemRustType, ok := forwardedGoPtrArgElemRustType(arg, currentFn); ok {
+		return elemRustType, true
+	}
+	switch expr := unwrapParens(arg).(type) {
+	case *ast.CallExpr:
+		if info, ok := goPtrResultInfoForCall(expr, 0); ok {
+			return goPtrResultElemRustType(info), true
+		}
+	case *ast.Ident:
+		if expr.Name == "nil" || expr.Name == "_" {
+			return "", false
+		}
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil {
+			if obj := typeInfo.GetObject(expr); obj != nil {
+				if info, ok := goPtrCandidates[obj]; ok {
+					return goPtrResultElemRustType(info), true
+				}
+			}
+		}
+	case *ast.SelectorExpr:
+		if info, ok := sliceElemPtrFieldInfoForSelector(expr); ok && generatedGoPtrFieldForSelector(expr) {
+			return sliceElemPtrFieldElemRustType(info), true
+		}
+	case *ast.IndexExpr:
+		if info, ok := goPtrArrayFieldInfoForIndexExpr(expr); ok {
+			return goPtrArrayFieldElemRustType(info), true
+		}
 	}
 	return "", false
 }
