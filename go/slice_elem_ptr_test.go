@@ -1406,6 +1406,62 @@ func makePtr(h *Holder, flag int) *Type {
 	}
 }
 
+func TestGoPtrReturnMergesEmbeddedPointerFieldAndRawPointer(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type Type struct {
+	Value int
+}
+
+type rtype struct {
+	*Type
+}
+
+func raw(addr uintptr) *Type {
+	return (*Type)(unsafe.Pointer(addr))
+}
+
+func forceConcurrent(ch chan bool) {
+	go func() {
+		ch <- true
+	}()
+}
+
+func common(r rtype, addr uintptr, flag bool) *Type {
+	if flag {
+		return raw(addr)
+	}
+	return r.Type
+}
+
+func (r rtype) value() int {
+	return r.Value
+}
+`)
+
+	if !strings.Contains(rust, "pub r#type: GoPtr<Type>") {
+		t.Fatalf("embedded pointer field returned through a GoPtr result should use GoPtr storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn common(") || !strings.Contains(rust, " -> GoPtr<Type>") {
+		t.Fatalf("function merging raw pointer and embedded pointer field returns should use GoPtr result type:\n%s", rust)
+	}
+	if strings.Contains(rust, "pub r#type: Rc<RefCell<Option<Type>>>") ||
+		strings.Contains(rust, "pub r#type: Arc<Mutex<Option<Type>>>") {
+		t.Fatalf("embedded pointer field should not keep ordinary pointer wrapper storage once returned as GoPtr:\n%s", rust)
+	}
+	if strings.Contains(rust, "GoPtr::local(r.r#type.clone())") {
+		t.Fatalf("returning an embedded GoPtr field should not rewrap the field handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "self.r#type.lock()") {
+		t.Fatalf("promoted field read through an embedded GoPtr field should not lock the GoPtr as an ordinary wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "self.r#type.with_mut(|__ptr_value| { let __field = __ptr_value.value.clone(); __field })") {
+		t.Fatalf("promoted field read through an embedded GoPtr field should use the GoPtr pointee handle:\n%s", rust)
+	}
+}
+
 func TestGoPtrLocalAssignedFromRegisteredFieldUsesGoPtr(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

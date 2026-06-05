@@ -60,6 +60,11 @@ type sliceElemPtrFieldInfo struct {
 	elemType     types.Type
 }
 
+type goPtrFieldReturnCandidate struct {
+	key  string
+	info sliceElemPtrFieldInfo
+}
+
 type goPtrArrayFieldInfo struct {
 	elemRustType string
 	ownerPkgPath string
@@ -470,6 +475,7 @@ func goPtrResultInfosForFunc(fn *ast.FuncDecl) map[int]goPtrResultInfo {
 	valid := map[int]bool{}
 	saw := map[int]bool{}
 	infos := map[int]goPtrResultInfo{}
+	fieldReturnCandidates := map[int][]goPtrFieldReturnCandidate{}
 	for index := range expected {
 		valid[index] = true
 	}
@@ -548,6 +554,12 @@ func goPtrResultInfosForFunc(fn *ast.FuncDecl) map[int]goPtrResultInfo {
 					continue
 				}
 				if !valueSaw {
+					if candidate, ok := goPtrFieldReturnCandidateForExpr(n.Results[index]); ok {
+						fieldInfo := goPtrResultInfo{elemRustType: candidate.info.elemRustType, elemType: candidate.info.elemType}
+						if goPtrResultElemRustType(fieldInfo) == elemRustType {
+							fieldReturnCandidates[index] = append(fieldReturnCandidates[index], candidate)
+						}
+					}
 					continue
 				}
 				if goPtrResultElemRustType(info) != elemRustType {
@@ -569,6 +581,12 @@ func goPtrResultInfosForFunc(fn *ast.FuncDecl) map[int]goPtrResultInfo {
 	for index, info := range infos {
 		if valid[index] && saw[index] {
 			result[index] = info
+			for _, candidate := range fieldReturnCandidates[index] {
+				fieldInfo := goPtrResultInfo{elemRustType: candidate.info.elemRustType, elemType: candidate.info.elemType}
+				if goPtrResultElemCompatible(fieldInfo, info) {
+					registerSliceElemPtrFieldInfoForKey(candidate.key, candidate.info)
+				}
+			}
 		}
 	}
 	if len(result) == 0 {
@@ -576,6 +594,18 @@ func goPtrResultInfosForFunc(fn *ast.FuncDecl) map[int]goPtrResultInfo {
 	}
 	registerGoPtrResultInfosForDecl(fn, result)
 	return result
+}
+
+func goPtrFieldReturnCandidateForExpr(expr ast.Expr) (goPtrFieldReturnCandidate, bool) {
+	sel, ok := unwrapParens(expr).(*ast.SelectorExpr)
+	if !ok {
+		return goPtrFieldReturnCandidate{}, false
+	}
+	key, info, ok := sliceElemPtrFieldKeyForSelector(sel)
+	if !ok {
+		return goPtrFieldReturnCandidate{}, false
+	}
+	return goPtrFieldReturnCandidate{key: key, info: info}, true
 }
 
 func goPtrPointerResultElemTypes(sig *types.Signature) map[int]string {
@@ -5302,6 +5332,67 @@ func writeGoPtrCurrentReceiverFieldSelector(out *strings.Builder, fieldInfo Fiel
 	out.WriteString(".as_ref().unwrap()")
 	writeSelectorRValueClose(out, sel)
 	return true
+}
+
+func writeGoPtrCurrentReceiverEmbeddedPromotedFieldSelector(out *strings.Builder, fieldInfo FieldAccessInfo, sel *ast.SelectorExpr, ctx ExprContext) bool {
+	embeddedFieldName, remainingPath, ok := goPtrEmbeddedPromotedFieldAccess(sel, fieldInfo)
+	if !ok {
+		return false
+	}
+	if ctx == LValue || ctx == AddressOf {
+		writeGoPtrCurrentReceiverEmbeddedPromotedFieldHandle(out, fieldInfo, embeddedFieldName, remainingPath)
+		return true
+	}
+	if typeInfoIsPointerExpr(sel) || selectorExpressionKeepsHandle(sel) {
+		writeGoPtrCurrentReceiverEmbeddedPromotedFieldHandle(out, fieldInfo, embeddedFieldName, remainingPath)
+		return true
+	}
+	out.WriteString("(*")
+	writeGoPtrCurrentReceiverEmbeddedPromotedFieldHandle(out, fieldInfo, embeddedFieldName, remainingPath)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()")
+	writeSelectorRValueClose(out, sel)
+	return true
+}
+
+func goPtrEmbeddedPromotedFieldAccess(sel *ast.SelectorExpr, fieldInfo FieldAccessInfo) (string, []string, bool) {
+	if !fieldInfo.IsPromoted || len(fieldInfo.EmbeddedPath) == 0 {
+		return "", nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if sel == nil || typeInfo == nil || typeInfo.info == nil {
+		return "", nil, false
+	}
+	selection := typeInfo.info.Selections[sel]
+	if selection == nil || selection.Kind() != types.FieldVal {
+		return "", nil, false
+	}
+	owner := sliceElemPtrDerefPointerType(selection.Recv())
+	key := sliceElemPtrFieldKeyForOwnerType(owner, fieldInfo.EmbeddedPath[0])
+	if key == "" || !generatedGoPtrFieldForKey(key) {
+		return "", nil, false
+	}
+	if _, ok := sliceElemPtrFieldInfoForKey(key); !ok {
+		return "", nil, false
+	}
+	return ToSnakeCase(fieldInfo.EmbeddedPath[0]), fieldInfo.EmbeddedPath[1:], true
+}
+
+func writeGoPtrCurrentReceiverEmbeddedPromotedFieldHandle(out *strings.Builder, fieldInfo FieldAccessInfo, embeddedFieldName string, remainingPath []string) {
+	out.WriteString("{ let __ptr_value = ")
+	out.WriteString(currentReceiverRustName())
+	out.WriteString(".")
+	out.WriteString(embeddedFieldName)
+	out.WriteString(".with_mut(|__ptr_value| { let __field = __ptr_value")
+	for _, embedded := range remainingPath {
+		out.WriteString(".")
+		out.WriteString(ToSnakeCase(embedded))
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()")
+	}
+	out.WriteString(".")
+	out.WriteString(fieldInfo.FieldName)
+	out.WriteString(".clone(); __field }); __ptr_value }")
 }
 
 func writeGoPtrLocalFieldHandle(out *strings.Builder, ident *ast.Ident, fieldInfo FieldAccessInfo) {

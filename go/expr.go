@@ -11027,6 +11027,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if writeGoPtrCurrentReceiverFieldSelector(out, fieldInfo, e, ctx) {
 					break
 				}
+				if writeGoPtrCurrentReceiverEmbeddedPromotedFieldSelector(out, fieldInfo, e, ctx) {
+					break
+				}
 				if fieldInfo.IsPromoted {
 					// Accessing promoted field through embedded struct(s)
 					// For nested embedding like C.B.A.x, we need:

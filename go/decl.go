@@ -5227,7 +5227,17 @@ func emitStructTypeDeclBody(out *strings.Builder, typeSpec *ast.TypeSpec, t *ast
 			out.WriteString("    pub ")
 			out.WriteString(ToSnakeCase(fieldName))
 			out.WriteString(": ")
-			out.WriteString(GoTypeToRust(field.Type))
+			if fieldInfo, ok := goPtrArrayFieldInfoForStructField(typeSpec, t, structName, fieldName); ok {
+				out.WriteString(goPtrArrayFieldRustType(fieldInfo))
+			} else if fieldInfo, ok := sliceElemPtrFieldInfoForStructField(typeSpec, t, structName, fieldName); ok {
+				recordGeneratedGoPtrFieldForStructField(typeSpec, t, structName, fieldName)
+				NeedSliceElemPtr()
+				out.WriteString("GoPtr<")
+				out.WriteString(sliceElemPtrFieldElemRustType(fieldInfo))
+				out.WriteString(">")
+			} else {
+				out.WriteString(GoTypeToRust(field.Type))
+			}
 			out.WriteString(",\n")
 		}
 	}
