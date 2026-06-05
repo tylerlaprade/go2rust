@@ -543,6 +543,8 @@ cleanup_temp_root() {
         -name 'go2rust-token-probe.*' -o \
         -name 'go2rust-typeid.*' -o \
         -name 'go2rust-anyptr.*' -o \
+        -name 'go2rust-debug-*' -o \
+        -name 'go2rust-*-debug' -o \
         -name 'go2rust-rust-work.*' \
     \) -print 2>/dev/null)
 
