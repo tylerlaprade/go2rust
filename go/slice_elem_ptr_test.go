@@ -3570,6 +3570,43 @@ func use(addr uintptr) {
 	}
 }
 
+func TestGoPtrParamPromotesBodylessExistingGoPtrArg(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type Type struct {
+	Value int
+}
+
+func touch(t *Type)
+
+func raw(addr uintptr) *Type {
+	return (*Type)(unsafe.Pointer(addr))
+}
+
+func get(addr uintptr) *Type {
+	return raw(addr)
+}
+
+func use(addr uintptr) {
+	t := get(addr)
+	touch(t)
+	touch(get(addr))
+}
+`)
+
+	if !strings.Contains(rust, "fn touch(t: GoPtr<Type>)") {
+		t.Fatalf("bodyless function should accept existing GoPtr arguments directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "touch(t.clone())") {
+		t.Fatalf("bodyless call should pass a GoPtr local directly:\n%s", rust)
+	}
+	if strings.Contains(rust, `unimplemented!("GoPtr parameter argument requires pointer-compatible value")`) {
+		t.Fatalf("bodyless GoPtr call argument should not hit the unsupported GoPtr path:\n%s", rust)
+	}
+}
+
 func TestGoPtrReturnPropagatesThroughMixedAtomicPointerAndLocalReturns(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
@@ -3955,6 +3992,41 @@ func use(buf []byte) uintptr {
 	}
 	if !strings.Contains(rust, "p.addr()") {
 		t.Fatalf("unsafe.Pointer conversion from GoPtr should use the GoPtr address token:\n%s", rust)
+	}
+}
+
+func TestGoPtrUnsafePointerToUintptrUsesCallResultAddress(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type Type struct {
+	Value int
+}
+
+type Value struct {
+	ptr uintptr
+}
+
+func raw(addr uintptr) *Type {
+	return (*Type)(unsafe.Pointer(addr))
+}
+
+func (v Value) typ() *Type {
+	return raw(v.ptr)
+}
+
+func addr(v Value) uintptr {
+	return uintptr(unsafe.Pointer(v.typ()))
+}
+`)
+
+	if strings.Contains(rust, "Arc::as_ptr(&(*v.borrow().as_ref().unwrap()).typ())") ||
+		strings.Contains(rust, "Rc::as_ptr(&(*v.borrow().as_ref().unwrap()).typ())") {
+		t.Fatalf("unsafe.Pointer conversion from a GoPtr call result should not call wrapper as_ptr on GoPtr:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".typ().addr()") {
+		t.Fatalf("unsafe.Pointer conversion from a GoPtr call result should use the GoPtr address token:\n%s", rust)
 	}
 }
 

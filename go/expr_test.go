@@ -8412,6 +8412,37 @@ func line(w *wrapped) int {
 	}
 }
 
+func TestPromotedNamedIntegerMethodUsesEmbeddedFieldReceiver(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type flag uintptr
+
+func (f flag) kind() int {
+	return int(f)
+}
+
+func (f flag) mustBeExported() {}
+
+type Value struct {
+	flag
+}
+
+func use(x Value) int {
+	x.mustBeExported()
+	return x.kind()
+}`)
+
+	if strings.Contains(rust, "flag::must_be_exported(&(*x.borrow().as_ref().unwrap()))") ||
+		strings.Contains(rust, "flag::kind(&(*x.borrow().as_ref().unwrap()))") {
+		t.Fatalf("promoted named-integer method should not use the outer struct as the receiver:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".flag.clone()") ||
+		!strings.Contains(rust, ".must_be_exported()") ||
+		!strings.Contains(rust, ".kind()") {
+		t.Fatalf("promoted named-integer method should dispatch through the embedded field:\n%s", rust)
+	}
+}
+
 func TestPromotedPointerFieldDoesNotUseReceiverMethodName(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

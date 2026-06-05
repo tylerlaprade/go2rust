@@ -2521,14 +2521,10 @@ func registerGoPtrParamsFromFiles(files []*ast.File) {
 						return true
 					}
 					calleeHasBody := sourceFunctionHasBody(callee)
-					calleeNoEscapeBodyless := sourceFunctionIsNoEscapeBodyless(callee)
-					if !calleeHasBody && !calleeNoEscapeBodyless {
-						return true
-					}
 					for i, arg := range call.Args {
 						var argElemRustType string
-						if calleeNoEscapeBodyless && !calleeHasBody {
-							argElemRustType, ok = noEscapeBodylessGoPtrArgElemRustType(arg, currentFn, goPtrCandidates)
+						if !calleeHasBody {
+							argElemRustType, ok = bodylessGoPtrArgElemRustType(arg, currentFn, goPtrCandidates)
 						} else {
 							argElemRustType, ok = goPtrArgElemRustType(arg, currentFn, sliceCandidates, arrayCandidates, goPtrCandidates)
 						}
@@ -2851,7 +2847,7 @@ func forwardedGoPtrArgElemRustType(arg ast.Expr, currentFn *types.Func) (string,
 	return "", false
 }
 
-func noEscapeBodylessGoPtrArgElemRustType(arg ast.Expr, currentFn *types.Func, goPtrCandidates map[types.Object]goPtrResultInfo) (string, bool) {
+func bodylessGoPtrArgElemRustType(arg ast.Expr, currentFn *types.Func, goPtrCandidates map[types.Object]goPtrResultInfo) (string, bool) {
 	if elemRustType, ok := forwardedGoPtrArgElemRustType(arg, currentFn); ok {
 		return elemRustType, true
 	}

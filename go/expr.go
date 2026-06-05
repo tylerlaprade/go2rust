@@ -10535,6 +10535,9 @@ func writeNamedIntegerValueReceiverMethodCall(out *strings.Builder, sel *ast.Sel
 	if !ok || selection.Kind() != types.MethodVal {
 		return false
 	}
+	if len(selection.Index()) > 1 {
+		return false
+	}
 	fn, ok := selection.Obj().(*types.Func)
 	if !ok {
 		return false
@@ -16412,6 +16415,14 @@ func writeUnsafePointerConversion(out *strings.Builder, arg ast.Expr) {
 		return
 	}
 	if typeInfo.IsPointer(arg) {
+		if call, ok := unwrapParens(arg).(*ast.CallExpr); ok {
+			if _, ok := goPtrResultInfoForCall(call, 0); ok {
+				TranspileExpression(out, call)
+				out.WriteString(".addr()")
+				WriteWrapperSuffix(out)
+				return
+			}
+		}
 		if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
 			if isCurrentReceiverIdent(ident) {
 				out.WriteString("self as *const _ as usize")
