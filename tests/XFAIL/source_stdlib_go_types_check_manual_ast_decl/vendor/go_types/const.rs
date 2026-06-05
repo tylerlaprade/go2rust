@@ -97,9 +97,9 @@ impl crate::check::Checker {
                 // their type after each constant operation.
                 // x.typ cannot be a type parameter (type
                 // parameters cannot be constant types).
-        if is_typed((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        if is_typed({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
         self.representable(x.clone(), ({
-        let val = under((*x.lock().unwrap().as_ref().unwrap()).typ.clone()).clone();
+        let val = under({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }).clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = <dyn Type + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<crate::basic::BasicPtr>() {
@@ -116,8 +116,8 @@ impl crate::check::Checker {
                 // Untyped integer values must not grow arbitrarily.
         const prec: i32 = 512;
 
-        if { let __tmp_x = (*(*(*x.lock().unwrap().as_ref().unwrap()).val.lock().unwrap().as_ref().unwrap()).kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_constant::value::Kind(Arc::new(Mutex::new(Some(go_constant::INT as i32)))); __tmp_x == __tmp_y } && { let __tmp_x = go_constant::bit_len((*x.lock().unwrap().as_ref().unwrap()).val.clone()); let __tmp_y = 512; __tmp_x > __tmp_y } {
-        let mut op = op_name((*x.lock().unwrap().as_ref().unwrap()).expr.clone());
+        if { let __tmp_x = (*(*(*x.lock().unwrap().as_ref().unwrap()).val.lock().unwrap().as_ref().unwrap()).kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_constant::value::Kind(Arc::new(Mutex::new(Some(go_constant::INT as i32)))); __tmp_x == __tmp_y } && { let __tmp_x = go_constant::bit_len({ let __field = (*x.lock().unwrap().as_ref().unwrap()).val.clone(); __field }); let __tmp_y = 512; __tmp_x > __tmp_y } {
+        let mut op = op_name({ let __field = (*x.lock().unwrap().as_ref().unwrap()).expr.clone(); __field });
         if { let __tmp_x = (*op.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
         { (*op.lock().unwrap().as_mut().unwrap()).push_str(&" ".to_string()); };
     }
@@ -146,8 +146,8 @@ impl crate::check::Checker {
     pub fn representation(&self, x: Arc<Mutex<Option<operand>>>, typ: Arc<Mutex<Option<Basic>>>) -> (Arc<Mutex<Option<Box<dyn go_constant::value::Value + Send + Sync>>>>, Arc<Mutex<Option<internal_types_errors::codes::Code>>>) {
         assert(Arc::new(Mutex::new(Some({ let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(CONSTANT_ as u8)))); __tmp_x == __tmp_y }))));
         let mut v = (*x.lock().unwrap().as_ref().unwrap()).val.clone();
-        if !representable_const((*x.lock().unwrap().as_ref().unwrap()).val.clone(), Arc::new(Mutex::new(Some(self.clone()))), typ.clone(), v.clone()) {
-        if is_numeric((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) && is_numeric(Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr(typ.clone())) as Box<dyn Type + Send + Sync>)))) {
+        if !representable_const({ let __field = (*x.lock().unwrap().as_ref().unwrap()).val.clone(); __field }, Arc::new(Mutex::new(Some(self.clone()))), typ.clone(), v.clone()) {
+        if is_numeric({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) && is_numeric(Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr(typ.clone())) as Box<dyn Type + Send + Sync>)))) {
                 // numeric conversion : error msg
                 //
                 // integer -> integer : overflows
@@ -155,7 +155,7 @@ impl crate::check::Checker {
                 // float   -> integer : truncated
                 // float   -> float   : overflows
                 //
-        if !is_integer((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) && is_integer(Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr(typ.clone())) as Box<dyn Type + Send + Sync>)))) {
+        if !is_integer({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) && is_integer(Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr(typ.clone())) as Box<dyn Type + Send + Sync>)))) {
         return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(TRUNCATED_FLOAT as i32))))))));
     } else {
         return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(NUMERIC_OVERFLOW as i32))))))));
@@ -206,11 +206,11 @@ impl crate::check::Checker {
     }
         if (*val.lock().unwrap()).is_some() {
         { let __iface_handle = val.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).val.lock().unwrap() = (*__iface_guard).clone(); };
-        self.update_expr_val((*x.lock().unwrap().as_ref().unwrap()).expr.clone(), val.clone());
+        self.update_expr_val({ let __field = (*x.lock().unwrap().as_ref().unwrap()).expr.clone(); __field }, val.clone());
     }
         if { let __left_holder = newType.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; !__eq } {
         { let __iface_handle = newType.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
-        self.update_expr_type((*x.lock().unwrap().as_ref().unwrap()).expr.clone(), newType.clone(), Arc::new(Mutex::new(Some(false))));
+        self.update_expr_type({ let __field = (*x.lock().unwrap().as_ref().unwrap()).expr.clone(); __field }, newType.clone(), Arc::new(Mutex::new(Some(false))));
     }
     }
 }

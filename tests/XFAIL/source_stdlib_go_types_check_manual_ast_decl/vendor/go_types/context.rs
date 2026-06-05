@@ -185,13 +185,13 @@ impl Context {
         ctxt_defer_captured.mu.unlock();
     }));
             { let __range_holder = { let __map = { let __map_holder = self.type_map.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*h.lock().unwrap().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for e in __range_values.iter() {
-        if identical_instance(orig.clone(), targs.clone(), e.orig.clone(), { let __field = e.targs.clone(); __field }) {
+        if identical_instance(orig.clone(), targs.clone(), { let __field = e.orig.clone(); __field }, { let __field = e.targs.clone(); __field }) {
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return e.instance.clone();
+        return { let __field = e.instance.clone(); __field };
     }
     }
         if DEBUG {
@@ -238,13 +238,13 @@ impl Context {
         ctxt_defer_captured.mu.unlock();
     }));
             { let __range_holder = { let __map = { let __map_holder = self.type_map.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*h.lock().unwrap().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for e in __range_values.iter() {
-        if (*inst.lock().unwrap()).is_none() || identical(inst.clone(), e.instance.clone()) {
+        if (*inst.lock().unwrap()).is_none() || identical(inst.clone(), { let __field = e.instance.clone(); __field }) {
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return e.instance.clone();
+        return { let __field = e.instance.clone(); __field };
     }
     }
         if DEBUG {

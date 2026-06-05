@@ -267,7 +267,7 @@ impl crate::check::Checker {
             { let new_val = s.clone(); lstmt_closure_clone = new_val; };;
         }
     };
-        { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>>) -> () + Send + Sync> = { let mut __f_guard = stmtBranches_closure_clone.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*s.lock().unwrap().as_ref().unwrap()).stmt.clone()) };;
+        { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>>) -> () + Send + Sync> = { let mut __f_guard = stmtBranches_closure_clone.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)({ let __field = (*s.lock().unwrap().as_ref().unwrap()).stmt.clone(); __field }) };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::BranchStmtPtr>()).is_some() {
         let s = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::BranchStmtPtr>()).unwrap().0.clone();
         if { let __nil_target = (*s.lock().unwrap().as_ref().unwrap()).label.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
@@ -370,7 +370,7 @@ impl crate::check::Checker {
         let s = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IfStmtPtr>()).unwrap().0.clone();
         { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>>) -> () + Send + Sync> = { let mut __f_guard = stmtBranches_closure_clone.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BlockStmtPtr((*s.lock().unwrap().as_ref().unwrap()).body.clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>)))) };;
         if { let __iface_handle = { let __field = (*s.lock().unwrap().as_ref().unwrap()).r#else.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
-        { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>>) -> () + Send + Sync> = { let mut __f_guard = stmtBranches_closure_clone.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*s.lock().unwrap().as_ref().unwrap()).r#else.clone()) };
+        { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>>) -> () + Send + Sync> = { let mut __f_guard = stmtBranches_closure_clone.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)({ let __field = (*s.lock().unwrap().as_ref().unwrap()).r#else.clone(); __field }) };
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::CaseClausePtr>()).is_some() {
         let s = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::CaseClausePtr>()).unwrap().0.clone();

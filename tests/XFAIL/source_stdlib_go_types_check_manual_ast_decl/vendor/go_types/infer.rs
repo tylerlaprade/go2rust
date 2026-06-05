@@ -315,12 +315,12 @@ impl crate::check::Checker {
                 // targs resulting in fewer follow-on errors.
                 // TODO(gri) determine if we still need this check
         let mut par = { let __recv = params.clone(); let __recv_ptr: *const crate::tuple::Tuple = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::tuple::Tuple }; let __result = unsafe { &*__recv_ptr }.at(Arc::new(Mutex::new(Some(i as i32)))); __result };
-        if is_parameterized(tparams.clone(), (*(*par.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone()) || is_parameterized(tparams.clone(), (*arg.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        if is_parameterized(tparams.clone(), { let __field = (*(*par.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field }) || is_parameterized(tparams.clone(), { let __field = (*arg.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
                 // Function parameters are always typed. Arguments may be untyped.
                 // Collect the indices of untyped arguments and handle them later.
-        if is_typed((*arg.lock().unwrap().as_ref().unwrap()).typ.clone()) {
-        if !{ let __recv = u.clone(); let __recv_ptr: *mut crate::unify::unifier = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::unify::unifier }; let __result = unsafe { &mut *__recv_ptr }.unify((*(*par.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(), (*arg.lock().unwrap().as_ref().unwrap()).typ.clone(), Arc::new(Mutex::new(Some(crate::unify::unifyMode(Arc::new(Mutex::new(Some(ASSIGN as u64)))))))); __result } {
-        { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, Arc<Mutex<Option<operand>>>) -> () + Send + Sync> = { let mut __f_guard = errorf.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, Arc<Mutex<Option<operand>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*(*par.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(), (*arg.lock().unwrap().as_ref().unwrap()).typ.clone(), (*arg).clone()) };
+        if is_typed({ let __field = (*arg.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
+        if !{ let __recv = u.clone(); let __recv_ptr: *mut crate::unify::unifier = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::unify::unifier }; let __result = unsafe { &mut *__recv_ptr }.unify({ let __field = (*(*par.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field }, { let __field = (*arg.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }, Arc::new(Mutex::new(Some(crate::unify::unifyMode(Arc::new(Mutex::new(Some(ASSIGN as u64)))))))); __result } {
+        { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, Arc<Mutex<Option<operand>>>) -> () + Send + Sync> = { let mut __f_guard = errorf.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, Arc<Mutex<Option<operand>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)({ let __field = (*(*par.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field }, { let __field = (*arg.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }, (*arg).clone()) };
         {
         *inferred.lock().unwrap() = None;;
         // Execute deferred functions
@@ -424,7 +424,7 @@ impl crate::check::Checker {
                         //    core type.
                         // 2) If the core type doesn't have a tilde, we also must unify tx
                         //    with the core type.
-            if !{ let __recv = u.clone(); let __recv_ptr: *mut crate::unify::unifier = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::unify::unifier }; let __result = unsafe { &mut *__recv_ptr }.unify(tx.clone(), (*core.lock().unwrap().as_ref().unwrap()).typ.clone(), Arc::new(Mutex::new(Some(crate::unify::unifyMode(Arc::new(Mutex::new(Some(0 as u64)))))))); __result } {
+            if !{ let __recv = u.clone(); let __recv_ptr: *mut crate::unify::unifier = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::unify::unifier }; let __result = unsafe { &mut *__recv_ptr }.unify(tx.clone(), { let __field = (*core.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }, Arc::new(Mutex::new(Some(crate::unify::unifyMode(Arc::new(Mutex::new(Some(0 as u64)))))))); __result } {
                 // TODO(gri) Type parameters that appear in the constraint and
                 //           for which we have type arguments inferred should
                 //           use those type arguments for a better error message.
@@ -445,7 +445,7 @@ impl crate::check::Checker {
                         // The corresponding type argument tx is unknown and the core term
                         // describes a single specific type and no tilde.
                         // In this case the type argument must be that single type; set it.
-            { let __recv = u.clone(); let __recv_ptr: *mut crate::unify::unifier = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::unify::unifier }; let __result = unsafe { &mut *__recv_ptr }.set((*tpar).clone(), (*core.lock().unwrap().as_ref().unwrap()).typ.clone()); __result };
+            { let __recv = u.clone(); let __recv_ptr: *mut crate::unify::unifier = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::unify::unifier }; let __result = unsafe { &mut *__recv_ptr }.set((*tpar).clone(), { let __field = (*core.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }); __result };
         }
     }
                 // A type parameter can be unified with its constraint's core type in two cases.
@@ -625,9 +625,9 @@ impl crate::check::Checker {
     }
         let mut max = { let __map = { let __map_holder = maxUntyped.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(tpar.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
         if (*max.lock().unwrap()).is_none() {
-        { let __iface_handle = (*arg.lock().unwrap().as_ref().unwrap()).typ.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *max.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __field = (*arg.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *max.lock().unwrap() = (*__iface_guard).clone(); };
     } else {
-        let mut m = max_type(max.clone(), (*arg.lock().unwrap().as_ref().unwrap()).typ.clone());
+        let mut m = max_type(max.clone(), { let __field = (*arg.lock().unwrap().as_ref().unwrap()).typ.clone(); __field });
         if (*m.lock().unwrap()).is_none() {
         { let __recv = err.clone(); let __recv_ptr: *mut crate::errors::error_ = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::errors::error_ }; let __result = unsafe { &mut *__recv_ptr }.addf(Arc::new(Mutex::new(Some(Box::new(crate::operand::operandPtr(arg.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some("mismatched types %s and %s (cannot infer %s)".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = max.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __selector_holder = (*arg.lock().unwrap().as_ref().unwrap()).typ.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>, Box::new(tpar.clone()) as Box<dyn Any + Send + Sync>])))); __result };
         {
@@ -857,7 +857,7 @@ impl crate::check::Checker {
                 // == i
         let mut renameMap = make_rename_map(tparams.clone(), tparams2.clone());
         { let __range_holder = tparams.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, tparam) in __range_values.iter().enumerate() {
-        { let __iface_handle = { let __method_arg0 = Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))); let __method_arg1 = (*tparam.lock().unwrap().as_ref().unwrap()).bound.clone(); let __method_arg2 = renameMap.clone(); let __method_arg3 = Arc::new(Mutex::new(None)); let __method_arg4 = self.context(); self.subst(__method_arg0, __method_arg1, __method_arg2, __method_arg3, __method_arg4) }.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*{ let __seq = { let __seq_holder = tparams2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.lock().unwrap().as_mut().unwrap()).bound.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __method_arg0 = Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))); let __method_arg1 = { let __field = (*tparam.lock().unwrap().as_ref().unwrap()).bound.clone(); __field }; let __method_arg2 = renameMap.clone(); let __method_arg3 = Arc::new(Mutex::new(None)); let __method_arg4 = self.context(); self.subst(__method_arg0, __method_arg1, __method_arg2, __method_arg3, __method_arg4) }.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*{ let __seq = { let __seq_holder = tparams2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.lock().unwrap().as_mut().unwrap()).bound.lock().unwrap() = (*__iface_guard).clone(); };
     } }
         return (tparams2.clone(), { let __method_arg0 = Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))); let __method_arg1 = typ.clone(); let __method_arg2 = renameMap.clone(); let __method_arg3 = Arc::new(Mutex::new(None)); let __method_arg4 = self.context(); self.subst(__method_arg0, __method_arg1, __method_arg2, __method_arg3, __method_arg4) }.clone());
     }
@@ -921,7 +921,7 @@ impl tpWalker {
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::array::ArrayPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::array::ArrayPtr>()).unwrap().0.clone();
         {
-        { let new_val = self.is_parameterized((*t.lock().unwrap().as_ref().unwrap()).elem.clone()); *res.lock().unwrap() = Some(new_val); };;
+        { let new_val = self.is_parameterized({ let __field = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); __field }); *res.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
@@ -931,7 +931,7 @@ impl tpWalker {
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::slice::SlicePtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::slice::SlicePtr>()).unwrap().0.clone();
         {
-        { let new_val = self.is_parameterized((*t.lock().unwrap().as_ref().unwrap()).elem.clone()); *res.lock().unwrap() = Some(new_val); };;
+        { let new_val = self.is_parameterized({ let __field = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); __field }); *res.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
@@ -951,7 +951,7 @@ impl tpWalker {
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::pointer::PointerPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::pointer::PointerPtr>()).unwrap().0.clone();
         {
-        { let new_val = self.is_parameterized((*t.lock().unwrap().as_ref().unwrap()).base.clone()); *res.lock().unwrap() = Some(new_val); };;
+        { let new_val = self.is_parameterized({ let __field = (*t.lock().unwrap().as_ref().unwrap()).base.clone(); __field }); *res.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
@@ -982,7 +982,7 @@ impl tpWalker {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::interface::InterfacePtr>()).unwrap().0.clone();
         let mut tset = { let __recv = t.clone(); let __recv_ptr: *const crate::interface::Interface = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::interface::Interface }; let __result = unsafe { &*__recv_ptr }.type_set(); __result };;
         { let __range_holder = (*tset.lock().unwrap().as_ref().unwrap()).methods.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for m in __range_values.iter() {
-        if self.is_parameterized((*(*m.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone()) {
+        if self.is_parameterized({ let __field = (*(*m.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field }) {
         {
         { let new_val = true; *res.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
@@ -995,7 +995,7 @@ impl tpWalker {
     } };
         let mut w_closure_clone = (*self).clone(); {
         let mut w_closure_clone_closure_clone = w_closure_clone.clone(); { let new_val = { let __recv = tset.clone(); let __recv_ptr: *const crate::typeset::_TypeSet = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::typeset::_TypeSet }; let __result = unsafe { &*__recv_ptr }.is(Arc::new(Mutex::new(Some(Box::new(move |t: Arc<Mutex<Option<term>>>| -> bool {
-        return (*t.lock().unwrap()).is_some() && w_closure_clone_closure_clone.is_parameterized((*t.lock().unwrap().as_ref().unwrap()).typ.clone());
+        return (*t.lock().unwrap()).is_some() && w_closure_clone_closure_clone.is_parameterized({ let __field = (*t.lock().unwrap().as_ref().unwrap()).typ.clone(); __field });
     }) as Box<dyn FnMut(Arc<Mutex<Option<term>>>) -> bool + Send + Sync>)))); __result }; *res.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -1006,7 +1006,7 @@ impl tpWalker {
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::map::MapPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::map::MapPtr>()).unwrap().0.clone();
         {
-        { let new_val = self.is_parameterized((*t.lock().unwrap().as_ref().unwrap()).key.clone()) || self.is_parameterized((*t.lock().unwrap().as_ref().unwrap()).elem.clone()); *res.lock().unwrap() = Some(new_val); };;
+        { let new_val = self.is_parameterized({ let __field = (*t.lock().unwrap().as_ref().unwrap()).key.clone(); __field }) || self.is_parameterized({ let __field = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); __field }); *res.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
@@ -1016,7 +1016,7 @@ impl tpWalker {
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::chan::ChanPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::chan::ChanPtr>()).unwrap().0.clone();
         {
-        { let new_val = self.is_parameterized((*t.lock().unwrap().as_ref().unwrap()).elem.clone()); *res.lock().unwrap() = Some(new_val); };;
+        { let new_val = self.is_parameterized({ let __field = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); __field }); *res.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
@@ -1090,7 +1090,7 @@ impl tpWalker {
 
     pub fn var_list(&mut self, list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Var>>>>>>>) -> bool {
         { let __range_holder = list.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for v in __range_values.iter() {
-        if self.is_parameterized((*(*v.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone()) {
+        if self.is_parameterized({ let __field = (*(*v.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field }) {
         return true;
     }
     } }
@@ -1173,16 +1173,16 @@ impl cycleFinder {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::basic::BasicPtr>()).unwrap().0.clone();
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::array::ArrayPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::array::ArrayPtr>()).unwrap().0.clone();
-        self.typ((*t.lock().unwrap().as_ref().unwrap()).elem.clone());;
+        self.typ({ let __field = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); __field });;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::slice::SlicePtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::slice::SlicePtr>()).unwrap().0.clone();
-        self.typ((*t.lock().unwrap().as_ref().unwrap()).elem.clone());;
+        self.typ({ let __field = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); __field });;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#struct::StructPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#struct::StructPtr>()).unwrap().0.clone();
         self.var_list({ let __field = (*t.lock().unwrap().as_ref().unwrap()).fields.clone(); __field });;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::pointer::PointerPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::pointer::PointerPtr>()).unwrap().0.clone();
-        self.typ((*t.lock().unwrap().as_ref().unwrap()).base.clone());;
+        self.typ({ let __field = (*t.lock().unwrap().as_ref().unwrap()).base.clone(); __field });;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::signature::SignaturePtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::signature::SignaturePtr>()).unwrap().0.clone();
         if { let __nil_target = (*t.lock().unwrap().as_ref().unwrap()).params.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
@@ -1194,23 +1194,23 @@ impl cycleFinder {
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::union::UnionPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::union::UnionPtr>()).unwrap().0.clone();
         { let __range_holder = (*t.lock().unwrap().as_ref().unwrap()).terms.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for t in __range_values.iter() {
-        self.typ((*t.lock().unwrap().as_ref().unwrap()).typ.clone());
+        self.typ({ let __field = (*t.lock().unwrap().as_ref().unwrap()).typ.clone(); __field });
     } };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::interface::InterfacePtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::interface::InterfacePtr>()).unwrap().0.clone();
         { let __range_holder = (*t.lock().unwrap().as_ref().unwrap()).methods.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for m in __range_values.iter() {
-        self.typ((*(*m.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone());
+        self.typ({ let __field = (*(*m.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field });
     } };
         { let __range_holder = (*t.lock().unwrap().as_ref().unwrap()).embeddeds.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for t in __range_values.iter() {
         self.typ(t.clone());
     } };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::map::MapPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::map::MapPtr>()).unwrap().0.clone();
-        self.typ((*t.lock().unwrap().as_ref().unwrap()).key.clone());;
-        self.typ((*t.lock().unwrap().as_ref().unwrap()).elem.clone());;
+        self.typ({ let __field = (*t.lock().unwrap().as_ref().unwrap()).key.clone(); __field });;
+        self.typ({ let __field = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); __field });;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::chan::ChanPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::chan::ChanPtr>()).unwrap().0.clone();
-        self.typ((*t.lock().unwrap().as_ref().unwrap()).elem.clone());;
+        self.typ({ let __field = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); __field });;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::named::NamedPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::named::NamedPtr>()).unwrap().0.clone();
         { let __range_holder = { let __recv = { let __recv = t.clone(); let __recv_ptr: *const crate::named::Named = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::named::Named }; let __result = unsafe { &*__recv_ptr }.type_args(); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).list(); __result }.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for tpar in __range_values.iter() {
@@ -1251,7 +1251,7 @@ impl cycleFinder {
 
     pub fn var_list(&mut self, list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Var>>>>>>>) {
         { let __range_holder = list.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for v in __range_values.iter() {
-        self.typ((*(*v.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone());
+        self.typ({ let __field = (*(*v.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field });
     } }
     }
 }
@@ -1315,7 +1315,7 @@ pub fn core_term(tpar: Arc<Mutex<Option<TypeParam>>>) -> (Arc<Mutex<Option<crate
         // no terms
     if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x == __tmp_y } {
         if DEBUG {
-        assert(Arc::new(Mutex::new(Some(DEBUG && { let __left_holder = under((*single.lock().unwrap().as_ref().unwrap()).typ.clone()).clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = core_type(Arc::new(Mutex::new(Some(Box::new(crate::typeparam::TypeParamPtr(tpar.clone())) as Box<dyn Type + Send + Sync>)))).clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; __eq }))));
+        assert(Arc::new(Mutex::new(Some(DEBUG && { let __left_holder = under({ let __field = (*single.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }).clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = core_type(Arc::new(Mutex::new(Some(Box::new(crate::typeparam::TypeParamPtr(tpar.clone())) as Box<dyn Type + Send + Sync>)))).clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; __eq }))));
     }
         return (single.clone(), true);
     }

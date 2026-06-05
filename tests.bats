@@ -710,6 +710,10 @@ run_xfail_test() {
     run_test "tests/concurrent_pointer_receiver_reentrant_method"
 }
 
+@test "concurrent_repeated_interface_field_call_args" {
+    run_test "tests/concurrent_repeated_interface_field_call_args"
+}
+
 @test "concurrent_selector_map_lookup" {
     run_test "tests/concurrent_selector_map_lookup"
 }

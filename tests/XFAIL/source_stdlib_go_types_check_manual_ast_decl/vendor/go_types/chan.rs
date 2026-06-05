@@ -507,7 +507,7 @@ impl Chan {
 
     /// Elem returns the element type of channel c.
     pub fn elem(&self) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {
-        return self.elem.clone();
+        return { let __field = self.elem.clone(); __field };
     }
 
     pub fn underlying(&self) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {

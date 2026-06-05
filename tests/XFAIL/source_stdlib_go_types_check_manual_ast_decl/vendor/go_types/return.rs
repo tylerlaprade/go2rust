@@ -134,12 +134,12 @@ impl crate::check::Checker {
         let s = _ts_subject.clone();
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::LabeledStmtPtr>()).is_some() {
         let s = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::LabeledStmtPtr>()).unwrap().0.clone();
-        return self.is_terminating((*s.lock().unwrap().as_ref().unwrap()).stmt.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = (*(*s.lock().unwrap().as_ref().unwrap()).label.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));;
+        return self.is_terminating({ let __field = (*s.lock().unwrap().as_ref().unwrap()).stmt.clone(); __field }, Arc::new(Mutex::new(Some({ let __selector_holder = (*(*s.lock().unwrap().as_ref().unwrap()).label.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ExprStmtPtr>()).is_some() {
         let s = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ExprStmtPtr>()).unwrap().0.clone();
         {
         let (mut call, mut ok) = ({
-        let val = go_ast::unparen((*s.lock().unwrap().as_ref().unwrap()).x.clone()).clone();
+        let val = go_ast::unparen({ let __field = (*s.lock().unwrap().as_ref().unwrap()).x.clone(); __field }).clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = <dyn go_ast::r#mod::Expr + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<go_ast::r#mod::CallExprPtr>() {
@@ -168,7 +168,7 @@ impl crate::check::Checker {
         return self.is_terminating_list({ let __field = (*s.lock().unwrap().as_ref().unwrap()).list.clone(); __field }, Arc::new(Mutex::new(Some("".to_string()))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IfStmtPtr>()).is_some() {
         let s = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IfStmtPtr>()).unwrap().0.clone();
-        if { let __iface_handle = { let __field = (*s.lock().unwrap().as_ref().unwrap()).r#else.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } && self.is_terminating(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BlockStmtPtr((*s.lock().unwrap().as_ref().unwrap()).body.clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))), Arc::new(Mutex::new(Some("".to_string())))) && self.is_terminating((*s.lock().unwrap().as_ref().unwrap()).r#else.clone(), Arc::new(Mutex::new(Some("".to_string())))) {
+        if { let __iface_handle = { let __field = (*s.lock().unwrap().as_ref().unwrap()).r#else.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } && self.is_terminating(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BlockStmtPtr((*s.lock().unwrap().as_ref().unwrap()).body.clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))), Arc::new(Mutex::new(Some("".to_string())))) && self.is_terminating({ let __field = (*s.lock().unwrap().as_ref().unwrap()).r#else.clone(); __field }, Arc::new(Mutex::new(Some("".to_string())))) {
         return true;
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::SwitchStmtPtr>()).is_some() {
@@ -290,7 +290,7 @@ pub fn has_break(mut s: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sy
         let s = _ts_subject.clone();
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::LabeledStmtPtr>()).is_some() {
         let s = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::LabeledStmtPtr>()).unwrap().0.clone();
-        return has_break((*s.lock().unwrap().as_ref().unwrap()).stmt.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = label.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = implicit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
+        return has_break({ let __field = (*s.lock().unwrap().as_ref().unwrap()).stmt.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = label.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = implicit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::BranchStmtPtr>()).is_some() {
         let s = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::BranchStmtPtr>()).unwrap().0.clone();
         if { let __tmp_x = { let __selector_holder = (*s.lock().unwrap().as_ref().unwrap()).tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::B_R_E_A_K as i32)))); __tmp_x == __tmp_y } {
@@ -306,7 +306,7 @@ pub fn has_break(mut s: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sy
         return has_break_list({ let __field = (*s.lock().unwrap().as_ref().unwrap()).list.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = label.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = implicit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IfStmtPtr>()).is_some() {
         let s = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IfStmtPtr>()).unwrap().0.clone();
-        if has_break(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BlockStmtPtr((*s.lock().unwrap().as_ref().unwrap()).body.clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = label.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = implicit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) || { let __iface_handle = { let __field = (*s.lock().unwrap().as_ref().unwrap()).r#else.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } && has_break((*s.lock().unwrap().as_ref().unwrap()).r#else.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = label.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = implicit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
+        if has_break(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BlockStmtPtr((*s.lock().unwrap().as_ref().unwrap()).body.clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = label.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = implicit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) || { let __iface_handle = { let __field = (*s.lock().unwrap().as_ref().unwrap()).r#else.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } && has_break({ let __field = (*s.lock().unwrap().as_ref().unwrap()).r#else.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = label.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = implicit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
         return true;
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::CaseClausePtr>()).is_some() {

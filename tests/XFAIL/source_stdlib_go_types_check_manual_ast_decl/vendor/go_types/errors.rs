@@ -244,7 +244,7 @@ impl crate::check::Checker {
                 // refer to the position (pos) in the original expression.
         if { let __iface_handle = { let __field = (*self.environment.lock().unwrap().as_ref().unwrap()).errpos.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } && go_token::position::Pos::is_valid(&(*(*(*self.environment.lock().unwrap().as_ref().unwrap()).errpos.lock().unwrap().as_ref().unwrap()).pos().lock().unwrap().as_ref().unwrap())) {
         assert(Arc::new(Mutex::new(Some({ let __iface_handle = { let __field = (*self.environment.lock().unwrap().as_ref().unwrap()).iota.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() }))));
-        { let __iface_handle = (*self.environment.lock().unwrap().as_ref().unwrap()).errpos.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *posn.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __field = (*self.environment.lock().unwrap().as_ref().unwrap()).errpos.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *posn.lock().unwrap() = (*__iface_guard).clone(); };
     }
                 // Report invalid syntax trees explicitly.
         if { let __tmp_x = (*code.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_SYNTAX_TREE as i32)))); __tmp_x == __tmp_y } {
@@ -284,7 +284,7 @@ impl crate::check::Checker {
                 // augment our error positioning.
                 // TODO(rFindley) we may also want to augment the error message and refer
                 // to the position (pos) in the original expression.
-        let mut span = span_of((*self.environment.lock().unwrap().as_ref().unwrap()).errpos.clone());
+        let mut span = span_of({ let __field = (*self.environment.lock().unwrap().as_ref().unwrap()).errpos.clone(); __field });
         { let new_val = go_token::position::Pos(Arc::new(Mutex::new(Some((*(*(*span.lock().unwrap().as_ref().unwrap()).pos.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *(*e.lock().unwrap().as_ref().unwrap()).pos.lock().unwrap() = Some(new_val); };
         { let new_val = go_token::position::Pos(Arc::new(Mutex::new(Some((*(*(*span.lock().unwrap().as_ref().unwrap()).start.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *(*e.lock().unwrap().as_ref().unwrap()).go116start.lock().unwrap() = Some(new_val); };
         { let new_val = go_token::position::Pos(Arc::new(Mutex::new(Some((*(*(*span.lock().unwrap().as_ref().unwrap()).end.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *(*e.lock().unwrap().as_ref().unwrap()).go116end.lock().unwrap() = Some(new_val); };
@@ -360,7 +360,7 @@ impl error_ {
         if self.empty() {
         return Arc::new(Mutex::new(Some(Box::new((*noposn.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn positioner + Send + Sync>)));
     }
-        return { let __seq = { let __seq_holder = self.desc.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.posn.clone();
+        return { let __field = { let __seq = { let __seq_holder = self.desc.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.posn.clone(); __field };
     }
 
     /// msg returns the formatted error message without the primary error position pos().
@@ -421,7 +421,7 @@ impl error_ {
         if { let __v = (*multiError.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         for i in 0..(({ let __range_holder = self.desc.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
         let mut p: Option<GoSliceElemPtr<errorDesc>> = Some(GoSliceElemPtr::new(self.desc.clone(), (i) as usize));
-        { let __recv = check.clone(); let __recv_ptr: *mut crate::check::Checker = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::check::Checker }; let __result = unsafe { &mut *__recv_ptr }.handle_error(Arc::new(Mutex::new(Some(i as i32))), (*p.as_ref().unwrap().borrow().as_ref().unwrap()).posn.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = self.code.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*p.as_ref().unwrap().borrow().as_ref().unwrap()).msg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = self.soft.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); __result };
+        { let __recv = check.clone(); let __recv_ptr: *mut crate::check::Checker = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::check::Checker }; let __result = unsafe { &mut *__recv_ptr }.handle_error(Arc::new(Mutex::new(Some(i as i32))), { let __field = (*p.as_ref().unwrap().borrow().as_ref().unwrap()).posn.clone(); __field }, Arc::new(Mutex::new(Some({ let __selector_holder = self.code.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*p.as_ref().unwrap().borrow().as_ref().unwrap()).msg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = self.soft.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); __result };
     }
     } else {
         { let __recv = check.clone(); let __recv_ptr: *mut crate::check::Checker = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::check::Checker }; let __result = unsafe { &mut *__recv_ptr }.handle_error(Arc::new(Mutex::new(Some(0))), self.posn().clone(), Arc::new(Mutex::new(Some({ let __selector_holder = self.code.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), self.msg(), Arc::new(Mutex::new(Some({ let __selector_holder = self.soft.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); __result };

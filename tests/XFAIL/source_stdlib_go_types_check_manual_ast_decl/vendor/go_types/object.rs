@@ -977,7 +977,7 @@ impl object {
 
     /// Type returns the object's type.
     pub fn r#type(&self) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {
-        return self.typ.clone();
+        return { let __field = self.typ.clone(); __field };
     }
 
     /// Exported reports whether the object is exported (starts with a capital letter).
@@ -1678,7 +1678,7 @@ impl positioner for PkgNamePtr {
 impl Const {
     /// Val returns the constant's value.
     pub fn val(&self) -> Arc<Mutex<Option<Box<dyn go_constant::value::Value + Send + Sync>>>> {
-        return self.val.clone();
+        return { let __field = self.val.clone(); __field };
     }
 
     pub fn is_dependency(&self) {
@@ -3003,7 +3003,7 @@ impl Func {
         }
     });;
         if (*sig.lock().unwrap()).is_some() && { let __nil_target = (*sig.lock().unwrap().as_ref().unwrap()).recv.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
-            let (_, mut isPtr) = deref((*(*sig.lock().unwrap().as_ref().unwrap()).recv.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().typ.clone());;
+            let (_, mut isPtr) = deref({ let __field = (*(*sig.lock().unwrap().as_ref().unwrap()).recv.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().typ.clone(); __field });;
             return isPtr;;
         }
     }
@@ -4724,7 +4724,7 @@ pub fn write_object(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut obj: Arc<Mutex<Op
         }
     });;
         if ok {
-            { let __iface_handle = (*alias.lock().unwrap().as_ref().unwrap()).from_r_h_s.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };;
+            { let __iface_handle = { let __field = (*alias.lock().unwrap().as_ref().unwrap()).from_r_h_s.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };;
         }
     }
     } else {
@@ -4742,7 +4742,7 @@ pub fn write_object(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut obj: Arc<Mutex<Op
         }
     });;
         if (*t.lock().unwrap()).is_some() {
-            { let __iface_handle = (*t.lock().unwrap().as_ref().unwrap()).bound.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };;
+            { let __iface_handle = { let __field = (*t.lock().unwrap().as_ref().unwrap()).bound.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };;
         } else {
             { let __iface_handle = under(typ.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };;
         }

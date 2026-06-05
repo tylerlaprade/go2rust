@@ -186,7 +186,7 @@ impl Alias {
     /// Rhs returns the type R on the right-hand side of an alias
     /// declaration "type A = R", which may be another alias.
     pub fn rhs(&self) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {
-        return self.from_r_h_s.clone();
+        return { let __field = self.from_r_h_s.clone(); __field };
     }
 
     pub fn cleanup(&mut self) {
@@ -358,7 +358,7 @@ impl crate::check::Checker {
     pub fn new_alias_instance(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>, orig: Arc<Mutex<Option<Alias>>>, targs: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>>>>>, expanding: Arc<Mutex<Option<Named>>>, ctxt: Arc<Mutex<Option<Context>>>) -> Arc<Mutex<Option<Alias>>> {
         assert(Arc::new(Mutex::new(Some({ let __tmp_x = ((*targs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y }))));
         let mut obj = new_type_name(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), { let __field = (*(*orig.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().pkg.clone(); __field }, Arc::new(Mutex::new(Some({ let __selector_holder = (*(*orig.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(None)));
-        let mut rhs = self.subst(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), (*orig.lock().unwrap().as_ref().unwrap()).from_r_h_s.clone(), make_subst_map({ let __recv = { let __recv = orig.clone(); let __recv_ptr: *mut Alias = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Alias }; let __result = unsafe { &mut *__recv_ptr }.type_params(); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).list(); __result }, targs.clone()), expanding.clone(), ctxt.clone());
+        let mut rhs = self.subst(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), { let __field = (*orig.lock().unwrap().as_ref().unwrap()).from_r_h_s.clone(); __field }, make_subst_map({ let __recv = { let __recv = orig.clone(); let __recv_ptr: *mut Alias = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Alias }; let __result = unsafe { &mut *__recv_ptr }.type_params(); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).list(); __result }, targs.clone()), expanding.clone(), ctxt.clone());
         let mut res = self.new_alias(obj.clone(), rhs.clone());
         { let new_val = orig.clone(); (*res.lock().unwrap().as_mut().unwrap()).orig = new_val; };
         { let new_val = (*orig.lock().unwrap().as_ref().unwrap()).tparams.clone(); (*res.lock().unwrap().as_mut().unwrap()).tparams = new_val; };
@@ -405,12 +405,12 @@ pub fn unalias(t: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc<Mutex<
 
 pub fn unalias_1(a0: Arc<Mutex<Option<Alias>>>) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {
     if { let __iface_handle = { let __field = (*a0.lock().unwrap().as_ref().unwrap()).actual.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
-        return (*a0.lock().unwrap().as_ref().unwrap()).actual.clone();
+        return { let __field = (*a0.lock().unwrap().as_ref().unwrap()).actual.clone(); __field };
     }
     let mut t: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> = Arc::new(Mutex::new(None));
     let mut a = a0.clone();
     while (*a.lock().unwrap()).is_some() {
-        { let __iface_handle = (*a.lock().unwrap().as_ref().unwrap()).from_r_h_s.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *t.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __field = (*a.lock().unwrap().as_ref().unwrap()).from_r_h_s.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *t.lock().unwrap() = (*__iface_guard).clone(); };
         { let (__tmp_0, __tmp_1) = ({
         let val = t.clone();
         let guard = val.lock().unwrap();

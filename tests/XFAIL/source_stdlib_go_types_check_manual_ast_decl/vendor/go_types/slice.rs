@@ -140,7 +140,7 @@ impl GoJsonDecode for AnonymousStruct1 {
 impl Slice {
     /// Elem returns the element type of slice s.
     pub fn elem(&self) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {
-        return self.elem.clone();
+        return { let __field = self.elem.clone(); __field };
     }
 
     pub fn underlying(&self) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {

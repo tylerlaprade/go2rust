@@ -259,11 +259,11 @@ impl typeWriter {
         self.byte(Arc::new(Mutex::new(Some(('[' as i32) as u8))));;
         self.string(Arc::new(Mutex::new(Some(go_strconv_format_int((*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).len.clone(); __field }.lock().unwrap().as_ref().unwrap()) as i64, 10 as i32)))));;
         self.byte(Arc::new(Mutex::new(Some((']' as i32) as u8))));;
-        self.typ((*t.lock().unwrap().as_ref().unwrap()).elem.clone());;
+        self.typ({ let __field = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); __field });;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::slice::SlicePtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::slice::SlicePtr>()).unwrap().0.clone();
         self.string(Arc::new(Mutex::new(Some("[]".to_string()))));;
-        self.typ((*t.lock().unwrap().as_ref().unwrap()).elem.clone());;
+        self.typ({ let __field = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); __field });;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#struct::StructPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#struct::StructPtr>()).unwrap().0.clone();
         self.string(Arc::new(Mutex::new(Some("struct{".to_string()))));;
@@ -280,7 +280,7 @@ impl typeWriter {
         self.string(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
         self.byte(Arc::new(Mutex::new(Some((' ' as i32) as u8))));
     }
-        self.typ((*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone());
+        self.typ({ let __field = (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field });
         if { let __v = (*pkgAnnotate.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         self.string(Arc::new(Mutex::new(Some(" /* package ".to_string()))));
         self.string((*(*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).pkg.lock().unwrap().as_ref().unwrap()).path());
@@ -298,7 +298,7 @@ impl typeWriter {
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::pointer::PointerPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::pointer::PointerPtr>()).unwrap().0.clone();
         self.byte(Arc::new(Mutex::new(Some(('*' as i32) as u8))));;
-        self.typ((*t.lock().unwrap().as_ref().unwrap()).base.clone());;
+        self.typ({ let __field = (*t.lock().unwrap().as_ref().unwrap()).base.clone(); __field });;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::tuple::TuplePtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::tuple::TuplePtr>()).unwrap().0.clone();
         self.tuple(t.clone(), Arc::new(Mutex::new(Some(false))));;
@@ -319,7 +319,7 @@ impl typeWriter {
         if (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).tilde.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
         self.byte(Arc::new(Mutex::new(Some(('~' as i32) as u8))));
     }
-        self.typ((*t.lock().unwrap().as_ref().unwrap()).typ.clone());
+        self.typ({ let __field = (*t.lock().unwrap().as_ref().unwrap()).typ.clone(); __field });
     } };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::interface::InterfacePtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::interface::InterfacePtr>()).unwrap().0.clone();
@@ -377,9 +377,9 @@ impl typeWriter {
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::map::MapPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::map::MapPtr>()).unwrap().0.clone();
         self.string(Arc::new(Mutex::new(Some("map[".to_string()))));;
-        self.typ((*t.lock().unwrap().as_ref().unwrap()).key.clone());;
+        self.typ({ let __field = (*t.lock().unwrap().as_ref().unwrap()).key.clone(); __field });;
         self.byte(Arc::new(Mutex::new(Some((']' as i32) as u8))));;
-        self.typ((*t.lock().unwrap().as_ref().unwrap()).elem.clone());;
+        self.typ({ let __field = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); __field });;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::chan::ChanPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::chan::ChanPtr>()).unwrap().0.clone();
         let mut s: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));;
@@ -417,7 +417,7 @@ impl typeWriter {
         if { let __v = (*parens.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         self.byte(Arc::new(Mutex::new(Some(('(' as i32) as u8))));
     };
-        self.typ((*t.lock().unwrap().as_ref().unwrap()).elem.clone());;
+        self.typ({ let __field = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); __field });;
         if { let __v = (*parens.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         self.byte(Arc::new(Mutex::new(Some((')' as i32) as u8))));
     };
@@ -468,7 +468,7 @@ impl typeWriter {
     }
     };
         if { let __nil_target = self.ctxt.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
-        self.typ(unalias((*(*t.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().typ.clone()).clone());
+        self.typ(unalias({ let __field = (*(*t.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().typ.clone(); __field }).clone());
     };
     } else {
         let t = _ts_subject.clone();
@@ -532,7 +532,7 @@ impl typeWriter {
         if (*{ let __field = (*term.lock().unwrap().as_ref().unwrap()).tilde.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
         (*buf.lock().unwrap().as_mut().unwrap()).write_byte(('~' as i32) as u8);
     }
-        { let __recv = new_type_hasher(buf.clone(), { let __field = self.ctxt.clone(); __field }); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).typ((*term.lock().unwrap().as_ref().unwrap()).typ.clone()); __result };
+        { let __recv = new_type_hasher(buf.clone(), { let __field = self.ctxt.clone(); __field }); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).typ({ let __field = (*term.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }); __result };
         { let new_val = { let __append_target = termHashes.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*(*buf.lock().unwrap().as_mut().unwrap()).string().lock().unwrap().as_ref().unwrap()).clone()); __append_target.clone() }; termHashes = new_val; };
     } }
                         // terms are not canonically sorted, so we sort their hashes instead.
@@ -576,7 +576,7 @@ impl typeWriter {
         self.byte(Arc::new(Mutex::new(Some((',' as i32) as u8))));
     }
                 // bound changed - write previous one before advancing
-        { let __iface_handle = (*tpar.lock().unwrap().as_ref().unwrap()).bound.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *prev.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __field = (*tpar.lock().unwrap().as_ref().unwrap()).bound.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *prev.lock().unwrap() = (*__iface_guard).clone(); };
         self.typ(Arc::new(Mutex::new(Some(Box::new(crate::typeparam::TypeParamPtr(tpar.clone())) as Box<dyn Type + Send + Sync>))));
     } }
                 // Determine the type parameter and its constraint.
@@ -625,7 +625,7 @@ impl typeWriter {
     });;
         if ok {
             self.string(Arc::new(Mutex::new(Some("...".to_string()))));;
-            { let __iface_handle = (*s.lock().unwrap().as_ref().unwrap()).elem.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };;
+            { let __iface_handle = { let __field = (*s.lock().unwrap().as_ref().unwrap()).elem.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };;
         } else {
             {
         let (mut t, _) = ({
@@ -697,7 +697,7 @@ impl typeWriter {
             self.byte(Arc::new(Mutex::new(Some((' ' as i32) as u8))));
             if { let __tmp_x = n; let __tmp_y = 1; __tmp_x == __tmp_y } && ({ let __nil_target = self.ctxt.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } || { let __tmp_x = { let __selector_holder = (*{ let __seq = { let __seq_holder = (*(*sig.lock().unwrap().as_ref().unwrap()).results.lock().unwrap().as_ref().unwrap()).vars.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = "".to_string(); __tmp_x == __tmp_y }) {
                 // single unnamed result (if type hashing, name must be ignored)
-        self.typ((*{ let __seq = { let __seq_holder = (*(*sig.lock().unwrap().as_ref().unwrap()).results.lock().unwrap().as_ref().unwrap()).vars.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().typ.clone());
+        self.typ({ let __field = (*{ let __seq = { let __seq_holder = (*(*sig.lock().unwrap().as_ref().unwrap()).results.lock().unwrap().as_ref().unwrap()).vars.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().typ.clone(); __field });
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {

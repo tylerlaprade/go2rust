@@ -123,7 +123,7 @@ impl crate::check::Checker {
         let mut instErrPos: Arc<Mutex<Option<Box<dyn positioner + Send + Sync>>>> = Arc::new(Mutex::new(None));
         if (*ix.lock().unwrap()).is_some() {
         { let __iface_handle = Arc::new(Mutex::new(Some(Box::new((*in_node(Arc::new(Mutex::new(Some(Box::new((*(*ix.lock().unwrap().as_ref().unwrap()).orig.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn go_ast::r#mod::Node + Send + Sync>))), Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some((*(*(*ix.lock().unwrap().as_ref().unwrap()).lbrack.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))))))).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn positioner + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *instErrPos.lock().unwrap() = (*__iface_guard).clone(); };
-        { let __iface_handle = (*ix.lock().unwrap().as_ref().unwrap()).orig.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).expr.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __field = (*ix.lock().unwrap().as_ref().unwrap()).orig.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).expr.lock().unwrap() = (*__iface_guard).clone(); };
     } else {
         { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(crate::errors::atPos(Arc::new(Mutex::new(Some((*pos.lock().unwrap().as_ref().unwrap()).clone()))))) as Box<dyn positioner + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *instErrPos.lock().unwrap() = (*__iface_guard).clone(); };
     }
@@ -248,7 +248,7 @@ impl crate::check::Checker {
                 // Note that NewTuple(params...) below is (*Tuple)(nil) if len(params) == 0, as desired.
         assert(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*got.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = want; __tmp_x == __tmp_y }))));
                 // instantiate function signature
-        { let new_val = self.instantiate_signature({ let __recv = x.clone(); let __recv_ptr: *const crate::operand::operand = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::operand::operand }; let __result = unsafe { &*__recv_ptr }.pos(); __result }, (*x.lock().unwrap().as_ref().unwrap()).expr.clone(), sig.clone(), targs.clone(), xlist.clone()).clone(); sig = new_val; };
+        { let new_val = self.instantiate_signature({ let __recv = x.clone(); let __recv_ptr: *const crate::operand::operand = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::operand::operand }; let __result = unsafe { &*__recv_ptr }.pos(); __result }, { let __field = (*x.lock().unwrap().as_ref().unwrap()).expr.clone(); __field }, sig.clone(), targs.clone(), xlist.clone()).clone(); sig = new_val; };
         { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(crate::signature::SignaturePtr(sig.clone())) as Box<dyn Type + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(VALUE as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
         return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)));
@@ -348,10 +348,10 @@ impl crate::check::Checker {
                 // Delay function instantiation to argument checking,
                 // where we combine type and value arguments for type
                 // inference.
-        { let __iface_handle = (*call.lock().unwrap().as_ref().unwrap()).fun.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).expr.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __field = (*call.lock().unwrap().as_ref().unwrap()).fun.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).expr.lock().unwrap() = (*__iface_guard).clone(); };
         self.record(x.clone());
     } else {
-        self.expr_or_type(x.clone(), (*call.lock().unwrap().as_ref().unwrap()).fun.clone(), Arc::new(Mutex::new(Some(true))));
+        self.expr_or_type(x.clone(), { let __field = (*call.lock().unwrap().as_ref().unwrap()).fun.clone(); __field }, Arc::new(Mutex::new(Some(true))));
     }
                 // Delay function instantiation to argument checking,
                 // where we combine type and value arguments for type
@@ -436,7 +436,7 @@ impl crate::check::Checker {
         let mut cgocall = Arc::new(Mutex::new(Some({ let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(CGOFUNC as u8)))); __tmp_x == __tmp_y })));
                 // a type parameter may be "called" if all types have the same signature
         let (mut sig, _) = ({
-        let val = core_type((*x.lock().unwrap().as_ref().unwrap()).typ.clone()).clone();
+        let val = core_type({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }).clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = <dyn Type + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<crate::signature::SignaturePtr>() {
@@ -485,7 +485,7 @@ impl crate::check::Checker {
                 // of arguments is supplied).
         if { let __tmp_x = { let __v = (*got.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = want; __tmp_x == __tmp_y } && { let __tmp_x = want; let __tmp_y = 0; __tmp_x > __tmp_y } {
         self.verify_versionf(Arc::new(Mutex::new(Some(Box::new(crate::errors::atPos(Arc::new(Mutex::new(Some({ let __named_value_holder = (*ix.lock().unwrap().as_ref().unwrap()).lbrack.clone(); let __named_value_guard = __named_value_holder.lock().unwrap(); let __cloned = (*__named_value_guard.as_ref().unwrap()).clone(); drop(__named_value_guard); __cloned }))))) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = go1_18.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("function instantiation".to_string()))), Arc::new(Mutex::new(Some(vec![]))));
-        { let new_val = self.instantiate_signature({ let __recv = ix.clone(); let __recv_ptr: *const crate::index::indexedExpr = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::index::indexedExpr }; let __result = unsafe { &*__recv_ptr }.pos(); __result }, (*ix.lock().unwrap().as_ref().unwrap()).orig.clone(), sig.clone(), targs.clone(), xlist.clone()).clone(); sig = new_val; };
+        { let new_val = self.instantiate_signature({ let __recv = ix.clone(); let __recv_ptr: *const crate::index::indexedExpr = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::index::indexedExpr }; let __result = unsafe { &*__recv_ptr }.pos(); __result }, { let __field = (*ix.lock().unwrap().as_ref().unwrap()).orig.clone(); __field }, sig.clone(), targs.clone(), xlist.clone()).clone(); sig = new_val; };
                 // targs have been consumed; proceed with checking arguments of the
                 // non-generic signature.
         *targs.lock().unwrap() = None;
@@ -505,7 +505,7 @@ impl crate::check::Checker {
         { let new_val = self.arguments(call.clone(), sig.clone(), targs.clone(), xlist.clone(), args.clone(), atargs.clone(), atxlist.clone()).clone(); sig = new_val; };
         if { let __v = (*wasGeneric.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = { let __recv = { let __recv = sig.clone(); let __recv_ptr: *mut crate::signature::Signature = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::signature::Signature }; let __result = unsafe { &mut *__recv_ptr }.type_params(); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).len(); __result }; let __tmp_y = 0; __tmp_x == __tmp_y } {
                 // Update the recorded type of call.Fun to its instantiated type.
-        self.record_type_and_value((*call.lock().unwrap().as_ref().unwrap()).fun.clone(), Arc::new(Mutex::new(Some(crate::operand::operandMode(Arc::new(Mutex::new(Some(VALUE as u8))))))), Arc::new(Mutex::new(Some(Box::new(crate::signature::SignaturePtr(sig.clone())) as Box<dyn Type + Send + Sync>))), Arc::new(Mutex::new(None)));
+        self.record_type_and_value({ let __field = (*call.lock().unwrap().as_ref().unwrap()).fun.clone(); __field }, Arc::new(Mutex::new(Some(crate::operand::operandMode(Arc::new(Mutex::new(Some(VALUE as u8))))))), Arc::new(Mutex::new(Some(Box::new(crate::signature::SignaturePtr(sig.clone())) as Box<dyn Type + Send + Sync>))), Arc::new(Mutex::new(None)));
     }
                 // Update the recorded type of call.Fun to its instantiated type.
                 // determine result
@@ -518,7 +518,7 @@ impl crate::check::Checker {
     } else {
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(VALUE as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
     }
-            { let __iface_handle = (*{ let __seq = { let __seq_holder = (*(*sig.lock().unwrap().as_ref().unwrap()).results.lock().unwrap().as_ref().unwrap()).vars.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().typ.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = { let __field = (*{ let __seq = { let __seq_holder = (*(*sig.lock().unwrap().as_ref().unwrap()).results.lock().unwrap().as_ref().unwrap()).vars.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
         } else {
             { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(VALUE as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
             { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(crate::tuple::TuplePtr((*sig.lock().unwrap().as_ref().unwrap()).results.clone())) as Box<dyn Type + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
@@ -529,7 +529,7 @@ impl crate::check::Checker {
         { let new_val = true; *(*self.environment.lock().unwrap().as_ref().unwrap()).has_call_or_recv.lock().unwrap() = Some(new_val); };
                 // if type inference failed, a parameterized result must be invalidated
                 // (operands cannot have a parameterized type)
-        if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(VALUE as u8)))); __tmp_x == __tmp_y } && { let __tmp_x = { let __recv = { let __recv = sig.clone(); let __recv_ptr: *mut crate::signature::Signature = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::signature::Signature }; let __result = unsafe { &mut *__recv_ptr }.type_params(); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).len(); __result }; let __tmp_y = 0; __tmp_x > __tmp_y } && is_parameterized({ let __recv = { let __recv = sig.clone(); let __recv_ptr: *mut crate::signature::Signature = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::signature::Signature }; let __result = unsafe { &mut *__recv_ptr }.type_params(); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).list(); __result }, (*x.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(VALUE as u8)))); __tmp_x == __tmp_y } && { let __tmp_x = { let __recv = { let __recv = sig.clone(); let __recv_ptr: *mut crate::signature::Signature = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::signature::Signature }; let __result = unsafe { &mut *__recv_ptr }.type_params(); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).len(); __result }; let __tmp_y = 0; __tmp_x > __tmp_y } && is_parameterized({ let __recv = { let __recv = sig.clone(); let __recv_ptr: *mut crate::signature::Signature = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::signature::Signature }; let __result = unsafe { &mut *__recv_ptr }.type_params(); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).list(); __result }, { let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
     }
         Arc::new(Mutex::new(Some(crate::expr::exprKind(Arc::new(Mutex::new(Some(STATEMENT as i32)))))))
@@ -624,7 +624,7 @@ impl crate::check::Checker {
             if (*targs.lock().unwrap()).is_some() {
         { let new_val = Arc::new(Mutex::new(Some(vec![{ let __slice_holder = targs.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }]))); targsList = new_val; };
         { let new_val = Arc::new(Mutex::new(Some(vec![{ let __slice_holder = xlist.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }]))); xlistList = new_val; };
-        { let __iface_handle = (*ix.lock().unwrap().as_ref().unwrap()).orig.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).expr.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __field = (*ix.lock().unwrap().as_ref().unwrap()).orig.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).expr.lock().unwrap() = (*__iface_guard).clone(); };
     } else {
         self.record(x.clone());
     };
@@ -670,7 +670,7 @@ impl crate::check::Checker {
             if (*targs.lock().unwrap()).is_some() {
         (*targsList.lock().unwrap().as_mut().unwrap())[(i) as usize] = { let __v = (*targs.lock().unwrap().as_ref().unwrap()).clone(); __v };
         (*xlistList.lock().unwrap().as_mut().unwrap())[(i) as usize] = { let __v = (*xlist.lock().unwrap().as_ref().unwrap()).clone(); __v };
-        { let __iface_handle = (*ix.lock().unwrap().as_ref().unwrap()).orig.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).expr.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __field = (*ix.lock().unwrap().as_ref().unwrap()).orig.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).expr.lock().unwrap() = (*__iface_guard).clone(); };
     } else {
         self.record(x.clone());
     };
@@ -978,7 +978,7 @@ impl crate::check::Checker {
                 //           This will require changes to how infer returns its results.
                 // update result signature: instantiate if needed
         if { let __tmp_x = n; let __tmp_y = 0; __tmp_x > __tmp_y } {
-        { let new_val = self.instantiate_signature({ let __recv = call.clone(); let __recv_ptr: *const go_ast::r#mod::CallExpr = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_ast::r#mod::CallExpr }; let __result = unsafe { &*__recv_ptr }.pos(); __result }, (*call.lock().unwrap().as_ref().unwrap()).fun.clone(), sig.clone(), Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = targs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[..(n) as usize].to_vec() }))), xlist.clone()).clone(); rsig = new_val; };
+        { let new_val = self.instantiate_signature({ let __recv = call.clone(); let __recv_ptr: *const go_ast::r#mod::CallExpr = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_ast::r#mod::CallExpr }; let __result = unsafe { &*__recv_ptr }.pos(); __result }, { let __field = (*call.lock().unwrap().as_ref().unwrap()).fun.clone(); __field }, sig.clone(), Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = targs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[..(n) as usize].to_vec() }))), xlist.clone()).clone(); rsig = new_val; };
                 // If the callee's parameter list was adjusted we need to update (instantiate)
                 // it separately. Otherwise we can simply use the result signature's parameter
                 // list.
@@ -1022,7 +1022,7 @@ impl crate::check::Checker {
     }).clone();
         let mut k = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __recv = { let __recv = asig.clone(); let __recv_ptr: *mut crate::signature::Signature = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::signature::Signature }; let __result = unsafe { &mut *__recv_ptr }.type_params(); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).len(); __result }; __tmp_x + __tmp_y })));
                 // targs[j:k] are the inferred type arguments for asig
-        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(crate::signature::SignaturePtr(self.instantiate_signature({ let __recv = call.clone(); let __recv_ptr: *const go_ast::r#mod::CallExpr = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_ast::r#mod::CallExpr }; let __result = unsafe { &*__recv_ptr }.pos(); __result }, (*arg.lock().unwrap().as_ref().unwrap()).expr.clone(), asig.clone(), Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = targs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].to_vec() }))), Arc::new(Mutex::new(None))).clone())) as Box<dyn Type + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*arg.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(crate::signature::SignaturePtr(self.instantiate_signature({ let __recv = call.clone(); let __recv_ptr: *const go_ast::r#mod::CallExpr = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_ast::r#mod::CallExpr }; let __result = unsafe { &*__recv_ptr }.pos(); __result }, { let __field = (*arg.lock().unwrap().as_ref().unwrap()).expr.clone(); __field }, asig.clone(), Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = targs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..({ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].to_vec() }))), Arc::new(Mutex::new(None))).clone())) as Box<dyn Type + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*arg.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
         self.record(arg.clone());
         { let new_val = k.lock().unwrap().as_ref().unwrap().clone(); *j.lock().unwrap() = Some(new_val); };
     } }
@@ -1043,7 +1043,7 @@ impl crate::check::Checker {
         if { let __tmp_x = ((*args.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
         let mut context = self.sprintf(Arc::new(Mutex::new(Some("argument to %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __selector_holder = (*call.lock().unwrap().as_ref().unwrap()).fun.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>]))));
         { let __range_holder = args.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, a) in __range_values.iter().enumerate() {
-        self.assignment((*a).clone(), (*{ let __seq = { let __seq_holder = (*sigParams.lock().unwrap().as_ref().unwrap()).vars.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().typ.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = context.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        self.assignment((*a).clone(), { let __field = (*{ let __seq = { let __seq_holder = (*sigParams.lock().unwrap().as_ref().unwrap()).vars.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().typ.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = context.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     } }
     }
         rsig.clone()
@@ -1147,18 +1147,18 @@ impl crate::check::Checker {
         let exp = _ts_val.and_then(|__v| __v.downcast_ref::<crate::object::ConstPtr>()).unwrap().0.clone();
         assert(Arc::new(Mutex::new(Some((*{ let __recv = exp.clone(); let __recv_ptr: *const crate::object::Const = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::Const }; let __result = unsafe { &*__recv_ptr }.val(); __result }.lock().unwrap()).is_some()))));;
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(CONSTANT_ as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };;
-        { let __iface_handle = (*(*exp.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };;
-        { let __iface_handle = (*exp.lock().unwrap().as_ref().unwrap()).val.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).val.lock().unwrap() = (*__iface_guard).clone(); };;
+        { let __iface_handle = { let __field = (*(*exp.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };;
+        { let __iface_handle = { let __field = (*exp.lock().unwrap().as_ref().unwrap()).val.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).val.lock().unwrap() = (*__iface_guard).clone(); };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::object::TypeNamePtr>()).is_some() {
         let exp = _ts_val.and_then(|__v| __v.downcast_ref::<crate::object::TypeNamePtr>()).unwrap().0.clone();
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(TYPEXPR as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };;
-        { let __iface_handle = (*(*exp.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };;
+        { let __iface_handle = { let __field = (*(*exp.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::object::VarPtr>()).is_some() {
         let exp = _ts_val.and_then(|__v| __v.downcast_ref::<crate::object::VarPtr>()).unwrap().0.clone();
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(VARIABLE as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };;
-        { let __iface_handle = (*(*exp.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };;
+        { let __iface_handle = { let __field = (*(*exp.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };;
         if (*{ let __field = (*pkg.lock().unwrap().as_ref().unwrap()).cgo.clone(); __field }.lock().unwrap().as_ref().unwrap()) && strings::has_prefix(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*exp.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some("_Cvar_".to_string())))) {
-        { let __iface_handle = (*({
+        { let __iface_handle = { let __field = (*({
         let val = (*x.lock().unwrap().as_ref().unwrap()).typ.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
@@ -1170,15 +1170,15 @@ impl crate::check::Checker {
         } else {
             panic!("type assertion on nil interface")
         }
-    }).lock().unwrap().as_ref().unwrap()).base.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+    }).lock().unwrap().as_ref().unwrap()).base.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::object::FuncPtr>()).is_some() {
         let exp = _ts_val.and_then(|__v| __v.downcast_ref::<crate::object::FuncPtr>()).unwrap().0.clone();
         { let new_val = funcMode.lock().unwrap().as_ref().unwrap().clone(); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };;
-        { let __iface_handle = (*(*exp.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };;
+        { let __iface_handle = { let __field = (*(*exp.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };;
         if (*{ let __field = (*pkg.lock().unwrap().as_ref().unwrap()).cgo.clone(); __field }.lock().unwrap().as_ref().unwrap()) && strings::has_prefix(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*exp.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some("_Cmacro_".to_string())))) {
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(VALUE as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
-        { let __iface_handle = (*{ let __seq = { let __seq_holder = (*(*({
+        { let __iface_handle = { let __field = (*{ let __seq = { let __seq_holder = (*(*({
         let val = (*x.lock().unwrap().as_ref().unwrap()).typ.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
@@ -1190,12 +1190,12 @@ impl crate::check::Checker {
         } else {
             panic!("type assertion on nil interface")
         }
-    }).lock().unwrap().as_ref().unwrap()).results.lock().unwrap().as_ref().unwrap()).vars.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().typ.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+    }).lock().unwrap().as_ref().unwrap()).results.lock().unwrap().as_ref().unwrap()).vars.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::object::BuiltinPtr>()).is_some() {
         let exp = _ts_val.and_then(|__v| __v.downcast_ref::<crate::object::BuiltinPtr>()).unwrap().0.clone();
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(BUILTIN as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };;
-        { let __iface_handle = (*(*exp.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };;
+        { let __iface_handle = { let __field = (*(*exp.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };;
         { let new_val = crate::universe::builtinId(Arc::new(Mutex::new(Some((*(*(*exp.lock().unwrap().as_ref().unwrap()).id.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *(*x.lock().unwrap().as_ref().unwrap()).id.lock().unwrap() = Some(new_val); };;
     } else {
         let exp = _ts_subject.clone();
@@ -1219,7 +1219,7 @@ impl crate::check::Checker {
                         // ok to continue
                         // Simplified version of the code for *ast.Idents:
                         // - imported objects are always fully initialized
-            self.expr_or_type(x.clone(), (*e.lock().unwrap().as_ref().unwrap()).x.clone(), Arc::new(Mutex::new(Some(false))));
+            self.expr_or_type(x.clone(), { let __field = (*e.lock().unwrap().as_ref().unwrap()).x.clone(); __field }, Arc::new(Mutex::new(Some(false))));
             { let _switch_val = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (crate::operand::operandMode(Arc::new(Mutex::new(Some(TYPEXPR as u8))))) {
                         // don't crash for "type T T.x" (was go.dev/issue/51509)
@@ -1257,10 +1257,10 @@ impl crate::check::Checker {
         break 'error;
     }
 
-            { let (__tmp_0, __tmp_1, __tmp_2) = lookup_field_or_method_1((*x.lock().unwrap().as_ref().unwrap()).typ.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(VARIABLE as u8)))); __tmp_x == __tmp_y }))), { let __field = self.pkg.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = sel.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(false)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *obj.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *index.lock().unwrap() = __moved_tmp_1; *indirect.lock().unwrap() = Some(__tmp_2); };
+            { let (__tmp_0, __tmp_1, __tmp_2) = lookup_field_or_method_1({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }, Arc::new(Mutex::new(Some({ let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(VARIABLE as u8)))); __tmp_x == __tmp_y }))), { let __field = self.pkg.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = sel.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(false)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *obj.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *index.lock().unwrap() = __moved_tmp_1; *indirect.lock().unwrap() = Some(__tmp_2); };
             if (*obj.lock().unwrap()).is_none() {
                 // Don't report another error if the underlying type was invalid (go.dev/issue/49541).
-        if !is_valid(under((*x.lock().unwrap().as_ref().unwrap()).typ.clone()).clone()) {
+        if !is_valid(under({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }).clone()) {
         break 'error;
     }
         if (*index.lock().unwrap()).is_some() {
@@ -1278,11 +1278,11 @@ impl crate::check::Checker {
         break 'error;
     }
         let mut why: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
-        if is_interface_ptr((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) {
-        { let new_val = self.interface_ptr_error((*x.lock().unwrap().as_ref().unwrap()).typ.clone()); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *why.lock().unwrap() = __moved_val; };
+        if is_interface_ptr({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
+        { let new_val = self.interface_ptr_error({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *why.lock().unwrap() = __moved_val; };
     } else {
-        let (mut alt, _, _) = lookup_field_or_method_1((*x.lock().unwrap().as_ref().unwrap()).typ.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(VARIABLE as u8)))); __tmp_x == __tmp_y }))), { let __field = self.pkg.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = sel.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(true))));
-        { let new_val = self.lookup_error((*x.lock().unwrap().as_ref().unwrap()).typ.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = sel.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), alt.clone(), Arc::new(Mutex::new(Some(false)))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *why.lock().unwrap() = __moved_val; };
+        let (mut alt, _, _) = lookup_field_or_method_1({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }, Arc::new(Mutex::new(Some({ let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(VARIABLE as u8)))); __tmp_x == __tmp_y }))), { let __field = self.pkg.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = sel.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(true))));
+        { let new_val = self.lookup_error({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = sel.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), alt.clone(), Arc::new(Mutex::new(Some(false)))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *why.lock().unwrap() = __moved_val; };
     }
         self.errorf(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr((*e.lock().unwrap().as_ref().unwrap()).sel.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(MISSING_FIELD_OR_METHOD as i32))))))), Arc::new(Mutex::new(Some("%s.%s undefined (%s)".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).expr.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = sel.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = why.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
         break 'error;
@@ -1329,7 +1329,7 @@ impl crate::check::Checker {
         self.errorf(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr((*e.lock().unwrap().as_ref().unwrap()).sel.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(MISSING_FIELD_OR_METHOD as i32))))))), Arc::new(Mutex::new(Some("%s.%s undefined (type %s has no method %s)".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).expr.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = sel.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = sel.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
         break 'error;
     }
-        self.record_selection(e.clone(), Arc::new(Mutex::new(Some(crate::selection::SelectionKind(Arc::new(Mutex::new(Some(METHOD_EXPR as i32))))))), (*x.lock().unwrap().as_ref().unwrap()).typ.clone(), Arc::new(Mutex::new(Some(Box::new(crate::object::FuncPtr(m.clone())) as Box<dyn Object + Send + Sync>))), index.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = indirect.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        self.record_selection(e.clone(), Arc::new(Mutex::new(Some(crate::selection::SelectionKind(Arc::new(Mutex::new(Some(METHOD_EXPR as i32))))))), { let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }, Arc::new(Mutex::new(Some(Box::new(crate::object::FuncPtr(m.clone())) as Box<dyn Object + Send + Sync>))), index.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = indirect.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         let mut sig = ({
         let val = (*(*m.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone();
         let guard = val.lock().unwrap();
@@ -1368,7 +1368,7 @@ impl crate::check::Checker {
     }
     }
                 // name needed
-        { let new_val = { let __append_target = Arc::new(Mutex::new(Some(vec![new_var(Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some((*(*(*(*sig.lock().unwrap().as_ref().unwrap()).recv.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().pos.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap())))))))), { let __field = (*(*sig.lock().unwrap().as_ref().unwrap()).recv.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().pkg.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), (*x.lock().unwrap().as_ref().unwrap()).typ.clone())]))).clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend({ let __slice_holder = params.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned()); __append_target.clone() }; params = new_val; };
+        { let new_val = { let __append_target = Arc::new(Mutex::new(Some(vec![new_var(Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some((*(*(*(*sig.lock().unwrap().as_ref().unwrap()).recv.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().pos.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap())))))))), { let __field = (*(*sig.lock().unwrap().as_ref().unwrap()).recv.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().pkg.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), { let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field })]))).clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend({ let __slice_holder = params.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned()); __append_target.clone() }; params = new_val; };
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(VALUE as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
         { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(crate::signature::SignaturePtr(Arc::new(Mutex::new(Some(Signature { tparams: { let __field = (*sig.lock().unwrap().as_ref().unwrap()).tparams.clone(); __field }, params: new_tuple(params.clone()).clone(), results: { let __field = (*sig.lock().unwrap().as_ref().unwrap()).results.clone(); __field }, variadic: Arc::new(Mutex::new(Some({ let __selector_holder = (*sig.lock().unwrap().as_ref().unwrap()).variadic.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone())) as Box<dyn Type + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
         self.add_decl_dep(Arc::new(Mutex::new(Some(Box::new(crate::object::FuncPtr(m.clone())) as Box<dyn Object + Send + Sync>))));
@@ -1390,16 +1390,16 @@ impl crate::check::Checker {
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<crate::object::VarPtr>()).is_some() {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<crate::object::VarPtr>()).unwrap().0.clone();
-        self.record_selection(e.clone(), Arc::new(Mutex::new(Some(crate::selection::SelectionKind(Arc::new(Mutex::new(Some(FIELD_VAL as i32))))))), (*x.lock().unwrap().as_ref().unwrap()).typ.clone(), Arc::new(Mutex::new(Some(Box::new(crate::object::VarPtr(obj.clone())) as Box<dyn Object + Send + Sync>))), index.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = indirect.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
+        self.record_selection(e.clone(), Arc::new(Mutex::new(Some(crate::selection::SelectionKind(Arc::new(Mutex::new(Some(FIELD_VAL as i32))))))), { let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }, Arc::new(Mutex::new(Some(Box::new(crate::object::VarPtr(obj.clone())) as Box<dyn Object + Send + Sync>))), index.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = indirect.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
         if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(VARIABLE as u8)))); __tmp_x == __tmp_y } || { let __v = (*indirect.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(VARIABLE as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
     } else {
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(VALUE as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
     };
-        { let __iface_handle = (*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };;
+        { let __iface_handle = { let __field = (*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::object::FuncPtr>()).is_some() {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<crate::object::FuncPtr>()).unwrap().0.clone();
-        self.record_selection(e.clone(), Arc::new(Mutex::new(Some(crate::selection::SelectionKind(Arc::new(Mutex::new(Some(METHOD_VAL as i32))))))), (*x.lock().unwrap().as_ref().unwrap()).typ.clone(), Arc::new(Mutex::new(Some(Box::new(crate::object::FuncPtr(obj.clone())) as Box<dyn Object + Send + Sync>))), index.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = indirect.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
+        self.record_selection(e.clone(), Arc::new(Mutex::new(Some(crate::selection::SelectionKind(Arc::new(Mutex::new(Some(METHOD_VAL as i32))))))), { let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }, Arc::new(Mutex::new(Some(Box::new(crate::object::FuncPtr(obj.clone())) as Box<dyn Object + Send + Sync>))), index.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = indirect.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
         let mut disabled = Arc::new(Mutex::new(Some(true)));;
         if !{ let __v = (*disabled.lock().unwrap().as_ref().unwrap()).clone(); __v } && DEBUG {
         let mut typ = (*x.lock().unwrap().as_ref().unwrap()).typ.clone();

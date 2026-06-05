@@ -155,7 +155,7 @@ impl crate::check::Checker {
                 // should return an error describing the issue.
                 // Ensure that integer values don't overflow (go.dev/issue/54280).
         { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BasicLitPtr(e.clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).expr.lock().unwrap() = (*__iface_guard).clone(); };
-        self.overflow(x.clone(), op_pos((*x.lock().unwrap().as_ref().unwrap()).expr.clone()));
+        self.overflow(x.clone(), op_pos({ let __field = (*x.lock().unwrap().as_ref().unwrap()).expr.clone(); __field }));
     }
 
     pub fn func_lit(&mut self, x: Arc<Mutex<Option<operand>>>, e: Arc<Mutex<Option<go_ast::r#mod::FuncLit>>>) {
@@ -215,7 +215,7 @@ impl crate::check::Checker {
         }
     });;
         if (*atyp.lock().unwrap()).is_some() && isddd_array(atyp.clone()) {
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(crate::array::ArrayPtr(Arc::new(Mutex::new(Some(Array { len: Arc::new(Mutex::new(Some(-1 as i64))), elem: self.var_type((*atyp.lock().unwrap().as_ref().unwrap()).elt.clone()).clone(), ..Default::default() }))).clone())) as Box<dyn Type + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };;
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(crate::array::ArrayPtr(Arc::new(Mutex::new(Some(Array { len: Arc::new(Mutex::new(Some(-1 as i64))), elem: self.var_type({ let __field = (*atyp.lock().unwrap().as_ref().unwrap()).elt.clone(); __field }).clone(), ..Default::default() }))).clone())) as Box<dyn Type + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };;
             { let __iface_handle = typ.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *base.lock().unwrap() = (*__iface_guard).clone(); };;
             break '__go_switch_1;
         }
@@ -223,7 +223,7 @@ impl crate::check::Checker {
                         // We have an "open" [...]T array type.
                         // Create a new ArrayType with unknown length (-1)
                         // and finish setting it up after analyzing the literal.
-            { let __iface_handle = self.typ((*e.lock().unwrap().as_ref().unwrap()).r#type.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = self.typ({ let __field = (*e.lock().unwrap().as_ref().unwrap()).r#type.clone(); __field }).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
             { let __iface_handle = typ.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *base.lock().unwrap() = (*__iface_guard).clone(); };
         } else if (*hint.lock().unwrap()).is_some() {
                         // no composite literal type present - use hint (element type of enclosing type)
@@ -329,7 +329,7 @@ impl crate::check::Checker {
             (Arc::new(Mutex::new(None::<go_ast::r#mod::Ident>)), false)
         }
     });
-        self.expr(Arc::new(Mutex::new(None)), x.clone(), (*kv.lock().unwrap().as_ref().unwrap()).value.clone());
+        self.expr(Arc::new(Mutex::new(None)), x.clone(), { let __field = (*kv.lock().unwrap().as_ref().unwrap()).value.clone(); __field });
         if (*key.lock().unwrap()).is_none() {
         self.errorf(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::KeyValueExprPtr(kv.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_LIT_FIELD as i32))))))), Arc::new(Mutex::new(Some("invalid field name %s in struct literal".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __selector_holder = (*kv.lock().unwrap().as_ref().unwrap()).key.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>]))));
         continue
@@ -403,11 +403,11 @@ impl crate::check::Checker {
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
         return;
     };
-        let mut n = self.indexed_elts({ let __field = (*e.lock().unwrap().as_ref().unwrap()).elts.clone(); __field }, (*utyp.lock().unwrap().as_ref().unwrap()).elem.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = (*utyp.lock().unwrap().as_ref().unwrap()).len.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));;
+        let mut n = self.indexed_elts({ let __field = (*e.lock().unwrap().as_ref().unwrap()).elts.clone(); __field }, { let __field = (*utyp.lock().unwrap().as_ref().unwrap()).elem.clone(); __field }, Arc::new(Mutex::new(Some({ let __selector_holder = (*utyp.lock().unwrap().as_ref().unwrap()).len.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));;
         if { let __tmp_x = (*{ let __field = (*utyp.lock().unwrap().as_ref().unwrap()).len.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i64; __tmp_x < __tmp_y } {
         { let new_val = n; *(*utyp.lock().unwrap().as_ref().unwrap()).len.lock().unwrap() = Some(new_val); };
         if { let __iface_handle = { let __field = (*e.lock().unwrap().as_ref().unwrap()).r#type.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
-        self.record_type_and_value((*e.lock().unwrap().as_ref().unwrap()).r#type.clone(), Arc::new(Mutex::new(Some(crate::operand::operandMode(Arc::new(Mutex::new(Some(TYPEXPR as u8))))))), Arc::new(Mutex::new(Some(Box::new(crate::array::ArrayPtr(utyp.clone())) as Box<dyn Type + Send + Sync>))), Arc::new(Mutex::new(None)));
+        self.record_type_and_value({ let __field = (*e.lock().unwrap().as_ref().unwrap()).r#type.clone(); __field }, Arc::new(Mutex::new(Some(crate::operand::operandMode(Arc::new(Mutex::new(Some(TYPEXPR as u8))))))), Arc::new(Mutex::new(Some(Box::new(crate::array::ArrayPtr(utyp.clone())) as Box<dyn Type + Send + Sync>))), Arc::new(Mutex::new(None)));
     }
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::slice::SlicePtr>()).is_some() {
@@ -417,7 +417,7 @@ impl crate::check::Checker {
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
         return;
     };
-        self.indexed_elts({ let __field = (*e.lock().unwrap().as_ref().unwrap()).elts.clone(); __field }, (*utyp.lock().unwrap().as_ref().unwrap()).elem.clone(), Arc::new(Mutex::new(Some(-1 as i64))));;
+        self.indexed_elts({ let __field = (*e.lock().unwrap().as_ref().unwrap()).elts.clone(); __field }, { let __field = (*utyp.lock().unwrap().as_ref().unwrap()).elem.clone(); __field }, Arc::new(Mutex::new(Some(-1 as i64))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::map::MapPtr>()).is_some() {
         let utyp = _ts_val.and_then(|__v| __v.downcast_ref::<crate::map::MapPtr>()).unwrap().0.clone();
         if { let __iface_handle = { let __field = (*utyp.lock().unwrap().as_ref().unwrap()).key.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } || { let __iface_handle = { let __field = (*utyp.lock().unwrap().as_ref().unwrap()).elem.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
@@ -425,7 +425,7 @@ impl crate::check::Checker {
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
         return;
     };
-        let mut keyIsInterface = is_non_type_param_interface((*utyp.lock().unwrap().as_ref().unwrap()).key.clone());;
+        let mut keyIsInterface = is_non_type_param_interface({ let __field = (*utyp.lock().unwrap().as_ref().unwrap()).key.clone(); __field });;
         let mut visited = Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<Box<dyn Any + Send + Sync>>, Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>>>>>>::new())));;
         { let __range_holder = (*e.lock().unwrap().as_ref().unwrap()).elts.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for e in __range_values.iter() {
         let (mut kv, _) = ({
@@ -445,17 +445,17 @@ impl crate::check::Checker {
         self.error(Arc::new(Mutex::new(Some(Box::new((*e.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(MISSING_LIT_KEY as i32))))))), Arc::new(Mutex::new(Some("missing key in map literal".to_string()))));
         continue
     }
-        self.expr_with_hint(x.clone(), (*kv.lock().unwrap().as_ref().unwrap()).key.clone(), (*utyp.lock().unwrap().as_ref().unwrap()).key.clone());
-        self.assignment(x.clone(), (*utyp.lock().unwrap().as_ref().unwrap()).key.clone(), Arc::new(Mutex::new(Some("map literal".to_string()))));
+        self.expr_with_hint(x.clone(), { let __field = (*kv.lock().unwrap().as_ref().unwrap()).key.clone(); __field }, { let __field = (*utyp.lock().unwrap().as_ref().unwrap()).key.clone(); __field });
+        self.assignment(x.clone(), { let __field = (*utyp.lock().unwrap().as_ref().unwrap()).key.clone(); __field }, Arc::new(Mutex::new(Some("map literal".to_string()))));
         if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); __tmp_x == __tmp_y } {
         continue
     }
         if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(CONSTANT_ as u8)))); __tmp_x == __tmp_y } {
         let mut duplicate = Arc::new(Mutex::new(Some(false)));
-        let mut xkey = key_val((*x.lock().unwrap().as_ref().unwrap()).val.clone());
+        let mut xkey = key_val({ let __field = (*x.lock().unwrap().as_ref().unwrap()).val.clone(); __field });
         if keyIsInterface {
         { let __range_holder = { let __map = { let __map_holder = visited.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(xkey.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for vtyp in __range_values.iter() {
-        if identical(vtyp.clone(), (*x.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        if identical(vtyp.clone(), { let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
         { let new_val = true; *duplicate.lock().unwrap() = Some(new_val); };
         break
     }
@@ -470,8 +470,8 @@ impl crate::check::Checker {
         continue
     }
     }
-        self.expr_with_hint(x.clone(), (*kv.lock().unwrap().as_ref().unwrap()).value.clone(), (*utyp.lock().unwrap().as_ref().unwrap()).elem.clone());
-        self.assignment(x.clone(), (*utyp.lock().unwrap().as_ref().unwrap()).elem.clone(), Arc::new(Mutex::new(Some("map literal".to_string()))));
+        self.expr_with_hint(x.clone(), { let __field = (*kv.lock().unwrap().as_ref().unwrap()).value.clone(); __field }, { let __field = (*utyp.lock().unwrap().as_ref().unwrap()).elem.clone(); __field });
+        self.assignment(x.clone(), { let __field = (*utyp.lock().unwrap().as_ref().unwrap()).elem.clone(); __field }, Arc::new(Mutex::new(Some("map literal".to_string()))));
     } };
     } else {
         let utyp = _ts_subject.clone();
@@ -491,7 +491,7 @@ impl crate::check::Checker {
         }
     });;
         if (*kv.lock().unwrap()).is_some() {
-            { let __iface_handle = (*kv.lock().unwrap().as_ref().unwrap()).value.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *e.lock().unwrap() = (*__iface_guard).clone(); };;
+            { let __iface_handle = { let __field = (*kv.lock().unwrap().as_ref().unwrap()).value.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *e.lock().unwrap() = (*__iface_guard).clone(); };;
         }
     }
         self.r#use(Arc::new(Mutex::new(Some(vec![e.clone()]))));
@@ -586,7 +586,7 @@ impl crate::check::Checker {
     });;
         if (*kv.lock().unwrap()).is_some() {
             {
-        let (mut typ, mut i) = self.index((*kv.lock().unwrap().as_ref().unwrap()).key.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = length.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
+        let (mut typ, mut i) = self.index({ let __field = (*kv.lock().unwrap().as_ref().unwrap()).key.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = length.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
         if is_valid(typ.clone()) {
             if { let __tmp_x = i; let __tmp_y = 0 as i64; __tmp_x >= __tmp_y } {
         { let new_val = i; *index.lock().unwrap() = Some(new_val); };
@@ -596,7 +596,7 @@ impl crate::check::Checker {
     };
         }
     };
-            { let __iface_handle = (*kv.lock().unwrap().as_ref().unwrap()).value.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *eval.lock().unwrap() = (*__iface_guard).clone(); };;
+            { let __iface_handle = { let __field = (*kv.lock().unwrap().as_ref().unwrap()).value.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *eval.lock().unwrap() = (*__iface_guard).clone(); };;
         } else if { let __tmp_x = { let __v = (*length.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x >= __tmp_y } && { let __tmp_x = { let __v = (*index.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*length.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x >= __tmp_y } {
         self.errorf(Arc::new(Mutex::new(Some(Box::new((*e.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(OVERSIZE_ARRAY_LIT as i32))))))), Arc::new(Mutex::new(Some("index %d is out of bounds (>= %d)".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = index.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = length.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
     } else {

@@ -2420,7 +2420,7 @@ pub fn sign(mut x: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>) -> i32 {
         return (*(*x.lock().unwrap().as_ref().unwrap()).val.lock().unwrap().as_mut().unwrap()).sign();;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<complexVal>()).is_some() {
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<complexVal>()).unwrap().clone())));
-        return { let __tmp_x = sign((*x.lock().unwrap().as_ref().unwrap()).re.clone()); let __tmp_y = sign((*x.lock().unwrap().as_ref().unwrap()).im.clone()); __tmp_x | __tmp_y };;
+        return { let __tmp_x = sign({ let __field = (*x.lock().unwrap().as_ref().unwrap()).re.clone(); __field }); let __tmp_y = sign({ let __field = (*x.lock().unwrap().as_ref().unwrap()).im.clone(); __field }); __tmp_x | __tmp_y };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<unknownVal>()).is_some() {
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<unknownVal>()).unwrap().clone())));
         return 1;;
@@ -2484,7 +2484,7 @@ pub fn real(mut x: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>) -> Arc<Mute
         return x.clone();;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<complexVal>()).is_some() {
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<complexVal>()).unwrap().clone())));
-        return (*x.lock().unwrap().as_ref().unwrap()).re.clone();;
+        return { let __field = (*x.lock().unwrap().as_ref().unwrap()).re.clone(); __field };;
     } else {
         let x = _ts_subject.clone();
         std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{} not numeric", format!("{}", (*x.lock().unwrap().as_ref().unwrap())))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);;
@@ -2519,7 +2519,7 @@ pub fn imag(mut x: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>) -> Arc<Mute
         return Arc::new(Mutex::new(Some(Box::new(int64Val(Arc::new(Mutex::new(Some(0 as i64))))) as Box<dyn Value + Send + Sync>)));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<complexVal>()).is_some() {
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<complexVal>()).unwrap().clone())));
-        return (*x.lock().unwrap().as_ref().unwrap()).im.clone();;
+        return { let __field = (*x.lock().unwrap().as_ref().unwrap()).im.clone(); __field };;
     } else {
         let x = _ts_subject.clone();
         std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{} not numeric", format!("{}", (*x.lock().unwrap().as_ref().unwrap())))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);;
@@ -2640,8 +2640,8 @@ pub fn to_float(mut x: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>) -> Arc<
         return x.clone();;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<complexVal>()).is_some() {
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<complexVal>()).unwrap().clone())));
-        if { let __tmp_x = sign((*x.lock().unwrap().as_ref().unwrap()).im.clone()); let __tmp_y = 0; __tmp_x == __tmp_y } {
-        return to_float((*x.lock().unwrap().as_ref().unwrap()).re.clone()).clone();
+        if { let __tmp_x = sign({ let __field = (*x.lock().unwrap().as_ref().unwrap()).im.clone(); __field }); let __tmp_y = 0; __tmp_x == __tmp_y } {
+        return to_float({ let __field = (*x.lock().unwrap().as_ref().unwrap()).re.clone(); __field }).clone();
     };
     }
     }
@@ -2757,8 +2757,8 @@ pub fn unary_op(op: Arc<Mutex<Option<go_token::r#mod::Token>>>, mut y: Arc<Mutex
         return make_float({ let __recv = new_float(); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).neg({ let __field = (*y.lock().unwrap().as_ref().unwrap()).val.clone(); __field }); __result }).clone();;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<complexVal>()).is_some() {
         let y = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<complexVal>()).unwrap().clone())));
-        let mut re = unary_op(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_U_B as i32))))))), (*y.lock().unwrap().as_ref().unwrap()).re.clone(), Arc::new(Mutex::new(Some(0 as u64))));;
-        let mut im = unary_op(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_U_B as i32))))))), (*y.lock().unwrap().as_ref().unwrap()).im.clone(), Arc::new(Mutex::new(Some(0 as u64))));;
+        let mut re = unary_op(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_U_B as i32))))))), { let __field = (*y.lock().unwrap().as_ref().unwrap()).re.clone(); __field }, Arc::new(Mutex::new(Some(0 as u64))));;
+        let mut im = unary_op(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_U_B as i32))))))), { let __field = (*y.lock().unwrap().as_ref().unwrap()).im.clone(); __field }, Arc::new(Mutex::new(Some(0 as u64))));;
         return make_complex(re.clone(), im.clone()).clone();;
     }
     }
@@ -3506,8 +3506,8 @@ pub fn compare(x_: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>, op: Arc<Mut
             panic!("type assertion on nil interface")
         }
     }))));;
-        let mut re = compare((*x.lock().unwrap().as_ref().unwrap()).re.clone(), Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_Q_L as i32))))))), (*y.lock().unwrap().as_ref().unwrap()).re.clone());;
-        let mut im = compare((*x.lock().unwrap().as_ref().unwrap()).im.clone(), Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_Q_L as i32))))))), (*y.lock().unwrap().as_ref().unwrap()).im.clone());;
+        let mut re = compare({ let __field = (*x.lock().unwrap().as_ref().unwrap()).re.clone(); __field }, Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_Q_L as i32))))))), { let __field = (*y.lock().unwrap().as_ref().unwrap()).re.clone(); __field });;
+        let mut im = compare({ let __field = (*x.lock().unwrap().as_ref().unwrap()).im.clone(); __field }, Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_Q_L as i32))))))), { let __field = (*y.lock().unwrap().as_ref().unwrap()).im.clone(); __field });;
         { let _switch_val = (*op.lock().unwrap().as_ref().unwrap()).clone();
     if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_Q_L as i32))))) {
             return re && im;

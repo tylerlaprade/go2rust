@@ -272,7 +272,7 @@ pub fn r#match(mut x: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, mut y: Ar
             (Arc::new(Mutex::new(None::<crate::chan::Chan>)), false)
         }
     });;
-        if (*y.lock().unwrap()).is_some() && identical((*x.lock().unwrap().as_ref().unwrap()).elem.clone(), (*y.lock().unwrap().as_ref().unwrap()).elem.clone()) {
+        if (*y.lock().unwrap()).is_some() && identical({ let __field = (*x.lock().unwrap().as_ref().unwrap()).elem.clone(); __field }, { let __field = (*y.lock().unwrap().as_ref().unwrap()).elem.clone(); __field }) {
             if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).dir.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::chan::ChanDir(Arc::new(Mutex::new(Some(SEND_RECV as i32)))); __tmp_x == __tmp_y } {
             return Arc::new(Mutex::new(Some(Box::new(crate::chan::ChanPtr(y.clone())) as Box<dyn Type + Send + Sync>)));
         } else if { let __tmp_x = { let __selector_holder = (*y.lock().unwrap().as_ref().unwrap()).dir.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::chan::ChanDir(Arc::new(Mutex::new(Some(SEND_RECV as i32)))); __tmp_x == __tmp_y } {

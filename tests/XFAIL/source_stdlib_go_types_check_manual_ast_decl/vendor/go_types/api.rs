@@ -781,7 +781,7 @@ impl Info {
         {
         let (mut t, mut ok) = { let __map = { let __map_holder = self.types.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(e.clone()))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Arc::new(Mutex::new(Some(Default::default()))), false) } };;
         if ok {
-            return (*t.lock().unwrap().as_ref().unwrap()).r#type.clone();;
+            return { let __field = (*t.lock().unwrap().as_ref().unwrap()).r#type.clone(); __field };;
         }
     }
         {
@@ -922,7 +922,7 @@ impl Initializer {
         (*buf.lock().unwrap().as_mut().unwrap()).write_string({ let __recv = lhs.clone(); let __recv_ptr: *const crate::object::Var = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::Var }; let __result = unsafe { &*__recv_ptr }.name(); __result });
     } }
         (*buf.lock().unwrap().as_mut().unwrap()).write_string(" = ".to_string());
-        write_expr(buf.clone(), self.rhs.clone());
+        write_expr(buf.clone(), { let __field = self.rhs.clone(); __field });
         return (*buf.lock().unwrap().as_mut().unwrap()).string();
     }
 }

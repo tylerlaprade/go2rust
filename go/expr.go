@@ -3905,6 +3905,10 @@ func writeLocalInterfaceReferenceCallArgument(out *strings.Builder, arg ast.Expr
 			out.WriteString(".clone()")
 			return true
 		}
+		if sel, ok := arg.(*ast.SelectorExpr); ok {
+			writeSelectorHandleClone(out, sel)
+			return true
+		}
 		TranspileExpressionContext(out, arg, LValue)
 		out.WriteString(".clone()")
 		return true
@@ -3948,6 +3952,10 @@ func writeLocalInterfaceSliceLiteralElement(out *strings.Builder, arg ast.Expr, 
 		if ident, ok := arg.(*ast.Ident); ok {
 			out.WriteString(RustIdentForUse(ident))
 			out.WriteString(".clone()")
+			return true
+		}
+		if sel, ok := arg.(*ast.SelectorExpr); ok {
+			writeSelectorHandleClone(out, sel)
 			return true
 		}
 		TranspileExpressionContext(out, arg, LValue)

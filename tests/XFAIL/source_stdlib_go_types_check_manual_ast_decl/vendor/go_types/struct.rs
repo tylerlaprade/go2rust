@@ -275,7 +275,7 @@ impl crate::check::Checker {
         { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<go_ast::r#mod::Ident>>>, Arc<Mutex<Option<bool>>>) -> () + Send + Sync> = { let mut __f_guard = add_closure_clone.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<go_ast::r#mod::Ident>>>, Arc<Mutex<Option<bool>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(ident.clone(), Arc::new(Mutex::new(Some(true)))) };
     }) as Box<dyn FnMut(Arc<Mutex<Option<go_ast::r#mod::Ident>>>) -> () + Send + Sync>)));
         { let __range_holder = (*list.lock().unwrap().as_ref().unwrap()).list.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter() {
-        { let __iface_handle = self.var_type((*f.lock().unwrap().as_ref().unwrap()).r#type.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = self.var_type({ let __field = (*f.lock().unwrap().as_ref().unwrap()).r#type.clone(); __field }).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
         { let new_val = self.tag({ let __field = (*f.lock().unwrap().as_ref().unwrap()).tag.clone(); __field }); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *tag.lock().unwrap() = __moved_val; };
         if { let __tmp_x = (({ let __len_target = { let __field = (*f.lock().unwrap().as_ref().unwrap()).names.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
                 // named fields
@@ -288,7 +288,7 @@ impl crate::check::Checker {
                 // pointer to a non-interface type name *T, and T itself may not be a
                 // pointer type."
         let mut pos = (*(*f.lock().unwrap().as_ref().unwrap()).r#type.lock().unwrap().as_ref().unwrap()).pos();
-        let mut name = embedded_field_ident((*f.lock().unwrap().as_ref().unwrap()).r#type.clone());
+        let mut name = embedded_field_ident({ let __field = (*f.lock().unwrap().as_ref().unwrap()).r#type.clone(); __field });
         if (*name.lock().unwrap()).is_none() {
         self.errorf(Arc::new(Mutex::new(Some(Box::new((*(*f.lock().unwrap().as_ref().unwrap()).r#type.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_SYNTAX_TREE as i32))))))), Arc::new(Mutex::new(Some("embedded field type %s has no name".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __selector_holder = (*f.lock().unwrap().as_ref().unwrap()).r#type.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>]))));
         { let new_val = go_ast::new_ident(Arc::new(Mutex::new(Some("_".to_string())))).clone(); name = new_val; };
@@ -436,7 +436,7 @@ pub fn embedded_field_ident(mut e: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr 
         }
     });;
         if !ok {
-            return embedded_field_ident((*e.lock().unwrap().as_ref().unwrap()).x.clone());;
+            return embedded_field_ident({ let __field = (*e.lock().unwrap().as_ref().unwrap()).x.clone(); __field });;
         }
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::SelectorExprPtr>()).is_some() {
@@ -444,10 +444,10 @@ pub fn embedded_field_ident(mut e: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr 
         return (*e.lock().unwrap().as_ref().unwrap()).sel.clone();;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IndexExprPtr>()).is_some() {
         let e = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IndexExprPtr>()).unwrap().0.clone();
-        return embedded_field_ident((*e.lock().unwrap().as_ref().unwrap()).x.clone());;
+        return embedded_field_ident({ let __field = (*e.lock().unwrap().as_ref().unwrap()).x.clone(); __field });;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IndexListExprPtr>()).is_some() {
         let e = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IndexListExprPtr>()).unwrap().0.clone();
-        return embedded_field_ident((*e.lock().unwrap().as_ref().unwrap()).x.clone());;
+        return embedded_field_ident({ let __field = (*e.lock().unwrap().as_ref().unwrap()).x.clone(); __field });;
     }
     }
         // *T is valid, but **T is not

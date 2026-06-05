@@ -107,12 +107,12 @@ impl GoJsonDecode for Map {
 impl Map {
     /// Key returns the key type of map m.
     pub fn key(&self) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {
-        return self.key.clone();
+        return { let __field = self.key.clone(); __field };
     }
 
     /// Elem returns the element type of map m.
     pub fn elem(&self) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {
-        return self.elem.clone();
+        return { let __field = self.elem.clone(); __field };
     }
 
     pub fn underlying(&self) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {

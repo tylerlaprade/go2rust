@@ -261,12 +261,12 @@ impl crate::check::Checker {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return self.valid_type0(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), (*t.lock().unwrap().as_ref().unwrap()).elem.clone(), nest.clone(), path.clone());
+        return self.valid_type0(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), { let __field = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); __field }, nest.clone(), path.clone());
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#struct::StructPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#struct::StructPtr>()).unwrap().0.clone();
         { let __range_holder = (*t.lock().unwrap().as_ref().unwrap()).fields.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter() {
-        if !self.valid_type0(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(), nest.clone(), path.clone()) {
+        if !self.valid_type0(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), { let __field = (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field }, nest.clone(), path.clone()) {
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -279,7 +279,7 @@ impl crate::check::Checker {
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::union::UnionPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::union::UnionPtr>()).unwrap().0.clone();
         { let __range_holder = (*t.lock().unwrap().as_ref().unwrap()).terms.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for t in __range_values.iter() {
-        if !self.valid_type0(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), (*t.lock().unwrap().as_ref().unwrap()).typ.clone(), nest.clone(), path.clone()) {
+        if !self.valid_type0(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), { let __field = (*t.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }, nest.clone(), path.clone()) {
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -334,7 +334,7 @@ impl crate::check::Checker {
         std::panic::panic_any(Box::new("cycle start not found".to_string()) as Box<dyn Any + Send + Sync>);
     }
     } };
-        if !self.valid_type0(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), (*{ let __recv = t.clone(); let __recv_ptr: *const crate::named::Named = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::named::Named }; let __result = unsafe { &*__recv_ptr }.origin(); __result }.lock().unwrap().as_ref().unwrap()).from_r_h_s.clone(), { let __append_target = nest.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(t.clone()); __append_target.clone() }, { let __append_target = path.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(t.clone()); __append_target.clone() }) {
+        if !self.valid_type0(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), { let __field = (*{ let __recv = t.clone(); let __recv_ptr: *const crate::named::Named = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::named::Named }; let __result = unsafe { &*__recv_ptr }.origin(); __result }.lock().unwrap().as_ref().unwrap()).from_r_h_s.clone(); __field }, { let __append_target = nest.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(t.clone()); __append_target.clone() }, { let __append_target = path.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(t.clone()); __append_target.clone() }) {
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {

@@ -256,13 +256,13 @@ impl subster {
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::array::ArrayPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::array::ArrayPtr>()).unwrap().0.clone();
-        let mut elem = self.typ_or_nil((*t.lock().unwrap().as_ref().unwrap()).elem.clone());;
+        let mut elem = self.typ_or_nil({ let __field = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); __field });;
         if { let __left_holder = elem.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; !__eq } {
         return Arc::new(Mutex::new(Some(Box::new(crate::array::ArrayPtr(Arc::new(Mutex::new(Some(Array { len: Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).len.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), elem: elem.clone(), ..Default::default() }))).clone())) as Box<dyn Type + Send + Sync>)));
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::slice::SlicePtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::slice::SlicePtr>()).unwrap().0.clone();
-        let mut elem = self.typ_or_nil((*t.lock().unwrap().as_ref().unwrap()).elem.clone());;
+        let mut elem = self.typ_or_nil({ let __field = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); __field });;
         if { let __left_holder = elem.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; !__eq } {
         return Arc::new(Mutex::new(Some(Box::new(crate::slice::SlicePtr(Arc::new(Mutex::new(Some(Slice { elem: elem.clone(), ..Default::default() }))).clone())) as Box<dyn Type + Send + Sync>)));
     };
@@ -278,7 +278,7 @@ impl subster {
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::pointer::PointerPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::pointer::PointerPtr>()).unwrap().0.clone();
-        let mut base = self.typ((*t.lock().unwrap().as_ref().unwrap()).base.clone());;
+        let mut base = self.typ({ let __field = (*t.lock().unwrap().as_ref().unwrap()).base.clone(); __field });;
         if { let __left_holder = base.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = (*t.lock().unwrap().as_ref().unwrap()).base.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; !__eq } {
         return Arc::new(Mutex::new(Some(Box::new(crate::pointer::PointerPtr(Arc::new(Mutex::new(Some(Pointer { base: base.clone(), ..Default::default() }))).clone())) as Box<dyn Type + Send + Sync>)));
     };
@@ -326,14 +326,14 @@ impl subster {
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::map::MapPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::map::MapPtr>()).unwrap().0.clone();
-        let mut key = self.typ((*t.lock().unwrap().as_ref().unwrap()).key.clone());;
-        let mut elem = self.typ((*t.lock().unwrap().as_ref().unwrap()).elem.clone());;
+        let mut key = self.typ({ let __field = (*t.lock().unwrap().as_ref().unwrap()).key.clone(); __field });;
+        let mut elem = self.typ({ let __field = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); __field });;
         if { let __left_holder = key.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = (*t.lock().unwrap().as_ref().unwrap()).key.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; !__eq } || { let __left_holder = elem.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; !__eq } {
         return Arc::new(Mutex::new(Some(Box::new(crate::map::MapPtr(Arc::new(Mutex::new(Some(Map { key: key.clone(), elem: elem.clone(), ..Default::default() }))).clone())) as Box<dyn Type + Send + Sync>)));
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::chan::ChanPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::chan::ChanPtr>()).unwrap().0.clone();
-        let mut elem = self.typ((*t.lock().unwrap().as_ref().unwrap()).elem.clone());;
+        let mut elem = self.typ({ let __field = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); __field });;
         if { let __left_holder = elem.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; !__eq } {
         return Arc::new(Mutex::new(Some(Box::new(crate::chan::ChanPtr(Arc::new(Mutex::new(Some(Chan { dir: Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).dir.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), elem: elem.clone(), ..Default::default() }))).clone())) as Box<dyn Type + Send + Sync>)));
     };
@@ -437,7 +437,7 @@ impl subster {
     pub fn var_(&self, v: Arc<Mutex<Option<Var>>>) -> Arc<Mutex<Option<crate::object::Var>>> {
         if (*v.lock().unwrap()).is_some() {
         {
-        let mut typ = self.typ((*(*v.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone());;
+        let mut typ = self.typ({ let __field = (*(*v.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field });;
         if { let __left_holder = typ.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = (*(*v.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; !__eq } {
             return clone_var(v.clone(), typ.clone());;
         }
@@ -461,7 +461,7 @@ impl subster {
     pub fn func_(&self, f: Arc<Mutex<Option<Func>>>) -> Arc<Mutex<Option<crate::object::Func>>> {
         if (*f.lock().unwrap()).is_some() {
         {
-        let mut typ = self.typ((*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone());;
+        let mut typ = self.typ({ let __field = (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field });;
         if { let __left_holder = typ.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; !__eq } {
             return clone_func(f.clone(), typ.clone());;
         }
@@ -472,7 +472,7 @@ impl subster {
 
     pub fn term(&self, t: Arc<Mutex<Option<Term>>>) -> Arc<Mutex<Option<crate::union::Term>>> {
         {
-        let mut typ = self.typ((*t.lock().unwrap().as_ref().unwrap()).typ.clone());;
+        let mut typ = self.typ({ let __field = (*t.lock().unwrap().as_ref().unwrap()).typ.clone(); __field });;
         if { let __left_holder = typ.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = (*t.lock().unwrap().as_ref().unwrap()).typ.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; !__eq } {
             return new_term(Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).tilde.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), typ.clone());;
         }

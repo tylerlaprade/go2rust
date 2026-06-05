@@ -1130,10 +1130,10 @@ pub fn instantiated_ident(expr: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + S
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IndexExprPtr>()).is_some() {
         let e = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IndexExprPtr>()).unwrap().0.clone();
-        { let __iface_handle = (*e.lock().unwrap().as_ref().unwrap()).x.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *selOrIdent.lock().unwrap() = (*__iface_guard).clone(); };;
+        { let __iface_handle = { let __field = (*e.lock().unwrap().as_ref().unwrap()).x.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *selOrIdent.lock().unwrap() = (*__iface_guard).clone(); };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IndexListExprPtr>()).is_some() {
         let e = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IndexListExprPtr>()).unwrap().0.clone();
-        { let __iface_handle = (*e.lock().unwrap().as_ref().unwrap()).x.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *selOrIdent.lock().unwrap() = (*__iface_guard).clone(); };;
+        { let __iface_handle = { let __field = (*e.lock().unwrap().as_ref().unwrap()).x.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *selOrIdent.lock().unwrap() = (*__iface_guard).clone(); };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::SelectorExprPtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IdentPtr>()).is_some() {
         let e = _ts_subject.clone();
         { let __iface_handle = e.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *selOrIdent.lock().unwrap() = (*__iface_guard).clone(); };;

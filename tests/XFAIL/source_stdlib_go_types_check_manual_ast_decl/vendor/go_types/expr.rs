@@ -551,7 +551,7 @@ impl crate::check::Checker {
         {
         let mut pred = { let __map = { let __map_holder = { let __named_map = (*m.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*op.lock().unwrap().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };;
         if (*pred.lock().unwrap()).is_some() {
-            if !{ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> bool + Send + Sync> = { let mut __f_guard = pred.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) } {
+            if !{ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> bool + Send + Sync> = { let mut __f_guard = pred.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) } {
         self.errorf(Arc::new(Mutex::new(Some(Box::new(crate::operand::operandPtr(x.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(UNDEFINED_OP as i32))))))), Arc::new(Mutex::new(Some("invalid operation: operator %s not defined on %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = op.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new(x.clone()) as Box<dyn Any + Send + Sync>]))));
         return false;
     };
@@ -565,7 +565,7 @@ impl crate::check::Checker {
 
     /// The unary expression e may be nil. It's passed in for better error messages only.
     pub fn unary(&mut self, x: Arc<Mutex<Option<operand>>>, e: Arc<Mutex<Option<go_ast::r#mod::UnaryExpr>>>) {
-        self.expr(Arc::new(Mutex::new(None)), x.clone(), (*e.lock().unwrap().as_ref().unwrap()).x.clone());
+        self.expr(Arc::new(Mutex::new(None)), x.clone(), { let __field = (*e.lock().unwrap().as_ref().unwrap()).x.clone(); __field });
         if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); __tmp_x == __tmp_y } {
         return;
     }
@@ -576,7 +576,7 @@ impl crate::check::Checker {
                         // requirement x may also be a composite literal."
             {
         let (_, mut ok) = ({
-        let val = go_ast::unparen((*e.lock().unwrap().as_ref().unwrap()).x.clone()).clone();
+        let val = go_ast::unparen({ let __field = (*e.lock().unwrap().as_ref().unwrap()).x.clone(); __field }).clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = <dyn go_ast::r#mod::Expr + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<go_ast::r#mod::CompositeLitPtr>() {
@@ -598,7 +598,7 @@ impl crate::check::Checker {
             { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(crate::pointer::PointerPtr(Arc::new(Mutex::new(Some(Pointer { base: { let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }, ..Default::default() }))).clone())) as Box<dyn Type + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
             return;
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_R_R_O_W as i32))))) {
-            let mut u = core_type((*x.lock().unwrap().as_ref().unwrap()).typ.clone());
+            let mut u = core_type({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field });
             if (*u.lock().unwrap()).is_none() {
         self.errorf(Arc::new(Mutex::new(Some(Box::new(crate::operand::operandPtr(x.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_RECEIVE as i32))))))), Arc::new(Mutex::new(Some("invalid operation: cannot receive from %s (no core type)".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(x.clone()) as Box<dyn Any + Send + Sync>]))));
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
@@ -628,12 +628,12 @@ impl crate::check::Checker {
         return;
     }
             { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(COMMAOK as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
-            { let __iface_handle = (*ch.lock().unwrap().as_ref().unwrap()).elem.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = { let __field = (*ch.lock().unwrap().as_ref().unwrap()).elem.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
             { let new_val = true; *(*self.environment.lock().unwrap().as_ref().unwrap()).has_call_or_recv.lock().unwrap() = Some(new_val); };
             return;
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::T_I_L_D_E as i32))))) {
                         // Provide a better error position and message than what check.op below would do.
-            if !all_integer((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+            if !all_integer({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
         self.error(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::UnaryExprPtr(e.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(UNDEFINED_OP as i32))))))), Arc::new(Mutex::new(Some("cannot use ~ outside of interface or type constraint".to_string()))));
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
         return;
@@ -656,12 +656,12 @@ impl crate::check::Checker {
     }
                 // nothing to do (and don't cause an error below in the overflow check)
         let mut prec: Arc<Mutex<Option<u64>>> = Arc::new(Mutex::new(Some(0)));
-        if is_unsigned((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) {
-        { let new_val = Arc::new(Mutex::new(Some(({ let __tmp_x = (*self.conf.lock().unwrap().as_ref().unwrap()).sizeof((*x.lock().unwrap().as_ref().unwrap()).typ.clone()); let __tmp_y = 8 as i64; __tmp_x * __tmp_y }) as u64))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *prec.lock().unwrap() = __moved_val; };
+        if is_unsigned({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
+        { let new_val = Arc::new(Mutex::new(Some(({ let __tmp_x = (*self.conf.lock().unwrap().as_ref().unwrap()).sizeof({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }); let __tmp_y = 8 as i64; __tmp_x * __tmp_y }) as u64))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *prec.lock().unwrap() = __moved_val; };
     }
-        { let __iface_handle = go_constant::unary_op(Arc::new(Mutex::new(Some({ let __arg_holder = op.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), (*x.lock().unwrap().as_ref().unwrap()).val.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = prec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).val.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = go_constant::unary_op(Arc::new(Mutex::new(Some({ let __arg_holder = op.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), { let __field = (*x.lock().unwrap().as_ref().unwrap()).val.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = prec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).val.lock().unwrap() = (*__iface_guard).clone(); };
         { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::UnaryExprPtr(e.clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).expr.lock().unwrap() = (*__iface_guard).clone(); };
-        self.overflow(x.clone(), op_pos((*x.lock().unwrap().as_ref().unwrap()).expr.clone()));
+        self.overflow(x.clone(), op_pos({ let __field = (*x.lock().unwrap().as_ref().unwrap()).expr.clone(); __field }));
         return;
     }
                 // nothing to do (and don't cause an error below in the overflow check)
@@ -713,13 +713,13 @@ impl crate::check::Checker {
         let x = _ts_subject.clone();
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ParenExprPtr>()).is_some() {
         let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ParenExprPtr>()).unwrap().0.clone();
-        self.update_expr_type((*x.lock().unwrap().as_ref().unwrap()).x.clone(), typ.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = r#final.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
+        self.update_expr_type({ let __field = (*x.lock().unwrap().as_ref().unwrap()).x.clone(); __field }, typ.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = r#final.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::UnaryExprPtr>()).is_some() {
         let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::UnaryExprPtr>()).unwrap().0.clone();
         if { let __iface_handle = { let __field = (*old.lock().unwrap().as_ref().unwrap()).val.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
         break '__go_switch_1
     };
-        self.update_expr_type((*x.lock().unwrap().as_ref().unwrap()).x.clone(), typ.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = r#final.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
+        self.update_expr_type({ let __field = (*x.lock().unwrap().as_ref().unwrap()).x.clone(); __field }, typ.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = r#final.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::BinaryExprPtr>()).is_some() {
         let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::BinaryExprPtr>()).unwrap().0.clone();
         if { let __iface_handle = { let __field = (*old.lock().unwrap().as_ref().unwrap()).val.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
@@ -727,10 +727,10 @@ impl crate::check::Checker {
     };
         if is_comparison(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some((*(*(*x.lock().unwrap().as_ref().unwrap()).op.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))))))) {
     } else if is_shift(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some((*(*(*x.lock().unwrap().as_ref().unwrap()).op.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))))))) {
-        self.update_expr_type((*x.lock().unwrap().as_ref().unwrap()).x.clone(), typ.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = r#final.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        self.update_expr_type({ let __field = (*x.lock().unwrap().as_ref().unwrap()).x.clone(); __field }, typ.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = r#final.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     } else {
-        self.update_expr_type((*x.lock().unwrap().as_ref().unwrap()).x.clone(), typ.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = r#final.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-        self.update_expr_type((*x.lock().unwrap().as_ref().unwrap()).y.clone(), typ.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = r#final.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        self.update_expr_type({ let __field = (*x.lock().unwrap().as_ref().unwrap()).x.clone(); __field }, typ.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = r#final.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        self.update_expr_type({ let __field = (*x.lock().unwrap().as_ref().unwrap()).y.clone(); __field }, typ.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = r#final.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     };
     } else {
         let x = _ts_subject.clone();
@@ -806,7 +806,7 @@ impl crate::check::Checker {
     }
                 // If x is a constant, it must be representable as a value of typ.
                 // Everything's fine, record final type and value for x.
-        self.record_type_and_value(x.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = (*old.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), typ.clone(), (*old.lock().unwrap().as_ref().unwrap()).val.clone());
+        self.record_type_and_value(x.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = (*old.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), typ.clone(), { let __field = (*old.lock().unwrap().as_ref().unwrap()).val.clone(); __field });
     }
 
     /// updateExprVal updates the value of x to val.
@@ -827,14 +827,14 @@ impl crate::check::Checker {
     /// If x is a constant operand, the returned constant.Value will be the
     /// representation of x in this context.
     pub fn implicit_type_and_value(&self, x: Arc<Mutex<Option<operand>>>, target: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> (Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn go_constant::value::Value + Send + Sync>>>>, Arc<Mutex<Option<internal_types_errors::codes::Code>>>) {
-        if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); __tmp_x == __tmp_y } || is_typed((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) || !is_valid(target.clone()) {
-        return ((*x.lock().unwrap().as_ref().unwrap()).typ.clone(), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(0 as i32))))))));
+        if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); __tmp_x == __tmp_y } || is_typed({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) || !is_valid(target.clone()) {
+        return ({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }, Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(0 as i32))))))));
     }
                 // x is untyped
         if is_untyped(target.clone()) {
                 // both x and target are untyped
         {
-        let mut m = max_type((*x.lock().unwrap().as_ref().unwrap()).typ.clone(), target.clone());;
+        let mut m = max_type({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }, target.clone());;
         if (*m.lock().unwrap()).is_some() {
             return (m.clone(), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(0 as i32))))))));;
         }
@@ -923,7 +923,7 @@ impl crate::check::Checker {
         if !{ let __recv = u.clone(); let __recv_ptr: *const crate::interface::Interface = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::interface::Interface }; let __result = unsafe { &*__recv_ptr }.empty(); __result } {
         return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_UNTYPED_CONVERSION as i32))))))));
     };
-        return (default((*x.lock().unwrap().as_ref().unwrap()).typ.clone()).clone(), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(0 as i32))))))));;
+        return (default({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }).clone(), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(0 as i32))))))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::pointer::PointerPtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<crate::signature::SignaturePtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<crate::slice::SlicePtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<crate::map::MapPtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<crate::chan::ChanPtr>()).is_some() {
         let u = _ts_subject.clone();
         if !{ let __recv = x.clone(); let __recv_ptr: *const crate::operand::operand = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::operand::operand }; let __result = unsafe { &*__recv_ptr }.is_nil(); __result } {
@@ -959,7 +959,7 @@ impl crate::check::Checker {
     /// If switchCase is true, the operator op is ignored.
     pub fn comparison(&mut self, x: Arc<Mutex<Option<operand>>>, y: Arc<Mutex<Option<operand>>>, mut op: Arc<Mutex<Option<go_token::r#mod::Token>>>, switchCase: Arc<Mutex<Option<bool>>>) {
                 // Avoid spurious errors if any of the operands has an invalid type (go.dev/issue/54405).
-        if !is_valid((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) || !is_valid((*y.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        if !is_valid({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) || !is_valid({ let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
         return;
     }
@@ -974,9 +974,9 @@ impl crate::check::Checker {
                 // spec: "In any comparison, the first operand must be assignable
                 // to the type of the second operand, or vice versa."
         let mut code = Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(MISMATCHED_TYPES as i32)))))));
-        let (mut ok, _) = { let __recv = x.clone(); let __recv_ptr: *mut crate::operand::operand = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::operand::operand }; let __result = unsafe { &mut *__recv_ptr }.assignable_to(Arc::new(Mutex::new(Some(self.clone()))), (*y.lock().unwrap().as_ref().unwrap()).typ.clone(), Arc::new(Mutex::new(None))); __result };
+        let (mut ok, _) = { let __recv = x.clone(); let __recv_ptr: *mut crate::operand::operand = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::operand::operand }; let __result = unsafe { &mut *__recv_ptr }.assignable_to(Arc::new(Mutex::new(Some(self.clone()))), { let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }, Arc::new(Mutex::new(None))); __result };
         if !ok {
-        { let (__tmp_0, __tmp_1) = { let __recv = y.clone(); let __recv_ptr: *mut crate::operand::operand = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::operand::operand }; let __result = unsafe { &mut *__recv_ptr }.assignable_to(Arc::new(Mutex::new(Some(self.clone()))), (*x.lock().unwrap().as_ref().unwrap()).typ.clone(), Arc::new(Mutex::new(None))); __result }; ok = __tmp_0; };
+        { let (__tmp_0, __tmp_1) = { let __recv = y.clone(); let __recv_ptr: *mut crate::operand::operand = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::operand::operand }; let __result = unsafe { &mut *__recv_ptr }.assignable_to(Arc::new(Mutex::new(Some(self.clone()))), { let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }, Arc::new(Mutex::new(None))); __result }; ok = __tmp_0; };
     }
         'error: {
             if !ok {
@@ -1000,7 +1000,7 @@ impl crate::check::Checker {
                         // Comparison against nil requires that the other operand type has nil.
             let mut typ = (*x.lock().unwrap().as_ref().unwrap()).typ.clone();
             if { let __recv = x.clone(); let __recv_ptr: *const crate::operand::operand = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::operand::operand }; let __result = unsafe { &*__recv_ptr }.is_nil(); __result } {
-        { let __iface_handle = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
     }
             if !has_nil(typ.clone()) {
                 // This case should only be possible for "nil == nil".
@@ -1010,21 +1010,21 @@ impl crate::check::Checker {
         { let new_val = y.clone(); errOp = new_val; };
         break 'error;
     }
-        } else if !comparable((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        } else if !comparable({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
             { let new_val = x.clone(); errOp = new_val; };
-            { let new_val = self.incomparable_cause((*x.lock().unwrap().as_ref().unwrap()).typ.clone()); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *cause.lock().unwrap() = __moved_val; };
+            { let new_val = self.incomparable_cause({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *cause.lock().unwrap() = __moved_val; };
             break 'error;
-        } else if !comparable((*y.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        } else if !comparable({ let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
             { let new_val = y.clone(); errOp = new_val; };
-            { let new_val = self.incomparable_cause((*y.lock().unwrap().as_ref().unwrap()).typ.clone()); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *cause.lock().unwrap() = __moved_val; };
+            { let new_val = self.incomparable_cause({ let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *cause.lock().unwrap() = __moved_val; };
             break 'error;
         }
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_S_S as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_E_Q as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::G_T_R as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::G_E_Q as i32))))) {
                         // spec: The ordering operators <, <=, >, and >= apply to operands that are ordered."
-            if !all_ordered((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+            if !all_ordered({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
             { let new_val = x.clone(); errOp = new_val; };
             break 'error;
-        } else if !all_ordered((*y.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        } else if !all_ordered({ let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
             { let new_val = y.clone(); errOp = new_val; };
             break 'error;
         }
@@ -1042,15 +1042,15 @@ impl crate::check::Checker {
                         // spec: The ordering operators <, <=, >, and >= apply to operands that are ordered."
                         // comparison is ok
             if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(CONSTANT_ as u8)))); __tmp_x == __tmp_y } && { let __tmp_x = { let __selector_holder = (*y.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(CONSTANT_ as u8)))); __tmp_x == __tmp_y } {
-        { let __iface_handle = go_constant::make_bool(Arc::new(Mutex::new(Some(go_constant::compare((*x.lock().unwrap().as_ref().unwrap()).val.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = op.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), (*y.lock().unwrap().as_ref().unwrap()).val.clone()))))).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).val.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = go_constant::make_bool(Arc::new(Mutex::new(Some(go_constant::compare({ let __field = (*x.lock().unwrap().as_ref().unwrap()).val.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = op.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), { let __field = (*y.lock().unwrap().as_ref().unwrap()).val.clone(); __field }))))).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).val.lock().unwrap() = (*__iface_guard).clone(); };
     } else {
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(VALUE as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
                 // The operands have now their final types, which at run-
                 // time will be materialized. Update the expression trees.
                 // If the current types are untyped, the materialized type
                 // is the respective default type.
-        self.update_expr_type((*x.lock().unwrap().as_ref().unwrap()).expr.clone(), default((*x.lock().unwrap().as_ref().unwrap()).typ.clone()).clone(), Arc::new(Mutex::new(Some(true))));
-        self.update_expr_type((*y.lock().unwrap().as_ref().unwrap()).expr.clone(), default((*y.lock().unwrap().as_ref().unwrap()).typ.clone()).clone(), Arc::new(Mutex::new(Some(true))));
+        self.update_expr_type({ let __field = (*x.lock().unwrap().as_ref().unwrap()).expr.clone(); __field }, default({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }).clone(), Arc::new(Mutex::new(Some(true))));
+        self.update_expr_type({ let __field = (*y.lock().unwrap().as_ref().unwrap()).expr.clone(); __field }, default({ let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }).clone(), Arc::new(Mutex::new(Some(true))));
     }
 
                         // The operands are never materialized; no need to update
@@ -1067,15 +1067,15 @@ impl crate::check::Checker {
         }
                 // We have an offending operand errOp and possibly an error cause.
         if { let __tmp_x = (*cause.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
-        if is_type_param((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) || is_type_param((*y.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        if is_type_param({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) || is_type_param({ let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
                 // TODO(gri) should report the specific type causing the problem, if any
-        if !is_type_param((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        if !is_type_param({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
         { let new_val = y.clone(); errOp = new_val; };
     }
         { let new_val = self.sprintf(Arc::new(Mutex::new(Some("type parameter %s cannot use operator %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __selector_holder = (*errOp.lock().unwrap().as_ref().unwrap()).typ.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = op.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>])))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *cause.lock().unwrap() = __moved_val; };
     } else {
                 // catch-all neither x nor y is a type parameter
-        let mut what = composite_kind((*errOp.lock().unwrap().as_ref().unwrap()).typ.clone());
+        let mut what = composite_kind({ let __field = (*errOp.lock().unwrap().as_ref().unwrap()).typ.clone(); __field });
         if { let __tmp_x = (*what.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
         { let new_val = self.sprintf(Arc::new(Mutex::new(Some("%s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __selector_holder = (*errOp.lock().unwrap().as_ref().unwrap()).typ.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>])))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *what.lock().unwrap() = __moved_val; };
     }
@@ -1127,9 +1127,9 @@ impl crate::check::Checker {
                 // TODO(gri) This function seems overly complex. Revisit.
         let mut xval: Arc<Mutex<Option<Box<dyn go_constant::value::Value + Send + Sync>>>> = Arc::new(Mutex::new(None));
         if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(CONSTANT_ as u8)))); __tmp_x == __tmp_y } {
-        { let __iface_handle = go_constant::to_int((*x.lock().unwrap().as_ref().unwrap()).val.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *xval.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = go_constant::to_int({ let __field = (*x.lock().unwrap().as_ref().unwrap()).val.clone(); __field }).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *xval.lock().unwrap() = (*__iface_guard).clone(); };
     }
-        if all_integer((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) || is_untyped((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) && (*xval.lock().unwrap()).is_some() && { let __tmp_x = (*(*xval.lock().unwrap().as_ref().unwrap()).kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_constant::value::Kind(Arc::new(Mutex::new(Some(go_constant::INT as i32)))); __tmp_x == __tmp_y } {
+        if all_integer({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) || is_untyped({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) && (*xval.lock().unwrap()).is_some() && { let __tmp_x = (*(*xval.lock().unwrap().as_ref().unwrap()).kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_constant::value::Kind(Arc::new(Mutex::new(Some(go_constant::INT as i32)))); __tmp_x == __tmp_y } {
     } else {
                 // shift has no chance
         self.errorf(Arc::new(Mutex::new(Some(Box::new(crate::operand::operandPtr(x.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_SHIFT_OPERAND as i32))))))), Arc::new(Mutex::new(Some("invalid operation: shifted operand %s must be integer".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(x.clone()) as Box<dyn Any + Send + Sync>]))));
@@ -1146,13 +1146,13 @@ impl crate::check::Checker {
         let mut yval: Arc<Mutex<Option<Box<dyn go_constant::value::Value + Send + Sync>>>> = Arc::new(Mutex::new(None));
         if { let __tmp_x = { let __selector_holder = (*y.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(CONSTANT_ as u8)))); __tmp_x == __tmp_y } {
                 // Provide a good error message for negative shift counts.
-        { let __iface_handle = go_constant::to_int((*y.lock().unwrap().as_ref().unwrap()).val.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *yval.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = go_constant::to_int({ let __field = (*y.lock().unwrap().as_ref().unwrap()).val.clone(); __field }).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *yval.lock().unwrap() = (*__iface_guard).clone(); };
         if { let __tmp_x = (*(*yval.lock().unwrap().as_ref().unwrap()).kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_constant::value::Kind(Arc::new(Mutex::new(Some(go_constant::INT as i32)))); __tmp_x == __tmp_y } && { let __tmp_x = go_constant::sign(yval.clone()); let __tmp_y = 0; __tmp_x < __tmp_y } {
         self.errorf(Arc::new(Mutex::new(Some(Box::new(crate::operand::operandPtr(y.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_SHIFT_COUNT as i32))))))), Arc::new(Mutex::new(Some("invalid operation: negative shift count %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(y.clone()) as Box<dyn Any + Send + Sync>]))));
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
         return;
     }
-        if is_untyped((*y.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        if is_untyped({ let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
                 // Caution: Check for representability here, rather than in the switch
                 // below, because isInteger includes untyped integers (was bug go.dev/issue/43697).
         self.representable(y.clone(), { let __seq = { let __seq_holder = Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(UINT as i32) as usize].clone() });
@@ -1163,12 +1163,12 @@ impl crate::check::Checker {
     }
     } else {
                 // Check that RHS is otherwise at least of integer type.
-        if all_integer((*y.lock().unwrap().as_ref().unwrap()).typ.clone()) {
-            if !all_unsigned((*y.lock().unwrap().as_ref().unwrap()).typ.clone()) && !self.verify_versionf(Arc::new(Mutex::new(Some(Box::new(crate::operand::operandPtr(y.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = go1_13.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("invalid operation: signed shift count %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(y.clone()) as Box<dyn Any + Send + Sync>])))) {
+        if all_integer({ let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
+            if !all_unsigned({ let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) && !self.verify_versionf(Arc::new(Mutex::new(Some(Box::new(crate::operand::operandPtr(y.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = go1_13.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("invalid operation: signed shift count %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(y.clone()) as Box<dyn Any + Send + Sync>])))) {
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
         return;
     }
-        } else if is_untyped((*y.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        } else if is_untyped({ let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
                         // This is incorrect, but preserves pre-existing behavior.
                         // See also go.dev/issue/47410.
             self.convert_untyped(y.clone(), Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr({ let __seq = { let __seq_holder = Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(UINT as i32) as usize].clone() }.clone())) as Box<dyn Type + Send + Sync>))));
@@ -1195,7 +1195,7 @@ impl crate::check::Checker {
         if { let __tmp_x = (*(*(*x.lock().unwrap().as_ref().unwrap()).val.lock().unwrap().as_ref().unwrap()).kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_constant::value::Kind(Arc::new(Mutex::new(Some(go_constant::UNKNOWN as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*(*(*y.lock().unwrap().as_ref().unwrap()).val.lock().unwrap().as_ref().unwrap()).kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_constant::value::Kind(Arc::new(Mutex::new(Some(go_constant::UNKNOWN as i32)))); __tmp_x == __tmp_y } {
         { let __iface_handle = go_constant::make_unknown().clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).val.lock().unwrap() = (*__iface_guard).clone(); };
                 // ensure the correct type - see comment below
-        if !is_integer((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        if !is_integer({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
         { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr({ let __seq = { let __seq_holder = Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(UNTYPED_INT as i32) as usize].clone() }.clone())) as Box<dyn Type + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
     }
         return;
@@ -1214,13 +1214,13 @@ impl crate::check::Checker {
                 // (e.g., 2.0, an untyped float) - this can only happen for untyped
                 // non-integer numeric constants. Correct the type so that the shift
                 // result is of integer type.
-        if !is_integer((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        if !is_integer({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
         { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr({ let __seq = { let __seq_holder = Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(UNTYPED_INT as i32) as usize].clone() }.clone())) as Box<dyn Type + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
     }
                 // x is a constant so xval != nil and it must be of Int kind.
         { let __iface_handle = go_constant::shift(xval.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = op.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(s as u64)))).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).val.lock().unwrap() = (*__iface_guard).clone(); };
         { let __iface_handle = e.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).expr.lock().unwrap() = (*__iface_guard).clone(); };
-        self.overflow(x.clone(), op_pos((*x.lock().unwrap().as_ref().unwrap()).expr.clone()));
+        self.overflow(x.clone(), op_pos({ let __field = (*x.lock().unwrap().as_ref().unwrap()).expr.clone(); __field }));
         return;
     }
                 // if either x or y has an unknown value, the result is unknown
@@ -1233,7 +1233,7 @@ impl crate::check::Checker {
                 // result is of integer type.
                 // x is a constant so xval != nil and it must be of Int kind.
                 // non-constant shift with constant lhs
-        if is_untyped((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        if is_untyped({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
                 // spec: "If the left operand of a non-constant shift
                 // expression is an untyped constant, the type of the
                 // constant is what it would be if the shift expression
@@ -1296,7 +1296,7 @@ impl crate::check::Checker {
                 // Example: var e, f = int(1<<""[f]) // go.dev/issue/11347
                 // keep x's type
                 // non-constant shift - lhs must be an integer
-        if !all_integer((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        if !all_integer({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
         self.errorf(Arc::new(Mutex::new(Some(Box::new(crate::operand::operandPtr(x.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_SHIFT_OPERAND as i32))))))), Arc::new(Mutex::new(Some("invalid operation: shifted operand %s must be integer".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(x.clone()) as Box<dyn Any + Send + Sync>]))));
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
         return;
@@ -1315,7 +1315,7 @@ impl crate::check::Checker {
     }
         if { let __tmp_x = { let __selector_holder = (*y.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); __tmp_x == __tmp_y } {
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
-        { let __iface_handle = (*y.lock().unwrap().as_ref().unwrap()).expr.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).expr.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __field = (*y.lock().unwrap().as_ref().unwrap()).expr.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).expr.lock().unwrap() = (*__iface_guard).clone(); };
         return;
     }
         if is_shift(Arc::new(Mutex::new(Some({ let __arg_holder = op.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
@@ -1330,10 +1330,10 @@ impl crate::check::Checker {
         self.comparison(x.clone(), y.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = op.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(false))));
         return;
     }
-        if !identical((*x.lock().unwrap().as_ref().unwrap()).typ.clone(), (*y.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        if !identical({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }, { let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
                 // only report an error if we have valid types
                 // (otherwise we had an error reported elsewhere already)
-        if is_valid((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) && is_valid((*y.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        if is_valid({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) && is_valid({ let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
         let mut posn: Arc<Mutex<Option<Box<dyn positioner + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(crate::operand::operandPtr(x.clone())) as Box<dyn positioner + Send + Sync>)));
         if (*e.lock().unwrap()).is_some() {
         { let __iface_handle = Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = e.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn positioner + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *posn.lock().unwrap() = (*__iface_guard).clone(); };
@@ -1355,14 +1355,14 @@ impl crate::check::Checker {
     }
         if { let __tmp_x = (*op.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::Q_U_O as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*op.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_E_M as i32)))); __tmp_x == __tmp_y } {
                 // check for zero divisor
-        if ({ let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(CONSTANT_ as u8)))); __tmp_x == __tmp_y } || all_integer((*x.lock().unwrap().as_ref().unwrap()).typ.clone())) && { let __tmp_x = { let __selector_holder = (*y.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(CONSTANT_ as u8)))); __tmp_x == __tmp_y } && { let __tmp_x = go_constant::sign((*y.lock().unwrap().as_ref().unwrap()).val.clone()); let __tmp_y = 0; __tmp_x == __tmp_y } {
+        if ({ let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(CONSTANT_ as u8)))); __tmp_x == __tmp_y } || all_integer({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field })) && { let __tmp_x = { let __selector_holder = (*y.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(CONSTANT_ as u8)))); __tmp_x == __tmp_y } && { let __tmp_x = go_constant::sign({ let __field = (*y.lock().unwrap().as_ref().unwrap()).val.clone(); __field }); let __tmp_y = 0; __tmp_x == __tmp_y } {
         self.error(Arc::new(Mutex::new(Some(Box::new(crate::operand::operandPtr(y.clone().clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(DIV_BY_ZERO as i32))))))), Arc::new(Mutex::new(Some("invalid operation: division by zero".to_string()))));
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
         return;
     }
                 // check for divisor underflow in complex division (see go.dev/issue/20227)
-        if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(CONSTANT_ as u8)))); __tmp_x == __tmp_y } && { let __tmp_x = { let __selector_holder = (*y.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(CONSTANT_ as u8)))); __tmp_x == __tmp_y } && is_complex((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) {
-        let (mut re, mut im) = (go_constant::real((*y.lock().unwrap().as_ref().unwrap()).val.clone()), go_constant::imag((*y.lock().unwrap().as_ref().unwrap()).val.clone()));
+        if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(CONSTANT_ as u8)))); __tmp_x == __tmp_y } && { let __tmp_x = { let __selector_holder = (*y.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(CONSTANT_ as u8)))); __tmp_x == __tmp_y } && is_complex({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
+        let (mut re, mut im) = (go_constant::real({ let __field = (*y.lock().unwrap().as_ref().unwrap()).val.clone(); __field }), go_constant::imag({ let __field = (*y.lock().unwrap().as_ref().unwrap()).val.clone(); __field }));
         let (mut re2, mut im2) = (go_constant::binary_op(re.clone(), Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::M_U_L as i32))))))), re.clone()), go_constant::binary_op(im.clone(), Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::M_U_L as i32))))))), im.clone()));
         if { let __tmp_x = go_constant::sign(re2.clone()); let __tmp_y = 0; __tmp_x == __tmp_y } && { let __tmp_x = go_constant::sign(im2.clone()); let __tmp_y = 0; __tmp_x == __tmp_y } {
         self.error(Arc::new(Mutex::new(Some(Box::new(crate::operand::operandPtr(y.clone().clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(DIV_BY_ZERO as i32))))))), Arc::new(Mutex::new(Some("invalid operation: division by zero".to_string()))));
@@ -1382,10 +1382,10 @@ impl crate::check::Checker {
     }
                 // x.typ is unchanged
                 // force integer division of integer operands
-        if { let __tmp_x = (*op.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::Q_U_O as i32)))); __tmp_x == __tmp_y } && is_integer((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        if { let __tmp_x = (*op.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::Q_U_O as i32)))); __tmp_x == __tmp_y } && is_integer({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
         { let new_val = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::Q_U_O__A_S_S_I_G_N as i32)))); *op.lock().unwrap() = Some(new_val); };
     }
-        { let __iface_handle = go_constant::binary_op((*x.lock().unwrap().as_ref().unwrap()).val.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = op.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), (*y.lock().unwrap().as_ref().unwrap()).val.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).val.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = go_constant::binary_op({ let __field = (*x.lock().unwrap().as_ref().unwrap()).val.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = op.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), { let __field = (*y.lock().unwrap().as_ref().unwrap()).val.clone(); __field }).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).val.lock().unwrap() = (*__iface_guard).clone(); };
         { let __iface_handle = e.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).expr.lock().unwrap() = (*__iface_guard).clone(); };
         self.overflow(x.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = opPos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         return;
@@ -1409,25 +1409,25 @@ impl crate::check::Checker {
                 // attempt at conversion, and if the operand types are
                 // not compatible, we report a type mismatch error.
         let mut mayConvert = Arc::new(Mutex::new(Some(Box::new(move |x: Arc<Mutex<Option<operand>>>, y: Arc<Mutex<Option<operand>>>| -> bool {
-        if is_typed((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) && is_typed((*y.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        if is_typed({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) && is_typed({ let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
         return false;
     }
-        if is_non_type_param_interface((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) || is_non_type_param_interface((*y.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        if is_non_type_param_interface({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) || is_non_type_param_interface({ let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
         return true;
     }
-        if { let __tmp_x = all_boolean((*x.lock().unwrap().as_ref().unwrap()).typ.clone()); let __tmp_y = all_boolean((*y.lock().unwrap().as_ref().unwrap()).typ.clone()); __tmp_x != __tmp_y } {
+        if { let __tmp_x = all_boolean({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }); let __tmp_y = all_boolean({ let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }); __tmp_x != __tmp_y } {
         return false;
     }
-        if { let __tmp_x = all_string((*x.lock().unwrap().as_ref().unwrap()).typ.clone()); let __tmp_y = all_string((*y.lock().unwrap().as_ref().unwrap()).typ.clone()); __tmp_x != __tmp_y } {
+        if { let __tmp_x = all_string({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }); let __tmp_y = all_string({ let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }); __tmp_x != __tmp_y } {
         return false;
     }
         if { let __recv = x.clone(); let __recv_ptr: *const crate::operand::operand = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::operand::operand }; let __result = unsafe { &*__recv_ptr }.is_nil(); __result } {
-        return has_nil((*y.lock().unwrap().as_ref().unwrap()).typ.clone());
+        return has_nil({ let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field });
     }
         if { let __recv = y.clone(); let __recv_ptr: *const crate::operand::operand = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::operand::operand }; let __result = unsafe { &*__recv_ptr }.is_nil(); __result } {
-        return has_nil((*x.lock().unwrap().as_ref().unwrap()).typ.clone());
+        return has_nil({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field });
     }
-        if is_pointer((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) || is_pointer((*y.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        if is_pointer({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) || is_pointer({ let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
         return false;
     }
         true
@@ -1443,11 +1443,11 @@ impl crate::check::Checker {
                 // An untyped operand cannot convert to a pointer.
                 // TODO(gri) generalize to type parameters
         if { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<operand>>>, Arc<Mutex<Option<operand>>>) -> bool + Send + Sync> = { let mut __f_guard = mayConvert.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<operand>>>, Arc<Mutex<Option<operand>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(x.clone(), y.clone()) } {
-        self.convert_untyped(x.clone(), (*y.lock().unwrap().as_ref().unwrap()).typ.clone());
+        self.convert_untyped(x.clone(), { let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field });
         if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); __tmp_x == __tmp_y } {
         return;
     }
-        self.convert_untyped(y.clone(), (*x.lock().unwrap().as_ref().unwrap()).typ.clone());
+        self.convert_untyped(y.clone(), { let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field });
         if { let __tmp_x = { let __selector_holder = (*y.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); __tmp_x == __tmp_y } {
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
         return;
@@ -1605,7 +1605,7 @@ impl crate::check::Checker {
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ParenExprPtr>()).is_some() {
         let e = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ParenExprPtr>()).unwrap().0.clone();
-        let mut kind = self.raw_expr(Arc::new(Mutex::new(None)), x.clone(), (*e.lock().unwrap().as_ref().unwrap()).x.clone(), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(false))));;
+        let mut kind = self.raw_expr(Arc::new(Mutex::new(None)), x.clone(), { let __field = (*e.lock().unwrap().as_ref().unwrap()).x.clone(); __field }, Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(false))));;
         { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ParenExprPtr(e.clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).expr.lock().unwrap() = (*__iface_guard).clone(); };;
         return { let __owned = kind.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::SelectorExprPtr>()).is_some() {
@@ -1631,7 +1631,7 @@ impl crate::check::Checker {
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::TypeAssertExprPtr>()).is_some() {
         let e = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::TypeAssertExprPtr>()).unwrap().0.clone();
-        self.expr(Arc::new(Mutex::new(None)), x.clone(), (*e.lock().unwrap().as_ref().unwrap()).x.clone());;
+        self.expr(Arc::new(Mutex::new(None)), x.clone(), { let __field = (*e.lock().unwrap().as_ref().unwrap()).x.clone(); __field });;
         if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); __tmp_x == __tmp_y } {
         break 'error;
     };
@@ -1639,13 +1639,13 @@ impl crate::check::Checker {
         self.error(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::TypeAssertExprPtr(e.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(BAD_TYPE_KEYWORD as i32))))))), Arc::new(Mutex::new(Some("use of .(type) outside type switch".to_string()))));
         break 'error;
     };
-        if is_type_param((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) {
+        if is_type_param({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
         self.errorf(Arc::new(Mutex::new(Some(Box::new(crate::operand::operandPtr(x.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_ASSERT as i32))))))), Arc::new(Mutex::new(Some("invalid operation: cannot use type assertion on type parameter value %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(x.clone()) as Box<dyn Any + Send + Sync>]))));
         break 'error;
     };
         {
         let (_, mut ok) = ({
-        let val = under((*x.lock().unwrap().as_ref().unwrap()).typ.clone()).clone();
+        let val = under({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }).clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = <dyn Type + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<crate::interface::InterfacePtr>() {
@@ -1662,7 +1662,7 @@ impl crate::check::Checker {
             break 'error;;
         }
     };
-        let mut T = self.var_type((*e.lock().unwrap().as_ref().unwrap()).r#type.clone());;
+        let mut T = self.var_type({ let __field = (*e.lock().unwrap().as_ref().unwrap()).r#type.clone(); __field });;
         if !is_valid(T.clone()) {
         break 'error;
     };
@@ -1674,16 +1674,16 @@ impl crate::check::Checker {
         return self.call_expr(x.clone(), e.clone());;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::StarExprPtr>()).is_some() {
         let e = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::StarExprPtr>()).unwrap().0.clone();
-        self.expr_or_type(x.clone(), (*e.lock().unwrap().as_ref().unwrap()).x.clone(), Arc::new(Mutex::new(Some(false))));;
+        self.expr_or_type(x.clone(), { let __field = (*e.lock().unwrap().as_ref().unwrap()).x.clone(); __field }, Arc::new(Mutex::new(Some(false))));;
         { let _switch_val = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8))))) {
             break 'error;
         } else if _switch_val == (crate::operand::operandMode(Arc::new(Mutex::new(Some(TYPEXPR as u8))))) {
-            self.valid_var_type((*e.lock().unwrap().as_ref().unwrap()).x.clone(), (*x.lock().unwrap().as_ref().unwrap()).typ.clone());
+            self.valid_var_type({ let __field = (*e.lock().unwrap().as_ref().unwrap()).x.clone(); __field }, { let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field });
             { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(crate::pointer::PointerPtr(Arc::new(Mutex::new(Some(Pointer { base: { let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }, ..Default::default() }))).clone())) as Box<dyn Type + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
         } else {
             let mut base: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> = Arc::new(Mutex::new(None));
-            if !under_is((*x.lock().unwrap().as_ref().unwrap()).typ.clone(), Arc::new(Mutex::new(Some({ let mut base_closure_clone = base.clone(); let mut check_closure_clone = (*self).clone(); let x_closure_clone = x.clone(); Box::new(move |u: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>| -> bool {
+            if !under_is({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }, Arc::new(Mutex::new(Some({ let mut base_closure_clone = base.clone(); let mut check_closure_clone = (*self).clone(); let x_closure_clone = x.clone(); Box::new(move |u: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>| -> bool {
         let (mut p, _) = ({
         let val = u.clone();
         let guard = val.lock().unwrap();
@@ -1701,11 +1701,11 @@ impl crate::check::Checker {
         check_closure_clone.errorf(Arc::new(Mutex::new(Some(Box::new(crate::operand::operandPtr(x_closure_clone.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_INDIRECTION as i32))))))), Arc::new(Mutex::new(Some("invalid operation: cannot indirect %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(x_closure_clone.clone()) as Box<dyn Any + Send + Sync>]))));
         return false;
     }
-        if (*base_closure_clone.lock().unwrap()).is_some() && !identical((*p.lock().unwrap().as_ref().unwrap()).base.clone(), base_closure_clone.clone()) {
+        if (*base_closure_clone.lock().unwrap()).is_some() && !identical({ let __field = (*p.lock().unwrap().as_ref().unwrap()).base.clone(); __field }, base_closure_clone.clone()) {
         check_closure_clone.errorf(Arc::new(Mutex::new(Some(Box::new(crate::operand::operandPtr(x_closure_clone.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_INDIRECTION as i32))))))), Arc::new(Mutex::new(Some("invalid operation: pointers of %s must have identical base types".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(x_closure_clone.clone()) as Box<dyn Any + Send + Sync>]))));
         return false;
     }
-        { let __iface_handle = (*p.lock().unwrap().as_ref().unwrap()).base.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *base_closure_clone.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __field = (*p.lock().unwrap().as_ref().unwrap()).base.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *base_closure_clone.lock().unwrap() = (*__iface_guard).clone(); };
         true
     }) as Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> bool + Send + Sync> })))) {
         break 'error;
@@ -1726,7 +1726,7 @@ impl crate::check::Checker {
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::BinaryExprPtr>()).is_some() {
         let e = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::BinaryExprPtr>()).unwrap().0.clone();
-        self.binary(x.clone(), Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BinaryExprPtr(e.clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), (*e.lock().unwrap().as_ref().unwrap()).x.clone(), (*e.lock().unwrap().as_ref().unwrap()).y.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = (*e.lock().unwrap().as_ref().unwrap()).op.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*e.lock().unwrap().as_ref().unwrap()).op_pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));;
+        self.binary(x.clone(), Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BinaryExprPtr(e.clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), { let __field = (*e.lock().unwrap().as_ref().unwrap()).x.clone(); __field }, { let __field = (*e.lock().unwrap().as_ref().unwrap()).y.clone(); __field }, Arc::new(Mutex::new(Some({ let __selector_holder = (*e.lock().unwrap().as_ref().unwrap()).op.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*e.lock().unwrap().as_ref().unwrap()).op_pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));;
         if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); __tmp_x == __tmp_y } {
         break 'error;
     };
@@ -1772,7 +1772,7 @@ impl crate::check::Checker {
     /// typeAssertion checks x.(T). The type of x must be an interface.
     pub fn type_assertion(&mut self, e: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>, x: Arc<Mutex<Option<operand>>>, T: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, typeSwitch: Arc<Mutex<Option<bool>>>) {
         let mut cause: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
-        if self.assertable_to((*x.lock().unwrap().as_ref().unwrap()).typ.clone(), T.clone(), cause.clone()) {
+        if self.assertable_to({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }, T.clone(), cause.clone()) {
         return;
     }
                 // success

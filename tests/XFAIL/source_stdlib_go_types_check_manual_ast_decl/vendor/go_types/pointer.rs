@@ -106,7 +106,7 @@ impl GoJsonDecode for Pointer {
 impl Pointer {
     /// Elem returns the element type for the given pointer p.
     pub fn elem(&self) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {
-        return self.base.clone();
+        return { let __field = self.base.clone(); __field };
     }
 
     pub fn underlying(&self) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {

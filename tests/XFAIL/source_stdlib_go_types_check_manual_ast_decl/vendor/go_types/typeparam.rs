@@ -213,7 +213,7 @@ impl TypeParam {
 
     /// Constraint returns the type constraint specified for t.
     pub fn constraint(&self) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {
-        return self.bound.clone();
+        return { let __field = self.bound.clone(); __field };
     }
 
     /// SetConstraint sets the type constraint for t.

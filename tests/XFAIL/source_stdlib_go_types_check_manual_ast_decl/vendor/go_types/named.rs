@@ -597,7 +597,7 @@ impl Named {
         let mut underlying = self.expand_underlying();
         { let new_val = (*orig.lock().unwrap().as_ref().unwrap()).tparams.clone(); self.tparams = new_val; };
         { let __iface_handle = underlying.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *self.underlying.lock().unwrap() = (*__iface_guard).clone(); };
-        { let __iface_handle = (*orig.lock().unwrap().as_ref().unwrap()).from_r_h_s.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *self.from_r_h_s.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __field = (*orig.lock().unwrap().as_ref().unwrap()).from_r_h_s.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *self.from_r_h_s.lock().unwrap() = (*__iface_guard).clone(); };
         if { let __tmp_x = (({ let __len_target = { let __field = (*orig.lock().unwrap().as_ref().unwrap()).methods.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
         self.set_state(Arc::new(Mutex::new(Some(namedState(Arc::new(Mutex::new(Some(COMPLETE as u32))))))));
         *(*self.inst.lock().unwrap().as_ref().unwrap()).ctxt.lock().unwrap() = None;
@@ -960,7 +960,7 @@ impl Named {
     /// [underlying type]: https://go.dev/ref/spec#Underlying_types.
     pub fn underlying(&mut self) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {
                 // TODO(gri) Investigate if Unalias can be moved to where underlying is set.
-        unalias((*self.resolve().lock().unwrap().as_ref().unwrap()).underlying.clone()).clone()
+        unalias({ let __field = (*self.resolve().lock().unwrap().as_ref().unwrap()).underlying.clone(); __field }).clone()
     }
 
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
@@ -1135,7 +1135,7 @@ impl Named {
     }
             let mut orig = (*self.inst.lock().unwrap().as_ref().unwrap()).orig.clone();
             let mut targs = (*self.inst.lock().unwrap().as_ref().unwrap()).targs.clone();
-            if (*as_named((*orig.lock().unwrap().as_ref().unwrap()).underlying.clone()).lock().unwrap()).is_some() {
+            if (*as_named({ let __field = (*orig.lock().unwrap().as_ref().unwrap()).underlying.clone(); __field }).lock().unwrap()).is_some() {
                 // We should only get a Named underlying type here during type checking
                 // (for example, in recursive type declarations).
         assert(Arc::new(Mutex::new(Some((*check.lock().unwrap()).is_some()))));
@@ -1163,7 +1163,7 @@ impl Named {
             if (*check.lock().unwrap()).is_some() {
         { let new_val = { let __recv = check.clone(); let __recv_ptr: *mut crate::check::Checker = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::check::Checker }; let __result = unsafe { &mut *__recv_ptr }.context(); __result }.clone(); ctxt = new_val; };
     }
-            let mut underlying = (*self.check.lock().unwrap().as_ref().unwrap()).subst(Arc::new(Mutex::new(Some({ let __selector_holder = (*self.obj.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), (*orig.lock().unwrap().as_ref().unwrap()).underlying.clone(), smap.clone(), Arc::new(Mutex::new(Some(self.clone()))), ctxt.clone());
+            let mut underlying = (*self.check.lock().unwrap().as_ref().unwrap()).subst(Arc::new(Mutex::new(Some({ let __selector_holder = (*self.obj.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), { let __field = (*orig.lock().unwrap().as_ref().unwrap()).underlying.clone(); __field }, smap.clone(), Arc::new(Mutex::new(Some(self.clone()))), ctxt.clone());
                         // If the underlying type of n is an interface, we need to set the receiver of
                         // its methods accurately -- we set the receiver of interface methods on
                         // the RHS of a type declaration to the defined type.
@@ -1453,7 +1453,7 @@ pub fn safe_underlying(typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> 
     {
         let mut t = as_named(typ.clone());;
         if (*t.lock().unwrap()).is_some() {
-            return (*t.lock().unwrap().as_ref().unwrap()).underlying.clone();;
+            return { let __field = (*t.lock().unwrap().as_ref().unwrap()).underlying.clone(); __field };;
         }
     }
     (*typ.lock().unwrap().as_mut().unwrap()).underlying().clone()

@@ -172,7 +172,7 @@ impl term {
             return { let __left_holder = self.typ.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; __eq };
         }
                 // ∅ ⊂ x, y ⊂ 𝓤
-        return { let __tmp_x = (*self.tilde.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*y.lock().unwrap().as_ref().unwrap()).tilde.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } && identical(self.typ.clone(), (*y.lock().unwrap().as_ref().unwrap()).typ.clone());
+        return { let __tmp_x = (*self.tilde.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*y.lock().unwrap().as_ref().unwrap()).tilde.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } && identical({ let __field = self.typ.clone(); __field }, { let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field });
     }
 
     /// union returns the union x ∪ y: zero, one, or two non-nil terms.
@@ -257,7 +257,7 @@ impl term {
         if (*self.tilde.clone().lock().unwrap().as_ref().unwrap()) {
         { let __iface_handle = under(u.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *u.lock().unwrap() = (*__iface_guard).clone(); };
     }
-        return identical(self.typ.clone(), u.clone());
+        return identical({ let __field = self.typ.clone(); __field }, u.clone());
     }
 
     /// subsetOf reports whether x ⊆ y.

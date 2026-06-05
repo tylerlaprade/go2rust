@@ -733,7 +733,7 @@ pub fn resolve(name: Arc<Mutex<Option<String>>>, mut obj: Arc<Mutex<Option<Box<d
     }
         { let __iface_handle = obj.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*lazy_closure_clone.lock().unwrap().as_mut().unwrap()).obj.lock().unwrap() = (*__iface_guard).clone(); };
     }) as Box<dyn FnMut() -> () + Send + Sync> })))) };;
-            { let __iface_handle = (*lazy.lock().unwrap().as_ref().unwrap()).obj.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *obj.lock().unwrap() = (*__iface_guard).clone(); };;
+            { let __iface_handle = { let __field = (*lazy.lock().unwrap().as_ref().unwrap()).obj.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *obj.lock().unwrap() = (*__iface_guard).clone(); };;
         }
     }
     return obj.clone();

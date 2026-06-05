@@ -506,7 +506,7 @@ impl crate::check::Checker {
         check_closure_clone_closure_clone.declare({ let __field = (*pkg_closure_clone.lock().unwrap().as_ref().unwrap()).scope.clone(); __field }, { let __field = (*(*d.lock().unwrap().as_ref().unwrap()).decl.lock().unwrap().as_ref().unwrap()).name.clone(); __field }, Arc::new(Mutex::new(Some(Box::new(crate::object::FuncPtr(obj.clone())) as Box<dyn Object + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = nopos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
     } else {
-        let (mut ptr, mut base, _) = check_closure_clone_closure_clone.unpack_recv((*{ let __seq = { let __seq_holder = (*(*(*d.lock().unwrap().as_ref().unwrap()).decl.lock().unwrap().as_ref().unwrap()).recv.lock().unwrap().as_ref().unwrap()).list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap().as_ref().unwrap()).r#type.clone(), Arc::new(Mutex::new(Some(false))));
+        let (mut ptr, mut base, _) = check_closure_clone_closure_clone.unpack_recv({ let __field = (*{ let __seq = { let __seq_holder = (*(*(*d.lock().unwrap().as_ref().unwrap()).decl.lock().unwrap().as_ref().unwrap()).recv.lock().unwrap().as_ref().unwrap()).list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap().as_ref().unwrap()).r#type.clone(); __field }, Arc::new(Mutex::new(Some(false))));
         {
         let (mut recv, _) = ({
         let val = base.clone();
@@ -683,7 +683,7 @@ impl crate::check::Checker {
     });;
         if (*t.lock().unwrap()).is_some() {
             { let new_val = true; *ptr.lock().unwrap() = Some(new_val); };;
-            { let __iface_handle = go_ast::unparen((*t.lock().unwrap().as_ref().unwrap()).x.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *base.lock().unwrap() = (*__iface_guard).clone(); };;
+            { let __iface_handle = go_ast::unparen({ let __field = (*t.lock().unwrap().as_ref().unwrap()).x.clone(); __field }).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *base.lock().unwrap() = (*__iface_guard).clone(); };;
         }
     }
                 // unpack type parameters, if any
@@ -703,7 +703,7 @@ impl crate::check::Checker {
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IndexExprPtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IndexListExprPtr>()).is_some() {
         let mut ix = unpack_indexed_expr(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn go_ast::r#mod::Node + Send + Sync>))));;
-        { let __iface_handle = (*ix.lock().unwrap().as_ref().unwrap()).x.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *base.lock().unwrap() = (*__iface_guard).clone(); };;
+        { let __iface_handle = { let __field = (*ix.lock().unwrap().as_ref().unwrap()).x.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *base.lock().unwrap() = (*__iface_guard).clone(); };;
         if { let __v = (*unpackParams.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         { let __range_holder = (*ix.lock().unwrap().as_ref().unwrap()).indices.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for mut arg in __range_values.iter().cloned() {
         let mut par: Arc<Mutex<Option<go_ast::r#mod::Ident>>> = Arc::new(Mutex::new(None));
@@ -809,7 +809,7 @@ impl crate::check::Checker {
         { let __map_key = GoLocalPtrKey::new(tname.clone()); let __map_value = Arc::new(Mutex::new(Some(true))); (*seen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
 
                 // The go/parser keeps parentheses; strip them, if any.
-        let mut typ = go_ast::unparen((*tdecl.lock().unwrap().as_ref().unwrap()).r#type.clone());
+        let mut typ = go_ast::unparen({ let __field = (*tdecl.lock().unwrap().as_ref().unwrap()).r#type.clone(); __field });
 
                 // dereference a pointer type
         {
@@ -831,7 +831,7 @@ impl crate::check::Checker {
         break
     };
             { let new_val = true; *ptr.lock().unwrap() = Some(new_val); };;
-            { let __iface_handle = go_ast::unparen((*pexpr.lock().unwrap().as_ref().unwrap()).x.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };;
+            { let __iface_handle = go_ast::unparen({ let __field = (*pexpr.lock().unwrap().as_ref().unwrap()).x.clone(); __field }).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };;
         }
     }
 

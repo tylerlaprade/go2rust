@@ -150,7 +150,7 @@ impl gcSizes {
     if _ts_val.and_then(|__v| __v.downcast_ref::<crate::array::ArrayPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::array::ArrayPtr>()).unwrap().0.clone();
         {
-        { let new_val = self.alignof((*t.lock().unwrap().as_ref().unwrap()).elem.clone()); *result.lock().unwrap() = Some(new_val); };;
+        { let new_val = self.alignof({ let __field = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); __field }); *result.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
@@ -172,7 +172,7 @@ impl gcSizes {
         let mut max = Arc::new(Mutex::new(Some(1 as i64)));;
         { let __range_holder = (*t.lock().unwrap().as_ref().unwrap()).fields.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter() {
         {
-        let mut a = self.alignof((*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone());;
+        let mut a = self.alignof({ let __field = (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field });;
         if { let __tmp_x = a; let __tmp_y = { let __v = (*max.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y } {
             { let new_val = a; *max.lock().unwrap() = Some(new_val); };;
         }
@@ -291,11 +291,11 @@ impl gcSizes {
     }
                 // all remaining offsets are too large
                 // offs >= 0
-        let mut a = self.alignof((*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone());
+        let mut a = self.alignof({ let __field = (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field });
         { let new_val = align(Arc::new(Mutex::new(Some({ let __arg_holder = offs.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(a)))); *offs.lock().unwrap() = Some(new_val); };
         (*offsets.lock().unwrap().as_mut().unwrap())[(i) as usize] = { let __v = (*offs.lock().unwrap().as_ref().unwrap()).clone(); __v };
         {
-        let mut d = self.sizeof((*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone());;
+        let mut d = self.sizeof({ let __field = (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field });;
         if { let __tmp_x = d; let __tmp_y = 0 as i64; __tmp_x >= __tmp_y } && { let __tmp_x = { let __v = (*offs.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x >= __tmp_y } {
             { let __rhs = d; let mut guard = offs.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };;
         } else {
@@ -347,7 +347,7 @@ impl gcSizes {
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x <= __tmp_y } {
         return 0;
     };
-        let mut esize = self.sizeof((*t.lock().unwrap().as_ref().unwrap()).elem.clone());;
+        let mut esize = self.sizeof({ let __field = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); __field });;
         if { let __tmp_x = esize; let __tmp_y = 0 as i64; __tmp_x < __tmp_y } {
         return -(1);
     };
@@ -371,7 +371,7 @@ impl gcSizes {
     };
         let mut offsets = self.offsetsof({ let __field = (*t.lock().unwrap().as_ref().unwrap()).fields.clone(); __field });;
         let mut offs = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = offsets.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = n; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })));;
-        let mut size = self.sizeof((*{ let __seq = { let __seq_holder = (*t.lock().unwrap().as_ref().unwrap()).fields.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = n; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().typ.clone());;
+        let mut size = self.sizeof({ let __field = (*{ let __seq = { let __seq_holder = (*t.lock().unwrap().as_ref().unwrap()).fields.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = n; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().typ.clone(); __field });;
         if { let __tmp_x = { let __v = (*offs.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x < __tmp_y } || { let __tmp_x = size; let __tmp_y = 0 as i64; __tmp_x < __tmp_y } {
         return -(1);
     };
