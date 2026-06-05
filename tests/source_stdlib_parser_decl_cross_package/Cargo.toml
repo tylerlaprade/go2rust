@@ -1,0 +1,44 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/cmp",
+    "vendor/example_com_source_stdlib_parser_decl_cross_package_walker",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/go_ast",
+    "vendor/go_parser",
+    "vendor/go_scanner",
+    "vendor/go_token",
+    "vendor/internal_bytealg",
+    "vendor/internal_cpu",
+    "vendor/internal_filepathlite",
+    "vendor/internal_stringslite",
+    "vendor/path_filepath",
+    "vendor/slices",
+    "vendor/strings",
+]
+
+[package]
+name = "source_stdlib_parser_decl_cross_package"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "source_stdlib_parser_decl_cross_package"
+path = "main.rs"
+
+[dependencies]
+cmp = { path = "vendor/cmp" }
+example_com_source_stdlib_parser_decl_cross_package_walker = { path = "vendor/example_com_source_stdlib_parser_decl_cross_package_walker" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+go_ast = { path = "vendor/go_ast" }
+go_parser = { path = "vendor/go_parser" }
+go_scanner = { path = "vendor/go_scanner" }
+go_token = { path = "vendor/go_token" }
+internal_bytealg = { path = "vendor/internal_bytealg" }
+internal_cpu = { path = "vendor/internal_cpu" }
+internal_filepathlite = { path = "vendor/internal_filepathlite" }
+internal_stringslite = { path = "vendor/internal_stringslite" }
+path_filepath = { path = "vendor/path_filepath" }
+slices = { path = "vendor/slices" }
+strings = { path = "vendor/strings" }
