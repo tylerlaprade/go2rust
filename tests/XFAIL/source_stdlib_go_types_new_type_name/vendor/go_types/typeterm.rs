@@ -153,7 +153,7 @@ impl term {
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
         if false {
             return Arc::new(Mutex::new(Some("\u{2205}".to_string())));
-        } else if (*self.typ.lock().unwrap()).is_none() {
+        } else if { let __iface_handle = { let __field = self.typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
             return Arc::new(Mutex::new(Some("\u{1d4e4}".to_string())));
         } else if (*self.tilde.clone().lock().unwrap().as_ref().unwrap()) {
             return Arc::new(Mutex::new(Some(format!("{}{}", "~".to_string(), (*(*self.typ.lock().unwrap().as_ref().unwrap()).string().lock().unwrap().as_ref().unwrap())))));
@@ -167,7 +167,7 @@ impl term {
                 // easy cases
         if false || (*y.lock().unwrap()).is_none() {
             return { let __peer = y.clone(); let __peer_guard = __peer.lock().unwrap(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); __eq };
-        } else if (*self.typ.lock().unwrap()).is_none() || (*(*y.lock().unwrap().as_ref().unwrap()).typ.lock().unwrap()).is_none() {
+        } else if { let __iface_handle = { let __field = self.typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } || { let __iface_handle = { let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
             return { let __left_holder = self.typ.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; __eq };
         }
                 // ∅ ⊂ x, y ⊂ 𝓤
@@ -186,9 +186,9 @@ impl term {
             return (y.clone(), Arc::new(Mutex::new(None)));
         } else if (*y.lock().unwrap()).is_none() {
             return (Arc::new(Mutex::new(Some(self.clone()))), Arc::new(Mutex::new(None)));
-        } else if (*self.typ.lock().unwrap()).is_none() {
+        } else if { let __iface_handle = { let __field = self.typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
             return (Arc::new(Mutex::new(Some(self.clone()))), Arc::new(Mutex::new(None)));
-        } else if (*(*y.lock().unwrap().as_ref().unwrap()).typ.lock().unwrap()).is_none() {
+        } else if { let __iface_handle = { let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
             return (y.clone(), Arc::new(Mutex::new(None)));
         }
                 // ∅ ∪ ∅ == ∅
@@ -217,9 +217,9 @@ impl term {
                 // easy cases
         if false || (*y.lock().unwrap()).is_none() {
             return Arc::new(Mutex::new(None));
-        } else if (*self.typ.lock().unwrap()).is_none() {
+        } else if { let __iface_handle = { let __field = self.typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
             return y.clone();
-        } else if (*(*y.lock().unwrap().as_ref().unwrap()).typ.lock().unwrap()).is_none() {
+        } else if { let __iface_handle = { let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
             return Arc::new(Mutex::new(Some(self.clone())));
         }
                 // ∅ ∩ y == ∅ and ∩ ∅ == ∅
@@ -246,7 +246,7 @@ impl term {
                 // easy cases
         if false {
             return false;
-        } else if (*self.typ.lock().unwrap()).is_none() {
+        } else if { let __iface_handle = { let __field = self.typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
             return true;
         }
                 // t ∈ ∅ == false
@@ -266,9 +266,9 @@ impl term {
             return true;
         } else if (*y.lock().unwrap()).is_none() {
             return false;
-        } else if (*(*y.lock().unwrap().as_ref().unwrap()).typ.lock().unwrap()).is_none() {
+        } else if { let __iface_handle = { let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
             return true;
-        } else if (*self.typ.lock().unwrap()).is_none() {
+        } else if { let __iface_handle = { let __field = self.typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
             return false;
         }
                 // ∅ ⊆ y == true
@@ -291,7 +291,7 @@ impl term {
     /// disjoint reports whether x ∩ y == ∅.
     /// x.typ and y.typ must not be nil.
     pub fn disjoint(&self, y: Arc<Mutex<Option<term>>>) -> bool {
-        if DEBUG && ((*self.typ.lock().unwrap()).is_none() || (*(*y.lock().unwrap().as_ref().unwrap()).typ.lock().unwrap()).is_none()) {
+        if DEBUG && ({ let __iface_handle = { let __field = self.typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } || { let __iface_handle = { let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() }) {
         panic!("invalid argument(s)");
     }
         let mut ux = self.typ.clone();

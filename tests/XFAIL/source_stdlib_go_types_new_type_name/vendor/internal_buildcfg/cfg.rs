@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{go_lookup_embedded_owner, go_register_embedded_owner};
+use crate::{GoReflectBoolGetter, GoReflectBoolSetter, GoReflectField, GoReflectStructTag, GoReflectType, GoReflectValue, go_lookup_embedded_owner, go_reflect_tag_get, go_register_embedded_owner};
 
 use crate::exp::*;
 use crate::zbootstrap::*;

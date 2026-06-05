@@ -91,7 +91,7 @@ pub trait dependency: Object + std::fmt::Display + Any {
 
 impl Clone for Box<dyn dependency + Send + Sync> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_dependency()
+        dependency::__go_clone_box_dependency(self.as_ref())
     }
 }
 
@@ -114,10 +114,10 @@ impl Object for Box<dyn dependency + Send + Sync> {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
         (**self).name()
     }
-    fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
+    fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
         (**self).parent()
     }
-    fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
+    fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
         (**self).pkg()
     }
     fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
@@ -129,25 +129,25 @@ impl Object for Box<dyn dependency + Send + Sync> {
     fn r#type(&self) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {
         (**self).r#type()
     }
-    fn color(&self) -> Arc<Mutex<Option<color>>> {
+    fn color(&self) -> Arc<Mutex<Option<crate::object::color>>> {
         (**self).color()
     }
     fn order(&self) -> u32 {
         (**self).order()
     }
-    fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
+    fn same_id(&self, pkg: Arc<Mutex<Option<crate::package::Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
         (**self).same_id(pkg, name, foldCase)
     }
     fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         (**self).scope_pos()
     }
-    fn set_color(&mut self, color_local: Arc<Mutex<Option<color>>>) {
+    fn set_color(&mut self, color_local: Arc<Mutex<Option<crate::object::color>>>) {
         (**self).set_color(color_local)
     }
     fn set_order(&mut self, _arg0: Arc<Mutex<Option<u32>>>) {
         (**self).set_order(_arg0)
     }
-    fn set_parent(&mut self, _arg0: Arc<Mutex<Option<Scope>>>) {
+    fn set_parent(&mut self, _arg0: Arc<Mutex<Option<crate::scope::Scope>>>) {
         (**self).set_parent(_arg0)
     }
     fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
@@ -255,7 +255,7 @@ impl crate::check::Checker {
         const debug: bool = false;
 
         if debug {
-        print!("Computing initialization order for {}\n\n", format!("&{}", (*self.pkg.clone().lock().unwrap().as_ref().unwrap())));
+        print!("Computing initialization order for {}\n\n", format!("&{}", (*{ let __field = self.pkg.clone(); __field }.lock().unwrap().as_ref().unwrap())));
         println!("{}", format!("{}", "Object dependency graph:".to_string()));
         for (__range_key, d) in { let __range_holder = self.obj_map.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         let mut obj = __range_key.value();
@@ -279,7 +279,7 @@ impl crate::check::Checker {
         }
     });;
         if (*obj.lock().unwrap()).is_some() {
-            if { let __tmp_x = ((*(*d.lock().unwrap().as_ref().unwrap()).deps.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
+            if { let __tmp_x = (({ let __len_target = { let __field = (*d.lock().unwrap().as_ref().unwrap()).deps.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
         print!("\t{} depends on\n", (*(*obj.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()));
         for (__range_key, _) in { let __range_holder = (*d.lock().unwrap().as_ref().unwrap()).deps.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         let dep = __range_key.value();
@@ -311,7 +311,7 @@ impl crate::check::Checker {
                 // In a valid Go program, those nodes always have zero dependencies (after
                 // removing all incoming dependencies), otherwise there are initialization
                 // cycles.
-        let mut emitted = Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<declInfo>, Arc<Mutex<Option<bool>>>>::new())));
+        let mut emitted = Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<crate::resolver::declInfo>, Arc<Mutex<Option<bool>>>>::new())));
         while { let __tmp_x = ({ let __slice_holder = { let __named_slice = (*pq.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
                 // get the next node
         let mut n = ({
@@ -371,14 +371,14 @@ impl crate::check::Checker {
             if let Some(typed_val) = <dyn dependency + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<crate::object::VarPtr>() {
                 (typed_val.0.clone(), true)
             } else {
-                (Arc::new(Mutex::new(None::<Var>)), false)
+                (Arc::new(Mutex::new(None::<crate::object::Var>)), false)
             }
         } else {
-            (Arc::new(Mutex::new(None::<Var>)), false)
+            (Arc::new(Mutex::new(None::<crate::object::Var>)), false)
         }
     });
         let mut info = { let __map = { let __map_holder = self.obj_map.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(Arc::new(Mutex::new(Some(Box::new(crate::object::VarPtr(v.clone())) as Box<dyn Object + Send + Sync>)))))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
-        if (*v.lock().unwrap()).is_none() || !{ let __recv = info.clone(); let __recv_ptr: *const declInfo = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const declInfo }; let __result = unsafe { &*__recv_ptr }.has_initializer(); __result } {
+        if (*v.lock().unwrap()).is_none() || !{ let __recv = info.clone(); let __recv_ptr: *const crate::resolver::declInfo = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::resolver::declInfo }; let __result = unsafe { &*__recv_ptr }.has_initializer(); __result } {
         continue
     }
 
@@ -396,7 +396,7 @@ impl crate::check::Checker {
         if (*infoLhs.lock().unwrap()).is_none() {
         { let new_val = Arc::new(Mutex::new(Some(vec![v.clone()]))); infoLhs = new_val; };
     }
-        let mut init = Arc::new(Mutex::new(Some(Initializer { lhs: infoLhs.clone(), rhs: (*info.lock().unwrap().as_ref().unwrap()).init.clone(), ..Default::default() })));
+        let mut init = Arc::new(Mutex::new(Some(Initializer { lhs: infoLhs.clone(), rhs: { let __field = (*info.lock().unwrap().as_ref().unwrap()).init.clone(); __field }, ..Default::default() })));
         { let new_val = { let __append_target = (*self.info.lock().unwrap().as_ref().unwrap()).init_order.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(init.clone()); __append_target.clone() }; (*self.info.lock().unwrap().as_mut().unwrap()).init_order = new_val; };
     }
                 // get the next node
@@ -436,20 +436,20 @@ impl crate::check::Checker {
         let mut obj = { let __seq = { let __seq_holder = cycle.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
                 // report a more concise error for self references
         if { let __tmp_x = ((*cycle.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x == __tmp_y } {
-        self.errorf(Arc::new(Mutex::new(Some(Box::new((*obj.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_INIT_CYCLE as i32))))))), Arc::new(Mutex::new(Some("initialization cycle: %s refers to itself".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __v = (*obj.lock().unwrap().as_ref().unwrap()).name(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>]))));
+        self.errorf(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = obj.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_INIT_CYCLE as i32))))))), Arc::new(Mutex::new(Some("initialization cycle: %s refers to itself".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __v = (*obj.lock().unwrap().as_ref().unwrap()).name(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>]))));
         return;
     }
         let mut err = self.new_error(Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_INIT_CYCLE as i32))))))));
-        { let __recv = err.clone(); let __recv_ptr: *mut error_ = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut error_ }; let __result = unsafe { &mut *__recv_ptr }.addf(Arc::new(Mutex::new(Some(Box::new((*obj.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some("initialization cycle for %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __v = (*obj.lock().unwrap().as_ref().unwrap()).name(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>])))); __result };
+        { let __recv = err.clone(); let __recv_ptr: *mut crate::errors::error_ = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::errors::error_ }; let __result = unsafe { &mut *__recv_ptr }.addf(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = obj.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some("initialization cycle for %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __v = (*obj.lock().unwrap().as_ref().unwrap()).name(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>])))); __result };
                 // "cycle[i] refers to cycle[j]" for (i,j) = (0,n-1), (n-1,n-2), ..., (1,0) for len(cycle) = n.
         let mut j = Arc::new(Mutex::new(Some({ let __tmp_x = ((*cycle.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y })));
     while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } {
         let mut next = { let __seq = { let __seq_holder = cycle.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
-        { let __recv = err.clone(); let __recv_ptr: *mut error_ = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut error_ }; let __result = unsafe { &mut *__recv_ptr }.addf(Arc::new(Mutex::new(Some(Box::new((*obj.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some("%s refers to %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __v = (*obj.lock().unwrap().as_ref().unwrap()).name(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>, Box::new({ let __v = (*next.lock().unwrap().as_ref().unwrap()).name(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>])))); __result };
+        { let __recv = err.clone(); let __recv_ptr: *mut crate::errors::error_ = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::errors::error_ }; let __result = unsafe { &mut *__recv_ptr }.addf(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = obj.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some("%s refers to %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __v = (*obj.lock().unwrap().as_ref().unwrap()).name(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>, Box::new({ let __v = (*next.lock().unwrap().as_ref().unwrap()).name(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>])))); __result };
         { let __iface_handle = next.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *obj.lock().unwrap() = (*__iface_guard).clone(); };
         { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
-        { let __recv = err.clone(); let __recv_ptr: *mut error_ = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut error_ }; let __result = unsafe { &mut *__recv_ptr }.report(); __result };
+        { let __recv = err.clone(); let __recv_ptr: *mut crate::errors::error_ = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::errors::error_ }; let __result = unsafe { &mut *__recv_ptr }.report(); __result };
     }
 }
 
@@ -491,10 +491,10 @@ impl nodeQueue {
             if let Some(typed_val) = <dyn dependency + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<crate::object::ConstPtr>() {
                 (typed_val.0.clone(), true)
             } else {
-                (Arc::new(Mutex::new(None::<Const>)), false)
+                (Arc::new(Mutex::new(None::<crate::object::Const>)), false)
             }
         } else {
-            (Arc::new(Mutex::new(None::<Const>)), false)
+            (Arc::new(Mutex::new(None::<crate::object::Const>)), false)
         }
     });
         let (_, mut yConst) = ({
@@ -504,10 +504,10 @@ impl nodeQueue {
             if let Some(typed_val) = <dyn dependency + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<crate::object::ConstPtr>() {
                 (typed_val.0.clone(), true)
             } else {
-                (Arc::new(Mutex::new(None::<Const>)), false)
+                (Arc::new(Mutex::new(None::<crate::object::Const>)), false)
             }
         } else {
-            (Arc::new(Mutex::new(None::<Const>)), false)
+            (Arc::new(Mutex::new(None::<crate::object::Const>)), false)
         }
     });
         if { let __tmp_x = xConst; let __tmp_y = yConst; __tmp_x != __tmp_y } {
@@ -647,10 +647,10 @@ pub fn dependency_graph(objMap: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<Box<dyn 
             if let Some(typed_val) = <dyn dependency + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<crate::object::FuncPtr>() {
                 (typed_val.0.clone(), true)
             } else {
-                (Arc::new(Mutex::new(None::<Func>)), false)
+                (Arc::new(Mutex::new(None::<crate::object::Func>)), false)
             }
         } else {
-            (Arc::new(Mutex::new(None::<Func>)), false)
+            (Arc::new(Mutex::new(None::<crate::object::Func>)), false)
         }
     });;
         if ok {

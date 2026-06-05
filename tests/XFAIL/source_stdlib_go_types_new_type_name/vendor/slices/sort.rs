@@ -774,9 +774,9 @@ impl Ord for xorshift {
 
 impl xorshift {
     pub fn next(&mut self) -> u64 {
-        { let __rhs = (*({ let __tmp_x = (*self).clone(); let __tmp_y = xorshift(Arc::new(Mutex::new(Some(13 as u64)))); __tmp_x << __tmp_y }).0.lock().unwrap().as_ref().unwrap()).clone(); let mut guard = self.0.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() ^ __rhs); };
-        { let __rhs = (*({ let __tmp_x = (*self).clone(); let __tmp_y = xorshift(Arc::new(Mutex::new(Some(7 as u64)))); __tmp_x >> __tmp_y }).0.lock().unwrap().as_ref().unwrap()).clone(); let mut guard = self.0.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() ^ __rhs); };
-        { let __rhs = (*({ let __tmp_x = (*self).clone(); let __tmp_y = xorshift(Arc::new(Mutex::new(Some(17 as u64)))); __tmp_x << __tmp_y }).0.lock().unwrap().as_ref().unwrap()).clone(); let mut guard = self.0.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() ^ __rhs); };
+        { let __rhs = (*({ let __tmp_x = (*self).clone(); let __tmp_y = 13i32; __tmp_x << __tmp_y }).0.lock().unwrap().as_ref().unwrap()).clone(); let mut guard = self.0.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() ^ __rhs); };
+        { let __rhs = (*({ let __tmp_x = (*self).clone(); let __tmp_y = 7i32; __tmp_x >> __tmp_y }).0.lock().unwrap().as_ref().unwrap()).clone(); let mut guard = self.0.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() ^ __rhs); };
+        { let __rhs = (*({ let __tmp_x = (*self).clone(); let __tmp_y = 17i32; __tmp_x << __tmp_y }).0.lock().unwrap().as_ref().unwrap()).clone(); let mut guard = self.0.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() ^ __rhs); };
         (*Arc::new(Mutex::new(Some((*(*self).clone().0.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap())
     }
 }
@@ -829,7 +829,7 @@ pub fn binary_search_func<S, E: Any + GoValueClone + Send + Sync + 'static, T: A
         // Invariant: cmp(x[i - 1], target) < 0, cmp(x[j], target) >= 0.
     let (mut i, mut j) = (Arc::new(Mutex::new(Some(0))), { let __owned = n.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) });
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
-        let mut h = Arc::new(Mutex::new(Some(({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as u64; __tmp_x >> __tmp_y }) as i32)));
+        let mut h = Arc::new(Mutex::new(Some(({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x >> __tmp_y }) as i32)));
 
                 // i ≤ h < j
         if { let __tmp_x = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<E>>>, Arc<Mutex<Option<T>>>) -> i32 + Send + Sync> = { let mut __f_guard = cmp.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<E>>>, Arc<Mutex<Option<T>>>) -> i32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)({ let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }, target.clone()) }; let __tmp_y = 0; __tmp_x < __tmp_y } {

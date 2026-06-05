@@ -739,7 +739,7 @@ impl Selection {
 ///	"field (T) f int"
 ///	"method (T) f(X) Y"
 ///	"method expr (T) f(X) Y"
-pub fn selection_string(s: Arc<Mutex<Option<Selection>>>, qf: Qualifier) -> Arc<Mutex<Option<String>>> {
+pub fn selection_string(s: Arc<Mutex<Option<Selection>>>, qf: crate::typestring::Qualifier) -> Arc<Mutex<Option<String>>> {
     let mut k: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
     { let _switch_val = { let __selector_holder = (*s.lock().unwrap().as_ref().unwrap()).kind.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (SelectionKind(Arc::new(Mutex::new(Some(FIELD_VAL as i32))))) {

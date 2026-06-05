@@ -79,7 +79,7 @@ impl crate::interface::Interface {
     /// interface, ordered by Id.
     ///
     /// Example: for m := range t.Methods() { ... }
-    pub fn methods(&self) -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Func>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
+    pub fn methods(&self) -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<crate::object::Func>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
         let mut t_closure_clone = (*self).clone(); return Arc::new(Mutex::new(Some(Box::new(move |r#yield: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Func>>>) -> bool + Send + Sync>>>>| {
         for i in 0..(t_closure_clone.num_methods()) {
         if !{ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Func>>>) -> bool + Send + Sync> = { let mut __f_guard = r#yield.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Func>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(t_closure_clone.method(Arc::new(Mutex::new(Some(i))))) } {
@@ -93,7 +93,7 @@ impl crate::interface::Interface {
     /// an interface, ordered by Id.
     ///
     /// Example: for m := range t.ExplicitMethods() { ... }
-    pub fn explicit_methods(&self) -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Func>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
+    pub fn explicit_methods(&self) -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<crate::object::Func>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
         let mut t_closure_clone = (*self).clone(); return Arc::new(Mutex::new(Some(Box::new(move |r#yield: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Func>>>) -> bool + Send + Sync>>>>| {
         for i in 0..(t_closure_clone.num_explicit_methods()) {
         if !{ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Func>>>) -> bool + Send + Sync> = { let mut __f_guard = r#yield.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Func>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(t_closure_clone.explicit_method(Arc::new(Mutex::new(Some(i))))) } {
@@ -121,7 +121,7 @@ impl crate::named::Named {
     /// Methods returns a go1.23 iterator over the declared methods of a named type.
     ///
     /// Example: for m := range t.Methods() { ... }
-    pub fn methods(&mut self) -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Func>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
+    pub fn methods(&mut self) -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<crate::object::Func>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
         let mut t_closure_clone = (*self).clone(); return Arc::new(Mutex::new(Some(Box::new(move |r#yield: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Func>>>) -> bool + Send + Sync>>>>| {
         for i in 0..(t_closure_clone.num_methods()) {
         if !{ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Func>>>) -> bool + Send + Sync> = { let mut __f_guard = r#yield.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Func>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(t_closure_clone.method(Arc::new(Mutex::new(Some(i))))) } {
@@ -136,7 +136,7 @@ impl crate::scope::Scope {
     /// Children returns a go1.23 iterator over the child scopes nested within scope s.
     ///
     /// Example: for child := range scope.Children() { ... }
-    pub fn children(&self) -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Scope>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
+    pub fn children(&self) -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<crate::scope::Scope>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
         let mut s_closure_clone = (*self).clone(); return Arc::new(Mutex::new(Some(Box::new(move |r#yield: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Scope>>>) -> bool + Send + Sync>>>>| {
         for i in 0..(s_closure_clone.num_children()) {
         if !{ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Scope>>>) -> bool + Send + Sync> = { let mut __f_guard = r#yield.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Scope>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(s_closure_clone.child(Arc::new(Mutex::new(Some(i))))) } {
@@ -151,7 +151,7 @@ impl crate::r#struct::Struct {
     /// Fields returns a go1.23 iterator over the fields of a struct type.
     ///
     /// Example: for field := range s.Fields() { ... }
-    pub fn fields(&self) -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Var>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
+    pub fn fields(&self) -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<crate::object::Var>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
         let mut s_closure_clone = (*self).clone(); return Arc::new(Mutex::new(Some(Box::new(move |r#yield: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Var>>>) -> bool + Send + Sync>>>>| {
         for i in 0..(s_closure_clone.num_fields()) {
         if !{ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Var>>>) -> bool + Send + Sync> = { let mut __f_guard = r#yield.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Var>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(s_closure_clone.field(Arc::new(Mutex::new(Some(i))))) } {
@@ -166,7 +166,7 @@ impl crate::tuple::Tuple {
     /// Variables returns a go1.23 iterator over the variables of a tuple type.
     ///
     /// Example: for v := range tuple.Variables() { ... }
-    pub fn variables(&self) -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Var>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
+    pub fn variables(&self) -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<crate::object::Var>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
         let mut t_closure_clone = (*self).clone(); return Arc::new(Mutex::new(Some(Box::new(move |r#yield: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Var>>>) -> bool + Send + Sync>>>>| {
         for i in 0..(t_closure_clone.len()) {
         if !{ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Var>>>) -> bool + Send + Sync> = { let mut __f_guard = r#yield.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Var>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(t_closure_clone.at(Arc::new(Mutex::new(Some(i))))) } {
@@ -181,7 +181,7 @@ impl crate::methodset::MethodSet {
     /// Methods returns a go1.23 iterator over the methods of a method set.
     ///
     /// Example: for method := range s.Methods() { ... }
-    pub fn methods(&self) -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Selection>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
+    pub fn methods(&self) -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<crate::selection::Selection>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
         let mut s_closure_clone = (*self).clone(); return Arc::new(Mutex::new(Some(Box::new(move |r#yield: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Selection>>>) -> bool + Send + Sync>>>>| {
         for i in 0..(s_closure_clone.len()) {
         if !{ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Selection>>>) -> bool + Send + Sync> = { let mut __f_guard = r#yield.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Selection>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(s_closure_clone.at(Arc::new(Mutex::new(Some(i))))) } {
@@ -196,7 +196,7 @@ impl crate::union::Union {
     /// Terms returns a go1.23 iterator over the terms of a union.
     ///
     /// Example: for term := range union.Terms() { ... }
-    pub fn terms(&self) -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Term>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
+    pub fn terms(&self) -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<crate::union::Term>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
         let mut u_closure_clone = (*self).clone(); return Arc::new(Mutex::new(Some(Box::new(move |r#yield: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Term>>>) -> bool + Send + Sync>>>>| {
         for i in 0..(u_closure_clone.len()) {
         if !{ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Term>>>) -> bool + Send + Sync> = { let mut __f_guard = r#yield.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Term>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(u_closure_clone.term(Arc::new(Mutex::new(Some(i))))) } {
@@ -211,7 +211,7 @@ impl crate::typelists::TypeParamList {
     /// TypeParams returns a go1.23 iterator over a list of type parameters.
     ///
     /// Example: for tparam := range l.TypeParams() { ... }
-    pub fn type_params(&self) -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<TypeParam>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
+    pub fn type_params(&self) -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<crate::typeparam::TypeParam>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
         let mut l_closure_clone = (*self).clone(); return Arc::new(Mutex::new(Some(Box::new(move |r#yield: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<TypeParam>>>) -> bool + Send + Sync>>>>| {
         for i in 0..(l_closure_clone.len()) {
         if !{ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<TypeParam>>>) -> bool + Send + Sync> = { let mut __f_guard = r#yield.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<TypeParam>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(l_closure_clone.at(Arc::new(Mutex::new(Some(i))))) } {

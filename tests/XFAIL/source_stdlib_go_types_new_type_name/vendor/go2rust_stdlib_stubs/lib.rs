@@ -127,6 +127,58 @@ impl GoComparable for Box<dyn Any + Send + Sync> {
     fn go_hash(&self, seed: usize) -> usize { go_any_comparable_hash(self.as_ref(), seed) }
 }
 
+#[derive(Clone, Copy)]
+pub struct GoAnyTypeMetadata {
+    pub kind: &'static str,
+    pub comparable: bool,
+    pub elem_kind: Option<&'static str>,
+    pub elem_comparable: bool,
+}
+
+pub struct GoAnyMetadataBox {
+    pub value: Box<dyn Any + Send + Sync>,
+    pub metadata: GoAnyTypeMetadata,
+}
+
+fn go_any_type_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>> {
+    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
+    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+fn go_any_value_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<usize, GoAnyTypeMetadata>> {
+    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
+    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+fn go_any_value_metadata_key(value: &(dyn Any + Send + Sync)) -> usize {
+    value as *const (dyn Any + Send + Sync) as *const () as usize
+}
+
+pub fn go_register_any_type<T: Any + Send + Sync + 'static>(kind: &'static str, comparable: bool) {
+    go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false });
+}
+
+pub fn go_register_any_type_with_elem<T: Any + Send + Sync + 'static>(kind: &'static str, comparable: bool, elem_kind: &'static str, elem_comparable: bool) {
+    go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: Some(elem_kind), elem_comparable });
+}
+
+pub fn go_box_any_with_metadata<T: Any + Send + Sync + 'static>(value: T, kind: &'static str, comparable: bool) -> Box<dyn Any + Send + Sync> {
+    let metadata = GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false };
+    Box::new(GoAnyMetadataBox { value: Box::new(value) as Box<dyn Any + Send + Sync>, metadata }) as Box<dyn Any + Send + Sync>
+}
+
+pub fn go_register_any_value_metadata(value: &(dyn Any + Send + Sync), kind: &'static str, comparable: bool) {
+    go_any_value_metadata_registry().lock().unwrap().insert(go_any_value_metadata_key(value), GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false });
+}
+
+pub fn go_any_type_metadata(value: &(dyn Any + Send + Sync)) -> Option<GoAnyTypeMetadata> {
+    if let Some(__boxed) = value.downcast_ref::<GoAnyMetadataBox>() {
+        return Some(__boxed.metadata);
+    }
+    go_any_value_metadata_registry().lock().unwrap().get(&go_any_value_metadata_key(value)).copied()
+        .or_else(|| go_any_type_metadata_registry().lock().unwrap().get(&value.type_id()).copied())
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct GoRWMutex;
 
@@ -690,6 +742,94 @@ impl Ord for constant_Value {
 
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct errors_errorString;
+
+impl std::fmt::Display for errors_errorString {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<errors_errorString>")
+    }
+}
+
+impl std::error::Error for errors_errorString {}
+
+
+impl errors_errorString {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("errors_errorString.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct errors_joinError;
+
+impl std::fmt::Display for errors_joinError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<errors_joinError>")
+    }
+}
+
+impl std::error::Error for errors_joinError {}
+
+
+impl errors_joinError {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("errors_joinError.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct fmt_wrapError;
+
+impl std::fmt::Display for fmt_wrapError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<fmt_wrapError>")
+    }
+}
+
+impl std::error::Error for fmt_wrapError {}
+
+
+impl fmt_wrapError {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("fmt_wrapError.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct fmt_wrapErrors;
+
+impl std::fmt::Display for fmt_wrapErrors {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<fmt_wrapErrors>")
+    }
+}
+
+impl std::error::Error for fmt_wrapErrors {}
+
+
+impl fmt_wrapErrors {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("fmt_wrapErrors.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct godebug_Setting;
 
 impl std::fmt::Display for godebug_Setting {
@@ -866,6 +1006,160 @@ impl reflect_Value {
     }
     pub fn r#type(&self) -> Arc<Mutex<Option<reflect_Type>>> {
         panic!("reflect_Value.r#type bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct runtime_PanicNilError;
+
+impl std::fmt::Display for runtime_PanicNilError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<runtime_PanicNilError>")
+    }
+}
+
+impl std::error::Error for runtime_PanicNilError {}
+
+
+impl runtime_PanicNilError {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("runtime_PanicNilError.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct runtime_TypeAssertionError;
+
+impl std::fmt::Display for runtime_TypeAssertionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<runtime_TypeAssertionError>")
+    }
+}
+
+impl std::error::Error for runtime_TypeAssertionError {}
+
+
+impl runtime_TypeAssertionError {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("runtime_TypeAssertionError.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct runtime_boundsError;
+
+impl std::fmt::Display for runtime_boundsError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<runtime_boundsError>")
+    }
+}
+
+impl std::error::Error for runtime_boundsError {}
+
+
+impl runtime_boundsError {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("runtime_boundsError.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct runtime_errorAddressString;
+
+impl std::fmt::Display for runtime_errorAddressString {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<runtime_errorAddressString>")
+    }
+}
+
+impl std::error::Error for runtime_errorAddressString {}
+
+
+impl runtime_errorAddressString {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("runtime_errorAddressString.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct runtime_errorString;
+
+impl std::fmt::Display for runtime_errorString {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<runtime_errorString>")
+    }
+}
+
+impl std::error::Error for runtime_errorString {}
+
+
+impl runtime_errorString {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("runtime_errorString.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct runtime_plainError;
+
+impl std::fmt::Display for runtime_plainError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<runtime_plainError>")
+    }
+}
+
+impl std::error::Error for runtime_plainError {}
+
+
+impl runtime_plainError {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("runtime_plainError.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct strconv_NumError;
+
+impl std::fmt::Display for strconv_NumError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<strconv_NumError>")
+    }
+}
+
+impl std::error::Error for strconv_NumError {}
+
+
+impl strconv_NumError {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("strconv_NumError.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -1149,14 +1443,6 @@ pub mod os {
             panic!("os.Getenv bridge: expected string argument")
         };
         Arc::new(Mutex::new(Some::<String>(std::env::var(key).unwrap_or_default())))
-    }
-}
-
-
-pub mod reflect {
-    use super::*;
-    pub fn value_of<T0>(_arg0: T0) -> Arc<Mutex<Option<reflect_Value>>> {
-        panic!("value_of bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 

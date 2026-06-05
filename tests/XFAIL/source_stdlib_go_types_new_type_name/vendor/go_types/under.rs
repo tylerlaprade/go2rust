@@ -114,11 +114,11 @@ impl GoJsonDecode for AnonymousStruct1 {
 /// under must only be called when a type is known
 /// to be fully set up.
 pub fn under(mut t: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {
-    let mut t: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> = t.clone();
+    let mut t: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> = Arc::new(Mutex::new(t.lock().unwrap().as_ref().map(|__v| Type::__go_clone_box_type_(__v.as_ref()))));
     {
         let mut t = as_named(t.clone());;
         if (*t.lock().unwrap()).is_some() {
-            return { let __recv = t.clone(); let __recv_ptr: *mut Named = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Named }; let __result = unsafe { &mut *__recv_ptr }.under(); __result }.clone();;
+            return { let __recv = t.clone(); let __recv_ptr: *mut crate::named::Named = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::named::Named }; let __result = unsafe { &mut *__recv_ptr }.under(); __result }.clone();;
         }
     }
     return (*t.lock().unwrap().as_mut().unwrap()).underlying().clone();
@@ -150,14 +150,14 @@ pub fn typeset(t: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, r#yield: Arc<
             if let Some(typed_val) = <dyn Type + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<crate::typeparam::TypeParamPtr>() {
                 (typed_val.0.clone(), true)
             } else {
-                (Arc::new(Mutex::new(None::<TypeParam>)), false)
+                (Arc::new(Mutex::new(None::<crate::typeparam::TypeParam>)), false)
             }
         } else {
-            (Arc::new(Mutex::new(None::<TypeParam>)), false)
+            (Arc::new(Mutex::new(None::<crate::typeparam::TypeParam>)), false)
         }
     });;
         if (*p.lock().unwrap()).is_some() {
-            { let __recv = p.clone(); let __recv_ptr: *mut TypeParam = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut TypeParam }; let __result = unsafe { &mut *__recv_ptr }.typeset(r#yield.clone()); __result };;
+            { let __recv = p.clone(); let __recv_ptr: *mut crate::typeparam::TypeParam = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::typeparam::TypeParam }; let __result = unsafe { &mut *__recv_ptr }.typeset(r#yield.clone()); __result };;
             return;;
         }
     }
@@ -235,8 +235,8 @@ pub fn core_string(t: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc<Mu
 /// with the restricted direction.
 /// In all other cases, match returns nil.
 pub fn r#match(mut x: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, mut y: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {
-    let mut x: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> = x.clone();
-    let mut y: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> = y.clone();
+    let mut x: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> = Arc::new(Mutex::new(x.lock().unwrap().as_ref().map(|__v| Type::__go_clone_box_type_(__v.as_ref()))));
+    let mut y: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> = Arc::new(Mutex::new(y.lock().unwrap().as_ref().map(|__v| Type::__go_clone_box_type_(__v.as_ref()))));
         // Common case: we don't have channels.
     if identical(x.clone(), y.clone()) {
         return x.clone();
@@ -251,10 +251,10 @@ pub fn r#match(mut x: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, mut y: Ar
             if let Some(typed_val) = <dyn Type + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<crate::chan::ChanPtr>() {
                 (typed_val.0.clone(), true)
             } else {
-                (Arc::new(Mutex::new(None::<Chan>)), false)
+                (Arc::new(Mutex::new(None::<crate::chan::Chan>)), false)
             }
         } else {
-            (Arc::new(Mutex::new(None::<Chan>)), false)
+            (Arc::new(Mutex::new(None::<crate::chan::Chan>)), false)
         }
     });;
         if (*x.lock().unwrap()).is_some() {
@@ -266,16 +266,16 @@ pub fn r#match(mut x: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, mut y: Ar
             if let Some(typed_val) = <dyn Type + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<crate::chan::ChanPtr>() {
                 (typed_val.0.clone(), true)
             } else {
-                (Arc::new(Mutex::new(None::<Chan>)), false)
+                (Arc::new(Mutex::new(None::<crate::chan::Chan>)), false)
             }
         } else {
-            (Arc::new(Mutex::new(None::<Chan>)), false)
+            (Arc::new(Mutex::new(None::<crate::chan::Chan>)), false)
         }
     });;
         if (*y.lock().unwrap()).is_some() && identical((*x.lock().unwrap().as_ref().unwrap()).elem.clone(), (*y.lock().unwrap().as_ref().unwrap()).elem.clone()) {
-            if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).dir.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = ChanDir(Arc::new(Mutex::new(Some(SEND_RECV as i32)))); __tmp_x == __tmp_y } {
+            if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).dir.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::chan::ChanDir(Arc::new(Mutex::new(Some(SEND_RECV as i32)))); __tmp_x == __tmp_y } {
             return Arc::new(Mutex::new(Some(Box::new(crate::chan::ChanPtr(y.clone())) as Box<dyn Type + Send + Sync>)));
-        } else if { let __tmp_x = { let __selector_holder = (*y.lock().unwrap().as_ref().unwrap()).dir.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = ChanDir(Arc::new(Mutex::new(Some(SEND_RECV as i32)))); __tmp_x == __tmp_y } {
+        } else if { let __tmp_x = { let __selector_holder = (*y.lock().unwrap().as_ref().unwrap()).dir.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::chan::ChanDir(Arc::new(Mutex::new(Some(SEND_RECV as i32)))); __tmp_x == __tmp_y } {
             return Arc::new(Mutex::new(Some(Box::new(crate::chan::ChanPtr(x.clone())) as Box<dyn Type + Send + Sync>)));
         };
         }

@@ -14223,7 +14223,32 @@ func functionBoxTypeFromTrackedMapValueRustType(rustType string) (string, bool) 
 		}
 	}
 	if start := strings.Index(rustType, "Box<dyn Fn"); start >= 0 {
-		return rustType[start:], true
+		return balancedRustTypeAt(rustType, start)
+	}
+	return "", false
+}
+
+func balancedRustTypeAt(rustType string, start int) (string, bool) {
+	if start < 0 || start >= len(rustType) {
+		return "", false
+	}
+	depth := 0
+	for i := start; i < len(rustType); i++ {
+		switch rustType[i] {
+		case '<':
+			depth++
+		case '>':
+			if i > 0 && rustType[i-1] == '-' {
+				continue
+			}
+			depth--
+			if depth == 0 {
+				return rustType[start : i+1], true
+			}
+			if depth < 0 {
+				return "", false
+			}
+		}
 	}
 	return "", false
 }

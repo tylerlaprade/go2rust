@@ -75,47 +75,47 @@ use crate::version::*;
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
-pub(crate) static gccgoArchSizes: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<BTreeMap<String, Arc<Mutex<Option<StdSizes>>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) static gccgoArchSizes: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<BTreeMap<String, Arc<Mutex<Option<crate::sizes::StdSizes>>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
 
 fn __go_init_globals() {
     *gccgoArchSizes.lock().unwrap() = Some(BTreeMap::new());
     {
-        fn __go_init_gccgoArchSizes_map_chunk_0(__go_map: &mut BTreeMap<String, Arc<Mutex<Option<StdSizes>>>>) {
-            __go_map.insert("386".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(4 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("alpha".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("amd64".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("amd64p32".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("arm".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("armbe".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("arm64".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("arm64be".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("ia64".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("loong64".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("m68k".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(2 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("mips".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("mipsle".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("mips64".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("mips64le".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("mips64p32".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+        fn __go_init_gccgoArchSizes_map_chunk_0(__go_map: &mut BTreeMap<String, Arc<Mutex<Option<crate::sizes::StdSizes>>>>) {
+            __go_map.insert("386".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(4 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("alpha".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("amd64".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("amd64p32".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("arm".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("armbe".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("arm64".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("arm64be".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("ia64".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("loong64".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("m68k".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(2 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("mips".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("mipsle".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("mips64".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("mips64le".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("mips64p32".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
         }
-        fn __go_init_gccgoArchSizes_map_chunk_1(__go_map: &mut BTreeMap<String, Arc<Mutex<Option<StdSizes>>>>) {
-            __go_map.insert("mips64p32le".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("nios2".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("ppc".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("ppc64".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("ppc64le".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("riscv".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("riscv64".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("s390".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("s390x".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("sh".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("shbe".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("sparc".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("sparc64".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("wasm".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+        fn __go_init_gccgoArchSizes_map_chunk_1(__go_map: &mut BTreeMap<String, Arc<Mutex<Option<crate::sizes::StdSizes>>>>) {
+            __go_map.insert("mips64p32le".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("nios2".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("ppc".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("ppc64".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("ppc64le".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("riscv".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("riscv64".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("s390".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("s390x".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("sh".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("shbe".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("sparc".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("sparc64".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("wasm".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
         }
-        let mut __go_map = BTreeMap::<String, Arc<Mutex<Option<StdSizes>>>>::new();
+        let mut __go_map = BTreeMap::<String, Arc<Mutex<Option<crate::sizes::StdSizes>>>>::new();
         __go_init_gccgoArchSizes_map_chunk_0(&mut __go_map);
         __go_init_gccgoArchSizes_map_chunk_1(&mut __go_map);
         *gccgoArchSizes.lock().unwrap() = Some(__go_map);
@@ -130,41 +130,41 @@ pub(crate) fn __go_zero_globals() {
 
 pub(crate) fn __go_init_order_5() {
     {
-        fn __go_init_gccgoArchSizes_map_chunk_0(__go_map: &mut BTreeMap<String, Arc<Mutex<Option<StdSizes>>>>) {
-            __go_map.insert("386".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(4 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("alpha".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("amd64".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("amd64p32".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("arm".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("armbe".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("arm64".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("arm64be".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("ia64".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("loong64".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("m68k".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(2 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("mips".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("mipsle".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("mips64".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("mips64le".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("mips64p32".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+        fn __go_init_gccgoArchSizes_map_chunk_0(__go_map: &mut BTreeMap<String, Arc<Mutex<Option<crate::sizes::StdSizes>>>>) {
+            __go_map.insert("386".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(4 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("alpha".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("amd64".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("amd64p32".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("arm".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("armbe".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("arm64".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("arm64be".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("ia64".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("loong64".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("m68k".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(2 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("mips".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("mipsle".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("mips64".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("mips64le".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("mips64p32".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
         }
-        fn __go_init_gccgoArchSizes_map_chunk_1(__go_map: &mut BTreeMap<String, Arc<Mutex<Option<StdSizes>>>>) {
-            __go_map.insert("mips64p32le".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("nios2".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("ppc".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("ppc64".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("ppc64le".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("riscv".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("riscv64".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("s390".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("s390x".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("sh".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("shbe".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("sparc".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("sparc64".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
-            __go_map.insert("wasm".to_string(), Arc::new(Mutex::new(Some(StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+        fn __go_init_gccgoArchSizes_map_chunk_1(__go_map: &mut BTreeMap<String, Arc<Mutex<Option<crate::sizes::StdSizes>>>>) {
+            __go_map.insert("mips64p32le".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("nios2".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("ppc".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("ppc64".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("ppc64le".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("riscv".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("riscv64".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("s390".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("s390x".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("sh".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("shbe".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("sparc".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(4 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("sparc64".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
+            __go_map.insert("wasm".to_string(), Arc::new(Mutex::new(Some(crate::sizes::StdSizes { word_size: Arc::new(Mutex::new(Some(8 as i64))), max_align: Arc::new(Mutex::new(Some(8 as i64))), ..Default::default() }))).clone());
         }
-        let mut __go_map = BTreeMap::<String, Arc<Mutex<Option<StdSizes>>>>::new();
+        let mut __go_map = BTreeMap::<String, Arc<Mutex<Option<crate::sizes::StdSizes>>>>::new();
         __go_init_gccgoArchSizes_map_chunk_0(&mut __go_map);
         __go_init_gccgoArchSizes_map_chunk_1(&mut __go_map);
         *gccgoArchSizes.lock().unwrap() = Some(__go_map);

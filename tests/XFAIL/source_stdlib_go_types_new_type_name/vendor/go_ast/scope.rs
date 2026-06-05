@@ -547,7 +547,7 @@ impl Scope {
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
         let mut buf: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(Default::default())));
         (*buf.clone().lock().unwrap().as_mut().unwrap()).push_str(&format!("scope {:p} {{", self));
-        if true && { let __tmp_x = ((*self.objects.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
+        if true && { let __tmp_x = (({ let __len_target = { let __field = self.objects.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
         (*buf.clone().lock().unwrap().as_mut().unwrap()).push_str(&format!("\n"));
         for (_, obj) in { let __range_holder = self.objects.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         (*buf.clone().lock().unwrap().as_mut().unwrap()).push_str(&format!("\t{} {}\n", (*{ let __field = (*obj.lock().unwrap().as_ref().unwrap()).kind.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone(), (*{ let __field = (*obj.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()));
@@ -569,49 +569,49 @@ impl Object {
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
     let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.as_ref() as &dyn Any);
-    if _ts_val.and_then(|__v| __v.downcast_ref::<Field>()).is_some() {
-        let d = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Field>()).unwrap().clone())));
+    if _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::Field>()).is_some() {
+        let d = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::Field>()).unwrap().clone())));
         drop(_ts_guard);
         { let __range_holder = (*d.lock().unwrap().as_ref().unwrap()).names.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for n in __range_values.iter() {
         if { let __tmp_x = { let __selector_holder = (*n.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = (*name.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } {
-        return { let __recv = n.clone(); let __recv_ptr: *const Ident = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Ident }; let __result = unsafe { &*__recv_ptr }.pos(); __result };
+        return { let __recv = n.clone(); let __recv_ptr: *const crate::r#mod::Ident = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::r#mod::Ident }; let __result = unsafe { &*__recv_ptr }.pos(); __result };
     }
     } };
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<ImportSpec>()).is_some() {
-        let d = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<ImportSpec>()).unwrap().clone())));
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::ImportSpec>()).is_some() {
+        let d = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::ImportSpec>()).unwrap().clone())));
         drop(_ts_guard);
         if { let __nil_target = (*d.lock().unwrap().as_ref().unwrap()).name.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } && { let __tmp_x = { let __selector_holder = (*(*d.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = (*name.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } {
         return (*(*d.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).pos();
     };
         return (*(*d.lock().unwrap().as_ref().unwrap()).path.lock().unwrap().as_ref().unwrap()).pos();;
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<ValueSpec>()).is_some() {
-        let d = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<ValueSpec>()).unwrap().clone())));
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::ValueSpec>()).is_some() {
+        let d = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::ValueSpec>()).unwrap().clone())));
         drop(_ts_guard);
         { let __range_holder = (*d.lock().unwrap().as_ref().unwrap()).names.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for n in __range_values.iter() {
         if { let __tmp_x = { let __selector_holder = (*n.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = (*name.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } {
-        return { let __recv = n.clone(); let __recv_ptr: *const Ident = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Ident }; let __result = unsafe { &*__recv_ptr }.pos(); __result };
+        return { let __recv = n.clone(); let __recv_ptr: *const crate::r#mod::Ident = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::r#mod::Ident }; let __result = unsafe { &*__recv_ptr }.pos(); __result };
     }
     } };
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<TypeSpec>()).is_some() {
-        let d = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<TypeSpec>()).unwrap().clone())));
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::TypeSpec>()).is_some() {
+        let d = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::TypeSpec>()).unwrap().clone())));
         drop(_ts_guard);
         if { let __tmp_x = { let __selector_holder = (*(*d.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = (*name.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } {
         return (*(*d.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).pos();
     };
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<FuncDecl>()).is_some() {
-        let d = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<FuncDecl>()).unwrap().clone())));
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::FuncDecl>()).is_some() {
+        let d = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::FuncDecl>()).unwrap().clone())));
         drop(_ts_guard);
         if { let __tmp_x = { let __selector_holder = (*(*d.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = (*name.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } {
         return (*(*d.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).pos();
     };
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<LabeledStmt>()).is_some() {
-        let d = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<LabeledStmt>()).unwrap().clone())));
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::LabeledStmt>()).is_some() {
+        let d = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::LabeledStmt>()).unwrap().clone())));
         drop(_ts_guard);
         if { let __tmp_x = { let __selector_holder = (*(*d.lock().unwrap().as_ref().unwrap()).label.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = (*name.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } {
         return (*(*d.lock().unwrap().as_ref().unwrap()).label.lock().unwrap().as_ref().unwrap()).pos();
     };
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<AssignStmt>()).is_some() {
-        let d = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<AssignStmt>()).unwrap().clone())));
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::AssignStmt>()).is_some() {
+        let d = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::AssignStmt>()).unwrap().clone())));
         drop(_ts_guard);
         { let __range_holder = (*d.lock().unwrap().as_ref().unwrap()).lhs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter() {
         {
@@ -622,14 +622,14 @@ impl Object {
             if let Some(typed_val) = <dyn Expr + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<crate::r#mod::IdentPtr>() {
                 (typed_val.0.clone(), true)
             } else {
-                (Arc::new(Mutex::new(None::<Ident>)), false)
+                (Arc::new(Mutex::new(None::<crate::r#mod::Ident>)), false)
             }
         } else {
-            (Arc::new(Mutex::new(None::<Ident>)), false)
+            (Arc::new(Mutex::new(None::<crate::r#mod::Ident>)), false)
         }
     });;
         if isIdent && { let __tmp_x = { let __selector_holder = (*ident.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = (*name.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } {
-            return { let __recv = ident.clone(); let __recv_ptr: *const Ident = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Ident }; let __result = unsafe { &*__recv_ptr }.pos(); __result };;
+            return { let __recv = ident.clone(); let __recv_ptr: *const crate::r#mod::Ident = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::r#mod::Ident }; let __result = unsafe { &*__recv_ptr }.pos(); __result };;
         }
     }
     } };

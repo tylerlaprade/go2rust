@@ -546,7 +546,7 @@ impl Token {
             return 5;
         }
     }
-        LOWEST_PREC
+        0
     }
 
     /// IsLiteral returns true for tokens corresponding to identifiers

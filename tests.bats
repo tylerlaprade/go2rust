@@ -2170,6 +2170,10 @@ run_xfail_test() {
     run_test "tests/reflect_typeof_non_struct"
 }
 
+@test "reflect_valueof_struct_bool_fields" {
+    run_test "tests/reflect_valueof_struct_bool_fields"
+}
+
 @test "regex_basic" {
     run_test "tests/regex_basic"
 }

@@ -662,7 +662,7 @@ func (ht *HelperTracker) ImportNames() []string {
 		add("go_rand_seed", "go_rand_intn", "go_rand_float64", "go_rand_state", "go_rand_next_u64")
 	}
 	if ht.needsReflect {
-		add("GoReflectStructTag", "GoReflectField", "GoReflectType", "go_reflect_tag_get")
+		add("GoReflectStructTag", "GoReflectField", "GoReflectType", "GoReflectValue", "GoReflectBoolGetter", "GoReflectBoolSetter", "go_reflect_tag_get")
 	}
 	if ht.needsGoPtrKey {
 		add("GoLocalPtrKey")
@@ -4428,6 +4428,44 @@ impl GoReflectType {
     }
 }
 
+type GoReflectBoolGetter = Box<dyn Fn() -> bool + Send + Sync>;
+type GoReflectBoolSetter = Box<dyn FnMut(Arc<Mutex<Option<bool>>>) -> () + Send + Sync>;
+
+#[derive(Clone)]
+struct GoReflectValue {
+    typ: Arc<Mutex<Option<GoReflectType>>>,
+    fields: Arc<Mutex<Option<Vec<GoReflectValue>>>>,
+    bool_getter: Arc<Mutex<Option<GoReflectBoolGetter>>>,
+    bool_setter: Arc<Mutex<Option<GoReflectBoolSetter>>>,
+}
+
+impl GoReflectValue {
+    fn elem(&self) -> Arc<Mutex<Option<GoReflectValue>>> {
+        Arc::new(Mutex::new(Some(self.clone())))
+    }
+
+    fn r#type(&self) -> Arc<Mutex<Option<GoReflectType>>> {
+        self.typ.clone()
+    }
+
+    fn field(&self, index: i32) -> Arc<Mutex<Option<GoReflectValue>>> {
+        let index = index as usize;
+        Arc::new(Mutex::new(Some(self.fields.lock().unwrap().as_ref().unwrap()[index].clone())))
+    }
+
+    fn set_bool(&mut self, value: Arc<Mutex<Option<bool>>>) {
+        let mut setter_guard = self.bool_setter.lock().unwrap();
+        let setter = setter_guard.as_mut().expect("reflect.Value.SetBool requires a settable bool field");
+        setter(value);
+    }
+
+    fn bool(&self) -> bool {
+        let getter_guard = self.bool_getter.lock().unwrap();
+        let getter = getter_guard.as_ref().expect("reflect.Value.Bool requires a bool field");
+        getter()
+    }
+}
+
 fn go_reflect_tag_get(raw: &str, key: &str) -> String {
     let prefix = format!("{}:\"", key);
     let Some(start) = raw.find(&prefix) else {
@@ -4500,6 +4538,44 @@ impl GoReflectType {
     fn field(&self, index: Rc<RefCell<Option<i32>>>) -> Rc<RefCell<Option<GoReflectField>>> {
         let index = *index.borrow().as_ref().unwrap() as usize;
         Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap()[index].clone())))
+    }
+}
+
+type GoReflectBoolGetter = Box<dyn Fn() -> bool>;
+type GoReflectBoolSetter = Box<dyn FnMut(Rc<RefCell<Option<bool>>>) -> ()>;
+
+#[derive(Clone)]
+struct GoReflectValue {
+    typ: Rc<RefCell<Option<GoReflectType>>>,
+    fields: Rc<RefCell<Option<Vec<GoReflectValue>>>>,
+    bool_getter: Rc<RefCell<Option<GoReflectBoolGetter>>>,
+    bool_setter: Rc<RefCell<Option<GoReflectBoolSetter>>>,
+}
+
+impl GoReflectValue {
+    fn elem(&self) -> Rc<RefCell<Option<GoReflectValue>>> {
+        Rc::new(RefCell::new(Some(self.clone())))
+    }
+
+    fn r#type(&self) -> Rc<RefCell<Option<GoReflectType>>> {
+        self.typ.clone()
+    }
+
+    fn field(&self, index: i32) -> Rc<RefCell<Option<GoReflectValue>>> {
+        let index = index as usize;
+        Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap()[index].clone())))
+    }
+
+    fn set_bool(&mut self, value: Rc<RefCell<Option<bool>>>) {
+        let mut setter_guard = self.bool_setter.borrow_mut();
+        let setter = setter_guard.as_mut().expect("reflect.Value.SetBool requires a settable bool field");
+        setter(value);
+    }
+
+    fn bool(&self) -> bool {
+        let getter_guard = self.bool_getter.borrow();
+        let getter = getter_guard.as_ref().expect("reflect.Value.Bool requires a bool field");
+        getter()
     }
 }
 

@@ -133,10 +133,18 @@ impl gcSizes {
     let _ts_subject = under(T.clone()).clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
-    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.__go_as_any());
+    let _ts_owned = _ts_guard.as_ref().cloned();
+    drop(_ts_guard);
+    let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {
+        let __any = __v.__go_as_any();
+        if let Some(__boxed) = __any.downcast_ref::<Box<dyn Type + Send + Sync>>() {
+            __boxed.__go_as_any()
+        } else {
+            __any
+        }
+    });
     if _ts_val.and_then(|__v| __v.downcast_ref::<crate::array::ArrayPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::array::ArrayPtr>()).unwrap().0.clone();
-        drop(_ts_guard);
         {
         { let new_val = self.alignof((*t.lock().unwrap().as_ref().unwrap()).elem.clone()); *result.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
@@ -147,8 +155,7 @@ impl gcSizes {
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#struct::StructPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#struct::StructPtr>()).unwrap().0.clone();
-        drop(_ts_guard);
-        if { let __tmp_x = ((*(*t.lock().unwrap().as_ref().unwrap()).fields.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } && __is_sync_atomic_align64(T.clone()) {
+        if { let __tmp_x = (({ let __len_target = { let __field = (*t.lock().unwrap().as_ref().unwrap()).fields.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } && __is_sync_atomic_align64(T.clone()) {
         {
         { let new_val = 8 as i64; *result.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
@@ -177,7 +184,6 @@ impl gcSizes {
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::slice::SlicePtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<crate::interface::InterfacePtr>()).is_some() {
         let t = under(T.clone()).clone();
-        drop(_ts_guard);
         assert(Arc::new(Mutex::new(Some(!is_type_param(T.clone())))));;
         {
         { let new_val = { let __selector_holder = self.word_size.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *result.lock().unwrap() = Some(new_val); };;
@@ -189,8 +195,7 @@ impl gcSizes {
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::basic::BasicPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::basic::BasicPtr>()).unwrap().0.clone();
-        drop(_ts_guard);
-        if { let __tmp_x = BasicInfo(Arc::new(Mutex::new(Some(((*(*{ let __recv = t.clone(); let __recv_ptr: *const Basic = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Basic }; let __result = unsafe { &*__recv_ptr }.info(); __result }.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & IS_STRING as i32))))); let __tmp_y = BasicInfo(Arc::new(Mutex::new(Some(0 as i32)))); __tmp_x != __tmp_y } {
+        if { let __tmp_x = crate::basic::BasicInfo(Arc::new(Mutex::new(Some(((*(*{ let __recv = t.clone(); let __recv_ptr: *const crate::basic::Basic = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::basic::Basic }; let __result = unsafe { &*__recv_ptr }.info(); __result }.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & IS_STRING as i32))))); let __tmp_y = crate::basic::BasicInfo(Arc::new(Mutex::new(Some(0 as i32)))); __tmp_x != __tmp_y } {
         {
         { let new_val = { let __selector_holder = self.word_size.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *result.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
@@ -202,7 +207,6 @@ impl gcSizes {
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::typeparam::TypeParamPtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<crate::union::UnionPtr>()).is_some() {
         let t = under(T.clone()).clone();
-        drop(_ts_guard);
         panic!("unreachable");;
     }
     }
@@ -295,10 +299,18 @@ impl gcSizes {
     let _ts_subject = under(T.clone()).clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
-    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.__go_as_any());
+    let _ts_owned = _ts_guard.as_ref().cloned();
+    drop(_ts_guard);
+    let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {
+        let __any = __v.__go_as_any();
+        if let Some(__boxed) = __any.downcast_ref::<Box<dyn Type + Send + Sync>>() {
+            __boxed.__go_as_any()
+        } else {
+            __any
+        }
+    });
     if _ts_val.and_then(|__v| __v.downcast_ref::<crate::basic::BasicPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::basic::BasicPtr>()).unwrap().0.clone();
-        drop(_ts_guard);
         assert(Arc::new(Mutex::new(Some(is_typed(T.clone())))));;
         let mut k = Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).kind.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));;
         if { let __tmp_x = ((*Arc::new(Mutex::new(Some((*{ let __v = (*k.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()) as i32); let __tmp_y = 17; __tmp_x < __tmp_y } {
@@ -309,12 +321,11 @@ impl gcSizes {
         }
     }
     };
-        if { let __tmp_x = (*k.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = BasicKind(Arc::new(Mutex::new(Some(STRING as i32)))); __tmp_x == __tmp_y } {
+        if { let __tmp_x = (*k.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::basic::BasicKind(Arc::new(Mutex::new(Some(STRING as i32)))); __tmp_x == __tmp_y } {
         return { let __tmp_x = (*self.word_size.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as i64; __tmp_x * __tmp_y };
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::array::ArrayPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::array::ArrayPtr>()).unwrap().0.clone();
-        drop(_ts_guard);
         let mut n = Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).len.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));;
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x <= __tmp_y } {
         return 0;
@@ -334,12 +345,10 @@ impl gcSizes {
         return { let __tmp_x = esize; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::slice::SlicePtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::slice::SlicePtr>()).unwrap().0.clone();
-        drop(_ts_guard);
         return { let __tmp_x = (*self.word_size.lock().unwrap().as_ref().unwrap()); let __tmp_y = 3 as i64; __tmp_x * __tmp_y };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#struct::StructPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#struct::StructPtr>()).unwrap().0.clone();
-        drop(_ts_guard);
-        let mut n = { let __recv = t.clone(); let __recv_ptr: *const Struct = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Struct }; let __result = unsafe { &*__recv_ptr }.num_fields(); __result };;
+        let mut n = { let __recv = t.clone(); let __recv_ptr: *const crate::r#struct::Struct = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::r#struct::Struct }; let __result = unsafe { &*__recv_ptr }.num_fields(); __result };;
         if { let __tmp_x = n; let __tmp_y = 0; __tmp_x == __tmp_y } {
         return 0;
     };
@@ -355,12 +364,10 @@ impl gcSizes {
         return align(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*offs.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = size; __tmp_x + __tmp_y }))), Arc::new(Mutex::new(Some(self.alignof(Arc::new(Mutex::new(Some(Box::new(crate::r#struct::StructPtr(t.clone())) as Box<dyn Type + Send + Sync>))))))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::interface::InterfacePtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::interface::InterfacePtr>()).unwrap().0.clone();
-        drop(_ts_guard);
         assert(Arc::new(Mutex::new(Some(!is_type_param(T.clone())))));;
         return { let __tmp_x = (*self.word_size.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as i64; __tmp_x * __tmp_y };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::typeparam::TypeParamPtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<crate::union::UnionPtr>()).is_some() {
         let t = under(T.clone()).clone();
-        drop(_ts_guard);
         panic!("unreachable");;
     }
     }
@@ -385,7 +392,7 @@ impl Sizes for gcSizes {
     fn alignof(&mut self, T: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> i64 {
         gcSizes::alignof(self, T)
     }
-    fn offsetsof(&mut self, fields: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Var>>>>>>>) -> Arc<Mutex<Option<Vec<i64>>>> {
+    fn offsetsof(&mut self, fields: Arc<Mutex<Option<Vec<Arc<Mutex<Option<crate::object::Var>>>>>>>) -> Arc<Mutex<Option<Vec<i64>>>> {
         gcSizes::offsetsof(self, fields)
     }
     fn sizeof(&mut self, T: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> i64 {
@@ -412,7 +419,7 @@ pub struct gcSizesPtr(pub Arc<Mutex<Option<gcSizes>>>);
 impl std::fmt::Display for gcSizesPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -422,7 +429,7 @@ impl Sizes for gcSizesPtr {
         let __recv = __recv_guard.as_mut().unwrap();
         gcSizes::alignof(__recv, T)
     }
-    fn offsetsof(&mut self, fields: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Var>>>>>>>) -> Arc<Mutex<Option<Vec<i64>>>> {
+    fn offsetsof(&mut self, fields: Arc<Mutex<Option<Vec<Arc<Mutex<Option<crate::object::Var>>>>>>>) -> Arc<Mutex<Option<Vec<i64>>>> {
         let mut __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_mut().unwrap();
         gcSizes::offsetsof(__recv, fields)

@@ -97,20 +97,20 @@ pub fn pdqsort_cmp_func<E: Any + GoValueClone + Send + Sync + 'static>(data: Arc
     }
 
         let (mut pivot, mut hint) = choose_pivot_cmp_func::<E>(data.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), cmp.clone());
-        if { let __tmp_x = (*hint.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = sortedHint(Arc::new(Mutex::new(Some(DECREASING_HINT as i32)))); __tmp_x == __tmp_y } {
+        if { let __tmp_x = (*hint.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::sort::sortedHint(Arc::new(Mutex::new(Some(DECREASING_HINT as i32)))); __tmp_x == __tmp_y } {
         reverse_range_cmp_func::<E>(data.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), cmp.clone());
                 // The chosen pivot was pivot-a elements after the start of the array.
                 // After reversing it is pivot-a elements before the end of the array.
                 // The idea came from Rust's implementation.
         { let new_val = { let __tmp_x = ({ let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }); let __tmp_y = ({ let __tmp_x = pivot; let __tmp_y = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); __tmp_x - __tmp_y }; pivot = new_val; };
-        { let new_val = sortedHint(Arc::new(Mutex::new(Some(INCREASING_HINT as i32)))); *hint.lock().unwrap() = Some(new_val); };
+        { let new_val = crate::sort::sortedHint(Arc::new(Mutex::new(Some(INCREASING_HINT as i32)))); *hint.lock().unwrap() = Some(new_val); };
     }
 
                 // The chosen pivot was pivot-a elements after the start of the array.
                 // After reversing it is pivot-a elements before the end of the array.
                 // The idea came from Rust's implementation.
                 // The slice is likely already sorted.
-        if { let __v = (*wasBalanced.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __v = (*wasPartitioned.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = (*hint.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = sortedHint(Arc::new(Mutex::new(Some(INCREASING_HINT as i32)))); __tmp_x == __tmp_y } {
+        if { let __v = (*wasBalanced.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __v = (*wasPartitioned.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = (*hint.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::sort::sortedHint(Arc::new(Mutex::new(Some(INCREASING_HINT as i32)))); __tmp_x == __tmp_y } {
         if partial_insertion_sort_cmp_func::<E>(data.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), cmp.clone()) {
         return;
     }
@@ -268,7 +268,7 @@ const shortestShifting: i32 = 50;
 pub fn break_patterns_cmp_func<E: Any + GoValueClone + Send + Sync + 'static>(data: Arc<Mutex<Option<Vec<Arc<Mutex<Option<E>>>>>>>, a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>, cmp: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<E>>>, Arc<Mutex<Option<E>>>) -> i32 + Send + Sync>>>>) {
     let mut length = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y })));
     if { let __tmp_x = { let __v = (*length.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8; __tmp_x >= __tmp_y } {
-        let mut random = Arc::new(Mutex::new(Some(xorshift(Arc::new(Mutex::new(Some((*length.lock().unwrap().as_ref().unwrap()) as u64)))))));
+        let mut random = Arc::new(Mutex::new(Some(crate::sort::xorshift(Arc::new(Mutex::new(Some((*length.lock().unwrap().as_ref().unwrap()) as u64)))))));
         let mut modulus = next_power_of_two(Arc::new(Mutex::new(Some({ let __arg_holder = length.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         let mut idx = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = ({ let __tmp_x = { let __v = (*length.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x / __tmp_y }); let __tmp_y = 2; __tmp_x * __tmp_y }; __tmp_x + __tmp_y }; let __tmp_y = 1; __tmp_x - __tmp_y })));
     while { let __tmp_x = { let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = { let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = ({ let __tmp_x = { let __v = (*length.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x / __tmp_y }); let __tmp_y = 2; __tmp_x * __tmp_y }; __tmp_x + __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y }; __tmp_x <= __tmp_y } {
@@ -287,7 +287,7 @@ pub fn break_patterns_cmp_func<E: Any + GoValueClone + Send + Sync + 'static>(da
 /// [0,8): chooses a static pivot.
 /// [8,shortestNinther): uses the simple median-of-three method.
 /// [shortestNinther,∞): uses the Tukey ninther method.
-pub fn choose_pivot_cmp_func<E: Any + GoValueClone + Send + Sync + 'static>(data: Arc<Mutex<Option<Vec<Arc<Mutex<Option<E>>>>>>>, a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>, cmp: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<E>>>, Arc<Mutex<Option<E>>>) -> i32 + Send + Sync>>>>) -> (i32, Arc<Mutex<Option<sortedHint>>>) {
+pub fn choose_pivot_cmp_func<E: Any + GoValueClone + Send + Sync + 'static>(data: Arc<Mutex<Option<Vec<Arc<Mutex<Option<E>>>>>>>, a: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<i32>>>, cmp: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<E>>>, Arc<Mutex<Option<E>>>) -> i32 + Send + Sync>>>>) -> (i32, Arc<Mutex<Option<crate::sort::sortedHint>>>) {
     let mut pivot: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
     let mut hint: Arc<Mutex<Option<sortedHint>>> = Arc::new(Mutex::new(Some(Default::default())));
 
@@ -315,11 +315,11 @@ const maxSwaps: i32 = 4 * 3;
         // Find the median among i, j, k and stores it into j.
     { let _switch_val = { let __v = (*swaps.lock().unwrap().as_ref().unwrap()).clone(); __v };
     if _switch_val == (0) {
-            return ({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }, Arc::new(Mutex::new(Some(sortedHint(Arc::new(Mutex::new(Some(INCREASING_HINT as i32))))))));
+            return ({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }, Arc::new(Mutex::new(Some(crate::sort::sortedHint(Arc::new(Mutex::new(Some(INCREASING_HINT as i32))))))));
         } else if _switch_val == (12) {
-            return ({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }, Arc::new(Mutex::new(Some(sortedHint(Arc::new(Mutex::new(Some(DECREASING_HINT as i32))))))));
+            return ({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }, Arc::new(Mutex::new(Some(crate::sort::sortedHint(Arc::new(Mutex::new(Some(DECREASING_HINT as i32))))))));
         } else {
-            return ({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }, Arc::new(Mutex::new(Some(sortedHint(Arc::new(Mutex::new(Some(UNKNOWN_HINT as i32))))))));
+            return ({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }, Arc::new(Mutex::new(Some(crate::sort::sortedHint(Arc::new(Mutex::new(Some(UNKNOWN_HINT as i32))))))));
         }
     }
 }

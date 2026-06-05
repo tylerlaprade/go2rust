@@ -29,13 +29,13 @@ pub trait Node: std::fmt::Display + Any {
 
 impl Clone for Box<dyn Node + Send + Sync> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_node()
+        Node::__go_clone_box_node(self.as_ref())
     }
 }
 
 impl GoValueClone for Box<dyn Node + Send + Sync> {
     fn go_value_clone(&self) -> Self {
-        self.__go_clone_box_node()
+        Node::__go_clone_box_node(self.as_ref())
     }
 }
 
@@ -48,13 +48,13 @@ pub trait Expr: Node + std::fmt::Display + Any {
 
 impl Clone for Box<dyn Expr + Send + Sync> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_expr()
+        Expr::__go_clone_box_expr(self.as_ref())
     }
 }
 
 impl GoValueClone for Box<dyn Expr + Send + Sync> {
     fn go_value_clone(&self) -> Self {
-        self.__go_clone_box_expr()
+        Expr::__go_clone_box_expr(self.as_ref())
     }
 }
 
@@ -85,13 +85,13 @@ pub trait Stmt: Node + std::fmt::Display + Any {
 
 impl Clone for Box<dyn Stmt + Send + Sync> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_stmt()
+        Stmt::__go_clone_box_stmt(self.as_ref())
     }
 }
 
 impl GoValueClone for Box<dyn Stmt + Send + Sync> {
     fn go_value_clone(&self) -> Self {
-        self.__go_clone_box_stmt()
+        Stmt::__go_clone_box_stmt(self.as_ref())
     }
 }
 
@@ -122,13 +122,13 @@ pub trait Decl: Node + std::fmt::Display + Any {
 
 impl Clone for Box<dyn Decl + Send + Sync> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_decl()
+        Decl::__go_clone_box_decl(self.as_ref())
     }
 }
 
 impl GoValueClone for Box<dyn Decl + Send + Sync> {
     fn go_value_clone(&self) -> Self {
-        self.__go_clone_box_decl()
+        Decl::__go_clone_box_decl(self.as_ref())
     }
 }
 
@@ -2382,13 +2382,13 @@ pub trait Spec: Node + std::fmt::Display + Any {
 
 impl Clone for Box<dyn Spec + Send + Sync> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_spec()
+        Spec::__go_clone_box_spec(self.as_ref())
     }
 }
 
 impl GoValueClone for Box<dyn Spec + Send + Sync> {
     fn go_value_clone(&self) -> Self {
-        self.__go_clone_box_spec()
+        Spec::__go_clone_box_spec(self.as_ref())
     }
 }
 
@@ -2731,7 +2731,7 @@ pub struct CommentPtr(pub Arc<Mutex<Option<Comment>>>);
 impl std::fmt::Display for CommentPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -2767,7 +2767,7 @@ impl CommentGroup {
     }
 
     pub fn end(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
-        { let __recv = { let __seq = { let __seq_holder = self.list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ((*self.list.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result }
+        { let __recv = { let __seq = { let __seq_holder = self.list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (({ let __len_target = { let __field = self.list.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result }
     }
 
     /// Text returns the text of the comment.
@@ -2780,7 +2780,7 @@ impl CommentGroup {
         if false {
         return Arc::new(Mutex::new(Some("".to_string())));
     }
-        let mut comments = Arc::new(Mutex::new(Some(vec!["".to_string(); ((*self.list.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize])));
+        let mut comments = Arc::new(Mutex::new(Some(vec!["".to_string(); (({ let __len_target = { let __field = self.list.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) as usize])));
         { let __range_holder = self.list.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, c) in __range_values.iter().enumerate() {
         (*comments.lock().unwrap().as_mut().unwrap())[(i) as usize] = (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).text.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone();
     } }
@@ -2882,7 +2882,7 @@ pub struct CommentGroupPtr(pub Arc<Mutex<Option<CommentGroup>>>);
 impl std::fmt::Display for CommentGroupPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -2914,10 +2914,10 @@ impl Node for CommentGroupPtr {
 
 impl Field {
     pub fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
-        if { let __tmp_x = ((*self.names.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
+        if { let __tmp_x = (({ let __len_target = { let __field = self.names.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
         return { let __recv = { let __seq = { let __seq_holder = self.names.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).pos(); __result };
     }
-        if (*self.r#type.lock().unwrap()).is_some() {
+        if { let __iface_handle = { let __field = self.r#type.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
         return (*self.r#type.lock().unwrap().as_ref().unwrap()).pos();
     }
         Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i32)))))))
@@ -2927,11 +2927,11 @@ impl Field {
         if { let __nil_target = self.tag.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
         return (*self.tag.lock().unwrap().as_ref().unwrap()).end();
     }
-        if (*self.r#type.lock().unwrap()).is_some() {
+        if { let __iface_handle = { let __field = self.r#type.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
         return (*self.r#type.lock().unwrap().as_ref().unwrap()).end();
     }
-        if { let __tmp_x = ((*self.names.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
-        return { let __recv = { let __seq = { let __seq_holder = self.names.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ((*self.names.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result };
+        if { let __tmp_x = (({ let __len_target = { let __field = self.names.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
+        return { let __recv = { let __seq = { let __seq_holder = self.names.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (({ let __len_target = { let __field = self.names.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result };
     }
         Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i32)))))))
     }
@@ -2965,7 +2965,7 @@ pub struct FieldPtr(pub Arc<Mutex<Option<Field>>>);
 impl std::fmt::Display for FieldPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -2997,25 +2997,25 @@ impl Node for FieldPtr {
 
 impl FieldList {
     pub fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
-        if (*self.opening.lock().unwrap().as_ref().unwrap()).is_valid() {
+        if go_token::position::Pos::is_valid(&(*self.opening.lock().unwrap().as_ref().unwrap())) {
         return self.opening.clone();
     }
                 // the list should not be empty in this case;
                 // be conservative and guard against bad ASTs
-        if { let __tmp_x = ((*self.list.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
+        if { let __tmp_x = (({ let __len_target = { let __field = self.list.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
         return { let __recv = { let __seq = { let __seq_holder = self.list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).pos(); __result };
     }
         Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i32)))))))
     }
 
     pub fn end(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
-        if (*self.closing.lock().unwrap().as_ref().unwrap()).is_valid() {
+        if go_token::position::Pos::is_valid(&(*self.closing.lock().unwrap().as_ref().unwrap())) {
         return Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(((*(*self.closing.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) + 1))))))));
     }
                 // the list should not be empty in this case;
                 // be conservative and guard against bad ASTs
         {
-        let mut n = Arc::new(Mutex::new(Some((*self.list.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)));;
+        let mut n = Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.list.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32)));;
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
             return { let __recv = { let __seq = { let __seq_holder = self.list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result };;
         }
@@ -3028,7 +3028,7 @@ impl FieldList {
         let mut n = Arc::new(Mutex::new(Some(0)));
         if true {
         { let __range_holder = self.list.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for g in __range_values.iter() {
-        let mut m = Arc::new(Mutex::new(Some((*(*g.lock().unwrap().as_ref().unwrap()).names.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)));
+        let mut m = Arc::new(Mutex::new(Some(({ let __len_target = { let __field = (*g.lock().unwrap().as_ref().unwrap()).names.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32)));
         if { let __tmp_x = { let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
         { let new_val = 1; *m.lock().unwrap() = Some(new_val); };
     }
@@ -3067,7 +3067,7 @@ pub struct FieldListPtr(pub Arc<Mutex<Option<FieldList>>>);
 impl std::fmt::Display for FieldListPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -3134,7 +3134,7 @@ pub struct BadExprPtr(pub Arc<Mutex<Option<BadExpr>>>);
 impl std::fmt::Display for BadExprPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -3251,7 +3251,7 @@ pub struct IdentPtr(pub Arc<Mutex<Option<Ident>>>);
 impl std::fmt::Display for IdentPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -3327,7 +3327,7 @@ impl Ellipsis {
     }
 
     pub fn end(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
-        if (*self.elt.lock().unwrap()).is_some() {
+        if { let __iface_handle = { let __field = self.elt.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
         return (*self.elt.lock().unwrap().as_ref().unwrap()).end();
     }
         return Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(((*(*self.ellipsis.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) + 3))))))));
@@ -3359,7 +3359,7 @@ pub struct EllipsisPtr(pub Arc<Mutex<Option<Ellipsis>>>);
 impl std::fmt::Display for EllipsisPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -3464,7 +3464,7 @@ pub struct BasicLitPtr(pub Arc<Mutex<Option<BasicLit>>>);
 impl std::fmt::Display for BasicLitPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -3569,7 +3569,7 @@ pub struct FuncLitPtr(pub Arc<Mutex<Option<FuncLit>>>);
 impl std::fmt::Display for FuncLitPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -3641,7 +3641,7 @@ impl Node for FuncLitPtr {
 
 impl CompositeLit {
     pub fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
-        if (*self.r#type.lock().unwrap()).is_some() {
+        if { let __iface_handle = { let __field = self.r#type.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
         return (*self.r#type.lock().unwrap().as_ref().unwrap()).pos();
     }
         return self.lbrace.clone();
@@ -3677,7 +3677,7 @@ pub struct CompositeLitPtr(pub Arc<Mutex<Option<CompositeLit>>>);
 impl std::fmt::Display for CompositeLitPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -3782,7 +3782,7 @@ pub struct ParenExprPtr(pub Arc<Mutex<Option<ParenExpr>>>);
 impl std::fmt::Display for ParenExprPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -3887,7 +3887,7 @@ pub struct SelectorExprPtr(pub Arc<Mutex<Option<SelectorExpr>>>);
 impl std::fmt::Display for SelectorExprPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -3992,7 +3992,7 @@ pub struct IndexExprPtr(pub Arc<Mutex<Option<IndexExpr>>>);
 impl std::fmt::Display for IndexExprPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -4097,7 +4097,7 @@ pub struct IndexListExprPtr(pub Arc<Mutex<Option<IndexListExpr>>>);
 impl std::fmt::Display for IndexListExprPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -4202,7 +4202,7 @@ pub struct SliceExprPtr(pub Arc<Mutex<Option<SliceExpr>>>);
 impl std::fmt::Display for SliceExprPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -4307,7 +4307,7 @@ pub struct TypeAssertExprPtr(pub Arc<Mutex<Option<TypeAssertExpr>>>);
 impl std::fmt::Display for TypeAssertExprPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -4412,7 +4412,7 @@ pub struct CallExprPtr(pub Arc<Mutex<Option<CallExpr>>>);
 impl std::fmt::Display for CallExprPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -4517,7 +4517,7 @@ pub struct StarExprPtr(pub Arc<Mutex<Option<StarExpr>>>);
 impl std::fmt::Display for StarExprPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -4622,7 +4622,7 @@ pub struct UnaryExprPtr(pub Arc<Mutex<Option<UnaryExpr>>>);
 impl std::fmt::Display for UnaryExprPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -4727,7 +4727,7 @@ pub struct BinaryExprPtr(pub Arc<Mutex<Option<BinaryExpr>>>);
 impl std::fmt::Display for BinaryExprPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -4832,7 +4832,7 @@ pub struct KeyValueExprPtr(pub Arc<Mutex<Option<KeyValueExpr>>>);
 impl std::fmt::Display for KeyValueExprPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -4937,7 +4937,7 @@ pub struct ArrayTypePtr(pub Arc<Mutex<Option<ArrayType>>>);
 impl std::fmt::Display for ArrayTypePtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -5042,7 +5042,7 @@ pub struct StructTypePtr(pub Arc<Mutex<Option<StructType>>>);
 impl std::fmt::Display for StructTypePtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -5114,7 +5114,7 @@ impl Node for StructTypePtr {
 
 impl FuncType {
     pub fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
-        if (*self.func.lock().unwrap().as_ref().unwrap()).is_valid() || { let __nil_target = self.params.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
+        if go_token::position::Pos::is_valid(&(*self.func.lock().unwrap().as_ref().unwrap())) || { let __nil_target = self.params.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
         return self.func.clone();
     }
         (*self.params.lock().unwrap().as_ref().unwrap()).pos()
@@ -5153,7 +5153,7 @@ pub struct FuncTypePtr(pub Arc<Mutex<Option<FuncType>>>);
 impl std::fmt::Display for FuncTypePtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -5258,7 +5258,7 @@ pub struct InterfaceTypePtr(pub Arc<Mutex<Option<InterfaceType>>>);
 impl std::fmt::Display for InterfaceTypePtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -5363,7 +5363,7 @@ pub struct MapTypePtr(pub Arc<Mutex<Option<MapType>>>);
 impl std::fmt::Display for MapTypePtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -5468,7 +5468,7 @@ pub struct ChanTypePtr(pub Arc<Mutex<Option<ChanType>>>);
 impl std::fmt::Display for ChanTypePtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -5581,7 +5581,7 @@ pub struct BadStmtPtr(pub Arc<Mutex<Option<BadStmt>>>);
 impl std::fmt::Display for BadStmtPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -5686,7 +5686,7 @@ pub struct DeclStmtPtr(pub Arc<Mutex<Option<DeclStmt>>>);
 impl std::fmt::Display for DeclStmtPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -5794,7 +5794,7 @@ pub struct EmptyStmtPtr(pub Arc<Mutex<Option<EmptyStmt>>>);
 impl std::fmt::Display for EmptyStmtPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -5899,7 +5899,7 @@ pub struct LabeledStmtPtr(pub Arc<Mutex<Option<LabeledStmt>>>);
 impl std::fmt::Display for LabeledStmtPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -6004,7 +6004,7 @@ pub struct ExprStmtPtr(pub Arc<Mutex<Option<ExprStmt>>>);
 impl std::fmt::Display for ExprStmtPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -6109,7 +6109,7 @@ pub struct SendStmtPtr(pub Arc<Mutex<Option<SendStmt>>>);
 impl std::fmt::Display for SendStmtPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -6214,7 +6214,7 @@ pub struct IncDecStmtPtr(pub Arc<Mutex<Option<IncDecStmt>>>);
 impl std::fmt::Display for IncDecStmtPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -6284,7 +6284,7 @@ impl AssignStmt {
     }
 
     pub fn end(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
-        { let __recv = { let __seq = { let __seq_holder = self.rhs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ((*self.rhs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result }
+        { let __recv = { let __seq = { let __seq_holder = self.rhs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (({ let __len_target = { let __field = self.rhs.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result }
     }
 
     pub fn stmt_node(&self) {
@@ -6319,7 +6319,7 @@ pub struct AssignStmtPtr(pub Arc<Mutex<Option<AssignStmt>>>);
 impl std::fmt::Display for AssignStmtPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -6424,7 +6424,7 @@ pub struct GoStmtPtr(pub Arc<Mutex<Option<GoStmt>>>);
 impl std::fmt::Display for GoStmtPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -6529,7 +6529,7 @@ pub struct DeferStmtPtr(pub Arc<Mutex<Option<DeferStmt>>>);
 impl std::fmt::Display for DeferStmtPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -6600,7 +6600,7 @@ impl ReturnStmt {
 
     pub fn end(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         {
-        let mut n = Arc::new(Mutex::new(Some((*self.results.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)));;
+        let mut n = Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.results.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32)));;
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
             return { let __recv = { let __seq = { let __seq_holder = self.results.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result };;
         }
@@ -6640,7 +6640,7 @@ pub struct ReturnStmtPtr(pub Arc<Mutex<Option<ReturnStmt>>>);
 impl std::fmt::Display for ReturnStmtPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -6713,7 +6713,7 @@ impl BranchStmt {
         if { let __nil_target = self.label.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
         return (*self.label.lock().unwrap().as_ref().unwrap()).end();
     }
-        Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some({ let __tmp_x = ((*Arc::new(Mutex::new(Some((*(*self.tok_pos.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()) as i32); let __tmp_y = ((*(*self.tok.lock().unwrap().as_ref().unwrap()).string().lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x + __tmp_y } as i32)))))))
+        Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some({ let __tmp_x = ((*Arc::new(Mutex::new(Some((*(*self.tok_pos.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()) as i32); let __tmp_y = ((*go_token::r#mod::Token::string(&(*self.tok.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x + __tmp_y } as i32)))))))
     }
 
     pub fn stmt_node(&self) {
@@ -6748,7 +6748,7 @@ pub struct BranchStmtPtr(pub Arc<Mutex<Option<BranchStmt>>>);
 impl std::fmt::Display for BranchStmtPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -6818,11 +6818,11 @@ impl BlockStmt {
     }
 
     pub fn end(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
-        if (*self.rbrace.lock().unwrap().as_ref().unwrap()).is_valid() {
+        if go_token::position::Pos::is_valid(&(*self.rbrace.lock().unwrap().as_ref().unwrap())) {
         return Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(((*(*self.rbrace.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) + 1))))))));
     }
         {
-        let mut n = Arc::new(Mutex::new(Some((*self.list.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)));;
+        let mut n = Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.list.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32)));;
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
             return { let __recv = { let __seq = { let __seq_holder = self.list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result };;
         }
@@ -6862,7 +6862,7 @@ pub struct BlockStmtPtr(pub Arc<Mutex<Option<BlockStmt>>>);
 impl std::fmt::Display for BlockStmtPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -6932,7 +6932,7 @@ impl IfStmt {
     }
 
     pub fn end(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
-        if (*self.r#else.lock().unwrap()).is_some() {
+        if { let __iface_handle = { let __field = self.r#else.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
         return (*self.r#else.lock().unwrap().as_ref().unwrap()).end();
     }
         (*self.body.lock().unwrap().as_ref().unwrap()).end()
@@ -6970,7 +6970,7 @@ pub struct IfStmtPtr(pub Arc<Mutex<Option<IfStmt>>>);
 impl std::fmt::Display for IfStmtPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -7041,7 +7041,7 @@ impl CaseClause {
 
     pub fn end(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         {
-        let mut n = Arc::new(Mutex::new(Some((*self.body.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)));;
+        let mut n = Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.body.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32)));;
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
             return { let __recv = { let __seq = { let __seq_holder = self.body.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result };;
         }
@@ -7081,7 +7081,7 @@ pub struct CaseClausePtr(pub Arc<Mutex<Option<CaseClause>>>);
 impl std::fmt::Display for CaseClausePtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -7186,7 +7186,7 @@ pub struct SwitchStmtPtr(pub Arc<Mutex<Option<SwitchStmt>>>);
 impl std::fmt::Display for SwitchStmtPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -7291,7 +7291,7 @@ pub struct TypeSwitchStmtPtr(pub Arc<Mutex<Option<TypeSwitchStmt>>>);
 impl std::fmt::Display for TypeSwitchStmtPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -7362,7 +7362,7 @@ impl CommClause {
 
     pub fn end(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         {
-        let mut n = Arc::new(Mutex::new(Some((*self.body.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)));;
+        let mut n = Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.body.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32)));;
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
             return { let __recv = { let __seq = { let __seq_holder = self.body.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result };;
         }
@@ -7402,7 +7402,7 @@ pub struct CommClausePtr(pub Arc<Mutex<Option<CommClause>>>);
 impl std::fmt::Display for CommClausePtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -7507,7 +7507,7 @@ pub struct SelectStmtPtr(pub Arc<Mutex<Option<SelectStmt>>>);
 impl std::fmt::Display for SelectStmtPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -7612,7 +7612,7 @@ pub struct ForStmtPtr(pub Arc<Mutex<Option<ForStmt>>>);
 impl std::fmt::Display for ForStmtPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -7717,7 +7717,7 @@ pub struct RangeStmtPtr(pub Arc<Mutex<Option<RangeStmt>>>);
 impl std::fmt::Display for RangeStmtPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -7830,7 +7830,7 @@ pub struct ImportSpecPtr(pub Arc<Mutex<Option<ImportSpec>>>);
 impl std::fmt::Display for ImportSpecPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -7901,15 +7901,15 @@ impl ValueSpec {
 
     pub fn end(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         {
-        let mut n = Arc::new(Mutex::new(Some((*self.values.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)));;
+        let mut n = Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.values.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32)));;
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
             return { let __recv = { let __seq = { let __seq_holder = self.values.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result };;
         }
     }
-        if (*self.r#type.lock().unwrap()).is_some() {
+        if { let __iface_handle = { let __field = self.r#type.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
         return (*self.r#type.lock().unwrap().as_ref().unwrap()).end();
     }
-        { let __recv = { let __seq = { let __seq_holder = self.names.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ((*self.names.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result }
+        { let __recv = { let __seq = { let __seq_holder = self.names.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (({ let __len_target = { let __field = self.names.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result }
     }
 
     pub fn spec_node(&self) {
@@ -7944,7 +7944,7 @@ pub struct ValueSpecPtr(pub Arc<Mutex<Option<ValueSpec>>>);
 impl std::fmt::Display for ValueSpecPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -8049,7 +8049,7 @@ pub struct TypeSpecPtr(pub Arc<Mutex<Option<TypeSpec>>>);
 impl std::fmt::Display for TypeSpecPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -8150,7 +8150,7 @@ pub struct BadDeclPtr(pub Arc<Mutex<Option<BadDecl>>>);
 impl std::fmt::Display for BadDeclPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -8226,7 +8226,7 @@ impl GenDecl {
     }
 
     pub fn end(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
-        if (*self.rparen.lock().unwrap().as_ref().unwrap()).is_valid() {
+        if go_token::position::Pos::is_valid(&(*self.rparen.lock().unwrap().as_ref().unwrap())) {
         return Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(((*(*self.rparen.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) + 1))))))));
     }
         { let __recv = { let __seq = { let __seq_holder = self.specs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result }
@@ -8258,7 +8258,7 @@ pub struct GenDeclPtr(pub Arc<Mutex<Option<GenDecl>>>);
 impl std::fmt::Display for GenDeclPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -8366,7 +8366,7 @@ pub struct FuncDeclPtr(pub Arc<Mutex<Option<FuncDecl>>>);
 impl std::fmt::Display for FuncDeclPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -8451,7 +8451,7 @@ impl File {
     /// (Use FileEnd for the end of the entire file. It is always valid.)
     pub fn end(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         {
-        let mut n = Arc::new(Mutex::new(Some((*self.decls.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)));;
+        let mut n = Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.decls.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32)));;
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
             return { let __recv = { let __seq = { let __seq_holder = self.decls.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result };;
         }
@@ -8488,7 +8488,7 @@ pub struct FilePtr(pub Arc<Mutex<Option<File>>>);
 impl std::fmt::Display for FilePtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
     }
 }
 
@@ -8564,12 +8564,12 @@ pub fn is_directive(c: Arc<Mutex<Option<String>>>) -> bool {
 /// NewIdent creates a new [Ident] without position.
 /// Useful for ASTs generated by code other than the Go parser.
 pub fn new_ident(name: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Ident>>> {
-    Arc::new(Mutex::new(Some(Ident { name_pos: Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i32))))))), name: name.clone(), obj: Default::default(), ..Default::default() })))
+    Arc::new(Mutex::new(Some(Ident { name_pos: Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i32))))))), name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), obj: Default::default(), ..Default::default() })))
 }
 
 /// Unparen returns the expression with any enclosing parentheses removed.
 pub fn unparen(mut e: Arc<Mutex<Option<Box<dyn Expr + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn Expr + Send + Sync>>>> {
-    let mut e: Arc<Mutex<Option<Box<dyn Expr + Send + Sync>>>> = e.clone();
+    let mut e: Arc<Mutex<Option<Box<dyn Expr + Send + Sync>>>> = Arc::new(Mutex::new(e.lock().unwrap().as_ref().map(|__v| Expr::__go_clone_box_expr(__v.as_ref()))));
     loop {
         let (mut paren, mut ok) = ({
         let val = e.clone();

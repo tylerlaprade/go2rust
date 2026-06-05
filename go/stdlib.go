@@ -152,6 +152,7 @@ func init() {
 		"os.Create":                transpileOsCreate,
 		"os.Remove":                transpileOsRemove,
 		"reflect.TypeOf":           transpileReflectTypeOf,
+		"reflect.ValueOf":          transpileReflectValueOf,
 		"sync/atomic.AddInt64":     transpileAtomicAddInt64,
 		"sync/atomic.LoadInt64":    transpileAtomicLoadInt64,
 		"sync/atomic.LoadUint32":   transpileAtomicLoadUint32,
@@ -2015,6 +2016,64 @@ func transpileReflectTypeOf(out *strings.Builder, call *ast.CallExpr) {
 	st := typeInfo.GetStructType(call.Args[0])
 	NeedReflect()
 	WriteWrapperPrefix(out)
+	writeGoReflectTypeLiteral(out, typ, st)
+	WriteWrapperSuffix(out)
+}
+
+func transpileReflectValueOf(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) != 1 {
+		out.WriteString("/* ERROR: reflect.ValueOf requires one value */ unimplemented!()")
+		return
+	}
+
+	valueType, st, ok := reflectValueOfStructPointerType(call.Args[0])
+	if !ok {
+		out.WriteString("unimplemented!(\"reflect.ValueOf requires statically known pointer-to-struct type\")")
+		return
+	}
+
+	NeedReflect()
+	out.WriteString("{ let __reflect_target = ")
+	if !writeReflectValueTargetHandle(out, call.Args[0]) {
+		out.WriteString("unimplemented!(\"reflect.ValueOf requires pointer-compatible struct value\")")
+	}
+	out.WriteString("; ")
+	WriteWrapperPrefix(out)
+	writeGoReflectValueLiteral(out, valueType, st, "__reflect_target")
+	WriteWrapperSuffix(out)
+	out.WriteString(" }")
+}
+
+func reflectValueOfStructPointerType(arg ast.Expr) (types.Type, *types.Struct, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, nil, false
+	}
+	typ := typeInfo.GetType(arg)
+	if typ == nil {
+		return nil, nil, false
+	}
+	ptr, ok := types.Unalias(typ).Underlying().(*types.Pointer)
+	if !ok {
+		return nil, nil, false
+	}
+	valueType := types.Unalias(ptr.Elem())
+	st, ok := valueType.Underlying().(*types.Struct)
+	if !ok {
+		return nil, nil, false
+	}
+	return valueType, st, true
+}
+
+func writeReflectValueTargetHandle(out *strings.Builder, arg ast.Expr) bool {
+	if writeAlreadyWrappedCallArgument(out, arg) {
+		return true
+	}
+	TranspileExpression(out, arg)
+	return true
+}
+
+func writeGoReflectTypeLiteral(out *strings.Builder, typ types.Type, st *types.Struct) {
 	out.WriteString("GoReflectType { name: ")
 	writeReflectString(out, reflectTypeName(typ))
 	out.WriteString(", fields: ")
@@ -2039,6 +2098,93 @@ func transpileReflectTypeOf(out *strings.Builder, call *ast.CallExpr) {
 	out.WriteString("]")
 	WriteWrapperSuffix(out)
 	out.WriteString(" }")
+}
+
+func writeGoReflectValueLiteral(out *strings.Builder, typ types.Type, st *types.Struct, targetName string) {
+	out.WriteString("GoReflectValue { typ: ")
+	WriteWrapperPrefix(out)
+	writeGoReflectTypeLiteral(out, typ, st)
+	WriteWrapperSuffix(out)
+	out.WriteString(", fields: ")
+	WriteWrapperPrefix(out)
+	out.WriteString("vec![")
+	if st != nil {
+		for i := 0; i < st.NumFields(); i++ {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			writeGoReflectFieldValueLiteral(out, st.Field(i), targetName)
+		}
+	}
+	out.WriteString("]")
+	WriteWrapperSuffix(out)
+	out.WriteString(", bool_getter: ")
+	WriteWrappedNone(out)
+	out.WriteString(", bool_setter: ")
+	WriteWrappedNone(out)
+	out.WriteString(" }")
+}
+
+func writeGoReflectFieldValueLiteral(out *strings.Builder, field *types.Var, targetName string) {
+	fieldType := types.Unalias(field.Type())
+	fieldStruct, _ := fieldType.Underlying().(*types.Struct)
+	out.WriteString("GoReflectValue { typ: ")
+	WriteWrapperPrefix(out)
+	writeGoReflectTypeLiteral(out, fieldType, fieldStruct)
+	WriteWrapperSuffix(out)
+	out.WriteString(", fields: ")
+	WriteWrapperPrefix(out)
+	out.WriteString("vec![]")
+	WriteWrapperSuffix(out)
+	out.WriteString(", bool_getter: ")
+	if reflectFieldIsBool(field) {
+		writeGoReflectBoolGetter(out, targetName, ToSnakeCase(field.Name()))
+	} else {
+		WriteWrappedNone(out)
+	}
+	out.WriteString(", bool_setter: ")
+	if reflectFieldIsBool(field) && field.Exported() {
+		writeGoReflectBoolSetter(out, targetName, ToSnakeCase(field.Name()))
+	} else {
+		WriteWrappedNone(out)
+	}
+	out.WriteString(" }")
+}
+
+func reflectFieldIsBool(field *types.Var) bool {
+	basic, ok := types.Unalias(field.Type()).Underlying().(*types.Basic)
+	return ok && basic.Kind() == types.Bool
+}
+
+func writeGoReflectBoolGetter(out *strings.Builder, targetName string, rustField string) {
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __field_target = ")
+	out.WriteString(targetName)
+	out.WriteString(".clone(); Box::new(move || -> bool { let __target_guard = __field_target")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __target_value = __target_guard.as_ref().expect(\"reflect.Value.Bool requires a struct value\"); let __field_value = { let __field_guard = __target_value.")
+	out.WriteString(rustField)
+	WriteBorrowMethod(out, false)
+	out.WriteString("; (*__field_guard.as_ref().unwrap()).clone() }; __field_value }) as GoReflectBoolGetter }")
+	WriteWrapperSuffix(out)
+}
+
+func writeGoReflectBoolSetter(out *strings.Builder, targetName string, rustField string) {
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __field_target = ")
+	out.WriteString(targetName)
+	out.WriteString(".clone(); Box::new(move |__value: ")
+	out.WriteString(GetOuterWrapperType())
+	out.WriteString("<")
+	out.WriteString(GetInnerWrapperType())
+	out.WriteString("<Option<bool>>>| { let __new_value = (*__value")
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone(); let mut __target_guard = __field_target")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; let __target_value = __target_guard.as_mut().expect(\"reflect.Value.SetBool requires a settable struct value\"); *__target_value.")
+	out.WriteString(rustField)
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(__new_value); }) as GoReflectBoolSetter }")
 	WriteWrapperSuffix(out)
 }
 

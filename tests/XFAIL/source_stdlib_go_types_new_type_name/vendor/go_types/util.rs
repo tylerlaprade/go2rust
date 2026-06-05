@@ -127,7 +127,7 @@ impl AnonymousStruct2 {
 
 impl Default for AnonymousStruct2 {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(String::new()))), kind: Arc::new(Mutex::new(Some(BasicKind(Arc::new(Mutex::new(Some(0))))))), val: Arc::new(Mutex::new(None)) }
+        Self { name: Arc::new(Mutex::new(Some(String::new()))), kind: Arc::new(Mutex::new(Some(crate::basic::BasicKind(Arc::new(Mutex::new(Some(0))))))), val: Arc::new(Mutex::new(None)) }
     }
 }
 
@@ -162,7 +162,7 @@ impl AnonymousStruct3 {
 
 impl Default for AnonymousStruct3 {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(String::new()))), nargs: Arc::new(Mutex::new(Some(0))), variadic: Arc::new(Mutex::new(Some(false))), kind: Arc::new(Mutex::new(Some(exprKind(Arc::new(Mutex::new(Some(0))))))) }
+        Self { name: Arc::new(Mutex::new(Some(String::new()))), nargs: Arc::new(Mutex::new(Some(0))), variadic: Arc::new(Mutex::new(Some(false))), kind: Arc::new(Mutex::new(Some(crate::expr::exprKind(Arc::new(Mutex::new(Some(0))))))) }
     }
 }
 
@@ -195,24 +195,24 @@ pub fn cmp_pos(p: Arc<Mutex<Option<go_token::position::Pos>>>, q: Arc<Mutex<Opti
 
 /// hasDots reports whether the last argument in the call is followed by ...
 pub fn has_dots(call: Arc<Mutex<Option<go_ast::r#mod::CallExpr>>>) -> bool {
-    (*(*call.lock().unwrap().as_ref().unwrap()).ellipsis.lock().unwrap().as_ref().unwrap()).is_valid()
+    go_token::position::Pos::is_valid(&(*(*call.lock().unwrap().as_ref().unwrap()).ellipsis.lock().unwrap().as_ref().unwrap()))
 }
 
 /// dddErrPos returns the positioner for reporting an invalid ... use in a call.
 pub fn ddd_err_pos(call: Arc<Mutex<Option<go_ast::r#mod::CallExpr>>>) -> Arc<Mutex<Option<Box<dyn positioner + Send + Sync>>>> {
-    Arc::new(Mutex::new(Some(Box::new(atPos(Arc::new(Mutex::new(Some({ let __named_value_holder = (*call.lock().unwrap().as_ref().unwrap()).ellipsis.clone(); let __named_value_guard = __named_value_holder.lock().unwrap(); let __cloned = (*__named_value_guard.as_ref().unwrap()).clone(); drop(__named_value_guard); __cloned }))))) as Box<dyn positioner + Send + Sync>)))
+    Arc::new(Mutex::new(Some(Box::new(crate::errors::atPos(Arc::new(Mutex::new(Some({ let __named_value_holder = (*call.lock().unwrap().as_ref().unwrap()).ellipsis.clone(); let __named_value_guard = __named_value_holder.lock().unwrap(); let __cloned = (*__named_value_guard.as_ref().unwrap()).clone(); drop(__named_value_guard); __cloned }))))) as Box<dyn positioner + Send + Sync>)))
 }
 
 /// isdddArray reports whether atyp is of the form [...]E.
 pub fn isddd_array(atyp: Arc<Mutex<Option<go_ast::r#mod::ArrayType>>>) -> bool {
-    if (*(*atyp.lock().unwrap().as_ref().unwrap()).len.lock().unwrap()).is_some() {
+    if { let __iface_handle = { let __field = (*atyp.lock().unwrap().as_ref().unwrap()).len.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
         {
         let (mut ddd, _) = ({
         let val = (*atyp.lock().unwrap().as_ref().unwrap()).len.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = <dyn go_ast::r#mod::Expr + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<go_ast::r#mod::Ellipsis>() {
-            (Arc::new(Mutex::new(Some(typed_val.clone()))), true)
+            if let Some(typed_val) = <dyn go_ast::r#mod::Expr + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<go_ast::r#mod::EllipsisPtr>() {
+                (typed_val.0.clone(), true)
             } else {
                 (Arc::new(Mutex::new(None::<go_ast::r#mod::Ellipsis>)), false)
             }
@@ -220,7 +220,7 @@ pub fn isddd_array(atyp: Arc<Mutex<Option<go_ast::r#mod::ArrayType>>>) -> bool {
             (Arc::new(Mutex::new(None::<go_ast::r#mod::Ellipsis>)), false)
         }
     });;
-        if (*ddd.lock().unwrap()).is_some() && (*(*ddd.lock().unwrap().as_ref().unwrap()).elt.lock().unwrap()).is_none() {
+        if (*ddd.lock().unwrap()).is_some() && { let __iface_handle = { let __field = (*ddd.lock().unwrap().as_ref().unwrap()).elt.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
             return true;;
         }
     }

@@ -1,0 +1,8 @@
+[package]
+name = "reflect_valueof_struct_bool_fields"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "reflect_valueof_struct_bool_fields"
+path = "main.rs"

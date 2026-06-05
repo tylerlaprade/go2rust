@@ -88,13 +88,13 @@ pub trait Type: std::fmt::Display + Any {
 
 impl Clone for Box<dyn Type + Send + Sync> {
     fn clone(&self) -> Self {
-        self.__go_clone_box_type_()
+        Type::__go_clone_box_type_(self.as_ref())
     }
 }
 
 impl GoValueClone for Box<dyn Type + Send + Sync> {
     fn go_value_clone(&self) -> Self {
-        self.__go_clone_box_type_()
+        Type::__go_clone_box_type_(self.as_ref())
     }
 }
 

@@ -171,14 +171,14 @@ impl TypeParamList {
     }
 
     /// At returns the i'th type parameter in the list.
-    pub fn at(&self, i: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<TypeParam>>> {
+    pub fn at(&self, i: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<crate::typeparam::TypeParam>>> {
         { let __seq = { let __seq_holder = self.tparams.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }
     }
 
     /// list is for internal use where we expect a []*TypeParam.
     /// TODO(rfindley): list should probably be eliminated: we can pass around a
     /// TypeParamList instead.
-    pub fn list(&self) -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<TypeParam>>>>>>> {
+    pub fn list(&self) -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<crate::typeparam::TypeParam>>>>>>> {
         if false {
         return Arc::new(Mutex::new(None));
     }

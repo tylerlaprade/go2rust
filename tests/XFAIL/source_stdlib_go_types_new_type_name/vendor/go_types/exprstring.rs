@@ -89,7 +89,7 @@ pub fn expr_string(x: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync
 /// Shortened representations are suitable for user interfaces but may not
 /// necessarily follow Go syntax.
 pub fn write_expr(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut x: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>) {
-    let mut x: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> = x.clone();
+    let mut x: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> = Arc::new(Mutex::new(x.lock().unwrap().as_ref().map(|__v| go_ast::r#mod::Expr::__go_clone_box_expr(__v.as_ref()))));
         // The AST preserves source-level parentheses so there is
         // no need to introduce them here to correct for different
         // operator precedences. (This assumes that the AST was
@@ -98,86 +98,84 @@ pub fn write_expr(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut x: Arc<Mutex<Option
     let _ts_subject = x.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
-    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.__go_as_any());
-    if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::Ident>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::Ident>()).unwrap().clone())));
-        drop(_ts_guard);
+    let _ts_owned = _ts_guard.as_ref().cloned();
+    drop(_ts_guard);
+    let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {
+        let __any = __v.__go_as_any();
+        if let Some(__boxed) = __any.downcast_ref::<Box<dyn go_ast::r#mod::Expr + Send + Sync>>() {
+            __boxed.__go_as_any()
+        } else {
+            __any
+        }
+    });
+    if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IdentPtr>()).is_some() {
+        let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IdentPtr>()).unwrap().0.clone();
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string({ let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }); __result };;
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::Ellipsis>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::Ellipsis>()).unwrap().clone())));
-        drop(_ts_guard);
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::EllipsisPtr>()).is_some() {
+        let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::EllipsisPtr>()).unwrap().0.clone();
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("...".to_string()); __result };;
-        if (*(*x.lock().unwrap().as_ref().unwrap()).elt.lock().unwrap()).is_some() {
+        if { let __iface_handle = { let __field = (*x.lock().unwrap().as_ref().unwrap()).elt.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
         write_expr(buf.clone(), (*x.lock().unwrap().as_ref().unwrap()).elt.clone());
     };
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::BasicLit>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::BasicLit>()).unwrap().clone())));
-        drop(_ts_guard);
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::BasicLitPtr>()).is_some() {
+        let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::BasicLitPtr>()).unwrap().0.clone();
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string({ let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).value.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }); __result };;
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::FuncLit>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::FuncLit>()).unwrap().clone())));
-        drop(_ts_guard);
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::FuncLitPtr>()).is_some() {
+        let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::FuncLitPtr>()).unwrap().0.clone();
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte(('(' as i32) as u8); __result };;
         write_expr(buf.clone(), Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::FuncTypePtr((*x.lock().unwrap().as_ref().unwrap()).r#type.clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))));;
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(" literal)".to_string()); __result };;
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::CompositeLit>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::CompositeLit>()).unwrap().clone())));
-        drop(_ts_guard);
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::CompositeLitPtr>()).is_some() {
+        let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::CompositeLitPtr>()).unwrap().0.clone();
         write_expr(buf.clone(), (*x.lock().unwrap().as_ref().unwrap()).r#type.clone());;
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte(('{' as i32) as u8); __result };;
-        if { let __tmp_x = ((*(*x.lock().unwrap().as_ref().unwrap()).elts.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
+        if { let __tmp_x = (({ let __len_target = { let __field = (*x.lock().unwrap().as_ref().unwrap()).elts.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("\u{2026}".to_string()); __result };
     };
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte(('}' as i32) as u8); __result };;
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ParenExpr>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ParenExpr>()).unwrap().clone())));
-        drop(_ts_guard);
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ParenExprPtr>()).is_some() {
+        let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ParenExprPtr>()).unwrap().0.clone();
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte(('(' as i32) as u8); __result };;
         write_expr(buf.clone(), (*x.lock().unwrap().as_ref().unwrap()).x.clone());;
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte((')' as i32) as u8); __result };;
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::SelectorExpr>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::SelectorExpr>()).unwrap().clone())));
-        drop(_ts_guard);
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::SelectorExprPtr>()).is_some() {
+        let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::SelectorExprPtr>()).unwrap().0.clone();
         write_expr(buf.clone(), (*x.lock().unwrap().as_ref().unwrap()).x.clone());;
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte(('.' as i32) as u8); __result };;
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string({ let __selector_holder = (*(*x.lock().unwrap().as_ref().unwrap()).sel.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }); __result };;
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IndexExpr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IndexListExpr>()).is_some() {
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IndexExprPtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IndexListExprPtr>()).is_some() {
         let x = x.clone();
-        drop(_ts_guard);
-        let mut ix = unpack_indexed_expr(Arc::new(Mutex::new(Some(Box::new((*x.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn go_ast::r#mod::Node + Send + Sync>))));;
+        let mut ix = unpack_indexed_expr(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn go_ast::r#mod::Node + Send + Sync>))));;
         write_expr(buf.clone(), (*ix.lock().unwrap().as_ref().unwrap()).x.clone());;
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte(('[' as i32) as u8); __result };;
         write_expr_list(buf.clone(), { let __field = (*ix.lock().unwrap().as_ref().unwrap()).indices.clone(); __field });;
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte((']' as i32) as u8); __result };;
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::SliceExpr>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::SliceExpr>()).unwrap().clone())));
-        drop(_ts_guard);
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::SliceExprPtr>()).is_some() {
+        let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::SliceExprPtr>()).unwrap().0.clone();
         write_expr(buf.clone(), (*x.lock().unwrap().as_ref().unwrap()).x.clone());;
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte(('[' as i32) as u8); __result };;
-        if (*(*x.lock().unwrap().as_ref().unwrap()).low.lock().unwrap()).is_some() {
+        if { let __iface_handle = { let __field = (*x.lock().unwrap().as_ref().unwrap()).low.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
         write_expr(buf.clone(), (*x.lock().unwrap().as_ref().unwrap()).low.clone());
     };
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte((':' as i32) as u8); __result };;
-        if (*(*x.lock().unwrap().as_ref().unwrap()).high.lock().unwrap()).is_some() {
+        if { let __iface_handle = { let __field = (*x.lock().unwrap().as_ref().unwrap()).high.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
         write_expr(buf.clone(), (*x.lock().unwrap().as_ref().unwrap()).high.clone());
     };
         if (*{ let __field = (*x.lock().unwrap().as_ref().unwrap()).slice3.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte((':' as i32) as u8); __result };
-        if (*(*x.lock().unwrap().as_ref().unwrap()).max.lock().unwrap()).is_some() {
+        if { let __iface_handle = { let __field = (*x.lock().unwrap().as_ref().unwrap()).max.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
         write_expr(buf.clone(), (*x.lock().unwrap().as_ref().unwrap()).max.clone());
     }
     };
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte((']' as i32) as u8); __result };;
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::TypeAssertExpr>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::TypeAssertExpr>()).unwrap().clone())));
-        drop(_ts_guard);
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::TypeAssertExprPtr>()).is_some() {
+        let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::TypeAssertExprPtr>()).unwrap().0.clone();
         write_expr(buf.clone(), (*x.lock().unwrap().as_ref().unwrap()).x.clone());;
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(".(".to_string()); __result };;
         write_expr(buf.clone(), (*x.lock().unwrap().as_ref().unwrap()).r#type.clone());;
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte((')' as i32) as u8); __result };;
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::CallExpr>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::CallExpr>()).unwrap().clone())));
-        drop(_ts_guard);
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::CallExprPtr>()).is_some() {
+        let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::CallExprPtr>()).unwrap().0.clone();
         write_expr(buf.clone(), (*x.lock().unwrap().as_ref().unwrap()).fun.clone());;
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte(('(' as i32) as u8); __result };;
         write_expr_list(buf.clone(), { let __field = (*x.lock().unwrap().as_ref().unwrap()).args.clone(); __field });;
@@ -185,60 +183,51 @@ pub fn write_expr(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut x: Arc<Mutex<Option
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("...".to_string()); __result };
     };
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte((')' as i32) as u8); __result };;
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::StarExpr>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::StarExpr>()).unwrap().clone())));
-        drop(_ts_guard);
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::StarExprPtr>()).is_some() {
+        let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::StarExprPtr>()).unwrap().0.clone();
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte(('*' as i32) as u8); __result };;
         write_expr(buf.clone(), (*x.lock().unwrap().as_ref().unwrap()).x.clone());;
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::UnaryExpr>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::UnaryExpr>()).unwrap().clone())));
-        drop(_ts_guard);
-        { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string((*(*x.lock().unwrap().as_ref().unwrap()).op.lock().unwrap().as_ref().unwrap()).string()); __result };;
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::UnaryExprPtr>()).is_some() {
+        let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::UnaryExprPtr>()).unwrap().0.clone();
+        { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(go_token::r#mod::Token::string(&(*(*x.lock().unwrap().as_ref().unwrap()).op.lock().unwrap().as_ref().unwrap()))); __result };;
         write_expr(buf.clone(), (*x.lock().unwrap().as_ref().unwrap()).x.clone());;
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::BinaryExpr>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::BinaryExpr>()).unwrap().clone())));
-        drop(_ts_guard);
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::BinaryExprPtr>()).is_some() {
+        let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::BinaryExprPtr>()).unwrap().0.clone();
         write_expr(buf.clone(), (*x.lock().unwrap().as_ref().unwrap()).x.clone());;
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte((' ' as i32) as u8); __result };;
-        { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string((*(*x.lock().unwrap().as_ref().unwrap()).op.lock().unwrap().as_ref().unwrap()).string()); __result };;
+        { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(go_token::r#mod::Token::string(&(*(*x.lock().unwrap().as_ref().unwrap()).op.lock().unwrap().as_ref().unwrap()))); __result };;
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte((' ' as i32) as u8); __result };;
         write_expr(buf.clone(), (*x.lock().unwrap().as_ref().unwrap()).y.clone());;
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ArrayType>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ArrayType>()).unwrap().clone())));
-        drop(_ts_guard);
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ArrayTypePtr>()).is_some() {
+        let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ArrayTypePtr>()).unwrap().0.clone();
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte(('[' as i32) as u8); __result };;
-        if (*(*x.lock().unwrap().as_ref().unwrap()).len.lock().unwrap()).is_some() {
+        if { let __iface_handle = { let __field = (*x.lock().unwrap().as_ref().unwrap()).len.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
         write_expr(buf.clone(), (*x.lock().unwrap().as_ref().unwrap()).len.clone());
     };
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte((']' as i32) as u8); __result };;
         write_expr(buf.clone(), (*x.lock().unwrap().as_ref().unwrap()).elt.clone());;
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::StructType>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::StructType>()).unwrap().clone())));
-        drop(_ts_guard);
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::StructTypePtr>()).is_some() {
+        let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::StructTypePtr>()).unwrap().0.clone();
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("struct{".to_string()); __result };;
         write_field_list(buf.clone(), { let __field = (*(*x.lock().unwrap().as_ref().unwrap()).fields.lock().unwrap().as_ref().unwrap()).list.clone(); __field }, Arc::new(Mutex::new(Some("; ".to_string()))), Arc::new(Mutex::new(Some(false))));;
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte(('}' as i32) as u8); __result };;
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::FuncType>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::FuncType>()).unwrap().clone())));
-        drop(_ts_guard);
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::FuncTypePtr>()).is_some() {
+        let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::FuncTypePtr>()).unwrap().0.clone();
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("func".to_string()); __result };;
         write_sig_expr(buf.clone(), x.clone());;
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::InterfaceType>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::InterfaceType>()).unwrap().clone())));
-        drop(_ts_guard);
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::InterfaceTypePtr>()).is_some() {
+        let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::InterfaceTypePtr>()).unwrap().0.clone();
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("interface{".to_string()); __result };;
         write_field_list(buf.clone(), { let __field = (*(*x.lock().unwrap().as_ref().unwrap()).methods.lock().unwrap().as_ref().unwrap()).list.clone(); __field }, Arc::new(Mutex::new(Some("; ".to_string()))), Arc::new(Mutex::new(Some(true))));;
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte(('}' as i32) as u8); __result };;
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::MapType>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::MapType>()).unwrap().clone())));
-        drop(_ts_guard);
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::MapTypePtr>()).is_some() {
+        let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::MapTypePtr>()).unwrap().0.clone();
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("map[".to_string()); __result };;
         write_expr(buf.clone(), (*x.lock().unwrap().as_ref().unwrap()).key.clone());;
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte((']' as i32) as u8); __result };;
         write_expr(buf.clone(), (*x.lock().unwrap().as_ref().unwrap()).value.clone());;
-    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ChanType>()).is_some() {
-        let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ChanType>()).unwrap().clone())));
-        drop(_ts_guard);
+    } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ChanTypePtr>()).is_some() {
+        let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ChanTypePtr>()).unwrap().0.clone();
         let mut s: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));;
         { let _switch_val = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).dir.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (go_ast::r#mod::ChanDir(Arc::new(Mutex::new(Some(go_ast::S_E_N_D as i32))))) {
@@ -253,7 +242,6 @@ pub fn write_expr(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut x: Arc<Mutex<Option
         write_expr(buf.clone(), (*x.lock().unwrap().as_ref().unwrap()).value.clone());;
     } else {
         let x = x.clone();
-        drop(_ts_guard);
         { let __s = format!("(ast: {})", __go_type_name(x.lock().unwrap().as_ref().unwrap())); let __n = __s.len() as i32; (*buf.lock().unwrap().as_ref().unwrap()).__go_write_bytes(__s.as_bytes()); (__n, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))) };;
     }
     }
@@ -273,7 +261,7 @@ pub fn write_sig_expr(buf: Arc<Mutex<Option<bytes_Buffer>>>, sig: Arc<Mutex<Opti
 
         // no result
     { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte((' ' as i32) as u8); __result };
-    if { let __tmp_x = n; let __tmp_y = 1; __tmp_x == __tmp_y } && { let __tmp_x = ((*(*{ let __seq = { let __seq_holder = (*res.lock().unwrap().as_ref().unwrap()).list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap().as_ref().unwrap()).names.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
+    if { let __tmp_x = n; let __tmp_y = 1; __tmp_x == __tmp_y } && { let __tmp_x = (({ let __len_target = { let __field = (*{ let __seq = { let __seq_holder = (*res.lock().unwrap().as_ref().unwrap()).list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap().as_ref().unwrap()).names.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
                 // single unnamed result
         write_expr(buf.clone(), (*{ let __seq = { let __seq_holder = (*res.lock().unwrap().as_ref().unwrap()).list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap().as_ref().unwrap()).r#type.clone());
         return;
@@ -299,8 +287,8 @@ pub fn write_field_list(buf: Arc<Mutex<Option<bytes_Buffer>>>, list: Arc<Mutex<O
         let val = (*f.lock().unwrap().as_ref().unwrap()).r#type.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = <dyn go_ast::r#mod::Expr + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<go_ast::r#mod::FuncType>() {
-            (Arc::new(Mutex::new(Some(typed_val.clone()))), true)
+            if let Some(typed_val) = <dyn go_ast::r#mod::Expr + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<go_ast::r#mod::FuncTypePtr>() {
+                (typed_val.0.clone(), true)
             } else {
                 (Arc::new(Mutex::new(None::<go_ast::r#mod::FuncType>)), false)
             }
@@ -314,7 +302,7 @@ pub fn write_field_list(buf: Arc<Mutex<Option<bytes_Buffer>>>, list: Arc<Mutex<O
         }
     }
                 // named fields are separated with a blank from the field type
-        if { let __tmp_x = ((*(*f.lock().unwrap().as_ref().unwrap()).names.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
+        if { let __tmp_x = (({ let __len_target = { let __field = (*f.lock().unwrap().as_ref().unwrap()).names.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte((' ' as i32) as u8); __result };
     }
         write_expr(buf.clone(), (*f.lock().unwrap().as_ref().unwrap()).r#type.clone());
