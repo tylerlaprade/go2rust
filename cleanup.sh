@@ -528,6 +528,7 @@ cleanup_temp_root() {
         -name 'go2rust-bats-shards.*' -o \
         -name 'go2rust-cargo-home' -o \
         -name 'go2rust-cargo-home.*' -o \
+        -name 'go2rust-cargo-source-*' -o \
         -name 'go2rust-cargo-target.*' -o \
         -name 'go2rust-cargo-current' -o \
         -name 'go2rust-shared-cargo-target' -o \

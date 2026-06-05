@@ -381,6 +381,7 @@ func TestCleanupScriptRemovesKnownGo2RustArtifacts(t *testing.T) {
 		`go2rust-bats-shards.*`,
 		`go2rust-cargo-home`,
 		`go2rust-cargo-home.*`,
+		`go2rust-cargo-source-*`,
 		`go2rust-cargo-target.*`,
 		`go2rust-self-cargo-home`,
 		`go2rust-self-cargo-home.*`,
