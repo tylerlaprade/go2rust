@@ -205,7 +205,10 @@ in the first place.
   non-source-mapped callers still hit the bridge.
 - Fixture: `tests/stdlib_interface_ident_argument/` now source-maps
   `go/types`, `go/token`, and `sync/atomic`, and verifies `types.NewTuple`
-  with `*types.Tuple` passed through the source-mapped `types.Type` interface.
+  with `*types.Tuple` passed through the source-mapped `types.Type` interface;
+  `tests/stdlib_interface_call_argument/` now source-maps the same packages and
+  verifies source-transpiled `types.NewTuple` passed directly to both function
+  and method parameters typed as `types.Type`.
 - Removal trigger: transpiler can lower `go/types.Tuple` from source for all
   callers still routed through the bridge.
 - Added: 2026-06-03
@@ -241,6 +244,8 @@ in the first place.
 - Fixture: `tests/stdlib_interface_ident_argument/` source-maps `go/types` and
   verifies source-transpiled `NewTuple` with `*Tuple` passed through
   `types.Type`;
+  `tests/stdlib_interface_call_argument/` source-maps `go/types` and verifies
+  source-transpiled `NewTuple` at function and method call argument sites;
   `tests/stdlib_interface_map_value_assignment/` source-maps `go/types` and
   verifies source-transpiled `NewTypeName`/`NewTypeParam` with `TypeParam`
   stored through `types.Type` map values;
