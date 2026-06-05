@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
 )
@@ -403,6 +404,9 @@ func TestCleanupScriptRemovesKnownGo2RustArtifacts(t *testing.T) {
 		`if [ "$age_minutes" -gt 0 ]; then`,
 		`age_args=(-mmin +"$age_minutes")`,
 		`"$repo_root/go2rust" "$repo_root/transpiler" "$repo_root/test" "$repo_root/go/go" "$repo_root/target"`,
+		`cleanup_ignored_test_locks()`,
+		`find "$tests_root" -type f -name Cargo.lock -print`,
+		`git -C "$repo_root" check-ignore -q -- "$rel"`,
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("cleanup.sh should cover go2rust temp/build artifact %q", want)
@@ -518,11 +522,37 @@ func TestCleanupScriptDefaultsToPressureSummary(t *testing.T) {
 		`if [ "$invoked_without_args" = true ]; then`,
 		`pressure=true`,
 		`dry_run=true`,
-		`remove_repo_artifacts=false`,
 		`age_minutes=0`,
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("cleanup.sh should make no-arg runs diagnostic-only; missing %q", want)
+		}
+	}
+}
+
+func TestCleanupScriptNoArgsPrintsDiagnosticReport(t *testing.T) {
+	cmd := exec.Command("../cleanup.sh")
+	cmd.Env = []string{"GO2RUST_CLEANUP_TOP_TEMP_COUNT=0"}
+	for _, entry := range os.Environ() {
+		if strings.HasPrefix(entry, "TMPDIR=") || strings.HasPrefix(entry, "GO2RUST_CLEANUP_TOP_TEMP_COUNT=") {
+			continue
+		}
+		cmd.Env = append(cmd.Env, entry)
+	}
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("cleanup.sh failed: %v\n%s", err, output)
+	}
+	report := string(output)
+	for _, want := range []string{
+		"Cleanup script:",
+		"Filesystem:",
+		"Memory:",
+		"Cleanup candidates:",
+		"Total reclaimable:",
+	} {
+		if !strings.Contains(report, want) {
+			t.Fatalf("cleanup.sh no-arg report should contain %q; got:\n%s", want, report)
 		}
 	}
 }
@@ -540,6 +570,7 @@ func TestCleanupPressureReportShowsProcessAndDiskPressure(t *testing.T) {
 		`print_pressure_report()`,
 		`print_disk_hotspots()`,
 		`print_top_temp_paths()`,
+		`process_listing_error_suffix()`,
 		`echo "Cleanup script: $repo_root/cleanup.sh"`,
 		`echo "Filesystem:"`,
 		`echo "Memory:"`,

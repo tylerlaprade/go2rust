@@ -134,7 +134,6 @@ if [ "$invoked_without_args" = true ]; then
 	dry_run=true
 	show_sizes=true
 	show_active=true
-	remove_repo_artifacts=false
 	age_minutes=0
 fi
 
@@ -218,6 +217,18 @@ process_snapshot_by_memory() {
     process_snapshot_from_aux || true
 }
 
+process_listing_error_suffix() {
+    local error
+    error=$(ps -axo pid,ppid,%cpu,%mem,rss,command -r 2>&1 >/dev/null || true)
+    if [ -z "$error" ]; then
+        error=$(ps auxww 2>&1 >/dev/null || true)
+    fi
+    error=$(printf '%s' "$error" | tr '\n' ' ' | sed 's/[[:space:]][[:space:]]*/ /g; s/^ //; s/ $//')
+    if [ -n "$error" ]; then
+        printf ' (ps: %s)' "$error"
+    fi
+}
+
 print_size_row() {
     local label="$1"
     local path="$2"
@@ -242,7 +253,7 @@ print_disk_hotspots() {
 }
 
 print_top_temp_paths() {
-    [ "$top_temp_count" -gt 0 ] || return
+    [ "$top_temp_count" -gt 0 ] || return 0
 
     echo
     echo "Largest temp paths:"
@@ -353,6 +364,11 @@ print_pressure_report() {
     local process_mem_snapshot
     process_mem_snapshot=$(process_snapshot_by_memory)
 
+    local process_error_suffix=""
+    if [ -z "$process_cpu_snapshot" ] || [ -z "$process_mem_snapshot" ]; then
+        process_error_suffix=$(process_listing_error_suffix)
+    fi
+
     echo
     echo "Process group summary:"
     if [ -n "$process_cpu_snapshot" ]; then
@@ -423,7 +439,7 @@ print_pressure_report() {
             }
         '
     else
-        echo "unavailable: process listing was denied or returned no data"
+        echo "unavailable: process listing was denied or returned no data$process_error_suffix"
     fi
 
     echo
@@ -431,7 +447,7 @@ print_pressure_report() {
     if [ -n "$process_cpu_snapshot" ]; then
         printf '%s\n' "$process_cpu_snapshot" | awk 'NR <= 15'
     else
-        echo "unavailable: process listing was denied or returned no data"
+        echo "unavailable: process listing was denied or returned no data$process_error_suffix"
     fi
 
     echo
@@ -439,7 +455,7 @@ print_pressure_report() {
     if [ -n "$process_mem_snapshot" ]; then
         printf '%s\n' "$process_mem_snapshot" | awk 'NR <= 15'
     else
-        echo "unavailable: process listing was denied or returned no data"
+        echo "unavailable: process listing was denied or returned no data$process_error_suffix"
     fi
 
     echo
@@ -452,7 +468,7 @@ print_pressure_report() {
         printf '%s\n' "$process_cpu_snapshot" | awk 'NR == 1'
         printf '%s\n' "$validation_processes"
     else
-        echo "none found, or process listing was denied"
+        echo "none found, or process listing was denied$process_error_suffix"
     fi
 
     print_disk_hotspots
@@ -567,22 +583,29 @@ cleanup_temp_root() {
     \) -print 2>/dev/null)
 }
 
-if [ "$remove_repo_artifacts" = true ]; then
-    for path in "$repo_root/go2rust" "$repo_root/transpiler" "$repo_root/test" "$repo_root/go/go" "$repo_root/target"; do
-        if [ -e "$path" ] && ! git -C "$repo_root" ls-files --error-unmatch "${path#$repo_root/}" >/dev/null 2>&1; then
+cleanup_ignored_test_locks() {
+    local tests_root="$repo_root/tests"
+    [ -d "$tests_root" ] || return 0
+
+    while IFS= read -r path; do
+        local rel="${path#$repo_root/}"
+        if git -C "$repo_root" ls-files --error-unmatch "$rel" >/dev/null 2>&1; then
+            continue
+        fi
+        if git -C "$repo_root" check-ignore -q -- "$rel"; then
             remove_path "$path"
         fi
-    done
-fi
+    done < <(find "$tests_root" -type f -name Cargo.lock -print 2>/dev/null)
+}
 
 tmp_roots=()
 add_tmp_root() {
     local root="$1"
-    [ -n "$root" ] || return
+    [ -n "$root" ] || return 0
     case "$root" in
         */) root="${root%/}" ;;
     esac
-    [ -n "$root" ] || return
+    [ -n "$root" ] || return 0
     tmp_roots+=("$root")
 }
 
@@ -593,6 +616,15 @@ add_tmp_root "/private/tmp"
 if [ "$pressure" = true ]; then
     print_pressure_report
     echo "Cleanup candidates:"
+fi
+
+if [ "$remove_repo_artifacts" = true ]; then
+    for path in "$repo_root/go2rust" "$repo_root/transpiler" "$repo_root/test" "$repo_root/go/go" "$repo_root/target"; do
+        if [ -e "$path" ] && ! git -C "$repo_root" ls-files --error-unmatch "${path#$repo_root/}" >/dev/null 2>&1; then
+            remove_path "$path"
+        fi
+    done
+    cleanup_ignored_test_locks
 fi
 
 seen_roots=""
