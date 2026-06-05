@@ -200,9 +200,14 @@ in the first place.
 
 - Location: `go/external_type_stubs.go:3452` (`writeTypesTupleStub`)
 - Go symbol: `go/types.Tuple`
-- Transpiler gap: vendored `go/types` source does not yet transpile cleanly, so callers that store a `*types.Tuple` through the `types.Type` interface still hit the bridge.
-- Fixture: `tests/stdlib_interface_ident_argument/main.go`.
-- Removal trigger: transpiler can lower `go/types.Tuple` from source and route `types.NewTuple` through that generated package.
+- Transpiler gap: the source-mapped `go/types.NewTuple` path now passes for a
+  `*types.Tuple` stored through the generated `types.Type` interface, but
+  non-source-mapped callers still hit the bridge.
+- Fixture: `tests/stdlib_interface_ident_argument/` now source-maps
+  `go/types`, `go/token`, and `sync/atomic`, and verifies `types.NewTuple`
+  with `*types.Tuple` passed through the source-mapped `types.Type` interface.
+- Removal trigger: transpiler can lower `go/types.Tuple` from source for all
+  callers still routed through the bridge.
 - Added: 2026-06-03
 
 ### types-type-name-param
@@ -230,10 +235,12 @@ in the first place.
 
 - Location: `go/external_type_stubs.go:7501` (`writeTypesNewTupleFunction`, `writeTypesNewTypeNameFunction`, `writeTypesNewTypeParamFunction`)
 - Go symbol: `go/types.NewTuple`, `go/types.NewTypeName`, and `go/types.NewTypeParam`
-- Transpiler gap: `NewTypeName` and `NewTypeParam` pass when `go/types` is
-  source-mapped; `NewTuple` and non-source-mapped constructor callers still
-  hit the bridge.
-- Fixture: `tests/stdlib_interface_ident_argument/main.go`;
+- Transpiler gap: `NewTuple`, `NewTypeName`, and `NewTypeParam` pass when
+  `go/types` is source-mapped; non-source-mapped constructor callers still hit
+  the bridge.
+- Fixture: `tests/stdlib_interface_ident_argument/` source-maps `go/types` and
+  verifies source-transpiled `NewTuple` with `*Tuple` passed through
+  `types.Type`;
   `tests/stdlib_interface_map_value_assignment/` source-maps `go/types` and
   verifies source-transpiled `NewTypeName`/`NewTypeParam` with `TypeParam`
   stored through `types.Type` map values;
