@@ -61,7 +61,11 @@ commit both together. The test will fail if you remove one without the other.
 "Infrastructure for transpile-instead". Fixtures opt-in via
 `.go2rust.toml` (`source_stdlib_packages = "..."`); the loader fetches
 the stdlib source and routes calls to the resulting `vendor/<crate>/`
-module instead of the bridge.
+module instead of the bridge. Exact paths stay exact; suffix `+deps`
+follows the loaded stdlib import graph recursively for fixtures that are
+trying to retire a package bridge rather than hand-curating its dependency
+list. The compiler-provided `unsafe` package is not a source crate; it stays
+on the existing intrinsic lowering path.
 
 `path/filepath` has gone all the way through this pipeline:
 `tests/source_stdlib_path_filepath_isabs/` transpiles it from source

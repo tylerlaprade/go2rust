@@ -12,7 +12,7 @@ import (
 
 var (
 	externalPackagesFlag    = flag.String("external-packages", "transpile", "How to handle external packages: transpile, ffi, or none")
-	sourceStdlibPackagesArg = flag.String("source-stdlib-packages", "", "Comma-separated stdlib import paths to transpile from source instead of using the bridge (e.g., 'path/filepath,go/token'). Also accepts 'all' or 'std' to opt in everything; suffix '/...' for a subtree. Same effect as setting GO2RUST_SOURCE_STDLIB_PACKAGES.")
+	sourceStdlibPackagesArg = flag.String("source-stdlib-packages", "", "Comma-separated stdlib import paths to transpile from source instead of using the bridge (e.g., 'path/filepath,go/token'). Also accepts 'all' or 'std' to opt in everything, suffix '/...' for a subtree, and suffix '+deps' to include stdlib imports recursively. Same effect as setting GO2RUST_SOURCE_STDLIB_PACKAGES.")
 	rawFlag                 = flag.String("raw", "", "Transpile a raw Go source string and write Rust to stdout. Use '-' to read source from stdin. Skips disk I/O and dependency resolution; intended for single-file snippets.")
 	helpFlag                = flag.Bool("help", false, "Show help message")
 )
@@ -116,8 +116,9 @@ func showHelp() {
 	fmt.Printf("                                    stub      - Generate stub implementations for manual completion\n")
 	fmt.Printf("                                    none      - Error on external imports\n")
 	fmt.Printf("  --source-stdlib-packages <list> Comma-separated stdlib import paths to transpile from source\n")
-	fmt.Printf("                                  instead of using the bridge. Supports 'all', 'std', and\n")
-	fmt.Printf("                                  '<prefix>/...' subtree patterns. Mirrors the\n")
+	fmt.Printf("                                  instead of using the bridge. Supports 'all', 'std',\n")
+	fmt.Printf("                                  '<prefix>/...' subtrees, and '+deps' import-graph closure.\n")
+	fmt.Printf("                                  Mirrors the\n")
 	fmt.Printf("                                  GO2RUST_SOURCE_STDLIB_PACKAGES env var.\n")
 	fmt.Printf("  --raw <source>                  Transpile a raw Go source string and write Rust to stdout.\n")
 	fmt.Printf("                                  Use '-' to read source from stdin. Skips disk I/O and\n")

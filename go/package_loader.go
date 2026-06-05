@@ -20,6 +20,8 @@ type PackageLoader struct {
 	mainPkg                     *packages.Package
 	allPackages                 map[string]*packages.Package // import path -> package
 	packageMapping              map[string]string            // Go import -> Rust crate name
+	sourceStdlibPackages        map[string]bool              // stdlib packages selected for source transpilation
+	sourceStdlibDepsExpanded    map[string]bool              // selected stdlib packages whose imports were traversed as source deps
 	packageTypeModules          map[string]map[string]string // import path -> Go type name -> Rust module name
 	packageStates               map[string]*PackageState
 	sliceElemPtrReturnFuncNames map[string]sliceElemPtrReturnInfo
@@ -39,6 +41,8 @@ func NewPackageLoader(workDir string) *PackageLoader {
 		workDir:                     workDir,
 		allPackages:                 make(map[string]*packages.Package),
 		packageMapping:              make(map[string]string),
+		sourceStdlibPackages:        make(map[string]bool),
+		sourceStdlibDepsExpanded:    make(map[string]bool),
 		packageTypeModules:          make(map[string]map[string]string),
 		packageStates:               make(map[string]*PackageState),
 		sliceElemPtrReturnFuncNames: make(map[string]sliceElemPtrReturnInfo),
@@ -109,6 +113,10 @@ func (pl *PackageLoader) LoadWithDependencies(patterns []string) error {
 
 // collectAllPackages recursively collects all packages
 func (pl *PackageLoader) collectAllPackages(pkg *packages.Package) {
+	pl.collectAllPackagesFrom(pkg, false)
+}
+
+func (pl *PackageLoader) collectAllPackagesFrom(pkg *packages.Package, forceSourceStdlib bool) {
 	if pkg == nil {
 		return
 	}
@@ -118,15 +126,42 @@ func (pl *PackageLoader) collectAllPackages(pkg *packages.Package) {
 		pkg.PkgPath = "main"
 	}
 
-	// Skip if already processed
-	if _, exists := pl.allPackages[pkg.PkgPath]; exists {
-		return
+	if pl.sourceStdlibPackages == nil {
+		pl.sourceStdlibPackages = make(map[string]bool)
+	}
+	if pl.sourceStdlibDepsExpanded == nil {
+		pl.sourceStdlibDepsExpanded = make(map[string]bool)
 	}
 
 	isMain := pkg == pl.mainPkg || pkg.PkgPath == "main"
+	isStdlib := isStdlibPackage(pkg.PkgPath)
+	isSourceableStdlib := isStdlib && isSourceTranspilableStdlibPackage(pkg.PkgPath)
+	isSourceStdlib := isSourceableStdlib && (forceSourceStdlib || pl.sourceStdlibPackages[pkg.PkgPath] || shouldTranspileStdlibPackage(pkg.PkgPath))
+	expandSourceDeps := isSourceStdlib && (forceSourceStdlib || pl.sourceStdlibDepsExpanded[pkg.PkgPath] || sourceStdlibPackagePatternExpandsDeps(pkg.PkgPath, os.Getenv(sourceStdlibPackagesEnv)))
 
-	if !isMain && isStdlibPackage(pkg.PkgPath) && !shouldTranspileStdlibPackage(pkg.PkgPath) {
+	// Skip if already processed, but still expand its stdlib dependency closure
+	// if a later +deps edge reaches a package that was first collected directly.
+	if _, exists := pl.allPackages[pkg.PkgPath]; exists {
+		if expandSourceDeps && !pl.sourceStdlibDepsExpanded[pkg.PkgPath] {
+			pl.sourceStdlibDepsExpanded[pkg.PkgPath] = true
+			for importPath, imp := range pkg.Imports {
+				if imp != nil && imp.PkgPath == "" && importPath != "" {
+					imp.PkgPath = importPath
+				}
+				pl.collectAllPackagesFrom(imp, isStdlibPackage(importPath) && isSourceTranspilableStdlibPackage(importPath))
+			}
+		}
 		return
+	}
+
+	if !isMain && isStdlib && !isSourceStdlib {
+		return
+	}
+	if isSourceStdlib {
+		pl.sourceStdlibPackages[pkg.PkgPath] = true
+	}
+	if expandSourceDeps {
+		pl.sourceStdlibDepsExpanded[pkg.PkgPath] = true
 	}
 
 	// Store the package
@@ -144,7 +179,7 @@ func (pl *PackageLoader) collectAllPackages(pkg *packages.Package) {
 		if imp != nil && imp.PkgPath == "" && importPath != "" {
 			imp.PkgPath = importPath
 		}
-		pl.collectAllPackages(imp)
+		pl.collectAllPackagesFrom(imp, expandSourceDeps && isStdlibPackage(importPath) && isSourceTranspilableStdlibPackage(importPath))
 	}
 }
 
@@ -313,15 +348,57 @@ func shouldTranspileStdlibPackage(importPath string) bool {
 	if !isStdlibPackage(importPath) {
 		return false
 	}
+	if !isSourceTranspilableStdlibPackage(importPath) {
+		return false
+	}
 	return sourceStdlibPackagePatternMatches(importPath, os.Getenv(sourceStdlibPackagesEnv))
 }
 
+func isSourceTranspilableStdlibPackage(importPath string) bool {
+	// unsafe is a compiler-provided language package. Its public surface is
+	// declarations for intrinsic operations, not ordinary Go source bodies, and
+	// codegen already lowers it through the unsafe intrinsic path.
+	return importPath != "unsafe"
+}
+
+func (pl *PackageLoader) isSourceStdlibPackage(importPath string) bool {
+	if !isStdlibPackage(importPath) {
+		return false
+	}
+	if !isSourceTranspilableStdlibPackage(importPath) {
+		return false
+	}
+	if pl != nil && pl.sourceStdlibPackages[importPath] {
+		return true
+	}
+	return shouldTranspileStdlibPackage(importPath)
+}
+
 func sourceStdlibPackagePatternMatches(importPath, patterns string) bool {
+	return sourceStdlibPackagePatternMatchesWithMode(importPath, patterns, false)
+}
+
+func sourceStdlibPackagePatternExpandsDeps(importPath, patterns string) bool {
+	return sourceStdlibPackagePatternMatchesWithMode(importPath, patterns, true)
+}
+
+func sourceStdlibPackagePatternMatchesWithMode(importPath, patterns string, requireDeps bool) bool {
 	for _, pattern := range strings.FieldsFunc(patterns, func(r rune) bool {
 		return r == ',' || r == ';' || r == ':' || r == ' ' || r == '\t' || r == '\n'
 	}) {
 		pattern = strings.TrimSpace(pattern)
 		if pattern == "" {
+			continue
+		}
+		deps := false
+		if strings.HasSuffix(pattern, "+deps") {
+			pattern = strings.TrimSuffix(pattern, "+deps")
+			deps = true
+		}
+		if pattern == "" {
+			continue
+		}
+		if requireDeps && !deps {
 			continue
 		}
 		if pattern == "all" || pattern == "std" {
@@ -473,6 +550,9 @@ func (pl *PackageLoader) TranspileAll() error {
 	// Create output directory for external packages
 	vendorDir := filepath.Join(pl.workDir, "vendor")
 	if len(pl.packageMapping) > 0 {
+		if err := pl.removeStaleGeneratedVendorCrates(vendorDir); err != nil {
+			return err
+		}
 		if err := os.MkdirAll(vendorDir, 0755); err != nil {
 			return fmt.Errorf("failed to create vendor directory: %v", err)
 		}
@@ -527,6 +607,57 @@ func (pl *PackageLoader) TranspileAll() error {
 	// but now with full type information available
 
 	return nil
+}
+
+func (pl *PackageLoader) removeStaleGeneratedVendorCrates(vendorDir string) error {
+	entries, err := os.ReadDir(vendorDir)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("failed to read vendor directory: %v", err)
+	}
+
+	currentCrates := map[string]bool{
+		sharedStdlibStubCrateName: true,
+	}
+	for _, crate := range pl.packageMapping {
+		currentCrates[crate] = true
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() || currentCrates[entry.Name()] {
+			continue
+		}
+		path := filepath.Join(vendorDir, entry.Name())
+		if !isGeneratedVendorCrate(path, entry.Name()) {
+			continue
+		}
+		if err := os.RemoveAll(path); err != nil {
+			return fmt.Errorf("failed to remove stale generated crate %s: %v", path, err)
+		}
+	}
+	return nil
+}
+
+func isGeneratedVendorCrate(path, crateName string) bool {
+	cargo, err := os.ReadFile(filepath.Join(path, "Cargo.toml"))
+	if err != nil {
+		return false
+	}
+	cargoText := string(cargo)
+	if !strings.Contains(cargoText, fmt.Sprintf("name = %q", crateName)) {
+		return false
+	}
+	if strings.Contains(cargoText, sharedStdlibStubCrateName) {
+		return true
+	}
+
+	lib, err := os.ReadFile(filepath.Join(path, "lib.rs"))
+	if err != nil {
+		return false
+	}
+	return strings.Contains(string(lib), fmt.Sprintf("pub use %s::*;", sharedStdlibStubCrateName))
 }
 
 func (pl *PackageLoader) collectSourceFunctionDeclsByFunc() map[*types.Func]sourceFunctionDeclInfo {
@@ -798,6 +929,9 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	}
 
 	outputDir := filepath.Join(pl.workDir, "vendor", crateName)
+	if err := os.RemoveAll(outputDir); err != nil {
+		return fmt.Errorf("failed to remove prior output directory: %v", err)
+	}
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return fmt.Errorf("failed to create output directory: %v", err)
 	}

@@ -4908,12 +4908,93 @@ func TestSourceStdlibPackagePatterns(t *testing.T) {
 		{patterns: "go/...", path: "go/types", want: true},
 		{patterns: "go/...", path: "go", want: true},
 		{patterns: "internal/types/...", path: "internal/types/errors", want: true},
+		{patterns: "go/types+deps", path: "go/types", want: true},
 		{patterns: "go/token", path: "go/types", want: false},
+		{patterns: "go/types+deps", path: "go/token", want: false},
 	} {
 		got := sourceStdlibPackagePatternMatches(tt.path, tt.patterns)
 		if got != tt.want {
 			t.Fatalf("sourceStdlibPackagePatternMatches(%q, %q) = %v, want %v", tt.path, tt.patterns, got, tt.want)
 		}
+	}
+	for _, tt := range []struct {
+		patterns string
+		path     string
+		want     bool
+	}{
+		{patterns: "go/types+deps", path: "go/types", want: true},
+		{patterns: "go/types", path: "go/types", want: false},
+		{patterns: "go/types+deps", path: "go/token", want: false},
+		{patterns: "go/...+deps", path: "go/token", want: true},
+	} {
+		got := sourceStdlibPackagePatternExpandsDeps(tt.path, tt.patterns)
+		if got != tt.want {
+			t.Fatalf("sourceStdlibPackagePatternExpandsDeps(%q, %q) = %v, want %v", tt.path, tt.patterns, got, tt.want)
+		}
+	}
+}
+
+func TestPackageLoaderSourceStdlibDepsPatternIncludesTransitiveStdlibImports(t *testing.T) {
+	t.Setenv(sourceStdlibPackagesEnv, "go/types+deps")
+	tokenPkg := &packages.Package{Name: "token", PkgPath: "go/token", Imports: make(map[string]*packages.Package)}
+	unsafePkg := &packages.Package{Name: "unsafe", PkgPath: "unsafe", Imports: make(map[string]*packages.Package)}
+	typesPkg := &packages.Package{Name: "types", PkgPath: "go/types", Imports: map[string]*packages.Package{
+		"go/token": tokenPkg,
+		"unsafe":   unsafePkg,
+	}}
+	mainPkg := &packages.Package{Name: "main", PkgPath: "main", Imports: map[string]*packages.Package{
+		"go/types": typesPkg,
+	}}
+	loader := NewPackageLoader(t.TempDir())
+	loader.mainPkg = mainPkg
+
+	loader.collectAllPackages(mainPkg)
+
+	for _, path := range []string{"go/types", "go/token"} {
+		if loader.allPackages[path] == nil {
+			t.Fatalf("collectAllPackages() should include source stdlib dependency %s", path)
+		}
+		if !loader.sourceStdlibPackages[path] {
+			t.Fatalf("collectAllPackages() should mark %s as source stdlib", path)
+		}
+		if loader.packageMapping[path] == "" {
+			t.Fatalf("collectAllPackages() should map %s to a Rust crate", path)
+		}
+	}
+	if loader.allPackages["unsafe"] != nil || loader.packageMapping["unsafe"] != "" || loader.sourceStdlibPackages["unsafe"] {
+		t.Fatalf("collectAllPackages() should keep unsafe on the compiler-intrinsic path, not source-map it")
+	}
+}
+
+func TestUnsafeStdlibPackageIsCompilerIntrinsic(t *testing.T) {
+	t.Setenv(sourceStdlibPackagesEnv, "unsafe,all")
+	if shouldTranspileStdlibPackage("unsafe") {
+		t.Fatalf("unsafe should not be source-transpiled as a normal stdlib package")
+	}
+	if (&PackageLoader{sourceStdlibPackages: map[string]bool{"unsafe": true}}).isSourceStdlibPackage("unsafe") {
+		t.Fatalf("unsafe should not be treated as a source stdlib package from loader state")
+	}
+}
+
+func TestPackageLoaderSourceStdlibExactPatternDoesNotIncludeTransitiveStdlibImports(t *testing.T) {
+	t.Setenv(sourceStdlibPackagesEnv, "go/types")
+	tokenPkg := &packages.Package{Name: "token", PkgPath: "go/token", Imports: make(map[string]*packages.Package)}
+	typesPkg := &packages.Package{Name: "types", PkgPath: "go/types", Imports: map[string]*packages.Package{
+		"go/token": tokenPkg,
+	}}
+	mainPkg := &packages.Package{Name: "main", PkgPath: "main", Imports: map[string]*packages.Package{
+		"go/types": typesPkg,
+	}}
+	loader := NewPackageLoader(t.TempDir())
+	loader.mainPkg = mainPkg
+
+	loader.collectAllPackages(mainPkg)
+
+	if loader.allPackages["go/types"] == nil {
+		t.Fatalf("collectAllPackages() should include directly selected go/types")
+	}
+	if loader.allPackages["go/token"] != nil {
+		t.Fatalf("collectAllPackages() should not include transitive stdlib dependency without +deps")
 	}
 }
 
@@ -4978,6 +5059,58 @@ func main() {
 	}
 	if _, err := os.Stat(filepath.Join(tempDir, "vendor", "go_token", "lib.rs")); err != nil {
 		t.Fatalf("source stdlib package should generate vendor/go_token/lib.rs: %v", err)
+	}
+}
+
+func TestSourceStdlibRerunRemovesStaleGeneratedVendorCrates(t *testing.T) {
+	t.Setenv(sourceStdlibPackagesEnv, "go/token")
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/source-stdlib-stale
+
+go 1.24
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "go/token"
+
+func main() {
+	var pos token.Pos = token.NoPos
+	println(int(pos))
+}
+`)
+
+	staleCrateDir := filepath.Join(tempDir, "vendor", "runtime")
+	writeTestFile(t, filepath.Join(staleCrateDir, "Cargo.toml"), `[package]
+name = "runtime"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "runtime"
+path = "lib.rs"
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
+`)
+	writeTestFile(t, filepath.Join(staleCrateDir, "lib.rs"), `pub use go2rust_stdlib_stubs::*;
+`)
+	writeTestFile(t, filepath.Join(tempDir, "vendor", "go_token", "stale.rs"), `pub fn stale() {}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	if _, err := os.Stat(staleCrateDir); !os.IsNotExist(err) {
+		t.Fatalf("stale generated crate should be removed, stat err = %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(tempDir, "vendor", "go_token", "stale.rs")); !os.IsNotExist(err) {
+		t.Fatalf("stale file inside regenerated source stdlib crate should be removed, stat err = %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(tempDir, "vendor", "go_token", "lib.rs")); err != nil {
+		t.Fatalf("current source stdlib crate should still be generated: %v", err)
 	}
 }
 
