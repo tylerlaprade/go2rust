@@ -313,6 +313,8 @@ pid_command() {
 }
 
 print_pressure_report() {
+    echo "Cleanup script: $repo_root/cleanup.sh"
+    echo
     echo "Filesystem:"
     df -h "$repo_root" /private/tmp "${TMPDIR:-/tmp}" 2>/dev/null | awk 'NR == 1 || !seen[$1, $9]++'
 
@@ -547,7 +549,8 @@ cleanup_temp_root() {
         -name 'go2rust-anyptr.*' -o \
         -name 'go2rust-debug-*' -o \
         -name 'go2rust-*-debug' -o \
-        -name 'go2rust-rust-work.*' \
+        -name 'go2rust-rust-work.*' -o \
+        -name 'go2rust-*' \
     \) -print 2>/dev/null)
 
     while IFS= read -r file; do
