@@ -1,0 +1,24 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/example_com_source_stdlib_go_ast_manual_decl_cross_package_walker",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/go_ast",
+    "vendor/go_token",
+]
+
+[package]
+name = "source_stdlib_go_ast_manual_decl_cross_package"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "source_stdlib_go_ast_manual_decl_cross_package"
+path = "main.rs"
+
+[dependencies]
+example_com_source_stdlib_go_ast_manual_decl_cross_package_walker = { path = "vendor/example_com_source_stdlib_go_ast_manual_decl_cross_package_walker" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+go_ast = { path = "vendor/go_ast" }
+go_token = { path = "vendor/go_token" }

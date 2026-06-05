@@ -2382,6 +2382,10 @@ run_xfail_test() {
     run_test "tests/sort_slice"
 }
 
+@test "source_stdlib_go_ast_manual_decl_cross_package" {
+    run_test "tests/source_stdlib_go_ast_manual_decl_cross_package"
+}
+
 @test "source_stdlib_go_ast_walk_call_expr" {
     run_test "tests/source_stdlib_go_ast_walk_call_expr"
 }

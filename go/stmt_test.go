@@ -328,8 +328,12 @@ func classify(d ast.Decl) bool {
 	}
 	if (!strings.Contains(rust, "downcast_ref::<Box<dyn go_ast::r#mod::Decl") &&
 		!strings.Contains(rust, "downcast_ref::<Box<dyn go_ast::Decl")) ||
-		!strings.Contains(rust, "__boxed.__go_as_any()") {
+		!strings.Contains(rust, "__boxed.as_ref().__go_as_any()") {
 		t.Fatalf("type switch on source-mapped imported interface should peel nested interface boxes:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __any = __v.__go_as_any();") ||
+		strings.Contains(rust, "__boxed.__go_as_any()") {
+		t.Fatalf("type switch on source-mapped imported interface should inspect the dynamic trait object, not the Box wrapper:\n%s", rust)
 	}
 	if strings.Contains(rust, "downcast_ref::<go_ast::r#mod::GenDecl>()") ||
 		strings.Contains(rust, "downcast_ref::<go_ast::GenDecl>()") {
