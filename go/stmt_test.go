@@ -92,6 +92,81 @@ func (x *NotExpr) wrap() string {
 	}
 }
 
+func TestTypeSwitchOnLocalInterfaceParameterUsesTraitAny(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type decl interface {
+	node()
+}
+
+type varDecl struct{}
+
+func (varDecl) node() {}
+
+type typeDecl struct{}
+
+func (typeDecl) node() {}
+
+func classify(d decl) bool {
+	switch d.(type) {
+	case varDecl:
+		return true
+	case typeDecl:
+		return true
+	}
+	return false
+}
+
+func walk(d decl, f func(decl)) {
+	f(d)
+}
+
+func classifyViaCallback(d decl) bool {
+	ok := false
+	walk(d, func(d decl) {
+		switch d.(type) {
+		case varDecl:
+			ok = true
+		case typeDecl:
+			ok = true
+		}
+	})
+	return ok
+}
+`)
+
+	classifyIndex := strings.Index(rust, "pub fn classify")
+	if classifyIndex < 0 {
+		t.Fatalf("generated Rust did not contain classify function:\n%s", rust)
+	}
+	callbackIndex := strings.Index(rust, "pub fn classify_via_callback")
+	if callbackIndex < 0 {
+		t.Fatalf("generated Rust did not contain classify_via_callback function:\n%s", rust)
+	}
+	classifyRust := rust[classifyIndex:callbackIndex]
+	if !strings.Contains(classifyRust, "let __any = __v.__go_as_any();") {
+		t.Fatalf("type switch on local interface parameter should downcast through __go_as_any:\n%s", rust)
+	}
+	if strings.Contains(classifyRust, "__v.as_ref() as &dyn Any") {
+		t.Fatalf("type switch on local interface parameter should not treat boxed trait objects as bare Any:\n%s", rust)
+	}
+	callbackRust := rust[callbackIndex:]
+	closureIndex := strings.Index(callbackRust, "Box::new(move |d:")
+	if closureIndex < 0 {
+		t.Fatalf("generated Rust did not contain callback closure:\n%s", rust)
+	}
+	closureRust := callbackRust[closureIndex:]
+	if closureEnd := strings.Index(closureRust, "}) as Box<dyn FnMut"); closureEnd >= 0 {
+		closureRust = closureRust[:closureEnd]
+	}
+	if !strings.Contains(closureRust, "let __any = __v.__go_as_any();") {
+		t.Fatalf("type switch on local interface callback parameter should downcast through __go_as_any:\n%s", rust)
+	}
+	if strings.Contains(closureRust, "__v.as_ref() as &dyn Any") {
+		t.Fatalf("type switch on local interface callback parameter should not treat boxed trait objects as bare Any:\n%s", rust)
+	}
+}
+
 func TestTypeSwitchLocalInterfaceCaseUsesConcreteCandidates(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

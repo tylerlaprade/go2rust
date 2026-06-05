@@ -46,6 +46,7 @@ name = "source_stdlib_go_parser_types_check_bridge_arg"
 path = "main.rs"
 
 [dependencies]
+serde_json = "1"
 cmp = { path = "vendor/cmp" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
 go_ast = { path = "vendor/go_ast" }
