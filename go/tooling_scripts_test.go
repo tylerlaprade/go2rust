@@ -263,8 +263,8 @@ func TestTestScriptReportsWhyFixtureRunIsSequential(t *testing.T) {
 	for _, want := range []string{
 		`JOBS_REASON=""`,
 		`JOBS_REASON="GNU parallel is not installed"`,
-		`Running tests sequentially ($JOBS_REASON; timeout: $TIMEOUT per test)...`,
-		`Running tests sequentially (timeout: $TIMEOUT per test)...`,
+		`Running tests sequentially ($JOBS_REASON; default timeout: $TIMEOUT per test)...`,
+		`Running tests sequentially (default timeout: $TIMEOUT per test)...`,
 		`Timeout per test (default: 15s)`,
 	} {
 		if !strings.Contains(script, want) {
@@ -599,6 +599,10 @@ func TestBatsFixtureTimeoutKillsLingeringChildren(t *testing.T) {
 	script := string(data)
 	if !strings.Contains(script, `TEST_TIMEOUT_KILL_AFTER`) {
 		t.Fatalf("tests.bats should expose a kill-after timeout for child processes")
+	}
+	if !strings.Contains(script, `fixture_timeout()`) ||
+		!strings.Contains(script, `fixture_config_value "$test_dir" "test_timeout"`) {
+		t.Fatalf("tests.bats should support fixture-specific timeouts from .go2rust.toml")
 	}
 	if count := strings.Count(script, `timeout -k "$kill_after" "$timeout" bash -c`); count != 2 {
 		t.Fatalf("tests.bats should use timeout -k for run_test and run_xfail_test; got %d uses", count)

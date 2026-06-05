@@ -637,6 +637,9 @@ func structFieldHasNilZero(typ types.Type) bool {
 	if typ == nil {
 		return false
 	}
+	if _, _, isNamedMap := namedMapTypeFromType(typ); isNamedMap {
+		return false
+	}
 	if named, ok := types.Unalias(typ).(*types.Named); ok {
 		if _, isSlice := types.Unalias(named.Underlying()).(*types.Slice); isSlice {
 			return false
@@ -648,6 +651,18 @@ func structFieldHasNilZero(typ types.Type) bool {
 	default:
 		return false
 	}
+}
+
+func writeWrappedNamedMapZeroValue(out *strings.Builder, typ types.Type) bool {
+	named, _, ok := namedMapTypeFromType(typ)
+	if !ok {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("::default()")
+	WriteWrapperSuffix(out)
+	return true
 }
 
 func namedTypeHasGoStringMethod(typeName string) bool {
@@ -1172,6 +1187,9 @@ func writeStructDefaultValue(out *strings.Builder, fieldType ast.Expr) {
 		if typ := typeInfo.GetType(fieldType); typ != nil {
 			if _, isChan := types.Unalias(typ).Underlying().(*types.Chan); isChan {
 				out.WriteString("Default::default()")
+				return
+			}
+			if writeWrappedNamedMapZeroValue(out, typ) {
 				return
 			}
 			if structFieldHasNilZero(typ) {

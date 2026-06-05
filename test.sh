@@ -549,12 +549,12 @@ BATS_TARGETS=(tests.bats)
 SHARD_DIR=""
 if [ "$JOBS" -eq 1 ]; then
     if [ -n "$JOBS_REASON" ]; then
-        echo "Running tests sequentially ($JOBS_REASON; timeout: $TIMEOUT per test)..."
+        echo "Running tests sequentially ($JOBS_REASON; default timeout: $TIMEOUT per test)..."
     else
-        echo "Running tests sequentially (timeout: $TIMEOUT per test)..."
+        echo "Running tests sequentially (default timeout: $TIMEOUT per test)..."
     fi
 else
-    echo "Running tests in parallel with $JOBS jobs (timeout: $TIMEOUT per test)..."
+    echo "Running tests in parallel with $JOBS jobs (default timeout: $TIMEOUT per test)..."
     SHARD_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-bats-shards.XXXXXX")
     echo "$$" > "$SHARD_DIR/go2rust-test.pid"
     create_bats_shards "$SHARD_DIR" "$JOBS"

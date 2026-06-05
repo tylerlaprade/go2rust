@@ -5040,12 +5040,12 @@ func writeLocalInterfaceHandleAssignmentValue(out *strings.Builder, lhs ast.Expr
 func writePackageGlobalInterfaceHandleAssignment(out *strings.Builder, lhs *ast.Ident, rhs ast.Expr, lhsType types.Type) {
 	out.WriteString("{ let __iface_handle = ")
 	writeLocalInterfaceHandleAssignmentValue(out, lhs, rhs, lhsType, false)
-	out.WriteString("; let __iface_guard = __iface_handle")
+	out.WriteString("; let __iface_value = { let __iface_guard = __iface_handle")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; *")
+	out.WriteString("; (*__iface_guard).clone() }; *")
 	out.WriteString(rustPackageGlobalName(lhs.Name))
 	WriteBorrowMethod(out, true)
-	out.WriteString(" = (*__iface_guard).clone(); }")
+	out.WriteString(" = __iface_value; }")
 }
 
 func transpiledInterfaceHandleAssignmentTypes(lhs ast.Expr, rhs ast.Expr) bool {
@@ -5079,12 +5079,12 @@ func writeTranspiledInterfaceAssignmentTarget(out *strings.Builder, lhs ast.Expr
 func writeTranspiledInterfaceSlotAssignmentFromHandle(out *strings.Builder, lhs ast.Expr, writeHandle func()) {
 	out.WriteString("{ let __iface_handle = ")
 	writeHandle()
-	out.WriteString("; let __iface_guard = __iface_handle")
+	out.WriteString("; let __iface_value = { let __iface_guard = __iface_handle")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; *")
+	out.WriteString("; (*__iface_guard).clone() }; *")
 	writeTranspiledInterfaceAssignmentTarget(out, lhs)
 	WriteBorrowMethod(out, true)
-	out.WriteString(" = (*__iface_guard).clone(); }")
+	out.WriteString(" = __iface_value; }")
 }
 
 func writeTranspiledInterfaceHandleAssignmentTarget(out *strings.Builder, lhs ast.Expr, value string) {

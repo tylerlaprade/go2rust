@@ -1811,13 +1811,77 @@ func main() {
 		strings.Contains(rust, ".as_mut().unwrap()).lock()") {
 		t.Fatalf("pointer-to-map operations should use the map handle, not relock a raw BTreeMap:\n%s", rust)
 	}
-	if !strings.Contains(rust, "(*flags.lock().unwrap()).is_none()") ||
+	if !strings.Contains(rust, "{ let __nil_result = (*flags.lock().unwrap()).is_none(); __nil_result }") ||
 		!strings.Contains(rust, "flags.lock().unwrap().as_mut().unwrap()).insert") ||
 		!strings.Contains(rust, "let mut __map_guard = flags.lock().unwrap()") {
 		t.Fatalf("pointer-to-map operations should borrow through the pointer map handle:\n%s", rust)
 	}
 	if strings.Contains(rust, "__value.as_ref().unwrap() |") {
 		t.Fatalf("map compound assignment should own the stored value before applying |:\n%s", rust)
+	}
+}
+
+func TestMapNilCheckDropsGuardBeforeBodyMutation(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type node struct{}
+
+type checker struct {
+	types map[*node]int
+}
+
+func forceConcurrent() {
+	go func() {}()
+}
+
+func (c *checker) record(x *node) {
+	if m := c.types; m != nil {
+		m[x] = 1
+	}
+}
+`)
+
+	if strings.Contains(rust, "if (*m.lock().unwrap()).is_some()") {
+		t.Fatalf("map nil check should not keep the map guard live across body mutation:\n%s", rust)
+	}
+	if !strings.Contains(rust, "if { let __nil_result = (*m.lock().unwrap()).is_some(); __nil_result }") {
+		t.Fatalf("map nil check should store the nil result before entering the body:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*m.lock().unwrap().as_mut().unwrap()).insert") {
+		t.Fatalf("map assignment should still mutate the short-declared map handle:\n%s", rust)
+	}
+}
+
+func TestInterfaceSelfAssignmentDropsSourceGuardBeforeTargetMutation(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Type interface {
+	isType()
+}
+
+type Basic struct{}
+
+func (*Basic) isType() {}
+
+func Unalias(t Type) Type {
+	return t
+}
+
+func forceConcurrent() {
+	go func() {}()
+}
+
+func assign(T Type) Type {
+	T = Unalias(T)
+	return T
+}
+`)
+
+	if strings.Contains(rust, "let __iface_guard = __iface_handle.lock().unwrap(); *T.lock().unwrap()") {
+		t.Fatalf("interface assignment should not hold the source guard while mutating the target:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *T.lock().unwrap() = __iface_value;") {
+		t.Fatalf("interface assignment should clone the source value before locking the target:\n%s", rust)
 	}
 }
 

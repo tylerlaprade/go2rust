@@ -1,0 +1,14 @@
+[package]
+name = "internal_sync"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "internal_sync"
+path = "lib.rs"
+
+[dependencies]
+serde_json = "1"
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
+internal_abi = { path = "../internal_abi" }
+sync_atomic = { path = "../sync_atomic" }

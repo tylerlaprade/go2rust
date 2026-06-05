@@ -102,6 +102,25 @@ compare_outputs() {
     fi
 }
 
+fixture_config_value() {
+    local test_dir="$1"
+    local key="$2"
+    local config_file="$test_dir/.go2rust.toml"
+    [ -f "$config_file" ] || return 0
+    grep "^$key" "$config_file" | cut -d'"' -f2
+}
+
+fixture_timeout() {
+    local test_dir="$1"
+    local configured_timeout
+    configured_timeout=$(fixture_config_value "$test_dir" "test_timeout")
+    if [ -n "$configured_timeout" ]; then
+        echo "$configured_timeout"
+    else
+        echo "${TEST_TIMEOUT:-60s}"
+    fi
+}
+
 # Helper function that handles transpilation, Rust compilation, and output comparison
 # Takes test_dir and go_output as parameters
 run_transpile_and_compare() {
@@ -213,7 +232,8 @@ run_transpile_and_compare() {
 
 run_test() {
     local test_dir="$1"
-    local timeout="${TEST_TIMEOUT:-60s}"
+    local timeout
+    timeout=$(fixture_timeout "$test_dir")
     local kill_after="${TEST_TIMEOUT_KILL_AFTER:-5s}"
 
     # Export the helper functions so they're available in the subshell
@@ -294,7 +314,8 @@ run_xfail_test() {
     local test_dir="$1"
     local test_name
     test_name=$(basename "$test_dir")
-    local timeout="${TEST_TIMEOUT:-60s}"
+    local timeout
+    timeout=$(fixture_timeout "$test_dir")
     local kill_after="${TEST_TIMEOUT_KILL_AFTER:-5s}"
     
     # Export the helper functions so they're available in the subshell

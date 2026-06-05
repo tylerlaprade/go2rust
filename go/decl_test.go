@@ -2146,6 +2146,30 @@ type graphNode struct {
 	}
 }
 
+func TestNamedMapStructFieldDefaultConstructsNamedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Node struct{}
+
+type nodeSet map[*Node]bool
+
+type graphNode struct {
+	succ nodeSet
+}
+`)
+
+	if strings.Contains(rust, "#[derive(Debug, Clone, Default)]\npub struct graphNode") {
+		t.Fatalf("named map field should require a custom struct default:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl Default for graphNode") {
+		t.Fatalf("named map field default should emit a custom Default impl:\n%s", rust)
+	}
+	if !strings.Contains(rust, "succ: Rc::new(RefCell::new(Some(nodeSet::default())))") &&
+		!strings.Contains(rust, "succ: Arc::new(Mutex::new(Some(nodeSet::default())))") {
+		t.Fatalf("named map field default should construct the named map value:\n%s", rust)
+	}
+}
+
 func TestStructDisplayPointerToSliceFieldUsesSliceFormatter(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

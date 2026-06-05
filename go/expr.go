@@ -2707,15 +2707,7 @@ func writePointerToMapNilComparison(out *strings.Builder, expr ast.Expr, op toke
 	if !ok {
 		return false
 	}
-	out.WriteString("(*")
-	TranspileExpressionContext(out, target, LValue)
-	WriteBorrowMethod(out, false)
-	out.WriteString(")")
-	if op == token.NEQ {
-		out.WriteString(".is_some()")
-	} else {
-		out.WriteString(".is_none()")
-	}
+	writeWrappedHandleNilComparison(out, target, op)
 	return true
 }
 
@@ -5708,16 +5700,21 @@ func writeLocalInterfaceNilComparison(out *strings.Builder, expr ast.Expr, op to
 		out.WriteString(" }")
 		return true
 	}
-	out.WriteString("(*")
+	writeWrappedHandleNilComparison(out, expr, op)
+	return true
+}
+
+func writeWrappedHandleNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) {
+	out.WriteString("{ let __nil_result = (*")
 	TranspileExpressionContext(out, expr, LValue)
 	WriteBorrowMethod(out, false)
-	out.WriteString(").is_")
-	if isNil {
-		out.WriteString("none()")
+	out.WriteString(").")
+	if op == token.EQL {
+		out.WriteString("is_none()")
 	} else {
-		out.WriteString("some()")
+		out.WriteString("is_some()")
 	}
-	return true
+	out.WriteString("; __nil_result }")
 }
 
 func writeNamedMapNilComparison(out *strings.Builder, expr ast.Expr, op token.Token) bool {
@@ -8384,6 +8381,9 @@ func writeWrappedStructFieldValueWithOwnerPackage(out *strings.Builder, value as
 	}
 
 	if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" && expectedFieldType != nil {
+		if writeWrappedNamedMapZeroValue(out, expectedFieldType) {
+			return
+		}
 		switch types.Unalias(expectedFieldType).Underlying().(type) {
 		case *types.Slice, *types.Map:
 			out.WriteString(GetOuterWrapperType())
@@ -8523,6 +8523,9 @@ func writeZeroStructFieldInitializer(out *strings.Builder, fieldExpr ast.Expr, f
 		return
 	}
 	if fieldType != nil {
+		if writeWrappedNamedMapZeroValue(out, fieldType) {
+			return
+		}
 		if structFieldHasNilZero(fieldType) {
 			out.WriteString("Default::default()")
 			return
@@ -11801,10 +11804,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString(".is_some()")
 					return
 				}
-				out.WriteString("(*")
-				TranspileExpressionContext(out, e.X, LValue)
-				WriteBorrowMethod(out, false)
-				out.WriteString(").is_some()")
+				writeWrappedHandleNilComparison(out, e.X, e.Op)
 				return
 			} else if e.Op.String() == "==" {
 				if leftIdent, ok := e.X.(*ast.Ident); ok && isSliceElemPtrVar(leftIdent.Name) {
@@ -11817,10 +11817,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					out.WriteString(".is_none()")
 					return
 				}
-				out.WriteString("(*")
-				TranspileExpressionContext(out, e.X, LValue)
-				WriteBorrowMethod(out, false)
-				out.WriteString(").is_none()")
+				writeWrappedHandleNilComparison(out, e.X, e.Op)
 				return
 			}
 		}
