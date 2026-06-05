@@ -2982,7 +2982,7 @@ impl Type {
 
     pub fn gc_slice(&self, begin: Arc<Mutex<Option<usize>>>, end: Arc<Mutex<Option<usize>>>) -> Arc<Mutex<Option<Vec<u8>>>> {
         if { let __tmp_x = TFlag(Arc::new(Mutex::new(Some(((*(*self.t_flag.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & T_FLAG_G_C_MASK_ON_DEMAND as u8))))); let __tmp_y = TFlag(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x != __tmp_y } {
-        panic!("GcSlice can't handle on-demand gcdata types");
+        std::panic::panic_any(Box::new("GcSlice can't handle on-demand gcdata types".to_string()) as Box<dyn Any + Send + Sync>);
     }
         Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = { let __go_unsafe_result: Arc<Mutex<Option<Vec<u8>>>> = unimplemented!("unsafe.Slice requires unsafe intrinsic support"); __go_unsafe_result }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*begin.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..].to_vec() })))
     }

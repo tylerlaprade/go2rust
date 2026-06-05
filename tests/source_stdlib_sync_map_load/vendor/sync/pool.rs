@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_slice, format_slice_values, format_slice_wrapped, go_any_eq, go_lookup_embedded_owner, go_register_embedded_owner};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_slice, format_slice_values, format_slice_wrapped, go_any_eq, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::cond::*;
 use crate::hashtriemap::*;
@@ -14,6 +14,7 @@ use crate::rwmutex::*;
 use crate::waitgroup::*;
 
 use std::any::Any;
+use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex as StdMutex};
 
@@ -311,7 +312,7 @@ impl Pool {
                 // Otherwise the nil dereference happens while the m is pinned,
                 // causing a fatal error rather than a panic.
         if false {
-        panic!("nil Pool");
+        std::panic::panic_any(Box::new("nil Pool".to_string()) as Box<dyn Any + Send + Sync>);
     }
         let mut pid = runtime_proc_pin();
                 // In pinSlow we store to local and then to localSize, here we load in opposite order.
@@ -329,18 +330,21 @@ impl Pool {
     pub fn pin_slow(&self) -> (GoPtr<poolLocal>, i32) {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-                // Retry under the mutex.
-                // Can not lock the mutex while pinned.
-        runtime_proc_unpin();
-        (*allPoolsMu.lock().unwrap().as_ref().unwrap()).lock();
-        __defer_stack.push(Box::new(move || {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        // Retry under the mutex.
+                        // Can not lock the mutex while pinned.
+            runtime_proc_unpin();
+            (*allPoolsMu.lock().unwrap().as_ref().unwrap()).lock();
+            __defer_stack.push(Box::new(move || {
         (*allPoolsMu.lock().unwrap().as_ref().unwrap()).unlock();
     }));
-        let mut pid = runtime_proc_pin();
-                // poolCleanup won't be called while we are pinned.
-        let mut s = Arc::new(StdMutex::new(Some({ let __selector_holder = self.local_size.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        let mut l = Arc::new(StdMutex::new(Some({ let __selector_holder = self.local.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        if { let __tmp_x = (*Arc::new(StdMutex::new(Some(pid as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
+            let mut pid = runtime_proc_pin();
+                        // poolCleanup won't be called while we are pinned.
+            let mut s = Arc::new(StdMutex::new(Some({ let __selector_holder = self.local_size.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+            let mut l = Arc::new(StdMutex::new(Some({ let __selector_holder = self.local.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+            if { let __tmp_x = (*Arc::new(StdMutex::new(Some(pid as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -349,21 +353,34 @@ impl Pool {
         return (index_local(Arc::new(StdMutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some(pid)))), pid);
     }
     }
-        if { let __nil_target = self.local.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
+            if { let __nil_target = self.local.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = { let __collection_holder = { let __append_target = allPools.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(Arc::new(StdMutex::new(Some(self.clone())))); __append_target.clone() }.clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *allPools.lock().unwrap() = new_val; };
     }
-                // If GOMAXPROCS changes between GCs, we re-allocate the array and lose the old one.
-        let mut size = runtime::g_o_m_a_x_p_r_o_c_s(0);
-        let mut local: Arc<StdMutex<Option<Vec<poolLocal>>>> = Arc::new(StdMutex::new(Some(vec![Default::default(); (size) as usize])));
-        sync_atomic::store_pointer(self.local.clone(), Arc::new(StdMutex::new(Some({ let __seq_holder = local.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))));
-        runtime__store_reluintptr(self.local_size.clone(), Arc::new(StdMutex::new(Some(size as usize))));
-        {
+                        // If GOMAXPROCS changes between GCs, we re-allocate the array and lose the old one.
+            let mut size = runtime::g_o_m_a_x_p_r_o_c_s(0);
+            let mut local: Arc<StdMutex<Option<Vec<poolLocal>>>> = Arc::new(StdMutex::new(Some(vec![Default::default(); (size) as usize])));
+            sync_atomic::store_pointer(self.local.clone(), Arc::new(StdMutex::new(Some({ let __seq_holder = local.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))));
+            runtime__store_reluintptr(self.local_size.clone(), Arc::new(StdMutex::new(Some(size as usize))));
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return (GoPtr::slice_elem(GoSliceElemPtr::new(local.clone(), (pid) as usize)), pid);
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                (GoPtr::nil(), 0 as i32)
+            }
+        }
     }
 }
 
