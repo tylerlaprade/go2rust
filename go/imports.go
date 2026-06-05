@@ -2022,7 +2022,7 @@ impl std::fmt::Debug for GoMutex {
         write!(f, "Mutex")
     }
 }
-	`)
+`)
 }
 
 func generateGoRWMutexHelper(out *strings.Builder) {

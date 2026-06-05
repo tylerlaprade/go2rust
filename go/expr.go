@@ -9348,6 +9348,9 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 		TranspileExpression(out, value)
 		return
 	}
+	if writeTranspiledInterfaceMapValue(out, value, valueType) {
+		return
+	}
 	if writeStdlibInterfaceCallArgumentConversion(out, value, valueType) {
 		return
 	}
@@ -9379,6 +9382,34 @@ func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Ex
 		TranspileExpression(out, value)
 	}
 	WriteWrapperSuffix(out)
+}
+
+func writeTranspiledInterfaceMapValue(out *strings.Builder, value ast.Expr, valueType types.Type) bool {
+	if value == nil || valueType == nil {
+		return false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(valueType); !ok {
+		return false
+	}
+	if ident, ok := value.(*ast.Ident); ok && ident.Name == "nil" {
+		WriteWrappedNone(out)
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString(`unimplemented!("type info required to lower interface map literal value")`)
+		return true
+	}
+	valueActualType := typeInfo.GetType(value)
+	if valueActualType == nil {
+		out.WriteString(`unimplemented!("type info required to lower interface map literal value")`)
+		return true
+	}
+	if !types.AssignableTo(valueActualType, valueType) {
+		return false
+	}
+	writeLocalInterfaceReferenceCallArgument(out, value, valueType)
+	return true
 }
 
 func writeFunctionMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Expr, valueType types.Type) bool {

@@ -211,9 +211,11 @@ in the first place.
 - Go symbol: `go/types.TypeName` and `go/types.TypeParam`
 - Transpiler gap: the source-mapped `go/types.NewTypeName` and
   `go/types.NewTypeParam` constructor paths now pass, but non-source-mapped
-  callers and `TypeParam` values stored through the `types.Type` interface
-  still hit the bridge.
-- Fixture: `tests/stdlib_interface_map_value_assignment/main.go`;
+  callers still hit the bridge.
+- Fixture: `tests/stdlib_interface_map_value_assignment/` now source-maps
+  `go/types`, `go/token`, and `sync/atomic`, and verifies `TypeParam` values
+  stored through the source-mapped `types.Type` interface in map assignment and
+  map literal paths;
   `tests/source_stdlib_go_types_new_type_name/` source-maps `go/types` and
   verifies the direct `NewTypeName` path from source;
   `tests/source_stdlib_go_token_types_bridge_arg/` source-maps `go/token` and
@@ -228,7 +230,10 @@ in the first place.
 - Transpiler gap: `NewTypeName` and `NewTypeParam` pass when `go/types` is
   source-mapped; `NewTuple` and non-source-mapped constructor callers still
   hit the bridge.
-- Fixture: `tests/stdlib_interface_ident_argument/main.go`; `tests/stdlib_interface_map_value_assignment/main.go`;
+- Fixture: `tests/stdlib_interface_ident_argument/main.go`;
+  `tests/stdlib_interface_map_value_assignment/` source-maps `go/types` and
+  verifies source-transpiled `NewTypeName`/`NewTypeParam` with `TypeParam`
+  stored through `types.Type` map values;
   `tests/source_stdlib_go_token_types_bridge_arg/` verifies the source-mapped
   `go/token.Pos` to source-mapped `types.NewTypeName` boundary plus direct
   `NewTypeParam`;

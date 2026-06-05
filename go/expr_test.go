@@ -1384,6 +1384,35 @@ func Nodes() []Node {
 	}
 }
 
+func TestMapLiteralConcreteValueToLocalInterfaceBoxesValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Type interface {
+	Underlying() Type
+}
+
+type TypeParam struct{}
+
+func (*TypeParam) Underlying() Type {
+	return nil
+}
+
+func literal(tp *TypeParam) map[string]Type {
+	return map[string]Type{"T": tp}
+}
+`)
+
+	if strings.Contains(rust, `"T".to_string(), tp.clone()`) ||
+		strings.Contains(rust, `"T".to_string(), Rc::new(RefCell::new(Some((*tp`) ||
+		strings.Contains(rust, `"T".to_string(), Arc::new(Mutex::new(Some((*tp`) {
+		t.Fatalf("map literal should not store concrete pointer handle directly in interface slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, `Box::new(TypeParamPtr(tp.clone())) as Box<dyn Type`) &&
+		!strings.Contains(rust, `Box::new(TypeParamPtr(tp.clone())) as Box<dyn Type + Send + Sync`) {
+		t.Fatalf("map literal should box concrete pointer wrapper into local interface value:\n%s", rust)
+	}
+}
+
 func TestAppendConcreteValueToEmptyInterfaceSliceBoxesBareAny(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
