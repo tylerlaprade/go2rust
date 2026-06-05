@@ -285,15 +285,19 @@ in the first place.
 
 ### types-info-helpers
 
-- Location: `go/external_type_stubs.go:3150`
+- Location: `go/external_type_stubs.go:3925`
 - Go symbol: `go/types.Info` and helper trait support
-- Transpiler gap: vendored `go/types` source does not yet transpile cleanly;
-  source-mapped `go/ast` callers now cross the bridge through erased pointer
-  keys instead of embedding source crate types in shared stub fields.
-- Fixture: `tests/stdlib_struct_field_map/` source-maps `go/ast` and exercises
-  `types.Info` map fields keyed by `*ast.File`, `*ast.Ident`, and `ast.Node`.
-- Removal trigger: transpiler can lower `go/types.Info` source.
-- Added: 2026-05-27 (backfill)
+- Transpiler gap: source-mapped `go/types.Info` map fields now pass when keyed
+  by source-generated `*ast.File`, `*ast.Ident`, and `ast.Node`, but
+  non-source-mapped callers still route through the external `types_Info`
+  helper surface and erased pointer-key bridge support.
+- Fixture: `tests/stdlib_struct_field_map/` now source-maps `go/types` and
+  `go/ast`, and verifies `Info.FileVersions`, `Info.Instances`,
+  `Info.Implicits`, and `Info.Scopes` with source-generated map key/value
+  types.
+- Removal trigger: all remaining `go/types.Info` callers use source-transpiled
+  `go/types` instead of the external bridge surface.
+- Added: 2026-05-27 (backfill; expanded 2026-06-05)
 
 ### types-config-check-impl
 
