@@ -216,6 +216,9 @@ in the first place.
   `go/types`, `go/token`, and `sync/atomic`, and verifies `TypeParam` values
   stored through the source-mapped `types.Type` interface in map assignment and
   map literal paths;
+  `tests/stdlib_interface_struct_literal_concrete/` now source-maps
+  `go/types`, `go/token`, and `sync/atomic`, and verifies `TypeParam` values
+  stored through the source-mapped `types.Type` interface in struct literals;
   `tests/source_stdlib_go_types_new_type_name/` source-maps `go/types` and
   verifies the direct `NewTypeName` path from source;
   `tests/source_stdlib_go_token_types_bridge_arg/` source-maps `go/token` and
@@ -234,6 +237,9 @@ in the first place.
   `tests/stdlib_interface_map_value_assignment/` source-maps `go/types` and
   verifies source-transpiled `NewTypeName`/`NewTypeParam` with `TypeParam`
   stored through `types.Type` map values;
+  `tests/stdlib_interface_struct_literal_concrete/` source-maps `go/types` and
+  verifies source-transpiled `NewTypeName`/`NewTypeParam` with `TypeParam`
+  stored through `types.Type` struct fields;
   `tests/source_stdlib_go_token_types_bridge_arg/` verifies the source-mapped
   `go/token.Pos` to source-mapped `types.NewTypeName` boundary plus direct
   `NewTypeParam`;
