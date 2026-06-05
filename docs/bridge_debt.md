@@ -187,14 +187,27 @@ in the first place.
 - Removal trigger: transpiler can lower `go/types` Type.Underlying dispatch.
 - Added: 2026-05-27 (backfill)
 
-### types-basic
+### types-concrete-type-stubs
 
-- Location: `go/external_type_stubs.go:3095`
-- Go symbol: `go/types.Basic`
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
-- Removal trigger: transpiler can lower `go/types.Basic` definition and methods.
-- Added: 2026-05-27 (backfill)
+- Location: `go/external_type_stubs.go:3467` (`writeTypesBasicStub`);
+  `go/external_type_stubs.go:2015` (generic external concrete type
+  stub generation), `go/external_type_stubs.go:3376` (concrete-to-interface
+  stub conversion), and `go/external_type_stubs.go:7432` (generic external
+  package function stub body)
+- Go symbol: `go/types.Basic`, `go/types.Named`, `go/types.Pointer`, and
+  `go/types.NewPointer`
+- Transpiler gap: `go/types.Basic` still has a direct hand-written shim, and
+  source-mapped `go/types.NewPointer` now passes when a `*types.Named` and
+  `*types.Pointer` are stored through `[]types.Type`, but non-source-mapped
+  callers still route through generic external stubs.
+- Fixture: `tests/stdlib_interface_slice_conversions/` now source-maps
+  `go/types`, `go/token`, and `sync/atomic`, and verifies `types.NewPointer`
+  plus `*types.Named` and `*types.Pointer` values stored through the
+  source-mapped `types.Type` interface in a slice literal/range path.
+- Removal trigger: transpiler can lower `go/types.Basic`, `go/types.Named`,
+  `go/types.Pointer`, and `go/types.NewPointer` from source for all callers
+  still routed through the direct or generic external stubs.
+- Added: 2026-05-27 (backfill; expanded 2026-06-05)
 
 ### types-tuple
 
