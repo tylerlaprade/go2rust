@@ -13121,6 +13121,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				writeTraitObjectPointerAssertionValue(out, e, wrapperType)
 				return
 			}
+			if star, ok := e.Type.(*ast.StarExpr); ok {
+				writePointerHandleTypeAssertionValue(out, e, pointerAssertionHandleRustType(star))
+				return
+			}
 			// Get the Rust type for the assertion
 			rustType := ""
 			assertionReturnsPointer := false
@@ -16950,6 +16954,129 @@ func writeTypeAssertionExpectBareValue(out *strings.Builder, receiver string, ru
 	out.WriteString(">().expect(\"type assertion failed\").clone()")
 }
 
+func writePointerHandleAssertionExpectValue(out *strings.Builder, receiver string, handleType string) {
+	out.WriteString(receiver)
+	out.WriteString(".downcast_ref::<")
+	out.WriteString(handleType)
+	out.WriteString(">().expect(\"type assertion failed\").clone()")
+}
+
+func writePointerHandleAssertionNone(out *strings.Builder, pointeeRustType string) {
+	writeTypedWrappedNone(out, pointeeRustType)
+}
+
+func writePointerHandleTypeAssertionValue(out *strings.Builder, e *ast.TypeAssertExpr, handleType string) {
+	if isStdlibInterfaceReferenceRangeValue(e.X) {
+		out.WriteString("({\n")
+		out.WriteString("        let val = ")
+		writeStdlibInterfaceReferenceRangeValue(out, e.X)
+		out.WriteString(";\n")
+		out.WriteString("        ")
+		writePointerHandleAssertionExpectValue(out, "val", handleType)
+		out.WriteString("\n")
+		out.WriteString("    })")
+		return
+	}
+	if typeAssertionSourceIsBareStdlibInterfaceValue(e.X) {
+		out.WriteString("({\n")
+		out.WriteString("        let val = ")
+		if ident, ok := e.X.(*ast.Ident); ok && ident.Name != "nil" {
+			out.WriteString(rustIdentForUseWithCapture(ident))
+		} else {
+			TranspileExpression(out, e.X)
+		}
+		out.WriteString(".clone();\n")
+		out.WriteString("        ")
+		writePointerHandleAssertionExpectValue(out, "val", handleType)
+		out.WriteString("\n")
+		out.WriteString("    })")
+		return
+	}
+	if typeAssertionSourceUsesTraitObject(e.X) {
+		sourceTrait := typeAssertionSourceTraitObject(e.X)
+		out.WriteString("({\n")
+		if typeAssertionSourceIsTraitObjectRef(e.X) {
+			out.WriteString("        let any_val = ")
+			writeTraitObjectAssertionSourceRef(out, e.X)
+			out.WriteString(".__go_as_any();\n")
+			out.WriteString("        if let Some(typed_val) = any_val.downcast_ref::<")
+			out.WriteString(handleType)
+			out.WriteString(">() {\n")
+		} else {
+			out.WriteString("        let val = ")
+			writeTypeAssertionInputClone(out, e.X)
+			out.WriteString(";\n")
+			out.WriteString("        let guard = val")
+			WriteBorrowMethod(out, false)
+			out.WriteString(";\n")
+			out.WriteString("        if let Some(ref any_val) = *guard {\n")
+			out.WriteString("            if let Some(typed_val) = ")
+			writeTraitObjectBoxDowncast(out, sourceTrait, handleType)
+			out.WriteString(" {\n")
+		}
+		out.WriteString("            typed_val.clone()\n")
+		if typeAssertionSourceIsTraitObjectRef(e.X) {
+			out.WriteString("        } else {\n")
+			out.WriteString("            panic!(\"type assertion failed\")\n")
+			out.WriteString("        }\n")
+		} else {
+			out.WriteString("            } else {\n")
+			out.WriteString("                panic!(\"type assertion failed\")\n")
+			out.WriteString("            }\n")
+			out.WriteString("        } else {\n")
+			out.WriteString("            panic!(\"type assertion on nil interface\")\n")
+			out.WriteString("        }\n")
+		}
+		out.WriteString("    })")
+		return
+	}
+	if writeAnySliceElementPointerHandleAssertionValue(out, e, handleType) {
+		return
+	}
+	out.WriteString("({\n")
+	out.WriteString("        let val = ")
+	if ident, ok := e.X.(*ast.Ident); ok && ident.Name != "nil" {
+		out.WriteString(rustIdentForUseWithCapture(ident))
+	} else {
+		TranspileExpressionContext(out, e.X, LValue)
+	}
+	out.WriteString(".clone();\n")
+	out.WriteString("        let guard = val")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString("        if let Some(ref any_val) = *guard {\n")
+	out.WriteString("            ")
+	writePointerHandleAssertionExpectValue(out, "any_val", handleType)
+	out.WriteString("\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            panic!(\"type assertion on nil interface\")\n")
+	out.WriteString("        }\n")
+	out.WriteString("    })")
+}
+
+func writeAnySliceElementPointerHandleAssertionValue(out *strings.Builder, e *ast.TypeAssertExpr, handleType string) bool {
+	index, ok := anySliceElementAssertionSource(e.X)
+	if !ok {
+		return false
+	}
+	out.WriteString("({\n")
+	out.WriteString("        let __idx = (")
+	TranspileExpression(out, index.Index)
+	out.WriteString(") as usize;\n")
+	out.WriteString("        let __seq_holder = ")
+	TranspileExpressionContext(out, index.X, LValue)
+	out.WriteString(".clone();\n")
+	out.WriteString("        let __seq_guard = __seq_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString("        let any_val = __seq_guard.as_ref().expect(\"nil []any in type assertion\")[__idx].as_ref();\n")
+	out.WriteString("        ")
+	writePointerHandleAssertionExpectValue(out, "any_val", handleType)
+	out.WriteString("\n")
+	out.WriteString("    })")
+	return true
+}
+
 func writeTypeAssertionFailureWrappedValue(out *strings.Builder, rustType string, defaultValue string, targetIsPointer bool, targetIsInterface bool) {
 	if targetIsPointer || targetIsInterface {
 		writeTypedWrappedNone(out, rustType)
@@ -17438,6 +17565,180 @@ func typeAssertionAliasConcreteRustType(expr ast.Expr) (string, bool) {
 	return goTypesNamedTypeToRust(named), true
 }
 
+func pointerAssertionHandleRustType(star *ast.StarExpr) string {
+	return GoTypeToRust(star)
+}
+
+func writePointerHandleTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, handleType string, pointeeRustType string) {
+	if indexExpr, ok := e.X.(*ast.IndexExpr); ok {
+		typeInfo := GetTypeInfo()
+		if typeInfo != nil && isEmptyInterfaceType(typeInfo.GetMapValueType(indexExpr.X)) {
+			out.WriteString("({\n")
+			out.WriteString("        if let Some(__v) = (*")
+			if ident, ok := indexExpr.X.(*ast.Ident); ok {
+				out.WriteString(ident.Name)
+			} else {
+				TranspileExpression(out, indexExpr.X)
+			}
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).get(")
+			if ident, ok := indexExpr.Index.(*ast.Ident); ok {
+				if _, isRangeVar := rangeLoopVars[ident.Name]; isRangeVar {
+					out.WriteString(ident.Name)
+				} else {
+					out.WriteString("&")
+					TranspileExpression(out, indexExpr.Index)
+				}
+			} else {
+				out.WriteString("&")
+				TranspileExpression(out, indexExpr.Index)
+			}
+			out.WriteString(") {\n")
+			out.WriteString("            let guard = __v")
+			WriteBorrowMethod(out, false)
+			out.WriteString(";\n")
+			out.WriteString("            if let Some(ref any_val) = *guard {\n")
+			out.WriteString("                if let Some(typed_val) = any_val.downcast_ref::<")
+			out.WriteString(handleType)
+			out.WriteString(">() {\n")
+			out.WriteString("                    (typed_val.clone(), true)\n")
+			out.WriteString("                } else {\n")
+			out.WriteString("                    (")
+			writePointerHandleAssertionNone(out, pointeeRustType)
+			out.WriteString(", false)\n")
+			out.WriteString("                }\n")
+			out.WriteString("            } else {\n")
+			out.WriteString("                (")
+			writePointerHandleAssertionNone(out, pointeeRustType)
+			out.WriteString(", false)\n")
+			out.WriteString("            }\n")
+			out.WriteString("        } else {\n")
+			out.WriteString("            (")
+			writePointerHandleAssertionNone(out, pointeeRustType)
+			out.WriteString(", false)\n")
+			out.WriteString("        }\n")
+			out.WriteString("    })")
+			return
+		}
+	}
+
+	if typeAssertionSourceIsWrappedStdlibInterfaceValue(e.X) {
+		out.WriteString("({\n")
+		out.WriteString("        let val = ")
+		writeInterfaceAssertionSourceClone(out, e.X)
+		out.WriteString(";\n")
+		out.WriteString("        let guard = val")
+		WriteBorrowMethod(out, false)
+		out.WriteString(";\n")
+		out.WriteString("        if let Some(ref any_val) = *guard {\n")
+		out.WriteString("            if let Some(typed_val) = any_val.downcast_ref::<")
+		out.WriteString(handleType)
+		out.WriteString(">() {\n")
+		out.WriteString("                (typed_val.clone(), true)\n")
+		out.WriteString("            } else {\n")
+		out.WriteString("                (")
+		writePointerHandleAssertionNone(out, pointeeRustType)
+		out.WriteString(", false)\n")
+		out.WriteString("            }\n")
+		out.WriteString("        } else {\n")
+		out.WriteString("            (")
+		writePointerHandleAssertionNone(out, pointeeRustType)
+		out.WriteString(", false)\n")
+		out.WriteString("        }\n")
+		out.WriteString("    })")
+		return
+	}
+
+	if typeAssertionSourceIsBareStdlibInterfaceValue(e.X) {
+		out.WriteString("({\n")
+		out.WriteString("        let val = ")
+		if ident, ok := e.X.(*ast.Ident); ok && ident.Name != "nil" {
+			out.WriteString(rustIdentForUseWithCapture(ident))
+		} else {
+			TranspileExpression(out, e.X)
+		}
+		out.WriteString(".clone();\n")
+		out.WriteString("        if let Some(typed_val) = val.downcast_ref::<")
+		out.WriteString(handleType)
+		out.WriteString(">() {\n")
+		out.WriteString("            (typed_val.clone(), true)\n")
+		out.WriteString("        } else {\n")
+		out.WriteString("            (")
+		writePointerHandleAssertionNone(out, pointeeRustType)
+		out.WriteString(", false)\n")
+		out.WriteString("        }\n")
+		out.WriteString("    })")
+		return
+	}
+
+	if typeAssertionSourceUsesTraitObject(e.X) {
+		sourceTrait := typeAssertionSourceTraitObject(e.X)
+		out.WriteString("({\n")
+		if typeAssertionSourceIsTraitObjectRef(e.X) {
+			out.WriteString("        let any_val = ")
+			writeTraitObjectAssertionSourceRef(out, e.X)
+			out.WriteString(".__go_as_any();\n")
+			out.WriteString("        if let Some(typed_val) = any_val.downcast_ref::<")
+			out.WriteString(handleType)
+			out.WriteString(">() {\n")
+			out.WriteString("            (typed_val.clone(), true)\n")
+			out.WriteString("        } else {\n")
+			out.WriteString("            (")
+			writePointerHandleAssertionNone(out, pointeeRustType)
+			out.WriteString(", false)\n")
+			out.WriteString("        }\n")
+		} else {
+			out.WriteString("        let val = ")
+			writeTypeAssertionInputClone(out, e.X)
+			out.WriteString(";\n")
+			out.WriteString("        let guard = val")
+			WriteBorrowMethod(out, false)
+			out.WriteString(";\n")
+			out.WriteString("        if let Some(ref any_val) = *guard {\n")
+			out.WriteString("            if let Some(typed_val) = ")
+			writeTraitObjectBoxDowncast(out, sourceTrait, handleType)
+			out.WriteString(" {\n")
+			out.WriteString("                (typed_val.clone(), true)\n")
+			out.WriteString("            } else {\n")
+			out.WriteString("                (")
+			writePointerHandleAssertionNone(out, pointeeRustType)
+			out.WriteString(", false)\n")
+			out.WriteString("            }\n")
+			out.WriteString("        } else {\n")
+			out.WriteString("            (")
+			writePointerHandleAssertionNone(out, pointeeRustType)
+			out.WriteString(", false)\n")
+			out.WriteString("        }\n")
+		}
+		out.WriteString("    })")
+		return
+	}
+
+	out.WriteString("({\n")
+	out.WriteString("        let val = ")
+	writeTypeAssertionInputClone(out, e.X)
+	out.WriteString(";\n")
+	out.WriteString("        let guard = val")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString("        if let Some(ref any_val) = *guard {\n")
+	out.WriteString("            if let Some(typed_val) = any_val.downcast_ref::<")
+	out.WriteString(handleType)
+	out.WriteString(">() {\n")
+	out.WriteString("                (typed_val.clone(), true)\n")
+	out.WriteString("            } else {\n")
+	out.WriteString("                (")
+	writePointerHandleAssertionNone(out, pointeeRustType)
+	out.WriteString(", false)\n")
+	out.WriteString("            }\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            (")
+	writePointerHandleAssertionNone(out, pointeeRustType)
+	out.WriteString(", false)\n")
+	out.WriteString("        }\n")
+	out.WriteString("    })")
+}
+
 // TranspileTypeAssertionCommaOk generates code for type assertion with comma-ok form
 func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) {
 	if e.Type == nil {
@@ -17488,6 +17789,10 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	}
 	if wrapperType, pointeeRustType, ok := sourceMappedPointerInterfaceAssertionWrapperForAssert(e); ok {
 		writeTraitObjectPointerAssertionCommaOk(out, e, wrapperType, pointeeRustType)
+		return
+	}
+	if star, ok := e.Type.(*ast.StarExpr); ok {
+		writePointerHandleTypeAssertionCommaOk(out, e, pointerAssertionHandleRustType(star), pointerAssertionPointeeRustType(star))
 		return
 	}
 

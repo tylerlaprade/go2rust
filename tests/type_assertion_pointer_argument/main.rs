@@ -37,12 +37,12 @@ pub fn r#box(value: Rc<RefCell<Option<Box<dyn Any>>>>) -> Rc<RefCell<Option<Box<
 }
 
 fn main() {
-    let mut value = r#box(Rc::new(RefCell::new(Some(Box::new(info { name: Rc::new(RefCell::new(Some("alpha".to_string()))), ..Default::default() }) as Box<dyn Any>))));
+    let mut value = r#box(Rc::new(RefCell::new(Some(Box::new(Rc::new(RefCell::new(Some(info { name: Rc::new(RefCell::new(Some("alpha".to_string()))), ..Default::default() }))).clone()) as Box<dyn Any>))));
     println!("{}", format!("{}", (*accept(({
         let val = value.clone();
         let guard = val.borrow();
         if let Some(ref any_val) = *guard {
-            Rc::new(RefCell::new(Some(any_val.downcast_ref::<info>().expect("type assertion failed").clone())))
+            any_val.downcast_ref::<Rc<RefCell<Option<info>>>>().expect("type assertion failed").clone()
         } else {
             panic!("type assertion on nil interface")
         }
