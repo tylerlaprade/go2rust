@@ -804,6 +804,16 @@ func NeedAnyClone() {
 	}
 }
 
+// NeedPanicRecover marks that panic/defer/recover runtime helpers are needed.
+func NeedPanicRecover() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsPanicRecover = true
+		TrackImport("Any")
+		TrackImport("RefCell")
+		trackWrapperImports()
+	}
+}
+
 // NeedGoValueClone marks that we need the GoValueClone helper trait.
 func NeedGoValueClone() {
 	if helpers := activeHelperTracker(); helpers != nil {

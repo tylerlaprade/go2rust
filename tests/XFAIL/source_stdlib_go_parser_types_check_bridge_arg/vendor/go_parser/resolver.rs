@@ -1,11 +1,12 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_any_slice, format_any_variadic, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_any_slice, format_any_variadic, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::interface::*;
 use crate::r#mod::*;
 
 use std::any::Any;
+use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
@@ -130,7 +131,7 @@ impl resolver {
     pub fn open_scope(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         { let __target = self.depth.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         if { let __tmp_x = (*self.depth.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1000; __tmp_x > __tmp_y } {
-        panic!("{}", bailout { pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), msg: Arc::new(Mutex::new(Some("exceeded max scope depth during object resolution".to_string()))), ..Default::default() });
+        std::panic::panic_any(Box::new(bailout { pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), msg: Arc::new(Mutex::new(Some("exceeded max scope depth during object resolution".to_string()))), ..Default::default() }) as Box<dyn Any + Send + Sync>);
     }
         if DEBUG_RESOLVE {
         self.trace(Arc::new(Mutex::new(Some("opening scope @%v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
@@ -169,7 +170,7 @@ impl resolver {
     pub fn declare(&self, decl: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, data: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, scope: Arc<Mutex<Option<go_ast::scope::Scope>>>, kind: Arc<Mutex<Option<go_ast::scope::ObjKind>>>, idents: Arc<Mutex<Option<Vec<Arc<Mutex<Option<go_ast::r#mod::Ident>>>>>>>) {
         { let __range_holder = idents.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for ident in __range_values.iter() {
         if { let __nil_target = (*ident.lock().unwrap().as_ref().unwrap()).obj.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
-        panic!("{}: identifier {} already declared or resolved", (*{ let __recv = ident.clone(); let __recv_ptr: *const go_ast::r#mod::Ident = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_ast::r#mod::Ident }; let __result = unsafe { &*__recv_ptr }.pos(); __result }.lock().unwrap().as_ref().unwrap()), (*{ let __field = (*ident.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone());
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{}: identifier {} already declared or resolved", (*{ let __recv = ident.clone(); let __recv_ptr: *const go_ast::r#mod::Ident = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_ast::r#mod::Ident }; let __result = unsafe { &*__recv_ptr }.pos(); __result }.lock().unwrap().as_ref().unwrap()), (*{ let __field = (*ident.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     }
         let mut obj = go_ast::new_obj(Arc::new(Mutex::new(Some({ let __arg_holder = kind.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*ident.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
                 // remember the corresponding declaration for redeclaration
@@ -272,7 +273,7 @@ impl resolver {
     /// identifiers.
     pub fn resolve(&mut self, ident: Arc<Mutex<Option<go_ast::r#mod::Ident>>>, collectUnresolved: Arc<Mutex<Option<bool>>>) {
         if { let __nil_target = (*ident.lock().unwrap().as_ref().unwrap()).obj.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
-        panic!("{}", (*self.sprintf(Arc::new(Mutex::new(Some("%v: identifier %s already declared or resolved".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __v = { let __recv = ident.clone(); let __recv_ptr: *const go_ast::r#mod::Ident = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_ast::r#mod::Ident }; let __result = unsafe { &*__recv_ptr }.pos(); __result }; let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>, Box::new({ let __selector_holder = (*ident.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap()));
+        std::panic::panic_any(Box::new({ let __v = self.sprintf(Arc::new(Mutex::new(Some("%v: identifier %s already declared or resolved".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __v = { let __recv = ident.clone(); let __recv_ptr: *const go_ast::r#mod::Ident = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_ast::r#mod::Ident }; let __result = unsafe { &*__recv_ptr }.pos(); __result }; let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>, Box::new({ let __selector_holder = (*ident.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>])))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     }
                 // '_' should never refer to existing declarations, because it has special
                 // handling in the spec.
@@ -362,10 +363,13 @@ impl resolver {
     pub fn visit(&mut self, node: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Node + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn go_ast::walk::Visitor + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if DEBUG_RESOLVE && (*node.lock().unwrap()).is_some() {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if DEBUG_RESOLVE && (*node.lock().unwrap()).is_some() {
         self.trace(Arc::new(Mutex::new(Some("node %T@%v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = node.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __v = (*node.lock().unwrap().as_ref().unwrap()).pos(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>]))));
     }
-        {
+            {
     let _ts_subject = node.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
@@ -676,7 +680,7 @@ impl resolver {
         { let __method_arg0 = Arc::new(Mutex::new(Some(Box::new(n.clone()) as Box<dyn Any + Send + Sync>))); let __method_arg1 = Arc::new(Mutex::new(None)); let __method_arg2 = { let __field = self.pkg_scope.clone(); __field }; let __method_arg3 = Arc::new(Mutex::new(Some(go_ast::scope::ObjKind(Arc::new(Mutex::new(Some(go_ast::FUN as i32))))))); self.declare(__method_arg0, __method_arg1, __method_arg2, __method_arg3, Arc::new(Mutex::new(Some(vec![{ let __field = (*n.lock().unwrap().as_ref().unwrap()).name.clone(); __field }])))) };
     };
     } else {
-        let n = node.clone();
+        let n = _ts_subject.clone();
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -686,46 +690,59 @@ impl resolver {
     };
     }
     }
-                // Expressions.
-                // Note: don't try to resolve n.Sel, as we don't support qualified
-                // resolution.
-                // See go.dev/issue/45160: try to resolve composite lit keys, but don't
-                // collect them as unresolved if resolution failed. This replicates
-                // existing behavior when resolving during parsing.
-                // Statements
-                // add to list of unresolved targets
-                // The scope below reproduces some unnecessary behavior of the parser,
-                // opening an extra scope in case this is a type switch. It's not needed
-                // for expression switches.
-                // TODO: remove this once we've matched the parser resolution exactly.
-                // s.Body consists only of case clauses, so does not get its own
-                // scope.
-                // as for switch statements, select statement bodies don't get their own
-                // scope.
-                // Note: we can't exactly match the behavior of object resolution
-                // during the parsing pass here, as it uses the position of the RANGE
-                // token for the RHS OpPos. That information is not contained within
-                // the AST.
-                // TODO(rFindley): this walkLHS reproduced the parser resolution, but
-                // is it necessary? By comparison, for a normal AssignStmt we don't
-                // walk the LHS in case there is an invalid identifier list.
-                // Declarations
-                // Go spec: The scope of a type identifier declared inside a function begins
-                // at the identifier in the TypeSpec and ends at the end of the innermost
-                // containing block.
-                // Open the function scope.
-                // Type parameters are walked normally: they can reference each other, and
-                // can be referenced by normal parameters.
-                // TODO(rFindley): need to address receiver type parameters.
-                // Resolve and declare parameters in a specific order to get duplicate
-                // declaration errors in the correct location.
-        {
+                        // Expressions.
+                        // Note: don't try to resolve n.Sel, as we don't support qualified
+                        // resolution.
+                        // See go.dev/issue/45160: try to resolve composite lit keys, but don't
+                        // collect them as unresolved if resolution failed. This replicates
+                        // existing behavior when resolving during parsing.
+                        // Statements
+                        // add to list of unresolved targets
+                        // The scope below reproduces some unnecessary behavior of the parser,
+                        // opening an extra scope in case this is a type switch. It's not needed
+                        // for expression switches.
+                        // TODO: remove this once we've matched the parser resolution exactly.
+                        // s.Body consists only of case clauses, so does not get its own
+                        // scope.
+                        // as for switch statements, select statement bodies don't get their own
+                        // scope.
+                        // Note: we can't exactly match the behavior of object resolution
+                        // during the parsing pass here, as it uses the position of the RANGE
+                        // token for the RHS OpPos. That information is not contained within
+                        // the AST.
+                        // TODO(rFindley): this walkLHS reproduced the parser resolution, but
+                        // is it necessary? By comparison, for a normal AssignStmt we don't
+                        // walk the LHS in case there is an invalid identifier list.
+                        // Declarations
+                        // Go spec: The scope of a type identifier declared inside a function begins
+                        // at the identifier in the TypeSpec and ends at the end of the innermost
+                        // containing block.
+                        // Open the function scope.
+                        // Type parameters are walked normally: they can reference each other, and
+                        // can be referenced by normal parameters.
+                        // TODO(rFindley): need to address receiver type parameters.
+                        // Resolve and declare parameters in a specific order to get duplicate
+                        // declaration errors in the correct location.
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(None));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn walk_func_type(&self, typ: Arc<Mutex<Option<go_ast::r#mod::FuncType>>>) {
@@ -808,7 +825,7 @@ impl resolver {
         { let new_val = (*typ.lock().unwrap().as_ref().unwrap()).indices.clone(); declareExprs = new_val; };;
         { let new_val = { let __append_target = resolveExprs.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*typ.lock().unwrap().as_ref().unwrap()).x.clone()); __append_target.clone() }; resolveExprs = new_val; };;
     } else {
-        let typ = typ.clone();
+        let typ = _ts_subject.clone();
         { let new_val = { let __append_target = resolveExprs.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(typ.clone()); __append_target.clone() }; resolveExprs = new_val; };;
     }
     }
@@ -868,7 +885,10 @@ impl resolver {
     pub fn walk_body(&mut self, body: Arc<Mutex<Option<go_ast::r#mod::BlockStmt>>>) {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*body.lock().unwrap()).is_none() {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*body.lock().unwrap()).is_none() {
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -877,15 +897,28 @@ impl resolver {
         return;
     }
     }
-        self.open_label_scope();
-        let mut r_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
+            self.open_label_scope();
+            let mut r_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         r_defer_captured.close_label_scope();
     }));
-        self.walk_stmts({ let __field = (*body.lock().unwrap().as_ref().unwrap()).list.clone(); __field });
+            self.walk_stmts({ let __field = (*body.lock().unwrap().as_ref().unwrap()).list.clone(); __field });
 
-        // Execute deferred functions
-        while let Some(f) = __defer_stack.pop() {
-            f();
+            // Execute deferred functions
+            while let Some(f) = __defer_stack.pop() {
+                f();
+            }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                ()
+            }
         }
     }
 }

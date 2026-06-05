@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_register_embedded_owner, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
 
 use crate::alias::*;
 use crate::api::*;
@@ -73,6 +73,7 @@ use crate::validtype::*;
 use crate::version::*;
 
 use std::any::Any;
+use std::cell::{RefCell};
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
@@ -150,18 +151,21 @@ impl crate::check::Checker {
 
     let mut inferred: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
 
-                // Don't verify result conditions if there's no error handler installed:
-                // in that case, an error leads to an exit panic and the result value may
-                // be incorrect. But in that case it doesn't matter because callers won't
-                // be able to use it either.
-        if { let __nil_target = (*self.conf.lock().unwrap().as_ref().unwrap()).error.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        // Don't verify result conditions if there's no error handler installed:
+                        // in that case, an error leads to an exit panic and the result value may
+                        // be incorrect. But in that case it doesn't matter because callers won't
+                        // be able to use it either.
+            if { let __nil_target = (*self.conf.lock().unwrap().as_ref().unwrap()).error.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
         let inferred_defer_captured = inferred.clone(); let tparams_defer_captured = tparams.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
         assert(Arc::new(Mutex::new(Some((*inferred_defer_captured.lock().unwrap()).is_none() || { let __tmp_x = ((*inferred_defer_captured.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = ((*tparams_defer_captured.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x == __tmp_y } && !slices::contains::<Vec<Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>>, Box<dyn Type + Send + Sync>>(inferred_defer_captured.clone(), Arc::new(Mutex::new(None)))))));
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
     }
-        if TRACE_INFERENCE {
+            if TRACE_INFERENCE {
         self.dump(Arc::new(Mutex::new(Some("== infer : %s%s \u{279e} %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(tparams.clone()) as Box<dyn Any + Send + Sync>, Box::new(params.clone()) as Box<dyn Any + Send + Sync>, Box::new(targs.clone()) as Box<dyn Any + Send + Sync>]))));
         let mut check_defer_captured = self.clone(); let inferred_defer_captured = inferred.clone(); let tparams_defer_captured = tparams.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
@@ -169,26 +173,26 @@ impl crate::check::Checker {
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
     }
-                // aligned with rename print below
-                // There must be at least one type parameter, and no more type arguments than type parameters.
-        let mut n = Arc::new(Mutex::new(Some((*tparams.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)));
-        assert(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } && { let __tmp_x = ((*targs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); __tmp_x <= __tmp_y }))));
-                // Parameters and arguments must match in number.
-        assert(Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __recv = params.clone(); let __recv_ptr: *const crate::tuple::Tuple = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::tuple::Tuple }; let __result = unsafe { &*__recv_ptr }.len(); __result } as i32); let __tmp_y = ((*args.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x == __tmp_y }))));
-                // If we already have all type arguments, we're done.
-        if { let __tmp_x = ((*targs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); __tmp_x == __tmp_y } && !slices::contains::<Vec<Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>>, Box<dyn Type + Send + Sync>>(targs.clone(), Arc::new(Mutex::new(None))) {
+                        // aligned with rename print below
+                        // There must be at least one type parameter, and no more type arguments than type parameters.
+            let mut n = Arc::new(Mutex::new(Some((*tparams.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)));
+            assert(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } && { let __tmp_x = ((*targs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); __tmp_x <= __tmp_y }))));
+                        // Parameters and arguments must match in number.
+            assert(Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __recv = params.clone(); let __recv_ptr: *const crate::tuple::Tuple = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::tuple::Tuple }; let __result = unsafe { &*__recv_ptr }.len(); __result } as i32); let __tmp_y = ((*args.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x == __tmp_y }))));
+                        // If we already have all type arguments, we're done.
+            if { let __tmp_x = ((*targs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); __tmp_x == __tmp_y } && !slices::contains::<Vec<Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>>, Box<dyn Type + Send + Sync>>(targs.clone(), Arc::new(Mutex::new(None))) {
         {
         { let new_val = targs.lock().unwrap().as_ref().unwrap().clone(); *inferred.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return inferred;
+        return inferred.clone();
     }
     }
-                // If we have invalid (ordinary) arguments, an error was reported before.
-                // Avoid additional inference errors and exit early (go.dev/issue/60434).
-        { let __range_holder = args.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for arg in __range_values.iter() {
+                        // If we have invalid (ordinary) arguments, an error was reported before.
+                        // Avoid additional inference errors and exit early (go.dev/issue/60434).
+            { let __range_holder = args.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for arg in __range_values.iter() {
         if { let __tmp_x = { let __selector_holder = (*arg.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); __tmp_x == __tmp_y } {
         {
         *inferred.lock().unwrap() = None;;
@@ -196,45 +200,45 @@ impl crate::check::Checker {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return inferred;
+        return inferred.clone();
     }
     }
     } }
-                // Make sure we have a "full" list of type arguments, some of which may
-                // be nil (unknown). Make a copy so as to not clobber the incoming slice.
-        if { let __tmp_x = ((*targs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); __tmp_x < __tmp_y } {
+                        // Make sure we have a "full" list of type arguments, some of which may
+                        // be nil (unknown). Make a copy so as to not clobber the incoming slice.
+            if { let __tmp_x = ((*targs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); __tmp_x < __tmp_y } {
         let mut targs2: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>>>>> = Arc::new(Mutex::new(Some(vec![Default::default(); ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize])));
         { let _src = { let __copy_src_holder = targs.clone(); let __copy_src_guard = __copy_src_holder.lock().unwrap(); __copy_src_guard.as_ref().cloned().unwrap_or_default() }; let _n = std::cmp::min((*targs2.lock().unwrap().as_ref().unwrap()).len(), _src.len()); for _i in 0.._n { (*targs2.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
         { let new_val = targs2.clone(); targs = new_val; };
     }
-                // len(targs) == n
-                // Continue with the type arguments we have. Avoid matching generic
-                // parameters that already have type arguments against function arguments:
-                // It may fail because matching uses type identity while parameter passing
-                // uses assignment rules. Instantiate the parameter list with the type
-                // arguments we have, and continue with that parameter list.
-                // Substitute type arguments for their respective type parameters in params,
-                // if any. Note that nil targs entries are ignored by check.subst.
-                // We do this for better error messages; it's not needed for correctness.
-                // For instance, given:
-                //
-                //   func f[P, Q any](P, Q) {}
-                //
-                //   func _(s string) {
-                //           f[int](s, s) // ERROR
-                //   }
-                //
-                // With substitution, we get the error:
-                //   "cannot use s (variable of type string) as int value in argument to f[int]"
-                //
-                // Without substitution we get the (worse) error:
-                //   "type string of s does not match inferred type int for P"
-                // even though the type int was provided (not inferred) for P.
-                //
-                // TODO(gri) We might be able to finesse this in the error message reporting
-                //           (which only happens in case of an error) and then avoid doing
-                //           the substitution (which always happens).
-        if { let __tmp_x = { let __recv = params.clone(); let __recv_ptr: *const crate::tuple::Tuple = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::tuple::Tuple }; let __result = unsafe { &*__recv_ptr }.len(); __result }; let __tmp_y = 0; __tmp_x > __tmp_y } {
+                        // len(targs) == n
+                        // Continue with the type arguments we have. Avoid matching generic
+                        // parameters that already have type arguments against function arguments:
+                        // It may fail because matching uses type identity while parameter passing
+                        // uses assignment rules. Instantiate the parameter list with the type
+                        // arguments we have, and continue with that parameter list.
+                        // Substitute type arguments for their respective type parameters in params,
+                        // if any. Note that nil targs entries are ignored by check.subst.
+                        // We do this for better error messages; it's not needed for correctness.
+                        // For instance, given:
+                        //
+                        //   func f[P, Q any](P, Q) {}
+                        //
+                        //   func _(s string) {
+                        //           f[int](s, s) // ERROR
+                        //   }
+                        //
+                        // With substitution, we get the error:
+                        //   "cannot use s (variable of type string) as int value in argument to f[int]"
+                        //
+                        // Without substitution we get the (worse) error:
+                        //   "type string of s does not match inferred type int for P"
+                        // even though the type int was provided (not inferred) for P.
+                        //
+                        // TODO(gri) We might be able to finesse this in the error message reporting
+                        //           (which only happens in case of an error) and then avoid doing
+                        //           the substitution (which always happens).
+            if { let __tmp_x = { let __recv = params.clone(); let __recv_ptr: *const crate::tuple::Tuple = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::tuple::Tuple }; let __result = unsafe { &*__recv_ptr }.len(); __result }; let __tmp_y = 0; __tmp_x > __tmp_y } {
         let mut smap = make_subst_map(tparams.clone(), targs.clone());
         { let new_val = ({
         let val = { let __method_arg0 = Arc::new(Mutex::new(Some({ let __arg_holder = nopos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))); let __method_arg1 = Arc::new(Mutex::new(Some(Box::new(crate::tuple::TuplePtr(params.clone())) as Box<dyn Type + Send + Sync>))); let __method_arg2 = smap.clone(); let __method_arg3 = Arc::new(Mutex::new(None)); let __method_arg4 = self.context(); self.subst(__method_arg0, __method_arg1, __method_arg2, __method_arg3, __method_arg4) }.clone();
@@ -250,11 +254,11 @@ impl crate::check::Checker {
         }
     }).clone(); params = new_val; };
     }
-                // Unify parameter and argument types for generic parameters with typed arguments
-                // and collect the indices of generic parameters with untyped arguments.
-                // Terminology: generic parameter = function parameter with a type-parameterized type
-        let mut u = new_unifier(tparams.clone(), targs.clone(), Arc::new(Mutex::new(Some(self.allow_version(Arc::new(Mutex::new(Some({ let __arg_holder = go1_21.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))))));
-        let mut check_closure_clone = (*self).clone(); let err_closure_clone = err.clone(); let reverse_closure_clone = reverse.clone(); let tparams_closure_clone = tparams.clone(); let u_closure_clone = u.clone(); let mut errorf = Arc::new(Mutex::new(Some(Box::new(move |tpar: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, targ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, arg: Arc<Mutex<Option<operand>>>| {
+                        // Unify parameter and argument types for generic parameters with typed arguments
+                        // and collect the indices of generic parameters with untyped arguments.
+                        // Terminology: generic parameter = function parameter with a type-parameterized type
+            let mut u = new_unifier(tparams.clone(), targs.clone(), Arc::new(Mutex::new(Some(self.allow_version(Arc::new(Mutex::new(Some({ let __arg_holder = go1_21.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))))));
+            let mut check_closure_clone = (*self).clone(); let err_closure_clone = err.clone(); let reverse_closure_clone = reverse.clone(); let tparams_closure_clone = tparams.clone(); let u_closure_clone = u.clone(); let mut errorf = Arc::new(Mutex::new(Some(Box::new(move |tpar: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, targ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, arg: Arc<Mutex<Option<operand>>>| {
         let mut targs = { let __recv = u_closure_clone.clone(); let __recv_ptr: *const crate::unify::unifier = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::unify::unifier }; let __result = unsafe { &*__recv_ptr }.inferred(tparams_closure_clone.clone()); __result };
         if (*{ let __seq = { let __seq_holder = targs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.lock().unwrap()).is_none() {
         let mut allFailed = Arc::new(Mutex::new(Some(true)));
@@ -281,24 +285,24 @@ impl crate::check::Checker {
         { let __recv = err_closure_clone.clone(); let __recv_ptr: *mut crate::errors::error_ = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::errors::error_ }; let __result = unsafe { &mut *__recv_ptr }.addf(Arc::new(Mutex::new(Some(Box::new(crate::operand::operandPtr(arg.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some("type %s of %s does not match %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = targ.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __selector_holder = (*arg.lock().unwrap().as_ref().unwrap()).expr.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = tpar.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>])))); __result };
     }
     }) as Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, Arc<Mutex<Option<operand>>>) -> () + Send + Sync>)));
-                // provide a better error message if we can
-                // The first type parameter couldn't be inferred.
-                // If none of them could be inferred, don't try
-                // to provide the inferred type in the error msg.
-                // TODO(gri): pass a poser here, rather than arg.Pos().
-                // CannotInferTypeArgs indicates a failure of inference, though the actual
-                // error may be better attributed to a user-provided type argument (hence
-                // InvalidTypeArg). We can't differentiate these cases, so fall back on
-                // the more general CannotInferTypeArgs.
-                // indices of generic parameters with untyped arguments, for later use
-        let mut untyped: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(None));
-                // --- 1 ---
-                // use information from function arguments
-        if TRACE_INFERENCE {
+                        // provide a better error message if we can
+                        // The first type parameter couldn't be inferred.
+                        // If none of them could be inferred, don't try
+                        // to provide the inferred type in the error msg.
+                        // TODO(gri): pass a poser here, rather than arg.Pos().
+                        // CannotInferTypeArgs indicates a failure of inference, though the actual
+                        // error may be better attributed to a user-provided type argument (hence
+                        // InvalidTypeArg). We can't differentiate these cases, so fall back on
+                        // the more general CannotInferTypeArgs.
+                        // indices of generic parameters with untyped arguments, for later use
+            let mut untyped: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(None));
+                        // --- 1 ---
+                        // use information from function arguments
+            if TRACE_INFERENCE {
         { let __recv = u.clone(); let __recv_ptr: *const crate::unify::unifier = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::unify::unifier }; let __result = unsafe { &*__recv_ptr }.tracef(Arc::new(Mutex::new(Some("== function parameters: %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(params.clone()) as Box<dyn Any + Send + Sync>])))); __result };
         { let __recv = u.clone(); let __recv_ptr: *const crate::unify::unifier = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::unify::unifier }; let __result = unsafe { &*__recv_ptr }.tracef(Arc::new(Mutex::new(Some("-- function arguments : %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(args.clone()) as Box<dyn Any + Send + Sync>])))); __result };
     }
-        { let __range_holder = args.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, arg) in __range_values.iter().enumerate() {
+            { let __range_holder = args.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, arg) in __range_values.iter().enumerate() {
         if { let __tmp_x = { let __selector_holder = (*arg.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); __tmp_x == __tmp_y } {
                 // An error was reported earlier. Ignore this arg
                 // and continue, we may still be able to infer all
@@ -323,7 +327,7 @@ impl crate::check::Checker {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return inferred;
+        return inferred.clone();
     }
     }
     } else {
@@ -346,47 +350,47 @@ impl crate::check::Checker {
     }
     }
     } }
-                // An error was reported earlier. Ignore this arg
-                // and continue, we may still be able to infer all
-                // targs resulting in fewer follow-on errors.
-                // TODO(gri) determine if we still need this check
-                // Function parameters are always typed. Arguments may be untyped.
-                // Collect the indices of untyped arguments and handle them later.
-                // Since default types are all basic (i.e., non-composite) types, an
-                // untyped argument will never match a composite parameter type; the
-                // only parameter type it can possibly match against is a *TypeParam.
-                // Thus, for untyped arguments we only need to look at parameter types
-                // that are single type parameters.
-                // Also, untyped nils don't have a default type and can be ignored.
-                // Finally, it's not possible to have an alias type denoting a type
-                // parameter declared by the current function and use it in the same
-                // function signature; hence we don't need to Unalias before the
-                // .(*TypeParam) type assertion above.
-        if TRACE_INFERENCE {
+                        // An error was reported earlier. Ignore this arg
+                        // and continue, we may still be able to infer all
+                        // targs resulting in fewer follow-on errors.
+                        // TODO(gri) determine if we still need this check
+                        // Function parameters are always typed. Arguments may be untyped.
+                        // Collect the indices of untyped arguments and handle them later.
+                        // Since default types are all basic (i.e., non-composite) types, an
+                        // untyped argument will never match a composite parameter type; the
+                        // only parameter type it can possibly match against is a *TypeParam.
+                        // Thus, for untyped arguments we only need to look at parameter types
+                        // that are single type parameters.
+                        // Also, untyped nils don't have a default type and can be ignored.
+                        // Finally, it's not possible to have an alias type denoting a type
+                        // parameter declared by the current function and use it in the same
+                        // function signature; hence we don't need to Unalias before the
+                        // .(*TypeParam) type assertion above.
+            if TRACE_INFERENCE {
         let mut inferred = { let __recv = u.clone(); let __recv_ptr: *const crate::unify::unifier = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::unify::unifier }; let __result = unsafe { &*__recv_ptr }.inferred(tparams.clone()); __result };
         { let __recv = u.clone(); let __recv_ptr: *const crate::unify::unifier = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::unify::unifier }; let __result = unsafe { &*__recv_ptr }.tracef(Arc::new(Mutex::new(Some("=> %s \u{279e} %s\n".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(tparams.clone()) as Box<dyn Any + Send + Sync>, Box::new(inferred.clone()) as Box<dyn Any + Send + Sync>])))); __result };
     }
-                // --- 2 ---
-                // use information from type parameter constraints
-        if TRACE_INFERENCE {
+                        // --- 2 ---
+                        // use information from type parameter constraints
+            if TRACE_INFERENCE {
         { let __recv = u.clone(); let __recv_ptr: *const crate::unify::unifier = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::unify::unifier }; let __result = unsafe { &*__recv_ptr }.tracef(Arc::new(Mutex::new(Some("== type parameters: %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(tparams.clone()) as Box<dyn Any + Send + Sync>])))); __result };
     }
-                // Unify type parameters with their constraints as long
-                // as progress is being made.
-                //
-                // This is an O(n^2) algorithm where n is the number of
-                // type parameters: if there is progress, at least one
-                // type argument is inferred per iteration, and we have
-                // a doubly nested loop.
-                //
-                // In practice this is not a problem because the number
-                // of type parameters tends to be very small (< 5 or so).
-                // (It should be possible for unification to efficiently
-                // signal newly inferred type arguments; then the loops
-                // here could handle the respective type parameters only,
-                // but that will come at a cost of extra complexity which
-                // may not be worth it.)
-        let mut i = Arc::new(Mutex::new(Some(0)));
+                        // Unify type parameters with their constraints as long
+                        // as progress is being made.
+                        //
+                        // This is an O(n^2) algorithm where n is the number of
+                        // type parameters: if there is progress, at least one
+                        // type argument is inferred per iteration, and we have
+                        // a doubly nested loop.
+                        //
+                        // In practice this is not a problem because the number
+                        // of type parameters tends to be very small (< 5 or so).
+                        // (It should be possible for unification to efficiently
+                        // signal newly inferred type arguments; then the loops
+                        // here could handle the respective type parameters only,
+                        // but that will come at a cost of extra complexity which
+                        // may not be worth it.)
+            let mut i = Arc::new(Mutex::new(Some(0)));
     loop {
         let mut nn = { let __recv = u.clone(); let __recv_ptr: *const crate::unify::unifier = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::unify::unifier }; let __result = unsafe { &*__recv_ptr }.unknowns(); __result };
         if TRACE_INFERENCE {
@@ -431,7 +435,7 @@ impl crate::check::Checker {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return inferred;
+        return inferred.clone();
     }
     }
         } else if single && !(*{ let __field = (*core.lock().unwrap().as_ref().unwrap()).tilde.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
@@ -497,7 +501,7 @@ impl crate::check::Checker {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return inferred;
+        return inferred.clone();
     }
     }
     }
@@ -547,60 +551,60 @@ impl crate::check::Checker {
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-                // If the type parameter's constraint has a core term (i.e., a core type with tilde information)
-                // try to unify the type parameter with that core type.
-                // A type parameter can be unified with its constraint's core type in two cases.
-                // The corresponding type argument tx is known. There are 2 cases:
-                // 1) If the core type has a tilde, per spec requirement for tilde
-                //    elements, the core type is an underlying (literal) type.
-                //    And because of the tilde, the underlying type of tx must match
-                //    against the core type.
-                //    But because unify automatically matches a defined type against
-                //    an underlying literal type, we can simply unify tx with the
-                //    core type.
-                // 2) If the core type doesn't have a tilde, we also must unify tx
-                //    with the core type.
-                // TODO(gri) Type parameters that appear in the constraint and
-                //           for which we have type arguments inferred should
-                //           use those type arguments for a better error message.
-                // The corresponding type argument tx is unknown and the core term
-                // describes a single specific type and no tilde.
-                // In this case the type argument must be that single type; set it.
-                // Independent of whether there is a core term, if the type argument tx is known
-                // it must implement the methods of the type constraint, possibly after unification
-                // of the relevant method signatures, otherwise tx cannot satisfy the constraint.
-                // This unification step may provide additional type arguments.
-                //
-                // Note: The type argument tx may be known but contain references to other type
-                // parameters (i.e., tx may still be parameterized).
-                // In this case the methods of tx don't correctly reflect the final method set
-                // and we may get a missing method error below. Skip this step in this case.
-                //
-                // TODO(gri) We should be able continue even with a parameterized tx if we add
-                // a simplify step beforehand (see below). This will require factoring out the
-                // simplify phase so we can call it from here.
-                // TODO(gri) Now that unification handles interfaces, this code can
-                //           be reduced to calling u.unify(tx, tpar.iface(), assign)
-                //           (which will compare signatures exactly as we do below).
-                //           We leave it as is for now because missingMethod provides
-                //           a failure cause which allows for a better error message.
-                //           Eventually, unify should return an error with cause.
-                // TODO(gri) better error message (see TODO above)
-                // no progress
-        if TRACE_INFERENCE {
+                        // If the type parameter's constraint has a core term (i.e., a core type with tilde information)
+                        // try to unify the type parameter with that core type.
+                        // A type parameter can be unified with its constraint's core type in two cases.
+                        // The corresponding type argument tx is known. There are 2 cases:
+                        // 1) If the core type has a tilde, per spec requirement for tilde
+                        //    elements, the core type is an underlying (literal) type.
+                        //    And because of the tilde, the underlying type of tx must match
+                        //    against the core type.
+                        //    But because unify automatically matches a defined type against
+                        //    an underlying literal type, we can simply unify tx with the
+                        //    core type.
+                        // 2) If the core type doesn't have a tilde, we also must unify tx
+                        //    with the core type.
+                        // TODO(gri) Type parameters that appear in the constraint and
+                        //           for which we have type arguments inferred should
+                        //           use those type arguments for a better error message.
+                        // The corresponding type argument tx is unknown and the core term
+                        // describes a single specific type and no tilde.
+                        // In this case the type argument must be that single type; set it.
+                        // Independent of whether there is a core term, if the type argument tx is known
+                        // it must implement the methods of the type constraint, possibly after unification
+                        // of the relevant method signatures, otherwise tx cannot satisfy the constraint.
+                        // This unification step may provide additional type arguments.
+                        //
+                        // Note: The type argument tx may be known but contain references to other type
+                        // parameters (i.e., tx may still be parameterized).
+                        // In this case the methods of tx don't correctly reflect the final method set
+                        // and we may get a missing method error below. Skip this step in this case.
+                        //
+                        // TODO(gri) We should be able continue even with a parameterized tx if we add
+                        // a simplify step beforehand (see below). This will require factoring out the
+                        // simplify phase so we can call it from here.
+                        // TODO(gri) Now that unification handles interfaces, this code can
+                        //           be reduced to calling u.unify(tx, tpar.iface(), assign)
+                        //           (which will compare signatures exactly as we do below).
+                        //           We leave it as is for now because missingMethod provides
+                        //           a failure cause which allows for a better error message.
+                        //           Eventually, unify should return an error with cause.
+                        // TODO(gri) better error message (see TODO above)
+                        // no progress
+            if TRACE_INFERENCE {
         let mut inferred = { let __recv = u.clone(); let __recv_ptr: *const crate::unify::unifier = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::unify::unifier }; let __result = unsafe { &*__recv_ptr }.inferred(tparams.clone()); __result };
         { let __recv = u.clone(); let __recv_ptr: *const crate::unify::unifier = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::unify::unifier }; let __result = unsafe { &*__recv_ptr }.tracef(Arc::new(Mutex::new(Some("=> %s \u{279e} %s\n".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(tparams.clone()) as Box<dyn Any + Send + Sync>, Box::new(inferred.clone()) as Box<dyn Any + Send + Sync>])))); __result };
     }
-                // --- 3 ---
-                // use information from untyped constants
-        if TRACE_INFERENCE {
+                        // --- 3 ---
+                        // use information from untyped constants
+            if TRACE_INFERENCE {
         { let __recv = u.clone(); let __recv_ptr: *const crate::unify::unifier = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::unify::unifier }; let __result = unsafe { &*__recv_ptr }.tracef(Arc::new(Mutex::new(Some("== untyped arguments: %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(untyped.clone()) as Box<dyn Any + Send + Sync>])))); __result };
     }
-                // Some generic parameters with untyped arguments may have been given a type by now.
-                // Collect all remaining parameters that don't have a type yet and determine the
-                // maximum untyped type for each of those parameters, if possible.
-        let mut maxUntyped: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<crate::typeparam::TypeParam>, Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>>>>> = Arc::new(Mutex::new(Some(BTreeMap::new())));
-        { let __range_holder = untyped.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for index in __range_values.iter().copied() {
+                        // Some generic parameters with untyped arguments may have been given a type by now.
+                        // Collect all remaining parameters that don't have a type yet and determine the
+                        // maximum untyped type for each of those parameters, if possible.
+            let mut maxUntyped: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<crate::typeparam::TypeParam>, Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>>>>> = Arc::new(Mutex::new(Some(BTreeMap::new())));
+            { let __range_holder = untyped.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for index in __range_values.iter().copied() {
         let mut tpar = ({
         let val = (*{ let __recv = params.clone(); let __recv_ptr: *const crate::tuple::Tuple = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::tuple::Tuple }; let __result = unsafe { &*__recv_ptr }.at(Arc::new(Mutex::new(Some(index)))); __result }.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().typ.clone();
         let guard = val.lock().unwrap();
@@ -632,7 +636,7 @@ impl crate::check::Checker {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return inferred;
+        return inferred.clone();
     }
     }
         { let __iface_handle = m.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *max.lock().unwrap() = (*__iface_guard).clone(); };
@@ -640,64 +644,64 @@ impl crate::check::Checker {
         { let __map_key = GoLocalPtrKey::new(tpar.clone()); let __map_value = max.clone(); (*maxUntyped.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     }
     } }
-                // is type parameter (no alias) by construction of untyped
-                // arg corresponding to tpar
-                // maxUntyped contains the maximum untyped type for each type parameter
-                // which doesn't have a type yet. Set the respective default types.
-        for (__range_key, typ) in { let __range_holder = maxUntyped.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+                        // is type parameter (no alias) by construction of untyped
+                        // arg corresponding to tpar
+                        // maxUntyped contains the maximum untyped type for each type parameter
+                        // which doesn't have a type yet. Set the respective default types.
+            for (__range_key, typ) in { let __range_holder = maxUntyped.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         let tpar = __range_key.value();
         let mut d = default(typ.clone());
         assert(Arc::new(Mutex::new(Some(is_typed(d.clone())))));
         { let __recv = u.clone(); let __recv_ptr: *mut crate::unify::unifier = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::unify::unifier }; let __result = unsafe { &mut *__recv_ptr }.set(tpar.clone(), d.clone()); __result };
     }
-                // --- simplify ---
-                // u.inferred(tparams) now contains the incoming type arguments plus any additional type
-                // arguments which were inferred. The inferred non-nil entries may still contain
-                // references to other type parameters found in constraints.
-                // For instance, for [A any, B interface{ []C }, C interface{ *A }], if A == int
-                // was given, unification produced the type list [int, []C, *A]. We eliminate the
-                // remaining type parameters by substituting the type parameters in this type list
-                // until nothing changes anymore.
-        { let new_val = { let __recv = u.clone(); let __recv_ptr: *const crate::unify::unifier = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::unify::unifier }; let __result = unsafe { &*__recv_ptr }.inferred(tparams.clone()); __result }; inferred = new_val; };
-        if DEBUG {
+                        // --- simplify ---
+                        // u.inferred(tparams) now contains the incoming type arguments plus any additional type
+                        // arguments which were inferred. The inferred non-nil entries may still contain
+                        // references to other type parameters found in constraints.
+                        // For instance, for [A any, B interface{ []C }, C interface{ *A }], if A == int
+                        // was given, unification produced the type list [int, []C, *A]. We eliminate the
+                        // remaining type parameters by substituting the type parameters in this type list
+                        // until nothing changes anymore.
+            { let new_val = { let __recv = u.clone(); let __recv_ptr: *const crate::unify::unifier = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::unify::unifier }; let __result = unsafe { &*__recv_ptr }.inferred(tparams.clone()); __result }; inferred = new_val; };
+            if DEBUG {
         { let __range_holder = targs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, targ) in __range_values.iter().enumerate() {
         assert(Arc::new(Mutex::new(Some((*targ.lock().unwrap()).is_none() || { let __left_holder = { let __seq = { let __seq_holder = inferred.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = targ.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; __eq }))));
     } }
     }
-                // The data structure of each (provided or inferred) type represents a graph, where
-                // each node corresponds to a type and each (directed) vertex points to a component
-                // type. The substitution process described above repeatedly replaces type parameter
-                // nodes in these graphs with the graphs of the types the type parameters stand for,
-                // which creates a new (possibly bigger) graph for each type.
-                // The substitution process will not stop if the replacement graph for a type parameter
-                // also contains that type parameter.
-                // For instance, for [A interface{ *A }], without any type argument provided for A,
-                // unification produces the type list [*A]. Substituting A in *A with the value for
-                // A will lead to infinite expansion by producing [**A], [****A], [********A], etc.,
-                // because the graph A -> *A has a cycle through A.
-                // Generally, cycles may occur across multiple type parameters and inferred types
-                // (for instance, consider [P interface{ *Q }, Q interface{ func(P) }]).
-                // We eliminate cycles by walking the graphs for all type parameters. If a cycle
-                // through a type parameter is detected, killCycles nils out the respective type
-                // (in the inferred list) which kills the cycle, and marks the corresponding type
-                // parameter as not inferred.
-                //
-                // TODO(gri) If useful, we could report the respective cycle as an error. We don't
-                //           do this now because type inference will fail anyway, and furthermore,
-                //           constraints with cycles of this kind cannot currently be satisfied by
-                //           any user-supplied type. But should that change, reporting an error
-                //           would be wrong.
-        kill_cycles(tparams.clone(), inferred.clone());
-                // dirty tracks the indices of all types that may still contain type parameters.
-                // We know that nil type entries and entries corresponding to provided (non-nil)
-                // type arguments are clean, so exclude them from the start.
-        let mut dirty: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(None));
-        { let __range_holder = inferred.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, typ) in __range_values.iter().enumerate() {
+                        // The data structure of each (provided or inferred) type represents a graph, where
+                        // each node corresponds to a type and each (directed) vertex points to a component
+                        // type. The substitution process described above repeatedly replaces type parameter
+                        // nodes in these graphs with the graphs of the types the type parameters stand for,
+                        // which creates a new (possibly bigger) graph for each type.
+                        // The substitution process will not stop if the replacement graph for a type parameter
+                        // also contains that type parameter.
+                        // For instance, for [A interface{ *A }], without any type argument provided for A,
+                        // unification produces the type list [*A]. Substituting A in *A with the value for
+                        // A will lead to infinite expansion by producing [**A], [****A], [********A], etc.,
+                        // because the graph A -> *A has a cycle through A.
+                        // Generally, cycles may occur across multiple type parameters and inferred types
+                        // (for instance, consider [P interface{ *Q }, Q interface{ func(P) }]).
+                        // We eliminate cycles by walking the graphs for all type parameters. If a cycle
+                        // through a type parameter is detected, killCycles nils out the respective type
+                        // (in the inferred list) which kills the cycle, and marks the corresponding type
+                        // parameter as not inferred.
+                        //
+                        // TODO(gri) If useful, we could report the respective cycle as an error. We don't
+                        //           do this now because type inference will fail anyway, and furthermore,
+                        //           constraints with cycles of this kind cannot currently be satisfied by
+                        //           any user-supplied type. But should that change, reporting an error
+                        //           would be wrong.
+            kill_cycles(tparams.clone(), inferred.clone());
+                        // dirty tracks the indices of all types that may still contain type parameters.
+                        // We know that nil type entries and entries corresponding to provided (non-nil)
+                        // type arguments are clean, so exclude them from the start.
+            let mut dirty: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(None));
+            { let __range_holder = inferred.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, typ) in __range_values.iter().enumerate() {
         if (*typ.lock().unwrap()).is_some() && ({ let __tmp_x = (i as i32); let __tmp_y = ((*targs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x >= __tmp_y } || (*{ let __seq = { let __seq_holder = targs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.lock().unwrap()).is_none()) {
         { let new_val = { let __append_target = dirty.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(i as i32); __append_target.clone() }; dirty = new_val; };
     }
     } }
-        while { let __tmp_x = ((*dirty.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
+            while { let __tmp_x = ((*dirty.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
         if TRACE_INFERENCE {
         { let __recv = u.clone(); let __recv_ptr: *const crate::unify::unifier = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::unify::unifier }; let __result = unsafe { &*__recv_ptr }.tracef(Arc::new(Mutex::new(Some("-- simplify %s \u{279e} %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(tparams.clone()) as Box<dyn Any + Send + Sync>, Box::new(inferred.clone()) as Box<dyn Any + Send + Sync>])))); __result };
     }
@@ -750,26 +754,26 @@ impl crate::check::Checker {
                 //           type parameters). See the *Signature TODO in subst.
         { let new_val = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = dirty.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[..({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].to_vec() }))); dirty = new_val; };
     }
-                // TODO(gri) Instead of creating a new substMap for each iteration,
-                // provide an update operation for substMaps and only change when
-                // needed. Optimization.
-                // t0 was simplified to t1.
-                // If t0 was a generic function, but the simplified signature t1 does
-                // not contain any type parameters anymore, the function is not generic
-                // anymore. Remove its type parameters. (go.dev/issue/59953)
-                // Note that if t0 was a signature, t1 must be a signature, and t1
-                // can only be a generic signature if it originated from a generic
-                // function argument. Those signatures are never defined types and
-                // thus there is no need to call under below.
-                // TODO(gri) Consider doing this in Checker.subst.
-                //           Then this would fall out automatically here and also
-                //           in instantiation (where we also explicitly nil out
-                //           type parameters). See the *Signature TODO in subst.
-                // Once nothing changes anymore, we may still have type parameters left;
-                // e.g., a constraint with core type *P may match a type parameter Q but
-                // we don't have any type arguments to fill in for *P or Q (go.dev/issue/45548).
-                // Don't let such inferences escape; instead treat them as unresolved.
-        { let __range_holder = inferred.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, typ) in __range_values.iter().enumerate() {
+                        // TODO(gri) Instead of creating a new substMap for each iteration,
+                        // provide an update operation for substMaps and only change when
+                        // needed. Optimization.
+                        // t0 was simplified to t1.
+                        // If t0 was a generic function, but the simplified signature t1 does
+                        // not contain any type parameters anymore, the function is not generic
+                        // anymore. Remove its type parameters. (go.dev/issue/59953)
+                        // Note that if t0 was a signature, t1 must be a signature, and t1
+                        // can only be a generic signature if it originated from a generic
+                        // function argument. Those signatures are never defined types and
+                        // thus there is no need to call under below.
+                        // TODO(gri) Consider doing this in Checker.subst.
+                        //           Then this would fall out automatically here and also
+                        //           in instantiation (where we also explicitly nil out
+                        //           type parameters). See the *Signature TODO in subst.
+                        // Once nothing changes anymore, we may still have type parameters left;
+                        // e.g., a constraint with core type *P may match a type parameter Q but
+                        // we don't have any type arguments to fill in for *P or Q (go.dev/issue/45548).
+                        // Don't let such inferences escape; instead treat them as unresolved.
+            { let __range_holder = inferred.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, typ) in __range_values.iter().enumerate() {
         if (*typ.lock().unwrap()).is_none() || is_parameterized(tparams.clone(), typ.clone()) {
         let mut obj = (*{ let __seq = { let __seq_holder = tparams.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.lock().unwrap().as_ref().unwrap()).obj.clone();
         { let __recv = err.clone(); let __recv_ptr: *mut crate::errors::error_ = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::errors::error_ }; let __result = unsafe { &mut *__recv_ptr }.addf(posn.clone(), Arc::new(Mutex::new(Some("cannot infer %s (declared at %v)".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __selector_holder = (*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>, Box::new({ let __selector_holder = (*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>])))); __result };
@@ -779,17 +783,30 @@ impl crate::check::Checker {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return inferred;
+        return inferred.clone();
     }
     }
     } }
-        {
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return inferred;
+        return inferred.clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                inferred.clone()
+            }
+        }
     }
 
     /// renameTParams renames the type parameters in the given type such that each type
@@ -852,8 +869,11 @@ impl tpWalker {
 
     let mut res: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
 
-                // detect cycles
-        {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        // detect cycles
+            {
         let (mut x, mut ok) = { let __map = { let __map_holder = self.seen.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(typ.clone()))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Arc::new(Mutex::new(Some(false))), false) } };;
         if ok {
             {
@@ -866,13 +886,13 @@ impl tpWalker {
     };
         }
     }
-        { let __map_key = GoLocalPtrKey::new(typ.clone()); let __map_value = Arc::new(Mutex::new(Some(false))); (*self.seen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
-        let res_defer_captured = res.clone(); let typ_defer_captured = typ.clone(); let mut w_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
+            { let __map_key = GoLocalPtrKey::new(typ.clone()); let __map_value = Arc::new(Mutex::new(Some(false))); (*self.seen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+            let res_defer_captured = res.clone(); let typ_defer_captured = typ.clone(); let mut w_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
         { let __map_key = GoLocalPtrKey::new(typ_defer_captured.clone()); let __map_value = Arc::new(Mutex::new(Some((*res_defer_captured.lock().unwrap().as_ref().unwrap()).clone()))); (*w_defer_captured.seen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
-        {
+            {
     let _ts_subject = typ.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
@@ -1028,24 +1048,24 @@ impl tpWalker {
         return (*res.lock().unwrap().as_ref().unwrap());
     };
     } else {
-        let t = typ.clone();
-        panic!("unexpected {}", format!("{}", (*typ.lock().unwrap().as_ref().unwrap())));;
+        let t = _ts_subject.clone();
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("unexpected {}", __go_type_name(typ.lock().unwrap().as_ref().unwrap()))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);;
     }
     }
-                // nothing to do
-                // This case does not occur from within isParameterized
-                // because tuples only appear in signatures where they
-                // are handled explicitly. But isParameterized is also
-                // called by Checker.callExpr with a function result tuple
-                // if instantiation failed (go.dev/issue/59890).
-                // t.tparams may not be nil if we are looking at a signature
-                // of a generic function type (or an interface method) that is
-                // part of the type we're testing. We don't care about these type
-                // parameters.
-                // Similarly, the receiver of a method may declare (rather than
-                // use) type parameters, we don't care about those either.
-                // Thus, we only need to look at the input and result parameters.
-        {
+                        // nothing to do
+                        // This case does not occur from within isParameterized
+                        // because tuples only appear in signatures where they
+                        // are handled explicitly. But isParameterized is also
+                        // called by Checker.callExpr with a function result tuple
+                        // if instantiation failed (go.dev/issue/59890).
+                        // t.tparams may not be nil if we are looking at a signature
+                        // of a generic function type (or an interface method) that is
+                        // part of the type we're testing. We don't care about these type
+                        // parameters.
+                        // Similarly, the receiver of a method may declare (rather than
+                        // use) type parameters, we don't care about those either.
+                        // Thus, we only need to look at the input and result parameters.
+            {
         { let new_val = false; *res.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -1053,6 +1073,19 @@ impl tpWalker {
         }
         return (*res.lock().unwrap().as_ref().unwrap());
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                (*res.lock().unwrap().as_ref().unwrap())
+            }
+        }
     }
 
     pub fn var_list(&mut self, list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Var>>>>>>>) -> bool {
@@ -1070,8 +1103,11 @@ impl cycleFinder {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
         let mut typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> = Arc::new(Mutex::new(typ.lock().unwrap().as_ref().map(|__v| Type::__go_clone_box_type_(__v.as_ref()))));
-        { let __iface_handle = unalias(typ.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
-        if { let __map = { let __map_holder = self.seen.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(typ.clone()))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| false) } {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            { let __iface_handle = unalias(typ.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+            if { let __map = { let __map_holder = self.seen.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(typ.clone()))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| false) } {
                 // We have seen typ before. If it is one of the type parameters
                 // in w.tparams, iterative substitution will lead to infinite expansion.
                 // Nil out the corresponding type which effectively kills the cycle.
@@ -1109,17 +1145,17 @@ impl cycleFinder {
         return;
     }
     }
-                // We have seen typ before. If it is one of the type parameters
-                // in w.tparams, iterative substitution will lead to infinite expansion.
-                // Nil out the corresponding type which effectively kills the cycle.
-                // cycle through tpar
-                // If we don't have one of our type parameters, the cycle is due
-                // to an ordinary recursive type and we can just stop walking it.
-        { let __map_key = GoLocalPtrKey::new(typ.clone()); let __map_value = Arc::new(Mutex::new(Some(true))); (*self.seen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
-        let typ_defer_captured = typ.clone(); let mut w_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
+                        // We have seen typ before. If it is one of the type parameters
+                        // in w.tparams, iterative substitution will lead to infinite expansion.
+                        // Nil out the corresponding type which effectively kills the cycle.
+                        // cycle through tpar
+                        // If we don't have one of our type parameters, the cycle is due
+                        // to an ordinary recursive type and we can just stop walking it.
+            { let __map_key = GoLocalPtrKey::new(typ.clone()); let __map_value = Arc::new(Mutex::new(Some(true))); (*self.seen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+            let typ_defer_captured = typ.clone(); let mut w_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         { let __map_handle = w_defer_captured.seen.clone(); let mut __map_guard = __map_handle.lock().unwrap(); __map_guard.as_mut().unwrap().remove(&GoLocalPtrKey::new(typ_defer_captured.clone())); };
     }));
-        {
+            {
     let _ts_subject = typ.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
@@ -1189,14 +1225,27 @@ impl cycleFinder {
         }
     };
     } else {
-        let t = typ.clone();
-        panic!("unexpected {}", format!("{}", (*typ.lock().unwrap().as_ref().unwrap())));;
+        let t = _ts_subject.clone();
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("unexpected {}", __go_type_name(typ.lock().unwrap().as_ref().unwrap()))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);;
     }
     }
 
-        // Execute deferred functions
-        while let Some(f) = __defer_stack.pop() {
-            f();
+            // Execute deferred functions
+            while let Some(f) = __defer_stack.pop() {
+                f();
+            }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                ()
+            }
         }
     }
 

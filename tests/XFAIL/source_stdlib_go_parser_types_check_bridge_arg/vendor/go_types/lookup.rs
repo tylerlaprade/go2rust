@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_register_embedded_owner, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
 
 use crate::alias::*;
 use crate::api::*;
@@ -381,7 +381,7 @@ const field: i32 = 7;
         } else if _switch_val == (7) {
             { let new_val = (*self.sprintf(Arc::new(Mutex::new(Some("(%s.%s is a field, not a method)".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = V.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __v = { let __recv = m.clone(); let __recv_ptr: *const crate::object::Func = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::Func }; let __result = unsafe { &*__recv_ptr }.name(); __result }; let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap()).clone(); *cause.lock().unwrap() = Some(new_val); };
         } else {
-            panic!("unreachable");
+            std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
         }
     };
         break;
@@ -531,7 +531,7 @@ pub fn lookup_field_or_method(T: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>
     let mut indirect: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
 
     if (*T.lock().unwrap()).is_none() {
-        panic!("LookupFieldOrMethod on nil type");
+        std::panic::panic_any(Box::new("LookupFieldOrMethod on nil type".to_string()) as Box<dyn Any + Send + Sync>);
     }
     lookup_field_or_method_1(T.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = addressable.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), pkg.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(false))))
 }
@@ -587,7 +587,7 @@ pub fn lookup_field_or_method_1(T: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>
             return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)), false);;
         }
     };
-            return (obj, index, (*indirect.lock().unwrap().as_ref().unwrap()));;
+            return (obj.clone(), index.clone(), (*indirect.lock().unwrap().as_ref().unwrap()));;
         }
     };
         }
@@ -628,7 +628,7 @@ pub fn lookup_field_or_method_1(T: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>
     }
     }
         // accept fields (variables) only
-    return (obj, index, (*indirect.lock().unwrap().as_ref().unwrap()));
+    return (obj.clone(), index.clone(), (*indirect.lock().unwrap().as_ref().unwrap()));
 }
 
 /// lookupFieldOrMethodImpl is the implementation of lookupFieldOrMethod.
@@ -652,7 +652,7 @@ pub fn lookup_field_or_method_impl(T: Arc<Mutex<Option<Box<dyn Type + Send + Syn
 
         // WARNING: The code in this function is extremely subtle - do not modify casually!
     if { let __tmp_x = (*name.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "_".to_string(); __tmp_x == __tmp_y } {
-        return (obj, index, (*indirect.lock().unwrap().as_ref().unwrap()));
+        return (obj.clone(), index.clone(), (*indirect.lock().unwrap().as_ref().unwrap()));
     }
 
         // blank fields/methods are never found
@@ -678,7 +678,7 @@ pub fn lookup_field_or_method_impl(T: Arc<Mutex<Option<Box<dyn Type + Send + Syn
         }
     });;
         if ok {
-            return (obj, index, (*indirect.lock().unwrap().as_ref().unwrap()));;
+            return (obj.clone(), index.clone(), (*indirect.lock().unwrap().as_ref().unwrap()));;
         }
     }
     }
@@ -843,7 +843,7 @@ pub fn lookup_field_or_method_impl(T: Arc<Mutex<Option<Box<dyn Type + Send + Syn
     }
                 // determine if method has a pointer receiver
                 // pointer/addressable receiver required
-        return (obj, index, (*indirect.lock().unwrap().as_ref().unwrap()));
+        return (obj.clone(), index.clone(), (*indirect.lock().unwrap().as_ref().unwrap()));
     }
 
                 // found a potential match
@@ -1013,7 +1013,7 @@ pub fn deref(typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> (Arc<Mutex
         if (*p.lock().unwrap()).is_some() {
             if { let __iface_handle = { let __field = (*p.lock().unwrap().as_ref().unwrap()).base.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
         if DEBUG {
-        panic!("pointer with nil base type (possibly due to an invalid cyclic declaration)");
+        std::panic::panic_any(Box::new("pointer with nil base type (possibly due to an invalid cyclic declaration)".to_string()) as Box<dyn Any + Send + Sync>);
     }
         return (Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr({ let __seq = { let __seq_holder = Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(INVALID as i32) as usize].clone() }.clone())) as Box<dyn Type + Send + Sync>))), true);
     };
@@ -1297,7 +1297,7 @@ const field: i32 = 7;
         } else if _switch_val == (7) {
             { let new_val = (*{ let __recv = check.clone(); let __recv_ptr: *const crate::check::Checker = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::check::Checker }; let __result = unsafe { &*__recv_ptr }.sprintf(Arc::new(Mutex::new(Some("(%s.%s is a field, not a method)".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = V.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __v = { let __recv = m.clone(); let __recv_ptr: *const crate::object::Func = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::Func }; let __result = unsafe { &*__recv_ptr }.name(); __result }; let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>])))); __result }.lock().unwrap().as_ref().unwrap()).clone(); *cause.lock().unwrap() = Some(new_val); };
         } else {
-            panic!("unreachable");
+            std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
         }
     };
         break;

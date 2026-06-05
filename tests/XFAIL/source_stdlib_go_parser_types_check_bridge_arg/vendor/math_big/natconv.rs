@@ -22,6 +22,7 @@ use crate::ratmarsh::*;
 use crate::roundingmode_string::*;
 use crate::sqrt::*;
 
+use std::any::Any;
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
@@ -168,7 +169,7 @@ impl crate::nat::nat {
                 // reject invalid bases
         let mut baseOk = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } || !{ let __v = (*fracOk.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = 2; let __tmp_y = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y } && { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 62; __tmp_x <= __tmp_y } || { let __v = (*fracOk.lock().unwrap().as_ref().unwrap()).clone(); __v } && ({ let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x == __tmp_y } || { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8; __tmp_x == __tmp_y } || { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x == __tmp_y } || { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 16; __tmp_x == __tmp_y }))));
         if !{ let __v = (*baseOk.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        panic!("invalid number base {}", { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v });
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("invalid number base {}", { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v })))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     }
                 // prev encodes the previously seen char: it is one
                 // of '_', '0' (a digit), or '.' (anything else). A
@@ -310,7 +311,7 @@ impl crate::nat::nat {
         { let new_val = { let __tmp_x = { let __v = (*dp.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }; *count.lock().unwrap() = Some(new_val); };
     }
                 // 0 <= dp <= count
-        return (res, (*b.lock().unwrap().as_ref().unwrap()), (*count.lock().unwrap().as_ref().unwrap()), err);
+        return (res.clone(), (*b.lock().unwrap().as_ref().unwrap()), (*count.lock().unwrap().as_ref().unwrap()), err.clone());
     }
 
     /// utoa converts x to an ASCII representation in the given base;
@@ -322,7 +323,7 @@ impl crate::nat::nat {
     /// itoa is like utoa but it prepends a '-' if neg && x != 0.
     pub fn itoa(&self, neg: Arc<Mutex<Option<bool>>>, base: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Vec<u8>>>> {
         if { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x < __tmp_y } || { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 62; __tmp_x > __tmp_y } {
-        panic!("invalid base");
+        std::panic::panic_any(Box::new("invalid base".to_string()) as Box<dyn Any + Send + Sync>);
     }
                 // x == 0
         if { let __tmp_x = ({ let __slice_holder = self.0.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
@@ -438,7 +439,7 @@ impl crate::nat::nat {
         if { let __tmp_x = (*{ let __seq = { let __seq_holder = table.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*index.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.nbits.lock().unwrap().as_ref().unwrap()); let __tmp_y = maxLength; __tmp_x >= __tmp_y } && { let __tmp_x = (*{ let __seq = { let __seq_holder = table.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*index.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.bbb.lock().unwrap().as_ref().unwrap()).cmp(Arc::new(Mutex::new(Some(__self.clone())))); let __tmp_y = 0; __tmp_x >= __tmp_y } {
         { let mut guard = index.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
         if { let __tmp_x = { let __v = (*index.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x < __tmp_y } {
-        panic!("internal inconsistency");
+        std::panic::panic_any(Box::new("internal inconsistency".to_string()) as Box<dyn Any + Send + Sync>);
     }
     }
 
@@ -530,7 +531,7 @@ pub fn max_pow(b: Arc<Mutex<Option<Word>>>) -> (Arc<Mutex<Option<crate::arith::W
 
         // p == b**n && p <= max
         // p == b**n && p <= _M
-    return (p, (*n.lock().unwrap().as_ref().unwrap()));
+    return (p.clone(), (*n.lock().unwrap().as_ref().unwrap()));
 }
 
 /// pow returns x**n for n > 0, and 1 otherwise.
@@ -548,7 +549,7 @@ pub fn pow(mut x: Arc<Mutex<Option<Word>>>, mut n: Arc<Mutex<Option<i32>>>) -> A
         { let __rhs = (*({ let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }).0.lock().unwrap().as_ref().unwrap()).clone(); let mut guard = x.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() * __rhs); };
         { let __rhs = 1; let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() >> __rhs); };
     }
-    p
+    p.clone()
 }
 
 /// construct table of powers of bb*leafSize to use in subdivisions.

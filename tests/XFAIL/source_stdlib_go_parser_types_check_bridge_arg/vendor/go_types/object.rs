@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_register_embedded_owner, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
 
 use crate::alias::*;
 use crate::api::*;
@@ -943,7 +943,7 @@ impl object {
     }
 
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        panic!("abstract");
+        std::panic::panic_any(Box::new("abstract".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     pub fn order(&self) -> u32 {
@@ -2045,7 +2045,7 @@ impl TypeName {
         }
     });
     if _ts_is_nil {
-        let t = (*self.object.lock().unwrap().as_ref().unwrap()).typ.clone();
+        let t = _ts_subject.clone();
         return false;;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::basic::BasicPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::basic::BasicPtr>()).unwrap().0.clone();
@@ -2060,7 +2060,7 @@ impl TypeName {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::typeparam::TypeParamPtr>()).unwrap().0.clone();
         return { let __peer = (*t.lock().unwrap().as_ref().unwrap()).obj.clone(); let __peer_guard = __peer.lock().unwrap(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); !__eq };;
     } else {
-        let t = (*self.object.lock().unwrap().as_ref().unwrap()).typ.clone();
+        let t = _ts_subject.clone();
         return true;;
     }
     }
@@ -4613,8 +4613,8 @@ pub fn write_object(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut obj: Arc<Mutex<Op
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("nil".to_string()); __result };;
         return;;
     } else {
-        let obj = obj.clone();
-        panic!("writeObject({})", format!("{}", (*obj.lock().unwrap().as_ref().unwrap())));;
+        let obj = _ts_subject.clone();
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("writeObject({})", __go_type_name(obj.lock().unwrap().as_ref().unwrap()))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);;
     }
     }
 

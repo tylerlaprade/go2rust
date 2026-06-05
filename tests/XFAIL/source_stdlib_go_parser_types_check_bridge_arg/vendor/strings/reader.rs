@@ -10,6 +10,7 @@ use crate::replace::*;
 use crate::search::*;
 use crate::r#mod::*;
 
+use std::any::Any;
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
@@ -82,7 +83,7 @@ impl Reader {
         { let new_val = -1; *self.prev_rune.lock().unwrap() = Some(new_val); };
         { let new_val = { let _src = (*Arc::new(Mutex::new(Some({ let __s = &((*self.s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (*self.i.clone().lock().unwrap().as_ref().unwrap()) as usize; __s[__low..].to_string() }))).lock().unwrap().as_ref().unwrap()).clone().as_bytes().to_vec(); let _n = std::cmp::min((*b.lock().unwrap().as_ref().unwrap()).len(), _src.len()); for _i in 0.._n { (*b.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) }; let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *n.lock().unwrap() = __moved_val; };
         { let __target = self.i.clone(); let __rhs = (*Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-        return ((*n.lock().unwrap().as_ref().unwrap()), err);
+        return ((*n.lock().unwrap().as_ref().unwrap()), err.clone());
     }
 
     /// ReadAt implements the [io.ReaderAt] interface.
@@ -101,7 +102,7 @@ impl Reader {
         if { let __tmp_x = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x < __tmp_y } {
         { let __rhs_holder = io::EOF().clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
     }
-        return ((*n.lock().unwrap().as_ref().unwrap()), err);
+        return ((*n.lock().unwrap().as_ref().unwrap()), err.clone());
     }
 
     /// ReadByte implements the [io.ByteReader] interface.
@@ -145,7 +146,7 @@ impl Reader {
     }
         { let (__tmp_0, __tmp_1) = unicode_utf8::decode_rune_in_string(Arc::new(Mutex::new(Some({ let __s = &((*self.s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (*self.i.clone().lock().unwrap().as_ref().unwrap()) as usize; __s[__low..].to_string() })))); *ch.lock().unwrap() = Some(__tmp_0); *size.lock().unwrap() = Some(__tmp_1); };
         { let __target = self.i.clone(); let __rhs = (*Arc::new(Mutex::new(Some((*size.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-        return ((*ch.lock().unwrap().as_ref().unwrap()), (*size.lock().unwrap().as_ref().unwrap()), err);
+        return ((*ch.lock().unwrap().as_ref().unwrap()), (*size.lock().unwrap().as_ref().unwrap()), err.clone());
     }
 
     /// UnreadRune implements the [io.RuneScanner] interface.
@@ -195,14 +196,14 @@ impl Reader {
         let mut s = Arc::new(Mutex::new(Some({ let __s = &((*self.s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (*self.i.clone().lock().unwrap().as_ref().unwrap()) as usize; __s[__low..].to_string() })));
         let (mut m, __tmp_1) = io::write_string(w.clone(), { let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
         if { let __tmp_x = (m as i32); let __tmp_y = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x > __tmp_y } {
-        panic!("strings.Reader.WriteTo: invalid WriteString count");
+        std::panic::panic_any(Box::new("strings.Reader.WriteTo: invalid WriteString count".to_string()) as Box<dyn Any + Send + Sync>);
     }
         { let __target = self.i.clone(); let __rhs = (*Arc::new(Mutex::new(Some(m as i64))).lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let new_val = Arc::new(Mutex::new(Some(m as i64))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *n.lock().unwrap() = __moved_val; };
         if { let __tmp_x = (m as i32); let __tmp_y = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x != __tmp_y } && (*err.lock().unwrap()).is_none() {
         { let __rhs_holder = io::ErrShortWrite().clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
     }
-        return ((*n.lock().unwrap().as_ref().unwrap()), err);
+        return ((*n.lock().unwrap().as_ref().unwrap()), err.clone());
     }
 
     /// Reset resets the [Reader] to be reading from s.

@@ -22,6 +22,7 @@ use crate::ratmarsh::*;
 use crate::roundingmode_string::*;
 use crate::sqrt::*;
 
+use std::any::Any;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
@@ -105,12 +106,12 @@ impl crate::nat::nat {
     let mut r: Arc<Mutex<Option<nat>>> = Arc::new(Mutex::new(Some(Default::default())));
 
         if { let __tmp_x = ({ let __slice_holder = { let __named_slice = (*v.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
-        panic!("division by zero");
+        std::panic::panic_any(Box::new("division by zero".to_string()) as Box<dyn Any + Send + Sync>);
     }
         if { let __tmp_x = (*u.lock().unwrap().as_ref().unwrap()).cmp(v.clone()); let __tmp_y = 0; __tmp_x < __tmp_y } {
         { let new_val = crate::nat::nat(Arc::new(Mutex::new(Some({ let __slice_holder = self.0.clone(); let __slice_guard = __slice_holder.lock().unwrap(); let __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); __seq[..(0) as usize].to_vec() })))); *q.lock().unwrap() = Some(new_val); };
         { let new_val = (*z2.lock().unwrap().as_ref().unwrap()).set(u.clone()); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *r.lock().unwrap() = __moved_val; };
-        return (q, r);
+        return (q.clone(), r.clone());
     }
         if { let __tmp_x = ({ let __slice_holder = { let __named_slice = (*v.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 1; __tmp_x == __tmp_y } {
                 // Short division: long optimized for a single-word divisor.
@@ -118,12 +119,12 @@ impl crate::nat::nat {
         let mut r2: Arc<Mutex<Option<Word>>> = Arc::new(Mutex::new(Some(crate::arith::Word(Arc::new(Mutex::new(Some(0)))))));
         { let (__tmp_0, __tmp_1) = self.div_w(u.clone(), Arc::new(Mutex::new(Some({ let __seq_holder = { let __named_slice = (*v.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() })))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *q.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *r2.lock().unwrap() = __moved_tmp_1; };
         { let new_val = (*z2.lock().unwrap().as_ref().unwrap()).set_word(Arc::new(Mutex::new(Some({ let __arg_holder = r2.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *r.lock().unwrap() = __moved_val; };
-        return (q, r);
+        return (q.clone(), r.clone());
     }
                 // Short division: long optimized for a single-word divisor.
                 // In that case, the 2-by-1 guess is all we need at each step.
         { let (__tmp_0, __tmp_1) = self.div_large(z2.clone(), u.clone(), v.clone()); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *q.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *r.lock().unwrap() = __moved_tmp_1; };
-        (q, r)
+        (q.clone(), r.clone())
     }
 
     /// divW returns q, r such that q = ⌊x/y⌋ and r = x%y = x - q·y.
@@ -136,13 +137,13 @@ impl crate::nat::nat {
         let mut __self = self.clone();
         let mut m = Arc::new(Mutex::new(Some({ let __slice_holder = { let __named_slice = (*x.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32)));
         if { let __tmp_x = (*y.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::arith::Word(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x == __tmp_y } {
-            panic!("division by zero");
+            std::panic::panic_any(Box::new("division by zero".to_string()) as Box<dyn Any + Send + Sync>);
         } else if { let __tmp_x = (*y.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::arith::Word(Arc::new(Mutex::new(Some(1 as u64)))); __tmp_x == __tmp_y } {
             { let new_val = __self.set(x.clone()); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *q.lock().unwrap() = __moved_val; };
-            return (q, r);
+            return (q.clone(), r.clone());
         } else if { let __tmp_x = { let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
             { let new_val = crate::nat::nat(Arc::new(Mutex::new(Some({ let __slice_holder = __self.0.clone(); let __slice_guard = __slice_holder.lock().unwrap(); let __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); __seq[..(0) as usize].to_vec() })))); *q.lock().unwrap() = Some(new_val); };
-            return (q, r);
+            return (q.clone(), r.clone());
         }
                 // result is x
                 // result is 0
@@ -150,7 +151,7 @@ impl crate::nat::nat {
         { let new_val = __self.make(Arc::new(Mutex::new(Some({ let __arg_holder = m.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
         { let new_val = div_w_v_w(__self.0.clone(), Arc::new(Mutex::new(Some(crate::arith::Word(Arc::new(Mutex::new(Some(0 as u64))))))), { let __named_slice = (*x.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }, Arc::new(Mutex::new(Some({ let __arg_holder = y.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *r.lock().unwrap() = __moved_val; };
         { let new_val = __self.norm(); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *q.lock().unwrap() = __moved_val; };
-        (q, r)
+        (q.clone(), r.clone())
     }
 
     /// modW returns x % d.
@@ -432,7 +433,7 @@ impl crate::nat::nat {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         if { let __tmp_x = (*qhatv.lock().unwrap().as_ref().unwrap()).cmp((*uu.lock().unwrap().as_ref().unwrap()).norm()); let __tmp_y = 0; __tmp_x > __tmp_y } {
-        panic!("impossible");
+        std::panic::panic_any(Box::new("impossible".to_string()) as Box<dyn Any + Send + Sync>);
     }
         let mut c = sub_v_v({ let __named_slice = crate::nat::nat(Arc::new(Mutex::new(Some({ let __slice_holder = { let __named_slice = (*uu.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); let __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); let __high = ({ let __slice_holder = { let __named_slice = (*qhatv.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as usize; __seq[..__high].to_vec() })))); __named_slice.0.clone() }, { let __named_slice = crate::nat::nat(Arc::new(Mutex::new(Some({ let __slice_holder = { let __named_slice = (*uu.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); let __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); let __high = ({ let __slice_holder = { let __named_slice = (*qhatv.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as usize; __seq[..__high].to_vec() })))); __named_slice.0.clone() }, { let __named_slice = (*qhatv.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice });
         if { let __tmp_x = (*c.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::arith::Word(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x > __tmp_y } {
@@ -492,14 +493,14 @@ impl crate::nat::nat {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         if { let __tmp_x = (*qhatv.lock().unwrap().as_ref().unwrap()).cmp((*u.lock().unwrap().as_ref().unwrap()).norm()); let __tmp_y = 0; __tmp_x > __tmp_y } {
-        panic!("impossible");
+        std::panic::panic_any(Box::new("impossible".to_string()) as Box<dyn Any + Send + Sync>);
     }
         let mut c = sub_v_v({ let __named_slice = crate::nat::nat(Arc::new(Mutex::new(Some({ let __slice_holder = { let __named_slice = (*u.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); let __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); let __high = ({ let __slice_holder = { let __named_slice = (*qhatv.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as usize; __seq[..__high].to_vec() })))); __named_slice.0.clone() }, { let __named_slice = crate::nat::nat(Arc::new(Mutex::new(Some({ let __slice_holder = { let __named_slice = (*u.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); let __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); let __high = ({ let __slice_holder = { let __named_slice = (*qhatv.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as usize; __seq[..__high].to_vec() })))); __named_slice.0.clone() }, { let __named_slice = (*qhatv.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice });
         if { let __tmp_x = (*c.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::arith::Word(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x > __tmp_y } {
         { let new_val = sub_v_w({ let __named_slice = crate::nat::nat(Arc::new(Mutex::new(Some({ let __slice_holder = { let __named_slice = (*u.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); let __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); let __low = ({ let __slice_holder = { let __named_slice = (*qhatv.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as usize; __seq[__low..].to_vec() })))); __named_slice.0.clone() }, { let __named_slice = crate::nat::nat(Arc::new(Mutex::new(Some({ let __slice_holder = { let __named_slice = (*u.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); let __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); let __low = ({ let __slice_holder = { let __named_slice = (*qhatv.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as usize; __seq[__low..].to_vec() })))); __named_slice.0.clone() }, Arc::new(Mutex::new(Some({ let __arg_holder = c.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *c.lock().unwrap() = __moved_val; };
     }
         if { let __tmp_x = (*c.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::arith::Word(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x > __tmp_y } {
-        panic!("impossible");
+        std::panic::panic_any(Box::new("impossible".to_string()) as Box<dyn Any + Send + Sync>);
     }
                 // Done!
         add_at(Arc::new(Mutex::new(Some(self.clone()))), (*qhat.lock().unwrap().as_ref().unwrap()).norm(), Arc::new(Mutex::new(Some(0))));

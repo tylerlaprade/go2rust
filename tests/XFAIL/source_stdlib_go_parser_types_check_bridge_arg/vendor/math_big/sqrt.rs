@@ -22,6 +22,7 @@ use crate::ratconv::*;
 use crate::ratmarsh::*;
 use crate::roundingmode_string::*;
 
+use std::any::Any;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
@@ -110,7 +111,7 @@ impl crate::float::Float {
     }
         if { let __tmp_x = { let __recv = x.clone(); let __recv_ptr: *mut crate::float::Float = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::float::Float }; let __result = unsafe { &mut *__recv_ptr }.sign(); __result }; let __tmp_y = -1; __tmp_x == __tmp_y } {
                 // following IEEE754-2008 (section 7.2)
-        panic!("{}", ErrNaN { msg: Arc::new(Mutex::new(Some("square root of negative operand".to_string()))), ..Default::default() });
+        std::panic::panic_any(Box::new(ErrNaN { msg: Arc::new(Mutex::new(Some("square root of negative operand".to_string()))), ..Default::default() }) as Box<dyn Any + Send + Sync>);
     }
                 // following IEEE754-2008 (section 7.2)
                 // handle ±0 and +∞

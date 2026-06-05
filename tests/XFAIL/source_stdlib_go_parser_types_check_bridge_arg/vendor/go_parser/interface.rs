@@ -1,11 +1,12 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_any_slice, format_any_variadic, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_any_slice, format_any_variadic, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::r#mod::*;
 use crate::resolver::*;
 
 use std::any::Any;
+use std::cell::{RefCell};
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
@@ -465,30 +466,33 @@ pub fn parse_file(fset: Arc<Mutex<Option<go_token::position::FileSet>>>, filenam
     let mut f: Arc<Mutex<Option<go_ast::r#mod::File>>> = Arc::new(Mutex::new(None));
     let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
-    if (*fset.lock().unwrap()).is_none() {
-        panic!("parser.ParseFile: no token.FileSet provided (fset == nil)");
+    let __go_previous_panic_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        if (*fset.lock().unwrap()).is_none() {
+        std::panic::panic_any(Box::new("parser.ParseFile: no token.FileSet provided (fset == nil)".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
-        // get source
-    let (mut text, __tmp_1) = read_source(Arc::new(Mutex::new(Some({ let __arg_holder = filename.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), src.clone()); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
-    if (*err.lock().unwrap()).is_some() {
+                // get source
+        let (mut text, __tmp_1) = read_source(Arc::new(Mutex::new(Some({ let __arg_holder = filename.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), src.clone()); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
+        if (*err.lock().unwrap()).is_some() {
         {
         *f.lock().unwrap() = None;;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (f, err);
+        return (f.clone(), err.clone());
     }
     }
 
-    let mut file = { let __recv = fset.clone(); let __recv_ptr: *mut go_token::position::FileSet = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut go_token::position::FileSet }; let __result = unsafe { &mut *__recv_ptr }.add_file(Arc::new(Mutex::new(Some({ let __arg_holder = filename.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(-1))), Arc::new(Mutex::new(Some((*text.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)))); __result };
+        let mut file = { let __recv = fset.clone(); let __recv_ptr: *mut go_token::position::FileSet = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut go_token::position::FileSet }; let __result = unsafe { &mut *__recv_ptr }.add_file(Arc::new(Mutex::new(Some({ let __arg_holder = filename.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(-1))), Arc::new(Mutex::new(Some((*text.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)))); __result };
 
-    let mut p: Arc<Mutex<Option<parser>>> = Arc::new(Mutex::new(Some(Default::default())));
-    let mut err_defer_captured = err.clone(); let mut f_defer_captured = f.clone(); let file_defer_captured = file.clone(); let p_defer_captured = p.clone(); __defer_stack.push(Box::new(move || {
+        let mut p: Arc<Mutex<Option<parser>>> = Arc::new(Mutex::new(Some(Default::default())));
+        let mut err_defer_captured = err.clone(); let mut f_defer_captured = f.clone(); let file_defer_captured = file.clone(); let p_defer_captured = p.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
         {
-        let mut e = Arc::new(Mutex::new(None::<Box<dyn Any + Send + Sync>>));;
+        let mut e = go_recover();;
         if (*e.lock().unwrap()).is_some() {
             let (mut bail, mut ok) = ({
         let val = e.clone();
@@ -520,22 +524,35 @@ pub fn parse_file(fset: Arc<Mutex<Option<go_token::position::FileSet>>>, filenam
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
 
-        // resume same panic if it's not a bailout
-        // set result values
-        // source is not a valid Go source file - satisfy
-        // ParseFile API and return a valid (but) empty
-        // *ast.File
-        // Ensure the start/end are consistent,
-        // whether parsing succeeded or not.
-        // parse source
-    (*p.lock().unwrap().as_mut().unwrap()).init(file.clone(), text.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = mode.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-    { let new_val = (*p.lock().unwrap().as_mut().unwrap()).parse_file().clone(); f = new_val; };
+                // resume same panic if it's not a bailout
+                // set result values
+                // source is not a valid Go source file - satisfy
+                // ParseFile API and return a valid (but) empty
+                // *ast.File
+                // Ensure the start/end are consistent,
+                // whether parsing succeeded or not.
+                // parse source
+        (*p.lock().unwrap().as_mut().unwrap()).init(file.clone(), text.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = mode.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        { let new_val = (*p.lock().unwrap().as_mut().unwrap()).parse_file().clone(); f = new_val; };
 
-    {
+        {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (f, err);
+        return (f.clone(), err.clone());
+    }
+    }));
+    std::panic::set_hook(__go_previous_panic_hook);
+    match __go_panic_result {
+        Ok(__go_value) => __go_value,
+        Err(__go_panic_payload) => {
+            go_store_panic_payload(__go_panic_payload);
+            while let Some(f) = __defer_stack.pop() {
+                f();
+            }
+            go_resume_unrecovered_panic();
+            (f.clone(), err.clone())
+        }
     }
 }

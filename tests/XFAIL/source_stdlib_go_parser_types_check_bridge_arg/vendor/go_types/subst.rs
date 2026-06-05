@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_register_embedded_owner, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
 
 use crate::alias::*;
 use crate::api::*;
@@ -234,8 +234,8 @@ impl subster {
         }
     });
     if _ts_is_nil {
-        let t = typ.clone();
-        panic!("nil typ");;
+        let t = _ts_subject.clone();
+        std::panic::panic_any(Box::new("nil typ".to_string()) as Box<dyn Any + Send + Sync>);;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::basic::BasicPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::basic::BasicPtr>()).unwrap().0.clone();
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::alias::AliasPtr>()).is_some() {
@@ -357,8 +357,8 @@ impl subster {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::typeparam::TypeParamPtr>()).unwrap().0.clone();
         return (*self.smap.lock().unwrap().as_ref().unwrap()).lookup(t.clone()).clone();;
     } else {
-        let t = typ.clone();
-        panic!("unreachable");;
+        let t = _ts_subject.clone();
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);;
     }
     }
                 // Call typOrNil if it's possible that typ is nil.
@@ -530,7 +530,7 @@ pub fn subst_list<T: Any + GoComparable + GoValueClone + Send + Sync + 'static>(
     }
     } }
         // lazily allocate a new slice on first substitution
-    out
+    out.clone()
 }
 
 pub fn clone_func(f: Arc<Mutex<Option<Func>>>, typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc<Mutex<Option<crate::object::Func>>> {
@@ -573,7 +573,7 @@ pub fn replace_recv_type(r#in: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Func>>>>>>>
         // Allocate a new methods slice before mutating for the first time.
         // This is defensive, as we may share methods across instantiations of
         // a given interface type if they do not get substituted.
-    return (out, (*copied.lock().unwrap().as_ref().unwrap()));
+    return (out.clone(), (*copied.lock().unwrap().as_ref().unwrap()));
 }
 
 impl GoValueClone for subster {

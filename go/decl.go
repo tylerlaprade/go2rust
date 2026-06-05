@@ -3691,13 +3691,20 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 		}
 	}
 
+	recoverCatch := shouldWrapDeferPanicRecover(hasDefer)
+	bodyIndent := "    "
+	if recoverCatch {
+		bodyIndent = beginPanicRecoverCatch(out, "    ")
+	}
+
 	// Function body
 	var prevStmt ast.Stmt
 	var lastPos token.Pos = fn.Body.Lbrace
 	if functionHasGoto(fn) {
-		prevStmt = TranspileGotoStatementList(out, fn.Body.List, fn.Type, fileSet, comments, &lastPos, "    ")
+		prevStmt = TranspileGotoStatementList(out, fn.Body.List, fn.Type, fileSet, comments, &lastPos, bodyIndent)
 		if lastStmt := lastNonEmptyStmt(fn.Body.List); lastStmt != nil && stmtTerminates(lastStmt) {
-			out.WriteString("    unreachable!()\n")
+			out.WriteString(bodyIndent)
+			out.WriteString("unreachable!()\n")
 		}
 	} else {
 		for i, stmt := range fn.Body.List {
@@ -3706,11 +3713,11 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 				out.WriteString("\n")
 			}
 
-			out.WriteString("    ")
+			out.WriteString(bodyIndent)
 			if i == len(fn.Body.List)-1 {
-				TranspileTailStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, "    ")
+				TranspileTailStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, bodyIndent)
 			} else {
-				TranspileStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, "    ")
+				TranspileStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, bodyIndent)
 			}
 			out.WriteString("\n")
 
@@ -3725,10 +3732,19 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 	lastStmt := lastNonEmptyStmt(fn.Body.List)
 	lastTerminates := lastStmt != nil && stmtTerminates(lastStmt)
 	if hasDefer && !lastTerminates {
-		out.WriteString("\n    // Execute deferred functions\n")
-		out.WriteString("    while let Some(f) = __defer_stack.pop() {\n")
-		out.WriteString("        f();\n")
-		out.WriteString("    }\n")
+		out.WriteString("\n")
+		out.WriteString(bodyIndent)
+		out.WriteString("// Execute deferred functions\n")
+		out.WriteString(bodyIndent)
+		out.WriteString("while let Some(f) = __defer_stack.pop() {\n")
+		out.WriteString(bodyIndent)
+		out.WriteString("    f();\n")
+		out.WriteString(bodyIndent)
+		out.WriteString("}\n")
+	}
+
+	if recoverCatch {
+		finishPanicRecoverCatch(out, fn, "    ")
 	}
 
 	out.WriteString("}")
@@ -7412,6 +7428,7 @@ func writeNamedReturnValues(out *strings.Builder, fnType *ast.FuncType) {
 					out.WriteString(".as_ref().unwrap())")
 				} else {
 					out.WriteString(RustLocalIdent(name.Name))
+					out.WriteString(".clone()")
 				}
 			}
 		}
@@ -7470,6 +7487,106 @@ func writeNamedReturnZeroValue(out *strings.Builder, typeExpr ast.Expr) {
 		out.WriteString("Default::default()")
 	}
 	WriteWrapperSuffix(out)
+}
+
+func shouldWrapDeferPanicRecover(hasDefer bool) bool {
+	if !hasDefer || !NeedsConcurrentWrapper() {
+		return false
+	}
+	NeedPanicRecover()
+	return true
+}
+
+func beginPanicRecoverCatch(out *strings.Builder, indent string) string {
+	out.WriteString(indent)
+	out.WriteString("let __go_previous_panic_hook = std::panic::take_hook();\n")
+	out.WriteString(indent)
+	out.WriteString("std::panic::set_hook(Box::new(|_| {}));\n")
+	out.WriteString(indent)
+	out.WriteString("let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {\n")
+	return indent + "    "
+}
+
+func finishPanicRecoverCatch(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	out.WriteString(indent)
+	out.WriteString("}));\n")
+	out.WriteString(indent)
+	out.WriteString("std::panic::set_hook(__go_previous_panic_hook);\n")
+	out.WriteString(indent)
+	out.WriteString("match __go_panic_result {\n")
+	out.WriteString(indent)
+	out.WriteString("    Ok(__go_value) => __go_value,\n")
+	out.WriteString(indent)
+	out.WriteString("    Err(__go_panic_payload) => {\n")
+	out.WriteString(indent)
+	out.WriteString("        go_store_panic_payload(__go_panic_payload);\n")
+	out.WriteString(indent)
+	out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
+	out.WriteString(indent)
+	out.WriteString("            f();\n")
+	out.WriteString(indent)
+	out.WriteString("        }\n")
+	out.WriteString(indent)
+	out.WriteString("        go_resume_unrecovered_panic();\n")
+	out.WriteString(indent)
+	out.WriteString("        ")
+	writeRecoveredPanicReturnValue(out, fn)
+	out.WriteString("\n")
+	out.WriteString(indent)
+	out.WriteString("    }\n")
+	out.WriteString(indent)
+	out.WriteString("}\n")
+}
+
+func writeRecoveredPanicReturnValue(out *strings.Builder, fn *ast.FuncDecl) {
+	if fn == nil {
+		out.WriteString("()")
+		return
+	}
+	if hasNamedReturns(fn.Type) {
+		writeNamedReturnValues(out, fn.Type)
+		return
+	}
+	writeFunctionZeroReturnValues(out, fn)
+}
+
+func writeFunctionZeroReturnValues(out *strings.Builder, fn *ast.FuncDecl) {
+	resultTypes := functionResultTypeExprs(fn.Type)
+	if len(resultTypes) == 0 {
+		out.WriteString("()")
+		return
+	}
+	if len(resultTypes) > 1 {
+		out.WriteString("(")
+	}
+	for i, resultType := range resultTypes {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		if !writeGoPtrNilReturnValueForFunc(out, fn, i) {
+			writeNamedReturnZeroValue(out, resultType)
+		}
+	}
+	if len(resultTypes) > 1 {
+		out.WriteString(")")
+	}
+}
+
+func functionResultTypeExprs(fnType *ast.FuncType) []ast.Expr {
+	if fnType == nil || fnType.Results == nil {
+		return nil
+	}
+	var resultTypes []ast.Expr
+	for _, result := range fnType.Results.List {
+		count := len(result.Names)
+		if count == 0 {
+			count = 1
+		}
+		for i := 0; i < count; i++ {
+			resultTypes = append(resultTypes, result.Type)
+		}
+	}
+	return resultTypes
 }
 
 func writeNamedReturnNilZeroValueFromTypeInfo(out *strings.Builder, typeExpr ast.Expr) bool {
@@ -8345,20 +8462,27 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		out.WriteString(";\n")
 	}
 
+	recoverCatch := shouldWrapDeferPanicRecover(currentFunctionHasDefer)
+	bodyIndent := "        "
+	if recoverCatch {
+		bodyIndent = beginPanicRecoverCatch(out, "        ")
+	}
+
 	var prevStmt ast.Stmt
 	var lastPos token.Pos = fn.Body.Lbrace
 	if functionHasGoto(fn) {
-		prevStmt = TranspileGotoStatementList(out, fn.Body.List, fn.Type, fileSet, comments, &lastPos, "        ")
+		prevStmt = TranspileGotoStatementList(out, fn.Body.List, fn.Type, fileSet, comments, &lastPos, bodyIndent)
 		if lastStmt := lastNonEmptyStmt(fn.Body.List); lastStmt != nil && stmtTerminates(lastStmt) {
-			out.WriteString("        unreachable!()\n")
+			out.WriteString(bodyIndent)
+			out.WriteString("unreachable!()\n")
 		}
 	} else {
 		for i, stmt := range fn.Body.List {
-			out.WriteString("        ")
+			out.WriteString(bodyIndent)
 			if i == len(fn.Body.List)-1 {
-				TranspileTailStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, "        ")
+				TranspileTailStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, bodyIndent)
 			} else {
-				TranspileStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, "        ")
+				TranspileStatement(out, stmt, fn.Type, fileSet, comments, &lastPos, bodyIndent)
 			}
 			out.WriteString("\n")
 			prevStmt = stmt
@@ -8367,10 +8491,19 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 
 	lastTerminates := prevStmt != nil && stmtTerminates(prevStmt)
 	if currentFunctionHasDefer && !lastTerminates {
-		out.WriteString("\n        // Execute deferred functions\n")
-		out.WriteString("        while let Some(f) = __defer_stack.pop() {\n")
-		out.WriteString("            f();\n")
-		out.WriteString("        }\n")
+		out.WriteString("\n")
+		out.WriteString(bodyIndent)
+		out.WriteString("// Execute deferred functions\n")
+		out.WriteString(bodyIndent)
+		out.WriteString("while let Some(f) = __defer_stack.pop() {\n")
+		out.WriteString(bodyIndent)
+		out.WriteString("    f();\n")
+		out.WriteString(bodyIndent)
+		out.WriteString("}\n")
+	}
+
+	if recoverCatch {
+		finishPanicRecoverCatch(out, fn, "        ")
 	}
 
 	out.WriteString("    }\n")

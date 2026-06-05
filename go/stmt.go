@@ -2798,7 +2798,7 @@ func writeTypeSwitchCaseCondition(out *strings.Builder, typeInfo *TypeInfo, type
 	out.WriteString(">()).is_some()")
 }
 
-func writeTypeSwitchOriginalBinding(out *strings.Builder, varName string, expr ast.Expr, isRangeVar bool, isStdlibRangeRef bool, mutable bool) {
+func writeTypeSwitchOriginalBinding(out *strings.Builder, varName string, expr ast.Expr, originalBindingSubject string, isRangeVar bool, isStdlibRangeRef bool, mutable bool) {
 	out.WriteString("        let ")
 	if mutable {
 		out.WriteString("mut ")
@@ -2829,7 +2829,11 @@ func writeTypeSwitchOriginalBinding(out *strings.Builder, varName string, expr a
 		return
 	}
 	bindingIsBare := isExpressionResultBare(expr)
-	TranspileExpressionContext(out, expr, LValue)
+	if originalBindingSubject != "" {
+		out.WriteString(originalBindingSubject)
+	} else {
+		TranspileExpressionContext(out, expr, LValue)
+	}
 	out.WriteString(".clone();\n")
 	if vt := GetVarTable(); vt != nil {
 		wrapLevel := WrapFull
@@ -5489,6 +5493,7 @@ func writeNamedReturnValuesWithBlankTemps(out *strings.Builder, fnType *ast.Func
 					out.WriteString(".as_ref().unwrap())")
 				} else {
 					out.WriteString(RustLocalIdent(name.Name))
+					out.WriteString(".clone()")
 				}
 			}
 			resultIndex++
@@ -13777,6 +13782,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		subjectIsLocalInterfaceRef := isLocalInterfaceRefIdent(expr) || isBareLocalInterfaceValue(expr)
 		subjectIsTranspiledInterface := !subjectIsLocalInterfaceRef && isTranspiledInterfaceExpr(expr)
 		typeSwitchSubjectHasGuard := false
+		originalBindingSubject := ""
 		if subjectUsesAny {
 			TrackImport("Any")
 		}
@@ -13825,6 +13831,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString(");\n")
 		} else if subjectUsesAny {
 			typeSwitchSubjectHasGuard = true
+			originalBindingSubject = "_ts_subject"
 			out.WriteString("    let _ts_subject = ")
 			TranspileExpressionContext(out, expr, LValue)
 			out.WriteString(".clone();\n")
@@ -13834,6 +13841,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("    let _ts_is_nil = _ts_guard.as_ref().is_none();\n")
 			out.WriteString("    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.as_ref() as &dyn Any);\n")
 		} else if subjectIsLocalInterfaceRef {
+			originalBindingSubject = "_ts_subject"
 			out.WriteString("    let _ts_subject = ")
 			TranspileExpressionContext(out, expr, LValue)
 			if typeSwitchBareInterfaceSubjectNeedsClone(expr) {
@@ -13843,6 +13851,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("    let _ts_is_nil = false;\n")
 			out.WriteString("    let _ts_val: Option<&dyn Any> = Some(_ts_subject.__go_as_any());\n")
 		} else if subjectIsTranspiledInterface {
+			originalBindingSubject = "_ts_subject"
 			out.WriteString("    let _ts_subject = ")
 			TranspileExpressionContext(out, expr, LValue)
 			out.WriteString(".clone();\n")
@@ -13868,6 +13877,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			out.WriteString("    });\n")
 		} else {
 			typeSwitchSubjectHasGuard = true
+			originalBindingSubject = "_ts_subject"
 			out.WriteString("    let _ts_subject = ")
 			TranspileExpressionContext(out, expr, LValue)
 			out.WriteString(".clone();\n")
@@ -13912,7 +13922,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				}
 				if varName != "" {
 					// In default case, v is the original interface{} value
-					writeTypeSwitchOriginalBinding(out, varName, expr, isRangeVar, isStdlibRangeRef, caseVarAssigned)
+					writeTypeSwitchOriginalBinding(out, varName, expr, originalBindingSubject, isRangeVar, isStdlibRangeRef, caseVarAssigned)
 				}
 			} else {
 				// Type case(s)
@@ -13931,7 +13941,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 					// Create typed variable if needed
 					if varName != "" && isNil {
-						writeTypeSwitchOriginalBinding(out, varName, expr, isRangeVar, isStdlibRangeRef, caseVarAssigned)
+						writeTypeSwitchOriginalBinding(out, varName, expr, originalBindingSubject, isRangeVar, isStdlibRangeRef, caseVarAssigned)
 					} else if varName != "" && writeTypeSwitchInterfaceCaseBinding(out, typeInfo, varName, caseClause.List[0], typeSwitchSubjectType, caseVarAssigned) {
 						// interface case (named or anonymous): bound to matched concrete implementor
 					} else if varName != "" && rustType == "" {
@@ -13972,7 +13982,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 					}
 					out.WriteString(" {\n")
 					if varName != "" {
-						writeTypeSwitchOriginalBinding(out, varName, expr, isRangeVar, isStdlibRangeRef, caseVarAssigned)
+						writeTypeSwitchOriginalBinding(out, varName, expr, originalBindingSubject, isRangeVar, isStdlibRangeRef, caseVarAssigned)
 					}
 				}
 			}

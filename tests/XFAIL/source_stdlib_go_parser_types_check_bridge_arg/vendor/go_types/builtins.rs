@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_register_embedded_owner, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
 
 use crate::alias::*;
 use crate::api::*;
@@ -75,6 +75,7 @@ use crate::version::*;
 use internal_types_errors::*;
 
 use std::any::Any;
+use std::cell::{RefCell};
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
@@ -88,10 +89,13 @@ impl crate::check::Checker {
 
     let _: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
 
-        let mut argList = (*call.lock().unwrap().as_ref().unwrap()).args.clone();
-                // append is the only built-in that permits the use of ... for the last argument
-        let mut bin = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = predeclaredFuncs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() })));
-        if has_dots(call.clone()) && { let __tmp_x = (*id.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::universe::builtinId(Arc::new(Mutex::new(Some(__APPEND as i32)))); __tmp_x != __tmp_y } {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let mut argList = (*call.lock().unwrap().as_ref().unwrap()).args.clone();
+                        // append is the only built-in that permits the use of ... for the last argument
+            let mut bin = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = predeclaredFuncs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() })));
+            if has_dots(call.clone()) && { let __tmp_x = (*id.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::universe::builtinId(Arc::new(Mutex::new(Some(__APPEND as i32)))); __tmp_x != __tmp_y } {
         self.errorf(ddd_err_pos(call.clone()).clone(), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_DOT_DOT_DOT as i32))))))), Arc::new(Mutex::new(Some("invalid operation: invalid use of ... with built-in %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __selector_holder = (*bin.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>]))));
         self.r#use(argList.clone());
         {
@@ -102,12 +106,12 @@ impl crate::check::Checker {
         return false;
     }
     }
-                // For len(x) and cap(x) we need to know if x contains any function calls or
-                // receive operations. Save/restore current setting and set hasCallOrRecv to
-                // false for the evaluation of x so that we can check it afterwards.
-                // Note: We must do this _before_ calling exprList because exprList evaluates
-                //       all arguments.
-        if { let __tmp_x = (*id.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::universe::builtinId(Arc::new(Mutex::new(Some(__LEN as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*id.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::universe::builtinId(Arc::new(Mutex::new(Some(__CAP as i32)))); __tmp_x == __tmp_y } {
+                        // For len(x) and cap(x) we need to know if x contains any function calls or
+                        // receive operations. Save/restore current setting and set hasCallOrRecv to
+                        // false for the evaluation of x so that we can check it afterwards.
+                        // Note: We must do this _before_ calling exprList because exprList evaluates
+                        //       all arguments.
+            if { let __tmp_x = (*id.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::universe::builtinId(Arc::new(Mutex::new(Some(__LEN as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*id.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::universe::builtinId(Arc::new(Mutex::new(Some(__CAP as i32)))); __tmp_x == __tmp_y } {
         let mut check_defer_captured = self.clone(); let __defer_arg_0 = Arc::new(Mutex::new(Some({ let __selector_holder = (*check_defer_captured.environment.lock().unwrap().as_ref().unwrap()).has_call_or_recv.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); __defer_stack.push(Box::new(move || {
         (move |b: Arc<Mutex<Option<bool>>>| {
         { let new_val = b.lock().unwrap().as_ref().unwrap().clone(); *(*check_defer_captured.environment.lock().unwrap().as_ref().unwrap()).has_call_or_recv.lock().unwrap() = Some(new_val); };;
@@ -115,12 +119,12 @@ impl crate::check::Checker {
     }));
         { let new_val = false; *(*self.environment.lock().unwrap().as_ref().unwrap()).has_call_or_recv.lock().unwrap() = Some(new_val); };
     }
-                // Evaluate arguments for built-ins that use ordinary (value) arguments.
-                // For built-ins with special argument handling (make, new, etc.),
-                // evaluation is done by the respective built-in code.
-        let mut args: Arc<Mutex<Option<Vec<Arc<Mutex<Option<operand>>>>>>> = Arc::new(Mutex::new(None));
-        let mut nargs: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
-        { let _switch_val = (*id.lock().unwrap().as_ref().unwrap()).clone();
+                        // Evaluate arguments for built-ins that use ordinary (value) arguments.
+                        // For built-ins with special argument handling (make, new, etc.),
+                        // evaluation is done by the respective built-in code.
+            let mut args: Arc<Mutex<Option<Vec<Arc<Mutex<Option<operand>>>>>>> = Arc::new(Mutex::new(None));
+            let mut nargs: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
+            { let _switch_val = (*id.lock().unwrap().as_ref().unwrap()).clone();
     if _switch_val == (crate::universe::builtinId(Arc::new(Mutex::new(Some(__MAKE as i32))))) || _switch_val == (crate::universe::builtinId(Arc::new(Mutex::new(Some(__NEW as i32))))) || _switch_val == (crate::universe::builtinId(Arc::new(Mutex::new(Some(__OFFSETOF as i32))))) || _switch_val == (crate::universe::builtinId(Arc::new(Mutex::new(Some(__TRACE as i32))))) {
                         // arguments require special handling
             { let new_val = (*argList.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32; *nargs.lock().unwrap() = Some(new_val); };
@@ -145,18 +149,18 @@ impl crate::check::Checker {
     }
         }
     }
-                // check all arguments
-                // first argument is always in x
-                // arguments require special handling
-                // check argument count
-        {
-            let mut msg = Arc::new(Mutex::new(Some("".to_string())));
-            if { let __tmp_x = { let __v = (*nargs.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*bin.lock().unwrap().as_ref().unwrap()).nargs.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+                        // check all arguments
+                        // first argument is always in x
+                        // arguments require special handling
+                        // check argument count
+            {
+                let mut msg = Arc::new(Mutex::new(Some("".to_string())));
+                if { let __tmp_x = { let __v = (*nargs.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*bin.lock().unwrap().as_ref().unwrap()).nargs.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
         { let new_val = "not enough".to_string(); *msg.lock().unwrap() = Some(new_val); };
     } else if !(*{ let __field = (*bin.lock().unwrap().as_ref().unwrap()).variadic.clone(); __field }.lock().unwrap().as_ref().unwrap()) && { let __tmp_x = { let __v = (*nargs.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*bin.lock().unwrap().as_ref().unwrap()).nargs.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
         { let new_val = "too many".to_string(); *msg.lock().unwrap() = Some(new_val); };
     }
-            if { let __tmp_x = (*msg.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
+                if { let __tmp_x = (*msg.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
         self.errorf(arg_err_pos(call.clone()).clone(), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(WRONG_ARG_COUNT as i32))))))), Arc::new(Mutex::new(Some("invalid operation: %s arguments for %v (expected %d, found %d)".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = msg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new(call.clone()) as Box<dyn Any + Send + Sync>, Box::new({ let __selector_holder = (*bin.lock().unwrap().as_ref().unwrap()).nargs.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = nargs.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
         {
         // Execute deferred functions
@@ -166,8 +170,8 @@ impl crate::check::Checker {
         return false;
     }
     }
-        }
-        '__go_switch_1: loop {
+            }
+            '__go_switch_1: loop {
         { let _switch_val = (*id.lock().unwrap().as_ref().unwrap()).clone();
     if _switch_val == (crate::universe::builtinId(Arc::new(Mutex::new(Some(__APPEND as i32))))) {
                         // append(s S, x ...T) S, where T is the element type of S
@@ -296,7 +300,7 @@ impl crate::check::Checker {
     }
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::slice::SlicePtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<crate::chan::ChanPtr>()).is_some() {
-        let t = array_ptr_deref(under((*x.lock().unwrap().as_ref().unwrap()).typ.clone()).clone()).clone();
+        let t = _ts_subject.clone();
         { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(VALUE as u8)))); *mode.lock().unwrap() = Some(new_val); };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::map::MapPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::map::MapPtr>()).unwrap().0.clone();
@@ -329,7 +333,7 @@ impl crate::check::Checker {
         return true;
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::array::ArrayPtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<crate::slice::SlicePtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<crate::chan::ChanPtr>()).is_some() {
-        let t = array_ptr_deref(u.clone()).clone();
+        let t = _ts_subject.clone();
         return true;;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::map::MapPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::map::MapPtr>()).unwrap().0.clone();
@@ -1422,131 +1426,131 @@ impl crate::check::Checker {
     }
     }
         } else {
-            panic!("unreachable");
+            std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
         }
     };
         break;
     }
-                // append(s S, x ...T) S, where T is the element type of S
-                // spec: "The variadic function append appends zero or more values x to s of type
-                // S, which must be a slice type, and returns the resulting slice, also of type S.
-                // The values x are passed to a parameter of type ...T where T is the element type
-                // of S and the respective parameter passing rules apply."
-                // don't use invalidArg prefix here as it would repeat "argument" in the error message
-                // spec: "As a special case, append also accepts a first argument assignable
-                // to type []byte with a second argument of string type followed by ... .
-                // This form appends the bytes of the string.
-                // check general case by creating custom signature
-                // []T required for variadic signature
-                // discard result (we know the result type)
-                // ok to continue even if check.arguments reported errors
-                // cap(x)
-                // len(x)
-                // spec: "The expressions len(s) and cap(s) are constants
-                // if the type of s is an array or pointer to an array and
-                // the expression s does not contain channel receives or
-                // function calls; in this case s is not evaluated."
-                // avoid error if underlying type is invalid
-                // record the signature before changing x.typ
-                // clear(m)
-                // close(c)
-                // complex(x, y floatT) complexT
-                // convert or check untyped arguments
-                // x and y are typed => nothing to do
-                // only x is untyped => convert to type of y
-                // only y is untyped => convert to type of x
-                // x and y are untyped =>
-                // 1) if both are constants, convert them to untyped
-                //    floating-point numbers if possible,
-                // 2) if one of them is not constant (possible because
-                //    it contains a shift that is yet untyped), convert
-                //    both of them to float64 since they must have the
-                //    same type to succeed (this will result in an error
-                //    because shifts of floats are not permitted)
-                // x and y should be invalid now, but be conservative
-                // and check below
-                // both argument types must be identical
-                // the argument types must be of floating-point type
-                // (applyTypeFunc never calls f with a type parameter)
-                // if both arguments are constants, the result is a constant
-                // copy(x, y []T) int
-                // delete(map_, key)
-                // map_ must be a map type or a type parameter describing map types.
-                // The key cannot be a type parameter for now.
-                // key
-                // imag(complexT) floatT
-                // real(complexT) floatT
-                // convert or check untyped argument
-                // an untyped constant number can always be considered
-                // as a complex constant
-                // an untyped non-constant argument may appear if
-                // it contains a (yet untyped non-constant) shift
-                // expression: convert it to complex128 which will
-                // result in an error (shift of complex value)
-                // x should be invalid now, but be conservative and check
-                // the argument must be of complex type
-                // (applyTypeFunc never calls f with a type parameter)
-                // if the argument is a constant, the result is a constant
-                // make(T, n)
-                // make(T, n, m)
-                // (no argument evaluated yet)
-                // minimum number of arguments
-                // constant integer arguments, if any
-                // ok to continue with typ == Typ[Invalid]
-                // safe to continue
-                // max(x, ...)
-                // min(x, ...)
-                // The first argument is already in x and there's nothing left to do.
-                // If nargs == 1, make sure x.mode is either a value or a constant.
-                // A value must not be untyped.
-                // Use the final type computed above for all arguments.
-                // new(T)
-                // (no argument evaluated yet)
-                // panic(x)
-                // record panic call if inside a function with result parameters
-                // (for use in Checker.isTerminating)
-                // function has result parameters
-                // allocate lazily
-                // print(x, y, ...)
-                // println(x, y, ...)
-                // recover() interface{}
-                // unsafe.Add(ptr unsafe.Pointer, len IntegerType) unsafe.Pointer
-                // unsafe.Alignof(x T) uintptr
-                // result is constant - no need to record signature
-                // unsafe.Offsetof(x T) uintptr, where x must be a selector
-                // (no argument evaluated yet)
-                // TODO(gri) Using derefStructPtr may result in methods being found
-                // that don't actually exist. An error either way, but the error
-                // message is confusing. See: https://play.golang.org/p/al75v23kUy ,
-                // but go/types reports: "invalid argument: x.m is a method value".
-                // TODO(gri) Should we pass x.typ instead of base (and have indirect report if derefStructPtr indirected)?
-                // record the selector expression (was bug - go.dev/issue/47895)
-                // The field offset is considered a variable even if the field is declared before
-                // the part of the struct which is variable-sized. This makes both the rules
-                // simpler and also permits (or at least doesn't prevent) a compiler from re-
-                // arranging struct fields if it wanted to.
-                // result is constant - no need to record signature
-                // unsafe.Sizeof(x T) uintptr
-                // result is constant - no need to record signature
-                // unsafe.Slice(ptr *T, len IntegerType) []T
-                // unsafe.SliceData(slice []T) *T
-                // unsafe.String(ptr *byte, len IntegerType) string
-                // unsafe.StringData(str string) *byte
-                // assert(pred) causes a typechecker error if pred is false.
-                // The result of assert is the value of pred if there is no error.
-                // Note: assert is only available in self-test mode.
-                // compile-time assertion failure - safe to continue
-                // result is constant - no need to record signature
-                // trace(x, y, z, ...) dumps the positions, expressions, and
-                // values of its arguments. The result of trace is the value
-                // of the first argument.
-                // Note: trace is only available in self-test mode.
-                // (no argument evaluated yet)
-                // permit trace for types, e.g.: new(trace(T))
-                // use incoming x only for first argument
-                // trace is only available in test mode - no need to record signature
-        assert(Arc::new(Mutex::new(Some({ let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); __tmp_x != __tmp_y }))));
-        {
+                        // append(s S, x ...T) S, where T is the element type of S
+                        // spec: "The variadic function append appends zero or more values x to s of type
+                        // S, which must be a slice type, and returns the resulting slice, also of type S.
+                        // The values x are passed to a parameter of type ...T where T is the element type
+                        // of S and the respective parameter passing rules apply."
+                        // don't use invalidArg prefix here as it would repeat "argument" in the error message
+                        // spec: "As a special case, append also accepts a first argument assignable
+                        // to type []byte with a second argument of string type followed by ... .
+                        // This form appends the bytes of the string.
+                        // check general case by creating custom signature
+                        // []T required for variadic signature
+                        // discard result (we know the result type)
+                        // ok to continue even if check.arguments reported errors
+                        // cap(x)
+                        // len(x)
+                        // spec: "The expressions len(s) and cap(s) are constants
+                        // if the type of s is an array or pointer to an array and
+                        // the expression s does not contain channel receives or
+                        // function calls; in this case s is not evaluated."
+                        // avoid error if underlying type is invalid
+                        // record the signature before changing x.typ
+                        // clear(m)
+                        // close(c)
+                        // complex(x, y floatT) complexT
+                        // convert or check untyped arguments
+                        // x and y are typed => nothing to do
+                        // only x is untyped => convert to type of y
+                        // only y is untyped => convert to type of x
+                        // x and y are untyped =>
+                        // 1) if both are constants, convert them to untyped
+                        //    floating-point numbers if possible,
+                        // 2) if one of them is not constant (possible because
+                        //    it contains a shift that is yet untyped), convert
+                        //    both of them to float64 since they must have the
+                        //    same type to succeed (this will result in an error
+                        //    because shifts of floats are not permitted)
+                        // x and y should be invalid now, but be conservative
+                        // and check below
+                        // both argument types must be identical
+                        // the argument types must be of floating-point type
+                        // (applyTypeFunc never calls f with a type parameter)
+                        // if both arguments are constants, the result is a constant
+                        // copy(x, y []T) int
+                        // delete(map_, key)
+                        // map_ must be a map type or a type parameter describing map types.
+                        // The key cannot be a type parameter for now.
+                        // key
+                        // imag(complexT) floatT
+                        // real(complexT) floatT
+                        // convert or check untyped argument
+                        // an untyped constant number can always be considered
+                        // as a complex constant
+                        // an untyped non-constant argument may appear if
+                        // it contains a (yet untyped non-constant) shift
+                        // expression: convert it to complex128 which will
+                        // result in an error (shift of complex value)
+                        // x should be invalid now, but be conservative and check
+                        // the argument must be of complex type
+                        // (applyTypeFunc never calls f with a type parameter)
+                        // if the argument is a constant, the result is a constant
+                        // make(T, n)
+                        // make(T, n, m)
+                        // (no argument evaluated yet)
+                        // minimum number of arguments
+                        // constant integer arguments, if any
+                        // ok to continue with typ == Typ[Invalid]
+                        // safe to continue
+                        // max(x, ...)
+                        // min(x, ...)
+                        // The first argument is already in x and there's nothing left to do.
+                        // If nargs == 1, make sure x.mode is either a value or a constant.
+                        // A value must not be untyped.
+                        // Use the final type computed above for all arguments.
+                        // new(T)
+                        // (no argument evaluated yet)
+                        // panic(x)
+                        // record panic call if inside a function with result parameters
+                        // (for use in Checker.isTerminating)
+                        // function has result parameters
+                        // allocate lazily
+                        // print(x, y, ...)
+                        // println(x, y, ...)
+                        // recover() interface{}
+                        // unsafe.Add(ptr unsafe.Pointer, len IntegerType) unsafe.Pointer
+                        // unsafe.Alignof(x T) uintptr
+                        // result is constant - no need to record signature
+                        // unsafe.Offsetof(x T) uintptr, where x must be a selector
+                        // (no argument evaluated yet)
+                        // TODO(gri) Using derefStructPtr may result in methods being found
+                        // that don't actually exist. An error either way, but the error
+                        // message is confusing. See: https://play.golang.org/p/al75v23kUy ,
+                        // but go/types reports: "invalid argument: x.m is a method value".
+                        // TODO(gri) Should we pass x.typ instead of base (and have indirect report if derefStructPtr indirected)?
+                        // record the selector expression (was bug - go.dev/issue/47895)
+                        // The field offset is considered a variable even if the field is declared before
+                        // the part of the struct which is variable-sized. This makes both the rules
+                        // simpler and also permits (or at least doesn't prevent) a compiler from re-
+                        // arranging struct fields if it wanted to.
+                        // result is constant - no need to record signature
+                        // unsafe.Sizeof(x T) uintptr
+                        // result is constant - no need to record signature
+                        // unsafe.Slice(ptr *T, len IntegerType) []T
+                        // unsafe.SliceData(slice []T) *T
+                        // unsafe.String(ptr *byte, len IntegerType) string
+                        // unsafe.StringData(str string) *byte
+                        // assert(pred) causes a typechecker error if pred is false.
+                        // The result of assert is the value of pred if there is no error.
+                        // Note: assert is only available in self-test mode.
+                        // compile-time assertion failure - safe to continue
+                        // result is constant - no need to record signature
+                        // trace(x, y, z, ...) dumps the positions, expressions, and
+                        // values of its arguments. The result of trace is the value
+                        // of the first argument.
+                        // Note: trace is only available in self-test mode.
+                        // (no argument evaluated yet)
+                        // permit trace for types, e.g.: new(trace(T))
+                        // use incoming x only for first argument
+                        // trace is only available in test mode - no need to record signature
+            assert(Arc::new(Mutex::new(Some({ let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); __tmp_x != __tmp_y }))));
+            {
         let __return_0 = true;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -1554,6 +1558,19 @@ impl crate::check::Checker {
         }
         return __return_0;
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                false
+            }
+        }
     }
 
     /// applyTypeFunc applies f to x. If x is a type parameter,
@@ -1604,7 +1621,7 @@ impl crate::check::Checker {
         } else if _switch_val == (crate::universe::builtinId(Arc::new(Mutex::new(Some(__COMPLEX as i32))))) {
             { let new_val = internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_COMPLEX as i32)))); *code.lock().unwrap() = Some(new_val); };
         } else {
-            panic!("unreachable");
+            std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
         }
     };
             self.soft_errorf(Arc::new(Mutex::new(Some(Box::new(crate::operand::operandPtr(x.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = code.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("%s not supported as argument to built-in %s for go1.18 (see go.dev/issue/50937)".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new(x.clone()) as Box<dyn Any + Send + Sync>, Box::new({ let __selector_holder = { let __seq = { let __seq_holder = predeclaredFuncs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>]))));;
@@ -1636,10 +1653,13 @@ pub fn has_var_size(t: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, mut seen
 
     let mut varSized: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
 
-        // Cycles are only possible through *Named types.
-        // The seen map is used to detect cycles and track
-        // the results of previously seen types.
-    {
+    let __go_previous_panic_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                // Cycles are only possible through *Named types.
+                // The seen map is used to detect cycles and track
+                // the results of previously seen types.
+        {
         let mut named = as_named(t.clone());;
         if (*named.lock().unwrap()).is_some() {
             {
@@ -1667,9 +1687,9 @@ pub fn has_var_size(t: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, mut seen
         }
     }
 
-        // possibly cyclic until proven otherwise
-        // record final determination for named
-    {
+                // possibly cyclic until proven otherwise
+                // record final determination for named
+        {
     let _ts_subject = under(t.clone()).clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
@@ -1718,17 +1738,30 @@ pub fn has_var_size(t: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, mut seen
         return (*varSized.lock().unwrap().as_ref().unwrap());
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::named::NamedPtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<crate::union::UnionPtr>()).is_some() {
-        let u = under(t.clone()).clone();
-        panic!("unreachable");;
+        let u = _ts_subject.clone();
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);;
     }
     }
-    {
+        {
         { let new_val = false; *varSized.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return (*varSized.lock().unwrap().as_ref().unwrap());
+    }
+    }));
+    std::panic::set_hook(__go_previous_panic_hook);
+    match __go_panic_result {
+        Ok(__go_value) => __go_value,
+        Err(__go_panic_payload) => {
+            go_store_panic_payload(__go_panic_payload);
+            while let Some(f) = __defer_stack.pop() {
+                f();
+            }
+            go_resume_unrecovered_panic();
+            (*varSized.lock().unwrap().as_ref().unwrap())
+        }
     }
 }
 

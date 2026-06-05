@@ -22,6 +22,7 @@ use crate::ratmarsh::*;
 use crate::roundingmode_string::*;
 use crate::sqrt::*;
 
+use std::any::Any;
 use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
@@ -82,20 +83,20 @@ impl crate::float::Float {
                 // sign
         { let (__tmp_0, __tmp_1) = scan_sign(r.clone()); *self.neg.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
         if (*err.lock().unwrap()).is_some() {
-        return (f, (*b.lock().unwrap().as_ref().unwrap()), err);
+        return (f.clone(), (*b.lock().unwrap().as_ref().unwrap()), err.clone());
     }
                 // mantissa
         let mut fcount: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
         { let (__tmp_0, __tmp_1, __tmp_2, __tmp_3) = (*self.mant.lock().unwrap().as_ref().unwrap()).scan(r.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(true)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *self.mant.lock().unwrap() = __moved_tmp_0; *b.lock().unwrap() = Some(__tmp_1); *fcount.lock().unwrap() = Some(__tmp_2); let __moved_tmp_3 = { let mut __guard = __tmp_3.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_3; };
         if (*err.lock().unwrap()).is_some() {
-        return (f, (*b.lock().unwrap().as_ref().unwrap()), err);
+        return (f.clone(), (*b.lock().unwrap().as_ref().unwrap()), err.clone());
     }
                 // exponent
         let mut exp: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
         let mut ebase: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
         { let (__tmp_0, __tmp_1, __tmp_2) = scan_exponent(r.clone(), Arc::new(Mutex::new(Some(true))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y })))); *exp.lock().unwrap() = Some(__tmp_0); *ebase.lock().unwrap() = Some(__tmp_1); let __moved_tmp_2 = { let mut __guard = __tmp_2.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_2; };
         if (*err.lock().unwrap()).is_some() {
-        return (f, (*b.lock().unwrap().as_ref().unwrap()), err);
+        return (f.clone(), (*b.lock().unwrap().as_ref().unwrap()), err.clone());
     }
                 // special-case 0
         if { let __tmp_x = ({ let __slice_holder = { let __named_slice = (*self.mant.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
@@ -103,7 +104,7 @@ impl crate::float::Float {
         { let new_val = crate::float::Accuracy(Arc::new(Mutex::new(Some(EXACT as i8)))); *self.acc.lock().unwrap() = Some(new_val); };
         { let new_val = crate::float::form(Arc::new(Mutex::new(Some(ZERO as u8)))); *self.form.lock().unwrap() = Some(new_val); };
         { let new_val = Arc::new(Mutex::new(Some(self.clone()))); f = new_val; };
-        return (f, (*b.lock().unwrap().as_ref().unwrap()), err);
+        return (f.clone(), (*b.lock().unwrap().as_ref().unwrap()), err.clone());
     }
                 // len(z.mant) > 0
                 // The mantissa may have a radix point (fcount <= 0) and there
@@ -153,7 +154,7 @@ impl crate::float::Float {
         if !_matched || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            panic!("unexpected mantissa base");
+            std::panic::panic_any(Box::new("unexpected mantissa base".to_string()) as Box<dyn Any + Send + Sync>);
         }
     }
     }
@@ -183,7 +184,7 @@ impl crate::float::Float {
         if !_matched || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            panic!("unexpected exponent base");
+            std::panic::panic_any(Box::new("unexpected exponent base".to_string()) as Box<dyn Any + Send + Sync>);
         }
     }
                 // see fallthrough above
@@ -196,12 +197,12 @@ impl crate::float::Float {
         { let new_val = Arc::new(Mutex::new(Some(self.clone()))); f = new_val; };
     } else {
         { let __rhs_holder = Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(format!("exponent overflow"))))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
-        return (f, (*b.lock().unwrap().as_ref().unwrap()), err);
+        return (f.clone(), (*b.lock().unwrap().as_ref().unwrap()), err.clone());
     }
         if { let __tmp_x = { let __v = (*exp5.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x == __tmp_y } {
                 // no decimal exponent contribution
         self.round(Arc::new(Mutex::new(Some(0 as u64))));
-        return (f, (*b.lock().unwrap().as_ref().unwrap()), err);
+        return (f.clone(), (*b.lock().unwrap().as_ref().unwrap()), err.clone());
     }
                 // no decimal exponent contribution
                 // exp5 != 0
@@ -212,7 +213,7 @@ impl crate::float::Float {
     } else {
         { let __method_arg0 = Arc::new(Mutex::new(Some(self.clone()))); let __method_arg1 = { let __recv = p.clone(); let __recv_ptr: *mut crate::float::Float = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::float::Float }; let __result = unsafe { &mut *__recv_ptr }.pow5(Arc::new(Mutex::new(Some((*exp5.lock().unwrap().as_ref().unwrap()) as u64)))); __result }; self.mul(__method_arg0, __method_arg1) };
     }
-        return (f, (*b.lock().unwrap().as_ref().unwrap()), err);
+        return (f.clone(), (*b.lock().unwrap().as_ref().unwrap()), err.clone());
     }
 
     /// pow5 sets z to 5**n and returns z.
@@ -292,17 +293,17 @@ impl crate::float::Float {
                 // scan doesn't handle ±Inf
         if { let __tmp_x = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 3; __tmp_x == __tmp_y } && ({ let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "Inf".to_string(); __tmp_x == __tmp_y } || { let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "inf".to_string(); __tmp_x == __tmp_y }) {
         { let new_val = self.set_inf(Arc::new(Mutex::new(Some(false)))).clone(); f = new_val; };
-        return (f, (*b.lock().unwrap().as_ref().unwrap()), err);
+        return (f.clone(), (*b.lock().unwrap().as_ref().unwrap()), err.clone());
     }
         if { let __tmp_x = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 4; __tmp_x == __tmp_y } && ({ let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('+' as i32) as u8; __tmp_x == __tmp_y } || { let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('-' as i32) as u8; __tmp_x == __tmp_y }) && ({ let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; __s[__low..].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "Inf".to_string(); __tmp_x == __tmp_y } || { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; __s[__low..].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "inf".to_string(); __tmp_x == __tmp_y }) {
         { let new_val = self.set_inf(Arc::new(Mutex::new(Some({ let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('-' as i32) as u8; __tmp_x == __tmp_y })))).clone(); f = new_val; };
-        return (f, (*b.lock().unwrap().as_ref().unwrap()), err);
+        return (f.clone(), (*b.lock().unwrap().as_ref().unwrap()), err.clone());
     }
         let mut r = strings::new_reader(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         {
         { let (__tmp_0, __tmp_1, __tmp_2) = self.scan_1(Arc::new(Mutex::new(Some(io_ByteScanner::__go_from(r.clone())))), Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); f = __tmp_0.clone(); *b.lock().unwrap() = Some(__tmp_1); let __moved_tmp_2 = { let mut __guard = __tmp_2.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_2; };;
         if (*err.lock().unwrap()).is_some() {
-            return (f, (*b.lock().unwrap().as_ref().unwrap()), err);;
+            return (f.clone(), (*b.lock().unwrap().as_ref().unwrap()), err.clone());;
         }
     }
                 // entire string must have been consumed
@@ -314,7 +315,7 @@ impl crate::float::Float {
         { let __rhs_holder = err2.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
     }
     }
-        return (f, (*b.lock().unwrap().as_ref().unwrap()), err);
+        return (f.clone(), (*b.lock().unwrap().as_ref().unwrap()), err.clone());
     }
 
     /// Scan is a support routine for [fmt.Scanner]; it sets z to the value of

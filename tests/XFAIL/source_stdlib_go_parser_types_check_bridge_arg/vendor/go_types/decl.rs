@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_register_embedded_owner, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
 
 use crate::alias::*;
 use crate::api::*;
@@ -75,6 +75,7 @@ use crate::version::*;
 use internal_types_errors::*;
 
 use std::any::Any;
+use std::cell::{RefCell};
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
@@ -263,7 +264,10 @@ impl crate::check::Checker {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
         let mut obj: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>> = Arc::new(Mutex::new(obj.lock().unwrap().as_ref().map(|__v| Object::__go_clone_box_object(__v.as_ref()))));
-        if (*(*self.conf.lock().unwrap().as_ref().unwrap()).__trace.lock().unwrap().as_ref().unwrap()) && (*(*obj.lock().unwrap().as_ref().unwrap()).r#type().lock().unwrap()).is_none() {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*(*self.conf.lock().unwrap().as_ref().unwrap()).__trace.lock().unwrap().as_ref().unwrap()) && (*(*obj.lock().unwrap().as_ref().unwrap()).r#type().lock().unwrap()).is_none() {
         if { let __tmp_x = (*self.indent.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x == __tmp_y } {
         println!();
     }
@@ -277,34 +281,34 @@ impl crate::check::Checker {
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
     }
-                // empty line between top-level objects for readability
-                // Checking the declaration of obj means inferring its type
-                // (and possibly its value, for constants).
-                // An object's type (and thus the object) may be in one of
-                // three states which are expressed by colors:
-                //
-                // - an object whose type is not yet known is painted white (initial color)
-                // - an object whose type is in the process of being inferred is painted grey
-                // - an object whose type is fully inferred is painted black
-                //
-                // During type inference, an object's color changes from white to grey
-                // to black (pre-declared objects are painted black from the start).
-                // A black object (i.e., its type) can only depend on (refer to) other black
-                // ones. White and grey objects may depend on white and black objects.
-                // A dependency on a grey object indicates a cycle which may or may not be
-                // valid.
-                //
-                // When objects turn grey, they are pushed on the object path (a stack);
-                // they are popped again when they turn black. Thus, if a grey object (a
-                // cycle) is encountered, it is on the object path, and all the objects
-                // it depends on are the remaining objects on that path. Color encoding
-                // is such that the color value of a grey object indicates the index of
-                // that object in the object path.
-                // During type-checking, white objects may be assigned a type without
-                // traversing through objDecl; e.g., when initializing constants and
-                // variables. Update the colors of those objects here (rather than
-                // everywhere where we set the type) to satisfy the color invariants.
-        if { let __tmp_x = (*(*obj.lock().unwrap().as_ref().unwrap()).color().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::object::color(Arc::new(Mutex::new(Some(WHITE as u32)))); __tmp_x == __tmp_y } && (*(*obj.lock().unwrap().as_ref().unwrap()).r#type().lock().unwrap()).is_some() {
+                        // empty line between top-level objects for readability
+                        // Checking the declaration of obj means inferring its type
+                        // (and possibly its value, for constants).
+                        // An object's type (and thus the object) may be in one of
+                        // three states which are expressed by colors:
+                        //
+                        // - an object whose type is not yet known is painted white (initial color)
+                        // - an object whose type is in the process of being inferred is painted grey
+                        // - an object whose type is fully inferred is painted black
+                        //
+                        // During type inference, an object's color changes from white to grey
+                        // to black (pre-declared objects are painted black from the start).
+                        // A black object (i.e., its type) can only depend on (refer to) other black
+                        // ones. White and grey objects may depend on white and black objects.
+                        // A dependency on a grey object indicates a cycle which may or may not be
+                        // valid.
+                        //
+                        // When objects turn grey, they are pushed on the object path (a stack);
+                        // they are popped again when they turn black. Thus, if a grey object (a
+                        // cycle) is encountered, it is on the object path, and all the objects
+                        // it depends on are the remaining objects on that path. Color encoding
+                        // is such that the color value of a grey object indicates the index of
+                        // that object in the object path.
+                        // During type-checking, white objects may be assigned a type without
+                        // traversing through objDecl; e.g., when initializing constants and
+                        // variables. Update the colors of those objects here (rather than
+                        // everywhere where we set the type) to satisfy the color invariants.
+            if { let __tmp_x = (*(*obj.lock().unwrap().as_ref().unwrap()).color().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::object::color(Arc::new(Mutex::new(Some(WHITE as u32)))); __tmp_x == __tmp_y } && (*(*obj.lock().unwrap().as_ref().unwrap()).r#type().lock().unwrap()).is_some() {
         (*obj.lock().unwrap().as_mut().unwrap()).set_color(Arc::new(Mutex::new(Some(crate::object::color(Arc::new(Mutex::new(Some(BLACK as u32))))))));
         {
         // Execute deferred functions
@@ -314,7 +318,7 @@ impl crate::check::Checker {
         return;
     }
     }
-        {
+            {
         let _switch_val = { let __v = (*obj.lock().unwrap().as_ref().unwrap()).color(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
         let mut _fallthrough = false;
         let mut _matched = false;
@@ -396,8 +400,8 @@ impl crate::check::Checker {
         if !self.valid_cycle(Arc::new(Mutex::new(Some(Box::new(crate::object::FuncPtr(obj.clone())) as Box<dyn Object + Send + Sync>)))) {
     };
     } else {
-        let obj = obj.clone();
-        panic!("unreachable");;
+        let obj = _ts_subject.clone();
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);;
     }
     }
                         // break cycle
@@ -421,49 +425,49 @@ impl crate::check::Checker {
     }
         }
     }
-                // All color values other than white and black are considered grey.
-                // Because black and white are < grey, all values >= grey are grey.
-                // Use those values to encode the object's index into the object path.
-                // Color values other than white or black are considered grey.
-                // We have a (possibly invalid) cycle.
-                // In the existing code, this is marked by a non-nil type
-                // for the object except for constants and variables whose
-                // type may be non-nil (known), or nil if it depends on the
-                // not-yet known initialization value.
-                // In the former case, set the type to Typ[Invalid] because
-                // we have an initialization cycle. The cycle error will be
-                // reported later, when determining initialization order.
-                // TODO(gri) Report cycle here and simplify initialization
-                // order code.
-                // break cycle
-                // (without this, calling underlying()
-                // below may lead to an endless loop
-                // if we have a cycle for a defined
-                // (*Named) type)
-                // Don't set obj.typ to Typ[Invalid] here
-                // because plenty of code type-asserts that
-                // functions have a *Signature type. Grey
-                // functions have their type set to an empty
-                // signature which makes it impossible to
-                // initialize a variable with the function.
-        let mut d = { let __map = { let __map_holder = self.obj_map.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(obj.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
-        if (*d.lock().unwrap()).is_none() {
+                        // All color values other than white and black are considered grey.
+                        // Because black and white are < grey, all values >= grey are grey.
+                        // Use those values to encode the object's index into the object path.
+                        // Color values other than white or black are considered grey.
+                        // We have a (possibly invalid) cycle.
+                        // In the existing code, this is marked by a non-nil type
+                        // for the object except for constants and variables whose
+                        // type may be non-nil (known), or nil if it depends on the
+                        // not-yet known initialization value.
+                        // In the former case, set the type to Typ[Invalid] because
+                        // we have an initialization cycle. The cycle error will be
+                        // reported later, when determining initialization order.
+                        // TODO(gri) Report cycle here and simplify initialization
+                        // order code.
+                        // break cycle
+                        // (without this, calling underlying()
+                        // below may lead to an endless loop
+                        // if we have a cycle for a defined
+                        // (*Named) type)
+                        // Don't set obj.typ to Typ[Invalid] here
+                        // because plenty of code type-asserts that
+                        // functions have a *Signature type. Grey
+                        // functions have their type set to an empty
+                        // signature which makes it impossible to
+                        // initialize a variable with the function.
+            let mut d = { let __map = { let __map_holder = self.obj_map.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(obj.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
+            if (*d.lock().unwrap()).is_none() {
         self.dump(Arc::new(Mutex::new(Some("%v: %s should have been declared".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __v = (*obj.lock().unwrap().as_ref().unwrap()).pos(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = obj.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
-                // save/restore current environment and set up object environment
-        let mut check_defer_captured = self.clone(); let __defer_arg_0 = Arc::new(Mutex::new(Some({ let __selector_holder = check_defer_captured.environment.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); __defer_stack.push(Box::new(move || {
+                        // save/restore current environment and set up object environment
+            let mut check_defer_captured = self.clone(); let __defer_arg_0 = Arc::new(Mutex::new(Some({ let __selector_holder = check_defer_captured.environment.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); __defer_stack.push(Box::new(move || {
         (move |env: Arc<Mutex<Option<environment>>>| {
         { let new_val = env.lock().unwrap().as_ref().unwrap().clone(); *check_defer_captured.environment.lock().unwrap() = Some(new_val); };;
         })(__defer_arg_0);
     }));
-        { let new_val = environment { scope: { let __field = (*d.lock().unwrap().as_ref().unwrap()).file.clone(); __field }, version: Arc::new(Mutex::new(Some({ let __selector_holder = (*d.lock().unwrap().as_ref().unwrap()).version.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }; *self.environment.lock().unwrap() = Some(new_val); };
-                // Const and var declarations must not have initialization
-                // cycles. We track them by remembering the current declaration
-                // in check.decl. Initialization expressions depending on other
-                // consts, vars, or functions, add dependencies to the current
-                // check.decl.
-        {
+            { let new_val = environment { scope: { let __field = (*d.lock().unwrap().as_ref().unwrap()).file.clone(); __field }, version: Arc::new(Mutex::new(Some({ let __selector_holder = (*d.lock().unwrap().as_ref().unwrap()).version.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }; *self.environment.lock().unwrap() = Some(new_val); };
+                        // Const and var declarations must not have initialization
+                        // cycles. We track them by remembering the current declaration
+                        // in check.decl. Initialization expressions depending on other
+                        // consts, vars, or functions, add dependencies to the current
+                        // check.decl.
+            {
     let _ts_subject = obj.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
@@ -493,14 +497,27 @@ impl crate::check::Checker {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<crate::object::FuncPtr>()).unwrap().0.clone();
         self.func_decl(obj.clone(), d.clone());;
     } else {
-        let obj = obj.clone();
-        panic!("unreachable");;
+        let obj = _ts_subject.clone();
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);;
     }
     }
 
-        // Execute deferred functions
-        while let Some(f) = __defer_stack.pop() {
-            f();
+            // Execute deferred functions
+            while let Some(f) = __defer_stack.pop() {
+                f();
+            }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                ()
+            }
         }
     }
 
@@ -512,25 +529,28 @@ impl crate::check::Checker {
     let mut valid: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
 
         let mut obj: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>> = Arc::new(Mutex::new(obj.lock().unwrap().as_ref().map(|__v| Object::__go_clone_box_object(__v.as_ref()))));
-                // The object map contains the package scope objects and the non-interface methods.
-        if DEBUG {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        // The object map contains the package scope objects and the non-interface methods.
+            if DEBUG {
         let mut info = { let __map = { let __map_holder = self.obj_map.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(obj.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
         let mut inObjMap = Arc::new(Mutex::new(Some((*info.lock().unwrap()).is_some() && ({ let __nil_target = (*info.lock().unwrap().as_ref().unwrap()).fdecl.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } || { let __nil_target = (*(*info.lock().unwrap().as_ref().unwrap()).fdecl.lock().unwrap().as_ref().unwrap()).recv.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result }))));
         let mut isPkgObj = Arc::new(Mutex::new(Some({ let __left = (*obj.lock().unwrap().as_ref().unwrap()).parent(); let __right = (*self.pkg.lock().unwrap().as_ref().unwrap()).scope.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq })));
         if { let __tmp_x = { let __v = (*isPkgObj.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*inObjMap.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x != __tmp_y } {
         self.dump(Arc::new(Mutex::new(Some("%v: inconsistent object map for %s (isPkgObj = %v, inObjMap = %v)".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __v = (*obj.lock().unwrap().as_ref().unwrap()).pos(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = obj.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = isPkgObj.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = inObjMap.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
     }
-                // exclude methods
-                // Count cycle objects.
-        assert(Arc::new(Mutex::new(Some({ let __tmp_x = (*(*obj.lock().unwrap().as_ref().unwrap()).color().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::object::color(Arc::new(Mutex::new(Some(GREY as u32)))); __tmp_x >= __tmp_y }))));
-        let mut start = Arc::new(Mutex::new(Some(crate::object::color(Arc::new(Mutex::new(Some(((*(*(*obj.lock().unwrap().as_ref().unwrap()).color().lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) - GREY as u32))))))));
-        let mut cycle = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.obj_path.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize..].to_vec() })));
-        let mut tparCycle = Arc::new(Mutex::new(Some(false)));
-        let mut nval = Arc::new(Mutex::new(Some(0)));
-        let mut ndef = Arc::new(Mutex::new(Some(0)));
-        { let __range_holder = cycle.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); 'r#loop: for mut obj in __range_values.iter().cloned() {
+                        // exclude methods
+                        // Count cycle objects.
+            assert(Arc::new(Mutex::new(Some({ let __tmp_x = (*(*obj.lock().unwrap().as_ref().unwrap()).color().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::object::color(Arc::new(Mutex::new(Some(GREY as u32)))); __tmp_x >= __tmp_y }))));
+            let mut start = Arc::new(Mutex::new(Some(crate::object::color(Arc::new(Mutex::new(Some(((*(*(*obj.lock().unwrap().as_ref().unwrap()).color().lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) - GREY as u32))))))));
+            let mut cycle = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.obj_path.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize..].to_vec() })));
+            let mut tparCycle = Arc::new(Mutex::new(Some(false)));
+            let mut nval = Arc::new(Mutex::new(Some(0)));
+            let mut ndef = Arc::new(Mutex::new(Some(0)));
+            { let __range_holder = cycle.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); 'r#loop: for mut obj in __range_values.iter().cloned() {
         {
     let _ts_subject = obj.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
@@ -546,7 +566,7 @@ impl crate::check::Checker {
         }
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<crate::object::ConstPtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<crate::object::VarPtr>()).is_some() {
-        let obj = obj.clone();
+        let obj = _ts_subject.clone();
         { let mut guard = nval.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::object::TypeNamePtr>()).is_some() {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<crate::object::TypeNamePtr>()).unwrap().0.clone();
@@ -573,27 +593,27 @@ impl crate::check::Checker {
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::object::FuncPtr>()).is_some() {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<crate::object::FuncPtr>()).unwrap().0.clone();
     } else {
-        let obj = obj.clone();
-        panic!("unreachable");;
+        let obj = _ts_subject.clone();
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);;
     }
     }
     } }
-                // If we reach a generic type that is part of a cycle
-                // and we are in a type parameter list, we have a cycle
-                // through a type parameter list, which is invalid.
-                // Determine if the type name is an alias or not. For
-                // package-level objects, use the object map which
-                // provides syntactic information (which doesn't rely
-                // on the order in which the objects are set up). For
-                // local objects, we can rely on the order, so use
-                // the object's predicate.
-                // TODO(gri) It would be less fragile to always access
-                // the syntactic information. We should consider storing
-                // this information explicitly in the object.
-                // package-level object
-                // function local object
-                // ignored for now
-        if (*(*self.conf.lock().unwrap().as_ref().unwrap()).__trace.lock().unwrap().as_ref().unwrap()) {
+                        // If we reach a generic type that is part of a cycle
+                        // and we are in a type parameter list, we have a cycle
+                        // through a type parameter list, which is invalid.
+                        // Determine if the type name is an alias or not. For
+                        // package-level objects, use the object map which
+                        // provides syntactic information (which doesn't rely
+                        // on the order in which the objects are set up). For
+                        // local objects, we can rely on the order, so use
+                        // the object's predicate.
+                        // TODO(gri) It would be less fragile to always access
+                        // the syntactic information. We should consider storing
+                        // this information explicitly in the object.
+                        // package-level object
+                        // function local object
+                        // ignored for now
+            if (*(*self.conf.lock().unwrap().as_ref().unwrap()).__trace.lock().unwrap().as_ref().unwrap()) {
         self.trace((*obj.lock().unwrap().as_ref().unwrap()).pos(), Arc::new(Mutex::new(Some("## cycle detected: objPath = %s->%s (len = %d)".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __v = path_string(cycle.clone()); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>, Box::new({ let __v = (*obj.lock().unwrap().as_ref().unwrap()).name(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>, Box::new((*cycle.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as Box<dyn Any + Send + Sync>]))));
         if { let __v = (*tparCycle.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         self.trace((*obj.lock().unwrap().as_ref().unwrap()).pos(), Arc::new(Mutex::new(Some("## cycle contains: generic type in a type parameter list".to_string()))), Arc::new(Mutex::new(Some(vec![]))));
@@ -610,7 +630,7 @@ impl crate::check::Checker {
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
     }
-        if !{ let __v = (*tparCycle.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+            if !{ let __v = (*tparCycle.lock().unwrap().as_ref().unwrap()).clone(); __v } {
                 // A cycle involving only constants and variables is invalid but we
                 // ignore them here because they are reported via the initialization
                 // cycle check.
@@ -638,14 +658,14 @@ impl crate::check::Checker {
     }
     }
     }
-                // A cycle involving only constants and variables is invalid but we
-                // ignore them here because they are reported via the initialization
-                // cycle check.
-                // A cycle involving only types (and possibly functions) must have at least
-                // one type definition to be permitted: If there is no type definition, we
-                // have a sequence of alias type names which will expand ad infinitum.
-        self.cycle_error(cycle.clone(), Arc::new(Mutex::new(Some(first_in_src(cycle.clone())))));
-        {
+                        // A cycle involving only constants and variables is invalid but we
+                        // ignore them here because they are reported via the initialization
+                        // cycle check.
+                        // A cycle involving only types (and possibly functions) must have at least
+                        // one type definition to be permitted: If there is no type definition, we
+                        // have a sequence of alias type names which will expand ad infinitum.
+            self.cycle_error(cycle.clone(), Arc::new(Mutex::new(Some(first_in_src(cycle.clone())))));
+            {
         { let new_val = false; *valid.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -653,6 +673,19 @@ impl crate::check::Checker {
         }
         return (*valid.lock().unwrap().as_ref().unwrap());
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                (*valid.lock().unwrap().as_ref().unwrap())
+            }
+        }
     }
 
     /// cycleError reports a declaration cycle starting with the object at cycle[start].
@@ -782,7 +815,7 @@ impl crate::check::Checker {
         let s = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::TypeSpecPtr>()).unwrap().0.clone();
         { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn decl + Send + Sync>>>>) -> () + Send + Sync> = { let mut __f_guard = f.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn decl + Send + Sync>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::new(typeDecl { spec: s.clone(), ..Default::default() }) as Box<dyn decl + Send + Sync>)))) };;
     } else {
-        let s = s.clone();
+        let s = _ts_subject.clone();
         self.errorf(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_SYNTAX_TREE as i32))))))), Arc::new(Mutex::new(Some("unknown ast.Spec node %T".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));;
     }
     }
@@ -791,7 +824,7 @@ impl crate::check::Checker {
         let d = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::FuncDeclPtr>()).unwrap().0.clone();
         { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn decl + Send + Sync>>>>) -> () + Send + Sync> = { let mut __f_guard = f.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn decl + Send + Sync>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::new(funcDecl { decl: d.clone(), ..Default::default() }) as Box<dyn decl + Send + Sync>)))) };;
     } else {
-        let d = d.clone();
+        let d = _ts_subject.clone();
         self.errorf(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = d.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_SYNTAX_TREE as i32))))))), Arc::new(Mutex::new(Some("unknown ast.Decl node %T".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = d.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));;
     }
     }
@@ -800,20 +833,23 @@ impl crate::check::Checker {
     pub fn const_decl(&mut self, obj: Arc<Mutex<Option<Const>>>, typ: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>, init: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>, inherited: Arc<Mutex<Option<bool>>>) {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        assert(Arc::new(Mutex::new(Some({ let __iface_handle = { let __field = (*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() }))));
-                // use the correct value of iota
-        let mut check_defer_captured = self.clone(); let __defer_arg_0 = (*check_defer_captured.environment.lock().unwrap().as_ref().unwrap()).iota.clone(); let __defer_arg_1 = (*check_defer_captured.environment.lock().unwrap().as_ref().unwrap()).errpos.clone(); __defer_stack.push(Box::new(move || {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            assert(Arc::new(Mutex::new(Some({ let __iface_handle = { let __field = (*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() }))));
+                        // use the correct value of iota
+            let mut check_defer_captured = self.clone(); let __defer_arg_0 = (*check_defer_captured.environment.lock().unwrap().as_ref().unwrap()).iota.clone(); let __defer_arg_1 = (*check_defer_captured.environment.lock().unwrap().as_ref().unwrap()).errpos.clone(); __defer_stack.push(Box::new(move || {
         (move |iota: Arc<Mutex<Option<Box<dyn go_constant::value::Value + Send + Sync>>>>, errpos: Arc<Mutex<Option<Box<dyn positioner + Send + Sync>>>>| {
         { let __iface_handle = iota.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*check_defer_captured.environment.lock().unwrap().as_mut().unwrap()).iota.lock().unwrap() = (*__iface_guard).clone(); };;
         { let __iface_handle = errpos.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*check_defer_captured.environment.lock().unwrap().as_mut().unwrap()).errpos.lock().unwrap() = (*__iface_guard).clone(); };;
         })(__defer_arg_0, __defer_arg_1);
     }));
-        { let __iface_handle = (*obj.lock().unwrap().as_ref().unwrap()).val.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*self.environment.lock().unwrap().as_mut().unwrap()).iota.lock().unwrap() = (*__iface_guard).clone(); };
-        *(*self.environment.lock().unwrap().as_ref().unwrap()).errpos.lock().unwrap() = None;
-                // provide valid constant value under all circumstances
-        { let __iface_handle = go_constant::make_unknown().clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*obj.lock().unwrap().as_mut().unwrap()).val.lock().unwrap() = (*__iface_guard).clone(); };
-                // determine type, if any
-        if (*typ.lock().unwrap()).is_some() {
+            { let __iface_handle = (*obj.lock().unwrap().as_ref().unwrap()).val.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*self.environment.lock().unwrap().as_mut().unwrap()).iota.lock().unwrap() = (*__iface_guard).clone(); };
+            *(*self.environment.lock().unwrap().as_ref().unwrap()).errpos.lock().unwrap() = None;
+                        // provide valid constant value under all circumstances
+            { let __iface_handle = go_constant::make_unknown().clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*obj.lock().unwrap().as_mut().unwrap()).val.lock().unwrap() = (*__iface_guard).clone(); };
+                        // determine type, if any
+            if (*typ.lock().unwrap()).is_some() {
         let mut t = self.typ(typ.clone());
         if !is_const_type(t.clone()) {
                 // don't report an error if the type is an invalid C (defined) type
@@ -834,11 +870,11 @@ impl crate::check::Checker {
                 // (go.dev/issue/22090)
         { let __iface_handle = t.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
     }
-                // don't report an error if the type is an invalid C (defined) type
-                // (go.dev/issue/22090)
-                // check initialization
-        let mut x: Arc<Mutex<Option<operand>>> = Arc::new(Mutex::new(Some(Default::default())));
-        if (*init.lock().unwrap()).is_some() {
+                        // don't report an error if the type is an invalid C (defined) type
+                        // (go.dev/issue/22090)
+                        // check initialization
+            let mut x: Arc<Mutex<Option<operand>>> = Arc::new(Mutex::new(Some(Default::default())));
+            if (*init.lock().unwrap()).is_some() {
         if { let __v = (*inherited.lock().unwrap().as_ref().unwrap()).clone(); __v } {
                 // The initialization expression is inherited from a previous
                 // constant declaration, and (error) positions refer to that
@@ -856,17 +892,30 @@ impl crate::check::Checker {
                 // (see issues go.dev/issue/42991, go.dev/issue/42992).
         self.expr(Arc::new(Mutex::new(None)), x.clone(), init.clone());
     }
-                // The initialization expression is inherited from a previous
-                // constant declaration, and (error) positions refer to that
-                // expression and not the current constant declaration. Use
-                // the constant identifier position for any errors during
-                // init expression evaluation since that is all we have
-                // (see issues go.dev/issue/42991, go.dev/issue/42992).
-        self.init_const(obj.clone(), x.clone());
+                        // The initialization expression is inherited from a previous
+                        // constant declaration, and (error) positions refer to that
+                        // expression and not the current constant declaration. Use
+                        // the constant identifier position for any errors during
+                        // init expression evaluation since that is all we have
+                        // (see issues go.dev/issue/42991, go.dev/issue/42992).
+            self.init_const(obj.clone(), x.clone());
 
-        // Execute deferred functions
-        while let Some(f) = __defer_stack.pop() {
-            f();
+            // Execute deferred functions
+            while let Some(f) = __defer_stack.pop() {
+                f();
+            }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                ()
+            }
         }
     }
 
@@ -904,7 +953,7 @@ impl crate::check::Checker {
         if DEBUG {
                 // obj must be one of lhs
         if !slices::contains::<Vec<Arc<Mutex<Option<crate::object::Var>>>>, crate::object::Var>(lhs.clone(), obj.clone()) {
-        panic!("inconsistent lhs");
+        std::panic::panic_any(Box::new("inconsistent lhs".to_string()) as Box<dyn Any + Send + Sync>);
     }
     }
                 // obj must be one of lhs
@@ -945,11 +994,14 @@ impl crate::check::Checker {
     pub fn type_decl(&mut self, obj: Arc<Mutex<Option<TypeName>>>, tdecl: Arc<Mutex<Option<go_ast::r#mod::TypeSpec>>>, def: Arc<Mutex<Option<TypeName>>>) {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        assert(Arc::new(Mutex::new(Some({ let __iface_handle = { let __field = (*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() }))));
-                // Only report a version error if we have not reported one already.
-        let mut versionErr = Arc::new(Mutex::new(Some(false)));
-        let mut rhs: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> = Arc::new(Mutex::new(None));
-        let mut check_closure_clone = (*self).clone(); let obj_closure_clone = obj.clone(); let rhs_closure_clone = rhs.clone(); let tdecl_closure_clone = tdecl.clone(); let versionErr_closure_clone = versionErr.clone(); { let __recv = { let mut __recv = check_closure_clone.clone(); let __method_arg0 = Arc::new(Mutex::new(Some({ let mut check_closure_clone_closure_clone = check_closure_clone.clone(); let obj_closure_clone_closure_clone = obj_closure_clone.clone(); Box::new(move || {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            assert(Arc::new(Mutex::new(Some({ let __iface_handle = { let __field = (*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() }))));
+                        // Only report a version error if we have not reported one already.
+            let mut versionErr = Arc::new(Mutex::new(Some(false)));
+            let mut rhs: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> = Arc::new(Mutex::new(None));
+            let mut check_closure_clone = (*self).clone(); let obj_closure_clone = obj.clone(); let rhs_closure_clone = rhs.clone(); let tdecl_closure_clone = tdecl.clone(); let versionErr_closure_clone = versionErr.clone(); { let __recv = { let mut __recv = check_closure_clone.clone(); let __method_arg0 = Arc::new(Mutex::new(Some({ let mut check_closure_clone_closure_clone = check_closure_clone.clone(); let obj_closure_clone_closure_clone = obj_closure_clone.clone(); Box::new(move || {
         {
         let mut t = as_named((*(*obj_closure_clone_closure_clone.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone());;
         if (*t.lock().unwrap()).is_some() {
@@ -958,15 +1010,15 @@ impl crate::check::Checker {
     }
         let _ = !{ let __v = (*versionErr_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v } && check_closure_clone_closure_clone.is_imported_constraint(rhs_closure_clone.clone()) && check_closure_clone_closure_clone.verify_versionf(Arc::new(Mutex::new(Some(Box::new((*(*tdecl_closure_clone.lock().unwrap().as_ref().unwrap()).r#type.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = go1_18.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("using type constraint %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = rhs_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
     }) as Box<dyn FnMut() -> () + Send + Sync> }))); __recv.later(__method_arg0) }; let __result = (*__recv.as_ref().unwrap().borrow_mut().as_mut().unwrap()).describef(Arc::new(Mutex::new(Some(Box::new(crate::object::TypeNamePtr(obj_closure_clone.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some("validType(%s)".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __v = { let __recv = obj_closure_clone.clone(); let __recv_ptr: *const crate::object::TypeName = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::TypeName }; let __result = unsafe { &*__recv_ptr }.name(); __result }; let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>])))); __result };
-                // type may be invalid
-                // If typ is local, an error was already reported where typ is specified/defined.
-                // First type parameter, or nil.
-        let mut tparam0: Arc<Mutex<Option<go_ast::r#mod::Field>>> = Arc::new(Mutex::new(None));
-        if { let __tmp_x = (*(*tdecl.lock().unwrap().as_ref().unwrap()).type_params.lock().unwrap().as_ref().unwrap()).num_fields(); let __tmp_y = 0; __tmp_x > __tmp_y } {
+                        // type may be invalid
+                        // If typ is local, an error was already reported where typ is specified/defined.
+                        // First type parameter, or nil.
+            let mut tparam0: Arc<Mutex<Option<go_ast::r#mod::Field>>> = Arc::new(Mutex::new(None));
+            if { let __tmp_x = (*(*tdecl.lock().unwrap().as_ref().unwrap()).type_params.lock().unwrap().as_ref().unwrap()).num_fields(); let __tmp_y = 0; __tmp_x > __tmp_y } {
         { let new_val = { let __seq = { let __seq_holder = (*(*tdecl.lock().unwrap().as_ref().unwrap()).type_params.lock().unwrap().as_ref().unwrap()).list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(); tparam0 = new_val; };
     }
-                // alias declaration
-        if go_token::position::Pos::is_valid(&(*(*tdecl.lock().unwrap().as_ref().unwrap()).assign.lock().unwrap().as_ref().unwrap())) {
+                        // alias declaration
+            if go_token::position::Pos::is_valid(&(*(*tdecl.lock().unwrap().as_ref().unwrap()).assign.lock().unwrap().as_ref().unwrap())) {
                 // Report highest version requirement first so that fixing a version issue
                 // avoids possibly two -lang changes (first to Go 1.9 and then to Go 1.23).
         if !{ let __v = (*versionErr.lock().unwrap().as_ref().unwrap()).clone(); __v } && (*tparam0.lock().unwrap()).is_some() && !self.verify_versionf(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::FieldPtr(tparam0.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = go1_23.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("generic type alias".to_string()))), Arc::new(Mutex::new(Some(vec![])))) {
@@ -1040,94 +1092,110 @@ impl crate::check::Checker {
         return;
     }
     }
-                // Report highest version requirement first so that fixing a version issue
-                // avoids possibly two -lang changes (first to Go 1.9 and then to Go 1.23).
-                // TODO(gri) Should be able to use nil instead of Typ[Invalid] to mark
-                //           the alias as incomplete. Currently this causes problems
-                //           with certain cycles. Investigate.
-                //
-                // NOTE(adonovan): to avoid the Invalid being prematurely observed
-                // by (e.g.) a var whose type is an unfinished cycle,
-                // Unalias does not memoize if Invalid. Perhaps we should use a
-                // special sentinel distinct from Invalid.
-                // handle type parameters even if not allowed (Alias type is supported)
-                // resolve alias.actual
-                // With Go1.23, the default behavior is to use Alias nodes,
-                // reflected by check.enableAlias. Signal non-default behavior.
-                //
-                // TODO(gri) Testing runs tests in both modes. Do we need to exclude
-                //           tracking of non-default behavior for tests?
-                // type definition or generic type declaration
-        if !{ let __v = (*versionErr.lock().unwrap().as_ref().unwrap()).clone(); __v } && (*tparam0.lock().unwrap()).is_some() && !self.verify_versionf(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::FieldPtr(tparam0.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = go1_18.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("type parameter".to_string()))), Arc::new(Mutex::new(Some(vec![])))) {
+                        // Report highest version requirement first so that fixing a version issue
+                        // avoids possibly two -lang changes (first to Go 1.9 and then to Go 1.23).
+                        // TODO(gri) Should be able to use nil instead of Typ[Invalid] to mark
+                        //           the alias as incomplete. Currently this causes problems
+                        //           with certain cycles. Investigate.
+                        //
+                        // NOTE(adonovan): to avoid the Invalid being prematurely observed
+                        // by (e.g.) a var whose type is an unfinished cycle,
+                        // Unalias does not memoize if Invalid. Perhaps we should use a
+                        // special sentinel distinct from Invalid.
+                        // handle type parameters even if not allowed (Alias type is supported)
+                        // resolve alias.actual
+                        // With Go1.23, the default behavior is to use Alias nodes,
+                        // reflected by check.enableAlias. Signal non-default behavior.
+                        //
+                        // TODO(gri) Testing runs tests in both modes. Do we need to exclude
+                        //           tracking of non-default behavior for tests?
+                        // type definition or generic type declaration
+            if !{ let __v = (*versionErr.lock().unwrap().as_ref().unwrap()).clone(); __v } && (*tparam0.lock().unwrap()).is_some() && !self.verify_versionf(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::FieldPtr(tparam0.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = go1_18.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("type parameter".to_string()))), Arc::new(Mutex::new(Some(vec![])))) {
         { let new_val = true; *versionErr.lock().unwrap() = Some(new_val); };
     }
-        let mut named = self.new_named(obj.clone(), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)));
-        set_def_type(def.clone(), Arc::new(Mutex::new(Some(Box::new(crate::named::NamedPtr(named.clone())) as Box<dyn Type + Send + Sync>))));
-        if { let __nil_target = (*tdecl.lock().unwrap().as_ref().unwrap()).type_params.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
+            let mut named = self.new_named(obj.clone(), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)));
+            set_def_type(def.clone(), Arc::new(Mutex::new(Some(Box::new(crate::named::NamedPtr(named.clone())) as Box<dyn Type + Send + Sync>))));
+            if { let __nil_target = (*tdecl.lock().unwrap().as_ref().unwrap()).type_params.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
         self.open_scope(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::TypeSpecPtr(tdecl.clone())) as Box<dyn go_ast::r#mod::Node + Send + Sync>))), Arc::new(Mutex::new(Some("type parameters".to_string()))));
         let mut check_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         check_defer_captured.close_scope();
     }));
         self.collect_type_params(Arc::new(Mutex::new(Some((*named.lock().unwrap().as_ref().unwrap()).tparams.clone()))), { let __field = (*tdecl.lock().unwrap().as_ref().unwrap()).type_params.clone(); __field });
     }
-                // determine underlying type of named
-        { let __iface_handle = self.defined_type((*tdecl.lock().unwrap().as_ref().unwrap()).r#type.clone(), obj.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *rhs.lock().unwrap() = (*__iface_guard).clone(); };
-        assert(Arc::new(Mutex::new(Some((*rhs.lock().unwrap()).is_some()))));
-        { let __iface_handle = rhs.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*named.lock().unwrap().as_mut().unwrap()).from_r_h_s.lock().unwrap() = (*__iface_guard).clone(); };
-                // If the underlying type was not set while type-checking the right-hand
-                // side, it is invalid and an error should have been reported elsewhere.
-        if { let __iface_handle = { let __field = (*named.lock().unwrap().as_ref().unwrap()).underlying.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
+                        // determine underlying type of named
+            { let __iface_handle = self.defined_type((*tdecl.lock().unwrap().as_ref().unwrap()).r#type.clone(), obj.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *rhs.lock().unwrap() = (*__iface_guard).clone(); };
+            assert(Arc::new(Mutex::new(Some((*rhs.lock().unwrap()).is_some()))));
+            { let __iface_handle = rhs.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*named.lock().unwrap().as_mut().unwrap()).from_r_h_s.lock().unwrap() = (*__iface_guard).clone(); };
+                        // If the underlying type was not set while type-checking the right-hand
+                        // side, it is invalid and an error should have been reported elsewhere.
+            if { let __iface_handle = { let __field = (*named.lock().unwrap().as_ref().unwrap()).underlying.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
         { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr({ let __seq = { let __seq_holder = Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(INVALID as i32) as usize].clone() }.clone())) as Box<dyn Type + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*named.lock().unwrap().as_mut().unwrap()).underlying.lock().unwrap() = (*__iface_guard).clone(); };
     }
-                // Disallow a lone type parameter as the RHS of a type declaration (go.dev/issue/45639).
-                // We don't need this restriction anymore if we make the underlying type of a type
-                // parameter its constraint interface: if the RHS is a lone type parameter, we will
-                // use its underlying type (like we do for any RHS in a type declaration), and its
-                // underlying type is an interface and the type declaration is well defined.
-        if is_type_param(rhs.clone()) {
+                        // Disallow a lone type parameter as the RHS of a type declaration (go.dev/issue/45639).
+                        // We don't need this restriction anymore if we make the underlying type of a type
+                        // parameter its constraint interface: if the RHS is a lone type parameter, we will
+                        // use its underlying type (like we do for any RHS in a type declaration), and its
+                        // underlying type is an interface and the type declaration is well defined.
+            if is_type_param(rhs.clone()) {
         self.error(Arc::new(Mutex::new(Some(Box::new((*(*tdecl.lock().unwrap().as_ref().unwrap()).r#type.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(MISPLACED_TYPE_PARAM as i32))))))), Arc::new(Mutex::new(Some("cannot use a type parameter as RHS in type declaration".to_string()))));
         { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr({ let __seq = { let __seq_holder = Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(INVALID as i32) as usize].clone() }.clone())) as Box<dyn Type + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*named.lock().unwrap().as_mut().unwrap()).underlying.lock().unwrap() = (*__iface_guard).clone(); };
     }
 
-        // Execute deferred functions
-        while let Some(f) = __defer_stack.pop() {
-            f();
+            // Execute deferred functions
+            while let Some(f) = __defer_stack.pop() {
+                f();
+            }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                ()
+            }
         }
     }
 
     pub fn collect_type_params(&mut self, dst: Arc<Mutex<Option<Arc<Mutex<Option<TypeParamList>>>>>>, list: Arc<Mutex<Option<go_ast::r#mod::FieldList>>>) {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        let mut tparams: Arc<Mutex<Option<Vec<Arc<Mutex<Option<TypeParam>>>>>>> = Arc::new(Mutex::new(None));
-                // Declare type parameters up-front, with empty interface as type bound.
-                // The scope of type parameters starts at the beginning of the type parameter
-                // list (so we can have mutually recursive parameterized interfaces).
-        let mut scopePos = { let __recv = list.clone(); let __recv_ptr: *const go_ast::r#mod::FieldList = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_ast::r#mod::FieldList }; let __result = unsafe { &*__recv_ptr }.pos(); __result };
-        { let __range_holder = (*list.lock().unwrap().as_ref().unwrap()).list.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter() {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let mut tparams: Arc<Mutex<Option<Vec<Arc<Mutex<Option<TypeParam>>>>>>> = Arc::new(Mutex::new(None));
+                        // Declare type parameters up-front, with empty interface as type bound.
+                        // The scope of type parameters starts at the beginning of the type parameter
+                        // list (so we can have mutually recursive parameterized interfaces).
+            let mut scopePos = { let __recv = list.clone(); let __recv_ptr: *const go_ast::r#mod::FieldList = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_ast::r#mod::FieldList }; let __result = unsafe { &*__recv_ptr }.pos(); __result };
+            { let __range_holder = (*list.lock().unwrap().as_ref().unwrap()).list.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter() {
         { let __range_holder = (*f.lock().unwrap().as_ref().unwrap()).names.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for name in __range_values.iter() {
         { let new_val = { let __append_target = tparams.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(self.declare_type_param((*name).clone(), Arc::new(Mutex::new(Some({ let __arg_holder = scopePos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))); __append_target.clone() }; tparams = new_val; };
     } }
     } }
-                // Set the type parameters before collecting the type constraints because
-                // the parameterized type may be used by the constraints (go.dev/issue/47887).
-                // Example: type T[P T[P]] interface{}
-        { let new_val = bind_t_params(tparams.clone()).clone(); let __dst = dst.clone(); let __dst_guard = __dst.lock().unwrap(); *__dst_guard.as_ref().unwrap().lock().unwrap() = (*new_val.lock().unwrap()).clone(); };
-                // Signal to cycle detection that we are in a type parameter list.
-                // We can only be inside one type parameter list at any given time:
-                // function closures may appear inside a type parameter list but they
-                // cannot be generic, and their bodies are processed in delayed and
-                // sequential fashion. Note that with each new declaration, we save
-                // the existing environment and restore it when done; thus inTPList is
-                // true exactly only when we are in a specific type parameter list.
-        assert(Arc::new(Mutex::new(Some(!((*(*self.environment.lock().unwrap().as_ref().unwrap()).in_t_param_list.clone().lock().unwrap().as_ref().unwrap()))))));
-        { let new_val = true; *(*self.environment.lock().unwrap().as_ref().unwrap()).in_t_param_list.lock().unwrap() = Some(new_val); };
-        let mut check_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
+                        // Set the type parameters before collecting the type constraints because
+                        // the parameterized type may be used by the constraints (go.dev/issue/47887).
+                        // Example: type T[P T[P]] interface{}
+            { let new_val = bind_t_params(tparams.clone()).clone(); let __dst = dst.clone(); let __dst_guard = __dst.lock().unwrap(); *__dst_guard.as_ref().unwrap().lock().unwrap() = (*new_val.lock().unwrap()).clone(); };
+                        // Signal to cycle detection that we are in a type parameter list.
+                        // We can only be inside one type parameter list at any given time:
+                        // function closures may appear inside a type parameter list but they
+                        // cannot be generic, and their bodies are processed in delayed and
+                        // sequential fashion. Note that with each new declaration, we save
+                        // the existing environment and restore it when done; thus inTPList is
+                        // true exactly only when we are in a specific type parameter list.
+            assert(Arc::new(Mutex::new(Some(!((*(*self.environment.lock().unwrap().as_ref().unwrap()).in_t_param_list.clone().lock().unwrap().as_ref().unwrap()))))));
+            { let new_val = true; *(*self.environment.lock().unwrap().as_ref().unwrap()).in_t_param_list.lock().unwrap() = Some(new_val); };
+            let mut check_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
         { let new_val = false; *(*check_defer_captured.environment.lock().unwrap().as_ref().unwrap()).in_t_param_list.lock().unwrap() = Some(new_val); };
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
-        let mut index = Arc::new(Mutex::new(Some(0)));
-        { let __range_holder = (*list.lock().unwrap().as_ref().unwrap()).list.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter() {
+            let mut index = Arc::new(Mutex::new(Some(0)));
+            { let __range_holder = (*list.lock().unwrap().as_ref().unwrap()).list.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter() {
         let mut bound: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> = Arc::new(Mutex::new(None));
                 // NOTE: we may be able to assert that f.Type != nil here, but this is not
                 // an invariant of the AST, so we are cautious.
@@ -1154,9 +1222,22 @@ impl crate::check::Checker {
         { let __rhs = ({ let __len_target = { let __field = (*f.lock().unwrap().as_ref().unwrap()).names.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32; let mut guard = index.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
 
-        // Execute deferred functions
-        while let Some(f) = __defer_stack.pop() {
-            f();
+            // Execute deferred functions
+            while let Some(f) = __defer_stack.pop() {
+                f();
+            }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                ()
+            }
         }
     }
 
@@ -1459,7 +1540,7 @@ impl crate::check::Checker {
         check_closure_clone_closure_clone.type_decl(obj.clone(), { let __field = (*d.lock().unwrap().as_ref().unwrap()).spec.clone(); __field }, Arc::new(Mutex::new(None)));;
         { let __recv = check_closure_clone_closure_clone.pop(); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).set_color(Arc::new(Mutex::new(Some(crate::object::color(Arc::new(Mutex::new(Some(BLACK as u32)))))))); __result };;
     } else {
-        let d = d.clone();
+        let d = _ts_subject.clone();
         check_closure_clone_closure_clone.errorf(Arc::new(Mutex::new(Some(Box::new((*(*d.lock().unwrap().as_ref().unwrap()).node().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_SYNTAX_TREE as i32))))))), Arc::new(Mutex::new(Some("unknown ast.Decl node %T".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __v = (*d.lock().unwrap().as_ref().unwrap()).node(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>]))));;
     }
     }

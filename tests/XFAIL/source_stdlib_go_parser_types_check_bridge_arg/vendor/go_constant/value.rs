@@ -2053,7 +2053,7 @@ pub fn make_float64(x: Arc<Mutex<Option<f64>>>) -> Arc<Mutex<Option<Box<dyn Valu
 /// If the literal string syntax is invalid, the result is an [Unknown].
 pub fn make_from_literal(lit: Arc<Mutex<Option<String>>>, tok: Arc<Mutex<Option<go_token::r#mod::Token>>>, zero: Arc<Mutex<Option<u64>>>) -> Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>> {
     if { let __tmp_x = { let __v = (*zero.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
-        panic!("MakeFromLiteral called with non-zero last argument");
+        std::panic::panic_any(Box::new("MakeFromLiteral called with non-zero last argument".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     { let _switch_val = (*tok.lock().unwrap().as_ref().unwrap()).clone();
@@ -2109,7 +2109,7 @@ pub fn make_from_literal(lit: Arc<Mutex<Option<String>>>, tok: Arc<Mutex<Option<
         }
     }
         } else {
-            panic!("{} is not a valid token", { let __v = (*tok.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{} is not a valid token", { let __v = (*tok.lock().unwrap().as_ref().unwrap()).clone(); __v })))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
         }
     }
 
@@ -2141,8 +2141,8 @@ pub fn bool_val(mut x: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>) -> bool
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<unknownVal>()).unwrap().clone())));
         return false;;
     } else {
-        let x = x.clone();
-        panic!("{} not a Bool", format!("{}", (*x.lock().unwrap().as_ref().unwrap())));;
+        let x = _ts_subject.clone();
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{} not a Bool", format!("{}", (*x.lock().unwrap().as_ref().unwrap())))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);;
     }
     }
     unreachable!()
@@ -2173,8 +2173,8 @@ pub fn string_val(mut x: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>) -> Ar
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<unknownVal>()).unwrap().clone())));
         return Arc::new(Mutex::new(Some("".to_string())));;
     } else {
-        let x = x.clone();
-        panic!("{} not a String", format!("{}", (*x.lock().unwrap().as_ref().unwrap())));;
+        let x = _ts_subject.clone();
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{} not a String", format!("{}", (*x.lock().unwrap().as_ref().unwrap())))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);;
     }
     }
     unreachable!()
@@ -2209,8 +2209,8 @@ pub fn int64_val(mut x: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>) -> (i6
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<unknownVal>()).unwrap().clone())));
         return (0, false);;
     } else {
-        let x = x.clone();
-        panic!("{} not an Int", format!("{}", (*x.lock().unwrap().as_ref().unwrap())));;
+        let x = _ts_subject.clone();
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{} not an Int", format!("{}", (*x.lock().unwrap().as_ref().unwrap())))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);;
     }
     }
     unreachable!()
@@ -2245,8 +2245,8 @@ pub fn uint64_val(mut x: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>) -> (u
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<unknownVal>()).unwrap().clone())));
         return (0, false);;
     } else {
-        let x = x.clone();
-        panic!("{} not an Int", format!("{}", (*x.lock().unwrap().as_ref().unwrap())));;
+        let x = _ts_subject.clone();
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{} not an Int", format!("{}", (*x.lock().unwrap().as_ref().unwrap())))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);;
     }
     }
     unreachable!()
@@ -2288,8 +2288,8 @@ pub fn float32_val(mut x: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>) -> (
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<unknownVal>()).unwrap().clone())));
         return (0.0_f32, false);;
     } else {
-        let x = x.clone();
-        panic!("{} not a Float", format!("{}", (*x.lock().unwrap().as_ref().unwrap())));;
+        let x = _ts_subject.clone();
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{} not a Float", format!("{}", (*x.lock().unwrap().as_ref().unwrap())))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);;
     }
     }
     unreachable!()
@@ -2335,8 +2335,8 @@ pub fn float64_val(mut x: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>) -> (
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<unknownVal>()).unwrap().clone())));
         return (0.0, false);;
     } else {
-        let x = x.clone();
-        panic!("{} not a Float", format!("{}", (*x.lock().unwrap().as_ref().unwrap())));;
+        let x = _ts_subject.clone();
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{} not a Float", format!("{}", (*x.lock().unwrap().as_ref().unwrap())))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);;
     }
     }
     unreachable!()
@@ -2375,8 +2375,8 @@ pub fn bit_len(mut x: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>) -> i32 {
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<unknownVal>()).unwrap().clone())));
         return 0;;
     } else {
-        let x = x.clone();
-        panic!("{} not an Int", format!("{}", (*x.lock().unwrap().as_ref().unwrap())));;
+        let x = _ts_subject.clone();
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{} not an Int", format!("{}", (*x.lock().unwrap().as_ref().unwrap())))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);;
     }
     }
     unreachable!()
@@ -2425,8 +2425,8 @@ pub fn sign(mut x: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>) -> i32 {
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<unknownVal>()).unwrap().clone())));
         return 1;;
     } else {
-        let x = x.clone();
-        panic!("{} not numeric", format!("{}", (*x.lock().unwrap().as_ref().unwrap())));;
+        let x = _ts_subject.clone();
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{} not numeric", format!("{}", (*x.lock().unwrap().as_ref().unwrap())))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);;
     }
     }
     unreachable!()
@@ -2455,7 +2455,7 @@ pub fn make_imag(x: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>) -> Arc<Mut
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<int64Val>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<intVal>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<ratVal>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<floatVal>()).is_some() {
         return make_complex(Arc::new(Mutex::new(Some(Box::new(int64Val(Arc::new(Mutex::new(Some(0 as i64 as i64))))) as Box<dyn Value + Send + Sync>))), x.clone()).clone();;
     } else {
-        panic!("{} not Int or Float", format!("{}", (*x.lock().unwrap().as_ref().unwrap())));;
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{} not Int or Float", format!("{}", (*x.lock().unwrap().as_ref().unwrap())))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);;
     }
     }
     unreachable!()
@@ -2480,14 +2480,14 @@ pub fn real(mut x: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>) -> Arc<Mute
         }
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<unknownVal>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<int64Val>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<intVal>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<ratVal>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<floatVal>()).is_some() {
-        let x = x.clone();
+        let x = _ts_subject.clone();
         return x.clone();;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<complexVal>()).is_some() {
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<complexVal>()).unwrap().clone())));
         return (*x.lock().unwrap().as_ref().unwrap()).re.clone();;
     } else {
-        let x = x.clone();
-        panic!("{} not numeric", format!("{}", (*x.lock().unwrap().as_ref().unwrap())));;
+        let x = _ts_subject.clone();
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{} not numeric", format!("{}", (*x.lock().unwrap().as_ref().unwrap())))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);;
     }
     }
     unreachable!()
@@ -2515,14 +2515,14 @@ pub fn imag(mut x: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>) -> Arc<Mute
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<unknownVal>()).unwrap().clone())));
         return Arc::new(Mutex::new(Some(Box::new((*x.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Value + Send + Sync>)));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<int64Val>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<intVal>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<ratVal>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<floatVal>()).is_some() {
-        let x = x.clone();
+        let x = _ts_subject.clone();
         return Arc::new(Mutex::new(Some(Box::new(int64Val(Arc::new(Mutex::new(Some(0 as i64))))) as Box<dyn Value + Send + Sync>)));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<complexVal>()).is_some() {
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<complexVal>()).unwrap().clone())));
         return (*x.lock().unwrap().as_ref().unwrap()).im.clone();;
     } else {
-        let x = x.clone();
-        panic!("{} not numeric", format!("{}", (*x.lock().unwrap().as_ref().unwrap())));;
+        let x = _ts_subject.clone();
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{} not numeric", format!("{}", (*x.lock().unwrap().as_ref().unwrap())))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);;
     }
     }
     unreachable!()
@@ -2547,7 +2547,7 @@ pub fn to_int(mut x: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>) -> Arc<Mu
         }
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<int64Val>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<intVal>()).is_some() {
-        let x = x.clone();
+        let x = _ts_subject.clone();
         return x.clone();;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<ratVal>()).is_some() {
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<ratVal>()).unwrap().clone())));
@@ -2636,7 +2636,7 @@ pub fn to_float(mut x: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>) -> Arc<
     };
         return Arc::new(Mutex::new(Some(Box::new((*itof(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Value + Send + Sync>)));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<ratVal>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<floatVal>()).is_some() {
-        let x = x.clone();
+        let x = _ts_subject.clone();
         return x.clone();;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<complexVal>()).is_some() {
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<complexVal>()).unwrap().clone())));
@@ -2668,7 +2668,7 @@ pub fn to_complex(mut x: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>) -> Ar
         }
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<int64Val>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<intVal>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<ratVal>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<floatVal>()).is_some() {
-        let x = x.clone();
+        let x = _ts_subject.clone();
         return Arc::new(Mutex::new(Some(Box::new((*vtoc(x.clone()).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Value + Send + Sync>)));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<complexVal>()).is_some() {
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<complexVal>()).unwrap().clone())));
@@ -2788,7 +2788,7 @@ pub fn unary_op(op: Arc<Mutex<Option<go_token::r#mod::Token>>>, mut y: Arc<Mutex
         let y = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<intVal>()).unwrap().clone())));
         { let __recv = z.clone(); let __recv_ptr: *mut math_big::int::Int = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut math_big::int::Int }; let __result = unsafe { &mut *__recv_ptr }.not({ let __field = (*y.lock().unwrap().as_ref().unwrap()).val.clone(); __field }); __result };;
     } else {
-        let y = y.clone();
+        let y = _ts_subject.clone();
         break 'error;;
     }
     }
@@ -2832,7 +2832,7 @@ pub fn unary_op(op: Arc<Mutex<Option<go_token::r#mod::Token>>>, mut y: Arc<Mutex
         // thus "too large": We must limit the result precision
         // to the type's precision.
         // z &^= (-1)<<prec
-    panic!("invalid unary operation {}{}", { let __v = (*op.lock().unwrap().as_ref().unwrap()).clone(); __v }, format!("{}", (*y.lock().unwrap().as_ref().unwrap())));
+    std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("invalid unary operation {}{}", { let __v = (*op.lock().unwrap().as_ref().unwrap()).clone(); __v }, format!("{}", (*y.lock().unwrap().as_ref().unwrap())))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     unreachable!()
 }
 
@@ -3277,7 +3277,7 @@ pub fn binary_op(x_: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>, op: Arc<M
         // (a-c) + i(b-d)
         // (ac-bd) + i(bc+ad)
         // (ac+bd)/s + i(bc-ad)/s, with s = cc + dd
-    panic!("invalid binary operation {} {} {}", format!("{}", (*x_.lock().unwrap().as_ref().unwrap())), { let __v = (*op.lock().unwrap().as_ref().unwrap()).clone(); __v }, format!("{}", (*y_.lock().unwrap().as_ref().unwrap())));
+    std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("invalid binary operation {} {} {}", format!("{}", (*x_.lock().unwrap().as_ref().unwrap())), { let __v = (*op.lock().unwrap().as_ref().unwrap()).clone(); __v }, format!("{}", (*y_.lock().unwrap().as_ref().unwrap())))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     unreachable!()
 }
 
@@ -3348,7 +3348,7 @@ pub fn shift(mut x: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>, op: Arc<Mu
     }
     }
 
-    panic!("invalid shift {} {} {}", format!("{}", (*x.lock().unwrap().as_ref().unwrap())), { let __v = (*op.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("invalid shift {} {} {}", format!("{}", (*x.lock().unwrap().as_ref().unwrap())), { let __v = (*op.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v })))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
 }
 
 pub fn cmp_zero(x: Arc<Mutex<Option<i32>>>, op: Arc<Mutex<Option<go_token::r#mod::Token>>>) -> bool {
@@ -3367,7 +3367,7 @@ pub fn cmp_zero(x: Arc<Mutex<Option<i32>>>, op: Arc<Mutex<Option<go_token::r#mod
             return { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y };
         }
     }
-    panic!("invalid comparison {} {} 0", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*op.lock().unwrap().as_ref().unwrap()).clone(); __v });
+    std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("invalid comparison {} {} 0", { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*op.lock().unwrap().as_ref().unwrap()).clone(); __v })))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
 }
 
 /// Compare returns the result of the comparison x op y.
@@ -3549,7 +3549,7 @@ pub fn compare(x_: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>, op: Arc<Mut
     }
     }
 
-    panic!("invalid comparison {} {} {}", format!("{}", (*x_.lock().unwrap().as_ref().unwrap())), { let __v = (*op.lock().unwrap().as_ref().unwrap()).clone(); __v }, format!("{}", (*y_.lock().unwrap().as_ref().unwrap())));
+    std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("invalid comparison {} {} {}", format!("{}", (*x_.lock().unwrap().as_ref().unwrap())), { let __v = (*op.lock().unwrap().as_ref().unwrap()).clone(); __v }, format!("{}", (*y_.lock().unwrap().as_ref().unwrap())))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
 }
 
 pub(crate) fn __go_init_functions() {

@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_register_embedded_owner, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
 
 use crate::alias::*;
 use crate::api::*;
@@ -146,7 +146,7 @@ pub fn sprintf(fset: Arc<Mutex<Option<go_token::position::FileSet>>>, qf: crate:
         { let new_val = Box::new("<nil>".to_string()) as Box<dyn Any + Send + Sync>; arg = new_val; };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::operand::operand>()).is_some() {
         let a = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<crate::operand::operand>()).unwrap().clone())));
-        panic!("got operand instead of *operand");;
+        std::panic::panic_any(Box::new("got operand instead of *operand".to_string()) as Box<dyn Any + Send + Sync>);;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::operand::operand>()).is_some() {
         let a = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<crate::operand::operand>()).unwrap().clone())));
         { let new_val = Box::new((*operand_string(a.clone(), qf.clone()).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>; arg = new_val; };;

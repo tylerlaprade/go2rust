@@ -534,7 +534,7 @@ impl Scanner {
     pub fn init(&mut self, file: Arc<Mutex<Option<go_token::position::File>>>, src: Arc<Mutex<Option<Vec<u8>>>>, err: ErrorHandler, mode: Arc<Mutex<Option<Mode>>>) {
                 // Explicitly initialize all fields since a scanner may be reused.
         if { let __tmp_x = ({ let __recv = file.clone(); let __recv_ptr: *const go_token::position::File = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_token::position::File }; let __result = unsafe { &*__recv_ptr }.size(); __result } as i32); let __tmp_y = ((*src.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x != __tmp_y } {
-        panic!("file size ({}) does not match src len ({})", { let __recv = file.clone(); let __recv_ptr: *const go_token::position::File = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_token::position::File }; let __result = unsafe { &*__recv_ptr }.size(); __result }, (*src.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0));
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("file size ({}) does not match src len ({})", { let __recv = file.clone(); let __recv_ptr: *const go_token::position::File = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_token::position::File }; let __result = unsafe { &*__recv_ptr }.size(); __result }, (*src.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     }
         { let new_val = file.clone(); self.file = new_val; };
         { let (__tmp_0, __tmp_1) = path_filepath::split({ let __recv = file.clone(); let __recv_ptr: *const go_token::position::File = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_token::position::File }; let __result = unsafe { &*__recv_ptr }.name(); __result }); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *self.dir.lock().unwrap() = __moved_tmp_0; };
@@ -1118,7 +1118,7 @@ impl Scanner {
                 // containing newline, at position of first newline.
         { let __tmp_0 = { let __selector_holder = self.nl_pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_1 = go_token::S_E_M_I_C_O_L_O_N; let __tmp_2 = "\n".to_string(); *pos.lock().unwrap() = Some(__tmp_0); *tok.lock().unwrap() = Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(__tmp_1 as i32))))); *lit.lock().unwrap() = Some(__tmp_2); };
         { let new_val = go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i32)))); *self.nl_pos.lock().unwrap() = Some(new_val); };
-        return (pos, tok, lit);
+        return (pos.clone(), tok.clone(), lit.clone());
     }
 
                         // Return artificial ';' token after /*...*/ comment
@@ -1314,7 +1314,7 @@ impl Scanner {
         { let new_val = insertSemi.lock().unwrap().as_ref().unwrap().clone(); *self.insert_semi.lock().unwrap() = Some(new_val); };
     }
 
-            return (pos, tok, lit);
+            return (pos.clone(), tok.clone(), lit.clone());
         };
         unreachable!()
     }

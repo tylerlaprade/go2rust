@@ -22,6 +22,7 @@ use crate::ratmarsh::*;
 use crate::roundingmode_string::*;
 use crate::sqrt::*;
 
+use std::any::Any;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
@@ -204,7 +205,7 @@ impl Rat {
         { let new_val = { let __tmp_x = (*{ let __field = (*a.lock().unwrap().as_ref().unwrap()).neg.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*b.lock().unwrap().as_ref().unwrap()).neg.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x != __tmp_y }; *(*self.a.lock().unwrap().as_ref().unwrap()).neg.lock().unwrap() = Some(new_val); };
         let mut babs = Arc::new(Mutex::new(Some({ let __selector_holder = (*b.lock().unwrap().as_ref().unwrap()).abs.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         if { let __tmp_x = ({ let __slice_holder = { let __named_slice = (*babs.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
-        panic!("division by zero");
+        std::panic::panic_any(Box::new("division by zero".to_string()) as Box<dyn Any + Send + Sync>);
     }
         if { let __left = self.a.clone(); let __right = b.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } || alias({ let __field = (*self.a.lock().unwrap().as_ref().unwrap()).abs.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = babs.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
         { let new_val = crate::nat::nat(Arc::new(Mutex::new(None::<Vec<crate::arith::Word>>))).set(babs.clone()); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *babs.lock().unwrap() = __moved_val; };
@@ -219,7 +220,7 @@ impl Rat {
     /// If b == 0, SetFrac64 panics.
     pub fn set_frac64(&mut self, a: Arc<Mutex<Option<i64>>>, mut b: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<Rat>>> {
         if { let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x == __tmp_y } {
-        panic!("division by zero");
+        std::panic::panic_any(Box::new("division by zero".to_string()) as Box<dyn Any + Send + Sync>);
     }
         (*self.a.lock().unwrap().as_mut().unwrap()).set_int64(Arc::new(Mutex::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         if { let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x < __tmp_y } {
@@ -281,7 +282,7 @@ impl Rat {
     /// If x == 0, Inv panics.
     pub fn inv(&mut self, x: Arc<Mutex<Option<Rat>>>) -> Arc<Mutex<Option<Rat>>> {
         if { let __tmp_x = ({ let __slice_holder = { let __named_slice = (*(*(*x.lock().unwrap().as_ref().unwrap()).a.lock().unwrap().as_ref().unwrap()).abs.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
-        panic!("division by zero");
+        std::panic::panic_any(Box::new("division by zero".to_string()) as Box<dyn Any + Send + Sync>);
     }
         self.set(x.clone());
         { let __tmp_0 = { let __selector_holder = (*self.b.lock().unwrap().as_ref().unwrap()).abs.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_1 = { let __selector_holder = (*self.a.lock().unwrap().as_ref().unwrap()).abs.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *(*self.a.lock().unwrap().as_ref().unwrap()).abs.lock().unwrap() = Some(__tmp_0); *(*self.b.lock().unwrap().as_ref().unwrap()).abs.lock().unwrap() = Some(__tmp_1); };
@@ -424,7 +425,7 @@ impl Rat {
     /// If y == 0, Quo panics.
     pub fn quo(&mut self, x: Arc<Mutex<Option<Rat>>>, y: Arc<Mutex<Option<Rat>>>) -> Arc<Mutex<Option<Rat>>> {
         if { let __tmp_x = ({ let __slice_holder = { let __named_slice = (*(*(*y.lock().unwrap().as_ref().unwrap()).a.lock().unwrap().as_ref().unwrap()).abs.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
-        panic!("division by zero");
+        std::panic::panic_any(Box::new("division by zero".to_string()) as Box<dyn Any + Send + Sync>);
     }
         let mut a: Arc<Mutex<Option<Int>>> = Arc::new(Mutex::new(Some(Default::default())));let mut b: Arc<Mutex<Option<Int>>> = Arc::new(Mutex::new(Some(Default::default())));
         (*a.lock().unwrap().as_mut().unwrap()).scale_denom((*x.lock().unwrap().as_ref().unwrap()).a.clone(), { let __field = (*(*y.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).abs.clone(); __field });
@@ -483,7 +484,7 @@ const Emax: i32 = Ebias;
     }
     let mut blen = (*b.lock().unwrap().as_ref().unwrap()).bit_len();
     if { let __tmp_x = blen; let __tmp_y = 0; __tmp_x == __tmp_y } {
-        panic!("division by zero");
+        std::panic::panic_any(Box::new("division by zero".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
         // 1. Left-shift A or B such that quotient A/B is in [1<<Msize1, 1<<(Msize2+1)
@@ -523,7 +524,7 @@ const Emax: i32 = Ebias;
         { let mut guard = exp.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     if { let __tmp_x = { let __tmp_x = mantissa; let __tmp_y = Msize1; __tmp_x >> __tmp_y }; let __tmp_y = 1 as u32; __tmp_x != __tmp_y } {
-        panic!("expected exactly {} bits of result", Msize2);
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("expected exactly {} bits of result", Msize2)))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     }
 
         // 4. Rounding.
@@ -592,7 +593,7 @@ const Emax: i32 = Ebias;
     }
     let mut blen = (*b.lock().unwrap().as_ref().unwrap()).bit_len();
     if { let __tmp_x = blen; let __tmp_y = 0; __tmp_x == __tmp_y } {
-        panic!("division by zero");
+        std::panic::panic_any(Box::new("division by zero".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
         // 1. Left-shift A or B such that quotient A/B is in [1<<Msize1, 1<<(Msize2+1)
@@ -632,7 +633,7 @@ const Emax: i32 = Ebias;
         { let mut guard = exp.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     if { let __tmp_x = { let __tmp_x = mantissa; let __tmp_y = Msize1; __tmp_x >> __tmp_y }; let __tmp_y = 1 as u64; __tmp_x != __tmp_y } {
-        panic!("expected exactly {} bits of result", Msize2);
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("expected exactly {} bits of result", Msize2)))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     }
 
         // 4. Rounding.

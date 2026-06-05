@@ -22,6 +22,7 @@ use crate::ratmarsh::*;
 use crate::roundingmode_string::*;
 use crate::sqrt::*;
 
+use std::any::Any;
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
@@ -1012,7 +1013,7 @@ impl Int {
                 // optimization for common case: odd/even test of x
                 // bit 0 is same for -x
         if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x < __tmp_y } {
-        panic!("negative bit index");
+        std::panic::panic_any(Box::new("negative bit index".to_string()) as Box<dyn Any + Send + Sync>);
     }
         if (*self.neg.clone().lock().unwrap().as_ref().unwrap()) {
         let mut t = crate::nat::nat(Arc::new(Mutex::new(None::<Vec<crate::arith::Word>>))).sub({ let __field = self.abs.clone(); __field }, natOne.clone());
@@ -1028,7 +1029,7 @@ impl Int {
     ///   - if b is not 0 or 1, SetBit will panic.
     pub fn set_bit(&mut self, x: Arc<Mutex<Option<Int>>>, i: Arc<Mutex<Option<i32>>>, b: Arc<Mutex<Option<u64>>>) -> Arc<Mutex<Option<Int>>> {
         if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x < __tmp_y } {
-        panic!("negative bit index");
+        std::panic::panic_any(Box::new("negative bit index".to_string()) as Box<dyn Any + Send + Sync>);
     }
         if (*{ let __field = (*x.lock().unwrap().as_ref().unwrap()).neg.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
         let mut t = (*self.abs.lock().unwrap().as_ref().unwrap()).sub({ let __field = (*x.lock().unwrap().as_ref().unwrap()).abs.clone(); __field }, natOne.clone());
@@ -1193,7 +1194,7 @@ impl Int {
     /// It panics if x is negative.
     pub fn sqrt(&mut self, x: Arc<Mutex<Option<Int>>>) -> Arc<Mutex<Option<Int>>> {
         if (*{ let __field = (*x.lock().unwrap().as_ref().unwrap()).neg.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
-        panic!("square root of negative number");
+        std::panic::panic_any(Box::new("square root of negative number".to_string()) as Box<dyn Any + Send + Sync>);
     }
         { let new_val = false; *self.neg.lock().unwrap() = Some(new_val); };
         { let new_val = (*self.abs.lock().unwrap().as_ref().unwrap()).sqrt({ let __field = (*x.lock().unwrap().as_ref().unwrap()).abs.clone(); __field }); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *self.abs.lock().unwrap() = __moved_val; };
@@ -1306,7 +1307,7 @@ pub fn lehmer_simulate(A: Arc<Mutex<Option<Int>>>, B: Arc<Mutex<Option<Int>>>) -
         { let __tmp_0 = (*v1.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_1 = (*v2.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_2 = { let __tmp_x = (*v1.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = { let __tmp_x = (*q.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*v2.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x * __tmp_y }; __tmp_x + __tmp_y }; *v0.lock().unwrap() = Some(__tmp_0); *v1.lock().unwrap() = Some(__tmp_1); *v2.lock().unwrap() = Some(__tmp_2); };
         { let new_val = !{ let __v = (*even.lock().unwrap().as_ref().unwrap()).clone(); __v }; *even.lock().unwrap() = Some(new_val); };
     }
-    return (u0, u1, v0, v1, (*even.lock().unwrap().as_ref().unwrap()));
+    return (u0.clone(), u1.clone(), v0.clone(), v1.clone(), (*even.lock().unwrap().as_ref().unwrap()));
 }
 
 /// lehmerUpdate updates the inputs A and B such that:
@@ -1359,7 +1360,7 @@ pub fn euclid_update(A: Arc<Mutex<Option<Int>>>, B: Arc<Mutex<Option<Int>>>, Ua:
 /// The y argument must be an odd integer.
 pub fn jacobi(x: Arc<Mutex<Option<Int>>>, y: Arc<Mutex<Option<Int>>>) -> i32 {
     if { let __tmp_x = ({ let __slice_holder = { let __named_slice = (*(*y.lock().unwrap().as_ref().unwrap()).abs.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 0; __tmp_x == __tmp_y } || { let __tmp_x = crate::arith::Word(Arc::new(Mutex::new(Some(((*{ let __seq_holder = { let __named_slice = (*(*y.lock().unwrap().as_ref().unwrap()).abs.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.0.lock().unwrap().as_ref().unwrap()) & 1))))); let __tmp_y = crate::arith::Word(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x == __tmp_y } {
-        panic!("big: invalid 2nd argument to Int.Jacobi: need odd integer but got {}", (*{ let __recv = y.clone(); let __recv_ptr: *const Int = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Int }; let __result = unsafe { &*__recv_ptr }.string(); __result }.lock().unwrap().as_ref().unwrap()));
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("big: invalid 2nd argument to Int.Jacobi: need odd integer but got {}", (*{ let __recv = y.clone(); let __recv_ptr: *const Int = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Int }; let __result = unsafe { &*__recv_ptr }.string(); __result }.lock().unwrap().as_ref().unwrap()))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     }
 
         // We use the formulation described in chapter 2, section 2.4,

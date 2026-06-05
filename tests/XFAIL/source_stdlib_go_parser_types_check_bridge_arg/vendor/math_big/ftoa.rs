@@ -22,6 +22,7 @@ use crate::ratmarsh::*;
 use crate::roundingmode_string::*;
 use crate::sqrt::*;
 
+use std::any::Any;
 use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
@@ -198,7 +199,7 @@ impl crate::float::Float {
         return { let __append_target = buf.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(('0' as i32) as u8); __append_target.clone() };
     }
         if DEBUG_FLOAT && { let __tmp_x = { let __selector_holder = self.form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::float::form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x != __tmp_y } {
-        panic!("non-finite float");
+        std::panic::panic_any(Box::new("non-finite float".to_string()) as Box<dyn Any + Send + Sync>);
     }
                 // x != 0
                 // adjust mantissa to use exactly x.prec bits
@@ -240,7 +241,7 @@ impl crate::float::Float {
         return buf.clone();
     }
         if DEBUG_FLOAT && { let __tmp_x = { let __selector_holder = __self.form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::float::form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x != __tmp_y } {
-        panic!("non-finite float");
+        std::panic::panic_any(Box::new("non-finite float".to_string()) as Box<dyn Any + Send + Sync>);
     }
                 // round mantissa to n bits
         let mut n: Arc<Mutex<Option<u64>>> = Arc::new(Mutex::new(Some(0)));
@@ -263,7 +264,7 @@ impl crate::float::Float {
         let mut exp64 = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = __self.exp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as i64; __tmp_x - __tmp_y })));
         let mut hm = (*m.lock().unwrap().as_ref().unwrap()).utoa(Arc::new(Mutex::new(Some(16))));
         if DEBUG_FLOAT && { let __tmp_x = { let __seq = { let __seq_holder = hm.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __tmp_y = ('1' as i32) as u8; __tmp_x != __tmp_y } {
-        panic!("{}", format!("{}{}", "incorrect mantissa: ".to_string(), (*Arc::new(Mutex::new(Some(String::from_utf8((*hm.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap())));
+        std::panic::panic_any(Box::new(format!("{}{}", "incorrect mantissa: ".to_string(), (*Arc::new(Mutex::new(Some(String::from_utf8((*hm.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap()))) as Box<dyn Any + Send + Sync>);
     }
         { let new_val = { let __append_target = buf.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend("0x1".to_string().as_bytes().iter().cloned()); __append_target.clone() }; buf = new_val; };
         if { let __tmp_x = ((*hm.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x > __tmp_y } {
@@ -295,7 +296,7 @@ impl crate::float::Float {
         return { let __append_target = buf.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(('0' as i32) as u8); __append_target.clone() };
     }
         if DEBUG_FLOAT && { let __tmp_x = { let __selector_holder = self.form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::float::form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x != __tmp_y } {
-        panic!("non-finite float");
+        std::panic::panic_any(Box::new("non-finite float".to_string()) as Box<dyn Any + Send + Sync>);
     }
                 // x != 0
                 // remove trailing 0 words early

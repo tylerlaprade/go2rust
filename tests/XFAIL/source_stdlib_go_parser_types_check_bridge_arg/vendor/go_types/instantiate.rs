@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_register_embedded_owner, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
 
 use crate::alias::*;
 use crate::api::*;
@@ -229,8 +229,8 @@ impl crate::check::Checker {
         *(*sig.lock().unwrap().as_ref().unwrap()).tparams.lock().unwrap() = None;;
         { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(crate::signature::SignaturePtr(sig.clone())) as Box<dyn Type + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *res.lock().unwrap() = (*__iface_guard).clone(); };;
     } else {
-        let orig = orig.clone();
-        panic!("{}: cannot instantiate {}", { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }, format!("{}", (*orig.lock().unwrap().as_ref().unwrap())));;
+        let orig = _ts_subject.clone();
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{}: cannot instantiate {}", { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }, format!("{}", (*orig.lock().unwrap().as_ref().unwrap())))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);;
     }
     }
                 // substituted lazily
@@ -271,7 +271,7 @@ impl crate::check::Checker {
         self.error(Arc::new(Mutex::new(Some(Box::new(crate::errors::atPos(Arc::new(Mutex::new(Some((*pos.lock().unwrap().as_ref().unwrap()).clone()))))) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(WRONG_TYPE_ARG_COUNT as i32))))))), Arc::new(Mutex::new(Some({ let __arg_holder = msg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         return false;
     }
-        panic!("{}: {}", { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v });
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{}: {}", { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v })))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     }
 
     /// check may be nil; pos is used only if check is non-nil.
@@ -515,7 +515,7 @@ pub fn mentions(mut T: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, typ: Arc
     }
     } };
     } else {
-        let T = T.clone();
+        let T = _ts_subject.clone();
         if identical(T.clone(), typ.clone()) {
         return true;
     };
@@ -632,8 +632,8 @@ pub fn __go_nil_recv_crate__check___checker_instance(check: Arc<Mutex<Option<Che
         *(*sig.lock().unwrap().as_ref().unwrap()).tparams.lock().unwrap() = None;;
         { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(crate::signature::SignaturePtr(sig.clone())) as Box<dyn Type + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *res.lock().unwrap() = (*__iface_guard).clone(); };;
     } else {
-        let orig = orig.clone();
-        panic!("{}: cannot instantiate {}", { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }, format!("{}", (*orig.lock().unwrap().as_ref().unwrap())));;
+        let orig = _ts_subject.clone();
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{}: cannot instantiate {}", { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }, format!("{}", (*orig.lock().unwrap().as_ref().unwrap())))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);;
     }
     }
 

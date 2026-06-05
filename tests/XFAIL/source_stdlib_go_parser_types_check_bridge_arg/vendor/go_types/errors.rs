@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_register_embedded_owner, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
 
 use crate::alias::*;
 use crate::api::*;
@@ -226,7 +226,7 @@ impl crate::check::Checker {
     /// newError returns a new error_ with the given error code.
     pub fn new_error(&self, code: Arc<Mutex<Option<Code>>>) -> Arc<Mutex<Option<error_>>> {
         if { let __tmp_x = (*code.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(0 as i32)))); __tmp_x == __tmp_y } {
-        panic!("error code must not be 0");
+        std::panic::panic_any(Box::new("error code must not be 0".to_string()) as Box<dyn Any + Send + Sync>);
     }
         Arc::new(Mutex::new(Some(error_ { check: Arc::new(Mutex::new(Some(self.clone()))), code: Arc::new(Mutex::new(Some({ let __arg_holder = code.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })))
     }
@@ -298,7 +298,7 @@ impl crate::check::Checker {
     }
         let mut f = (*self.conf.lock().unwrap().as_ref().unwrap()).error.clone();
         if (*f.lock().unwrap()).is_none() {
-        panic!("{}", bailout {  });
+        std::panic::panic_any(Box::new(bailout {  }) as Box<dyn Any + Send + Sync>);
     }
                 // record first error and exit
         { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> () + Send + Sync> = { let mut __f_guard = f.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::new((*e.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>)))) };
@@ -385,7 +385,7 @@ impl error_ {
     /// report reports the error err, setting check.firstError if necessary.
     pub fn report(&mut self) {
         if self.empty() {
-        panic!("no error");
+        std::panic::panic_any(Box::new("no error".to_string()) as Box<dyn Any + Send + Sync>);
     }
                 // Cheap trick: Don't report errors with messages containing
                 // "invalid operand" or "invalid type" as those tend to be
@@ -1171,7 +1171,7 @@ pub fn assert(p: Arc<Mutex<Option<bool>>>) {
             { let new_val = Arc::new(Mutex::new(Some(format!("{}:{}: {}", { let __v = (*file.lock().unwrap().as_ref().unwrap()).clone(); __v }, line, { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *msg.lock().unwrap() = __moved_val; };;
         }
     }
-        panic!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v });
+        std::panic::panic_any(Box::new({ let __arg_holder = msg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>);
     }
 }
 
@@ -1205,8 +1205,8 @@ pub fn span_of(at: Arc<Mutex<Option<Box<dyn positioner + Send + Sync>>>>) -> Arc
         }
     });
     if _ts_is_nil {
-        let x = at.clone();
-        panic!("nil positioner");;
+        let x = _ts_subject.clone();
+        std::panic::panic_any(Box::new("nil positioner".to_string()) as Box<dyn Any + Send + Sync>);;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<posSpan>()).is_some() {
         let x = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<posSpan>()).unwrap().clone())));
         return { let __owned = x.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };;
@@ -1222,7 +1222,7 @@ pub fn span_of(at: Arc<Mutex<Option<Box<dyn positioner + Send + Sync>>>>) -> Arc
     };
         return Arc::new(Mutex::new(Some(posSpan { start: Arc::new(Mutex::new(Some({ let __arg_holder = nopos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), pos: Arc::new(Mutex::new(Some({ let __arg_holder = nopos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), end: Arc::new(Mutex::new(Some({ let __arg_holder = nopos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));;
     } else {
-        let x = at.clone();
+        let x = _ts_subject.clone();
         let mut pos = (*at.lock().unwrap().as_ref().unwrap()).pos();;
         return Arc::new(Mutex::new(Some(posSpan { start: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), end: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));;
     }

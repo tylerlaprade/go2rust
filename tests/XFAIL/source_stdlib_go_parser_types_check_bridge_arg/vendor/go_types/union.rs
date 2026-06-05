@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_register_embedded_owner, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
 
 use crate::alias::*;
 use crate::api::*;
@@ -282,7 +282,7 @@ impl Term {
 /// It is an error to create an empty union; they are syntactically not possible.
 pub fn new_union(terms: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Term>>>>>>>) -> Arc<Mutex<Option<Union>>> {
     if { let __tmp_x = ((*terms.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
-        panic!("empty union");
+        std::panic::panic_any(Box::new("empty union".to_string()) as Box<dyn Any + Send + Sync>);
     }
     Arc::new(Mutex::new(Some(Union { terms: terms.clone(), ..Default::default() })))
 }
@@ -456,7 +456,7 @@ pub fn overlapping_term(terms: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Term>>>>>>>
                 // and non-interface types as term types.
         if DEBUG {
         if (*x.lock().unwrap()).is_none() || { let __iface_handle = { let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } || (*y.lock().unwrap()).is_none() || { let __iface_handle = { let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
-        panic!("empty or top union term");
+        std::panic::panic_any(Box::new("empty or top union term".to_string()) as Box<dyn Any + Send + Sync>);
     }
     }
         if !{ let __recv = Arc::new(Mutex::new(Some(term::default()))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).disjoint(Arc::new(Mutex::new(Some(term::default())))); __result } {

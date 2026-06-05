@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_register_embedded_owner, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
 
 use crate::alias::*;
 use crate::api::*;
@@ -75,6 +75,7 @@ use crate::version::*;
 use internal_types_errors::*;
 
 use std::any::Any;
+use std::cell::{RefCell};
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
@@ -309,7 +310,10 @@ impl _TypeSet {
 pub fn compute_interface_type_set(check: Arc<Mutex<Option<Checker>>>, mut pos: Arc<Mutex<Option<go_token::position::Pos>>>, ityp: Arc<Mutex<Option<Interface>>>) -> Arc<Mutex<Option<_TypeSet>>> {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    if { let __nil_target = (*ityp.lock().unwrap().as_ref().unwrap()).tset.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
+    let __go_previous_panic_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        if { let __nil_target = (*ityp.lock().unwrap().as_ref().unwrap()).tset.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -319,17 +323,17 @@ pub fn compute_interface_type_set(check: Arc<Mutex<Option<Checker>>>, mut pos: A
     }
     }
 
-        // If the interface is not fully set up yet, the type set will
-        // not be complete, which may lead to errors when using the
-        // type set (e.g. missing method). Don't compute a partial type
-        // set (and don't store it!), so that we still compute the full
-        // type set eventually. Instead, return the top type set and
-        // let any follow-on errors play out.
-        //
-        // TODO(gri) Consider recording when this happens and reporting
-        // it as an error (but only if there were no other errors so
-        // to not have unnecessary follow-on errors).
-    if !(*{ let __field = (*ityp.lock().unwrap().as_ref().unwrap()).complete.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
+                // If the interface is not fully set up yet, the type set will
+                // not be complete, which may lead to errors when using the
+                // type set (e.g. missing method). Don't compute a partial type
+                // set (and don't store it!), so that we still compute the full
+                // type set eventually. Instead, return the top type set and
+                // let any follow-on errors play out.
+                //
+                // TODO(gri) Consider recording when this happens and reporting
+                // it as an error (but only if there were no other errors so
+                // to not have unnecessary follow-on errors).
+        if !(*{ let __field = (*ityp.lock().unwrap().as_ref().unwrap()).complete.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -339,7 +343,7 @@ pub fn compute_interface_type_set(check: Arc<Mutex<Option<Checker>>>, mut pos: A
     }
     }
 
-    if (*check.lock().unwrap()).is_some() && (*(*(*check.lock().unwrap().as_ref().unwrap()).conf.lock().unwrap().as_ref().unwrap()).__trace.lock().unwrap().as_ref().unwrap()) {
+        if (*check.lock().unwrap()).is_some() && (*(*(*check.lock().unwrap().as_ref().unwrap()).conf.lock().unwrap().as_ref().unwrap()).__trace.lock().unwrap().as_ref().unwrap()) {
                 // Types don't generally have position information.
                 // If we don't have a valid pos provided, try to use
                 // one close enough.
@@ -356,18 +360,18 @@ pub fn compute_interface_type_set(check: Arc<Mutex<Option<Checker>>>, mut pos: A
     }));
     }
 
-        // Types don't generally have position information.
-        // If we don't have a valid pos provided, try to use
-        // one close enough.
-        // An infinitely expanding interface (due to a cycle) is detected
-        // elsewhere (Checker.validType), so here we simply assume we only
-        // have valid interfaces. Mark the interface as complete to avoid
-        // infinite recursion if the validType check occurs later for some
-        // reason.
-    { let new_val = Arc::new(Mutex::new(Some(_TypeSet { terms: allTermlist.clone(), ..Default::default() }))).clone(); (*ityp.lock().unwrap().as_mut().unwrap()).tset = new_val; };
+                // Types don't generally have position information.
+                // If we don't have a valid pos provided, try to use
+                // one close enough.
+                // An infinitely expanding interface (due to a cycle) is detected
+                // elsewhere (Checker.validType), so here we simply assume we only
+                // have valid interfaces. Mark the interface as complete to avoid
+                // infinite recursion if the validType check occurs later for some
+                // reason.
+        { let new_val = Arc::new(Mutex::new(Some(_TypeSet { terms: allTermlist.clone(), ..Default::default() }))).clone(); (*ityp.lock().unwrap().as_mut().unwrap()).tset = new_val; };
 
-    let mut unionSets: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<crate::union::Union>, Arc<Mutex<Option<_TypeSet>>>>>>> = Arc::new(Mutex::new(Some(BTreeMap::new())));
-    if (*check.lock().unwrap()).is_some() {
+        let mut unionSets: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<crate::union::Union>, Arc<Mutex<Option<_TypeSet>>>>>>> = Arc::new(Mutex::new(Some(BTreeMap::new())));
+        if (*check.lock().unwrap()).is_some() {
         if { let __nil_target = (*check.lock().unwrap().as_ref().unwrap()).union_type_sets.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<crate::union::Union>, Arc<Mutex<Option<_TypeSet>>>>::new()))); (*check.lock().unwrap().as_mut().unwrap()).union_type_sets = new_val; };
     }
@@ -376,22 +380,22 @@ pub fn compute_interface_type_set(check: Arc<Mutex<Option<Checker>>>, mut pos: A
         { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<crate::union::Union>, Arc<Mutex<Option<_TypeSet>>>>::new()))); unionSets = new_val; };
     }
 
-        // Methods of embedded interfaces are collected unchanged; i.e., the identity
-        // of a method I.m's Func Object of an interface I is the same as that of
-        // the method m in an interface that embeds interface I. On the other hand,
-        // if a method is embedded via multiple overlapping embedded interfaces, we
-        // don't provide a guarantee which "original m" got chosen for the embedding
-        // interface. See also go.dev/issue/34421.
-        //
-        // If we don't care to provide this identity guarantee anymore, instead of
-        // reusing the original method in embeddings, we can clone the method's Func
-        // Object and give it the position of a corresponding embedded interface. Then
-        // we can get rid of the mpos map below and simply use the cloned method's
-        // position.
-    let mut seen: Arc<Mutex<Option<objset>>> = Arc::new(Mutex::new(Some(crate::objset::objset(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>>::new())))))));
-    let mut allMethods: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Func>>>>>>> = Arc::new(Mutex::new(None));
-    let mut mpos = Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<crate::object::Func>, Arc<Mutex<Option<go_token::position::Pos>>>>::new())));
-    let mut allMethods_closure_clone = allMethods.clone(); let check_closure_clone = check.clone(); let mpos_closure_clone = mpos.clone(); let seen_closure_clone = seen.clone(); let mut addMethod = Arc::new(Mutex::new(Some(Box::new(move |pos: Arc<Mutex<Option<go_token::position::Pos>>>, m: Arc<Mutex<Option<Func>>>, explicit: Arc<Mutex<Option<bool>>>| {
+                // Methods of embedded interfaces are collected unchanged; i.e., the identity
+                // of a method I.m's Func Object of an interface I is the same as that of
+                // the method m in an interface that embeds interface I. On the other hand,
+                // if a method is embedded via multiple overlapping embedded interfaces, we
+                // don't provide a guarantee which "original m" got chosen for the embedding
+                // interface. See also go.dev/issue/34421.
+                //
+                // If we don't care to provide this identity guarantee anymore, instead of
+                // reusing the original method in embeddings, we can clone the method's Func
+                // Object and give it the position of a corresponding embedded interface. Then
+                // we can get rid of the mpos map below and simply use the cloned method's
+                // position.
+        let mut seen: Arc<Mutex<Option<objset>>> = Arc::new(Mutex::new(Some(crate::objset::objset(Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>>::new())))))));
+        let mut allMethods: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Func>>>>>>> = Arc::new(Mutex::new(None));
+        let mut mpos = Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<crate::object::Func>, Arc<Mutex<Option<go_token::position::Pos>>>>::new())));
+        let mut allMethods_closure_clone = allMethods.clone(); let check_closure_clone = check.clone(); let mpos_closure_clone = mpos.clone(); let seen_closure_clone = seen.clone(); let mut addMethod = Arc::new(Mutex::new(Some(Box::new(move |pos: Arc<Mutex<Option<go_token::position::Pos>>>, m: Arc<Mutex<Option<Func>>>, explicit: Arc<Mutex<Option<bool>>>| {
         let mut other = (*seen_closure_clone.lock().unwrap().as_mut().unwrap()).insert(Arc::new(Mutex::new(Some(Box::new(crate::object::FuncPtr(m.clone())) as Box<dyn Object + Send + Sync>))));
     if (*other.lock().unwrap()).is_none() {
             { let __append_target = allMethods_closure_clone.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(m.clone()); __append_target.clone() };
@@ -441,19 +445,19 @@ pub fn compute_interface_type_set(check: Arc<Mutex<Option<Checker>>>, mut pos: A
         }
     }) as Box<dyn FnMut(Arc<Mutex<Option<go_token::position::Pos>>>, Arc<Mutex<Option<Func>>>, Arc<Mutex<Option<bool>>>) -> () + Send + Sync>)));
 
-        // We have a duplicate method name in an embedded (not explicitly declared) method.
-        // Check method signatures after all types are computed (go.dev/issue/33656).
-        // If we're pre-go1.14 (overlapping embeddings are not permitted), report that
-        // error here as well (even though we could do it eagerly) because it's the same
-        // error message.
-    { let __range_holder = (*ityp.lock().unwrap().as_ref().unwrap()).methods.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for m in __range_values.iter() {
+                // We have a duplicate method name in an embedded (not explicitly declared) method.
+                // Check method signatures after all types are computed (go.dev/issue/33656).
+                // If we're pre-go1.14 (overlapping embeddings are not permitted), report that
+                // error here as well (even though we could do it eagerly) because it's the same
+                // error message.
+        { let __range_holder = (*ityp.lock().unwrap().as_ref().unwrap()).methods.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for m in __range_values.iter() {
         { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<go_token::position::Pos>>>, Arc<Mutex<Option<Func>>>, Arc<Mutex<Option<bool>>>) -> () + Send + Sync> = { let mut __f_guard = addMethod.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<go_token::position::Pos>>>, Arc<Mutex<Option<Func>>>, Arc<Mutex<Option<bool>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*m.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), (*m).clone(), Arc::new(Mutex::new(Some(true)))) };
     } }
 
-        // collect embedded elements
-    let mut allTerms = Arc::new(Mutex::new(Some((*allTermlist.lock().unwrap().as_ref().unwrap()).clone())));
-    let mut allComparable = Arc::new(Mutex::new(Some(false)));
-    { let __range_holder = (*ityp.lock().unwrap().as_ref().unwrap()).embeddeds.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, typ) in __range_values.iter().enumerate() {
+                // collect embedded elements
+        let mut allTerms = Arc::new(Mutex::new(Some((*allTermlist.lock().unwrap().as_ref().unwrap()).clone())));
+        let mut allComparable = Arc::new(Mutex::new(Some(false)));
+        { let __range_holder = (*ityp.lock().unwrap().as_ref().unwrap()).embeddeds.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, typ) in __range_values.iter().enumerate() {
                 // The embedding position is nil for imported interfaces.
                 // We don't need to do version checks in those cases.
         let mut pos: Arc<Mutex<Option<go_token::position::Pos>>> = Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(0)))))));
@@ -501,7 +505,7 @@ pub fn compute_interface_type_set(check: Arc<Mutex<Option<Checker>>>, mut pos: A
         assert(Arc::new(Mutex::new(Some({ let __tmp_x = (({ let __len_target = { let __field = (*tset.lock().unwrap().as_ref().unwrap()).methods.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x == __tmp_y }))));;
         { let new_val = { let __selector_holder = (*tset.lock().unwrap().as_ref().unwrap()).terms.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *terms.lock().unwrap() = Some(new_val); };;
     } else {
-        let u = under(typ.clone()).clone();
+        let u = _ts_subject.clone();
         if !is_valid(u.clone()) {
         continue
     };
@@ -521,29 +525,42 @@ pub fn compute_interface_type_set(check: Arc<Mutex<Option<Checker>>>, mut pos: A
         { let (__tmp_0, __tmp_1) = intersect_term_lists(Arc::new(Mutex::new(Some({ let __arg_holder = allTerms.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = allComparable.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = terms.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = comparable.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *allTerms.lock().unwrap() = __moved_tmp_0; *allComparable.lock().unwrap() = Some(__tmp_1); };
     } }
 
-        // The embedding position is nil for imported interfaces.
-        // We don't need to do version checks in those cases.
-        // embedding position
-        // For now we don't permit type parameters as constraints.
-        // If typ is local, an error was already reported where typ is specified/defined.
-        // use embedding position pos rather than m.pos
-        // ignore invalid unions
-        // The type set of an interface is the intersection of the type sets of all its elements.
-        // Due to language restrictions, only embedded interfaces can add methods, they are handled
-        // separately. Here we only need to intersect the term lists and comparable bits.
-    { let new_val = allComparable.lock().unwrap().as_ref().unwrap().clone(); *(*(*ityp.lock().unwrap().as_ref().unwrap()).tset.lock().unwrap().as_ref().unwrap()).comparable.lock().unwrap() = Some(new_val); };
-    if { let __tmp_x = ((*allMethods.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x != __tmp_y } {
+                // The embedding position is nil for imported interfaces.
+                // We don't need to do version checks in those cases.
+                // embedding position
+                // For now we don't permit type parameters as constraints.
+                // If typ is local, an error was already reported where typ is specified/defined.
+                // use embedding position pos rather than m.pos
+                // ignore invalid unions
+                // The type set of an interface is the intersection of the type sets of all its elements.
+                // Due to language restrictions, only embedded interfaces can add methods, they are handled
+                // separately. Here we only need to intersect the term lists and comparable bits.
+        { let new_val = allComparable.lock().unwrap().as_ref().unwrap().clone(); *(*(*ityp.lock().unwrap().as_ref().unwrap()).tset.lock().unwrap().as_ref().unwrap()).comparable.lock().unwrap() = Some(new_val); };
+        if { let __tmp_x = ((*allMethods.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x != __tmp_y } {
         sort_methods(allMethods.clone());
         { let new_val = allMethods.clone(); (*(*ityp.lock().unwrap().as_ref().unwrap()).tset.lock().unwrap().as_mut().unwrap()).methods = new_val; };
     }
-    { let new_val = allTerms.lock().unwrap().as_ref().unwrap().clone(); *(*(*ityp.lock().unwrap().as_ref().unwrap()).tset.lock().unwrap().as_ref().unwrap()).terms.lock().unwrap() = Some(new_val); };
+        { let new_val = allTerms.lock().unwrap().as_ref().unwrap().clone(); *(*(*ityp.lock().unwrap().as_ref().unwrap()).tset.lock().unwrap().as_ref().unwrap()).terms.lock().unwrap() = Some(new_val); };
 
-    {
+        {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return (*ityp.lock().unwrap().as_ref().unwrap()).tset.clone();
+    }
+    }));
+    std::panic::set_hook(__go_previous_panic_hook);
+    match __go_panic_result {
+        Ok(__go_value) => __go_value,
+        Err(__go_panic_payload) => {
+            go_store_panic_payload(__go_panic_payload);
+            while let Some(f) = __defer_stack.pop() {
+                f();
+            }
+            go_resume_unrecovered_panic();
+            Arc::new(Mutex::new(None))
+        }
     }
 }
 
@@ -587,10 +604,10 @@ pub fn sort_methods(list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Func>>>>>>>) {
 
 pub fn assert_sorted_methods(list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Func>>>>>>>) {
     if !DEBUG {
-        panic!("assertSortedMethods called outside debug mode");
+        std::panic::panic_any(Box::new("assertSortedMethods called outside debug mode".to_string()) as Box<dyn Any + Send + Sync>);
     }
     if !slices::is_sorted_func::<Vec<Arc<Mutex<Option<crate::object::Func>>>>, crate::object::Func>(list.clone(), Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<crate::object::Func>>>, __arg1: Arc<Mutex<Option<crate::object::Func>>>| -> i32 { compare_func(__arg0, __arg1) }) as Box<dyn FnMut(Arc<Mutex<Option<crate::object::Func>>>, Arc<Mutex<Option<crate::object::Func>>>) -> i32 + Send + Sync>)))) {
-        panic!("methods not sorted");
+        std::panic::panic_any(Box::new("methods not sorted".to_string()) as Box<dyn Any + Send + Sync>);
     }
 }
 

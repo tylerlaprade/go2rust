@@ -6011,6 +6011,9 @@ where
 
 // transpilePanic handles the panic() builtin function
 func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
+	if len(call.Args) > 0 && writeConcurrentPanicPayloadArg(out, call.Args[0]) {
+		return
+	}
 	if len(call.Args) > 0 && writePanicAnyArg(out, call.Args[0]) {
 		return
 	}
@@ -6052,6 +6055,25 @@ func transpilePanic(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString("\"explicit panic\"")
 	}
 	out.WriteString(")")
+}
+
+func writeConcurrentPanicPayloadArg(out *strings.Builder, arg ast.Expr) bool {
+	if !NeedsConcurrentWrapper() {
+		return false
+	}
+	if ident, ok := arg.(*ast.Ident); ok && ident.Name == "nil" {
+		return false
+	}
+	out.WriteString("std::panic::panic_any(")
+	if isEmptyInterfaceValueExpr(arg) {
+		if !writeExistingAnyBoxClone(out, arg) {
+			return false
+		}
+	} else {
+		writeInterfaceBoxedValue(out, arg)
+	}
+	out.WriteString(")")
+	return true
 }
 
 func writePanicAnyArg(out *strings.Builder, arg ast.Expr) bool {
@@ -6097,6 +6119,11 @@ func writePanicDisplayArg(out *strings.Builder, arg ast.Expr) {
 
 // transpileRecover handles the recover() builtin function
 func transpileRecover(out *strings.Builder, call *ast.CallExpr) {
+	if NeedsConcurrentWrapper() {
+		NeedPanicRecover()
+		out.WriteString("go_recover()")
+		return
+	}
 	// In Rust, we can use std::panic::catch_unwind for similar functionality
 	// For now, we'll generate a placeholder that returns None
 	// A proper implementation would need to track defer context and use catch_unwind

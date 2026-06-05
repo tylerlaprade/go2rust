@@ -1866,6 +1866,10 @@ run_xfail_test() {
     run_test "tests/panic_fmt_errorf_dynamic"
 }
 
+@test "panic_recover_deferred_type_switch" {
+    run_test "tests/panic_recover_deferred_type_switch"
+}
+
 @test "panic_struct_literal_value" {
     run_test "tests/panic_struct_literal_value"
 }

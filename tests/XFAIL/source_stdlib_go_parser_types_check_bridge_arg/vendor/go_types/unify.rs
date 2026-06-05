@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_register_embedded_owner, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
 
 use crate::alias::*;
 use crate::api::*;
@@ -73,6 +73,7 @@ use crate::validtype::*;
 use crate::version::*;
 
 use std::any::Any;
+use std::cell::{RefCell};
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
@@ -739,11 +740,14 @@ impl unifier {
 
         let mut x: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> = Arc::new(Mutex::new(x.lock().unwrap().as_ref().map(|__v| Type::__go_clone_box_type_(__v.as_ref()))));
         let mut y: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> = Arc::new(Mutex::new(y.lock().unwrap().as_ref().map(|__v| Type::__go_clone_box_type_(__v.as_ref()))));
-        { let __target = self.depth.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        if TRACE_INFERENCE {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            { let __target = self.depth.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+            if TRACE_INFERENCE {
         self.tracef(Arc::new(Mutex::new(Some("%s \u{2261} %s\t// %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = y.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new((*mode.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>]))));
     }
-        let result_defer_captured = result.clone(); let mut u_defer_captured = self.clone(); let x_defer_captured = x.clone(); let y_defer_captured = y.clone(); __defer_stack.push(Box::new(move || {
+            let result_defer_captured = result.clone(); let mut u_defer_captured = self.clone(); let x_defer_captured = x.clone(); let y_defer_captured = y.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
         if TRACE_INFERENCE && !{ let __v = (*result_defer_captured.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         u_defer_captured.tracef(Arc::new(Mutex::new(Some("%s \u{2262} %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = x_defer_captured.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = y_defer_captured.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
@@ -751,8 +755,8 @@ impl unifier {
         { let __target = u_defer_captured.depth.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
-                // nothing to do if x == y
-        if { let __left_holder = x.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = y.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; __eq } || { let __left_holder = unalias(x.clone()).clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = unalias(y.clone()).clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; __eq } {
+                        // nothing to do if x == y
+            if { let __left_holder = x.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = y.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; __eq } || { let __left_holder = unalias(x.clone()).clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = unalias(y.clone()).clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; __eq } {
         {
         { let new_val = true; *result.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
@@ -762,13 +766,13 @@ impl unifier {
         return (*result.lock().unwrap().as_ref().unwrap());
     }
     }
-                // Stop gap for cases where unification fails.
-        if { let __tmp_x = (*self.depth.lock().unwrap().as_ref().unwrap()); let __tmp_y = 50; __tmp_x > __tmp_y } {
+                        // Stop gap for cases where unification fails.
+            if { let __tmp_x = (*self.depth.lock().unwrap().as_ref().unwrap()); let __tmp_y = 50; __tmp_x > __tmp_y } {
         if TRACE_INFERENCE {
         { let __method_arg0 = Arc::new(Mutex::new(Some("depth %d >= %d".to_string()))); self.tracef(__method_arg0, Arc::new(Mutex::new(Some(vec![Box::new({ let __selector_holder = self.depth.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>, Box::new(UNIFICATION_DEPTH_LIMIT) as Box<dyn Any + Send + Sync>])))) };
     }
         if PANIC_AT_UNIFICATION_DEPTH_LIMIT {
-        panic!("unification reached recursion depth limit");
+        std::panic::panic_any(Box::new("unification reached recursion depth limit".to_string()) as Box<dyn Any + Send + Sync>);
     }
         {
         { let new_val = false; *result.lock().unwrap() = Some(new_val); };;
@@ -779,34 +783,34 @@ impl unifier {
         return (*result.lock().unwrap().as_ref().unwrap());
     }
     }
-                // Unification is symmetric, so we can swap the operands.
-                // Ensure that if we have at least one
-                // - defined type, make sure one is in y
-                // - type parameter recorded with u, make sure one is in x
-        if (*as_named(x.clone()).lock().unwrap()).is_some() || (*self.as_bound_type_param(y.clone()).lock().unwrap()).is_some() {
+                        // Unification is symmetric, so we can swap the operands.
+                        // Ensure that if we have at least one
+                        // - defined type, make sure one is in y
+                        // - type parameter recorded with u, make sure one is in x
+            if (*as_named(x.clone()).lock().unwrap()).is_some() || (*self.as_bound_type_param(y.clone()).lock().unwrap()).is_some() {
         if TRACE_INFERENCE {
         self.tracef(Arc::new(Mutex::new(Some("%s \u{2261} %s\t// swap".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = y.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
     }
         { let __tmp_0 = y.clone(); let __tmp_1 = x.clone(); { let __iface_handle = __tmp_0; let __iface_guard = __iface_handle.lock().unwrap(); *x.lock().unwrap() = (*__iface_guard).clone(); } { let __iface_handle = __tmp_1; let __iface_guard = __iface_handle.lock().unwrap(); *y.lock().unwrap() = (*__iface_guard).clone(); } };
     }
-                // Unification will fail if we match a defined type against a type literal.
-                // If we are matching types in an assignment, at the top-level, types with
-                // the same type structure are permitted as long as at least one of them
-                // is not a defined type. To accommodate for that possibility, we continue
-                // unification with the underlying type of a defined type if the other type
-                // is a type literal. This is controlled by the exact unification mode.
-                // We also continue if the other type is a basic type because basic types
-                // are valid underlying types and may appear as core types of type constraints.
-                // If we exclude them, inferred defined types for type parameters may not
-                // match against the core types of their constraints (even though they might
-                // correctly match against some of the types in the constraint's type set).
-                // Finally, if unification (incorrectly) succeeds by matching the underlying
-                // type of a defined type against a basic type (because we include basic types
-                // as type literals here), and if that leads to an incorrectly inferred type,
-                // we will fail at function instantiation or argument assignment time.
-                //
-                // If we have at least one defined type, there is one in y.
-        {
+                        // Unification will fail if we match a defined type against a type literal.
+                        // If we are matching types in an assignment, at the top-level, types with
+                        // the same type structure are permitted as long as at least one of them
+                        // is not a defined type. To accommodate for that possibility, we continue
+                        // unification with the underlying type of a defined type if the other type
+                        // is a type literal. This is controlled by the exact unification mode.
+                        // We also continue if the other type is a basic type because basic types
+                        // are valid underlying types and may appear as core types of type constraints.
+                        // If we exclude them, inferred defined types for type parameters may not
+                        // match against the core types of their constraints (even though they might
+                        // correctly match against some of the types in the constraint's type set).
+                        // Finally, if unification (incorrectly) succeeds by matching the underlying
+                        // type of a defined type against a basic type (because we include basic types
+                        // as type literals here), and if that leads to an incorrectly inferred type,
+                        // we will fail at function instantiation or argument assignment time.
+                        //
+                        // If we have at least one defined type, there is one in y.
+            {
         let mut ny = as_named(y.clone());;
         if { let __tmp_x = unifyMode(Arc::new(Mutex::new(Some(((*{ let __v = (*mode.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) & EXACT as u64))))); let __tmp_y = unifyMode(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x == __tmp_y } && (*ny.lock().unwrap()).is_some() && is_type_lit(x.clone()) && !((*self.enable_interface_inference.clone().lock().unwrap().as_ref().unwrap()) && is_interface(x.clone())) {
             if TRACE_INFERENCE {
@@ -826,16 +830,16 @@ impl unifier {
     };
         }
     }
-                // Per the spec, a defined type cannot have an underlying type
-                // that is a type parameter.
-                // x and y may be identical now
-                // Cases where at least one of x or y is a type parameter recorded with u.
-                // If we have at least one type parameter, there is one in x.
-                // If we have exactly one type parameter, because it is in x,
-                // isTypeLit(x) is false and y was not changed above. In other
-                // words, if y was a defined type, it is still a defined type
-                // (relevant for the logic below).
-        let (mut px, mut py) = (self.as_bound_type_param(x.clone()), self.as_bound_type_param(y.clone()));
+                        // Per the spec, a defined type cannot have an underlying type
+                        // that is a type parameter.
+                        // x and y may be identical now
+                        // Cases where at least one of x or y is a type parameter recorded with u.
+                        // If we have at least one type parameter, there is one in x.
+                        // If we have exactly one type parameter, because it is in x,
+                        // isTypeLit(x) is false and y was not changed above. In other
+                        // words, if y was a defined type, it is still a defined type
+                        // (relevant for the logic below).
+            let (mut px, mut py) = (self.as_bound_type_param(x.clone()), self.as_bound_type_param(y.clone()));
     if (*px.lock().unwrap()).is_some() && (*py.lock().unwrap()).is_some() {
                         // both x and y are type parameters
             if self.join(px.clone(), py.clone()) {
@@ -996,61 +1000,61 @@ impl unifier {
         return (*result.lock().unwrap().as_ref().unwrap());
     }
         }
-                // both x and y are type parameters
-                // both x and y have an inferred type - they must match
-                // x is a type parameter, y is not
-                // x has an inferred type which must match y
-                // We have a match, possibly through underlying types.
-                // If we have two interfaces, what to do depends on
-                // whether they are named and their method sets.
-                // Both types are interfaces.
-                // If both types are defined types, they must be identical
-                // because unification doesn't know which type has the "right" name.
-                // In all other cases, the method sets must match.
-                // The types unified so we know that corresponding methods
-                // match and we can simply compare the number of methods.
-                // TODO(gri) We may be able to relax this rule and select
-                // the more general interface. But if one of them is a defined
-                // type, it's not clear how to choose and whether we introduce
-                // an order dependency or not. Requiring the same method set
-                // is conservative.
-                // One but not both of them are interfaces.
-                // In this case, either x or y could be viable matches for the corresponding
-                // type parameter, which means choosing either introduces an order dependence.
-                // Therefore, we must fail unification (go.dev/issue/60933).
-                // If we have inexact unification and one of x or y is a defined type, select the
-                // defined type. This ensures that in a series of types, all matching against the
-                // same type parameter, we infer a defined type if there is one, independent of
-                // order. Type inference or assignment may fail, which is ok.
-                // Selecting a defined type, if any, ensures that we don't lose the type name;
-                // and since we have inexact unification, a value of equally named or matching
-                // undefined type remains assignable (go.dev/issue/43056).
-                //
-                // Similarly, if we have inexact unification and there are no defined types but
-                // channel types, select a directed channel, if any. This ensures that in a series
-                // of unnamed types, all matching against the same type parameter, we infer the
-                // directed channel if there is one, independent of order.
-                // Selecting a directional channel, if any, ensures that a value of another
-                // inexactly unifying channel type remains assignable (go.dev/issue/62157).
-                //
-                // If we have multiple defined channel types, they are either identical or we
-                // have assignment conflicts, so we can ignore directionality in this case.
-                //
-                // If we have defined and literal channel types, a defined type wins to avoid
-                // order dependencies.
-                // x is a defined type: nothing to do.
-                // x is not a defined type and y is a defined type: select y.
-                // Neither x nor y are defined types.
-                // y is a directed channel type: select y.
-                // otherwise, infer type from y
-                // x != y if we get here
-        assert(Arc::new(Mutex::new(Some({ let __left_holder = x.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = y.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; !__eq } && { let __left_holder = unalias(x.clone()).clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = unalias(y.clone()).clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; !__eq }))));
-                // If u.EnableInterfaceInference is set and we don't require exact unification,
-                // if both types are interfaces, one interface must have a subset of the
-                // methods of the other and corresponding method signatures must unify.
-                // If only one type is an interface, all its methods must be present in the
-                // other type and corresponding method signatures must unify.
-        if (*self.enable_interface_inference.clone().lock().unwrap().as_ref().unwrap()) && { let __tmp_x = unifyMode(Arc::new(Mutex::new(Some(((*{ let __v = (*mode.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) & EXACT as u64))))); let __tmp_y = unifyMode(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x == __tmp_y } {
+                        // both x and y are type parameters
+                        // both x and y have an inferred type - they must match
+                        // x is a type parameter, y is not
+                        // x has an inferred type which must match y
+                        // We have a match, possibly through underlying types.
+                        // If we have two interfaces, what to do depends on
+                        // whether they are named and their method sets.
+                        // Both types are interfaces.
+                        // If both types are defined types, they must be identical
+                        // because unification doesn't know which type has the "right" name.
+                        // In all other cases, the method sets must match.
+                        // The types unified so we know that corresponding methods
+                        // match and we can simply compare the number of methods.
+                        // TODO(gri) We may be able to relax this rule and select
+                        // the more general interface. But if one of them is a defined
+                        // type, it's not clear how to choose and whether we introduce
+                        // an order dependency or not. Requiring the same method set
+                        // is conservative.
+                        // One but not both of them are interfaces.
+                        // In this case, either x or y could be viable matches for the corresponding
+                        // type parameter, which means choosing either introduces an order dependence.
+                        // Therefore, we must fail unification (go.dev/issue/60933).
+                        // If we have inexact unification and one of x or y is a defined type, select the
+                        // defined type. This ensures that in a series of types, all matching against the
+                        // same type parameter, we infer a defined type if there is one, independent of
+                        // order. Type inference or assignment may fail, which is ok.
+                        // Selecting a defined type, if any, ensures that we don't lose the type name;
+                        // and since we have inexact unification, a value of equally named or matching
+                        // undefined type remains assignable (go.dev/issue/43056).
+                        //
+                        // Similarly, if we have inexact unification and there are no defined types but
+                        // channel types, select a directed channel, if any. This ensures that in a series
+                        // of unnamed types, all matching against the same type parameter, we infer the
+                        // directed channel if there is one, independent of order.
+                        // Selecting a directional channel, if any, ensures that a value of another
+                        // inexactly unifying channel type remains assignable (go.dev/issue/62157).
+                        //
+                        // If we have multiple defined channel types, they are either identical or we
+                        // have assignment conflicts, so we can ignore directionality in this case.
+                        //
+                        // If we have defined and literal channel types, a defined type wins to avoid
+                        // order dependencies.
+                        // x is a defined type: nothing to do.
+                        // x is not a defined type and y is a defined type: select y.
+                        // Neither x nor y are defined types.
+                        // y is a directed channel type: select y.
+                        // otherwise, infer type from y
+                        // x != y if we get here
+            assert(Arc::new(Mutex::new(Some({ let __left_holder = x.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = y.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; !__eq } && { let __left_holder = unalias(x.clone()).clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = unalias(y.clone()).clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; !__eq }))));
+                        // If u.EnableInterfaceInference is set and we don't require exact unification,
+                        // if both types are interfaces, one interface must have a subset of the
+                        // methods of the other and corresponding method signatures must unify.
+                        // If only one type is an interface, all its methods must be present in the
+                        // other type and corresponding method signatures must unify.
+            if (*self.enable_interface_inference.clone().lock().unwrap().as_ref().unwrap()) && { let __tmp_x = unifyMode(Arc::new(Mutex::new(Some(((*{ let __v = (*mode.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) & EXACT as u64))))); let __tmp_y = unifyMode(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x == __tmp_y } {
                 // One or both interfaces may be defined types.
                 // Look under the name, but not under type parameters (go.dev/issue/60564).
         let mut xi = as_interface(x.clone());
@@ -1239,72 +1243,72 @@ impl unifier {
     }
     }
     }
-                // One or both interfaces may be defined types.
-                // Look under the name, but not under type parameters (go.dev/issue/60564).
-                // If we have two interfaces, check the type terms for equivalence,
-                // and unify common methods if possible.
-                // For now we require terms to be equal.
-                // We should be able to relax this as well, eventually.
-                // Interface types are the only types where cycles can occur
-                // that are not "terminated" via named types; and such cycles
-                // can only be created via method parameter types that are
-                // anonymous interfaces (directly or indirectly) embedding
-                // the current interface. Example:
-                //
-                //    type T interface {
-                //        m() interface{T}
-                //    }
-                //
-                // If two such (differently named) interfaces are compared,
-                // endless recursion occurs if the cycle is not detected.
-                //
-                // If x and y were compared before, they must be equal
-                // (if they were not, the recursion would have stopped);
-                // search the ifacePair stack for the same pair.
-                //
-                // This is a quadratic algorithm, but in practice these stacks
-                // are extremely short (bounded by the nesting depth of interface
-                // type declarations that recur via parameter types, an extremely
-                // rare occurrence). An alternative implementation might use a
-                // "visited" map, but that is probably less efficient overall.
-                // same pair was compared before
-                // The method set of x must be a subset of the method set
-                // of y or vice versa, and the common methods must unify.
-                // The smaller method set must be the subset, if it exists.
-                // len(xmethods) <= len(ymethods)
-                // Collect the ymethods in a map for quick lookup.
-                // All xmethods must exist in ymethods and corresponding signatures must unify.
-                // We don't have two interfaces. If we have one, make sure it's in xi.
-                // If we have one interface, at a minimum each of the interface methods
-                // must be implemented and thus unify with a corresponding method from
-                // the non-interface type, otherwise unification fails.
-                // All xi methods must exist in y and corresponding signatures must unify.
-                // Unless we have exact unification, neither x nor y are interfaces now.
-                // Except for unbound type parameters (see below), x and y must be structurally
-                // equivalent to unify.
-                // If we get here and x or y is a type parameter, they are unbound
-                // (not recorded with the unifier).
-                // Ensure that if we have at least one type parameter, it is in x
-                // (the earlier swap checks for _recorded_ type parameters only).
-                // This ensures that the switch switches on the type parameter.
-                //
-                // TODO(gri) Factor out type parameter handling from the switch.
-        if is_type_param(y.clone()) {
+                        // One or both interfaces may be defined types.
+                        // Look under the name, but not under type parameters (go.dev/issue/60564).
+                        // If we have two interfaces, check the type terms for equivalence,
+                        // and unify common methods if possible.
+                        // For now we require terms to be equal.
+                        // We should be able to relax this as well, eventually.
+                        // Interface types are the only types where cycles can occur
+                        // that are not "terminated" via named types; and such cycles
+                        // can only be created via method parameter types that are
+                        // anonymous interfaces (directly or indirectly) embedding
+                        // the current interface. Example:
+                        //
+                        //    type T interface {
+                        //        m() interface{T}
+                        //    }
+                        //
+                        // If two such (differently named) interfaces are compared,
+                        // endless recursion occurs if the cycle is not detected.
+                        //
+                        // If x and y were compared before, they must be equal
+                        // (if they were not, the recursion would have stopped);
+                        // search the ifacePair stack for the same pair.
+                        //
+                        // This is a quadratic algorithm, but in practice these stacks
+                        // are extremely short (bounded by the nesting depth of interface
+                        // type declarations that recur via parameter types, an extremely
+                        // rare occurrence). An alternative implementation might use a
+                        // "visited" map, but that is probably less efficient overall.
+                        // same pair was compared before
+                        // The method set of x must be a subset of the method set
+                        // of y or vice versa, and the common methods must unify.
+                        // The smaller method set must be the subset, if it exists.
+                        // len(xmethods) <= len(ymethods)
+                        // Collect the ymethods in a map for quick lookup.
+                        // All xmethods must exist in ymethods and corresponding signatures must unify.
+                        // We don't have two interfaces. If we have one, make sure it's in xi.
+                        // If we have one interface, at a minimum each of the interface methods
+                        // must be implemented and thus unify with a corresponding method from
+                        // the non-interface type, otherwise unification fails.
+                        // All xi methods must exist in y and corresponding signatures must unify.
+                        // Unless we have exact unification, neither x nor y are interfaces now.
+                        // Except for unbound type parameters (see below), x and y must be structurally
+                        // equivalent to unify.
+                        // If we get here and x or y is a type parameter, they are unbound
+                        // (not recorded with the unifier).
+                        // Ensure that if we have at least one type parameter, it is in x
+                        // (the earlier swap checks for _recorded_ type parameters only).
+                        // This ensures that the switch switches on the type parameter.
+                        //
+                        // TODO(gri) Factor out type parameter handling from the switch.
+            if is_type_param(y.clone()) {
         if TRACE_INFERENCE {
         self.tracef(Arc::new(Mutex::new(Some("%s \u{2261} %s\t// swap".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = y.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
     }
         { let __tmp_0 = y.clone(); let __tmp_1 = x.clone(); { let __iface_handle = __tmp_0; let __iface_guard = __iface_handle.lock().unwrap(); *x.lock().unwrap() = (*__iface_guard).clone(); } { let __iface_handle = __tmp_1; let __iface_guard = __iface_handle.lock().unwrap(); *y.lock().unwrap() = (*__iface_guard).clone(); } };
     }
-                // Type elements (array, slice, etc. elements) use emode for unification.
-                // Element types must match exactly if the types are used in an assignment.
-        let mut emode = { let __owned = mode.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
-        if { let __tmp_x = unifyMode(Arc::new(Mutex::new(Some(((*{ let __v = (*mode.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) & ASSIGN as u64))))); let __tmp_y = unifyMode(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x != __tmp_y } {
+                        // Type elements (array, slice, etc. elements) use emode for unification.
+                        // Element types must match exactly if the types are used in an assignment.
+            let mut emode = { let __owned = mode.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
+            if { let __tmp_x = unifyMode(Arc::new(Mutex::new(Some(((*{ let __v = (*mode.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) & ASSIGN as u64))))); let __tmp_y = unifyMode(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x != __tmp_y } {
         { let __rhs = unifyMode(Arc::new(Mutex::new(Some(EXACT as u64)))); let mut guard = emode.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() | __rhs); };
     }
-                // Continue with unaliased types but don't lose original alias names, if any (go.dev/issue/67628).
-        let (mut xorig, __tmp_1) = (Arc::new(Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap()).clone()))), unalias(x.clone())); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *x.lock().unwrap() = __moved_tmp_1;;
-        let (mut yorig, __tmp_1) = (Arc::new(Mutex::new(Some((*y.lock().unwrap().as_ref().unwrap()).clone()))), unalias(y.clone())); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *y.lock().unwrap() = __moved_tmp_1;;
-        {
+                        // Continue with unaliased types but don't lose original alias names, if any (go.dev/issue/67628).
+            let (mut xorig, __tmp_1) = (Arc::new(Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap()).clone()))), unalias(x.clone())); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *x.lock().unwrap() = __moved_tmp_1;;
+            let (mut yorig, __tmp_1) = (Arc::new(Mutex::new(Some((*y.lock().unwrap().as_ref().unwrap()).clone()))), unalias(y.clone())); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *y.lock().unwrap() = __moved_tmp_1;;
+            {
     let _ts_subject = x.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
@@ -1741,95 +1745,95 @@ impl unifier {
     }
     };
     } else if _ts_is_nil {
-        let x = x.clone();
+        let x = _ts_subject.clone();
     } else {
-        let x = x.clone();
-        panic!("{}", (*sprintf(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(true))), Arc::new(Mutex::new(Some("u.nify(%s, %s, %d)".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = xorig.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = yorig.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new((*mode.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>])))).lock().unwrap().as_ref().unwrap()));;
+        let x = _ts_subject.clone();
+        std::panic::panic_any(Box::new({ let __v = sprintf(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(true))), Arc::new(Mutex::new(Some("u.nify(%s, %s, %d)".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = xorig.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = yorig.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new((*mode.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>])))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);;
     }
     }
-                // Basic types are singletons except for the rune and byte
-                // aliases, thus we cannot solely rely on the x == y check
-                // above. See also comment in TypeName.IsAlias.
-                // Two array types unify if they have the same array length
-                // and their element types unify.
-                // If one or both array lengths are unknown (< 0) due to some error,
-                // assume they are the same to avoid spurious follow-on errors.
-                // Two slice types unify if their element types unify.
-                // Two struct types unify if they have the same sequence of fields,
-                // and if corresponding fields have the same names, their (field) types unify,
-                // and they have identical tags. Two embedded fields are considered to have the same
-                // name. Lower-case field names from different packages are always different.
-                // Two pointer types unify if their base types unify.
-                // Two tuples types unify if they have the same number of elements
-                // and the types of corresponding elements unify.
-                // Two function types unify if they have the same number of parameters
-                // and result values, corresponding parameter and result types unify,
-                // and either both functions are variadic or neither is.
-                // Parameter and result names are not required to match.
-                // TODO(gri) handle type parameters or document why we can ignore them.
-                // handled before this switch
-                // Two interface types unify if they have the same set of methods with
-                // the same names, and corresponding function types unify.
-                // Lower-case method names from different packages are always different.
-                // The order of the methods is irrelevant.
-                // Interface types are the only types where cycles can occur
-                // that are not "terminated" via named types; and such cycles
-                // can only be created via method parameter types that are
-                // anonymous interfaces (directly or indirectly) embedding
-                // the current interface. Example:
-                //
-                //    type T interface {
-                //        m() interface{T}
-                //    }
-                //
-                // If two such (differently named) interfaces are compared,
-                // endless recursion occurs if the cycle is not detected.
-                //
-                // If x and y were compared before, they must be equal
-                // (if they were not, the recursion would have stopped);
-                // search the ifacePair stack for the same pair.
-                //
-                // This is a quadratic algorithm, but in practice these stacks
-                // are extremely short (bounded by the nesting depth of interface
-                // type declarations that recur via parameter types, an extremely
-                // rare occurrence). An alternative implementation might use a
-                // "visited" map, but that is probably less efficient overall.
-                // same pair was compared before
-                // Two map types unify if their key and value types unify.
-                // Two channel types unify if their value types unify
-                // and if they have the same direction.
-                // The channel direction is ignored for inexact unification.
-                // Two named types unify if their type names originate in the same type declaration.
-                // If they are instantiated, their type argument lists must unify.
-                // Check type arguments before origins so they unify
-                // even if the origins don't match; for better error
-                // messages (see go.dev/issue/53692).
-                // x must be an unbound type parameter (see comment above).
-                // By definition, a valid type argument must be in the type set of
-                // the respective type constraint. Therefore, the type argument's
-                // underlying type must be in the set of underlying types of that
-                // constraint. If there is a single such underlying type, it's the
-                // constraint's core type. It must match the type argument's under-
-                // lying type, irrespective of whether the actual type argument,
-                // which may be a defined type, is actually in the type set (that
-                // will be determined at instantiation time).
-                // Thus, if we have the core type of an unbound type parameter,
-                // we know the structure of the possible types satisfying such
-                // parameters. Use that core type for further unification
-                // (see go.dev/issue/50755 for a test case).
-                // Because the core type is always an underlying type,
-                // unification will take care of matching against a
-                // defined or literal type automatically.
-                // If y is also an unbound type parameter, we will end
-                // up here again with x and y swapped, so we don't
-                // need to take care of that case separately.
-                // If y is a defined type, it may not match against cx which
-                // is an underlying type (incl. int, string, etc.). Use assign
-                // mode here so that the unifier automatically takes under(y)
-                // if necessary.
-                // x != y and there's nothing to do
-                // avoid a crash in case of nil type
-        {
+                        // Basic types are singletons except for the rune and byte
+                        // aliases, thus we cannot solely rely on the x == y check
+                        // above. See also comment in TypeName.IsAlias.
+                        // Two array types unify if they have the same array length
+                        // and their element types unify.
+                        // If one or both array lengths are unknown (< 0) due to some error,
+                        // assume they are the same to avoid spurious follow-on errors.
+                        // Two slice types unify if their element types unify.
+                        // Two struct types unify if they have the same sequence of fields,
+                        // and if corresponding fields have the same names, their (field) types unify,
+                        // and they have identical tags. Two embedded fields are considered to have the same
+                        // name. Lower-case field names from different packages are always different.
+                        // Two pointer types unify if their base types unify.
+                        // Two tuples types unify if they have the same number of elements
+                        // and the types of corresponding elements unify.
+                        // Two function types unify if they have the same number of parameters
+                        // and result values, corresponding parameter and result types unify,
+                        // and either both functions are variadic or neither is.
+                        // Parameter and result names are not required to match.
+                        // TODO(gri) handle type parameters or document why we can ignore them.
+                        // handled before this switch
+                        // Two interface types unify if they have the same set of methods with
+                        // the same names, and corresponding function types unify.
+                        // Lower-case method names from different packages are always different.
+                        // The order of the methods is irrelevant.
+                        // Interface types are the only types where cycles can occur
+                        // that are not "terminated" via named types; and such cycles
+                        // can only be created via method parameter types that are
+                        // anonymous interfaces (directly or indirectly) embedding
+                        // the current interface. Example:
+                        //
+                        //    type T interface {
+                        //        m() interface{T}
+                        //    }
+                        //
+                        // If two such (differently named) interfaces are compared,
+                        // endless recursion occurs if the cycle is not detected.
+                        //
+                        // If x and y were compared before, they must be equal
+                        // (if they were not, the recursion would have stopped);
+                        // search the ifacePair stack for the same pair.
+                        //
+                        // This is a quadratic algorithm, but in practice these stacks
+                        // are extremely short (bounded by the nesting depth of interface
+                        // type declarations that recur via parameter types, an extremely
+                        // rare occurrence). An alternative implementation might use a
+                        // "visited" map, but that is probably less efficient overall.
+                        // same pair was compared before
+                        // Two map types unify if their key and value types unify.
+                        // Two channel types unify if their value types unify
+                        // and if they have the same direction.
+                        // The channel direction is ignored for inexact unification.
+                        // Two named types unify if their type names originate in the same type declaration.
+                        // If they are instantiated, their type argument lists must unify.
+                        // Check type arguments before origins so they unify
+                        // even if the origins don't match; for better error
+                        // messages (see go.dev/issue/53692).
+                        // x must be an unbound type parameter (see comment above).
+                        // By definition, a valid type argument must be in the type set of
+                        // the respective type constraint. Therefore, the type argument's
+                        // underlying type must be in the set of underlying types of that
+                        // constraint. If there is a single such underlying type, it's the
+                        // constraint's core type. It must match the type argument's under-
+                        // lying type, irrespective of whether the actual type argument,
+                        // which may be a defined type, is actually in the type set (that
+                        // will be determined at instantiation time).
+                        // Thus, if we have the core type of an unbound type parameter,
+                        // we know the structure of the possible types satisfying such
+                        // parameters. Use that core type for further unification
+                        // (see go.dev/issue/50755 for a test case).
+                        // Because the core type is always an underlying type,
+                        // unification will take care of matching against a
+                        // defined or literal type automatically.
+                        // If y is also an unbound type parameter, we will end
+                        // up here again with x and y swapped, so we don't
+                        // need to take care of that case separately.
+                        // If y is a defined type, it may not match against cx which
+                        // is an underlying type (incl. int, string, etc.). Use assign
+                        // mode here so that the unifier automatically takes under(y)
+                        // if necessary.
+                        // x != y and there's nothing to do
+                        // avoid a crash in case of nil type
+            {
         { let new_val = false; *result.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -1837,6 +1841,19 @@ impl unifier {
         }
         return (*result.lock().unwrap().as_ref().unwrap());
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                (*result.lock().unwrap().as_ref().unwrap())
+            }
+        }
     }
 }
 

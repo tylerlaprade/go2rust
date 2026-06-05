@@ -1,11 +1,12 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_lookup_embedded_owner, go_register_embedded_owner};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::mutex::*;
 use crate::runtime::*;
 
 use std::any::Any;
+use std::cell::{RefCell};
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex as StdMutex};
@@ -209,11 +210,14 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
     pub fn init_slow(&mut self) {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        (*self.init_mu.lock().unwrap().as_mut().unwrap()).lock();
-        let mut ht_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            (*self.init_mu.lock().unwrap().as_mut().unwrap()).lock();
+            let mut ht_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         (*ht_defer_captured.init_mu.lock().unwrap().as_mut().unwrap()).unlock();
     }));
-        if { let __tmp_x = (*self.inited.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 0 as u32; __tmp_x != __tmp_y } {
+            if { let __tmp_x = (*self.inited.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 0 as u32; __tmp_x != __tmp_y } {
                 // Someone got to it while we were waiting.
         {
         // Execute deferred functions
@@ -223,20 +227,33 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         return;
     }
     }
-                // Someone got to it while we were waiting.
-                // Set up root node, derive the hash function for the key, and the
-                // equal function for the value, if any.
-        let mut m: Arc<StdMutex<Option<BTreeMap<K, Arc<StdMutex<Option<V>>>>>>> = Arc::new(StdMutex::new(Some(BTreeMap::new())));
-        let mut mapType: GoPtr<internal_abi::map_swiss::SwissMapType> = GoPtr::local(Arc::new(StdMutex::new(Some({ let mut __type = internal_abi::Type::default(); *__type.kind_.lock().unwrap() = Some(internal_abi::Kind(Arc::new(StdMutex::new(Some(internal_abi::MAP as u8))))); let mut __elem_type = internal_abi::Type::default(); let mut __map_type = internal_abi::SwissMapType::default(); *__map_type.r#type.lock().unwrap() = Some(__type); *__map_type.elem.lock().unwrap() = Some(__elem_type); let __hasher: Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = Box::new(|__key, __seed| { let __key_value = __key.lock().unwrap().as_ref().copied().expect("internal/abi map hasher requires a key pointer"); let __seed_value = __seed.lock().unwrap().as_ref().copied().unwrap_or(0); let __key_ref = unsafe { &*(__key_value as *const StdMutex<Option<K>>) }; let __key_guard = __key_ref.lock().unwrap(); match __key_guard.as_ref() { Some(__key_value) => GoComparable::go_hash(__key_value, __seed_value), None => __seed_value } }); *__map_type.hasher.lock().unwrap() = Some(__hasher); __map_type }))));
-        (*self.root.lock().unwrap().as_mut().unwrap()).store(sync_atomic::GoPtr::local(new_indirect_node::<K, V>(GoPtr::nil())));
-        { let new_val = { let __ptr_value = mapType.with_mut(|__ptr_value| __ptr_value.hasher.clone()); __ptr_value }.clone(); self.key_hash = new_val; };
-        { let new_val = (*{ let __ptr_value = mapType.with_mut(|__ptr_value| __ptr_value.elem.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).equal.clone(); self.val_equal = new_val; };
-        { let new_val = Arc::new(StdMutex::new(Some(runtime_rand() as usize))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *self.seed.lock().unwrap() = __moved_val; };
-        (*self.inited.lock().unwrap().as_mut().unwrap()).store(Arc::new(StdMutex::new(Some(1 as u32))));
+                        // Someone got to it while we were waiting.
+                        // Set up root node, derive the hash function for the key, and the
+                        // equal function for the value, if any.
+            let mut m: Arc<StdMutex<Option<BTreeMap<K, Arc<StdMutex<Option<V>>>>>>> = Arc::new(StdMutex::new(Some(BTreeMap::new())));
+            let mut mapType: GoPtr<internal_abi::map_swiss::SwissMapType> = GoPtr::local(Arc::new(StdMutex::new(Some({ let mut __type = internal_abi::Type::default(); *__type.kind_.lock().unwrap() = Some(internal_abi::Kind(Arc::new(StdMutex::new(Some(internal_abi::MAP as u8))))); let mut __elem_type = internal_abi::Type::default(); let mut __map_type = internal_abi::SwissMapType::default(); *__map_type.r#type.lock().unwrap() = Some(__type); *__map_type.elem.lock().unwrap() = Some(__elem_type); let __hasher: Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = Box::new(|__key, __seed| { let __key_value = __key.lock().unwrap().as_ref().copied().expect("internal/abi map hasher requires a key pointer"); let __seed_value = __seed.lock().unwrap().as_ref().copied().unwrap_or(0); let __key_ref = unsafe { &*(__key_value as *const StdMutex<Option<K>>) }; let __key_guard = __key_ref.lock().unwrap(); match __key_guard.as_ref() { Some(__key_value) => GoComparable::go_hash(__key_value, __seed_value), None => __seed_value } }); *__map_type.hasher.lock().unwrap() = Some(__hasher); __map_type }))));
+            (*self.root.lock().unwrap().as_mut().unwrap()).store(sync_atomic::GoPtr::local(new_indirect_node::<K, V>(GoPtr::nil())));
+            { let new_val = { let __ptr_value = mapType.with_mut(|__ptr_value| __ptr_value.hasher.clone()); __ptr_value }.clone(); self.key_hash = new_val; };
+            { let new_val = (*{ let __ptr_value = mapType.with_mut(|__ptr_value| __ptr_value.elem.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).equal.clone(); self.val_equal = new_val; };
+            { let new_val = Arc::new(StdMutex::new(Some(runtime_rand() as usize))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *self.seed.lock().unwrap() = __moved_val; };
+            (*self.inited.lock().unwrap().as_mut().unwrap()).store(Arc::new(StdMutex::new(Some(1 as u32))));
 
-        // Execute deferred functions
-        while let Some(f) = __defer_stack.pop() {
-            f();
+            // Execute deferred functions
+            while let Some(f) = __defer_stack.pop() {
+                f();
+            }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                ()
+            }
         }
     }
 
@@ -263,7 +280,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
     }
         i = { let __result = n.with_mut(|__recv_value| __recv_value.indirect()); __result };
     }
-        panic!("internal/sync.HashTrieMap: ran out of hash bits while iterating");
+        std::panic::panic_any(Box::new("internal/sync.HashTrieMap: ran out of hash bits while iterating".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     /// LoadOrStore returns the existing value for the key if present.
@@ -275,13 +292,16 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
     let mut result: Arc<StdMutex<Option<V>>> = Arc::new(StdMutex::new(None));
     let mut loaded: Arc<StdMutex<Option<bool>>> = Arc::new(StdMutex::new(Some(false)));
 
-        self.init();
-        let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), Arc::new(StdMutex::new(Some({ let __selector_holder = self.seed.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
-        let mut i: GoPtr<indirect<K, V>> = GoPtr::nil();
-        let mut hashShift: Arc<StdMutex<Option<u64>>> = Arc::new(StdMutex::new(Some(0)));
-        let mut slot: Option<GoArrayElemPtr<sync_atomic::r#type::Pointer<node<K, V>>, 16>> = None;
-        let mut n: GoPtr<node<K, V>> = GoPtr::nil();
-        loop {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            self.init();
+            let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), Arc::new(StdMutex::new(Some({ let __selector_holder = self.seed.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
+            let mut i: GoPtr<indirect<K, V>> = GoPtr::nil();
+            let mut hashShift: Arc<StdMutex<Option<u64>>> = Arc::new(StdMutex::new(Some(0)));
+            let mut slot: Option<GoArrayElemPtr<sync_atomic::r#type::Pointer<node<K, V>>, 16>> = None;
+            let mut n: GoPtr<node<K, V>> = GoPtr::nil();
+            loop {
                 // Find the key or a candidate location for insertion.
         i = { let __go_ptr = (*self.root.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
         { let new_val = { let __tmp_x = 8; let __tmp_y = goarch::PTR_SIZE; __tmp_x * __tmp_y } as u64; *hashShift.lock().unwrap() = Some(new_val); };
@@ -311,7 +331,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (result, (*loaded.lock().unwrap().as_ref().unwrap()));
+        return (result.clone(), (*loaded.lock().unwrap().as_ref().unwrap()));
     };
         }
     }
@@ -328,7 +348,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 // If it stays this way, we'll have to replace it with an
                 // indirect node.
         if !{ let __v = (*haveInsertPoint.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        panic!("internal/sync.HashTrieMap: ran out of hash bits while iterating");
+        std::panic::panic_any(Box::new("internal/sync.HashTrieMap: ran out of hash bits while iterating".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
                 // Grab the lock and double-check what we saw.
@@ -343,24 +363,24 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 // We have to start over.
         (*{ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.mu.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).unlock();
     }
-                // Find the key or a candidate location for insertion.
-                // We found a nil slot which is a candidate for insertion.
-                // We found an existing entry, which is as far as we can go.
-                // If it stays this way, we'll have to replace it with an
-                // indirect node.
-                // Grab the lock and double-check what we saw.
-                // What we saw is still true, so we can continue with the insert.
-                // We have to start over.
-                // N.B. This lock is held from when we broke out of the outer loop above.
-                // We specifically break this out so that we can use defer here safely.
-                // One option is to break this out into a new function instead, but
-                // there's so much local iteration state used below that this turns out
-                // to be cleaner.
-        let i_defer_captured = i.clone(); __defer_stack.push(Box::new(move || {
+                        // Find the key or a candidate location for insertion.
+                        // We found a nil slot which is a candidate for insertion.
+                        // We found an existing entry, which is as far as we can go.
+                        // If it stays this way, we'll have to replace it with an
+                        // indirect node.
+                        // Grab the lock and double-check what we saw.
+                        // What we saw is still true, so we can continue with the insert.
+                        // We have to start over.
+                        // N.B. This lock is held from when we broke out of the outer loop above.
+                        // We specifically break this out so that we can use defer here safely.
+                        // One option is to break this out into a new function instead, but
+                        // there's so much local iteration state used below that this turns out
+                        // to be cleaner.
+            let i_defer_captured = i.clone(); __defer_stack.push(Box::new(move || {
         (*{ let __ptr_value = i_defer_captured.with_mut(|__ptr_value| __ptr_value.mu.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).unlock();
     }));
-        let mut oldEntry: GoPtr<entry<K, V>> = GoPtr::nil();
-        if !n.is_nil() {
+            let mut oldEntry: GoPtr<entry<K, V>> = GoPtr::nil();
+            if !n.is_nil() {
         oldEntry = { let __result = n.with_mut(|__recv_value| __recv_value.entry()); __result };
         {
         let (mut v, mut ok) = { let __result = oldEntry.with_mut(|__recv_value| __recv_value.lookup(Arc::new(StdMutex::new(Some({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }))))); __result };;
@@ -372,14 +392,14 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (result, (*loaded.lock().unwrap().as_ref().unwrap()));
+        return (result.clone(), (*loaded.lock().unwrap().as_ref().unwrap()));
     };
         }
     }
     }
-                // Easy case: by loading again, it turns out exactly what we wanted is here!
-        let mut newEntry = new_entry_node::<K, V>(key.clone(), value.clone());
-        if oldEntry.is_nil() {
+                        // Easy case: by loading again, it turns out exactly what we wanted is here!
+            let mut newEntry = new_entry_node::<K, V>(key.clone(), value.clone());
+            if oldEntry.is_nil() {
                 // Easy case: create a new entry and store it.
         (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).store(sync_atomic::GoPtr::local((*newEntry.lock().unwrap().as_ref().unwrap()).node.clone()));
     } else {
@@ -389,20 +409,33 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 // don't want readers to be able to observe that oldEntry isn't in the tree.
         (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).store(sync_atomic::GoPtr::local(self.expand(oldEntry.clone(), newEntry.clone(), Arc::new(StdMutex::new(Some(hash))), Arc::new(StdMutex::new(Some({ let __arg_holder = hashShift.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), i.clone())));
     }
-                // Easy case: create a new entry and store it.
-                // We possibly need to expand the entry already there into one or more new nodes.
-                //
-                // Publish the node last, which will make both oldEntry and newEntry visible. We
-                // don't want readers to be able to observe that oldEntry isn't in the tree.
-        {
+                        // Easy case: create a new entry and store it.
+                        // We possibly need to expand the entry already there into one or more new nodes.
+                        //
+                        // Publish the node last, which will make both oldEntry and newEntry visible. We
+                        // don't want readers to be able to observe that oldEntry isn't in the tree.
+            {
         result = value.clone();
         { let new_val = false; *loaded.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (result, (*loaded.lock().unwrap().as_ref().unwrap()));
+        return (result.clone(), (*loaded.lock().unwrap().as_ref().unwrap()));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                (result.clone(), (*loaded.lock().unwrap().as_ref().unwrap()))
+            }
+        }
     }
 
     /// expand takes oldEntry and newEntry whose hashes conflict from bit 64 down to hashShift and
@@ -423,7 +456,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         let mut top = newIndirect.clone();
         loop {
         if { let __tmp_x = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u64; __tmp_x == __tmp_y } {
-        panic!("internal/sync.HashTrieMap: ran out of hash bits while inserting");
+        std::panic::panic_any(Box::new("internal/sync.HashTrieMap: ran out of hash bits while inserting".to_string()) as Box<dyn Any + Send + Sync>);
     }
         { let __rhs = N_CHILDREN_LOG2 as u64; let mut guard = hashShift.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
         let mut oi = Arc::new(StdMutex::new(Some({ let __tmp_x = ({ let __tmp_x = oldHash; let __tmp_y = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x >> __tmp_y }); let __tmp_y = N_CHILDREN_MASK as usize; __tmp_x & __tmp_y })));
@@ -454,13 +487,16 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
     let mut previous: Arc<StdMutex<Option<V>>> = Arc::new(StdMutex::new(None));
     let mut loaded: Arc<StdMutex<Option<bool>>> = Arc::new(StdMutex::new(Some(false)));
 
-        self.init();
-        let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), Arc::new(StdMutex::new(Some({ let __selector_holder = self.seed.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
-        let mut i: GoPtr<indirect<K, V>> = GoPtr::nil();
-        let mut hashShift: Arc<StdMutex<Option<u64>>> = Arc::new(StdMutex::new(Some(0)));
-        let mut slot: Option<GoArrayElemPtr<sync_atomic::r#type::Pointer<node<K, V>>, 16>> = None;
-        let mut n: GoPtr<node<K, V>> = GoPtr::nil();
-        loop {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            self.init();
+            let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), Arc::new(StdMutex::new(Some({ let __selector_holder = self.seed.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
+            let mut i: GoPtr<indirect<K, V>> = GoPtr::nil();
+            let mut hashShift: Arc<StdMutex<Option<u64>>> = Arc::new(StdMutex::new(Some(0)));
+            let mut slot: Option<GoArrayElemPtr<sync_atomic::r#type::Pointer<node<K, V>>, 16>> = None;
+            let mut n: GoPtr<node<K, V>> = GoPtr::nil();
+            loop {
                 // Find the key or a candidate location for insertion.
         i = { let __go_ptr = (*self.root.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
         { let new_val = { let __tmp_x = 8; let __tmp_y = goarch::PTR_SIZE; __tmp_x * __tmp_y } as u64; *hashShift.lock().unwrap() = Some(new_val); };
@@ -483,7 +519,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 // We found a nil slot which is a candidate for insertion,
                 // or an existing entry that we'll replace.
         if !{ let __v = (*haveInsertPoint.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        panic!("internal/sync.HashTrieMap: ran out of hash bits while iterating");
+        std::panic::panic_any(Box::new("internal/sync.HashTrieMap: ran out of hash bits while iterating".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
                 // Grab the lock and double-check what we saw.
@@ -498,23 +534,23 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 // We have to start over.
         (*{ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.mu.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).unlock();
     }
-                // Find the key or a candidate location for insertion.
-                // We found a nil slot which is a candidate for insertion,
-                // or an existing entry that we'll replace.
-                // Grab the lock and double-check what we saw.
-                // What we saw is still true, so we can continue with the insert.
-                // We have to start over.
-                // N.B. This lock is held from when we broke out of the outer loop above.
-                // We specifically break this out so that we can use defer here safely.
-                // One option is to break this out into a new function instead, but
-                // there's so much local iteration state used below that this turns out
-                // to be cleaner.
-        let i_defer_captured = i.clone(); __defer_stack.push(Box::new(move || {
+                        // Find the key or a candidate location for insertion.
+                        // We found a nil slot which is a candidate for insertion,
+                        // or an existing entry that we'll replace.
+                        // Grab the lock and double-check what we saw.
+                        // What we saw is still true, so we can continue with the insert.
+                        // We have to start over.
+                        // N.B. This lock is held from when we broke out of the outer loop above.
+                        // We specifically break this out so that we can use defer here safely.
+                        // One option is to break this out into a new function instead, but
+                        // there's so much local iteration state used below that this turns out
+                        // to be cleaner.
+            let i_defer_captured = i.clone(); __defer_stack.push(Box::new(move || {
         (*{ let __ptr_value = i_defer_captured.with_mut(|__ptr_value| __ptr_value.mu.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).unlock();
     }));
-        let mut zero: Arc<StdMutex<Option<V>>> = Arc::new(StdMutex::new(None));
-        let mut oldEntry: GoPtr<entry<K, V>> = GoPtr::nil();
-        if !n.is_nil() {
+            let mut zero: Arc<StdMutex<Option<V>>> = Arc::new(StdMutex::new(None));
+            let mut oldEntry: GoPtr<entry<K, V>> = GoPtr::nil();
+            if !n.is_nil() {
                 // Swap if the keys compare.
         oldEntry = { let __result = n.with_mut(|__recv_value| __recv_value.entry()); __result };
         let (mut newEntry, mut old, mut swapped) = { let __recv_value = oldEntry.borrow(); let __result = (*__recv_value.as_ref().unwrap()).swap(Arc::new(StdMutex::new(Some({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }))), Arc::new(StdMutex::new(Some({ let __arg_holder = new.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() })))); __result };
@@ -527,14 +563,14 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (previous, (*loaded.lock().unwrap().as_ref().unwrap()));
+        return (previous.clone(), (*loaded.lock().unwrap().as_ref().unwrap()));
     }
     }
     }
-                // Swap if the keys compare.
-                // The keys didn't compare, so we're doing an insertion.
-        let mut newEntry = new_entry_node::<K, V>(key.clone(), new.clone());
-        if oldEntry.is_nil() {
+                        // Swap if the keys compare.
+                        // The keys didn't compare, so we're doing an insertion.
+            let mut newEntry = new_entry_node::<K, V>(key.clone(), new.clone());
+            if oldEntry.is_nil() {
                 // Easy case: create a new entry and store it.
         (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).store(sync_atomic::GoPtr::local((*newEntry.lock().unwrap().as_ref().unwrap()).node.clone()));
     } else {
@@ -544,20 +580,33 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 // don't want readers to be able to observe that oldEntry isn't in the tree.
         (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).store(sync_atomic::GoPtr::local(self.expand(oldEntry.clone(), newEntry.clone(), Arc::new(StdMutex::new(Some(hash))), Arc::new(StdMutex::new(Some({ let __arg_holder = hashShift.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), i.clone())));
     }
-                // Easy case: create a new entry and store it.
-                // We possibly need to expand the entry already there into one or more new nodes.
-                //
-                // Publish the node last, which will make both oldEntry and newEntry visible. We
-                // don't want readers to be able to observe that oldEntry isn't in the tree.
-        {
+                        // Easy case: create a new entry and store it.
+                        // We possibly need to expand the entry already there into one or more new nodes.
+                        //
+                        // Publish the node last, which will make both oldEntry and newEntry visible. We
+                        // don't want readers to be able to observe that oldEntry isn't in the tree.
+            {
         previous = zero.clone();
         { let new_val = false; *loaded.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (previous, (*loaded.lock().unwrap().as_ref().unwrap()));
+        return (previous.clone(), (*loaded.lock().unwrap().as_ref().unwrap()));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                (previous.clone(), (*loaded.lock().unwrap().as_ref().unwrap()))
+            }
+        }
     }
 
     /// CompareAndSwap swaps the old and new values for key
@@ -568,19 +617,22 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
 
     let mut swapped: Arc<StdMutex<Option<bool>>> = Arc::new(StdMutex::new(Some(false)));
 
-        self.init();
-        if { let __nil_target = self.val_equal.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
-        panic!("called CompareAndSwap when value is not of comparable type");
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            self.init();
+            if { let __nil_target = self.val_equal.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
+        std::panic::panic_any(Box::new("called CompareAndSwap when value is not of comparable type".to_string()) as Box<dyn Any + Send + Sync>);
     }
-        let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), Arc::new(StdMutex::new(Some({ let __selector_holder = self.seed.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
-                // Find a node with the key and compare with it. n != nil if we found the node.
-        let (mut i, _, mut slot, mut n) = { let __method_arg0 = Arc::new(StdMutex::new(Some({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }))); let __method_arg1 = Arc::new(StdMutex::new(Some(hash))); let __method_arg2 = self.val_equal.clone(); let __method_arg3 = Arc::new(StdMutex::new(Some({ let __arg_holder = old.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }))); self.find(__method_arg0, __method_arg1, __method_arg2, __method_arg3) };
-        if !i.is_nil() {
+            let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), Arc::new(StdMutex::new(Some({ let __selector_holder = self.seed.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
+                        // Find a node with the key and compare with it. n != nil if we found the node.
+            let (mut i, _, mut slot, mut n) = { let __method_arg0 = Arc::new(StdMutex::new(Some({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }))); let __method_arg1 = Arc::new(StdMutex::new(Some(hash))); let __method_arg2 = self.val_equal.clone(); let __method_arg3 = Arc::new(StdMutex::new(Some({ let __arg_holder = old.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }))); self.find(__method_arg0, __method_arg1, __method_arg2, __method_arg3) };
+            if !i.is_nil() {
         let i_defer_captured = i.clone(); __defer_stack.push(Box::new(move || {
         (*{ let __ptr_value = i_defer_captured.with_mut(|__ptr_value| __ptr_value.mu.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).unlock();
     }));
     }
-        if n.is_nil() {
+            if n.is_nil() {
         {
         { let new_val = false; *swapped.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
@@ -590,9 +642,9 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         return (*swapped.lock().unwrap().as_ref().unwrap());
     }
     }
-                // Try to swap the entry.
-        let (mut e, __tmp_1) = { let __recv = { let __result = n.with_mut(|__recv_value| __recv_value.entry()); __result }; let __result = __recv.with_mut(|__recv_value| __recv_value.compare_and_swap(Arc::new(StdMutex::new(Some({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }))), Arc::new(StdMutex::new(Some({ let __arg_holder = old.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }))), Arc::new(StdMutex::new(Some({ let __arg_holder = new.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }))), self.val_equal.clone())); __result }; *swapped.lock().unwrap() = Some(__tmp_1);;
-        if !{ let __v = (*swapped.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+                        // Try to swap the entry.
+            let (mut e, __tmp_1) = { let __recv = { let __result = n.with_mut(|__recv_value| __recv_value.entry()); __result }; let __result = __recv.with_mut(|__recv_value| __recv_value.compare_and_swap(Arc::new(StdMutex::new(Some({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }))), Arc::new(StdMutex::new(Some({ let __arg_holder = old.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }))), Arc::new(StdMutex::new(Some({ let __arg_holder = new.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }))), self.val_equal.clone())); __result }; *swapped.lock().unwrap() = Some(__tmp_1);;
+            if !{ let __v = (*swapped.lock().unwrap().as_ref().unwrap()).clone(); __v } {
                 // Nothing was actually swapped, which means the node is no longer there.
         {
         { let new_val = false; *swapped.lock().unwrap() = Some(new_val); };;
@@ -603,10 +655,10 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         return (*swapped.lock().unwrap().as_ref().unwrap());
     }
     }
-                // Nothing was actually swapped, which means the node is no longer there.
-                // Store the entry back because it changed.
-        (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).store(sync_atomic::GoPtr::local((*e.lock().unwrap().as_ref().unwrap()).node.clone()));
-        {
+                        // Nothing was actually swapped, which means the node is no longer there.
+                        // Store the entry back because it changed.
+            (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).store(sync_atomic::GoPtr::local((*e.lock().unwrap().as_ref().unwrap()).node.clone()));
+            {
         { let new_val = true; *swapped.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -614,6 +666,19 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         }
         return (*swapped.lock().unwrap().as_ref().unwrap());
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                (*swapped.lock().unwrap().as_ref().unwrap())
+            }
+        }
     }
 
     /// LoadAndDelete deletes the value for a key, returning the previous value if any.
@@ -654,7 +719,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 // Check if the node is now empty (and isn't the root), and delete it if able.
         while { let __ptr_field = { let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.parent.clone()); __ptr_value }.clone(); !__ptr_field.is_nil() } && { let __recv_value = i.borrow(); let __result = (*__recv_value.as_ref().unwrap()).empty(); __result } {
         if { let __tmp_x = hashShift; let __tmp_y = { let __tmp_x = 8; let __tmp_y = goarch::PTR_SIZE; __tmp_x * __tmp_y } as u64; __tmp_x == __tmp_y } {
-        panic!("internal/sync.HashTrieMap: ran out of hash bits while iterating");
+        std::panic::panic_any(Box::new("internal/sync.HashTrieMap: ran out of hash bits while iterating".to_string()) as Box<dyn Any + Send + Sync>);
     }
         { let __rhs = N_CHILDREN_LOG2 as u64; hashShift = hashShift + __rhs; };
 
@@ -686,7 +751,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
 
         self.init();
         if { let __nil_target = self.val_equal.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
-        panic!("called CompareAndDelete when value is not of comparable type");
+        std::panic::panic_any(Box::new("called CompareAndDelete when value is not of comparable type".to_string()) as Box<dyn Any + Send + Sync>);
     }
         let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), Arc::new(StdMutex::new(Some({ let __selector_holder = self.seed.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
                 // Find a node with the key. n != nil if we found the node.
@@ -719,7 +784,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 // Check if the node is now empty (and isn't the root), and delete it if able.
         while { let __ptr_field = { let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.parent.clone()); __ptr_value }.clone(); !__ptr_field.is_nil() } && { let __recv_value = i.borrow(); let __result = (*__recv_value.as_ref().unwrap()).empty(); __result } {
         if { let __tmp_x = hashShift; let __tmp_y = { let __tmp_x = 8; let __tmp_y = goarch::PTR_SIZE; __tmp_x * __tmp_y } as u64; __tmp_x == __tmp_y } {
-        panic!("internal/sync.HashTrieMap: ran out of hash bits while iterating");
+        std::panic::panic_any(Box::new("internal/sync.HashTrieMap: ran out of hash bits while iterating".to_string()) as Box<dyn Any + Send + Sync>);
     }
         { let __rhs = N_CHILDREN_LOG2 as u64; hashShift = hashShift + __rhs; };
 
@@ -789,7 +854,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 // No match, comparison failed.
                 // We've got a match. Prepare to perform an operation on the key.
         if !{ let __v = (*found.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        panic!("internal/sync.HashTrieMap: ran out of hash bits while iterating");
+        std::panic::panic_any(Box::new("internal/sync.HashTrieMap: ran out of hash bits while iterating".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
                 // Grab the lock and double-check what we saw.
@@ -1047,14 +1112,14 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
 impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static> node<K, V> {
     pub fn entry(&self) -> GoPtr<entry<K, V>> {
         if !(*self.is_entry.clone().lock().unwrap().as_ref().unwrap()) {
-        panic!("called entry on non-entry node");
+        std::panic::panic_any(Box::new("called entry on non-entry node".to_string()) as Box<dyn Any + Send + Sync>);
     }
         { let __ptr = Arc::new(StdMutex::new(Some(self as *const _ as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<entry<K, V>>(*__ptr_guard.as_ref().unwrap(), "entry<K, V>")) } }
     }
 
     pub fn indirect(&self) -> GoPtr<indirect<K, V>> {
         if (*self.is_entry.clone().lock().unwrap().as_ref().unwrap()) {
-        panic!("called indirect on entry node");
+        std::panic::panic_any(Box::new("called indirect on entry node".to_string()) as Box<dyn Any + Send + Sync>);
     }
         { let __ptr = Arc::new(StdMutex::new(Some(self as *const _ as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<indirect<K, V>>(*__ptr_guard.as_ref().unwrap(), "indirect<K, V>")) } }
     }

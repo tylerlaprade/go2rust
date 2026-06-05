@@ -150,6 +150,7 @@ type HelperTracker struct {
 	needsFormatAnySlice                  bool
 	needsAnyEq                           bool
 	needsAnyClone                        bool
+	needsPanicRecover                    bool
 	needsGoValueClone                    bool
 	needsGoComparable                    bool
 	needsGoConstStrEq                    bool
@@ -283,6 +284,10 @@ func (ht *HelperTracker) GenerateHelpers() string {
 
 	if ht.needsAnyClone {
 		generateAnyClone(&result, ht.anyCloneTypes)
+	}
+
+	if ht.needsPanicRecover {
+		generatePanicRecoverHelper(&result)
 	}
 
 	if ht.needsGoValueClone {
@@ -435,6 +440,7 @@ func (ht *HelperTracker) HasAny() bool {
 		ht.needsFormatAnySlice ||
 		ht.needsAnyEq ||
 		ht.needsAnyClone ||
+		ht.needsPanicRecover ||
 		ht.needsGoValueClone ||
 		ht.needsGoComparable ||
 		ht.needsGoConstStrEq ||
@@ -570,6 +576,9 @@ func (ht *HelperTracker) ImportNames() []string {
 	}
 	if ht.needsAnyClone {
 		add("go_any_clone")
+	}
+	if ht.needsPanicRecover {
+		add("go_recover", "go_resume_unrecovered_panic", "go_store_panic_payload")
 	}
 	if ht.needsGoValueClone {
 		add("GoValueClone")
@@ -1062,6 +1071,84 @@ func generateAnyClone(out *strings.Builder, anyCloneTypes map[string]bool) {
 	writeAnyCloneTypeArms(out, anyCloneTypes, "Box<dyn Any>")
 	out.WriteString(`
     panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
+}
+`)
+}
+
+func generatePanicRecoverHelper(out *strings.Builder) {
+	TrackImport("Any")
+	TrackImport("Arc")
+	TrackImport("Mutex")
+	TrackImport("RefCell")
+	visibility := ""
+	if generatingPublicHelpers {
+		visibility = "pub "
+	}
+	out.WriteString("\n")
+	out.WriteString(`thread_local! {
+    static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send + Sync>>> = RefCell::new(None);
+}
+`)
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_recover() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
+    __GO_RECOVER_PAYLOAD.with(|slot| Arc::new(Mutex::new(slot.borrow_mut().take())))
+}
+`)
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
+    let payload = match payload.downcast::<Box<dyn Any + Send + Sync>>() {
+        Ok(boxed) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(*boxed));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<String>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<&'static str>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<i32>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<i64>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let _payload = match payload.downcast::<bool>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(_payload) => _payload,
+    };
+    panic!("recover: unsupported Rust panic payload; emit panic_any with a Go any payload instead")
+}
+`)
+	out.WriteString("\n")
+	out.WriteString(visibility)
+	out.WriteString(`fn go_resume_unrecovered_panic() {
+    if let Some(payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
+        std::panic::panic_any(payload);
+    }
 }
 `)
 }

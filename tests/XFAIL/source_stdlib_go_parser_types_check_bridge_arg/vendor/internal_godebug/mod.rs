@@ -1,11 +1,72 @@
 use go2rust_stdlib_stubs::*;
 
 use std::any::Any;
+use std::cell::{RefCell};
 use std::collections::BTreeMap;
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
+
+thread_local! {
+    static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send + Sync>>> = RefCell::new(None);
+}
+
+fn go_recover() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
+    __GO_RECOVER_PAYLOAD.with(|slot| Arc::new(Mutex::new(slot.borrow_mut().take())))
+}
+
+fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
+    let payload = match payload.downcast::<Box<dyn Any + Send + Sync>>() {
+        Ok(boxed) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(*boxed));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<String>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<&'static str>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<i32>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let payload = match payload.downcast::<i64>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(payload) => payload,
+    };
+    let _payload = match payload.downcast::<bool>() {
+        Ok(value) => {
+            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(Box::new(*value) as Box<dyn Any + Send + Sync>));
+            return;
+        }
+        Err(_payload) => _payload,
+    };
+    panic!("recover: unsupported Rust panic payload; emit panic_any with a Go any payload instead")
+}
+
+fn go_resume_unrecovered_panic() {
+    if let Some(payload) = __GO_RECOVER_PAYLOAD.with(|slot| slot.borrow_mut().take()) {
+        std::panic::panic_any(payload);
+    }
+}
 
 #[derive(Clone)]
 pub struct GoSliceElemPtr<T: Clone> {
@@ -598,7 +659,7 @@ impl Setting {
 
     pub fn register(&self) {
         if { let __ptr_field = (*self.setting.lock().unwrap().as_ref().unwrap()).info.clone(); __ptr_field.is_nil() } || (*{ let __ptr_value = (*self.setting.lock().unwrap().as_ref().unwrap()).info.borrow(); __ptr_value.as_ref().unwrap().opaque.clone() }.lock().unwrap().as_ref().unwrap()) {
-        panic!("{}", format!("{}{}", "godebug: unexpected IncNonDefault of ".to_string(), (*self.name.clone().lock().unwrap().as_ref().unwrap())));
+        std::panic::panic_any(Box::new(format!("{}{}", "godebug: unexpected IncNonDefault of ".to_string(), (*self.name.clone().lock().unwrap().as_ref().unwrap()))) as Box<dyn Any + Send + Sync>);
     }
         register_metric(Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "/godebug/non-default-behavior/".to_string())); __s.push_str(&format!("{}", (*self.name().lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", ":events".to_string())); __s }))), Arc::new(Mutex::new(Some({ let __recv = (*self.setting.lock().unwrap().as_ref().unwrap()).non_default.clone(); Box::new(move || -> u64 { (*__recv.lock().unwrap().as_mut().unwrap()).load() }) as Box<dyn FnMut() -> u64 + Send + Sync> }))));
     }
@@ -615,7 +676,7 @@ impl Setting {
         let __recv_ref: &mut Setting = unsafe { &mut *(__recv_ptr as *mut Setting) };
         { let new_val = lookup(__recv_ref.name()).clone(); __recv_ref.setting = new_val; };
         if { let __ptr_field = (*__recv_ref.setting.lock().unwrap().as_ref().unwrap()).info.clone(); __ptr_field.is_nil() } && !__recv_ref.undocumented() {
-        panic!("{}", format!("{}{}", "godebug: Value of name not listed in godebugs.All: ".to_string(), (*__recv_ref.name.clone().lock().unwrap().as_ref().unwrap())));
+        std::panic::panic_any(Box::new(format!("{}{}", "godebug: Value of name not listed in godebugs.All: ".to_string(), (*__recv_ref.name.clone().lock().unwrap().as_ref().unwrap()))) as Box<dyn Any + Send + Sync>);
     }
     }) as Box<dyn FnMut() -> () + Send + Sync>)))) };
         let mut v = Arc::new(Mutex::new(Some({ let __ptr_handle = (*(*self.setting.lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_mut().unwrap()).load(); let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() })));
@@ -753,21 +814,24 @@ pub fn new_inc_non_default(name: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option
 pub fn update(def: Arc<Mutex<Option<String>>>, env: Arc<Mutex<Option<String>>>) {
     let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-    (*updateMu.lock().unwrap().as_ref().unwrap()).lock();
-    __defer_stack.push(Box::new(move || {
+    let __go_previous_panic_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(|_| {}));
+    let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        (*updateMu.lock().unwrap().as_ref().unwrap()).lock();
+        __defer_stack.push(Box::new(move || {
         (*updateMu.lock().unwrap().as_ref().unwrap()).unlock();
     }));
 
-        // Update all the cached values, creating new ones as needed.
-        // We parse the environment variable first, so that any settings it has
-        // are already locked in place (did[name] = true) before we consider
-        // the defaults.
-    let mut did = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<bool>>>>::new())));
-    parse(did.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = env.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-    parse(did.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = def.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+                // Update all the cached values, creating new ones as needed.
+                // We parse the environment variable first, so that any settings it has
+                // are already locked in place (did[name] = true) before we consider
+                // the defaults.
+        let mut did = Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<bool>>>>::new())));
+        parse(did.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = env.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        parse(did.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = def.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
 
-        // Clear any cached values that are no longer present.
-    let did_closure_clone = did.clone(); (*cache.lock().unwrap().as_ref().unwrap()).range(Arc::new(Mutex::new(Some(Box::new(move |name: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, s: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>| -> bool {
+                // Clear any cached values that are no longer present.
+        let did_closure_clone = did.clone(); (*cache.lock().unwrap().as_ref().unwrap()).range(Arc::new(Mutex::new(Some(Box::new(move |name: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, s: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>| -> bool {
         if !{ let __map = { let __map_holder = did_closure_clone.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&({
         let val = name.clone();
         let guard = val.lock().unwrap();
@@ -790,9 +854,22 @@ pub fn update(def: Arc<Mutex<Option<String>>>, env: Arc<Mutex<Option<String>>>) 
         true
     }) as Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool + Send + Sync>))));
 
-    // Execute deferred functions
-    while let Some(f) = __defer_stack.pop() {
-        f();
+        // Execute deferred functions
+        while let Some(f) = __defer_stack.pop() {
+            f();
+        }
+    }));
+    std::panic::set_hook(__go_previous_panic_hook);
+    match __go_panic_result {
+        Ok(__go_value) => __go_value,
+        Err(__go_panic_payload) => {
+            go_store_panic_payload(__go_panic_payload);
+            while let Some(f) = __defer_stack.pop() {
+                f();
+            }
+            go_resume_unrecovered_panic();
+            ()
+        }
     }
 }
 

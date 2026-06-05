@@ -339,7 +339,7 @@ pub fn scan_sign(r: Arc<Mutex<Option<io_ByteScanner>>>) -> (bool, Arc<Mutex<Opti
         }
     }
         // nothing to do
-    return ((*neg.lock().unwrap().as_ref().unwrap()), err);
+    return ((*neg.lock().unwrap().as_ref().unwrap()), err.clone());
 }
 
 pub(crate) fn __go_init_functions() {

@@ -22,6 +22,7 @@ use crate::ratmarsh::*;
 use crate::roundingmode_string::*;
 use crate::sqrt::*;
 
+use std::any::Any;
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
@@ -244,7 +245,7 @@ impl crate::rat::Rat {
         if !_matched || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            panic!("unexpected mantissa base");
+            std::panic::panic_any(Box::new("unexpected mantissa base".to_string()) as Box<dyn Any + Send + Sync>);
         }
     }
     }
@@ -274,7 +275,7 @@ impl crate::rat::Rat {
         if !_matched || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            panic!("unexpected exponent base");
+            std::panic::panic_any(Box::new("unexpected exponent base".to_string()) as Box<dyn Any + Send + Sync>);
         }
     }
                 // see fallthrough above
@@ -614,7 +615,7 @@ pub fn scan_exponent(r: Arc<Mutex<Option<io_ByteScanner>>>, base2ok: Arc<Mutex<O
         { let __rhs_holder = errInvalSep.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
     }
 
-    return ((*exp.lock().unwrap().as_ref().unwrap()), (*base.lock().unwrap().as_ref().unwrap()), err);
+    return ((*exp.lock().unwrap().as_ref().unwrap()), (*base.lock().unwrap().as_ref().unwrap()), err.clone());
 }
 
 pub(crate) fn __go_init_functions() {

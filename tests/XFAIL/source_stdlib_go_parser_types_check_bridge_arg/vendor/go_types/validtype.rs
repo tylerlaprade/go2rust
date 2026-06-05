@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_register_embedded_owner, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
 
 use crate::alias::*;
 use crate::api::*;
@@ -73,6 +73,7 @@ use crate::util::*;
 use crate::version::*;
 
 use std::any::Any;
+use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
@@ -202,8 +203,11 @@ impl crate::check::Checker {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
         let mut typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> = Arc::new(Mutex::new(typ.lock().unwrap().as_ref().map(|__v| Type::__go_clone_box_type_(__v.as_ref()))));
-        { let __iface_handle = unalias(typ.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
-        if (*(*self.conf.lock().unwrap().as_ref().unwrap()).__trace.lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            { let __iface_handle = unalias(typ.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+            if (*(*self.conf.lock().unwrap().as_ref().unwrap()).__trace.lock().unwrap().as_ref().unwrap()) {
         {
         let (mut t, _) = ({
         let val = typ.clone();
@@ -230,8 +234,8 @@ impl crate::check::Checker {
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
     }
-                /* obj should always exist but be conservative */
-        {
+                        /* obj should always exist but be conservative */
+            {
     let _ts_subject = typ.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
@@ -246,9 +250,9 @@ impl crate::check::Checker {
         }
     });
     if _ts_is_nil {
-        let t = typ.clone();
+        let t = _ts_subject.clone();
         if DEBUG {
-        panic!("validType0(nil)");
+        std::panic::panic_any(Box::new("validType0(nil)".to_string()) as Box<dyn Any + Send + Sync>);
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::array::ArrayPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::array::ArrayPtr>()).unwrap().0.clone();
@@ -327,7 +331,7 @@ impl crate::check::Checker {
     }
     }
     } }
-        panic!("cycle start not found");
+        std::panic::panic_any(Box::new("cycle start not found".to_string()) as Box<dyn Any + Send + Sync>);
     }
     } };
         if !self.valid_type0(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), (*{ let __recv = t.clone(); let __recv_ptr: *const crate::named::Named = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::named::Named }; let __result = unsafe { &*__recv_ptr }.origin(); __result }.lock().unwrap().as_ref().unwrap()).from_r_h_s.clone(), { let __append_target = nest.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(t.clone()); __append_target.clone() }, { let __append_target = path.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(t.clone()); __append_target.clone() }) {
@@ -363,88 +367,101 @@ impl crate::check::Checker {
     };
     }
     }
-                // We should never see a nil type but be conservative and panic
-                // only in debug mode.
-                // TODO(gri) The optimization below is incorrect (see go.dev/issue/65711):
-                //           in that issue `type A[P any] [1]P` is a valid type on its own
-                //           and the (uninstantiated) A is recorded in check.valids. As a
-                //           consequence, when checking the remaining declarations, which
-                //           are not valid, the validity check ends prematurely because A
-                //           is considered valid, even though its validity depends on the
-                //           type argument provided to it.
-                //
-                //           A correct optimization is important for pathological cases.
-                //           Keep code around for reference until we found an optimization.
-                //
-                // // Exit early if we already know t is valid.
-                // // This is purely an optimization but it prevents excessive computation
-                // // times in pathological cases such as testdata/fixedbugs/issue6977.go.
-                // // (Note: The valids map could also be allocated locally, once for each
-                // // validType call.)
-                // if check.valids.lookup(t) != nil {
-                // 	break
-                // }
-                // Don't report a 2nd error if we already know the type is invalid
-                // (e.g., if a cycle was detected earlier, via under).
-                // Note: ensure that t.orig is fully resolved by calling Underlying().
-                // If the current type t is also found in nest, (the memory of) t is
-                // embedded in itself, indicating an invalid recursive type.
-                // We have a cycle. If t != t.Origin() then t is an instance of
-                // the generic type t.Origin(). Because t is in the nest, t must
-                // occur within the definition (RHS) of the generic type t.Origin(),
-                // directly or indirectly, after expansion of the RHS.
-                // Therefore t.Origin() must be invalid, no matter how it is
-                // instantiated since the instantiation t of t.Origin() happens
-                // inside t.Origin()'s RHS and thus is always the same and always
-                // present.
-                // Therefore we can mark the underlying of both t and t.Origin()
-                // as invalid. If t is not an instance of a generic type, t and
-                // t.Origin() are the same.
-                // Furthermore, because we check all types in a package for validity
-                // before type checking is complete, any exported type that is invalid
-                // will have an invalid underlying type and we can't reach here with
-                // such a type (invalid types are excluded above).
-                // Thus, if we reach here with a type t, both t and t.Origin() (if
-                // different in the first place) must be from the current package;
-                // they cannot have been imported.
-                // Therefore it is safe to change their underlying types; there is
-                // no chance for a race condition (the types of the current package
-                // are not yet available to other goroutines).
-                // Find the starting point of the cycle and report it.
-                // Because each type in nest must also appear in path (see invariant below),
-                // type t must be in path since it was found in nest. But not every type in path
-                // is in nest. Specifically t may appear in path with an earlier index than the
-                // index of t in nest. Search again.
-                // No cycle was found. Check the RHS of t.
-                // Every type added to nest is also added to path; thus every type that is in nest
-                // must also be in path (invariant). But not every type in path is in nest, since
-                // nest may be pruned (see below, *TypeParam case).
-                // see TODO above
-                // check.valids.add(t) // t is valid
-                // A type parameter stands for the type (argument) it was instantiated with.
-                // Check the corresponding type argument for validity if we are in an
-                // instantiated type.
-                // the type instance
-                // Find the corresponding type argument for the type parameter
-                // and proceed with checking that type argument.
-                // The type parameter and type argument lists should
-                // match in length but be careful in case of errors.
-                // The type argument must be valid in the enclosing
-                // type (where inst was instantiated), hence we must
-                // check targ's validity in the type nest excluding
-                // the current (instantiated) type (see the example
-                // at the end of this file).
-                // For error reporting we keep the full path.
-                // The check.validType0 call with nest[:d] may have
-                // overwritten the entry at the current depth d.
-                // Restore the entry (was issue go.dev/issue/66323).
-        {
+                        // We should never see a nil type but be conservative and panic
+                        // only in debug mode.
+                        // TODO(gri) The optimization below is incorrect (see go.dev/issue/65711):
+                        //           in that issue `type A[P any] [1]P` is a valid type on its own
+                        //           and the (uninstantiated) A is recorded in check.valids. As a
+                        //           consequence, when checking the remaining declarations, which
+                        //           are not valid, the validity check ends prematurely because A
+                        //           is considered valid, even though its validity depends on the
+                        //           type argument provided to it.
+                        //
+                        //           A correct optimization is important for pathological cases.
+                        //           Keep code around for reference until we found an optimization.
+                        //
+                        // // Exit early if we already know t is valid.
+                        // // This is purely an optimization but it prevents excessive computation
+                        // // times in pathological cases such as testdata/fixedbugs/issue6977.go.
+                        // // (Note: The valids map could also be allocated locally, once for each
+                        // // validType call.)
+                        // if check.valids.lookup(t) != nil {
+                        // 	break
+                        // }
+                        // Don't report a 2nd error if we already know the type is invalid
+                        // (e.g., if a cycle was detected earlier, via under).
+                        // Note: ensure that t.orig is fully resolved by calling Underlying().
+                        // If the current type t is also found in nest, (the memory of) t is
+                        // embedded in itself, indicating an invalid recursive type.
+                        // We have a cycle. If t != t.Origin() then t is an instance of
+                        // the generic type t.Origin(). Because t is in the nest, t must
+                        // occur within the definition (RHS) of the generic type t.Origin(),
+                        // directly or indirectly, after expansion of the RHS.
+                        // Therefore t.Origin() must be invalid, no matter how it is
+                        // instantiated since the instantiation t of t.Origin() happens
+                        // inside t.Origin()'s RHS and thus is always the same and always
+                        // present.
+                        // Therefore we can mark the underlying of both t and t.Origin()
+                        // as invalid. If t is not an instance of a generic type, t and
+                        // t.Origin() are the same.
+                        // Furthermore, because we check all types in a package for validity
+                        // before type checking is complete, any exported type that is invalid
+                        // will have an invalid underlying type and we can't reach here with
+                        // such a type (invalid types are excluded above).
+                        // Thus, if we reach here with a type t, both t and t.Origin() (if
+                        // different in the first place) must be from the current package;
+                        // they cannot have been imported.
+                        // Therefore it is safe to change their underlying types; there is
+                        // no chance for a race condition (the types of the current package
+                        // are not yet available to other goroutines).
+                        // Find the starting point of the cycle and report it.
+                        // Because each type in nest must also appear in path (see invariant below),
+                        // type t must be in path since it was found in nest. But not every type in path
+                        // is in nest. Specifically t may appear in path with an earlier index than the
+                        // index of t in nest. Search again.
+                        // No cycle was found. Check the RHS of t.
+                        // Every type added to nest is also added to path; thus every type that is in nest
+                        // must also be in path (invariant). But not every type in path is in nest, since
+                        // nest may be pruned (see below, *TypeParam case).
+                        // see TODO above
+                        // check.valids.add(t) // t is valid
+                        // A type parameter stands for the type (argument) it was instantiated with.
+                        // Check the corresponding type argument for validity if we are in an
+                        // instantiated type.
+                        // the type instance
+                        // Find the corresponding type argument for the type parameter
+                        // and proceed with checking that type argument.
+                        // The type parameter and type argument lists should
+                        // match in length but be careful in case of errors.
+                        // The type argument must be valid in the enclosing
+                        // type (where inst was instantiated), hence we must
+                        // check targ's validity in the type nest excluding
+                        // the current (instantiated) type (see the example
+                        // at the end of this file).
+                        // For error reporting we keep the full path.
+                        // The check.validType0 call with nest[:d] may have
+                        // overwritten the entry at the current depth d.
+                        // Restore the entry (was issue go.dev/issue/66323).
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return true;
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                false
+            }
+        }
     }
 }
 

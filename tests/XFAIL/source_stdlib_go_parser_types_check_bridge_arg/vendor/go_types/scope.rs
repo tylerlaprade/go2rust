@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_register_embedded_owner, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
 
 use crate::alias::*;
 use crate::api::*;
@@ -387,71 +387,71 @@ impl lazyObject {
     /// stub implementations so *lazyObject implements Object and we can
     /// store them directly into Scope.elems.
     pub fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     pub fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     pub fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     pub fn name(&self) -> Arc<Mutex<Option<String>>> {
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     pub fn r#type(&self) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     pub fn exported(&self) -> bool {
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     pub fn id(&self) -> Arc<Mutex<Option<String>>> {
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     pub fn order(&self) -> u32 {
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     pub fn color(&self) -> Arc<Mutex<Option<crate::object::color>>> {
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     pub fn set_type(&self, __arg0: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) {
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     pub fn set_order(&self, __arg0: Arc<Mutex<Option<u32>>>) {
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     pub fn set_color(&self, color_local: Arc<Mutex<Option<color>>>) {
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     pub fn set_parent(&self, __arg0: Arc<Mutex<Option<Scope>>>) {
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     pub fn same_id(&self, __arg0: Arc<Mutex<Option<Package>>>, __arg1: Arc<Mutex<Option<String>>>, __arg2: Arc<Mutex<Option<bool>>>) -> bool {
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     pub fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     pub fn set_scope_pos(&self, __arg0: Arc<Mutex<Option<go_token::position::Pos>>>) {
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 }
 
@@ -722,11 +722,11 @@ pub fn resolve(name: Arc<Mutex<Option<String>>>, mut obj: Arc<Mutex<Option<Box<d
         }
     });;
         if ok {
-            panic!("recursive lazy object");;
+            std::panic::panic_any(Box::new("recursive lazy object".to_string()) as Box<dyn Any + Send + Sync>);;
         }
     }
         if { let __tmp_x = (*(*obj.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*name_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } {
-        panic!("lazy object has unexpected name");
+        std::panic::panic_any(Box::new("lazy object has unexpected name".to_string()) as Box<dyn Any + Send + Sync>);
     }
         if (*(*obj.lock().unwrap().as_ref().unwrap()).parent().lock().unwrap()).is_none() {
         (*obj.lock().unwrap().as_mut().unwrap()).set_parent({ let __field = (*lazy_closure_clone.lock().unwrap().as_ref().unwrap()).parent.clone(); __field });

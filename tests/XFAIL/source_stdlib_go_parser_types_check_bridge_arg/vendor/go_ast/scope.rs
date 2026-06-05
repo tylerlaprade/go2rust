@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{format_any, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values};
+use crate::{__go_type_name, format_any, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values};
 
 use crate::r#mod::*;
 use crate::commentmap::*;
@@ -540,7 +540,7 @@ impl Scope {
             { let __map_key = { let __selector_holder = (*obj.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __map_value = obj.clone(); (*self.objects.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };;
         }
     }
-        alt
+        alt.clone()
     }
 
     /// Debugging support

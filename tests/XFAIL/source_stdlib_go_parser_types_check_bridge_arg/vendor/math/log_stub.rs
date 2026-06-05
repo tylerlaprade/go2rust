@@ -53,11 +53,12 @@ use crate::tanh::*;
 use crate::trig_reduce::*;
 use crate::r#unsafe::*;
 
+use std::any::Any;
 use std::sync::{Arc, Mutex};
 
 pub(crate) const HAVE_ARCH_LOG: bool = false;
 
 
 pub fn arch_log(x: Arc<Mutex<Option<f64>>>) -> f64 {
-    panic!("not implemented");
+    std::panic::panic_any(Box::new("not implemented".to_string()) as Box<dyn Any + Send + Sync>);
 }

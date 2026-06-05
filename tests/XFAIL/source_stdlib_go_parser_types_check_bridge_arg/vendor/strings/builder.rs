@@ -89,7 +89,7 @@ impl Builder {
     pub fn grow(&mut self, n: Arc<Mutex<Option<i32>>>) {
         self.copy_check();
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x < __tmp_y } {
-        panic!("strings.Builder.Grow: negative count");
+        std::panic::panic_any(Box::new("strings.Builder.Grow: negative count".to_string()) as Box<dyn Any + Send + Sync>);
     }
         if { let __tmp_x = ({ let __tmp_x = (({ let __cap_target = { let __field = self.buf.clone(); __field }; let __cap_guard = __cap_target.lock().unwrap(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) }) as i32); let __tmp_y = (({ let __len_target = { let __field = self.buf.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); __tmp_x - __tmp_y } as i32); let __tmp_y = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); __tmp_x < __tmp_y } {
         self.grow_1(Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
