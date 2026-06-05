@@ -6,6 +6,8 @@ usage() {
 Usage: ./cleanup.sh [--dry-run] [--sizes] [--summary] [--pressure] [--show-active] [--age-minutes N] [--top-temp N] [--keep-repo-artifacts]
 
 Remove stale go2rust temporary roots and ignored local build artifacts.
+With no arguments, print pressure diagnostics and cleanup candidates without
+removing anything.
 
 Options:
   --dry-run             Print paths that would be removed.
@@ -123,7 +125,17 @@ case "$top_temp_count" in
 esac
 
 if [ "$pressure" = true ] && [ "$age_minutes_explicit" = false ]; then
-    age_minutes=0
+	age_minutes=0
+fi
+
+if [ "$invoked_without_args" = true ]; then
+	pressure=true
+	summary=true
+	dry_run=true
+	show_sizes=true
+	show_active=true
+	remove_repo_artifacts=false
+	age_minutes=0
 fi
 
 path_size_kib() {

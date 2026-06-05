@@ -503,6 +503,26 @@ func TestCleanupScriptReportsPlainNoOp(t *testing.T) {
 	}
 }
 
+func TestCleanupScriptDefaultsToPressureSummary(t *testing.T) {
+	data, err := os.ReadFile("../cleanup.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(cleanup.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`With no arguments, print pressure diagnostics and cleanup candidates without`,
+		`if [ "$invoked_without_args" = true ]; then`,
+		`pressure=true`,
+		`dry_run=true`,
+		`remove_repo_artifacts=false`,
+		`age_minutes=0`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("cleanup.sh should make no-arg runs diagnostic-only; missing %q", want)
+		}
+	}
+}
+
 func TestCleanupPressureReportShowsProcessAndDiskPressure(t *testing.T) {
 	data, err := os.ReadFile("../cleanup.sh")
 	if err != nil {
