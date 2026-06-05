@@ -5779,7 +5779,9 @@ func sequenceDisplayFormatter(elem types.Type) (string, bool) {
 	}
 	elem = types.Unalias(elem)
 	if ptr, ok := elem.Underlying().(*types.Pointer); ok {
-		if typeHasGoStringMethod(ptr.Elem()) || typeHasGoStringMethod(types.NewPointer(ptr.Elem())) {
+		if typeHasGoStringMethod(ptr.Elem()) ||
+			typeHasGoStringMethod(types.NewPointer(ptr.Elem())) ||
+			pointerElementHasGeneratedStructDisplay(ptr.Elem()) {
 			return "format_slice_wrapped", true
 		}
 		return "", false
@@ -5794,6 +5796,15 @@ func sequenceDisplayFormatter(elem types.Type) (string, bool) {
 		return "format_slice", true
 	}
 	return "", false
+}
+
+func pointerElementHasGeneratedStructDisplay(elem types.Type) bool {
+	named, ok := types.Unalias(elem).(*types.Named)
+	if !ok || !namedTypeRustDisplayImplAvailable(named) {
+		return false
+	}
+	_, ok = types.Unalias(named.Underlying()).(*types.Struct)
+	return ok
 }
 
 func typeDefinitionMapUnderlyingDisplayable(typeSpec *ast.TypeSpec) bool {

@@ -2298,6 +2298,40 @@ func call(t typeParamsById) {
 	}
 }
 
+func TestNamedPointerSliceTypeDefinitionOverDisplayStructImplementsDisplay(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type sortable interface {
+	Len() int
+	Less(i, j int) bool
+	Swap(i, j int)
+}
+
+type graphNode struct {
+	name string
+}
+
+type nodeQueue []*graphNode
+
+func (t nodeQueue) Len() int           { return len(t) }
+func (t nodeQueue) Less(i, j int) bool { return false }
+func (t nodeQueue) Swap(i, j int)      {}
+
+func use(s sortable) {}
+
+func call(t nodeQueue) {
+	use(t)
+}
+`)
+
+	if !strings.Contains(rust, "impl Display for nodeQueue") {
+		t.Fatalf("named pointer slice over generated-Display struct should implement Display for interface objects:\n%s", rust)
+	}
+	if !strings.Contains(rust, "format_slice_wrapped(&self.0)") {
+		t.Fatalf("named pointer slice over generated-Display struct should use wrapped slice formatting:\n%s", rust)
+	}
+}
+
 func TestNamedSliceErrorTypeDefinitionWithoutDeriveDebugImplementsDebug(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
