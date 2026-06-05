@@ -211,11 +211,12 @@ in the first place.
   package function stub body)
 - Go symbol: `go/types.Basic`, `go/types.Named`, `go/types.Pointer`,
   `go/types.Package`, `go/types.Qualifier`, `go/types.Error`, and
-  `go/types.NewPointer`
+  `go/types.Unsafe`, and `go/types.NewPointer`
 - Transpiler gap: `go/types.Basic` still has a direct hand-written shim, and
   source-mapped `go/types.NewPointer` now passes when a `*types.Named` and
   `*types.Pointer` are stored through `[]types.Type`, and source-mapped
-  `go/types.Error` now passes when stored through `error`, but
+  `go/types.Error` now passes when stored through `error`, and source-mapped
+  `go/types.Unsafe` now passes when compared as a package variable, but
   non-source-mapped callers still route through generic external stubs.
 - Fixture: `tests/stdlib_interface_slice_conversions/` now source-maps
   `go/types`, `go/token`, and `sync/atomic`, and verifies `types.NewPointer`
@@ -227,11 +228,14 @@ in the first place.
   `tests/stdlib_concrete_error_variable/` now source-maps `go/types` and
   verifies `types.Error{Msg: ...}` stored through `error` using
   source-transpiled `go_types::api::Error` instead of the external
-  `types_Error` stub.
+  `types_Error` stub;
+  `tests/stdlib_package_var_comparison/` now source-maps `go/types` and
+  verifies `types.Unsafe == types.Unsafe` using source-transpiled
+  `go_types::Unsafe` instead of the external `types_Package` stub.
 - Removal trigger: transpiler can lower `go/types.Basic`, `go/types.Named`,
   `go/types.Pointer`, `go/types.Package`, `go/types.Qualifier`,
-  `go/types.Error`, and `go/types.NewPointer` from source for all callers
-  still routed through the direct or generic external stubs.
+  `go/types.Error`, `go/types.Unsafe`, and `go/types.NewPointer` from source
+  for all callers still routed through the direct or generic external stubs.
 - Added: 2026-05-27 (backfill; expanded 2026-06-05)
 
 ### types-tuple
