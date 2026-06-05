@@ -13,9 +13,25 @@ import (
 // printer + FieldFilter, path/filepath's os-based Glob) don't block compilation
 // of the subset the program actually uses. nil disables pruning.
 var sourceStdlibReachable map[types.Object]bool
+var sourceStdlibReachableKeys map[string]bool
 
 // SetSourceStdlibReachable installs the reachable-object set.
-func SetSourceStdlibReachable(set map[types.Object]bool) { sourceStdlibReachable = set }
+func SetSourceStdlibReachable(set map[types.Object]bool) {
+	sourceStdlibReachable = set
+	if set == nil {
+		sourceStdlibReachableKeys = nil
+		return
+	}
+	sourceStdlibReachableKeys = make(map[string]bool, len(set))
+	for obj, reachable := range set {
+		if !reachable {
+			continue
+		}
+		if key := sourceReachabilityObjectKey(obj); key != "" {
+			sourceStdlibReachableKeys[key] = true
+		}
+	}
+}
 
 // sourceMappedDeclIsPruned reports whether obj is a source-mapped
 // function/method/type that is unreachable and should not be emitted.
@@ -27,7 +43,58 @@ func sourceMappedDeclIsPruned(obj types.Object) bool {
 	if pkg == nil || !isSourceMappedPackagePath(pkg.Path()) {
 		return false
 	}
-	return !sourceStdlibReachable[obj]
+	if sourceStdlibReachable[obj] {
+		return false
+	}
+	key := sourceReachabilityObjectKey(obj)
+	if key != "" && sourceStdlibReachableKeys != nil {
+		return !sourceStdlibReachableKeys[key]
+	}
+	return true
+}
+
+func sourceReachabilityObjectKey(obj types.Object) string {
+	if obj == nil || obj.Pkg() == nil {
+		return ""
+	}
+	pkgPath := obj.Pkg().Path()
+	switch o := obj.(type) {
+	case *types.TypeName:
+		return pkgPath + "|type|" + o.Name()
+	case *types.Func:
+		if sig, ok := o.Type().(*types.Signature); ok && sig.Recv() != nil {
+			return pkgPath + "|method|" + sourceReachabilityTypeKey(sig.Recv().Type()) + "|" + o.Name()
+		}
+		return pkgPath + "|func|" + o.Name()
+	case *types.Var:
+		return pkgPath + "|var|" + o.Name()
+	case *types.Const:
+		return pkgPath + "|const|" + o.Name()
+	default:
+		return pkgPath + "|object|" + obj.Name()
+	}
+}
+
+func sourceReachabilityTypeKey(typ types.Type) string {
+	prefix := ""
+	typ = types.Unalias(typ)
+	if ptr, ok := typ.(*types.Pointer); ok {
+		prefix = "*"
+		typ = types.Unalias(ptr.Elem())
+	}
+	if named, ok := typ.(*types.Named); ok && named.Obj() != nil {
+		obj := named.Obj()
+		if obj.Pkg() != nil {
+			return prefix + obj.Pkg().Path() + "." + obj.Name()
+		}
+		return prefix + obj.Name()
+	}
+	return prefix + types.TypeString(typ, func(pkg *types.Package) string {
+		if pkg == nil {
+			return ""
+		}
+		return pkg.Path()
+	})
 }
 
 // isPrunedSourceDecl reports whether the declaration named by ident is a

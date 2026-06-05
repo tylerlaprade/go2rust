@@ -6265,6 +6265,76 @@ func live(err error) {
 	}
 }
 
+func TestSourceStdlibPruningFiltersImportedInterfaceAssertionCandidatesByStableKey(t *testing.T) {
+	prevCtx := GetTranspileContext()
+	SetTranspileContext(&TranspileContext{PackageMapping: map[string]string{"go/types": "go_types"}})
+	defer SetTranspileContext(prevCtx)
+	prevReachable := sourceStdlibReachable
+	defer SetSourceStdlibReachable(prevReachable)
+
+	fset := token.NewFileSet()
+	sourcePkg := parsePackageForReachabilityTest(t, fset, "go/types", "api.go", `package types
+
+type LiveError struct{}
+func (LiveError) Error() string { return "live" }
+
+type DeadError struct{}
+func (DeadError) Error() string { return "dead" }
+`)
+	sourceTypeInfo, err := NewTypeInfoWithImporter("go/types", sourcePkg.Syntax, fset, nil)
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter(source go/types) error = %v", err)
+	}
+	sourcePkg.Types = sourceTypeInfo.pkg
+	sourcePkg.TypesInfo = sourceTypeInfo.info
+
+	importedPkg := parsePackageForReachabilityTest(t, fset, "go/types", "api_imported.go", `package types
+
+type LiveError struct{}
+func (LiveError) Error() string { return "live" }
+
+type DeadError struct{}
+func (DeadError) Error() string { return "dead" }
+`)
+	importedTypeInfo, err := NewTypeInfoWithImporter("go/types", importedPkg.Syntax, fset, nil)
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter(imported go/types) error = %v", err)
+	}
+	importedPkg.Types = importedTypeInfo.pkg
+	importedPkg.TypesInfo = importedTypeInfo.info
+
+	mainPkg := parsePackageForReachabilityTest(t, fset, "main", "main.go", `package main
+
+import gotypes "go/types"
+
+func take(v any) {}
+
+func use(err error, _ gotypes.LiveError) {
+	take(err)
+}
+`)
+	mainTypeInfo, err := NewTypeInfoWithImporter("main", mainPkg.Syntax, fset, exprTestImporter{
+		"go/types": importedPkg.Types,
+	})
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter(main) error = %v", err)
+	}
+	mainPkg.Types = mainTypeInfo.pkg
+	mainPkg.TypesInfo = mainTypeInfo.info
+
+	SetSourceStdlibReachable(map[types.Object]bool{
+		definitionByName(t, sourcePkg, "LiveError"): true,
+	})
+
+	rust, _, _ := TranspileWithMapping(mainPkg.Syntax[0], fset, mainTypeInfo, map[string]string{"go/types": "go_types"})
+	if strings.Contains(rust, "go_types::DeadError") {
+		t.Fatalf("error-to-any lowering should not reference pruned imported source-mapped candidates with different object identity:\n%s", rust)
+	}
+	if !strings.Contains(rust, "go_types::LiveError") {
+		t.Fatalf("error-to-any lowering should keep reachable imported source-mapped candidates by stable key:\n%s", rust)
+	}
+}
+
 // TestSourceStdlibPruningSkipsCrossFileImplForUnreachableType covers the case
 // where a pruned type's methods live in a different file from its type decl -
 // exactly token.FileSet (declared in position.go) with Read/Write methods in
