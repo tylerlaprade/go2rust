@@ -1,38 +1,37 @@
-use std::cell::{RefCell};
+use go2rust_stdlib_stubs::*;
 use std::error::Error as StdError;
-use std::rc::{Rc};
+use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Clone, Default)]
-pub struct types_Error {
-    pub msg: Rc<RefCell<Option<String>>>,
-}
-
-impl std::fmt::Display for types_Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<types_Error>")
-    }
-}
-
-impl std::error::Error for types_Error {}
-
-
-impl types_Error {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
-    }
-    pub fn error(&self) -> Rc<RefCell<Option<String>>> {
-        panic!("types_Error.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
-
-
-pub fn accept(err: Rc<RefCell<Option<Box<dyn StdError>>>>) {
-    if (*err.borrow()).is_some() {
+pub fn accept(err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    if (*err.lock().unwrap()).is_some() {
         println!("{}", format!("{}", "ok".to_string()));
     }
 }
 
 fn main() {
-    let mut err = types_Error { msg: Rc::new(RefCell::new(Some("boom".to_string()))), ..Default::default() };
-    accept(Rc::new(RefCell::new(Some(Box::new(err) as Box<dyn StdError>))));
+    cmp::__go_init_all();
+    go_ast::__go_init_all();
+    go_constant::__go_init_all();
+    go_token::__go_init_all();
+    go_types::__go_init_all();
+    go_version::__go_init_all();
+    internal_buildcfg::__go_init_all();
+    internal_filepathlite::__go_init_all();
+    internal_godebug::__go_init_all();
+    internal_goexperiment::__go_init_all();
+    internal_gover::__go_init_all();
+    internal_goversion::__go_init_all();
+    internal_stringslite::__go_init_all();
+    internal_types_errors::__go_init_all();
+    math::__go_init_all();
+    math_big::__go_init_all();
+    math_bits::__go_init_all();
+    path_filepath::__go_init_all();
+    slices::__go_init_all();
+    sync_atomic::__go_init_all();
+    unicode::__go_init_all();
+    unicode_utf8::__go_init_all();
+
+    let mut err = go_types::api::Error { msg: Arc::new(Mutex::new(Some("boom".to_string()))), ..Default::default() };
+    accept(Arc::new(Mutex::new(Some(Box::new(err) as Box<dyn StdError + Send + Sync>))));
 }

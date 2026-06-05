@@ -1,0 +1,14 @@
+[package]
+name = "path_filepath"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "path_filepath"
+path = "lib.rs"
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
+internal_filepathlite = { path = "../internal_filepathlite" }
+slices = { path = "../slices" }
+unicode_utf8 = { path = "../unicode_utf8" }

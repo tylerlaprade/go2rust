@@ -1,0 +1,12 @@
+[package]
+name = "math"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "math"
+path = "lib.rs"
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
+math_bits = { path = "../math_bits" }

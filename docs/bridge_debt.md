@@ -210,22 +210,28 @@ in the first place.
   stub conversion), and `go/external_type_stubs.go:7432` (generic external
   package function stub body)
 - Go symbol: `go/types.Basic`, `go/types.Named`, `go/types.Pointer`,
-  `go/types.Package`, `go/types.Qualifier`, and `go/types.NewPointer`
+  `go/types.Package`, `go/types.Qualifier`, `go/types.Error`, and
+  `go/types.NewPointer`
 - Transpiler gap: `go/types.Basic` still has a direct hand-written shim, and
   source-mapped `go/types.NewPointer` now passes when a `*types.Named` and
-  `*types.Pointer` are stored through `[]types.Type`, but non-source-mapped
-  callers still route through generic external stubs.
+  `*types.Pointer` are stored through `[]types.Type`, and source-mapped
+  `go/types.Error` now passes when stored through `error`, but
+  non-source-mapped callers still route through generic external stubs.
 - Fixture: `tests/stdlib_interface_slice_conversions/` now source-maps
   `go/types`, `go/token`, and `sync/atomic`, and verifies `types.NewPointer`
   plus `*types.Named` and `*types.Pointer` values stored through the
   source-mapped `types.Type` interface in a slice literal/range path;
   `tests/stdlib_function_type_alias/` now source-maps `go/types` and verifies
   `types.Qualifier` using source-transpiled `go_types::package::Package`
-  instead of the external `types_Package` stub.
+  instead of the external `types_Package` stub;
+  `tests/stdlib_concrete_error_variable/` now source-maps `go/types` and
+  verifies `types.Error{Msg: ...}` stored through `error` using
+  source-transpiled `go_types::api::Error` instead of the external
+  `types_Error` stub.
 - Removal trigger: transpiler can lower `go/types.Basic`, `go/types.Named`,
-  `go/types.Pointer`, `go/types.Package`, `go/types.Qualifier`, and
-  `go/types.NewPointer` from source for all callers still routed through the
-  direct or generic external stubs.
+  `go/types.Pointer`, `go/types.Package`, `go/types.Qualifier`,
+  `go/types.Error`, and `go/types.NewPointer` from source for all callers
+  still routed through the direct or generic external stubs.
 - Added: 2026-05-27 (backfill; expanded 2026-06-05)
 
 ### types-tuple
