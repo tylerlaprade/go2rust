@@ -315,6 +315,64 @@ func TestExternalPackageTimeAfterFuncStubEmitsGoTimerHelper(t *testing.T) {
 	}
 }
 
+func TestFilepathPureFunctionsStayOffExternalBridge(t *testing.T) {
+	got := generateExternalStubs(
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		map[string]*externalPackageStub{
+			"filepath": {
+				Functions: map[string]externalPackageStubFunction{
+					"abs": {
+						ParamCount:  1,
+						ReturnTypes: []string{wrappedExternalStubType("String"), wrappedExternalStubType("Box<dyn std::error::Error>")},
+					},
+					"base": {
+						ParamCount:  1,
+						ReturnTypes: []string{wrappedExternalStubType("String")},
+					},
+					"clean": {
+						ParamCount:  1,
+						ReturnTypes: []string{wrappedExternalStubType("String")},
+					},
+					"dir": {
+						ParamCount:  1,
+						ReturnTypes: []string{wrappedExternalStubType("String")},
+					},
+					"is_abs": {
+						ParamCount:  1,
+						ReturnTypes: []string{"bool"},
+					},
+					"join": {
+						ParamCount:  1,
+						ReturnTypes: []string{wrappedExternalStubType("String")},
+					},
+				},
+			},
+		},
+	)
+
+	if !strings.Contains(got, "pub fn abs") {
+		t.Fatalf("OS-tied filepath.Abs bridge should remain available:\n%s", got)
+	}
+	for _, unwanted := range []string{
+		"pub fn base",
+		"pub fn clean",
+		"pub fn dir",
+		"pub fn is_abs",
+		"pub fn join",
+		"pub trait GoPathJoinArgs",
+	} {
+		if strings.Contains(got, unwanted) {
+			t.Fatalf("pure path/filepath function %q should come from source-transpiled path/filepath, not the external bridge:\n%s", unwanted, got)
+		}
+	}
+}
+
 func TestJsonSupportHelpersDecodeUnsignedAndFixedArrays(t *testing.T) {
 	var out strings.Builder
 	writeJsonSupportHelpers(&out, false)

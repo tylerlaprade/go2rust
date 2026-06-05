@@ -254,7 +254,7 @@ in the first place.
   `go_ast::r#mod::File` values. Fixing this by teaching the bridge source AST
   semantics would preserve the bridge; the real removal path is source
   `go/types`.
-- Fixture: `tests/XFAIL/source_stdlib_go_parser_types_check_bridge_arg/`
+- Fixture: `tests/source_stdlib_go_parser_types_check_bridge_arg/`
 - Removal trigger: transpiler can lower `go/types.Config.Check` source.
 - Added: 2026-05-27 (backfill)
 
@@ -486,41 +486,6 @@ in the first place.
 - Transpiler gap: TODO: investigate
 - Fixture: TODO: add
 - Removal trigger: transpiler can lower `encoding/json` source.
-- Added: 2026-05-27 (backfill)
-
-### filepath-single-string-funcs
-
-- Location: `go/external_type_stubs.go:6336`
-- Go symbol: `path/filepath` `Base` / `Dir` / `Ext` / `Clean`
-- Transpiler gap: `path/filepath` source now lowers enough for `Base` in an
-  existing `os.ReadDir` fixture; the remaining removal check is moving default
-  `path/filepath` callers off the external package bridge.
-- Fixture: `tests/os_readdir_filepath/` source-maps `path/filepath` and calls
-  source-generated `path_filepath::base`; `tests/source_stdlib_path_filepath_isabs/`.
-- Removal trigger: transpiler can lower these `filepath` functions from source.
-- Added: 2026-05-27 (backfill)
-
-### filepath-join
-
-- Location: `go/external_type_stubs.go:6351`
-- Go symbol: `path/filepath.Join`
-- Transpiler gap: `path/filepath` source now lowers enough for `Join` in an
-  existing `os.ReadDir` fixture; the remaining removal check is moving default
-  `path/filepath` callers off the external package bridge.
-- Fixture: `tests/os_readdir_filepath/` source-maps `path/filepath` and calls
-  source-generated `path_filepath::join`.
-- Removal trigger: transpiler can lower `filepath.Join` from source.
-- Added: 2026-05-27 (backfill)
-
-### filepath-isabs
-
-- Location: `go/external_type_stubs.go:6408`
-- Go symbol: `path/filepath.IsAbs`
-- Transpiler gap: `path/filepath` source now lowers enough for `IsAbs`; the
-  remaining removal check is moving default `path/filepath` callers off the
-  external package bridge.
-- Fixture: `tests/source_stdlib_path_filepath_isabs/`.
-- Removal trigger: transpiler can lower `filepath.IsAbs` from source.
 - Added: 2026-05-27 (backfill)
 
 ### io-copy

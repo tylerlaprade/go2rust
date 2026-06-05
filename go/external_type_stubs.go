@@ -7099,14 +7099,13 @@ func writeOsReadDirFunction(out *strings.Builder, fn externalPackageStubFunction
 	out.WriteString("    }\n")
 }
 
-// MIXED: top-level path/filepath emitter. Pure path-manipulation funcs (Join, IsAbs) are
-// TEMPORARY (transpile path/filepath source); Abs/EvalSymlinks are PERMANENT (OS-tied).
+// MIXED: top-level path/filepath emitter. Pure path-manipulation functions are
+// source-transpiled; Abs/EvalSymlinks are PERMANENT (OS-tied).
 func writeFilepathPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string) {
 	out.WriteString("pub mod filepath {\n")
 	out.WriteString("    use super::*;\n")
-	out.WriteString("    use std::path::{Path, PathBuf};\n\n")
+	out.WriteString("    use std::path::PathBuf;\n\n")
 	writeGoStringArgTrait(out)
-	writeFilepathJoinTrait(out)
 	writeFilepathErrorHelpers(out)
 
 	constNames := make([]string, 0, len(pkg.Constants))
@@ -7138,24 +7137,20 @@ func writeFilepathPackageStub(out *strings.Builder, pkg *externalPackageStub, in
 		funcNames = append(funcNames, funcName)
 	}
 	slices.Sort(funcNames)
-	for i, funcName := range funcNames {
-		if i > 0 {
+	wroteFunction := false
+	for _, funcName := range funcNames {
+		switch funcName {
+		case "base", "clean", "dir", "is_abs", "join":
+			continue
+		}
+		if wroteFunction {
 			out.WriteString("\n")
 		}
+		wroteFunction = true
 		if funcName == "abs" {
 			writeFilepathAbsFunction(out, pkg.Functions[funcName])
-		} else if funcName == "base" {
-			writeFilepathSingleStringFunction(out, "base", "Path::new(&path).file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or(path)")
-		} else if funcName == "clean" {
-			writeFilepathSingleStringFunction(out, "clean", "normalize_path(PathBuf::from(path))")
-		} else if funcName == "dir" {
-			writeFilepathSingleStringFunction(out, "dir", "Path::new(&path).parent().map(|parent| parent.to_string_lossy().into_owned()).unwrap_or_else(|| \".\".to_string())")
 		} else if funcName == "eval_symlinks" {
 			writeFilepathEvalSymlinksFunction(out, pkg.Functions[funcName])
-		} else if funcName == "is_abs" {
-			writeFilepathIsAbsFunction(out)
-		} else if funcName == "join" {
-			writeFilepathJoinFunction(out)
 		} else {
 			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName], nil)
 		}
@@ -7252,33 +7247,6 @@ func writeGoBytesArgTrait(out *strings.Builder) {
 `, vecType, borrow, stringType, borrow)
 }
 
-// MACHINERY: helper trait for filepath.Join variadic-argument coercion.
-func writeFilepathJoinTrait(out *strings.Builder) {
-	out.WriteString(`    pub trait GoPathJoinArgs {
-        fn into_path_parts(self) -> Vec<String>;
-    }
-
-    impl<T0: GoStringArg> GoPathJoinArgs for (T0,) {
-        fn into_path_parts(self) -> Vec<String> {
-            vec![self.0.into_go_string()]
-        }
-    }
-
-    impl<T0: GoStringArg, T1: GoStringArg> GoPathJoinArgs for (T0, T1) {
-        fn into_path_parts(self) -> Vec<String> {
-            vec![self.0.into_go_string(), self.1.into_go_string()]
-        }
-    }
-
-    impl<T0: GoStringArg, T1: GoStringArg, T2: GoStringArg> GoPathJoinArgs for (T0, T1, T2) {
-        fn into_path_parts(self) -> Vec<String> {
-            vec![self.0.into_go_string(), self.1.into_go_string(), self.2.into_go_string()]
-        }
-    }
-
-`)
-}
-
 // PERMANENT: not scaffold — filepath error helpers map to std::io::Error, OS-tied.
 func writeFilepathErrorHelpers(out *strings.Builder) {
 	errorType := wrappedExternalStubType("Box<dyn std::error::Error>")
@@ -7300,39 +7268,6 @@ func writeFilepathErrorHelpers(out *strings.Builder) {
     }
 
 `, errorType, GetOuterWrapperType(), externalStubInnerWrapperType(), GetOuterWrapperType(), externalStubInnerWrapperType())
-}
-
-// TEMPORARY: hand-written Rust shim for filepath single-string functions (Base, Dir, Ext, Clean).
-// Long-term fix: transpile path/filepath source (pure string manipulation).
-func writeFilepathSingleStringFunction(out *strings.Builder, funcName string, expr string) {
-	out.WriteString("    pub fn ")
-	out.WriteString(funcName)
-	out.WriteString("<T0: GoStringArg>(_arg0: T0) -> ")
-	out.WriteString(wrappedExternalStubType("String"))
-	out.WriteString(" {\n")
-	out.WriteString("        let path = _arg0.into_go_string();\n")
-	out.WriteString("        ")
-	out.WriteString(wrappedExternalStubExpr("String", expr))
-	out.WriteString("\n")
-	out.WriteString("    }\n")
-}
-
-// TEMPORARY: hand-written Rust shim for filepath.Join.
-// Long-term fix: transpile path/filepath source.
-func writeFilepathJoinFunction(out *strings.Builder) {
-	out.WriteString("    pub fn join<T0: GoPathJoinArgs>(_arg0: T0) -> ")
-	out.WriteString(wrappedExternalStubType("String"))
-	out.WriteString(" {\n")
-	out.WriteString("        let mut path = PathBuf::new();\n")
-	out.WriteString("        for part in _arg0.into_path_parts() {\n")
-	out.WriteString("            if !part.is_empty() {\n")
-	out.WriteString("                path.push(part);\n")
-	out.WriteString("            }\n")
-	out.WriteString("        }\n")
-	out.WriteString("        ")
-	out.WriteString(wrappedExternalStubExpr("String", "path.to_string_lossy().into_owned()"))
-	out.WriteString("\n")
-	out.WriteString("    }\n")
 }
 
 // PERMANENT: not scaffold — filepath.Abs requires CWD resolution, OS-tied.
@@ -7371,15 +7306,6 @@ func writeFilepathEvalSymlinksFunction(out *strings.Builder, fn externalPackageS
 	out.WriteString(wrappedExternalStubExpr("String", "String::new()"))
 	out.WriteString(", io_error(err)),\n")
 	out.WriteString("        }\n")
-	out.WriteString("    }\n")
-}
-
-// TEMPORARY: hand-written Rust shim for filepath.IsAbs.
-// Long-term fix: transpile path/filepath source (pure string check).
-func writeFilepathIsAbsFunction(out *strings.Builder) {
-	out.WriteString("    pub fn is_abs<T0: GoStringArg>(_arg0: T0) -> bool {\n")
-	out.WriteString("        let path = _arg0.into_go_string();\n")
-	out.WriteString("        Path::new(&path).is_absolute()\n")
 	out.WriteString("    }\n")
 }
 
