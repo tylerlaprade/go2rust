@@ -11,6 +11,7 @@ path = "lib.rs"
 num = "0.4"
 serde_json = "1"
 cmp = { path = "../cmp" }
+container_heap = { path = "../container_heap" }
 go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
 go_ast = { path = "../go_ast" }
 go_constant = { path = "../go_constant" }
@@ -22,6 +23,7 @@ internal_goversion = { path = "../internal_goversion" }
 internal_types_errors = { path = "../internal_types_errors" }
 math = { path = "../math" }
 slices = { path = "../slices" }
+sort = { path = "../sort" }
 strings = { path = "../strings" }
 sync = { path = "../sync" }
 sync_atomic = { path = "../sync_atomic" }

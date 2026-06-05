@@ -2626,6 +2626,27 @@ func writeNamedMapInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
 	return true
 }
 
+// writeNilTolerantNamedMapInnerHandleClone emits the inner map handle for a
+// named map expression without requiring the named value slot itself to be
+// present. This is for operations like range where Go treats a nil map as
+// empty; mutating map operations should keep using writeNamedMapInnerHandleClone.
+func writeNilTolerantNamedMapInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
+	if _, _, ok := namedMapTypeForExpr(expr); !ok {
+		return false
+	}
+	if isCurrentReceiverNamedCollectionExpr(expr) {
+		return writeNamedMapInnerHandleClone(out, expr)
+	}
+	out.WriteString("{ let __named_map_holder = ")
+	TranspileExpressionContext(out, expr, LValue)
+	out.WriteString(".clone(); let __named_map_guard = __named_map_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| ")
+	WriteWrappedNone(out)
+	out.WriteString("); drop(__named_map_guard); __map_holder }")
+	return true
+}
+
 // writeMapHandleForOp writes a wrapped-map handle suitable for further
 // .borrow()/.borrow_mut() operations. For named-map expressions it unwraps
 // the .0 inner field so the result has the same shape as a plain map

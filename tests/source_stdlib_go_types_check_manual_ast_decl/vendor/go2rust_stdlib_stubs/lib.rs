@@ -1154,6 +1154,26 @@ impl reflect_Value {
 
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct reflectlite_Value;
+
+impl std::fmt::Display for reflectlite_Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<reflectlite_Value>")
+    }
+}
+
+
+impl reflectlite_Value {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn len(&self) -> i32 {
+        panic!("reflectlite_Value.len bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct runtime_PanicNilError;
 
 impl std::fmt::Display for runtime_PanicNilError {
@@ -1443,22 +1463,6 @@ pub mod goarch {
 }
 
 
-pub mod heap {
-    use super::*;
-    pub fn fix<T0, T1>(_arg0: T0, _arg1: T1) {
-        panic!("fix bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn init<T0>(_arg0: T0) {
-        panic!("init bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn pop<T0>(_arg0: T0) -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
-        panic!("pop bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
-
-
 pub mod io {
     use super::*;
     pub const SEEK_CURRENT: i32 = 1;
@@ -1532,6 +1536,18 @@ pub mod rand {
 
     pub fn new_source<T0>(_arg0: T0) -> Arc<Mutex<Option<rand_Source>>> {
         panic!("new_source bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+pub mod reflectlite {
+    use super::*;
+    pub fn swapper<T0>(_arg0: T0) -> Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> () + Send + Sync>>>> {
+        panic!("swapper bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+
+    pub fn value_of<T0>(_arg0: T0) -> Arc<Mutex<Option<reflectlite_Value>>> {
+        panic!("value_of bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 

@@ -2066,6 +2066,10 @@ run_xfail_test() {
     run_test "tests/range_nil_map_parameter"
 }
 
+@test "range_nil_named_map_field" {
+    run_test "tests/range_nil_named_map_field"
+}
+
 @test "range_over_integer" {
     run_test "tests/range_over_integer"
 }
@@ -2412,6 +2416,10 @@ run_xfail_test() {
 
 @test "source_stdlib_go_token_types_bridge_arg" {
     run_test "tests/source_stdlib_go_token_types_bridge_arg"
+}
+
+@test "source_stdlib_go_types_check_manual_ast_decl" {
+    run_test "tests/source_stdlib_go_types_check_manual_ast_decl"
 }
 
 @test "source_stdlib_go_types_new_type_name" {
@@ -2992,10 +3000,6 @@ run_xfail_test() {
 
 @test "XFAIL: source_stdlib_go_parser_types_check_bridge_arg" {
     run_xfail_test "tests/XFAIL/source_stdlib_go_parser_types_check_bridge_arg"
-}
-
-@test "XFAIL: source_stdlib_go_types_check_manual_ast_decl" {
-    run_xfail_test "tests/XFAIL/source_stdlib_go_types_check_manual_ast_decl"
 }
 
 @test "XFAIL: stateful_goroutines" {

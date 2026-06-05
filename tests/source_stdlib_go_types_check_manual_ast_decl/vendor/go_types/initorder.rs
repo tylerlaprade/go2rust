@@ -307,7 +307,7 @@ impl crate::check::Checker {
                 // Compute the object dependency graph and initialize
                 // a priority queue with the list of graph nodes.
         let mut pq = Arc::new(Mutex::new(Some(nodeQueue(dependency_graph({ let __field = self.obj_map.clone(); __field })))));
-        heap::init(pq.clone());
+        container_heap::init(Arc::new(Mutex::new(Some(Box::new(nodeQueuePtr(pq.clone().clone())) as Box<dyn container_heap::r#mod::Interface + Send + Sync>))));
         const debug: bool = false;
 
         if debug {
@@ -352,7 +352,7 @@ impl crate::check::Checker {
         println!("{}", format!("{}", "Transposed object dependency graph (functions eliminated):".to_string()));
         { let __range_holder = { let __named_slice = (*pq.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for n in __range_values.iter() {
         print!("\t{} depends on {} nodes\n", (*(*(*n.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()), (*{ let __field = (*n.lock().unwrap().as_ref().unwrap()).ndeps.clone(); __field }.lock().unwrap().as_ref().unwrap()));
-        for (__range_key, _) in { let __range_holder = { let __named_map = (*(*n.lock().unwrap().as_ref().unwrap()).pred.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }; let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+        for (__range_key, _) in { let __range_holder = { let __named_map_holder = (*n.lock().unwrap().as_ref().unwrap()).pred.clone(); let __named_map_guard = __named_map_holder.lock().unwrap(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Arc::new(Mutex::new(None))); drop(__named_map_guard); __map_holder }; let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         let p = __range_key.value();
         print!("\t\t{} is dependent\n", (*(*(*p.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()));
     }
@@ -371,7 +371,7 @@ impl crate::check::Checker {
         while { let __tmp_x = ({ let __slice_holder = { let __named_slice = (*pq.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
                 // get the next node
         let mut n = ({
-        let val = heap::pop(pq.clone()).clone();
+        let val = container_heap::pop(Arc::new(Mutex::new(Some(Box::new(nodeQueuePtr(pq.clone().clone())) as Box<dyn container_heap::r#mod::Interface + Send + Sync>)))).clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
             any_val.downcast_ref::<Arc<Mutex<Option<graphNode>>>>().expect("type assertion failed").clone()
@@ -413,10 +413,10 @@ impl crate::check::Checker {
                 // cycle errors.
                 // reduce dependency count of all dependent nodes
                 // and update priority queue
-        for (__range_key, _) in { let __range_holder = { let __named_map = (*(*n.lock().unwrap().as_ref().unwrap()).pred.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }; let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+        for (__range_key, _) in { let __range_holder = { let __named_map_holder = (*n.lock().unwrap().as_ref().unwrap()).pred.clone(); let __named_map_guard = __named_map_holder.lock().unwrap(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Arc::new(Mutex::new(None))); drop(__named_map_guard); __map_holder }; let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         let p = __range_key.value();
         { let __target = (*p.lock().unwrap().as_ref().unwrap()).ndeps.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
-        heap::fix(pq.clone(), { let __selector_holder = (*p.lock().unwrap().as_ref().unwrap()).index.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned });
+        container_heap::fix(Arc::new(Mutex::new(Some(Box::new(nodeQueuePtr(pq.clone().clone())) as Box<dyn container_heap::r#mod::Interface + Send + Sync>))), Arc::new(Mutex::new(Some({ let __selector_holder = (*p.lock().unwrap().as_ref().unwrap()).index.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
     }
 
                 // record the init order for variables with initializers only
@@ -587,6 +587,130 @@ impl nodeQueue {
     }
 }
 
+impl sort::r#mod::Interface for nodeQueue {
+    fn len(&self) -> i32 {
+        return { let __slice_holder = self.0.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32;
+    }
+    fn less(&self, i: Arc<Mutex<Option<i32>>>, j: Arc<Mutex<Option<i32>>>) -> bool {
+        let (mut x, mut y) = ({ let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.clone(), { let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.clone());
+                // Prioritize all constants before non-constants. See go.dev/issue/66575/.
+        let (_, mut xConst) = ({
+        let val = (*x.lock().unwrap().as_ref().unwrap()).obj.clone();
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = <dyn dependency + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<crate::object::ConstPtr>() {
+                (typed_val.0.clone(), true)
+            } else {
+                (Arc::new(Mutex::new(None::<crate::object::Const>)), false)
+            }
+        } else {
+            (Arc::new(Mutex::new(None::<crate::object::Const>)), false)
+        }
+    });
+        let (_, mut yConst) = ({
+        let val = (*y.lock().unwrap().as_ref().unwrap()).obj.clone();
+        let guard = val.lock().unwrap();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = <dyn dependency + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<crate::object::ConstPtr>() {
+                (typed_val.0.clone(), true)
+            } else {
+                (Arc::new(Mutex::new(None::<crate::object::Const>)), false)
+            }
+        } else {
+            (Arc::new(Mutex::new(None::<crate::object::Const>)), false)
+        }
+    });
+        if { let __tmp_x = xConst; let __tmp_y = yConst; __tmp_x != __tmp_y } {
+        return xConst;
+    }
+                // nodes are prioritized by number of incoming dependencies (1st key)
+                // and source order (2nd key)
+        return { let __tmp_x = (*{ let __field = (*x.lock().unwrap().as_ref().unwrap()).ndeps.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*y.lock().unwrap().as_ref().unwrap()).ndeps.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } || { let __tmp_x = (*{ let __field = (*x.lock().unwrap().as_ref().unwrap()).ndeps.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*y.lock().unwrap().as_ref().unwrap()).ndeps.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } && { let __tmp_x = (*(*x.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).order(); let __tmp_y = (*(*y.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).order(); __tmp_x < __tmp_y };
+    }
+    fn swap(&self, i: Arc<Mutex<Option<i32>>>, j: Arc<Mutex<Option<i32>>>) {
+        let (mut x, mut y) = ({ let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.clone(), { let __seq_holder = self.0.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.clone());
+        { let __tmp_0 = y.clone(); let __tmp_1 = x.clone(); (*self.0.clone().lock().unwrap().as_mut().unwrap())[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = __tmp_0; (*self.0.clone().lock().unwrap().as_mut().unwrap())[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = __tmp_1; };
+        { let __tmp_0 = (*j.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_1 = (*i.lock().unwrap().as_ref().unwrap()).clone(); *(*x.lock().unwrap().as_ref().unwrap()).index.lock().unwrap() = Some(__tmp_0); *(*y.lock().unwrap().as_ref().unwrap()).index.lock().unwrap() = Some(__tmp_1); };
+    }
+    fn __go_clone_box_interface(&self) -> Box<dyn sort::r#mod::Interface + Send + Sync> {
+        Box::new(self.clone()) as Box<dyn sort::r#mod::Interface + Send + Sync>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_interface(&self, other: &(dyn sort::r#mod::Interface + Send + Sync)) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<nodeQueue>() {
+            false
+        } else {
+            false
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct nodeQueuePtr(pub Arc<Mutex<Option<nodeQueue>>>);
+
+impl std::fmt::Display for nodeQueuePtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+    }
+}
+
+impl container_heap::r#mod::Interface for nodeQueuePtr {
+    fn pop(&mut self) -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
+        let mut __recv_guard = self.0.lock().unwrap();
+        let __recv = __recv_guard.as_mut().unwrap();
+        nodeQueue::pop(__recv)
+    }
+    fn push(&self, x: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) {
+        let __recv_guard = self.0.lock().unwrap();
+        let __recv = __recv_guard.as_ref().unwrap();
+        nodeQueue::push(__recv, x)
+    }
+    fn __go_clone_box_interface(&self) -> Box<dyn container_heap::r#mod::Interface + Send + Sync> {
+        Box::new(self.clone()) as Box<dyn container_heap::r#mod::Interface + Send + Sync>
+    }
+    fn __go_eq_interface(&self, other: &(dyn container_heap::r#mod::Interface + Send + Sync)) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<nodeQueuePtr>() {
+            Arc::ptr_eq(&self.0, &__other.0)
+        } else {
+            false
+        }
+    }
+}
+
+impl sort::r#mod::Interface for nodeQueuePtr {
+    fn len(&self) -> i32 {
+        let __recv_guard = self.0.lock().unwrap();
+        let __recv = __recv_guard.as_ref().unwrap();
+        nodeQueue::len(__recv)
+    }
+    fn less(&self, i: Arc<Mutex<Option<i32>>>, j: Arc<Mutex<Option<i32>>>) -> bool {
+        let __recv_guard = self.0.lock().unwrap();
+        let __recv = __recv_guard.as_ref().unwrap();
+        nodeQueue::less(__recv, i, j)
+    }
+    fn swap(&self, i: Arc<Mutex<Option<i32>>>, j: Arc<Mutex<Option<i32>>>) {
+        let __recv_guard = self.0.lock().unwrap();
+        let __recv = __recv_guard.as_ref().unwrap();
+        nodeQueue::swap(__recv, i, j)
+    }
+    fn __go_clone_box_interface(&self) -> Box<dyn sort::r#mod::Interface + Send + Sync> {
+        Box::new(self.clone()) as Box<dyn sort::r#mod::Interface + Send + Sync>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_interface(&self, other: &(dyn sort::r#mod::Interface + Send + Sync)) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<nodeQueuePtr>() {
+            Arc::ptr_eq(&self.0, &__other.0)
+        } else {
+            false
+        }
+    }
+}
+
 /// findPath returns the (reversed) list of objects []Object{to, ... from}
 /// such that there is a path of object dependencies from 'from' to 'to'.
 /// If there is no such path, the result is nil.
@@ -733,13 +857,13 @@ pub fn dependency_graph(objMap: Arc<Mutex<Option<BTreeMap<GoObjectInterfaceKey, 
     { let __range_holder = funcG.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for n in __range_values.iter() {
                 // connect each predecessor p of n with each successor s
                 // and drop the function node (don't collect it in G)
-        for (__range_key, _) in { let __range_holder = { let __named_map = (*(*n.lock().unwrap().as_ref().unwrap()).pred.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }; let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+        for (__range_key, _) in { let __range_holder = { let __named_map_holder = (*n.lock().unwrap().as_ref().unwrap()).pred.clone(); let __named_map_guard = __named_map_holder.lock().unwrap(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Arc::new(Mutex::new(None))); drop(__named_map_guard); __map_holder }; let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         let p = __range_key.value();
                 // ignore self-cycles
         if { let __left = p.clone(); let __right = n.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
                 // Each successor s of n becomes a successor of p, and
                 // each predecessor p of n becomes a predecessor of s.
-        for (__range_key, _) in { let __range_holder = { let __named_map = (*(*n.lock().unwrap().as_ref().unwrap()).succ.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }; let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+        for (__range_key, _) in { let __range_holder = { let __named_map_holder = (*n.lock().unwrap().as_ref().unwrap()).succ.clone(); let __named_map_guard = __named_map_holder.lock().unwrap(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Arc::new(Mutex::new(None))); drop(__named_map_guard); __map_holder }; let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         let s = __range_key.value();
                 // ignore self-cycles
         if { let __left = s.clone(); let __right = n.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
@@ -756,7 +880,7 @@ pub fn dependency_graph(objMap: Arc<Mutex<Option<BTreeMap<GoObjectInterfaceKey, 
                 // each predecessor p of n becomes a predecessor of s.
                 // ignore self-cycles
                 // remove edge to n
-        for (__range_key, _) in { let __range_holder = { let __named_map = (*(*n.lock().unwrap().as_ref().unwrap()).succ.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }; let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+        for (__range_key, _) in { let __range_holder = { let __named_map_holder = (*n.lock().unwrap().as_ref().unwrap()).succ.clone(); let __named_map_guard = __named_map_holder.lock().unwrap(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Arc::new(Mutex::new(None))); drop(__named_map_guard); __map_holder }; let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         let s = __range_key.value();
         { let __map_handle = { let __named_map = (*(*s.lock().unwrap().as_ref().unwrap()).pred.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }; let mut __map_guard = __map_handle.lock().unwrap(); __map_guard.as_mut().unwrap().remove(&GoLocalPtrKey::new(n.clone())); };
     }

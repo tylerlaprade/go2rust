@@ -143,7 +143,7 @@ pub trait Importer: std::fmt::Display + Any {
     fn __go_clone_box_importer(&self) -> Box<dyn Importer + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_importer(&self, other: &(dyn Importer + Send + Sync)) -> bool;
-    fn import(&self, path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Package>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>);
+    fn import(&self, path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<crate::package::Package>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>);
 }
 
 impl Clone for Box<dyn Importer + Send + Sync> {
@@ -541,7 +541,7 @@ impl Ord for ImportMode {
 pub trait ImporterFrom: Importer + std::fmt::Display + Any {
     fn __go_clone_box_importer_from(&self) -> Box<dyn ImporterFrom + Send + Sync>;
     fn __go_eq_importer_from(&self, other: &(dyn ImporterFrom + Send + Sync)) -> bool;
-    fn import_from(&self, path: Arc<Mutex<Option<String>>>, dir: Arc<Mutex<Option<String>>>, mode: Arc<Mutex<Option<ImportMode>>>) -> (Arc<Mutex<Option<Package>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>);
+    fn import_from(&self, path: Arc<Mutex<Option<String>>>, dir: Arc<Mutex<Option<String>>>, mode: Arc<Mutex<Option<ImportMode>>>) -> (Arc<Mutex<Option<crate::package::Package>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>);
 }
 
 impl Clone for Box<dyn ImporterFrom + Send + Sync> {

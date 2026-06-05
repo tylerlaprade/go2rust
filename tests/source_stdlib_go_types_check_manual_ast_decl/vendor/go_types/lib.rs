@@ -148,6 +148,7 @@ static __GO_INIT_ONCE: std::sync::Once = std::sync::Once::new();
 pub fn __go_init_all() {
     __GO_INIT_ONCE.call_once(|| {
         cmp::__go_init_all();
+        container_heap::__go_init_all();
         go_ast::__go_init_all();
         go_constant::__go_init_all();
         go_token::__go_init_all();
@@ -158,6 +159,7 @@ pub fn __go_init_all() {
         internal_types_errors::__go_init_all();
         math::__go_init_all();
         slices::__go_init_all();
+        sort::__go_init_all();
         strings::__go_init_all();
         sync::__go_init_all();
         sync_atomic::__go_init_all();

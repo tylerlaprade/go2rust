@@ -2063,6 +2063,38 @@ func add(seen valueMap, key int, pos int) {
 	}
 }
 
+func TestRangeOverNilNamedMapFieldDoesNotUnwrapNamedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type namedMap map[string]int
+
+type holder struct {
+	values namedMap
+}
+
+func count(h holder) int {
+	total := 0
+	for k := range h.values {
+		_ = k
+		total++
+	}
+	return total
+}
+`)
+
+	if strings.Contains(rust, "let __named_map = (*") &&
+		strings.Contains(rust, ".as_ref().unwrap()).0.clone(); __named_map") {
+		t.Fatalf("range over a nil named-map field should not unwrap the named value before map range defaulting:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__named_map_guard.as_ref().map(|__v| __v.0.clone()).unwrap_or_else") {
+		t.Fatalf("range over a named-map field should tolerate a nil named value slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Rc::new(RefCell::new(None))") &&
+		!strings.Contains(rust, "Arc::new(Mutex::new(None))") {
+		t.Fatalf("range over a nil named-map field should materialize a nil inner map handle:\n%s", rust)
+	}
+}
+
 func TestMapPointerValueNilAssignmentStoresNilHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

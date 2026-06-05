@@ -12509,7 +12509,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			appendRangeAssignmentPrelude(s.Value, valueBindingTemp)
 		}
 		writeMapRangeSource := func() {
-			if isExpressionResultBare(s.X) || (!NeedsConcurrentWrapper() && isBareMapSelectorExpression(s.X)) {
+			if !isNamedMapExpression(s.X) && (isExpressionResultBare(s.X) || (!NeedsConcurrentWrapper() && isBareMapSelectorExpression(s.X))) {
 				out.WriteString("(")
 				TranspileExpression(out, s.X)
 				out.WriteString(").clone()")
@@ -12517,7 +12517,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			}
 			out.WriteString("{ let __range_holder = ")
 			if isNamedMapExpression(s.X) {
-				writeNamedMapInnerHandleClone(out, s.X)
+				writeNilTolerantNamedMapInnerHandleClone(out, s.X)
 			} else if ident, ok := s.X.(*ast.Ident); ok {
 				name := RustIdentForUse(ident)
 				if renamed, ok := captureRenameForIdent(ident); ok && renamed != "" {

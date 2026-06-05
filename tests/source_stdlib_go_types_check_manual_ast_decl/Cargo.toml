@@ -3,6 +3,7 @@
 members = [
     ".",
     "vendor/cmp",
+    "vendor/container_heap",
     "vendor/go2rust_stdlib_stubs",
     "vendor/go_ast",
     "vendor/go_constant",
@@ -25,6 +26,7 @@ members = [
     "vendor/math_big",
     "vendor/math_bits",
     "vendor/slices",
+    "vendor/sort",
     "vendor/strings",
     "vendor/sync",
     "vendor/sync_atomic",
@@ -43,6 +45,7 @@ path = "main.rs"
 
 [dependencies]
 cmp = { path = "vendor/cmp" }
+container_heap = { path = "vendor/container_heap" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
 go_ast = { path = "vendor/go_ast" }
 go_constant = { path = "vendor/go_constant" }
@@ -65,6 +68,7 @@ math = { path = "vendor/math" }
 math_big = { path = "vendor/math_big" }
 math_bits = { path = "vendor/math_bits" }
 slices = { path = "vendor/slices" }
+sort = { path = "vendor/sort" }
 strings = { path = "vendor/strings" }
 sync = { path = "vendor/sync" }
 sync_atomic = { path = "vendor/sync_atomic" }

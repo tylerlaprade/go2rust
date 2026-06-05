@@ -1,0 +1,12 @@
+[package]
+name = "container_heap"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "container_heap"
+path = "lib.rs"
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
+sort = { path = "../sort" }

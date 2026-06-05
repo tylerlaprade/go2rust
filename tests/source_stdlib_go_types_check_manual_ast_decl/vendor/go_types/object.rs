@@ -95,9 +95,9 @@ pub trait Object: std::fmt::Display + Any {
     fn __go_clone_box_object(&self) -> Box<dyn Object + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_object(&self, other: &(dyn Object + Send + Sync)) -> bool;
-    fn parent(&self) -> Arc<Mutex<Option<Scope>>>;
+    fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>>;
     fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>>;
-    fn pkg(&self) -> Arc<Mutex<Option<Package>>>;
+    fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>>;
     fn name(&self) -> Arc<Mutex<Option<String>>>;
     fn r#type(&self) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>;
     fn exported(&self) -> bool;

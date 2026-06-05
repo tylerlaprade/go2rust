@@ -87,6 +87,7 @@ fn go_resume_unrecovered_panic() {
 
 fn main() {
     cmp::__go_init_all();
+    container_heap::__go_init_all();
     go_ast::__go_init_all();
     go_constant::__go_init_all();
     go_token::__go_init_all();
@@ -108,6 +109,7 @@ fn main() {
     math_big::__go_init_all();
     math_bits::__go_init_all();
     slices::__go_init_all();
+    sort::__go_init_all();
     strings::__go_init_all();
     sync::__go_init_all();
     sync_atomic::__go_init_all();

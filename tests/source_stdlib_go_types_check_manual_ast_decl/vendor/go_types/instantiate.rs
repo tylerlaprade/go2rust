@@ -83,7 +83,7 @@ use std::sync::{Arc, Mutex};
 pub trait genericType: Type + std::fmt::Display + Any {
     fn __go_clone_box_generic_type(&self) -> Box<dyn genericType + Send + Sync>;
     fn __go_eq_generic_type(&self, other: &(dyn genericType + Send + Sync)) -> bool;
-    fn type_params(&mut self) -> Arc<Mutex<Option<TypeParamList>>>;
+    fn type_params(&mut self) -> Arc<Mutex<Option<crate::typelists::TypeParamList>>>;
 }
 
 impl Clone for Box<dyn genericType + Send + Sync> {

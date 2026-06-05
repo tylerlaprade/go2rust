@@ -156,10 +156,10 @@ impl MethodSet {
         return Arc::new(Mutex::new(None));
     }
         let mut key = id(pkg.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-        let key_closure_clone = key.clone(); let mut s_closure_clone = (*self).clone(); let mut i = { let mut __sort_i: i32 = 0; let mut __sort_j: i32 = (({ let __len_target = { let __field = s_closure_clone.list.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) as i32; let __sort_pred = Arc::new(Mutex::new(Some(Box::new(move |i: Arc<Mutex<Option<i32>>>| -> bool {
-        let mut m = { let __seq = { let __seq_holder = s_closure_clone.list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.clone();
+        let key_closure_clone = key.clone(); let mut s_closure_clone = (*self).clone(); let mut i = sort::search(Arc::new(Mutex::new(Some(({ let __len_target = { let __field = s_closure_clone.list.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32))), Arc::new(Mutex::new(Some({ let mut s_closure_clone_closure_clone = s_closure_clone.clone(); Box::new(move |i: Arc<Mutex<Option<i32>>>| -> bool {
+        let mut m = { let __seq = { let __seq_holder = s_closure_clone_closure_clone.list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.clone();
         return { let __tmp_x = (*(*(*m.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).id().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*key_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x >= __tmp_y };
-    }) as Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> bool + Send + Sync>))); while __sort_i < __sort_j { let __sort_h = (((__sort_i as u32 + __sort_j as u32) >> 1) as i32); let __sort_ok = { let mut __pred_guard = __sort_pred.lock().unwrap(); let __pred = __pred_guard.as_mut().expect("sort.Search predicate is nil"); __pred(Arc::new(Mutex::new(Some(__sort_h)))) }; if !__sort_ok { __sort_i = __sort_h + 1; } else { __sort_j = __sort_h; } } __sort_i };
+    }) as Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> bool + Send + Sync> }))));
         if { let __tmp_x = (i as i32); let __tmp_y = (({ let __len_target = { let __field = self.list.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); __tmp_x < __tmp_y } {
         let mut m = { let __seq = { let __seq_holder = self.list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.clone();
         if { let __tmp_x = (*(*(*m.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).id().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*key.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } {
@@ -335,7 +335,7 @@ pub fn new_method_set(T: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc
                 // Interface types need to be considered).
                 // Add methods and collisions at this depth to base if no entries with matching
                 // names exist already.
-        for (k, mut m) in { let __range_holder = { let __named_map = (*mset.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }; let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+        for (k, mut m) in { let __range_holder = { let __named_map_holder = mset.clone(); let __named_map_guard = __named_map_holder.lock().unwrap(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Arc::new(Mutex::new(None))); drop(__named_map_guard); __map_holder }; let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         {
         let (_, mut found) = { let __map = { let __map_holder = { let __named_map = (*base.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&k)) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };;
         if !found {
@@ -400,7 +400,7 @@ pub fn new_method_set(T: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc
 
         // collect methods
     let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Selection>>>>>>> = Arc::new(Mutex::new(None));
-    for (_, m) in { let __range_holder = { let __named_map = (*base.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }; let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+    for (_, m) in { let __range_holder = { let __named_map_holder = base.clone(); let __named_map_guard = __named_map_holder.lock().unwrap(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()).unwrap_or_else(|| Arc::new(Mutex::new(None))); drop(__named_map_guard); __map_holder }; let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         if (*m.lock().unwrap()).is_some() {
         { let __iface_handle = T.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*m.lock().unwrap().as_mut().unwrap()).recv.lock().unwrap() = (*__iface_guard).clone(); };
         { let new_val = { let __append_target = list.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(m.clone()); __append_target.clone() }; list = new_val; };
