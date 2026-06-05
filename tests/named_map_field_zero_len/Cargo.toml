@@ -1,0 +1,8 @@
+[package]
+name = "named_map_field_zero_len"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "named_map_field_zero_len"
+path = "main.rs"

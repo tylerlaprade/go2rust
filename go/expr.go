@@ -2714,12 +2714,35 @@ func writeNamedMapLen(out *strings.Builder, expr ast.Expr) bool {
 	if !isNamedMapExpression(expr) {
 		return false
 	}
+	if !isExpressionResultBare(expr) && !isCurrentReceiverNamedCollectionExpr(expr) {
+		out.WriteString("{ let __named_map_holder = ")
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(".clone(); let __named_map_guard = __named_map_holder")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }).unwrap_or(0) }")
+		return true
+	}
 	out.WriteString("{ let __map_holder = ")
 	writeNamedMapInnerHandleClone(out, expr)
 	out.WriteString("; let __map_guard = __map_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString("; __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }")
 	return true
+}
+
+func isCurrentReceiverNamedCollectionExpr(expr ast.Expr) bool {
+	inner := unwrapParens(expr)
+	if ident, ok := inner.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
+		return true
+	}
+	if star, ok := inner.(*ast.StarExpr); ok {
+		if ident, ok := unwrapParens(star.X).(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
+			return true
+		}
+	}
+	return false
 }
 
 func writeNamedSliceCap(out *strings.Builder, expr ast.Expr) bool {

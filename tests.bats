@@ -1646,6 +1646,10 @@ run_xfail_test() {
     run_test "tests/named_integer_unary_minus_returns_interface"
 }
 
+@test "named_map_field_zero_len" {
+    run_test "tests/named_map_field_zero_len"
+}
+
 @test "named_map_receiver_assign" {
     run_test "tests/named_map_receiver_assign"
 }

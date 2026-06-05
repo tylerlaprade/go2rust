@@ -507,7 +507,7 @@ impl graphNode {
     /// cost returns the cost of removing this node, which involves copying each
     /// predecessor to each successor (and vice-versa).
     pub fn cost(&self) -> i32 {
-        return { let __tmp_x = ({ let __map_holder = { let __named_map = (*self.pred.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }; let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = ({ let __map_holder = { let __named_map = (*self.succ.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }; let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); __tmp_x * __tmp_y };
+        return { let __tmp_x = ({ let __named_map_holder = self.pred.clone(); let __named_map_guard = __named_map_holder.lock().unwrap(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }).unwrap_or(0) } as i32); let __tmp_y = ({ let __named_map_holder = self.succ.clone(); let __named_map_guard = __named_map_holder.lock().unwrap(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }).unwrap_or(0) } as i32); __tmp_x * __tmp_y };
     }
 }
 
@@ -767,7 +767,7 @@ pub fn dependency_graph(objMap: Arc<Mutex<Option<BTreeMap<GoObjectInterfaceKey, 
         // fill in index and ndeps fields
     { let __range_holder = G.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, n) in __range_values.iter().enumerate() {
         { let new_val = i as i32; *(*n.lock().unwrap().as_ref().unwrap()).index.lock().unwrap() = Some(new_val); };
-        { let new_val = { let __map_holder = { let __named_map = (*(*n.lock().unwrap().as_ref().unwrap()).succ.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }; let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32; *(*n.lock().unwrap().as_ref().unwrap()).ndeps.lock().unwrap() = Some(new_val); };
+        { let new_val = { let __named_map_holder = (*n.lock().unwrap().as_ref().unwrap()).succ.clone(); let __named_map_guard = __named_map_holder.lock().unwrap(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }).unwrap_or(0) } as i32; *(*n.lock().unwrap().as_ref().unwrap()).ndeps.lock().unwrap() = Some(new_val); };
     } }
 
     return G.clone();

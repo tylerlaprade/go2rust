@@ -394,7 +394,7 @@ pub fn new_method_set(T: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc
         // Add all (remaining) fields at this depth as collisions (since they will
         // hide any method further down) if no entries with matching names exist already.
         // collision
-    if { let __tmp_x = ({ let __map_holder = { let __named_map = (*base.lock().unwrap().as_ref().unwrap()).0.clone(); __named_map }; let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
+    if { let __tmp_x = ({ let __named_map_holder = base.clone(); let __named_map_guard = __named_map_holder.lock().unwrap(); let __map_holder = __named_map_guard.as_ref().map(|__v| __v.0.clone()); drop(__named_map_guard); __map_holder.as_ref().map(|__map_holder| { let __map_guard = __map_holder.lock().unwrap(); __map_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }).unwrap_or(0) } as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
         return emptyMethodSet.clone();
     }
 
