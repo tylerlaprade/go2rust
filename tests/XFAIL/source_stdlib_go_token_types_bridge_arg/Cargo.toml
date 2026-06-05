@@ -1,0 +1,20 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/go_token",
+]
+
+[package]
+name = "source_stdlib_go_token_types_bridge_arg"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "source_stdlib_go_token_types_bridge_arg"
+path = "main.rs"
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+go_token = { path = "vendor/go_token" }

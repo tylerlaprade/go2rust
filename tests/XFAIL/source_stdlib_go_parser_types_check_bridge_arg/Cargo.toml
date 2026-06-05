@@ -1,0 +1,26 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/go_ast",
+    "vendor/go_parser",
+    "vendor/go_scanner",
+    "vendor/go_token",
+]
+
+[package]
+name = "source_stdlib_go_parser_types_check_bridge_arg"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "source_stdlib_go_parser_types_check_bridge_arg"
+path = "main.rs"
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+go_ast = { path = "vendor/go_ast" }
+go_parser = { path = "vendor/go_parser" }
+go_scanner = { path = "vendor/go_scanner" }
+go_token = { path = "vendor/go_token" }

@@ -2938,6 +2938,14 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/parallel_assign_receiver_value_field_swap"
 }
 
+@test "XFAIL: source_stdlib_go_parser_types_check_bridge_arg" {
+    run_xfail_test "tests/XFAIL/source_stdlib_go_parser_types_check_bridge_arg"
+}
+
+@test "XFAIL: source_stdlib_go_token_types_bridge_arg" {
+    run_xfail_test "tests/XFAIL/source_stdlib_go_token_types_bridge_arg"
+}
+
 @test "XFAIL: source_stdlib_go_types_new_type_name" {
     run_xfail_test "tests/XFAIL/source_stdlib_go_types_new_type_name"
 }

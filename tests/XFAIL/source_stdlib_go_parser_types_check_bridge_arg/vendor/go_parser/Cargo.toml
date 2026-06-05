@@ -1,0 +1,15 @@
+[package]
+name = "go_parser"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "go_parser"
+path = "lib.rs"
+
+[dependencies]
+serde_json = "1"
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
+go_ast = { path = "../go_ast" }
+go_scanner = { path = "../go_scanner" }
+go_token = { path = "../go_token" }

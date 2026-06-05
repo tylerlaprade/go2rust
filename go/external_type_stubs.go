@@ -1281,7 +1281,7 @@ func sourceMappedCrateDependenciesForStubCode(stubCode string, packageMapping ma
 		if crateName == "" || crateName == sharedStdlibStubCrateName {
 			continue
 		}
-		if strings.Contains(stubCode, crateName+"::") {
+		if stubCodeReferencesCrate(stubCode, crateName) {
 			seen[crateName] = true
 		}
 	}
@@ -1291,6 +1291,25 @@ func sourceMappedCrateDependenciesForStubCode(stubCode string, packageMapping ma
 	}
 	sort.Strings(deps)
 	return deps
+}
+
+func stubCodeReferencesCrate(stubCode, crateName string) bool {
+	needle := crateName + "::"
+	for offset := 0; ; {
+		index := strings.Index(stubCode[offset:], needle)
+		if index < 0 {
+			return false
+		}
+		start := offset + index
+		if start == 0 || !isRustPathIdentByte(stubCode[start-1]) {
+			return true
+		}
+		offset = start + len(needle)
+	}
+}
+
+func isRustPathIdentByte(ch byte) bool {
+	return ch == ':' || ch == '_' || ('0' <= ch && ch <= '9') || ('A' <= ch && ch <= 'Z') || ('a' <= ch && ch <= 'z')
 }
 
 func MergeExternalStubPackageStates(states ...*PackageState) *PackageState {
