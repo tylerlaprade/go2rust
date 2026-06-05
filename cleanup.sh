@@ -224,6 +224,79 @@ print_pressure_report() {
     process_mem_snapshot=$(ps -axo pid,ppid,%mem,%cpu,rss,command -m 2>/dev/null || true)
 
     echo
+    echo "Process group summary:"
+    if [ -n "$process_cpu_snapshot" ]; then
+        printf '%s\n' "$process_cpu_snapshot" | awk '
+            NR == 1 {
+                next
+            }
+            {
+                cpu = $3 + 0
+                mem = $4 + 0
+                rss = $5 + 0
+                command = ""
+                for (i = 6; i <= NF; i++) {
+                    command = command " " $i
+                }
+
+                group = "Other"
+                if (command ~ /(^|[[:space:]])(rustc|cargo)([[:space:]]|$)/ ||
+                    command ~ /(^|[[:space:]])(\.\/)?test\.sh([[:space:]]|$)/ ||
+                    command ~ /(^|[[:space:]])self_transpile_check\.sh([[:space:]]|$)/) {
+                    group = "go2rust validation"
+                } else if (command ~ /ANECompilerService/ ||
+                           command ~ /siriinferenced/ ||
+                           command ~ /SiriSuggestions/) {
+                    group = "Apple ML/Siri services"
+                } else if (command ~ /(^|[[:space:]\/])codex([[:space:]]|$)/ ||
+                           command ~ /\/Codex\.app\//) {
+                    group = "Codex"
+                } else if (command ~ /(^|[[:space:]\/])claude([[:space:]]|$)/ ||
+                           command ~ /\/Claude\.app\//) {
+                    group = "Claude"
+                } else if (command ~ /\/Ghostty\.app\//) {
+                    group = "Ghostty"
+                } else if (command ~ /\/Brave Browser\.app\//) {
+                    group = "Brave"
+                } else if (command ~ /\/Google Chrome\.app\//) {
+                    group = "Chrome"
+                }
+
+                cpu_sum[group] += cpu
+                mem_sum[group] += mem
+                rss_sum[group] += rss
+                count[group]++
+            }
+            function print_group(group, rss_mib) {
+                if (!(group in count)) {
+                    return
+                }
+                rss_mib = rss_sum[group] / 1024
+                if (rss_mib >= 1024) {
+                    rss = sprintf("%.1fG", rss_mib / 1024)
+                } else {
+                    rss = sprintf("%.0fM", rss_mib)
+                }
+                printf "%-30s %7.1f %7.1f %8s %6d\n",
+                    group, cpu_sum[group], mem_sum[group], rss, count[group]
+            }
+            END {
+                printf "%-30s %7s %7s %8s %6s\n", "Group", "%CPU", "%MEM", "RSS", "Count"
+                print_group("Apple ML/Siri services")
+                print_group("go2rust validation")
+                print_group("Codex")
+                print_group("Claude")
+                print_group("Ghostty")
+                print_group("Brave")
+                print_group("Chrome")
+                print_group("Other")
+            }
+        '
+    else
+        echo "unavailable: process listing was denied or returned no data"
+    fi
+
+    echo
     echo "Top CPU processes:"
     if [ -n "$process_cpu_snapshot" ]; then
         printf '%s\n' "$process_cpu_snapshot" | awk 'NR <= 15'
