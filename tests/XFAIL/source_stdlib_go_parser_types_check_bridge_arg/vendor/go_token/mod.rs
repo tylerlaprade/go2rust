@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoAtomicPointer, GoMutex, GoPtr, GoRWMutex, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped};
 
 use crate::position::*;
 use crate::serialize::*;
@@ -607,8 +607,8 @@ pub fn lookup(ident: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Token>>> {
 
 /// IsExported reports whether name starts with an upper-case letter.
 pub fn is_exported(name: Arc<Mutex<Option<String>>>) -> bool {
-    let (mut ch, _) = utf8::decode_rune_in_string(name.clone());
-    unicode::is_upper(ch)
+    let (mut ch, _) = unicode_utf8::decode_rune_in_string(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    unicode::is_upper(Arc::new(Mutex::new(Some(ch))))
 }
 
 pub(crate) fn __go_init_functions() {

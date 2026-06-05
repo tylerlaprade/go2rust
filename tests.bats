@@ -2126,6 +2126,14 @@ run_xfail_test() {
     run_test "tests/raw_string_literals"
 }
 
+@test "receiver_basic_field_argument_value" {
+    run_test "tests/receiver_basic_field_argument_value"
+}
+
+@test "receiver_field_argument_snapshot" {
+    run_test "tests/receiver_field_argument_snapshot"
+}
+
 @test "receiver_pointer_field_literal" {
     run_test "tests/receiver_pointer_field_literal"
 }

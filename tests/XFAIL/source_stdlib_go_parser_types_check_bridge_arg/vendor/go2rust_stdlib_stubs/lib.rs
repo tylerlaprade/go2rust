@@ -127,24 +127,56 @@ impl GoComparable for Box<dyn Any + Send + Sync> {
     fn go_hash(&self, seed: usize) -> usize { go_any_comparable_hash(self.as_ref(), seed) }
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct GoRWMutex;
-
-impl GoRWMutex {
-    pub fn new() -> Self {
-        Self
-    }
-
-    pub fn lock(&self) {}
-    pub fn unlock(&self) {}
-    pub fn r_lock(&self) {}
-    pub fn r_unlock(&self) {}
+#[derive(Clone, Copy)]
+pub struct GoAnyTypeMetadata {
+    pub kind: &'static str,
+    pub comparable: bool,
+    pub elem_kind: Option<&'static str>,
+    pub elem_comparable: bool,
 }
 
-impl std::fmt::Display for GoRWMutex {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "RWMutex")
+pub struct GoAnyMetadataBox {
+    pub value: Box<dyn Any + Send + Sync>,
+    pub metadata: GoAnyTypeMetadata,
+}
+
+fn go_any_type_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>> {
+    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<std::any::TypeId, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
+    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+fn go_any_value_metadata_registry() -> &'static std::sync::Mutex<std::collections::HashMap<usize, GoAnyTypeMetadata>> {
+    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, GoAnyTypeMetadata>>> = std::sync::OnceLock::new();
+    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+fn go_any_value_metadata_key(value: &(dyn Any + Send + Sync)) -> usize {
+    value as *const (dyn Any + Send + Sync) as *const () as usize
+}
+
+pub fn go_register_any_type<T: Any + Send + Sync + 'static>(kind: &'static str, comparable: bool) {
+    go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false });
+}
+
+pub fn go_register_any_type_with_elem<T: Any + Send + Sync + 'static>(kind: &'static str, comparable: bool, elem_kind: &'static str, elem_comparable: bool) {
+    go_any_type_metadata_registry().lock().unwrap().insert(std::any::TypeId::of::<T>(), GoAnyTypeMetadata { kind, comparable, elem_kind: Some(elem_kind), elem_comparable });
+}
+
+pub fn go_box_any_with_metadata<T: Any + Send + Sync + 'static>(value: T, kind: &'static str, comparable: bool) -> Box<dyn Any + Send + Sync> {
+    let metadata = GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false };
+    Box::new(GoAnyMetadataBox { value: Box::new(value) as Box<dyn Any + Send + Sync>, metadata }) as Box<dyn Any + Send + Sync>
+}
+
+pub fn go_register_any_value_metadata(value: &(dyn Any + Send + Sync), kind: &'static str, comparable: bool) {
+    go_any_value_metadata_registry().lock().unwrap().insert(go_any_value_metadata_key(value), GoAnyTypeMetadata { kind, comparable, elem_kind: None, elem_comparable: false });
+}
+
+pub fn go_any_type_metadata(value: &(dyn Any + Send + Sync)) -> Option<GoAnyTypeMetadata> {
+    if let Some(__boxed) = value.downcast_ref::<GoAnyMetadataBox>() {
+        return Some(__boxed.metadata);
     }
+    go_any_value_metadata_registry().lock().unwrap().get(&go_any_value_metadata_key(value)).copied()
+        .or_else(|| go_any_type_metadata_registry().lock().unwrap().get(&value.type_id()).copied())
 }
 
 
@@ -387,459 +419,26 @@ impl GoJsonInputArg for bytes_Buffer {
     }
 }
 
-pub trait GoTypesBridgeStringArg {
-    fn into_go_types_bridge_string(self) -> String;
-}
 
-impl GoTypesBridgeStringArg for String {
-    fn into_go_types_bridge_string(self) -> String { self }
-}
 
-impl<'a> GoTypesBridgeStringArg for &'a str {
-    fn into_go_types_bridge_string(self) -> String { self.to_string() }
-}
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct bisect_Matcher;
 
-impl<'a> GoTypesBridgeStringArg for &'a String {
-    fn into_go_types_bridge_string(self) -> String { self.clone() }
-}
-
-impl GoTypesBridgeStringArg for Arc<Mutex<Option<String>>> {
-    fn into_go_types_bridge_string(self) -> String {
-        self.lock().unwrap().as_ref().cloned().unwrap_or_default()
+impl std::fmt::Display for bisect_Matcher {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<bisect_Matcher>")
     }
 }
 
-pub trait GoTypesBridgeInfoArg {
-    fn apply_go_types_bridge_facts(self, type_facts: &[serde_json::Value], exprs_by_pos: &BTreeMap<i32, Vec<ast_Expr>>);
-}
 
-impl GoTypesBridgeInfoArg for () {
-    fn apply_go_types_bridge_facts(self, _type_facts: &[serde_json::Value], _exprs_by_pos: &BTreeMap<i32, Vec<ast_Expr>>) {}
-}
-
-impl GoTypesBridgeInfoArg for Arc<Mutex<Option<types_Info>>> {
-    fn apply_go_types_bridge_facts(self, type_facts: &[serde_json::Value], exprs_by_pos: &BTreeMap<i32, Vec<ast_Expr>>) {
-        let mut info_guard = self.lock().unwrap();
-        if let Some(info_value) = info_guard.as_mut() {
-            let mut types_guard = info_value.types.lock().unwrap();
-            if let Some(types_map) = types_guard.as_mut() {
-                for fact in type_facts {
-                    if fact.get("kind").and_then(|v| v.as_str()) != Some("basic") {
-                        continue;
-                    }
-                    let pos = fact.get("pos").and_then(|v| v.as_i64()).unwrap_or_default() as i32;
-                    let Some(exprs) = exprs_by_pos.get(&pos) else { continue; };
-                    let name = fact.get("name").and_then(|v| v.as_str()).unwrap_or_default().to_string();
-                    let kind = fact.get("basicKind").and_then(|v| v.as_i64()).unwrap_or_default() as i32;
-                    let info_bits = fact.get("basicInfo").and_then(|v| v.as_i64()).unwrap_or_default() as i32;
-                    for expr in exprs {
-                        types_map.insert(expr.clone(), Arc::new(Mutex::new(Some::<types_TypeAndValue>(types_TypeAndValue { r#type: Arc::new(Mutex::new(Some::<types_Type>(__go_types_basic_type(name.clone(), kind, info_bits)))), value: Default::default() }))));
-                    }
-                }
-            }
-        }
+impl bisect_Matcher {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn stack<T0>(&self, _arg0: T0) -> bool {
+        panic!("bisect_Matcher.stack bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
-
-const __GO_TYPES_BRIDGE_HELPER: &str = r#"
-package main
-
-import (
-	"encoding/json"
-	"fmt"
-	"go/ast"
-	"go/importer"
-	"go/parser"
-	"go/token"
-	"go/types"
-	"os"
-	"sort"
-)
-
-type request struct {
-	Path  string `json:"path"`
-	Files []file `json:"files"`
-}
-
-type file struct {
-	Filename string `json:"filename"`
-	Source   string `json:"source"`
-}
-
-type response struct {
-	Package packageFact `json:"package"`
-	Errors  []string    `json:"errors"`
-	Types   []typeFact  `json:"types"`
-}
-
-type packageFact struct {
-	Path string `json:"path"`
-	Name string `json:"name"`
-}
-
-type typeFact struct {
-	Pos       int    `json:"pos"`
-	Kind      string `json:"kind"`
-	Name      string `json:"name"`
-	BasicKind int    `json:"basicKind"`
-	BasicInfo int    `json:"basicInfo"`
-}
-
-func main() {
-	var req request
-	if err := json.NewDecoder(os.Stdin).Decode(&req); err != nil {
-		_ = json.NewEncoder(os.Stdout).Encode(response{Errors: []string{err.Error()}})
-		return
-	}
-
-	fset := token.NewFileSet()
-	files := make([]*ast.File, 0, len(req.Files))
-	for _, input := range req.Files {
-		file, err := parser.ParseFile(fset, input.Filename, input.Source, parser.ParseComments|parser.SkipObjectResolution)
-		if err != nil {
-			_ = json.NewEncoder(os.Stdout).Encode(response{Errors: []string{err.Error()}})
-			return
-		}
-		files = append(files, file)
-	}
-
-	info := &types.Info{
-		Types: make(map[ast.Expr]types.TypeAndValue),
-		Defs:  make(map[*ast.Ident]types.Object),
-		Uses:  make(map[*ast.Ident]types.Object),
-	}
-	var errs []string
-	config := &types.Config{
-		Importer: importer.Default(),
-		Error: func(err error) {
-			errs = append(errs, err.Error())
-		},
-	}
-	pkg, err := config.Check(req.Path, fset, files, info)
-	if err != nil {
-		msg := err.Error()
-		if len(errs) == 0 || errs[len(errs)-1] != msg {
-			errs = append(errs, msg)
-		}
-	}
-
-	resp := response{Errors: errs}
-	if pkg != nil {
-		resp.Package = packageFact{Path: pkg.Path(), Name: pkg.Name()}
-	}
-	for expr, tv := range info.Types {
-		if tv.Type == nil || expr == nil {
-			continue
-		}
-		if basic, ok := types.Unalias(tv.Type).Underlying().(*types.Basic); ok {
-			resp.Types = append(resp.Types, typeFact{
-				Pos:       int(expr.Pos()),
-				Kind:      "basic",
-				Name:      basic.Name(),
-				BasicKind: int(basic.Kind()),
-				BasicInfo: int(basic.Info()),
-			})
-		}
-	}
-	sort.Slice(resp.Types, func(i, j int) bool {
-		if resp.Types[i].Pos != resp.Types[j].Pos {
-			return resp.Types[i].Pos < resp.Types[j].Pos
-		}
-		return resp.Types[i].Name < resp.Types[j].Name
-	})
-	if err := json.NewEncoder(os.Stdout).Encode(resp); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-}
-"#;
-
-fn __go_types_bridge_error(message: String) -> Box<dyn StdError + Send + Sync> {
-    Box::new(std::io::Error::new(std::io::ErrorKind::Other, message)) as Box<dyn StdError + Send + Sync>
-}
-
-fn __go_types_basic_type(name: String, kind: i32, info: i32) -> types_Type {
-    types_Type::__go_from(types_Basic {
-        __go_kind: types_BasicKind(kind),
-        __go_info: types_BasicInfo(info),
-        __go_name: name,
-    })
-}
-
-fn __go_types_config_check<T0: GoTypesBridgeStringArg, T3: GoTypesBridgeInfoArg>(
-    path_arg: T0,
-    files: Arc<Mutex<Option<Vec<Arc<Mutex<Option<ast_File>>>>>>>,
-    info: T3,
-) -> Result<types_Package, Box<dyn StdError + Send + Sync>> {
-    let path = path_arg.into_go_types_bridge_string();
-    let file_values = files.lock().unwrap().as_ref().cloned().unwrap_or_default();
-    let mut request_files = Vec::<serde_json::Value>::new();
-    let mut exprs_by_pos = BTreeMap::<i32, Vec<ast_Expr>>::new();
-    for file_handle in file_values {
-        let file_guard = file_handle.lock().unwrap();
-        let Some(file) = file_guard.as_ref() else { continue; };
-        let filename = file.__go_filename.lock().unwrap().as_ref().cloned().unwrap_or_default();
-        let source = file.__go_source.lock().unwrap().as_ref().cloned().unwrap_or_default();
-        if source.is_empty() {
-            continue;
-        }
-        __go_types_collect_file_exprs(file, &mut exprs_by_pos);
-        request_files.push(serde_json::json!({
-            "filename": filename,
-            "source": source,
-        }));
-    }
-    if request_files.is_empty() {
-        return Err(__go_types_bridge_error("go/types bridge requires parser.ParseFile source metadata".to_string()));
-    }
-
-    let request = serde_json::json!({
-        "path": path,
-        "files": request_files,
-    });
-    let output = __go_types_run_bridge_helper(&request.to_string())?;
-    let response: serde_json::Value = serde_json::from_slice(&output)
-        .map_err(|err| __go_types_bridge_error(format!("failed to decode go/types bridge response: {}", err)))?;
-    if let Some(errors) = response.get("errors").and_then(|v| v.as_array()) {
-        if !errors.is_empty() {
-            let message = errors.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>().join("; ");
-            return Err(__go_types_bridge_error(message));
-        }
-    }
-
-    if let Some(type_facts) = response.get("types").and_then(|v| v.as_array()) {
-        info.apply_go_types_bridge_facts(type_facts, &exprs_by_pos);
-    }
-
-    Ok(types_Package::default())
-}
-
-fn __go_types_run_bridge_helper(request_json: &str) -> Result<Vec<u8>, Box<dyn StdError + Send + Sync>> {
-    use std::io::Write;
-    use std::process::{Command, Stdio};
-    let unique = format!(
-        "go2rust-types-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|duration| duration.as_nanos())
-            .unwrap_or_default()
-    );
-    let dir = std::env::temp_dir().join(unique);
-    std::fs::create_dir_all(&dir)
-        .map_err(|err| __go_types_bridge_error(format!("failed to create go/types bridge dir: {}", err)))?;
-    let helper_path = dir.join("main.go");
-    std::fs::write(&helper_path, __GO_TYPES_BRIDGE_HELPER)
-        .map_err(|err| __go_types_bridge_error(format!("failed to write go/types bridge helper: {}", err)))?;
-    let mut child = Command::new("go")
-        .arg("run")
-        .arg(&helper_path)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|err| __go_types_bridge_error(format!("failed to launch go/types bridge helper: {}", err)))?;
-    {
-        let stdin = child.stdin.as_mut().ok_or_else(|| __go_types_bridge_error("failed to open go/types bridge stdin".to_string()))?;
-        stdin.write_all(request_json.as_bytes())
-            .map_err(|err| __go_types_bridge_error(format!("failed to write go/types bridge request: {}", err)))?;
-    }
-    let output = child.wait_with_output()
-        .map_err(|err| __go_types_bridge_error(format!("failed to wait for go/types bridge helper: {}", err)))?;
-    let _ = std::fs::remove_dir_all(&dir);
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-        return Err(__go_types_bridge_error(format!("go/types bridge helper failed: {}", stderr)));
-    }
-    Ok(output.stdout)
-}
-
-fn __go_types_record_expr(exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>, expr: &ast_Expr) {
-    if expr.__go_pos != 0 {
-        exprs_by_pos.entry(expr.__go_pos).or_default().push(expr.clone());
-    }
-}
-
-fn __go_types_collect_file_exprs(file: &ast_File, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
-    let decls = file.decls.lock().unwrap().as_ref().cloned().unwrap_or_default();
-    for decl in decls {
-        __go_types_collect_decl_exprs(&decl, exprs_by_pos);
-    }
-}
-
-fn __go_types_collect_decl_exprs(decl: &ast_Decl, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
-    if let Some(value) = decl.downcast_ref::<ast_GenDecl>() {
-        let specs = value.specs.lock().unwrap().as_ref().cloned().unwrap_or_default();
-        for spec in specs {
-            __go_types_collect_spec_exprs(&spec, exprs_by_pos);
-        }
-    } else if let Some(value) = decl.downcast_ref::<ast_FuncDecl>() {
-        __go_types_collect_opt_field_list(&value.recv, exprs_by_pos);
-        __go_types_collect_func_type(&value.r#type, exprs_by_pos);
-        __go_types_collect_opt_block(&value.body, exprs_by_pos);
-    }
-}
-
-fn __go_types_collect_spec_exprs(spec: &ast_Spec, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
-    if let Some(value) = spec.downcast_ref::<ast_ValueSpec>() {
-        __go_types_collect_opt_expr(&value.r#type, exprs_by_pos);
-        let values = value.values.lock().unwrap().as_ref().cloned().unwrap_or_default();
-        for expr in values {
-            __go_types_collect_expr(&expr, exprs_by_pos);
-        }
-    } else if let Some(value) = spec.downcast_ref::<ast_TypeSpec>() {
-        __go_types_collect_opt_expr(&value.r#type, exprs_by_pos);
-    }
-}
-
-fn __go_types_collect_opt_expr(value: &Arc<Mutex<Option<ast_Expr>>>, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
-    if let Some(expr) = value.lock().unwrap().as_ref().cloned() {
-        __go_types_collect_expr(&expr, exprs_by_pos);
-    }
-}
-
-fn __go_types_collect_expr(expr: &ast_Expr, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
-    __go_types_record_expr(exprs_by_pos, expr);
-    if let Some(value) = expr.downcast_ref::<ast_ArrayType>() {
-        __go_types_collect_opt_expr(&value.len, exprs_by_pos);
-        __go_types_collect_opt_expr(&value.elt, exprs_by_pos);
-    } else if let Some(value) = expr.downcast_ref::<ast_BinaryExpr>() {
-        __go_types_collect_opt_expr(&value.x, exprs_by_pos);
-        __go_types_collect_opt_expr(&value.y, exprs_by_pos);
-    } else if let Some(value) = expr.downcast_ref::<ast_CallExpr>() {
-        __go_types_collect_call_expr(value, exprs_by_pos);
-    } else if let Some(value) = expr.downcast_ref::<ast_CompositeLit>() {
-        __go_types_collect_opt_expr(&value.r#type, exprs_by_pos);
-        let elts = value.elts.lock().unwrap().as_ref().cloned().unwrap_or_default();
-        for elt in elts {
-            __go_types_collect_expr(&elt, exprs_by_pos);
-        }
-    } else if let Some(value) = expr.downcast_ref::<ast_IndexExpr>() {
-        __go_types_collect_opt_expr(&value.x, exprs_by_pos);
-        __go_types_collect_opt_expr(&value.index, exprs_by_pos);
-    } else if let Some(value) = expr.downcast_ref::<ast_IndexListExpr>() {
-        __go_types_collect_opt_expr(&value.x, exprs_by_pos);
-        let indices = value.indices.lock().unwrap().as_ref().cloned().unwrap_or_default();
-        for index in indices {
-            __go_types_collect_expr(&index, exprs_by_pos);
-        }
-    } else if let Some(value) = expr.downcast_ref::<ast_KeyValueExpr>() {
-        __go_types_collect_opt_expr(&value.key, exprs_by_pos);
-        __go_types_collect_opt_expr(&value.value, exprs_by_pos);
-    } else if let Some(value) = expr.downcast_ref::<ast_MapType>() {
-        __go_types_collect_opt_expr(&value.key, exprs_by_pos);
-        __go_types_collect_opt_expr(&value.value, exprs_by_pos);
-    } else if let Some(value) = expr.downcast_ref::<ast_ParenExpr>() {
-        __go_types_collect_opt_expr(&value.x, exprs_by_pos);
-    } else if let Some(value) = expr.downcast_ref::<ast_SelectorExpr>() {
-        __go_types_collect_opt_expr(&value.x, exprs_by_pos);
-    } else if let Some(value) = expr.downcast_ref::<ast_SliceExpr>() {
-        __go_types_collect_opt_expr(&value.x, exprs_by_pos);
-        __go_types_collect_opt_expr(&value.low, exprs_by_pos);
-        __go_types_collect_opt_expr(&value.high, exprs_by_pos);
-        __go_types_collect_opt_expr(&value.max, exprs_by_pos);
-    } else if let Some(value) = expr.downcast_ref::<ast_StarExpr>() {
-        __go_types_collect_opt_expr(&value.x, exprs_by_pos);
-    } else if let Some(value) = expr.downcast_ref::<ast_TypeAssertExpr>() {
-        __go_types_collect_opt_expr(&value.x, exprs_by_pos);
-        __go_types_collect_opt_expr(&value.r#type, exprs_by_pos);
-    } else if let Some(value) = expr.downcast_ref::<ast_UnaryExpr>() {
-        __go_types_collect_opt_expr(&value.x, exprs_by_pos);
-    }
-}
-
-fn __go_types_collect_call_expr(value: &ast_CallExpr, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
-    __go_types_collect_opt_expr(&value.fun, exprs_by_pos);
-    let args = value.args.lock().unwrap().as_ref().cloned().unwrap_or_default();
-    for arg in args {
-        __go_types_collect_expr(&arg, exprs_by_pos);
-    }
-}
-
-fn __go_types_collect_opt_stmt(value: &Arc<Mutex<Option<ast_Stmt>>>, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
-    if let Some(stmt) = value.lock().unwrap().as_ref().cloned() {
-        __go_types_collect_stmt_exprs(&stmt, exprs_by_pos);
-    }
-}
-
-fn __go_types_collect_stmt_exprs(stmt: &ast_Stmt, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
-    if let Some(value) = stmt.downcast_ref::<ast_AssignStmt>() {
-        let lhs = value.lhs.lock().unwrap().as_ref().cloned().unwrap_or_default();
-        let rhs = value.rhs.lock().unwrap().as_ref().cloned().unwrap_or_default();
-        for expr in lhs.into_iter().chain(rhs.into_iter()) {
-            __go_types_collect_expr(&expr, exprs_by_pos);
-        }
-    } else if let Some(value) = stmt.downcast_ref::<ast_DeclStmt>() {
-        __go_types_collect_opt_decl(&value.decl, exprs_by_pos);
-    } else if let Some(value) = stmt.downcast_ref::<ast_ExprStmt>() {
-        __go_types_collect_opt_expr(&value.x, exprs_by_pos);
-    } else if let Some(value) = stmt.downcast_ref::<ast_ReturnStmt>() {
-        let results = value.results.lock().unwrap().as_ref().cloned().unwrap_or_default();
-        for expr in results {
-            __go_types_collect_expr(&expr, exprs_by_pos);
-        }
-    } else if let Some(value) = stmt.downcast_ref::<ast_IfStmt>() {
-        __go_types_collect_opt_stmt(&value.init, exprs_by_pos);
-        __go_types_collect_opt_expr(&value.cond, exprs_by_pos);
-        __go_types_collect_opt_block(&value.body, exprs_by_pos);
-        __go_types_collect_opt_stmt(&value.r#else, exprs_by_pos);
-    } else if let Some(value) = stmt.downcast_ref::<ast_ForStmt>() {
-        __go_types_collect_opt_stmt(&value.init, exprs_by_pos);
-        __go_types_collect_opt_expr(&value.cond, exprs_by_pos);
-        __go_types_collect_opt_stmt(&value.post, exprs_by_pos);
-        __go_types_collect_opt_block(&value.body, exprs_by_pos);
-    } else if let Some(value) = stmt.downcast_ref::<ast_RangeStmt>() {
-        __go_types_collect_opt_expr(&value.key, exprs_by_pos);
-        __go_types_collect_opt_expr(&value.value, exprs_by_pos);
-        __go_types_collect_opt_expr(&value.x, exprs_by_pos);
-        __go_types_collect_opt_block(&value.body, exprs_by_pos);
-    }
-}
-
-fn __go_types_collect_opt_decl(value: &Arc<Mutex<Option<ast_Decl>>>, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
-    if let Some(decl) = value.lock().unwrap().as_ref().cloned() {
-        __go_types_collect_decl_exprs(&decl, exprs_by_pos);
-    }
-}
-
-fn __go_types_collect_opt_block(value: &Arc<Mutex<Option<ast_BlockStmt>>>, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
-    if let Some(block) = value.lock().unwrap().as_ref() {
-        let list = block.list.lock().unwrap().as_ref().cloned().unwrap_or_default();
-        for stmt in list {
-            __go_types_collect_stmt_exprs(&stmt, exprs_by_pos);
-        }
-    }
-}
-
-fn __go_types_collect_func_type(value: &Arc<Mutex<Option<ast_FuncType>>>, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
-    if let Some(func_type) = value.lock().unwrap().as_ref() {
-        __go_types_collect_opt_field_list(&func_type.params, exprs_by_pos);
-        __go_types_collect_opt_field_list(&func_type.results, exprs_by_pos);
-    }
-}
-
-fn __go_types_collect_opt_field_list(value: &Arc<Mutex<Option<ast_FieldList>>>, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
-    if let Some(field_list) = value.lock().unwrap().as_ref() {
-        let fields = field_list.list.lock().unwrap().as_ref().cloned().unwrap_or_default();
-        for field in fields {
-            let field_guard = field.lock().unwrap();
-            if let Some(field_value) = field_guard.as_ref() {
-                __go_types_collect_opt_expr(&field_value.r#type, exprs_by_pos);
-                __go_types_collect_opt_basic_lit(&field_value.tag, exprs_by_pos);
-            }
-        }
-    }
-}
-
-fn __go_types_collect_opt_basic_lit(value: &Arc<Mutex<Option<ast_BasicLit>>>, exprs_by_pos: &mut BTreeMap<i32, Vec<ast_Expr>>) {
-    if let Some(lit) = value.lock().unwrap().as_ref() {
-        let lit_pos = lit.pos.lock().unwrap().as_ref().map(|pos| pos.0).unwrap_or_default();
-        if lit_pos != 0 {
-            exprs_by_pos.entry(lit_pos).or_default().push(ast_Expr::__go_from_with_pos(lit.clone(), lit_pos));
-        }
-    }
-}
-
 
 
 #[derive(Debug, Clone)]
@@ -1020,16 +619,16 @@ impl bytes_Buffer {
 
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct constant_Value;
+pub struct bytes_Reader;
 
-impl std::fmt::Display for constant_Value {
+impl std::fmt::Display for bytes_Reader {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<constant_Value>")
+        write!(f, "<bytes_Reader>")
     }
 }
 
 
-impl constant_Value {
+impl bytes_Reader {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
     }
@@ -1090,6 +689,232 @@ impl Ord for constraint_Expr {
 }
 
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct errors_errorString;
+
+impl std::fmt::Display for errors_errorString {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<errors_errorString>")
+    }
+}
+
+impl std::error::Error for errors_errorString {}
+
+
+impl errors_errorString {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("errors_errorString.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct errors_joinError;
+
+impl std::fmt::Display for errors_joinError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<errors_joinError>")
+    }
+}
+
+impl std::error::Error for errors_joinError {}
+
+
+impl errors_joinError {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("errors_joinError.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+#[derive(Clone)]
+pub struct fmt_ScanState {
+    pub __go_id: usize,
+    pub __go_value: Arc<dyn std::any::Any + Send + Sync>,
+}
+
+impl fmt_ScanState {
+    pub fn __go_from<T: 'static + Send + Sync>(value: T) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value) }
+    }
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.__go_value.as_ref().downcast_ref::<T>()
+    }
+    pub fn read<T0>(&self, _arg0: T0) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        panic!("fmt_ScanState.read bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+    pub fn read_rune(&self) -> (i32, i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        panic!("fmt_ScanState.read_rune bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+    pub fn skip_space(&self) {
+        panic!("fmt_ScanState.skip_space bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+    pub fn token<T0, T1>(&self, _arg0: T0, _arg1: T1) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        panic!("fmt_ScanState.token bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+    pub fn unread_rune(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+        panic!("fmt_ScanState.unread_rune bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+    pub fn width(&self) -> (i32, bool) {
+        panic!("fmt_ScanState.width bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+impl Default for fmt_ScanState {
+    fn default() -> Self {
+        Self { __go_id: 0, __go_value: Arc::new(()) }
+    }
+}
+
+impl std::fmt::Debug for fmt_ScanState {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<fmt_ScanState>")
+    }
+}
+
+impl std::fmt::Display for fmt_ScanState {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<fmt_ScanState>")
+    }
+}
+
+impl PartialEq for fmt_ScanState {
+    fn eq(&self, other: &Self) -> bool {
+        self.__go_id == other.__go_id
+    }
+}
+
+impl Eq for fmt_ScanState {}
+
+impl PartialOrd for fmt_ScanState {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for fmt_ScanState {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.__go_id.cmp(&other.__go_id)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct fmt_State {
+    pub __go_id: usize,
+    pub __go_value: Arc<dyn std::any::Any + Send + Sync>,
+}
+
+impl fmt_State {
+    pub fn __go_from<T: 'static + Send + Sync>(value: T) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value) }
+    }
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.__go_value.as_ref().downcast_ref::<T>()
+    }
+    pub fn flag<T0>(&self, _arg0: T0) -> bool {
+        panic!("fmt_State.flag bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+    pub fn precision(&self) -> (i32, bool) {
+        panic!("fmt_State.precision bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+    pub fn width(&self) -> (i32, bool) {
+        panic!("fmt_State.width bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+    pub fn write<T0>(&self, _arg0: T0) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        panic!("fmt_State.write bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+impl Default for fmt_State {
+    fn default() -> Self {
+        Self { __go_id: 0, __go_value: Arc::new(()) }
+    }
+}
+
+impl std::fmt::Debug for fmt_State {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<fmt_State>")
+    }
+}
+
+impl std::fmt::Display for fmt_State {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<fmt_State>")
+    }
+}
+
+impl PartialEq for fmt_State {
+    fn eq(&self, other: &Self) -> bool {
+        self.__go_id == other.__go_id
+    }
+}
+
+impl Eq for fmt_State {}
+
+impl PartialOrd for fmt_State {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for fmt_State {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.__go_id.cmp(&other.__go_id)
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct fmt_wrapError;
+
+impl std::fmt::Display for fmt_wrapError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<fmt_wrapError>")
+    }
+}
+
+impl std::error::Error for fmt_wrapError {}
+
+
+impl fmt_wrapError {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("fmt_wrapError.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct fmt_wrapErrors;
+
+impl std::fmt::Display for fmt_wrapErrors {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<fmt_wrapErrors>")
+    }
+}
+
+impl std::error::Error for fmt_wrapErrors {}
+
+
+impl fmt_wrapErrors {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("fmt_wrapErrors.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
 #[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct fs_FileInfo {
     pub name: String,
@@ -1116,6 +941,85 @@ impl fs_FileInfo {
     }
     pub fn is_dir(&self) -> bool {
         self.is_dir
+    }
+}
+
+
+#[derive(Debug, Clone, Default)]
+pub struct godebugs_Info {
+    pub opaque: Arc<Mutex<Option<bool>>>,
+}
+
+impl std::fmt::Display for godebugs_Info {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<godebugs_Info>")
+    }
+}
+
+
+impl godebugs_Info {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+}
+
+
+#[derive(Clone)]
+pub struct io_ByteScanner {
+    pub __go_id: usize,
+    pub __go_value: Arc<dyn std::any::Any + Send + Sync>,
+}
+
+impl io_ByteScanner {
+    pub fn __go_from<T: 'static + Send + Sync>(value: T) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value) }
+    }
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.__go_value.as_ref().downcast_ref::<T>()
+    }
+    pub fn read_byte(&self) -> (u8, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        panic!("io_ByteScanner.read_byte bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+    pub fn unread_byte(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+        panic!("io_ByteScanner.unread_byte bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+impl Default for io_ByteScanner {
+    fn default() -> Self {
+        Self { __go_id: 0, __go_value: Arc::new(()) }
+    }
+}
+
+impl std::fmt::Debug for io_ByteScanner {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<io_ByteScanner>")
+    }
+}
+
+impl std::fmt::Display for io_ByteScanner {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<io_ByteScanner>")
+    }
+}
+
+impl PartialEq for io_ByteScanner {
+    fn eq(&self, other: &Self) -> bool {
+        self.__go_id == other.__go_id
+    }
+}
+
+impl Eq for io_ByteScanner {}
+
+impl PartialOrd for io_ByteScanner {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for io_ByteScanner {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.__go_id.cmp(&other.__go_id)
     }
 }
 
@@ -1168,6 +1072,87 @@ impl PartialOrd for io_Reader {
 }
 
 impl Ord for io_Reader {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.__go_id.cmp(&other.__go_id)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct io_Writer {
+    pub __go_id: usize,
+    pub __go_value: Arc<dyn std::any::Any + Send + Sync>,
+}
+
+impl io_Writer {
+    pub fn __go_from<T: 'static + Send + Sync>(value: T) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value) }
+    }
+
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.__go_value.as_ref().downcast_ref::<T>()
+    }
+
+    pub fn __go_write_bytes(&self, data: &[u8]) {
+        if let Some(buffer) = self.downcast_ref::<bytes_Buffer>() {
+            buffer.__go_write_bytes(data);
+        }
+        if let Some(file) = self.downcast_ref::<os_File>() {
+            file.__go_write_bytes(data);
+        }
+        if let Some(builder) = self.downcast_ref::<Arc<Mutex<Option<String>>>>() {
+            let mut guard = builder.lock().unwrap();
+            guard.get_or_insert_with(String::new).push_str(&String::from_utf8_lossy(data));
+        }
+    }
+
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
+            v.clone()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
+            v.lock().unwrap().as_ref().cloned().unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+        let n = bytes.len() as i32;
+        self.__go_write_bytes(&bytes);
+        (n, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    }
+}
+
+impl Default for io_Writer {
+    fn default() -> Self {
+        Self { __go_id: 0, __go_value: Arc::new(()) }
+    }
+}
+
+impl std::fmt::Debug for io_Writer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<io_Writer>")
+    }
+}
+
+impl std::fmt::Display for io_Writer {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<io_Writer>")
+    }
+}
+
+impl PartialEq for io_Writer {
+    fn eq(&self, other: &Self) -> bool {
+        self.__go_id == other.__go_id
+    }
+}
+
+impl Eq for io_Writer {}
+
+impl PartialOrd for io_Writer {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for io_Writer {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.__go_id.cmp(&other.__go_id)
     }
@@ -1292,6 +1277,134 @@ impl os_File {
 
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct rand_Rand;
+
+impl std::fmt::Display for rand_Rand {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<rand_Rand>")
+    }
+}
+
+
+impl rand_Rand {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn uint32(&self) -> u32 {
+        panic!("rand_Rand.uint32 bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+#[derive(Clone)]
+pub struct rand_Source {
+    pub __go_id: usize,
+    pub __go_value: Arc<dyn std::any::Any + Send + Sync>,
+}
+
+impl rand_Source {
+    pub fn __go_from<T: 'static + Send + Sync>(value: T) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value) }
+    }
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.__go_value.as_ref().downcast_ref::<T>()
+    }
+}
+
+impl Default for rand_Source {
+    fn default() -> Self {
+        Self { __go_id: 0, __go_value: Arc::new(()) }
+    }
+}
+
+impl std::fmt::Debug for rand_Source {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<rand_Source>")
+    }
+}
+
+impl std::fmt::Display for rand_Source {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<rand_Source>")
+    }
+}
+
+impl PartialEq for rand_Source {
+    fn eq(&self, other: &Self) -> bool {
+        self.__go_id == other.__go_id
+    }
+}
+
+impl Eq for rand_Source {}
+
+impl PartialOrd for rand_Source {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for rand_Source {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.__go_id.cmp(&other.__go_id)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct reflect_Type {
+    pub __go_id: usize,
+    pub __go_value: Arc<dyn std::any::Any + Send + Sync>,
+}
+
+impl reflect_Type {
+    pub fn __go_from<T: 'static + Send + Sync>(value: T) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value) }
+    }
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.__go_value.as_ref().downcast_ref::<T>()
+    }
+}
+
+impl Default for reflect_Type {
+    fn default() -> Self {
+        Self { __go_id: 0, __go_value: Arc::new(()) }
+    }
+}
+
+impl std::fmt::Debug for reflect_Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<reflect_Type>")
+    }
+}
+
+impl std::fmt::Display for reflect_Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<reflect_Type>")
+    }
+}
+
+impl PartialEq for reflect_Type {
+    fn eq(&self, other: &Self) -> bool {
+        self.__go_id == other.__go_id
+    }
+}
+
+impl Eq for reflect_Type {}
+
+impl PartialOrd for reflect_Type {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for reflect_Type {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.__go_id.cmp(&other.__go_id)
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct reflect_Value;
 
 impl std::fmt::Display for reflect_Value {
@@ -1305,256 +1418,199 @@ impl reflect_Value {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
     }
-}
-
-
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct types_Basic {
-    pub __go_kind: types_BasicKind,
-    pub __go_info: types_BasicInfo,
-    pub __go_name: String,
-}
-
-impl std::fmt::Display for types_Basic {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.__go_name)
+    pub fn elem(&self) -> Arc<Mutex<Option<reflect_Value>>> {
+        panic!("reflect_Value.elem bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
-}
-
-
-impl types_Basic {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
+    pub fn field<T0>(&self, _arg0: T0) -> Arc<Mutex<Option<reflect_Value>>> {
+        panic!("reflect_Value.field bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+    pub fn r#type(&self) -> Arc<Mutex<Option<reflect_Type>>> {
+        panic!("reflect_Value.r#type bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct types_BasicInfo(pub i32);
+pub struct runtime_PanicNilError;
 
-impl PartialEq<i32> for types_BasicInfo {
-    fn eq(&self, other: &i32) -> bool {
-        self.0 == *other
-    }
-}
-
-impl PartialEq<types_BasicInfo> for i32 {
-    fn eq(&self, other: &types_BasicInfo) -> bool {
-        *self == other.0
-    }
-}
-
-impl std::ops::BitAnd for types_BasicInfo {
-    type Output = types_BasicInfo;
-    fn bitand(self, other: Self) -> types_BasicInfo {
-        types_BasicInfo(self.0 & other.0)
-    }
-}
-
-impl std::ops::BitOr for types_BasicInfo {
-    type Output = types_BasicInfo;
-    fn bitor(self, other: Self) -> types_BasicInfo {
-        types_BasicInfo(self.0 | other.0)
-    }
-}
-
-impl std::fmt::Display for types_BasicInfo {
+impl std::fmt::Display for runtime_PanicNilError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<types_BasicInfo>")
+        write!(f, "<runtime_PanicNilError>")
     }
 }
 
+impl std::error::Error for runtime_PanicNilError {}
 
-impl types_BasicInfo {
+
+impl runtime_PanicNilError {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("runtime_PanicNilError.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct types_BasicKind(pub i32);
+pub struct runtime_TypeAssertionError;
 
-impl PartialEq<i32> for types_BasicKind {
-    fn eq(&self, other: &i32) -> bool {
-        self.0 == *other
-    }
-}
-
-impl PartialEq<types_BasicKind> for i32 {
-    fn eq(&self, other: &types_BasicKind) -> bool {
-        *self == other.0
-    }
-}
-
-impl std::ops::BitAnd for types_BasicKind {
-    type Output = types_BasicKind;
-    fn bitand(self, other: Self) -> types_BasicKind {
-        types_BasicKind(self.0 & other.0)
-    }
-}
-
-impl std::ops::BitOr for types_BasicKind {
-    type Output = types_BasicKind;
-    fn bitor(self, other: Self) -> types_BasicKind {
-        types_BasicKind(self.0 | other.0)
-    }
-}
-
-impl std::fmt::Display for types_BasicKind {
+impl std::fmt::Display for runtime_TypeAssertionError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<types_BasicKind>")
+        write!(f, "<runtime_TypeAssertionError>")
     }
 }
 
+impl std::error::Error for runtime_TypeAssertionError {}
 
-impl types_BasicKind {
+
+impl runtime_TypeAssertionError {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("runtime_TypeAssertionError.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct types_Config;
+pub struct runtime_boundsError;
 
-impl std::fmt::Display for types_Config {
+impl std::fmt::Display for runtime_boundsError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<types_Config>")
+        write!(f, "<runtime_boundsError>")
     }
 }
 
+impl std::error::Error for runtime_boundsError {}
 
-impl types_Config {
+
+impl runtime_boundsError {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
     }
-    pub fn check<T0: GoTypesBridgeStringArg, T1, T3: GoTypesBridgeInfoArg>(&self, _arg0: T0, _arg1: T1, _arg2: Arc<Mutex<Option<Vec<Arc<Mutex<Option<ast_File>>>>>>>, _arg3: T3) -> (Arc<Mutex<Option<types_Package>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        match __go_types_config_check(_arg0, _arg2, _arg3) {
-            Ok(pkg) => (Arc::new(Mutex::new(Some::<types_Package>(pkg))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))),
-            Err(err) => (Arc::new(Mutex::new(None::<types_Package>)), Arc::new(Mutex::new(Some::<Box<dyn StdError + Send + Sync>>(err)))),
-        }
-    }
-}
-
-
-#[derive(Debug, Clone, Default)]
-pub struct types_Info {
-    pub types: Arc<Mutex<Option<BTreeMap<ast_Expr, Arc<Mutex<Option<types_TypeAndValue>>>>>>>,
-}
-
-impl std::fmt::Display for types_Info {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<types_Info>")
-    }
-}
-
-
-impl types_Info {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("runtime_boundsError.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct types_Package;
+pub struct runtime_errorAddressString;
 
-impl std::fmt::Display for types_Package {
+impl std::fmt::Display for runtime_errorAddressString {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<types_Package>")
+        write!(f, "<runtime_errorAddressString>")
     }
 }
 
+impl std::error::Error for runtime_errorAddressString {}
 
-impl types_Package {
+
+impl runtime_errorAddressString {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
     }
-    pub fn name(&self) -> Arc<Mutex<Option<String>>> {
-        panic!("types_Package.name bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("runtime_errorAddressString.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
 
-#[derive(Clone)]
-pub struct types_Type {
-    pub __go_id: usize,
-    pub __go_value: Arc<dyn std::any::Any + Send + Sync>,
-}
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct runtime_errorString;
 
-impl types_Type {
-    pub fn __go_from<T: 'static + Send + Sync>(value: T) -> Self {
-        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value) }
-    }
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        self.__go_value.as_ref().downcast_ref::<T>()
-    }
-}
-
-impl Default for types_Type {
-    fn default() -> Self {
-        Self { __go_id: 0, __go_value: Arc::new(()) }
-    }
-}
-
-impl std::fmt::Debug for types_Type {
+impl std::fmt::Display for runtime_errorString {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<types_Type>")
+        write!(f, "<runtime_errorString>")
     }
 }
 
-impl std::fmt::Display for types_Type {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<types_Type>")
-    }
-}
-
-impl PartialEq for types_Type {
-    fn eq(&self, other: &Self) -> bool {
-        self.__go_id == other.__go_id
-    }
-}
-
-impl Eq for types_Type {}
-
-impl PartialOrd for types_Type {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for types_Type {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.__go_id.cmp(&other.__go_id)
-    }
-}
+impl std::error::Error for runtime_errorString {}
 
 
-#[derive(Debug, Clone, Default)]
-pub struct types_TypeAndValue {
-    pub r#type: Arc<Mutex<Option<types_Type>>>,
-    pub value: Arc<Mutex<Option<constant_Value>>>,
-}
-
-impl std::fmt::Display for types_TypeAndValue {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<types_TypeAndValue>")
-    }
-}
-
-
-impl types_TypeAndValue {
+impl runtime_errorString {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
     }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("runtime_errorString.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
 }
 
 
-pub mod bits {
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct runtime_plainError;
+
+impl std::fmt::Display for runtime_plainError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<runtime_plainError>")
+    }
+}
+
+impl std::error::Error for runtime_plainError {}
+
+
+impl runtime_plainError {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("runtime_plainError.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct strconv_NumError;
+
+impl std::fmt::Display for strconv_NumError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<strconv_NumError>")
+    }
+}
+
+impl std::error::Error for strconv_NumError {}
+
+
+impl strconv_NumError {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn error(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("strconv_NumError.error bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+impl From<bytes_Reader> for io_ByteScanner {
+    fn from(_value: bytes_Reader) -> Self {
+        Self::__go_from(_value)
+    }
+}
+
+
+pub mod bisect {
     use super::*;
-    pub fn mul<T0, T1>(_arg0: T0, _arg1: T1) -> (u64, u64) {
-        panic!("mul bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    pub fn new<T0>(_arg0: T0) -> (Arc<Mutex<Option<bisect_Matcher>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        panic!("new bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+pub mod byteorder {
+    use super::*;
+    pub fn b_e_put_uint32<T0, T1>(_arg0: T0, _arg1: T1) {
+        panic!("b_e_put_uint32 bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+
+    pub fn b_e_uint32<T0>(_arg0: T0) -> u32 {
+        panic!("b_e_uint32 bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+
+    pub fn b_e_uint64<T0>(_arg0: T0) -> u64 {
+        panic!("b_e_uint64 bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -1567,6 +1623,18 @@ pub mod bytes {
 
     pub fn last_index_byte<T0, T1>(_arg0: T0, _arg1: T1) -> i32 {
         panic!("last_index_byte bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+
+    pub fn new_buffer_string<T0>(_arg0: T0) -> Arc<Mutex<Option<bytes_Buffer>>> {
+        panic!("new_buffer_string bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+
+    pub fn new_reader<T0>(_arg0: T0) -> Arc<Mutex<Option<bytes_Reader>>> {
+        panic!("new_reader bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+
+    pub fn trim_right<T0, T1>(_arg0: T0, _arg1: T1) -> Arc<Mutex<Option<Vec<u8>>>> {
+        panic!("trim_right bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -1583,6 +1651,14 @@ pub mod constraint {
 }
 
 
+pub mod fmt {
+    use super::*;
+    pub fn fprint<T0, T1>(_arg0: T0, _arg1: T1) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        panic!("fprint bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
 pub mod fs {
     use super::*;
     pub fn SkipAll() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
@@ -1595,10 +1671,56 @@ pub mod fs {
 }
 
 
+pub mod goarch {
+    use super::*;
+    pub const PTR_SIZE: i32 = 8;
+}
+
+
+pub mod godebugs {
+    use super::*;
+    pub fn lookup<T0>(_arg0: T0) -> Arc<Mutex<Option<godebugs_Info>>> {
+        panic!("lookup bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+pub mod heap {
+    use super::*;
+    pub fn fix<T0, T1>(_arg0: T0, _arg1: T1) {
+        panic!("fix bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+
+    pub fn init<T0>(_arg0: T0) {
+        panic!("init bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+
+    pub fn pop<T0>(_arg0: T0) -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
+        panic!("pop bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
 pub mod io {
     use super::*;
+    pub const SEEK_CURRENT: i32 = 1;
+    pub const SEEK_END: i32 = 2;
+    pub const SEEK_START: i32 = 0;
+
+    pub fn EOF() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+    }
+
+    pub fn ErrShortWrite() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+    }
+
     pub fn read_all<T0>(_arg0: T0) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         panic!("read_all bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+
+    pub fn write_string<T0, T1>(_arg0: T0, _arg1: T1) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        panic!("write_string bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -1648,6 +1770,17 @@ pub mod os {
     pub const PATH_LIST_SEPARATOR: i32 = 58;
     pub const PATH_SEPARATOR: i32 = 47;
 
+    pub fn getenv<T0: 'static>(_arg0: T0) -> Arc<Mutex<Option<String>>> {
+        let key = if let Some(v) = (&_arg0 as &dyn Any).downcast_ref::<String>() {
+            v.clone()
+        } else if let Some(v) = (&_arg0 as &dyn Any).downcast_ref::<Arc<Mutex<Option<String>>>>() {
+            v.lock().unwrap().as_ref().cloned().unwrap_or_default()
+        } else {
+            panic!("os.Getenv bridge: expected string argument")
+        };
+        Arc::new(Mutex::new(Some::<String>(std::env::var(key).unwrap_or_default())))
+    }
+
     pub fn lstat<T0: GoStringArg>(_arg0: T0) -> (Arc<Mutex<Option<fs_FileInfo>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         let path = _arg0.into_go_string();
         match std::fs::symlink_metadata(&path) {
@@ -1665,6 +1798,60 @@ pub mod os {
             Ok(data) => (Arc::new(Mutex::new(Some::<Vec<u8>>(data))), no_error()),
             Err(err) => (Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::new()))), io_error(err)),
         }
+    }
+}
+
+
+pub mod race {
+    use super::*;
+    pub const ENABLED: bool = false;
+
+    pub fn acquire<T0>(_arg0: T0) {
+        panic!("acquire bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+
+    pub fn disable() {
+        panic!("disable bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+
+    pub fn enable() {
+        panic!("enable bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+
+    pub fn read<T0>(_arg0: T0) {
+        panic!("read bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+
+    pub fn release<T0>(_arg0: T0) {
+        panic!("release bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+
+    pub fn release_merge<T0>(_arg0: T0) {
+        panic!("release_merge bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+pub mod rand {
+    use super::*;
+    pub fn new<T0>(_arg0: T0) -> Arc<Mutex<Option<rand_Rand>>> {
+        panic!("new bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+
+    pub fn new_source<T0>(_arg0: T0) -> Arc<Mutex<Option<rand_Source>>> {
+        panic!("new_source bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+pub mod runtime {
+    use super::*;
+    pub fn caller<T0>(_arg0: T0) -> (usize, Arc<Mutex<Option<String>>>, i32, bool) {
+        panic!("caller bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+
+    pub fn g_o_m_a_x_p_r_o_c_s<T0>(_arg0: T0) -> i32 {
+        std::thread::available_parallelism().map(|n| n.get() as i32).unwrap_or(1).max(1)
     }
 }
 
@@ -1766,48 +1953,30 @@ pub mod strconv {
         Ok(out)
     }
 
+    pub fn append_int<T0, T1, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> Arc<Mutex<Option<Vec<u8>>>> {
+        panic!("append_int bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+
+    pub fn format_bool<T0>(_arg0: T0) -> Arc<Mutex<Option<String>>> {
+        panic!("format_bool bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+
+    pub fn parse_int<T0, T1, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        panic!("parse_int bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+
     pub fn parse_uint<T0, T1, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> (u64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         panic!("parse_uint bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
-}
 
-
-pub mod unicode {
-    use super::*;
-    pub const MAX_RUNE: i32 = 1114111;
-
-    pub fn is_digit<T0>(_arg0: T0) -> bool {
-        panic!("is_digit bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    pub fn unquote<T0: GoStrconvStringArg>(_arg0: T0) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        match strconv_unquote_text(&_arg0.into_go_strconv_string()) {
+            Ok(value) => (Arc::new(Mutex::new(Some::<String>(value))), Arc::new(Mutex::new(None::<Box<dyn std::error::Error + Send + Sync>>))),
+            Err(err) => (Arc::new(Mutex::new(None::<String>)), Arc::new(Mutex::new(Some::<Box<dyn std::error::Error + Send + Sync>>(err)))),
+        }
     }
 
-    pub fn is_letter<T0>(_arg0: T0) -> bool {
-        panic!("is_letter bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn is_upper<T0>(_arg0: T0) -> bool {
-        panic!("is_upper bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
-
-
-pub mod utf8 {
-    use super::*;
-    pub const RUNE_ERROR: i32 = 65533;
-    pub const RUNE_SELF: i32 = 128;
-
-    pub fn append_rune<T0, T1>(_arg0: T0, _arg1: T1) -> Arc<Mutex<Option<Vec<u8>>>> {
-        panic!("append_rune bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn decode_rune<T0>(_arg0: T0) -> (i32, i32) {
-        panic!("decode_rune bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn decode_rune_in_string<T0>(_arg0: T0) -> (i32, i32) {
-        panic!("decode_rune_in_string bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn rune_count_in_string<T0>(_arg0: T0) -> i32 {
-        panic!("rune_count_in_string bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    pub fn unquote_char<T0, T1>(_arg0: T0, _arg1: T1) -> (i32, bool, Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        panic!("unquote_char bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }

@@ -49,7 +49,7 @@ pub fn runtime_notify_list_check(size: Arc<StdMutex<Option<usize>>>) {
 
 fn __go_init_0() {
     let mut n: Arc<StdMutex<Option<notifyList>>> = Arc::new(StdMutex::new(Some(Default::default())));
-    runtime_notify_list_check(Arc::new(StdMutex::new(Some(std::mem::size_of::<notifyList>()))));
+    runtime_notify_list_check(Arc::new(StdMutex::new(Some(std::mem::size_of::<crate::runtime2::notifyList>()))));
 }
 
 pub(crate) fn __go_init_functions() {

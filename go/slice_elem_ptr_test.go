@@ -1120,6 +1120,80 @@ func get(t *Type, addr uintptr, flag bool) *byte {
 	}
 }
 
+func TestGoPtrReturnPropagatesThroughMultiResultCallReturn(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct {
+	value int
+}
+
+func raw(addr uintptr) *node {
+	return (*node)(unsafe.Pointer(addr))
+}
+
+func slow(addr uintptr) (*node, int) {
+	return raw(addr), 1
+}
+
+func pick(addr uintptr, fast bool) (*node, int) {
+	if fast {
+		return raw(addr), 0
+	}
+	return slow(addr)
+}
+`)
+
+	if !strings.Contains(rust, "pub fn slow(") || !strings.Contains(rust, " -> (GoPtr<node>, i32)") {
+		t.Fatalf("callee returning raw pointer plus scalar should use GoPtr result type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn pick(") || !strings.Contains(rust, " -> (GoPtr<node>, i32)") {
+		t.Fatalf("multi-result call return should propagate GoPtr result type to caller:\n%s", rust)
+	}
+	if strings.Contains(rust, "pub fn pick(") && strings.Contains(rust, " -> (Rc<RefCell<Option<node>>>, i32)") {
+		t.Fatalf("multi-result call return should not leave caller with ordinary pointer wrapper:\n%s", rust)
+	}
+}
+
+func TestGoPtrLocalPromotedFieldAssignmentBorrowsPointee(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type poolLocalInternal struct {
+	private any
+}
+
+type local struct {
+	poolLocalInternal
+}
+
+type pool struct {
+	addr uintptr
+}
+
+func (p *pool) pick() (*local, int) {
+	addr := p.addr
+	return (*local)(unsafe.Pointer(addr)), 0
+}
+
+func (p *pool) put(value any) {
+	go func() {}()
+	l, _ := p.pick()
+	l.private = value
+}
+`)
+
+	if strings.Contains(rust, "l.pool_local_internal") {
+		t.Fatalf("promoted field assignment through a GoPtr local should not access the GoPtr as a struct:\n%s", rust)
+	}
+	if !strings.Contains(rust, "l.with_mut(|__ptr_value|") ||
+		!strings.Contains(rust, "(*__ptr_value.pool_local_internal") {
+		t.Fatalf("promoted field assignment through a GoPtr local should mutate the pointee before selecting fields:\n%s", rust)
+	}
+}
+
 func TestGoPtrCallResultDerefReadUsesGoPtrBorrow(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
@@ -2898,7 +2972,7 @@ func (h *holder) call(v int) bool {
 	if strings.Contains(rust, "slice element pointer field selector requires rvalue support") {
 		t.Fatalf("pointer field selected through a GoPtr field should emit a handle, not a placeholder:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __ptr_value = self.current.borrow(); __ptr_value.as_ref().unwrap().inner.clone()") {
+	if !strings.Contains(rust, "let __ptr_value = self.current.with_mut(|__ptr_value| __ptr_value.inner.clone())") {
 		t.Fatalf("pointer field selected through a GoPtr field should clone the field handle:\n%s", rust)
 	}
 	if !strings.Contains(rust, ".check.clone()") {
@@ -2938,13 +3012,13 @@ func (h *holder) localCount() int {
 	if strings.Contains(rust, "slice element pointer field selector requires promoted-field support") {
 		t.Fatalf("promoted field selected through a GoPtr field should emit a typed embedded-field traversal:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __ptr_value = self.current.borrow(); let __field = __ptr_value.as_ref().unwrap().workbufhdr.borrow().as_ref().unwrap().nobj.clone(); __field") {
+	if !strings.Contains(rust, "let __ptr_value = self.current.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.borrow().as_ref().unwrap().nobj.clone(); __field })") {
 		t.Fatalf("promoted field selected through a GoPtr field should traverse the embedded field handle:\n%s", rust)
 	}
 	if strings.Contains(rust, "GoPtr local field selector requires promoted-field support") {
 		t.Fatalf("promoted field selected through a GoPtr local should emit a typed embedded-field traversal:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __ptr_value = w.borrow(); let __field = __ptr_value.as_ref().unwrap().workbufhdr.borrow().as_ref().unwrap().nobj.clone(); __field") {
+	if !strings.Contains(rust, "let __ptr_value = w.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.borrow().as_ref().unwrap().nobj.clone(); __field })") {
 		t.Fatalf("promoted field selected through a GoPtr local should traverse the embedded field handle:\n%s", rust)
 	}
 }
@@ -3839,6 +3913,82 @@ func walk(t *table, n *node, i int) int {
 	}
 	if !strings.Contains(rust, "let __recv_value = m.borrow(); let __result = (*__recv_value.as_ref().unwrap()).load(") {
 		t.Fatalf("read-only GoPtr local method call should borrow through GoPtr:\n%s", rust)
+	}
+}
+
+func TestGoPtrLocalPointerReturningMethodCallUsesOriginalPointee(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct {
+	value int
+}
+
+type entry struct {
+	node
+}
+
+func pick(addr uintptr) (*node, int) {
+	return (*node)(unsafe.Pointer(addr)), 0
+}
+
+func (n *node) entry() *entry {
+	return (*entry)(unsafe.Pointer(n))
+}
+
+func use(addr uintptr) *entry {
+	n, _ := pick(addr)
+	return n.entry()
+}
+`)
+
+	if strings.Contains(rust, "let __recv_value = n.borrow(); let __result = (*__recv_value.as_ref().unwrap()).entry(") {
+		t.Fatalf("GoPtr local pointer-returning method call should not call through a cloned pointee:\n%s", rust)
+	}
+	if !strings.Contains(rust, "n.with_mut(|__recv_value| __recv_value.entry(") {
+		t.Fatalf("GoPtr local pointer-returning method call should use the original pointee:\n%s", rust)
+	}
+}
+
+func TestGoPtrLocalFieldHandleUsesOriginalPointee(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type cell struct {
+	value int
+}
+
+func (c *cell) Store(v int) {
+	c.value = v
+}
+
+func (c *cell) Load() int {
+	return c.value
+}
+
+type node struct {
+	children [4]cell
+}
+
+func pick(addr uintptr) *node {
+	return (*node)(unsafe.Pointer(addr))
+}
+
+func touch(addr uintptr, i int) int {
+	n := pick(addr)
+	c := &n.children[i]
+	c.Store(7)
+	return n.children[i].Load()
+}
+`)
+
+	if strings.Contains(rust, "let __ptr_value = n.borrow(); __ptr_value.as_ref().unwrap().children.clone()") {
+		t.Fatalf("GoPtr local field handle should not select from a cloned pointee:\n%s", rust)
+	}
+	if !strings.Contains(rust, "n.with_mut(|__ptr_value| __ptr_value.children.clone())") {
+		t.Fatalf("GoPtr local field handle should borrow the original pointee:\n%s", rust)
 	}
 }
 

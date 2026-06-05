@@ -2967,6 +2967,9 @@ func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 		if writeScopedTranspiledInterfaceMethodCallArgumentValue(out, arg) {
 			return true
 		}
+		if writeCopySelectorFieldArgumentValue(out, arg) {
+			return true
+		}
 		if !isCopyTypeExpression(arg) && writeOwnedExpressionValue(out, arg) {
 			return true
 		}
@@ -6941,6 +6944,26 @@ func writeOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool {
 	return false
 }
 
+func writeCopySelectorFieldArgumentValue(out *strings.Builder, arg ast.Expr) bool {
+	sel, ok := arg.(*ast.SelectorExpr)
+	if !ok || !isCopyTypeExpression(sel) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	if !ok || selection.Kind() != types.FieldVal {
+		return false
+	}
+	if isExpressionResultBare(sel) {
+		return false
+	}
+	writeClonedWrappedExpression(out, sel, "__selector_holder", "__selector_guard")
+	return true
+}
+
 func selectorSyntaxValueNeedsClone(sel *ast.SelectorExpr) bool {
 	fieldExpr, ok := selectorFieldTypeExpr(sel)
 	if !ok {
@@ -8173,6 +8196,10 @@ func writeEmptyInterfaceIdentAssignment(out *strings.Builder, lhs ast.Expr, rhs 
 				return true
 			}
 		}
+		if writeGoPtrLocalSelectorHandleReplacement(out, sel, "new_val") {
+			out.WriteString(" }")
+			return true
+		}
 		if writePointerHandleSelectorTarget(out, sel) {
 			out.WriteString(" = new_val; }")
 			return true
@@ -8191,6 +8218,26 @@ func writeEmptyInterfaceIdentAssignment(out *strings.Builder, lhs ast.Expr, rhs 
 		return true
 	}
 	return false
+}
+
+func writeGoPtrLocalSelectorHandleReplacement(out *strings.Builder, sel *ast.SelectorExpr, valueName string) bool {
+	ident, ok := sel.X.(*ast.Ident)
+	if !ok || !isGoPtrVar(ident.Name) {
+		return false
+	}
+	fieldInfo := selectorFieldAccessInfo(sel)
+	out.WriteString(rustIdentForUseWithCapture(ident))
+	out.WriteString(".with_mut(|__ptr_value| { ")
+	if fieldInfo.IsPromoted {
+		writePromotedHandleAssignmentTarget(out, "__ptr_value", fieldInfo, false)
+	} else {
+		out.WriteString("__ptr_value.")
+		out.WriteString(fieldInfo.FieldName)
+	}
+	out.WriteString(" = ")
+	out.WriteString(valueName)
+	out.WriteString("; });")
+	return true
 }
 
 func writeWrappedStructFieldValue(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, fieldType types.Type) {
@@ -10592,6 +10639,15 @@ func methodCallNeedsMutableReceiver(sel *ast.SelectorExpr) bool {
 		return mutable
 	}
 	return typeInfo.HasPointerReceiver(sel)
+}
+
+func goPtrMethodCallNeedsOriginalReceiver(call *ast.CallExpr, sel *ast.SelectorExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.HasPointerReceiver(sel) {
+		return false
+	}
+	_, ok := goPtrResultInfoForCall(call, 0)
+	return ok
 }
 
 func concreteAssertionMethodReceiverMutability(sel *ast.SelectorExpr) (bool, bool) {
@@ -18660,7 +18716,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					out.WriteString(".as_ref().unwrap()).")
 				}
 			} else if isGoPtrIdent(ident) {
-				if methodCallNeedsMutableReceiver(sel) {
+				if methodCallNeedsMutableReceiver(sel) || goPtrMethodCallNeedsOriginalReceiver(call, sel) {
 					out.WriteString("{ let __result = ")
 					out.WriteString(rustIdentForUseWithCapture(ident))
 					out.WriteString(".with_mut(|__recv_value| __recv_value.")
@@ -20567,8 +20623,23 @@ func writeAlreadyWrappedSelectorCallArgument(out *strings.Builder, arg ast.Expr,
 	if actual == nil || !types.AssignableTo(actual, expected) {
 		return false
 	}
+	if callArgumentExpectedValueSnapshot(expected) {
+		return false
+	}
 	writeSelectorHandleClone(out, sel)
 	return true
+}
+
+func callArgumentExpectedValueSnapshot(expected types.Type) bool {
+	if expected == nil {
+		return false
+	}
+	switch types.Unalias(expected).Underlying().(type) {
+	case *types.Basic, *types.Struct, *types.Array:
+		return true
+	default:
+		return false
+	}
 }
 
 func bareSelectorOwnerCanProvideFieldHandle(expr ast.Expr) bool {

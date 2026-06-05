@@ -2007,6 +2007,17 @@ impl std::fmt::Display for BranchStmt {
         write!(f, "{{{} {} {}}}", (*self.tok_pos.lock().unwrap().as_ref().unwrap()), (*self.tok.lock().unwrap().as_ref().unwrap()), { let __guard = self.label.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
     }
 }
+impl GoComparable for BranchStmt {
+    fn go_eq(&self, other: &Self) -> bool {
+        std::ptr::eq(self, other)
+    }
+    fn go_hash(&self, seed: usize) -> usize {
+        let mut __hasher = std::collections::hash_map::DefaultHasher::new();
+        std::hash::Hash::hash(&seed, &mut __hasher);
+        std::hash::Hash::hash(&(self as *const Self as usize), &mut __hasher);
+        std::hash::Hasher::finish(&__hasher) as usize
+    }
+}
 
 impl GoJsonDecode for BranchStmt {
     fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
@@ -3251,7 +3262,7 @@ impl Ident {
 
     /// IsExported reports whether id starts with an upper-case letter.
     pub fn is_exported(&self) -> bool {
-        go_token::is_exported({ let __field = self.name.clone(); __field })
+        go_token::is_exported(Arc::new(Mutex::new(Some({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))))
     }
 
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {

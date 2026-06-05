@@ -261,7 +261,7 @@ impl parser {
 
         const n: i32 = dots.len() as i32;
 
-        let mut pos = (*self.file.lock().unwrap().as_ref().unwrap()).position({ let __field = self.pos.clone(); __field });
+        let mut pos = (*self.file.lock().unwrap().as_ref().unwrap()).position(Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
         print!("{:5}:{:3}: ", (*{ let __field = (*pos.lock().unwrap().as_ref().unwrap()).line.clone(); __field }.lock().unwrap().as_ref().unwrap()), (*{ let __field = (*pos.lock().unwrap().as_ref().unwrap()).column.clone(); __field }.lock().unwrap().as_ref().unwrap()));
         let mut i = Arc::new(Mutex::new(Some({ let __tmp_x = 2; let __tmp_y = (*self.indent.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y })));
         while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 64; __tmp_x > __tmp_y } {
@@ -292,9 +292,9 @@ impl parser {
         loop {
         { let (__tmp_0, __tmp_1, __tmp_2) = (*self.scanner.lock().unwrap().as_mut().unwrap()).scan(); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *self.pos.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *self.tok.lock().unwrap() = __moved_tmp_1; let __moved_tmp_2 = { let mut __guard = __tmp_2.lock().unwrap(); __guard.take() }; *self.lit.lock().unwrap() = __moved_tmp_2; };
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_M_M_E_N_T as i32)))); __tmp_x == __tmp_y } {
-        if (*self.top.clone().lock().unwrap().as_ref().unwrap()) && strings::has_prefix({ let __field = self.lit.clone(); __field }, Arc::new(Mutex::new(Some("//go:build".to_string())))) {
+        if (*self.top.clone().lock().unwrap().as_ref().unwrap()) && strings::has_prefix(Arc::new(Mutex::new(Some({ let __selector_holder = self.lit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some("//go:build".to_string())))) {
         {
-        let (mut x, mut err) = constraint::parse({ let __go_arg = { let __selector_holder = self.lit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __go_arg });;
+        let (mut x, mut err) = constraint::parse({ let __selector_holder = self.lit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned });;
         if (*err.lock().unwrap()).is_none() {
             { let new_val = constraint::go_version(x.clone()); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *self.go_version.lock().unwrap() = __moved_val; };;
         }
@@ -319,7 +319,7 @@ impl parser {
 
                 // /*-style comments may end on a different line than where they start.
                 // Scan the comment for '\n' chars and adjust endline accordingly.
-        { let new_val = (*self.file.lock().unwrap().as_ref().unwrap()).line({ let __field = self.pos.clone(); __field }); *endline.lock().unwrap() = Some(new_val); };
+        { let new_val = (*self.file.lock().unwrap().as_ref().unwrap()).line(Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); *endline.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = { let __s = &((*self.lit.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] }; let __tmp_y = ('*' as i32) as u8; __tmp_x == __tmp_y } {
                 // don't use range here - no need to decode Unicode code points
         let mut i = Arc::new(Mutex::new(Some(0)));
@@ -345,8 +345,8 @@ impl parser {
     let mut endline: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
 
         let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<go_ast::r#mod::Comment>>>>>>> = Arc::new(Mutex::new(None));
-        { let new_val = (*self.file.lock().unwrap().as_ref().unwrap()).line({ let __field = self.pos.clone(); __field }); *endline.lock().unwrap() = Some(new_val); };
-        while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_M_M_E_N_T as i32)))); __tmp_x == __tmp_y } && { let __tmp_x = (*self.file.lock().unwrap().as_ref().unwrap()).line({ let __field = self.pos.clone(); __field }); let __tmp_y = { let __tmp_x = { let __v = (*endline.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; __tmp_x <= __tmp_y } {
+        { let new_val = (*self.file.lock().unwrap().as_ref().unwrap()).line(Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); *endline.lock().unwrap() = Some(new_val); };
+        while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_M_M_E_N_T as i32)))); __tmp_x == __tmp_y } && { let __tmp_x = (*self.file.lock().unwrap().as_ref().unwrap()).line(Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __tmp_y = { let __tmp_x = { let __v = (*endline.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; __tmp_x <= __tmp_y } {
         let mut comment: Arc<Mutex<Option<go_ast::r#mod::Comment>>> = Arc::new(Mutex::new(None));
         { let (__tmp_0, __tmp_1) = self.consume_comment(); comment = __tmp_0.clone(); *endline.lock().unwrap() = Some(__tmp_1); };
         { let new_val = { let __append_target = list.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(comment.clone()); __append_target.clone() }; list = new_val; };
@@ -379,11 +379,11 @@ impl parser {
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_M_M_E_N_T as i32)))); __tmp_x == __tmp_y } {
         let mut comment: Arc<Mutex<Option<go_ast::r#mod::CommentGroup>>> = Arc::new(Mutex::new(None));
         let mut endline: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
-        if { let __tmp_x = (*self.file.lock().unwrap().as_ref().unwrap()).line({ let __field = self.pos.clone(); __field }); let __tmp_y = (*self.file.lock().unwrap().as_ref().unwrap()).line(Arc::new(Mutex::new(Some({ let __arg_holder = prev.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __tmp_x == __tmp_y } {
+        if { let __tmp_x = (*self.file.lock().unwrap().as_ref().unwrap()).line(Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __tmp_y = (*self.file.lock().unwrap().as_ref().unwrap()).line(Arc::new(Mutex::new(Some({ let __arg_holder = prev.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __tmp_x == __tmp_y } {
                 // The comment is on same line as the previous token; it
                 // cannot be a lead comment but may be a line comment.
         { let (__tmp_0, __tmp_1) = self.consume_comment_group(Arc::new(Mutex::new(Some(0)))); comment = __tmp_0.clone(); *endline.lock().unwrap() = Some(__tmp_1); };
-        if { let __tmp_x = (*self.file.lock().unwrap().as_ref().unwrap()).line({ let __field = self.pos.clone(); __field }); let __tmp_y = { let __v = (*endline.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x != __tmp_y } || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_M_I_C_O_L_O_N as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_O_F as i32)))); __tmp_x == __tmp_y } {
+        if { let __tmp_x = (*self.file.lock().unwrap().as_ref().unwrap()).line(Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __tmp_y = { let __v = (*endline.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x != __tmp_y } || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_M_I_C_O_L_O_N as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_O_F as i32)))); __tmp_x == __tmp_y } {
                 // The next token is on a different line, thus
                 // the last comment group is a line comment.
         { let new_val = comment.clone(); self.line_comment = new_val; };
@@ -398,7 +398,7 @@ impl parser {
         while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_M_M_E_N_T as i32)))); __tmp_x == __tmp_y } {
         { let (__tmp_0, __tmp_1) = self.consume_comment_group(Arc::new(Mutex::new(Some(1)))); comment = __tmp_0.clone(); *endline.lock().unwrap() = Some(__tmp_1); };
     }
-        if { let __tmp_x = { let __tmp_x = { let __v = (*endline.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }; let __tmp_y = (*self.file.lock().unwrap().as_ref().unwrap()).line({ let __field = self.pos.clone(); __field }); __tmp_x == __tmp_y } {
+        if { let __tmp_x = { let __tmp_x = { let __v = (*endline.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }; let __tmp_y = (*self.file.lock().unwrap().as_ref().unwrap()).line(Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); __tmp_x == __tmp_y } {
                 // The next token is following on the line immediately after the
                 // comment group, thus the last comment group is a lead comment.
         { let new_val = comment.clone(); self.lead_comment = new_val; };
@@ -480,7 +480,7 @@ impl parser {
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*tok.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } {
         { let new_val = go_token::position::Pos(Arc::new(Mutex::new(Some((*(*self.pos.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *pos.lock().unwrap() = Some(new_val); };
     } else {
-        { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "'".to_string())); __s.push_str(&format!("{}", (*go_token::r#mod::Token::string(&(*tok.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", "'".to_string())); __s }))); self.error_expected(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "'".to_string())); __s.push_str(&format!("{}", (*go_token::r#mod::Token::string(&(*tok.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", "'".to_string())); __s }))); self.error_expected(__method_arg0, __method_arg1) };
     }
         self.next();
         pos
@@ -490,7 +490,7 @@ impl parser {
     /// for the common case of a missing comma before a newline.
     pub fn expect_closing(&mut self, tok: Arc<Mutex<Option<go_token::r#mod::Token>>>, context: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*tok.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_M_I_C_O_L_O_N as i32)))); __tmp_x == __tmp_y } && { let __tmp_x = (*self.lit.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "\n".to_string(); __tmp_x == __tmp_y } {
-        { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some(format!("{}{}", "missing ',' before newline in ".to_string(), { let __v = (*context.lock().unwrap().as_ref().unwrap()).clone(); __v })))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some(format!("{}{}", "missing ',' before newline in ".to_string(), { let __v = (*context.lock().unwrap().as_ref().unwrap()).clone(); __v })))); self.error(__method_arg0, __method_arg1) };
         self.next();
     }
         self.expect(Arc::new(Mutex::new(Some({ let __arg_holder = tok.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))
@@ -510,7 +510,7 @@ impl parser {
             _matched = true;
             _fallthrough = false;
                         // permit a ',' instead of a ';' but complain
-            { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("';'".to_string()))); self.error_expected(__method_arg0, __method_arg1) };
+            { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("';'".to_string()))); self.error_expected(__method_arg0, __method_arg1) };
             _fallthrough = true;
         }
         if !_matched && (_switch_val == go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_M_I_C_O_L_O_N as i32))))) || _fallthrough {
@@ -534,7 +534,7 @@ impl parser {
         if !_matched || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("';'".to_string()))); self.error_expected(__method_arg0, __method_arg1) };
+            { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("';'".to_string()))); self.error_expected(__method_arg0, __method_arg1) };
             self.advance(stmtStart.clone());
         }
     }
@@ -556,7 +556,7 @@ impl parser {
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_M_I_C_O_L_O_N as i32)))); __tmp_x == __tmp_y } && { let __tmp_x = (*self.lit.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "\n".to_string(); __tmp_x == __tmp_y } {
         { (*msg.lock().unwrap().as_mut().unwrap()).push_str(&" before newline".to_string()); };
     }
-        { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", " in ".to_string())); __s.push_str(&format!("{}", { let __v = (*context.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s }))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", " in ".to_string())); __s.push_str(&format!("{}", { let __v = (*context.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s }))); self.error(__method_arg0, __method_arg1) };
         return true;
     }
                 // "insert" comma and continue
@@ -804,7 +804,7 @@ impl parser {
                 // Trailing commas are accepted in type parameter
                 // lists but not in array type declarations.
                 // Accept for better error handling but complain.
-        { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("unexpected comma; expecting ]".to_string()))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("unexpected comma; expecting ]".to_string()))); self.error(__method_arg0, __method_arg1) };
         self.next();
     }
                 // Trailing commas are accepted in type parameter
@@ -934,7 +934,7 @@ impl parser {
             self.next();
             if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32)))); __tmp_x == __tmp_y } {
                 // *(T)
-        { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("cannot parenthesize embedded type".to_string()))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("cannot parenthesize embedded type".to_string()))); self.error(__method_arg0, __method_arg1) };
         self.next();
         { let __iface_handle = self.parse_qualified_ident(Arc::new(Mutex::new(None))).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
                 // expect closing ')' but no need to complain if missing
@@ -950,7 +950,7 @@ impl parser {
                         // *T
             { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::StarExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::StarExpr { star: Arc::new(Mutex::new(Some({ let __arg_holder = star.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), x: typ.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32))))) {
-            { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("cannot parenthesize embedded type".to_string()))); self.error(__method_arg0, __method_arg1) };
+            { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("cannot parenthesize embedded type".to_string()))); self.error(__method_arg0, __method_arg1) };
             self.next();
             if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::M_U_L as i32)))); __tmp_x == __tmp_y } {
                 // (*T)
@@ -1169,7 +1169,7 @@ impl parser {
         } else {
                         // TODO(rfindley): this is incorrect in the case of type parameter lists
                         //                 (should be "']'" in that case)
-            { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("')'".to_string()))); self.error_expected(__method_arg0, __method_arg1) };
+            { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("')'".to_string()))); self.error_expected(__method_arg0, __method_arg1) };
             self.advance(exprEnd.clone());
         }
     }
@@ -1431,7 +1431,7 @@ impl parser {
         { let new_val = Arc::new(Mutex::new(Some(go_ast::r#mod::FieldList { opening: Arc::new(Mutex::new(Some({ let __arg_holder = opening.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), list: list.clone(), closing: Arc::new(Mutex::new(Some({ let __arg_holder = rbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone(); tparams = new_val; };
                 // Type parameter lists must not be empty.
         if { let __tmp_x = { let __recv = tparams.clone(); let __recv_ptr: *const go_ast::r#mod::FieldList = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_ast::r#mod::FieldList }; let __result = unsafe { &*__recv_ptr }.num_fields(); __result }; let __tmp_y = 0; __tmp_x == __tmp_y } {
-        self.error({ let __field = (*tparams.lock().unwrap().as_ref().unwrap()).closing.clone(); __field }, Arc::new(Mutex::new(Some("empty type parameter list".to_string()))));
+        self.error(Arc::new(Mutex::new(Some({ let __selector_holder = (*tparams.lock().unwrap().as_ref().unwrap()).closing.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some("empty type parameter list".to_string()))));
         *tparams.lock().unwrap() = None;
     }
     }
@@ -2192,7 +2192,7 @@ impl parser {
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32)))); __tmp_x == __tmp_y } {
                 // empty index, slice or index expressions are not permitted;
                 // accept them for parsing tolerance, but complain
-        { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("operand".to_string()))); self.error_expected(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("operand".to_string()))); self.error_expected(__method_arg0, __method_arg1) };
         let mut rbrack = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         self.next();
         {
@@ -2618,7 +2618,7 @@ impl parser {
             let mut dir = Arc::new(Mutex::new(Some(go_ast::r#mod::ChanDir(Arc::new(Mutex::new(Some(go_ast::S_E_N_D as i32)))))));;
             while ok && { let __tmp_x = (*dir.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_ast::r#mod::ChanDir(Arc::new(Mutex::new(Some(go_ast::S_E_N_D as i32)))); __tmp_x == __tmp_y } {
         if { let __tmp_x = { let __selector_holder = (*typ.lock().unwrap().as_ref().unwrap()).dir.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = go_ast::r#mod::ChanDir(Arc::new(Mutex::new(Some(go_ast::R_E_C_V as i32)))); __tmp_x == __tmp_y } {
-        self.error_expected({ let __field = (*typ.lock().unwrap().as_ref().unwrap()).arrow.clone(); __field }, Arc::new(Mutex::new(Some("'chan'".to_string()))));
+        self.error_expected(Arc::new(Mutex::new(Some({ let __selector_holder = (*typ.lock().unwrap().as_ref().unwrap()).arrow.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some("'chan'".to_string()))));
     }
         { let __tmp_0 = { let __selector_holder = (*typ.lock().unwrap().as_ref().unwrap()).arrow.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_1 = (*arrow.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_2 = (*arrow.lock().unwrap().as_ref().unwrap()).clone(); *arrow.lock().unwrap() = Some(__tmp_0); *(*typ.lock().unwrap().as_ref().unwrap()).begin.lock().unwrap() = Some(__tmp_1); *(*typ.lock().unwrap().as_ref().unwrap()).arrow.lock().unwrap() = Some(__tmp_2); };
         { let __tmp_0 = { let __selector_holder = (*typ.lock().unwrap().as_ref().unwrap()).dir.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_1 = go_ast::R_E_C_V; *dir.lock().unwrap() = Some(__tmp_0); *(*typ.lock().unwrap().as_ref().unwrap()).dir.lock().unwrap() = Some(go_ast::r#mod::ChanDir(Arc::new(Mutex::new(Some(__tmp_1 as i32))))); };
@@ -3126,7 +3126,7 @@ impl parser {
     let mut cond: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32)))); __tmp_x == __tmp_y } {
-        { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("missing condition in if statement".to_string()))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("missing condition in if statement".to_string()))); self.error(__method_arg0, __method_arg1) };
         { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadExpr { from: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), to: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *cond.lock().unwrap() = (*__iface_guard).clone(); };
         return (init, cond);
     }
@@ -3137,7 +3137,7 @@ impl parser {
                 // accept potential variable declaration but complain
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::V_A_R as i32)))); __tmp_x == __tmp_y } {
         self.next();
-        { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("var declaration not allowed in if initializer".to_string()))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("var declaration not allowed in if initializer".to_string()))); self.error(__method_arg0, __method_arg1) };
     }
         { let (__tmp_0, __tmp_1) = self.parse_simple_stmt(Arc::new(Mutex::new(Some(0)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *init.lock().unwrap() = __moved_tmp_0; };
     }
@@ -3164,9 +3164,9 @@ impl parser {
         { let __iface_handle = self.make_expr(condStmt.clone(), Arc::new(Mutex::new(Some("boolean expression".to_string())))).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *cond.lock().unwrap() = (*__iface_guard).clone(); };
     } else if go_token::position::Pos::is_valid(&(*(*semi.lock().unwrap().as_ref().unwrap()).pos.lock().unwrap().as_ref().unwrap())) {
         if { let __tmp_x = { let __selector_holder = (*semi.lock().unwrap().as_ref().unwrap()).lit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = "\n".to_string(); __tmp_x == __tmp_y } {
-        self.error({ let __field = (*semi.lock().unwrap().as_ref().unwrap()).pos.clone(); __field }, Arc::new(Mutex::new(Some("unexpected newline, expecting { after if clause".to_string()))));
+        self.error(Arc::new(Mutex::new(Some({ let __selector_holder = (*semi.lock().unwrap().as_ref().unwrap()).pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some("unexpected newline, expecting { after if clause".to_string()))));
     } else {
-        self.error({ let __field = (*semi.lock().unwrap().as_ref().unwrap()).pos.clone(); __field }, Arc::new(Mutex::new(Some("missing condition in if statement".to_string()))));
+        self.error(Arc::new(Mutex::new(Some({ let __selector_holder = (*semi.lock().unwrap().as_ref().unwrap()).pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some("missing condition in if statement".to_string()))));
     }
     }
                 // make sure we have a valid AST
@@ -3201,7 +3201,7 @@ impl parser {
             { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BlockStmtPtr(self.parse_block_stmt().clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *else_.lock().unwrap() = (*__iface_guard).clone(); };
             self.expect_semi();
         } else {
-            { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("if statement or block".to_string()))); self.error_expected(__method_arg0, __method_arg1) };
+            { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("if statement or block".to_string()))); self.error_expected(__method_arg0, __method_arg1) };
             { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadStmt { from: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), to: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *else_.lock().unwrap() = (*__iface_guard).clone(); };
         }
     }
@@ -3272,7 +3272,7 @@ impl parser {
         if !_matched && (_switch_val == go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_S_S_I_G_N as i32))))) || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            self.error({ let __field = (*t.lock().unwrap().as_ref().unwrap()).tok_pos.clone(); __field }, Arc::new(Mutex::new(Some("expected ':=', found '='".to_string()))));
+            self.error(Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).tok_pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some("expected ':=', found '='".to_string()))));
             _fallthrough = true;
         }
         if !_matched && (_switch_val == go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::D_E_F_I_N_E as i32))))) || _fallthrough {
@@ -3631,7 +3631,7 @@ impl parser {
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_E_T_U_R_N as i32))))) {
             { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ReturnStmtPtr(self.parse_return_stmt().clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *s.lock().unwrap() = (*__iface_guard).clone(); };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::B_R_E_A_K as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_N_T_I_N_U_E as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::G_O_T_O as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::F_A_L_L_T_H_R_O_U_G_H as i32))))) {
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BranchStmtPtr({ let __method_arg0 = { let __field = self.tok.clone(); __field }; self.parse_branch_stmt(__method_arg0) }.clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *s.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BranchStmtPtr({ let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); self.parse_branch_stmt(__method_arg0) }.clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *s.lock().unwrap() = (*__iface_guard).clone(); };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32))))) {
             { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BlockStmtPtr(self.parse_block_stmt().clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *s.lock().unwrap() = (*__iface_guard).clone(); };
             self.expect_semi();
@@ -3967,7 +3967,7 @@ impl parser {
         if (*recv.lock().unwrap()).is_some() && (*tparams.lock().unwrap()).is_some() {
                 // Method declarations do not have type parameters. We parse them for a
                 // better error message and improved error recovery.
-        self.error({ let __field = (*tparams.lock().unwrap().as_ref().unwrap()).opening.clone(); __field }, Arc::new(Mutex::new(Some("method must have no type parameters".to_string()))));
+        self.error(Arc::new(Mutex::new(Some({ let __selector_holder = (*tparams.lock().unwrap().as_ref().unwrap()).opening.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some("method must have no type parameters".to_string()))));
         *tparams.lock().unwrap() = None;
     }
                 // Method declarations do not have type parameters. We parse them for a
@@ -3982,7 +3982,7 @@ impl parser {
             self.next();
             if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32)))); __tmp_x == __tmp_y } {
                 // opening { of function declaration on next line
-        { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("unexpected semicolon or newline before {".to_string()))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("unexpected semicolon or newline before {".to_string()))); self.error(__method_arg0, __method_arg1) };
         { let new_val = self.parse_body().clone(); body = new_val; };
         self.expect_semi();
     }
@@ -4043,7 +4043,7 @@ impl parser {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::GenDeclPtr({ let __method_arg0 = { let __field = self.tok.clone(); __field }; let __method_arg1 = f.clone(); self.parse_gen_decl(__method_arg0, __method_arg1) }.clone())) as Box<dyn go_ast::r#mod::Decl + Send + Sync>)));
+        return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::GenDeclPtr({ let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = f.clone(); self.parse_gen_decl(__method_arg0, __method_arg1) }.clone())) as Box<dyn go_ast::r#mod::Decl + Send + Sync>)));
     }
     }
 
@@ -4073,7 +4073,7 @@ impl parser {
                 // the package name does not appear in any scope.
         let mut ident = self.parse_ident();
         if { let __tmp_x = { let __selector_holder = (*ident.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = "_".to_string(); __tmp_x == __tmp_y } && { let __tmp_x = crate::interface::Mode(Arc::new(Mutex::new(Some(((*(*self.mode.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & DECLARATION_ERRORS as u64))))); let __tmp_y = crate::interface::Mode(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x != __tmp_y } {
-        { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("invalid package name _".to_string()))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("invalid package name _".to_string()))); self.error(__method_arg0, __method_arg1) };
     }
         self.expect_semi();
                 // Don't bother parsing the rest if we had errors parsing the package clause.
@@ -4099,7 +4099,7 @@ impl parser {
         while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_O_F as i32)))); __tmp_x != __tmp_y } {
                 // Continue to accept import declarations for error tolerance, but complain.
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_M_P_O_R_T as i32)))); __tmp_x == __tmp_y } && { let __tmp_x = (*prev.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_M_P_O_R_T as i32)))); __tmp_x != __tmp_y } {
-        { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("imports must appear before other declarations".to_string()))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("imports must appear before other declarations".to_string()))); self.error(__method_arg0, __method_arg1) };
     }
         { let new_val = go_token::r#mod::Token(Arc::new(Mutex::new(Some((*(*self.tok.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *prev.lock().unwrap() = Some(new_val); };
 
@@ -4144,7 +4144,7 @@ pub fn un(p: Arc<Mutex<Option<parser>>>) {
 pub fn inc_nest_lev(p: Arc<Mutex<Option<parser>>>) -> Arc<Mutex<Option<parser>>> {
     { let __target = (*p.lock().unwrap().as_ref().unwrap()).nest_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     if { let __tmp_x = (*{ let __field = (*p.lock().unwrap().as_ref().unwrap()).nest_lev.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 100000; __tmp_x > __tmp_y } {
-        { let __recv = p.clone(); let __recv_ptr: *const parser = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const parser }; let __result = unsafe { &*__recv_ptr }.error({ let __field = (*p.lock().unwrap().as_ref().unwrap()).pos.clone(); __field }, Arc::new(Mutex::new(Some("exceeded max nesting depth".to_string())))); __result };
+        { let __recv = p.clone(); let __recv_ptr: *const parser = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const parser }; let __result = unsafe { &*__recv_ptr }.error(Arc::new(Mutex::new(Some({ let __selector_holder = (*p.lock().unwrap().as_ref().unwrap()).pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some("exceeded max nesting depth".to_string())))); __result };
         panic!("{}", bailout { pos: Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(0))))))), msg: Arc::new(Mutex::new(Some(String::new()))) });
     }
     p.clone()

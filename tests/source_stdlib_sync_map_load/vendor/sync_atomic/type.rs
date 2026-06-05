@@ -1,5 +1,7 @@
 use go2rust_stdlib_stubs::*;
 
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef};
+
 use crate::doc::*;
 use crate::doc_64::*;
 use crate::value::*;
@@ -45,38 +47,38 @@ impl GoJsonDecode for Bool {
 
 
 /// A Pointer is an atomic pointer of type *T. The zero value is a nil *T.
-pub struct Pointer<T: Any + Send + Sync + 'static> {
+pub struct Pointer<T: Any + Clone + Send + Sync + 'static> {
     pub __blank_0_0: Arc<Mutex<Option<[Arc<Mutex<Option<T>>>; 0]>>>,
     pub __blank_1_0: Arc<Mutex<Option<noCopy>>>,
-    pub v: Arc<Mutex<Option<Arc<Mutex<Option<T>>>>>>,
+    pub v: Arc<Mutex<Option<GoPtr<T>>>>,
 }
 
-impl<T: Any + Send + Sync + 'static> Pointer<T> {
+impl<T: Any + Clone + Send + Sync + 'static> Pointer<T> {
     pub fn __go_value_clone(&self) -> Self {
         Self { __blank_0_0: { let __guard = self.__blank_0_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_1_0: { let __guard = self.__blank_1_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, v: { let __guard = self.v.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
     }
 }
 
-impl<T: Any + Send + Sync + 'static> Clone for Pointer<T> {
+impl<T: Any + Clone + Send + Sync + 'static> Clone for Pointer<T> {
     fn clone(&self) -> Self {
         self.__go_value_clone()
     }
 }
 
 
-impl<T: Any + Send + Sync + 'static> Default for Pointer<T> {
+impl<T: Any + Clone + Send + Sync + 'static> Default for Pointer<T> {
     fn default() -> Self {
         Self { __blank_0_0: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Arc::new(Mutex::new(None)))))), __blank_1_0: Arc::new(Mutex::new(Some(noCopy::default()))), v: Arc::new(Mutex::new(None)) }
     }
 }
 
-impl<T: Any + Send + Sync + 'static> std::fmt::Display for Pointer<T> {
+impl<T: Any + Clone + Send + Sync + 'static> std::fmt::Display for Pointer<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{{{} {} {}}}", "[]", (*self.__blank_1_0.lock().unwrap().as_ref().unwrap()), { let __guard = self.v.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
     }
 }
 
-impl<T: Any + Send + Sync + 'static> GoJsonDecode for Pointer<T> {
+impl<T: Any + Clone + Send + Sync + 'static> GoJsonDecode for Pointer<T> {
     fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
         let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
         let mut out = Self::default();
@@ -242,43 +244,43 @@ impl Bool {
     }
 }
 
-impl<T: Any + Send + Sync + 'static> Pointer<T> {
+impl<T: Any + Clone + Send + Sync + 'static> Pointer<T> {
     /// Load atomically loads and returns the value stored in x.
-    pub fn load(&self) -> Arc<Mutex<Option<T>>> {
+    pub fn load(&self) -> GoPtr<T> {
         let __guard = self.v.lock().unwrap();
-        __guard.as_ref().cloned().unwrap_or_else(|| Arc::new(Mutex::new(None)))
+        __guard.as_ref().cloned().unwrap_or_else(|| GoPtr::nil())
     }
 
     /// Store atomically stores val into x.
-    pub fn store(&self, val: Arc<Mutex<Option<T>>>) {
-        let __stored = if val.lock().unwrap().is_some() { Some(val.clone()) } else { None };
+    pub fn store(&self, val: GoPtr<T>) {
+        let __stored = if val.is_nil() { None } else { Some(val.clone()) };
         *self.v.lock().unwrap() = __stored;
     }
 
     /// Swap atomically stores new into x and returns the previous value.
-    pub fn swap(&self, new: Arc<Mutex<Option<T>>>) -> Arc<Mutex<Option<T>>> {
+    pub fn swap(&self, new: GoPtr<T>) -> GoPtr<T> {
     let mut old: Arc<Mutex<Option<T>>> = Arc::new(Mutex::new(None));
 
-        let __stored = if new.lock().unwrap().is_some() { Some(new.clone()) } else { None };
+        let __stored = if new.is_nil() { None } else { Some(new.clone()) };
         let mut __guard = self.v.lock().unwrap();
-        let __old = __guard.as_ref().cloned().unwrap_or_else(|| Arc::new(Mutex::new(None)));
+        let __old = __guard.as_ref().cloned().unwrap_or_else(|| GoPtr::nil());
         *__guard = __stored;
         __old
     }
 
     /// CompareAndSwap executes the compare-and-swap operation for x.
-    pub fn compare_and_swap(&self, old: Arc<Mutex<Option<T>>>, new: Arc<Mutex<Option<T>>>) -> bool {
+    pub fn compare_and_swap(&self, old: GoPtr<T>, new: GoPtr<T>) -> bool {
     let mut swapped: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
 
-        let __new_value = if new.lock().unwrap().is_some() { Some(new.clone()) } else { None };
-        let __old_is_nil = old.lock().unwrap().is_none();
+        let __new_value = if new.is_nil() { None } else { Some(new.clone()) };
+        let __old_is_nil = old.is_nil();
         let mut __guard = self.v.lock().unwrap();
         let __matches = match __guard.as_ref() {
             Some(__current) => {
                 if __old_is_nil {
-                    __current.lock().unwrap().is_none()
+                    __current.is_nil()
                 } else {
-                    Arc::ptr_eq(__current, &old)
+                    GoPtr::ptr_eq(__current, &old)
                 }
             }
             None => __old_is_nil,
@@ -422,7 +424,7 @@ impl GoValueClone for Bool {
 }
 
 
-impl<T: Any + Send + Sync + 'static> GoValueClone for Pointer<T> {
+impl<T: Any + Clone + Send + Sync + 'static> GoValueClone for Pointer<T> {
     fn go_value_clone(&self) -> Self {
         self.__go_value_clone()
     }

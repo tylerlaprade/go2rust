@@ -1,5 +1,7 @@
 use go2rust_stdlib_stubs::*;
 
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef};
+
 use crate::doc_64::*;
 use crate::r#type::*;
 use crate::value::*;

@@ -1,0 +1,11 @@
+[package]
+name = "internal_goversion"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "internal_goversion"
+path = "lib.rs"
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }

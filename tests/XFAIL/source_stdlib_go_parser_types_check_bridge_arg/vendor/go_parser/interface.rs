@@ -432,7 +432,7 @@ pub fn read_source(filename: Arc<Mutex<Option<String>>>, src: Arc<Mutex<Option<B
         return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("invalid source".to_string())))));
     }
         // is io.Reader, but src is already available in []byte form
-    os::read_file(filename.clone())
+    os::read_file({ let __arg_holder = filename.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })
 }
 
 /// ParseFile parses the source code of a single Go source file and returns
@@ -506,7 +506,7 @@ pub fn parse_file(fset: Arc<Mutex<Option<go_token::position::FileSet>>>, filenam
             if !ok {
         std::panic::panic_any({ let __any_holder = e.clone(); let __any_guard = __any_holder.lock().unwrap(); go_any_clone(__any_guard.as_ref().expect("nil interface in variadic any argument").as_ref()) });
     } else if { let __tmp_x = { let __selector_holder = (*bail.lock().unwrap().as_ref().unwrap()).msg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
-        (*(*p_defer_captured.lock().unwrap().as_ref().unwrap()).errors.lock().unwrap().as_mut().unwrap()).add((*(*p_defer_captured.lock().unwrap().as_ref().unwrap()).file.lock().unwrap().as_ref().unwrap()).position({ let __field = (*bail.lock().unwrap().as_ref().unwrap()).pos.clone(); __field }), { let __field = (*bail.lock().unwrap().as_ref().unwrap()).msg.clone(); __field });
+        (*(*p_defer_captured.lock().unwrap().as_ref().unwrap()).errors.lock().unwrap().as_mut().unwrap()).add((*(*p_defer_captured.lock().unwrap().as_ref().unwrap()).file.lock().unwrap().as_ref().unwrap()).position(Arc::new(Mutex::new(Some({ let __selector_holder = (*bail.lock().unwrap().as_ref().unwrap()).pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))), Arc::new(Mutex::new(Some({ let __selector_holder = (*bail.lock().unwrap().as_ref().unwrap()).msg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
     };
         }
     }

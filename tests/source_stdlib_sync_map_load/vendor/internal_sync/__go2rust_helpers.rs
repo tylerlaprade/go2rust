@@ -44,87 +44,6 @@ where
     }
 }
 
-pub trait GoComparable {
-    fn go_eq(&self, other: &Self) -> bool;
-    fn go_hash(&self, seed: usize) -> usize;
-}
-
-fn go_hash_value<T: std::hash::Hash>(value: &T, seed: usize) -> usize {
-    let mut __hasher = std::collections::hash_map::DefaultHasher::new();
-    std::hash::Hash::hash(&seed, &mut __hasher);
-    std::hash::Hash::hash(value, &mut __hasher);
-    std::hash::Hasher::finish(&__hasher) as usize
-}
-
-macro_rules! impl_go_comparable_hash {
-    ($($t:ty),* $(,)?) => {
-        $(impl GoComparable for $t {
-            fn go_eq(&self, other: &Self) -> bool { self == other }
-            fn go_hash(&self, seed: usize) -> usize { go_hash_value(self, seed) }
-        })*
-    };
-}
-
-impl_go_comparable_hash!(bool, char, i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, String, &'static str);
-
-impl GoComparable for f32 {
-    fn go_eq(&self, other: &Self) -> bool { self == other }
-    fn go_hash(&self, seed: usize) -> usize { go_hash_value(&self.to_bits(), seed) }
-}
-
-impl GoComparable for f64 {
-    fn go_eq(&self, other: &Self) -> bool { self == other }
-    fn go_hash(&self, seed: usize) -> usize { go_hash_value(&self.to_bits(), seed) }
-}
-
-fn go_any_comparable_eq(left: &(dyn Any + Send + Sync), right: &(dyn Any + Send + Sync)) -> bool {
-    if left.type_id() != right.type_id() {
-        return false;
-    }
-    if let Some(v) = left.downcast_ref::<i32>() { return right.downcast_ref::<i32>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<i64>() { return right.downcast_ref::<i64>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<i8>() { return right.downcast_ref::<i8>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<i16>() { return right.downcast_ref::<i16>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<u32>() { return right.downcast_ref::<u32>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<u64>() { return right.downcast_ref::<u64>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<u8>() { return right.downcast_ref::<u8>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<u16>() { return right.downcast_ref::<u16>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<usize>() { return right.downcast_ref::<usize>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<isize>() { return right.downcast_ref::<isize>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<f64>() { return right.downcast_ref::<f64>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<f32>() { return right.downcast_ref::<f32>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<String>() { return right.downcast_ref::<String>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<&str>() { return right.downcast_ref::<&str>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<bool>() { return right.downcast_ref::<bool>().map_or(false, |r| v == r); }
-    if let Some(v) = left.downcast_ref::<char>() { return right.downcast_ref::<char>().map_or(false, |r| v == r); }
-    panic!("interface comparison with uncomparable dynamic type")
-}
-
-fn go_any_comparable_hash(value: &(dyn Any + Send + Sync), seed: usize) -> usize {
-    if let Some(v) = value.downcast_ref::<i32>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<i64>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<i8>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<i16>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<u32>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<u64>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<u8>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<u16>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<usize>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<isize>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<f64>() { return go_hash_value(&(value.type_id(), v.to_bits()), seed); }
-    if let Some(v) = value.downcast_ref::<f32>() { return go_hash_value(&(value.type_id(), v.to_bits()), seed); }
-    if let Some(v) = value.downcast_ref::<String>() { return go_hash_value(&(value.type_id(), v), seed); }
-    if let Some(v) = value.downcast_ref::<&str>() { return go_hash_value(&(value.type_id(), v), seed); }
-    if let Some(v) = value.downcast_ref::<bool>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    if let Some(v) = value.downcast_ref::<char>() { return go_hash_value(&(value.type_id(), *v), seed); }
-    panic!("interface hash with uncomparable dynamic type")
-}
-
-impl GoComparable for Box<dyn Any + Send + Sync> {
-    fn go_eq(&self, other: &Self) -> bool { go_any_comparable_eq(self.as_ref(), other.as_ref()) }
-    fn go_hash(&self, seed: usize) -> usize { go_any_comparable_hash(self.as_ref(), seed) }
-}
-
 fn go_embedded_owner_registry() -> &'static std::sync::Mutex<std::collections::HashMap<usize, Box<dyn Any + Send + Sync>>> {
     static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, Box<dyn Any + Send + Sync>>>> = std::sync::OnceLock::new();
     REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
@@ -144,50 +63,139 @@ fn go_lookup_embedded_owner<T: Send + Sync + 'static>(embedded_key: usize, targe
 }
 
 #[derive(Clone)]
-struct GoSliceElemPtr<T: Clone> {
+pub struct GoSliceElemPtr<T: Clone> {
     slice: Arc<Mutex<Option<Vec<T>>>>,
     index: usize,
 }
 
-struct GoSliceElemRef<T: Clone> {
+pub struct GoSliceElemRef<T: Clone> {
     value: Option<T>,
 }
 
-struct GoSliceElemMutRef<T: Clone> {
+pub struct GoSliceElemMutRef<T: Clone> {
     slice: Arc<Mutex<Option<Vec<T>>>>,
     index: usize,
     value: Option<T>,
+}
+
+pub trait GoArrayElemBacking<T: Clone + Send + Sync + 'static, const N: usize>: Send + Sync {
+    fn borrow_at(&self, index: usize) -> Option<T>;
+    fn assign_at(&self, index: usize, value: Option<T>);
+    fn identity_at(&self, index: usize) -> (*const (), usize);
 }
 
 #[derive(Clone)]
-struct GoArrayElemPtr<T: Clone, const N: usize> {
+pub struct GoDirectArrayElemBacking<T: Clone + Send + Sync + 'static, const N: usize> {
     array: Arc<Mutex<Option<[T; N]>>>,
+}
+
+impl<T: Clone + Send + Sync + 'static, const N: usize> GoArrayElemBacking<T, N> for GoDirectArrayElemBacking<T, N> {
+    fn borrow_at(&self, index: usize) -> Option<T> {
+        let guard = self.array.lock().unwrap();
+        guard.as_ref().and_then(|values| values.get(index).cloned())
+    }
+
+    fn assign_at(&self, index: usize, value: Option<T>) {
+        if let Some(value) = value {
+            if let Some(values) = self.array.lock().unwrap().as_mut() {
+                values[index] = value;
+            }
+        }
+    }
+
+    fn identity_at(&self, index: usize) -> (*const (), usize) {
+        (Arc::as_ptr(&self.array) as *const (), index)
+    }
+}
+
+#[derive(Clone)]
+pub struct GoNestedArrayElemBacking<T: Clone + Send + Sync + 'static, const N: usize, const OUT: usize> {
+    outer: Arc<Mutex<Option<[[T; N]; OUT]>>>,
+    outer_index: usize,
+}
+
+impl<T: Clone + Send + Sync + 'static, const N: usize, const OUT: usize> GoArrayElemBacking<T, N> for GoNestedArrayElemBacking<T, N, OUT> {
+    fn borrow_at(&self, index: usize) -> Option<T> {
+        let guard = self.outer.lock().unwrap();
+        guard.as_ref().and_then(|values| values.get(self.outer_index)).and_then(|inner| inner.get(index)).cloned()
+    }
+
+    fn assign_at(&self, index: usize, value: Option<T>) {
+        if let Some(value) = value {
+            if let Some(values) = self.outer.lock().unwrap().as_mut() {
+                values[self.outer_index][index] = value;
+            }
+        }
+    }
+
+    fn identity_at(&self, index: usize) -> (*const (), usize) {
+        (Arc::as_ptr(&self.outer) as *const (), self.outer_index.wrapping_mul(N).wrapping_add(index))
+    }
+}
+
+#[derive(Clone)]
+pub struct GoArrayElemFromElemBacking<T: Clone + Send + Sync + 'static, const N: usize, const OUT: usize> {
+    parent: GoArrayElemPtr<[T; N], OUT>,
+}
+
+impl<T: Clone + Send + Sync + 'static, const N: usize, const OUT: usize> GoArrayElemBacking<T, N> for GoArrayElemFromElemBacking<T, N, OUT> {
+    fn borrow_at(&self, index: usize) -> Option<T> {
+        let inner = self.parent.borrow();
+        inner.as_ref().and_then(|values| values.get(index).cloned())
+    }
+
+    fn assign_at(&self, index: usize, value: Option<T>) {
+        if let Some(value) = value {
+            let mut inner = self.parent.borrow_mut();
+            if let Some(values) = inner.as_mut() {
+                values[index] = value;
+            }
+        }
+    }
+
+    fn identity_at(&self, index: usize) -> (*const (), usize) {
+        let (base, outer_index) = self.parent.identity();
+        (base, outer_index.wrapping_mul(N).wrapping_add(index))
+    }
+}
+
+#[derive(Clone)]
+pub struct GoArrayElemPtr<T: Clone + Send + Sync + 'static, const N: usize> {
+    backing: Arc<dyn GoArrayElemBacking<T, N> + Send + Sync>,
     index: usize,
 }
 
-struct GoArrayElemRef<T: Clone> {
+pub struct GoArrayElemRef<T: Clone> {
     value: Option<T>,
 }
 
-struct GoArrayElemMutRef<T: Clone, const N: usize> {
-    array: Arc<Mutex<Option<[T; N]>>>,
+pub struct GoArrayElemMutRef<T: Clone + Send + Sync + 'static, const N: usize> {
+    backing: Arc<dyn GoArrayElemBacking<T, N> + Send + Sync>,
     index: usize,
     value: Option<T>,
 }
 
 impl<T: Clone> GoSliceElemPtr<T> {
-    fn new(slice: Arc<Mutex<Option<Vec<T>>>>, index: usize) -> Self {
+    pub fn new(slice: Arc<Mutex<Option<Vec<T>>>>, index: usize) -> Self {
         GoSliceElemPtr { slice, index }
     }
 
-    fn borrow(&self) -> GoSliceElemRef<T> {
+    pub fn slice_handle(&self) -> Arc<Mutex<Option<Vec<T>>>> {
+        self.slice.clone()
+    }
+
+    pub fn index(&self) -> usize {
+        self.index
+    }
+
+    pub fn borrow(&self) -> GoSliceElemRef<T> {
         let guard = self.slice.lock().unwrap();
         GoSliceElemRef {
             value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
         }
     }
 
-    fn borrow_mut(&self) -> GoSliceElemMutRef<T> {
+    pub fn borrow_mut(&self) -> GoSliceElemMutRef<T> {
         let guard = self.slice.lock().unwrap();
         GoSliceElemMutRef {
             slice: self.slice.clone(),
@@ -197,25 +205,44 @@ impl<T: Clone> GoSliceElemPtr<T> {
     }
 }
 
-impl<T: Clone, const N: usize> GoArrayElemPtr<T, N> {
-    fn new(array: Arc<Mutex<Option<[T; N]>>>, index: usize) -> Self {
-        GoArrayElemPtr { array, index }
+impl<T: Clone + Send + Sync + 'static, const N: usize> GoArrayElemPtr<T, N> {
+    pub fn new(array: Arc<Mutex<Option<[T; N]>>>, index: usize) -> Self {
+        GoArrayElemPtr {
+            backing: Arc::new(GoDirectArrayElemBacking { array }),
+            index,
+        }
     }
 
-    fn borrow(&self) -> GoArrayElemRef<T> {
-        let guard = self.array.lock().unwrap();
+    pub fn nested<const OUT: usize>(outer: Arc<Mutex<Option<[[T; N]; OUT]>>>, outer_index: usize, index: usize) -> Self {
+        GoArrayElemPtr {
+            backing: Arc::new(GoNestedArrayElemBacking { outer, outer_index }),
+            index,
+        }
+    }
+
+    pub fn from_array_elem<const OUT: usize>(parent: GoArrayElemPtr<[T; N], OUT>, index: usize) -> Self {
+        GoArrayElemPtr {
+            backing: Arc::new(GoArrayElemFromElemBacking { parent }),
+            index,
+        }
+    }
+
+    pub fn borrow(&self) -> GoArrayElemRef<T> {
         GoArrayElemRef {
-            value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
+            value: self.backing.borrow_at(self.index),
         }
     }
 
-    fn borrow_mut(&self) -> GoArrayElemMutRef<T, N> {
-        let guard = self.array.lock().unwrap();
+    pub fn borrow_mut(&self) -> GoArrayElemMutRef<T, N> {
         GoArrayElemMutRef {
-            array: self.array.clone(),
+            backing: self.backing.clone(),
             index: self.index,
-            value: guard.as_ref().and_then(|values| values.get(self.index).cloned()),
+            value: self.backing.borrow_at(self.index),
         }
+    }
+
+    pub fn identity(&self) -> (*const (), usize) {
+        self.backing.identity_at(self.index)
     }
 }
 
@@ -259,7 +286,7 @@ impl<T: Clone> std::ops::Deref for GoArrayElemRef<T> {
     }
 }
 
-impl<T: Clone, const N: usize> std::ops::Deref for GoArrayElemMutRef<T, N> {
+impl<T: Clone + Send + Sync + 'static, const N: usize> std::ops::Deref for GoArrayElemMutRef<T, N> {
     type Target = Option<T>;
 
     fn deref(&self) -> &Self::Target {
@@ -267,35 +294,61 @@ impl<T: Clone, const N: usize> std::ops::Deref for GoArrayElemMutRef<T, N> {
     }
 }
 
-impl<T: Clone, const N: usize> std::ops::DerefMut for GoArrayElemMutRef<T, N> {
+impl<T: Clone + Send + Sync + 'static, const N: usize> std::ops::DerefMut for GoArrayElemMutRef<T, N> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.value
     }
 }
 
-impl<T: Clone, const N: usize> Drop for GoArrayElemMutRef<T, N> {
+impl<T: Clone + Send + Sync + 'static, const N: usize> Drop for GoArrayElemMutRef<T, N> {
     fn drop(&mut self) {
-        if let Some(value) = self.value.clone() {
-            if let Some(values) = self.array.lock().unwrap().as_mut() {
-                values[self.index] = value;
-            }
-        }
+        self.backing.assign_at(self.index, self.value.clone());
+    }
+}
+
+pub trait GoArrayElemPtrDyn<T: Clone + Send + Sync + 'static>: Send + Sync {
+    fn borrow_dyn(&self) -> Option<T>;
+    fn assign_dyn(&self, value: Option<T>);
+    fn identity_dyn(&self) -> (*const (), usize);
+}
+
+impl<T: Clone + Send + Sync + 'static, const N: usize> GoArrayElemPtrDyn<T> for GoArrayElemPtr<T, N> {
+    fn borrow_dyn(&self) -> Option<T> {
+        (*self.borrow()).clone()
+    }
+
+    fn assign_dyn(&self, value: Option<T>) {
+        *self.borrow_mut() = value;
+    }
+
+    fn identity_dyn(&self) -> (*const (), usize) {
+        self.identity()
     }
 }
 
 #[derive(Clone)]
-enum GoPtr<T: Clone> {
+pub enum GoPtr<T: Clone + Send + Sync + 'static> {
     Nil,
+    Raw(usize),
     Local(Arc<Mutex<Option<T>>>),
     SliceElem(GoSliceElemPtr<T>),
+    ArrayElem(Arc<dyn GoArrayElemPtrDyn<T> + Send + Sync>),
 }
 
-impl<T: Clone> GoPtr<T> {
-    fn nil() -> Self {
+impl<T: Clone + Send + Sync + 'static> GoPtr<T> {
+    pub fn nil() -> Self {
         GoPtr::Nil
     }
 
-    fn local(value: Arc<Mutex<Option<T>>>) -> Self {
+    pub fn raw(addr: usize) -> Self {
+        if addr == 0 {
+            GoPtr::Nil
+        } else {
+            GoPtr::Raw(addr)
+        }
+    }
+
+    pub fn local(value: Arc<Mutex<Option<T>>>) -> Self {
         if value.lock().unwrap().is_none() {
             GoPtr::Nil
         } else {
@@ -303,14 +356,118 @@ impl<T: Clone> GoPtr<T> {
         }
     }
 
-    fn slice_elem(value: GoSliceElemPtr<T>) -> Self {
+    pub fn slice_elem(value: GoSliceElemPtr<T>) -> Self {
         GoPtr::SliceElem(value)
     }
 
-    fn slice_elem_opt(value: Option<GoSliceElemPtr<T>>) -> Self {
+    pub fn slice_elem_opt(value: Option<GoSliceElemPtr<T>>) -> Self {
         match value {
             Some(value) => GoPtr::SliceElem(value),
             None => GoPtr::Nil,
+        }
+    }
+
+    pub fn array_elem<const N: usize>(value: GoArrayElemPtr<T, N>) -> Self {
+        GoPtr::ArrayElem(Arc::new(value))
+    }
+
+    pub fn array_elem_opt<const N: usize>(value: Option<GoArrayElemPtr<T, N>>) -> Self {
+        match value {
+            Some(value) => GoPtr::ArrayElem(Arc::new(value)),
+            None => GoPtr::Nil,
+        }
+    }
+
+    pub fn is_nil(&self) -> bool {
+        match self {
+            GoPtr::Nil => true,
+            GoPtr::Raw(addr) => *addr == 0,
+            GoPtr::Local(value) => value.lock().unwrap().is_none(),
+            GoPtr::SliceElem(value) => value.borrow().is_none(),
+            GoPtr::ArrayElem(value) => value.borrow_dyn().is_none(),
+        }
+    }
+
+    pub fn borrow(&self) -> Option<T> {
+        match self {
+            GoPtr::Nil => None,
+            GoPtr::Raw(_) => panic!("raw unsafe pointer dereference requires unsafe pointee support"),
+            GoPtr::Local(value) => (*value.lock().unwrap()).clone(),
+            GoPtr::SliceElem(value) => (*value.borrow()).clone(),
+            GoPtr::ArrayElem(value) => value.borrow_dyn(),
+        }
+    }
+
+    pub fn assign(&self, value: Option<T>) {
+        match self {
+            GoPtr::Nil => panic!("nil pointer dereference"),
+            GoPtr::Raw(_) => panic!("raw unsafe pointer assignment requires unsafe pointee support"),
+            GoPtr::Local(slot) => *slot.lock().unwrap() = value,
+            GoPtr::SliceElem(slot) => *slot.borrow_mut() = value,
+            GoPtr::ArrayElem(slot) => slot.assign_dyn(value),
+        }
+    }
+
+    pub fn with_mut<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
+        match self {
+            GoPtr::Nil => panic!("nil pointer dereference"),
+            GoPtr::Raw(_) => panic!("raw unsafe pointer mutable borrow requires unsafe pointee support"),
+            GoPtr::Local(slot) => {
+                let mut guard = slot.lock().unwrap();
+                f(guard.as_mut().unwrap())
+            }
+            GoPtr::SliceElem(slot) => {
+                let mut guard = slot.borrow_mut();
+                f(guard.as_mut().unwrap())
+            }
+            GoPtr::ArrayElem(slot) => {
+                let mut value = slot.borrow_dyn().expect("nil pointer dereference");
+                let result = f(&mut value);
+                slot.assign_dyn(Some(value));
+                result
+            }
+        }
+    }
+
+    pub fn ptr_eq(left: &Self, right: &Self) -> bool {
+        match (left, right) {
+            (GoPtr::Nil, GoPtr::Nil) => true,
+            (GoPtr::Raw(_), _) | (_, GoPtr::Raw(_)) => left.addr() == right.addr(),
+            (GoPtr::Local(left), GoPtr::Local(right)) => Arc::ptr_eq(left, right),
+            (GoPtr::SliceElem(left), GoPtr::SliceElem(right)) => {
+                Arc::ptr_eq(&left.slice_handle(), &right.slice_handle()) && left.index() == right.index()
+            }
+            (GoPtr::ArrayElem(left), GoPtr::ArrayElem(right)) => left.identity_dyn() == right.identity_dyn(),
+            _ => false,
+        }
+    }
+
+    pub fn addr(&self) -> usize {
+        match self {
+            GoPtr::Nil => 0,
+            GoPtr::Raw(addr) => *addr,
+            GoPtr::Local(value) => Arc::as_ptr(value) as usize,
+            GoPtr::SliceElem(value) => (Arc::as_ptr(&value.slice_handle()) as usize).wrapping_add(value.index()),
+            GoPtr::ArrayElem(value) => {
+                let (base, index) = value.identity_dyn();
+                (base as usize).wrapping_add(index)
+            }
+        }
+    }
+}
+
+impl<T: Clone + Send + Sync + 'static> Default for GoPtr<T> {
+    fn default() -> Self {
+        GoPtr::Nil
+    }
+}
+
+impl<T: Clone + Send + Sync + 'static> std::fmt::Debug for GoPtr<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.is_nil() {
+            write!(f, "<nil>")
+        } else {
+            write!(f, "<ptr>")
         }
     }
 }

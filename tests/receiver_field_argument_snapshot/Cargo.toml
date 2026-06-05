@@ -1,0 +1,8 @@
+[package]
+name = "receiver_field_argument_snapshot"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "receiver_field_argument_snapshot"
+path = "main.rs"

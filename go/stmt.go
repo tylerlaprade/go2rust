@@ -6637,6 +6637,14 @@ func writePointerHandleSelectorTarget(out *strings.Builder, sel *ast.SelectorExp
 			out.WriteString(fieldInfo.FieldName)
 			return true
 		}
+		if isGoPtrVar(ident.Name) {
+			if fieldInfo.IsPromoted {
+				writeGoPtrLocalPromotedFieldHandle(out, ident, fieldInfo)
+			} else {
+				writeGoPtrLocalFieldHandle(out, ident, fieldInfo)
+			}
+			return true
+		}
 		if globalIdent, ok := packageGlobalPointerIdent(ident); ok && !fieldInfo.IsPromoted {
 			writePackageGlobalPointerSelectorAssignmentTarget(out, globalIdent, fieldInfo)
 			return true

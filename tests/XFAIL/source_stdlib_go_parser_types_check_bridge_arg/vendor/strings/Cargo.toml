@@ -1,0 +1,19 @@
+[package]
+name = "strings"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "strings"
+path = "lib.rs"
+
+[dependencies]
+serde_json = "1"
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
+internal_abi = { path = "../internal_abi" }
+internal_bytealg = { path = "../internal_bytealg" }
+internal_stringslite = { path = "../internal_stringslite" }
+math_bits = { path = "../math_bits" }
+sync = { path = "../sync" }
+unicode = { path = "../unicode" }
+unicode_utf8 = { path = "../unicode_utf8" }

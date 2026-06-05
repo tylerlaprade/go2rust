@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoAtomicPointer, GoMutex, GoPtr, GoRWMutex, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped};
 
 use crate::position::*;
 use crate::r#mod::*;
@@ -116,7 +116,7 @@ impl crate::position::FileSet {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         { let new_val = files.clone(); self.files = new_val; };
-        (*self.last.lock().unwrap().as_mut().unwrap()).store(GoPtr::nil());
+        (*self.last.lock().unwrap().as_mut().unwrap()).store(sync_atomic::GoPtr::nil());
         self.mutex.unlock();
         return Arc::new(Mutex::new(None));
     }

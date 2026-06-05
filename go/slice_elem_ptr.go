@@ -507,6 +507,31 @@ func goPtrResultInfosForFunc(fn *ast.FuncDecl) map[int]goPtrResultInfo {
 				}
 				return true
 			}
+			if len(n.Results) == 1 && resultCount > 1 {
+				if call, ok := unwrapParens(n.Results[0]).(*ast.CallExpr); ok {
+					for index, elemRustType := range expected {
+						if !valid[index] {
+							continue
+						}
+						info, ok := goPtrResultInfoForCall(call, index)
+						if !ok {
+							valid[index] = false
+							continue
+						}
+						if goPtrResultElemRustType(info) != elemRustType {
+							valid[index] = false
+							continue
+						}
+						if prev, exists := infos[index]; exists && goPtrResultElemRustType(prev) != goPtrResultElemRustType(info) {
+							valid[index] = false
+							continue
+						}
+						infos[index] = info
+						saw[index] = true
+					}
+					return true
+				}
+			}
 			if len(n.Results) != resultCount {
 				for index := range valid {
 					valid[index] = false
@@ -4896,15 +4921,15 @@ func writeSliceElemPtrFieldPointeeSelector(out *strings.Builder, base *ast.Selec
 func writeSliceElemPtrFieldPointeeFieldHandle(out *strings.Builder, base *ast.SelectorExpr, fieldInfo FieldAccessInfo) {
 	out.WriteString("{ let __ptr_value = ")
 	TranspileExpressionContext(out, base, LValue)
-	out.WriteString(".borrow(); __ptr_value.as_ref().unwrap().")
+	out.WriteString(".with_mut(|__ptr_value| __ptr_value.")
 	out.WriteString(fieldInfo.FieldName)
-	out.WriteString(".clone() }")
+	out.WriteString(".clone()); __ptr_value }")
 }
 
 func writeSliceElemPtrFieldPointeePromotedFieldHandle(out *strings.Builder, base *ast.SelectorExpr, fieldInfo FieldAccessInfo) {
 	out.WriteString("{ let __ptr_value = ")
 	TranspileExpressionContext(out, base, LValue)
-	out.WriteString(".borrow(); let __field = __ptr_value.as_ref().unwrap()")
+	out.WriteString(".with_mut(|__ptr_value| { let __field = __ptr_value")
 	for _, embedded := range fieldInfo.EmbeddedPath {
 		out.WriteString(".")
 		out.WriteString(ToSnakeCase(embedded))
@@ -4913,7 +4938,7 @@ func writeSliceElemPtrFieldPointeePromotedFieldHandle(out *strings.Builder, base
 	}
 	out.WriteString(".")
 	out.WriteString(fieldInfo.FieldName)
-	out.WriteString(".clone(); __field }")
+	out.WriteString(".clone(); __field }); __ptr_value }")
 }
 
 func writeSliceElemPtrSliceReturnValue(out *strings.Builder, result ast.Expr, resultIndex int) bool {
@@ -5261,23 +5286,23 @@ func writeGoPtrCurrentReceiverFieldSelector(out *strings.Builder, fieldInfo Fiel
 func writeGoPtrLocalFieldHandle(out *strings.Builder, ident *ast.Ident, fieldInfo FieldAccessInfo) {
 	out.WriteString("{ let __ptr_value = ")
 	out.WriteString(rustIdentForUseWithCapture(ident))
-	out.WriteString(".borrow(); __ptr_value.as_ref().unwrap().")
+	out.WriteString(".with_mut(|__ptr_value| __ptr_value.")
 	out.WriteString(fieldInfo.FieldName)
-	out.WriteString(".clone() }")
+	out.WriteString(".clone()); __ptr_value }")
 }
 
 func writeGoPtrCurrentReceiverFieldHandle(out *strings.Builder, fieldInfo FieldAccessInfo) {
 	out.WriteString("{ let __ptr_value = ")
 	out.WriteString(currentReceiverRustName())
-	out.WriteString(".borrow(); __ptr_value.as_ref().unwrap().")
+	out.WriteString(".with_mut(|__ptr_value| __ptr_value.")
 	out.WriteString(fieldInfo.FieldName)
-	out.WriteString(".clone() }")
+	out.WriteString(".clone()); __ptr_value }")
 }
 
 func writeGoPtrLocalPromotedFieldHandle(out *strings.Builder, ident *ast.Ident, fieldInfo FieldAccessInfo) {
 	out.WriteString("{ let __ptr_value = ")
 	out.WriteString(rustIdentForUseWithCapture(ident))
-	out.WriteString(".borrow(); let __field = __ptr_value.as_ref().unwrap()")
+	out.WriteString(".with_mut(|__ptr_value| { let __field = __ptr_value")
 	for _, embedded := range fieldInfo.EmbeddedPath {
 		out.WriteString(".")
 		out.WriteString(ToSnakeCase(embedded))
@@ -5286,13 +5311,13 @@ func writeGoPtrLocalPromotedFieldHandle(out *strings.Builder, ident *ast.Ident, 
 	}
 	out.WriteString(".")
 	out.WriteString(fieldInfo.FieldName)
-	out.WriteString(".clone(); __field }")
+	out.WriteString(".clone(); __field }); __ptr_value }")
 }
 
 func writeGoPtrCurrentReceiverPromotedFieldHandle(out *strings.Builder, fieldInfo FieldAccessInfo) {
 	out.WriteString("{ let __ptr_value = ")
 	out.WriteString(currentReceiverRustName())
-	out.WriteString(".borrow(); let __field = __ptr_value.as_ref().unwrap()")
+	out.WriteString(".with_mut(|__ptr_value| { let __field = __ptr_value")
 	for _, embedded := range fieldInfo.EmbeddedPath {
 		out.WriteString(".")
 		out.WriteString(ToSnakeCase(embedded))
@@ -5301,7 +5326,7 @@ func writeGoPtrCurrentReceiverPromotedFieldHandle(out *strings.Builder, fieldInf
 	}
 	out.WriteString(".")
 	out.WriteString(fieldInfo.FieldName)
-	out.WriteString(".clone(); __field }")
+	out.WriteString(".clone(); __field }); __ptr_value }")
 }
 
 func writeGoPtrCallArgument(out *strings.Builder, arg ast.Expr, elemRustType string) bool {
