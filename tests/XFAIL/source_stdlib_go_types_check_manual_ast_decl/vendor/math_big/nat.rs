@@ -1532,7 +1532,7 @@ pub fn get_nat(n: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<nat>>> {
         let val = v.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            Arc::new(Mutex::new(Some(any_val.downcast_ref::<nat>().expect("type assertion failed").clone())))
+            any_val.downcast_ref::<Arc<Mutex<Option<nat>>>>().expect("type assertion failed").clone()
         } else {
             panic!("type assertion on nil interface")
         }

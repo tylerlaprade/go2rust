@@ -291,6 +291,12 @@ impl Display for nodeSet {
 #[derive(Clone, Default)]
 pub struct nodeQueue(pub Arc<Mutex<Option<Vec<Arc<Mutex<Option<graphNode>>>>>>>);
 
+impl Display for nodeQueue {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", format_slice_wrapped(&self.0))
+    }
+}
+
 
 impl crate::check::Checker {
     /// initOrder computes the Info.InitOrder for package variables.
@@ -368,7 +374,7 @@ impl crate::check::Checker {
         let val = heap::pop(pq.clone()).clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            Arc::new(Mutex::new(Some(any_val.downcast_ref::<graphNode>().expect("type assertion failed").clone())))
+            any_val.downcast_ref::<Arc<Mutex<Option<graphNode>>>>().expect("type assertion failed").clone()
         } else {
             panic!("type assertion on nil interface")
         }

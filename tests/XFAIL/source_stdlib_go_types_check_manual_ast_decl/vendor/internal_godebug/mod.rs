@@ -723,7 +723,7 @@ pub fn lookup(name: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<setting>>> {
         let val = v.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            Arc::new(Mutex::new(Some(any_val.downcast_ref::<setting>().expect("type assertion failed").clone())))
+            any_val.downcast_ref::<Arc<Mutex<Option<setting>>>>().expect("type assertion failed").clone()
         } else {
             panic!("type assertion on nil interface")
         }
@@ -740,7 +740,7 @@ pub fn lookup(name: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<setting>>> {
         let val = v.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            Arc::new(Mutex::new(Some(any_val.downcast_ref::<setting>().expect("type assertion failed").clone())))
+            any_val.downcast_ref::<Arc<Mutex<Option<setting>>>>().expect("type assertion failed").clone()
         } else {
             panic!("type assertion on nil interface")
         }
@@ -845,7 +845,7 @@ pub fn update(def: Arc<Mutex<Option<String>>>, env: Arc<Mutex<Option<String>>>) 
         let val = s.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            Arc::new(Mutex::new(Some(any_val.downcast_ref::<setting>().expect("type assertion failed").clone())))
+            any_val.downcast_ref::<Arc<Mutex<Option<setting>>>>().expect("type assertion failed").clone()
         } else {
             panic!("type assertion on nil interface")
         }
