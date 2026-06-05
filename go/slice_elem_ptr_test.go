@@ -1415,6 +1415,14 @@ type Type struct {
 	Value int
 }
 
+func (t *Type) hasName() bool {
+	return t.Value != 0
+}
+
+func (t *Type) setValue(v int) {
+	t.Value = v
+}
+
 type rtype struct {
 	*Type
 }
@@ -1439,7 +1447,15 @@ func common(r rtype, addr uintptr, flag bool) *Type {
 func (r rtype) value() int {
 	return r.Value
 }
-`)
+
+func (r rtype) name() bool {
+	return r.hasName()
+}
+
+func (r rtype) set(v int) {
+	r.setValue(v)
+}
+	`)
 
 	if !strings.Contains(rust, "pub r#type: GoPtr<Type>") {
 		t.Fatalf("embedded pointer field returned through a GoPtr result should use GoPtr storage:\n%s", rust)
@@ -1459,6 +1475,22 @@ func (r rtype) value() int {
 	}
 	if !strings.Contains(rust, "self.r#type.with_mut(|__ptr_value| { let __field = __ptr_value.value.clone(); __field })") {
 		t.Fatalf("promoted field read through an embedded GoPtr field should use the GoPtr pointee handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "__promoted_recv.lock()") ||
+		strings.Contains(rust, "__promoted_recv.borrow()") ||
+		strings.Contains(rust, "__promoted_recv.borrow_mut()") {
+		t.Fatalf("current receiver promoted method call through an embedded GoPtr field should not lock GoPtr as an ordinary wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__promoted_recv.with_mut(|__promoted_ref| { __promoted_ref.has_name() })") {
+		t.Fatalf("current receiver promoted method call through an embedded GoPtr field should call the GoPtr pointee:\n%s", rust)
+	}
+	if strings.Contains(rust, "let guard = embedded.borrow();") ||
+		strings.Contains(rust, "let mut guard = embedded.borrow_mut();") ||
+		strings.Contains(rust, "let mut guard = embedded.lock().unwrap();") {
+		t.Fatalf("promoted method forwarder through an embedded GoPtr field should not lock GoPtr as an ordinary wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "embedded.with_mut(|embedded_ref| { embedded_ref.set_value(v) })") {
+		t.Fatalf("promoted method forwarder through an embedded GoPtr field should call the GoPtr pointee:\n%s", rust)
 	}
 }
 

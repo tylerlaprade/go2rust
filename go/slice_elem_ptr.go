@@ -1671,6 +1671,15 @@ func generatedGoPtrFieldForKey(key string) bool {
 	return ctx.Session != nil && ctx.Session.GeneratedGoPtrFields[key]
 }
 
+func generatedGoPtrFieldForStructNameField(structName string, fieldName string) bool {
+	key := sliceElemPtrFieldKeyForStructNameField(structName, fieldName)
+	if key == "" || !generatedGoPtrFieldForKey(key) {
+		return false
+	}
+	_, ok := sliceElemPtrFieldInfoForKey(key)
+	return ok
+}
+
 func registerSliceElemPtrReturnsFromFile(file *ast.File) {
 	if file == nil {
 		return
@@ -5376,6 +5385,38 @@ func goPtrEmbeddedPromotedFieldAccess(sel *ast.SelectorExpr, fieldInfo FieldAcce
 		return "", nil, false
 	}
 	return ToSnakeCase(fieldInfo.EmbeddedPath[0]), fieldInfo.EmbeddedPath[1:], true
+}
+
+func goPtrEmbeddedPromotedMethodAccess(sel *ast.SelectorExpr, fields []string) (string, []string, bool) {
+	if len(fields) == 0 {
+		return "", nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if sel == nil || typeInfo == nil || typeInfo.info == nil {
+		return "", nil, false
+	}
+	selection := typeInfo.info.Selections[sel]
+	if selection == nil || selection.Kind() != types.MethodVal {
+		return "", nil, false
+	}
+	indexes := selection.Index()
+	if len(indexes) < 2 {
+		return "", nil, false
+	}
+	owner := sliceElemPtrDerefPointerType(selection.Recv())
+	structType, ok := sliceElemPtrStructUnderlying(owner)
+	if !ok || indexes[0] < 0 || indexes[0] >= structType.NumFields() {
+		return "", nil, false
+	}
+	field := structType.Field(indexes[0])
+	key := sliceElemPtrFieldKeyForOwnerType(owner, field.Name())
+	if key == "" || !generatedGoPtrFieldForKey(key) {
+		return "", nil, false
+	}
+	if _, ok := sliceElemPtrFieldInfoForKey(key); !ok {
+		return "", nil, false
+	}
+	return ToSnakeCase(field.Name()), fields[1:], true
 }
 
 func writeGoPtrCurrentReceiverEmbeddedPromotedFieldHandle(out *strings.Builder, fieldInfo FieldAccessInfo, embeddedFieldName string, remainingPath []string) {

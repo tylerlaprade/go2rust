@@ -18393,6 +18393,81 @@ func writeStringsBuilderRawScalarArg(out *strings.Builder, arg ast.Expr) {
 	TranspileExpression(out, arg)
 }
 
+func writePromotedMethodCallExpr(out *strings.Builder, receiverRef string, fn *types.Func, sel *ast.SelectorExpr, call *ast.CallExpr) {
+	out.WriteString(receiverRef)
+	out.WriteString(".")
+	out.WriteString(rustMethodNameForTypesFunc(fn))
+	out.WriteString("(")
+	if !writeMethodCallArguments(out, sel, call, IsExternalStdlibSelectorMethod(sel), methodCallUsesBareArguments(sel)) {
+		for i, arg := range call.Args {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			writeRegularMethodCallArgument(out, sel, call, arg, i)
+		}
+	}
+	out.WriteString(")")
+}
+
+func writeGoPtrCurrentReceiverPromotedMethodCall(out *strings.Builder, receiverName string, fields []string, fn *types.Func, sel *ast.SelectorExpr, call *ast.CallExpr, needsMut bool) bool {
+	embeddedFieldName, remainingFields, ok := goPtrEmbeddedPromotedMethodAccess(sel, fields)
+	if !ok {
+		return false
+	}
+	out.WriteString("{ let __promoted_recv = ")
+	out.WriteString(receiverName)
+	out.WriteString(".")
+	out.WriteString(embeddedFieldName)
+	out.WriteString(".clone(); let __result = __promoted_recv.with_mut(|__promoted_ref| { ")
+	if len(remainingFields) == 0 {
+		writePromotedMethodCallExpr(out, "__promoted_ref", fn, sel, call)
+		out.WriteString(" }); __result }")
+		return true
+	}
+	for i, field := range remainingFields {
+		index := strconv.Itoa(i)
+		out.WriteString("let __promoted_recv_")
+		out.WriteString(index)
+		out.WriteString(" = ")
+		if i == 0 {
+			out.WriteString("__promoted_ref")
+		} else {
+			out.WriteString("__promoted_ref_")
+			out.WriteString(strconv.Itoa(i - 1))
+		}
+		out.WriteString(".")
+		out.WriteString(field)
+		out.WriteString(".clone(); ")
+		finalField := i == len(remainingFields)-1
+		if finalField && needsMut {
+			out.WriteString("let mut __promoted_guard_")
+			out.WriteString(index)
+			out.WriteString(" = __promoted_recv_")
+			out.WriteString(index)
+			WriteBorrowMethod(out, true)
+			out.WriteString("; let __promoted_ref_")
+			out.WriteString(index)
+			out.WriteString(" = __promoted_guard_")
+			out.WriteString(index)
+			out.WriteString(".as_mut().unwrap(); ")
+		} else {
+			out.WriteString("let __promoted_guard_")
+			out.WriteString(index)
+			out.WriteString(" = __promoted_recv_")
+			out.WriteString(index)
+			WriteBorrowMethod(out, false)
+			out.WriteString("; let __promoted_ref_")
+			out.WriteString(index)
+			out.WriteString(" = __promoted_guard_")
+			out.WriteString(index)
+			out.WriteString(".as_ref().unwrap(); ")
+		}
+	}
+	writePromotedMethodCallExpr(out, "__promoted_ref_"+strconv.Itoa(len(remainingFields)-1), fn, sel, call)
+	out.WriteString(" }); __result }")
+	return true
+}
+
 func writeCurrentReceiverPromotedMethodCall(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr) bool {
 	recvIdent, ok := sel.X.(*ast.Ident)
 	if !ok || !isCurrentReceiverIdent(recvIdent) {
@@ -18410,6 +18485,10 @@ func writeCurrentReceiverPromotedMethodCall(out *strings.Builder, sel *ast.Selec
 		}
 	}
 	needsMut := methodCallNeedsMutableReceiver(sel)
+
+	if writeGoPtrCurrentReceiverPromotedMethodCall(out, receiverName, fields, fn, sel, call, needsMut) {
+		return true
+	}
 
 	if len(fields) == 1 {
 		out.WriteString("{ let __promoted_recv = ")

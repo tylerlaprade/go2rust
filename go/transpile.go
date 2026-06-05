@@ -2006,7 +2006,7 @@ func collectPromotedMethods(structDef *StructDef, methods map[string][]*ast.Func
 	}
 }
 
-func writePromotedMethodForwarders(out *strings.Builder, structDef *StructDef, packageMethods map[string][]*ast.FuncDecl, existingMethodNames map[string]bool, existingRustMethodNames map[string]bool, methodCount *int) {
+func writePromotedMethodForwarders(out *strings.Builder, structDefName string, structDef *StructDef, packageMethods map[string][]*ast.FuncDecl, existingMethodNames map[string]bool, existingRustMethodNames map[string]bool, methodCount *int) {
 	if structDef == nil || methodCount == nil {
 		return
 	}
@@ -2038,13 +2038,13 @@ func writePromotedMethodForwarders(out *strings.Builder, structDef *StructDef, p
 		if *methodCount > 0 {
 			out.WriteString("\n")
 		}
-		generatePromotedMethod(out, methodInfo.method, methodInfo.embeddedType)
+		generatePromotedMethod(out, methodInfo.method, structDefName, methodInfo.embeddedType)
 		existingMethodNames[methodName] = true
 		existingRustMethodNames[methodRustName] = true
 		*methodCount = *methodCount + 1
 	}
 
-	for _, promotedMethod := range collectExternalPromotedMethods(structDef, existingRustMethodNames) {
+	for _, promotedMethod := range collectExternalPromotedMethods(structDefName, structDef, existingRustMethodNames) {
 		if *methodCount > 0 {
 			out.WriteString("\n")
 		}
@@ -2081,11 +2081,12 @@ func writeEmbeddedGoErrorMethod(out *strings.Builder) {
 }
 
 // generatePromotedMethod generates a forwarding method that delegates to an embedded type's method
-func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, embeddedTypeName string) {
+func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, ownerTypeName string, embeddedTypeName string) {
 	mutableReceiver := methodRequiresMutableReceiver(method)
 	params := promotedMethodParamBindings(method.Type.Params)
 	goPtrResultInfos := goPtrResultInfosForFunc(method)
 	goPtrResultSig, hasGoPtrResultSig := funcDeclSignatureFromTypeInfo(method)
+	goPtrEmbeddedField := generatedGoPtrFieldForStructNameField(ownerTypeName, embeddedTypeName)
 
 	out.WriteString("    pub fn ")
 	out.WriteString(rustMethodName(method))
@@ -2134,6 +2135,17 @@ func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, embedded
 	out.WriteString("        let embedded = self.")
 	out.WriteString(ToSnakeCase(embeddedTypeName))
 	out.WriteString(".clone();\n")
+	if goPtrEmbeddedField {
+		out.WriteString("        embedded.with_mut(|embedded_ref| { ")
+		if !writePromotedGoPtrForwardedResult(out, goPtrResultSig, goPtrResultInfos, "", func() {
+			writePromotedMethodForwardedCall(out, rustMethodName(method), params)
+		}) {
+			writePromotedMethodForwardedCall(out, rustMethodName(method), params)
+		}
+		out.WriteString(" })\n")
+		out.WriteString("    }\n")
+		return
+	}
 	if mutableReceiver {
 		out.WriteString("        let mut guard = embedded")
 		WriteBorrowMethod(out, true)
@@ -2264,6 +2276,18 @@ func generateExternalPromotedMethod(out *strings.Builder, method externalPromote
 		out.WriteString("        let embedded = self.")
 		out.WriteString(method.EmbeddedFieldName)
 		out.WriteString(".clone();\n")
+		if method.GoPtrEmbeddedField {
+			out.WriteString("        embedded.with_mut(|embedded_ref| { ")
+			inputHelperQualifier := goPtrHelperQualifierForFunc(method.Func)
+			if !writePromotedGoPtrForwardedResult(out, sig, goPtrResultInfos, inputHelperQualifier, func() {
+				writeExternalPromotedMethodForwardedCall(out, method.RustMethodName, params.Len())
+			}) {
+				writeExternalPromotedMethodForwardedCall(out, method.RustMethodName, params.Len())
+			}
+			out.WriteString(" })\n")
+			out.WriteString("    }\n")
+			return
+		}
 		if method.MutableReceiver {
 			out.WriteString("        let mut guard = embedded")
 			WriteBorrowMethod(out, true)
@@ -3471,7 +3495,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 					existingMethodNames[ownMethod.Name.Name] = true
 					existingRustMethodNames[rustMethodName(ownMethod)] = true
 				}
-				writePromotedMethodForwarders(&body, structDef, packageMethods, existingMethodNames, existingRustMethodNames, &methodCount)
+				writePromotedMethodForwarders(&body, typeName, structDef, packageMethods, existingMethodNames, existingRustMethodNames, &methodCount)
 			}
 
 			body.WriteString("}")
@@ -3757,7 +3781,7 @@ func writeAnonymousStructPromotedMethods(out *strings.Builder, typeName string) 
 
 	var methods strings.Builder
 	methodCount := 0
-	writePromotedMethodForwarders(&methods, structDef, currentPackageMethodsForPromotion(), nil, nil, &methodCount)
+	writePromotedMethodForwarders(&methods, typeName, structDef, currentPackageMethodsForPromotion(), nil, nil, &methodCount)
 	if methodCount == 0 {
 		return
 	}

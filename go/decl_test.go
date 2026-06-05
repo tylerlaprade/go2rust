@@ -3254,7 +3254,7 @@ func TestGeneratePromotedMethodKeepsReadOnlyPointerReceiverShared(t *testing.T) 
 	}
 
 	var out strings.Builder
-	generatePromotedMethod(&out, method, "Package")
+	generatePromotedMethod(&out, method, "", "Package")
 
 	got := out.String()
 	if !strings.Contains(got, "pub fn string(&self)") {
@@ -3420,7 +3420,7 @@ func TestGeneratePromotedMethodKeepsMutatingPointerReceiverMutable(t *testing.T)
 	}
 
 	var out strings.Builder
-	generatePromotedMethod(&out, method, "Package")
+	generatePromotedMethod(&out, method, "", "Package")
 
 	got := out.String()
 	if !strings.Contains(got, "pub fn set(&mut self)") {
@@ -3449,7 +3449,7 @@ func TestGeneratePromotedMethodEscapesKeywordParams(t *testing.T) {
 	}
 
 	var out strings.Builder
-	generatePromotedMethod(&out, method, "Package")
+	generatePromotedMethod(&out, method, "", "Package")
 
 	got := out.String()
 	if strings.Contains(got, " match:") || strings.Contains(got, "(match)") {
@@ -3480,7 +3480,7 @@ func TestGeneratePromotedMethodNamesAndForwardsUnnamedParams(t *testing.T) {
 	}
 
 	var out strings.Builder
-	generatePromotedMethod(&out, method, "File")
+	generatePromotedMethod(&out, method, "", "File")
 
 	got := out.String()
 	if strings.Contains(got, "read_from()") {

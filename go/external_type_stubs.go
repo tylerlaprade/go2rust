@@ -28,14 +28,15 @@ type externalTypeStubMethod struct {
 }
 
 type externalPromotedMethod struct {
-	EmbeddedFieldName string
-	MethodName        string
-	RustMethodName    string
-	Func              *types.Func
-	Signature         *types.Signature
-	GenericArguments  bool
-	MutableReceiver   bool
-	RawEmbeddedField  bool
+	EmbeddedFieldName  string
+	MethodName         string
+	RustMethodName     string
+	Func               *types.Func
+	Signature          *types.Signature
+	GenericArguments   bool
+	MutableReceiver    bool
+	RawEmbeddedField   bool
+	GoPtrEmbeddedField bool
 }
 
 type externalPackageStub struct {
@@ -439,7 +440,7 @@ func RegisterExternalInterfaceMethodsForSource(source types.Type, iface *types.I
 	}
 }
 
-func collectExternalPromotedMethods(structDef *StructDef, existingRustNames map[string]bool) []externalPromotedMethod {
+func collectExternalPromotedMethods(ownerTypeName string, structDef *StructDef, existingRustNames map[string]bool) []externalPromotedMethod {
 	if structDef == nil || structDef.ASTType == nil {
 		return nil
 	}
@@ -481,15 +482,17 @@ func collectExternalPromotedMethods(structDef *StructDef, existingRustNames map[
 				RegisterExternalTypeStubMethod(rustTypeName, rustMethodName, sig)
 			}
 			existingRustNames[rustMethodName] = true
+			embeddedFieldName := getEmbeddedFieldName(field.Type)
 			promoted = append(promoted, externalPromotedMethod{
-				EmbeddedFieldName: ToSnakeCase(getEmbeddedFieldName(field.Type)),
-				MethodName:        methodName,
-				RustMethodName:    rustMethodName,
-				Func:              fn,
-				Signature:         sig,
-				GenericArguments:  stubBacked,
-				MutableReceiver:   !stubBacked && signatureHasPointerReceiver(sig),
-				RawEmbeddedField:  promotedExternalFieldUsesRawStorage(field.Type),
+				EmbeddedFieldName:  ToSnakeCase(embeddedFieldName),
+				MethodName:         methodName,
+				RustMethodName:     rustMethodName,
+				Func:               fn,
+				Signature:          sig,
+				GenericArguments:   stubBacked,
+				MutableReceiver:    !stubBacked && signatureHasPointerReceiver(sig),
+				RawEmbeddedField:   promotedExternalFieldUsesRawStorage(field.Type),
+				GoPtrEmbeddedField: generatedGoPtrFieldForStructNameField(ownerTypeName, embeddedFieldName),
 			})
 		}
 	}
