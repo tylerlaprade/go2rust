@@ -2410,6 +2410,10 @@ run_xfail_test() {
     run_test "tests/source_stdlib_go_ast_walk_call_expr"
 }
 
+@test "source_stdlib_go_parser_types_check_bridge_arg" {
+    run_test "tests/source_stdlib_go_parser_types_check_bridge_arg"
+}
+
 @test "source_stdlib_go_token_lookup" {
     run_test "tests/source_stdlib_go_token_lookup"
 }
@@ -2996,10 +3000,6 @@ run_xfail_test() {
 
 @test "XFAIL: parallel_assign_receiver_value_field_swap" {
     run_xfail_test "tests/XFAIL/parallel_assign_receiver_value_field_swap"
-}
-
-@test "XFAIL: source_stdlib_go_parser_types_check_bridge_arg" {
-    run_xfail_test "tests/XFAIL/source_stdlib_go_parser_types_check_bridge_arg"
 }
 
 @test "XFAIL: stateful_goroutines" {

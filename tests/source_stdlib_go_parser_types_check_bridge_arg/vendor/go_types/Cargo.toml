@@ -1,0 +1,33 @@
+[package]
+name = "go_types"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "go_types"
+path = "lib.rs"
+
+[dependencies]
+num = "0.4"
+serde_json = "1"
+cmp = { path = "../cmp" }
+container_heap = { path = "../container_heap" }
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
+go_ast = { path = "../go_ast" }
+go_constant = { path = "../go_constant" }
+go_parser = { path = "../go_parser" }
+go_token = { path = "../go_token" }
+go_version = { path = "../go_version" }
+internal_buildcfg = { path = "../internal_buildcfg" }
+internal_godebug = { path = "../internal_godebug" }
+internal_goversion = { path = "../internal_goversion" }
+internal_types_errors = { path = "../internal_types_errors" }
+math = { path = "../math" }
+path_filepath = { path = "../path_filepath" }
+slices = { path = "../slices" }
+sort = { path = "../sort" }
+strings = { path = "../strings" }
+sync = { path = "../sync" }
+sync_atomic = { path = "../sync_atomic" }
+unicode = { path = "../unicode" }
+unicode_utf8 = { path = "../unicode_utf8" }
