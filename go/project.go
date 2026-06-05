@@ -322,6 +322,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	packageState.FunctionBoundKinds = genericFunctionBoundKinds(collectPackageFunctions(astFiles))
 	packageState.LocalInterfaceGoValueClone = collectLocalInterfaceGoValueCloneTypes(astFiles, packageState.FunctionBoundKinds)
 	packageState.LocalInterfaceGoComparable = collectLocalInterfaceGoComparableTypes(astFiles)
+	packageState.LocalInterfaceMapKeyTypes = collectLocalInterfaceMapKeyTypes(astFiles)
 
 	nonMainModuleNames := pg.nonMainModuleNames(astFilesByPath)
 	for _, filename := range pg.goFiles {

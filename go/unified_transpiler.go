@@ -366,6 +366,7 @@ func (ut *UnifiedTranspiler) transpilePackage(pkg *PackageInfo) error {
 	pkgState.FunctionBoundKinds = genericFunctionBoundKinds(collectPackageFunctions(pkg.ASTFiles))
 	pkgState.LocalInterfaceGoValueClone = collectLocalInterfaceGoValueCloneTypes(pkg.ASTFiles, pkgState.FunctionBoundKinds)
 	pkgState.LocalInterfaceGoComparable = collectLocalInterfaceGoComparableTypes(pkg.ASTFiles)
+	pkgState.LocalInterfaceMapKeyTypes = collectLocalInterfaceMapKeyTypes(pkg.ASTFiles)
 
 	// Generate lib.rs with all modules
 	var libRs strings.Builder

@@ -1354,6 +1354,10 @@ run_xfail_test() {
     run_test "tests/local_interface_function_type_assertion"
 }
 
+@test "local_interface_map_pointer_key_reboxed" {
+    run_test "tests/local_interface_map_pointer_key_reboxed"
+}
+
 @test "local_interface_method_param" {
     run_test "tests/local_interface_method_param"
 }

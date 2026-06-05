@@ -907,14 +907,14 @@ pub fn consolidate_multiples(list: Arc<Mutex<Option<Vec<embeddedType>>>>) -> Arc
 
         // at most one entry - nothing to do
     let mut n = Arc::new(Mutex::new(Some(0)));
-    let mut prev = Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<Box<dyn Type + Send + Sync>>, Arc<Mutex<Option<i32>>>>::new())));
+    let mut prev = Arc::new(Mutex::new(Some(BTreeMap::<GoTypeInterfaceKey, Arc<Mutex<Option<i32>>>>::new())));
     { let __range_holder = list.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for e in __range_values.iter() {
         {
         let (mut i, mut found) = lookup_type(prev.clone(), e.typ.clone());;
         if found {
             { let new_val = true; *{ let __seq = { let __seq_holder = list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.multiples.lock().unwrap() = Some(new_val); };;
         } else {
-            { let __map_key = GoLocalPtrKey::new(e.typ.clone()); let __map_value = Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()).clone()))); (*prev.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };;
+            { let __map_key = GoTypeInterfaceKey::new(e.typ.clone()); let __map_value = Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()).clone()))); (*prev.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };;
             (*list.lock().unwrap().as_mut().unwrap())[({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = e.clone();;
             { let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); };
         }
@@ -924,10 +924,10 @@ pub fn consolidate_multiples(list: Arc<Mutex<Option<Vec<embeddedType>>>>) -> Arc
     return Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[..({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].to_vec() })));
 }
 
-pub fn lookup_type(m: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<Box<dyn Type + Send + Sync>>, Arc<Mutex<Option<i32>>>>>>>, typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> (i32, bool) {
+pub fn lookup_type(m: Arc<Mutex<Option<BTreeMap<GoTypeInterfaceKey, Arc<Mutex<Option<i32>>>>>>>, typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> (i32, bool) {
         // fast path: maybe the types are equal
     {
-        let (mut i, mut found) = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(typ.clone()))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Arc::new(Mutex::new(Some(0))), false) } };;
+        let (mut i, mut found) = { let __map = { let __map_holder = m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&GoTypeInterfaceKey::new(typ.clone()))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Arc::new(Mutex::new(Some(0))), false) } };;
         if found {
             return ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }, true);;
         }

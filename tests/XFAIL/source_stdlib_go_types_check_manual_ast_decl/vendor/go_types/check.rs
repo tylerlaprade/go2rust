@@ -406,7 +406,7 @@ pub struct Checker {
     pub pkg: Arc<Mutex<Option<Package>>>,
     pub info: Arc<Mutex<Option<Info>>>,
     pub next_i_d: Arc<Mutex<Option<u64>>>,
-    pub obj_map: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<Box<dyn Object + Send + Sync>>, Arc<Mutex<Option<declInfo>>>>>>>,
+    pub obj_map: Arc<Mutex<Option<BTreeMap<GoObjectInterfaceKey, Arc<Mutex<Option<declInfo>>>>>>>,
     pub imp_map: Arc<Mutex<Option<BTreeMap<importKey, Arc<Mutex<Option<Package>>>>>>>,
     pub pkg_path_map: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<bool>>>>>>>>>>>,
     pub seen_pkg_map: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<crate::package::Package>, Arc<Mutex<Option<bool>>>>>>>,
@@ -582,7 +582,7 @@ impl Checker {
     }
                 // not in a package-level init expression
         {
-        let (_, mut found) = { let __map = { let __map_holder = self.obj_map.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(to.clone()))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };;
+        let (_, mut found) = { let __map = { let __map_holder = self.obj_map.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&GoObjectInterfaceKey::new(to.clone()))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };;
         if !found {
             return;;
         }
@@ -1100,7 +1100,7 @@ pub fn new_checker(mut conf: Arc<Mutex<Option<Config>>>, fset: Arc<Mutex<Option<
         // In go/types, conf._EnableAlias is controlled by gotypesalias.
     { let new_val = { let __tmp_x = (*{ let __recv_holder = (*gotypesalias.lock().unwrap().as_ref().unwrap()).clone(); let __result = (*__recv_holder.lock().unwrap().as_mut().unwrap()).value(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "0".to_string(); __tmp_x != __tmp_y }; *(*conf.lock().unwrap().as_ref().unwrap()).__enable_alias.lock().unwrap() = Some(new_val); };
 
-    Arc::new(Mutex::new(Some(Checker { conf: conf.clone(), ctxt: { let __field = (*conf.lock().unwrap().as_ref().unwrap()).context.clone(); __field }, fset: fset.clone(), pkg: pkg.clone(), info: info.clone(), obj_map: Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<Box<dyn Object + Send + Sync>>, Arc<Mutex<Option<crate::resolver::declInfo>>>>::new()))), imp_map: Arc::new(Mutex::new(Some(BTreeMap::<importKey, Arc<Mutex<Option<crate::package::Package>>>>::new()))), used_vars: Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<crate::object::Var>, Arc<Mutex<Option<bool>>>>::new()))), used_pkg_names: Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<crate::object::PkgName>, Arc<Mutex<Option<bool>>>>::new()))), next_i_d: Default::default(), pkg_path_map: Default::default(), seen_pkg_map: Default::default(), files: Default::default(), versions: Default::default(), imports: Default::default(), dot_import_map: Default::default(), broken_aliases: Default::default(), union_type_sets: Default::default(), mono: Arc::new(Mutex::new(Some(monoGraph::default()))), first_err: Default::default(), methods: Default::default(), untyped: Default::default(), delayed: Default::default(), obj_path: Default::default(), cleaners: Default::default(), environment: Arc::new(Mutex::new(Some(environment::default()))), indent: Default::default() })))
+    Arc::new(Mutex::new(Some(Checker { conf: conf.clone(), ctxt: { let __field = (*conf.lock().unwrap().as_ref().unwrap()).context.clone(); __field }, fset: fset.clone(), pkg: pkg.clone(), info: info.clone(), obj_map: Arc::new(Mutex::new(Some(BTreeMap::<GoObjectInterfaceKey, Arc<Mutex<Option<crate::resolver::declInfo>>>>::new()))), imp_map: Arc::new(Mutex::new(Some(BTreeMap::<importKey, Arc<Mutex<Option<crate::package::Package>>>>::new()))), used_vars: Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<crate::object::Var>, Arc<Mutex<Option<bool>>>>::new()))), used_pkg_names: Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<crate::object::PkgName>, Arc<Mutex<Option<bool>>>>::new()))), next_i_d: Default::default(), pkg_path_map: Default::default(), seen_pkg_map: Default::default(), files: Default::default(), versions: Default::default(), imports: Default::default(), dot_import_map: Default::default(), broken_aliases: Default::default(), union_type_sets: Default::default(), mono: Arc::new(Mutex::new(Some(monoGraph::default()))), first_err: Default::default(), methods: Default::default(), untyped: Default::default(), delayed: Default::default(), obj_path: Default::default(), cleaners: Default::default(), environment: Arc::new(Mutex::new(Some(environment::default()))), indent: Default::default() })))
 }
 
 pub fn version_max(a: Arc<Mutex<Option<goVersion>>>, b: Arc<Mutex<Option<goVersion>>>) -> Arc<Mutex<Option<crate::version::goVersion>>> {

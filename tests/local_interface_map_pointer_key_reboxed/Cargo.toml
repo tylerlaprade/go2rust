@@ -1,0 +1,8 @@
+[package]
+name = "local_interface_map_pointer_key_reboxed"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "local_interface_map_pointer_key_reboxed"
+path = "main.rs"

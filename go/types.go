@@ -227,6 +227,11 @@ func traitMethodSuffix(ifaceName string) string {
 	return suffix
 }
 
+func localInterfaceMapKeyTypeName(ifaceName string) string {
+	name := strings.TrimPrefix(ifaceName, "r#")
+	return "Go" + name + "InterfaceKey"
+}
+
 // interfaceTypeHasNamedEmbedded reports whether the given go/types interface
 // embeds any other named interface that the transpiler emits as a Rust trait.
 // Used to decide whether the implementation block must redeclare
@@ -1202,6 +1207,9 @@ func goMapKeyTypeToRustBase(expr ast.Expr) string {
 	// them in GoLocalPtrKey for identity-based comparison (matches Go's
 	// interface equality semantics for pointer-backed interface keys).
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if ifaceName, ok := localNamedInterfaceTypeNameFromTypes(typeInfo.GetType(expr)); ok {
+			return localInterfaceMapKeyTypeName(RustTypeNameForUse(ifaceName))
+		}
 		if ifaceName, ok := transpiledNamedInterfaceTypeNameFromExpr(expr); ok {
 			NeedGoPtrKey()
 			return "GoLocalPtrKey<" + rustLocalInterfaceTraitObject(ifaceName) + ">"
@@ -1762,6 +1770,9 @@ func goTypesMapKeyToRust(t types.Type) string {
 	// Interface-typed keys: wrap in GoLocalPtrKey so the map satisfies Ord
 	// via Arc/Rc pointer identity (matches Go's interface equality for
 	// pointer-backed dynamic values).
+	if ifaceName, ok := localNamedInterfaceTypeNameFromTypes(t); ok {
+		return localInterfaceMapKeyTypeName(RustTypeNameForUse(ifaceName))
+	}
 	if ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(t); ok {
 		NeedGoPtrKey()
 		return "GoLocalPtrKey<" + rustLocalInterfaceTraitObject(ifaceName) + ">"

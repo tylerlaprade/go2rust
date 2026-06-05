@@ -95,6 +95,56 @@ impl Clone for Box<dyn dependency + Send + Sync> {
     }
 }
 
+#[derive(Clone)]
+pub struct GodependencyInterfaceKey(pub Arc<Mutex<Option<Box<dyn dependency + Send + Sync>>>>);
+
+impl GodependencyInterfaceKey {
+    pub fn new(value: Arc<Mutex<Option<Box<dyn dependency + Send + Sync>>>>) -> Self { GodependencyInterfaceKey(value) }
+    pub fn value(&self) -> Arc<Mutex<Option<Box<dyn dependency + Send + Sync>>>> { self.0.clone() }
+    fn addr(&self) -> usize { Arc::as_ptr(&self.0) as usize }
+    fn identity(&self) -> (u64, String) {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() {
+            None => (0, String::new()),
+            Some(__v) => {
+                let mut __hasher = std::collections::hash_map::DefaultHasher::new();
+                std::hash::Hash::hash(&__v.as_ref().__go_as_any().type_id(), &mut __hasher);
+                (std::hash::Hasher::finish(&__hasher), format!("{}", __v))
+            }
+        }
+    }
+}
+impl PartialEq for GodependencyInterfaceKey {
+    fn eq(&self, other: &Self) -> bool {
+        let __left_guard = self.0.lock().unwrap();
+        let __right_guard = other.0.lock().unwrap();
+        match (__left_guard.as_ref(), __right_guard.as_ref()) {
+            (None, None) => true,
+            (Some(__left), Some(__right)) => __left.as_ref().__go_eq_dependency(__right.as_ref()),
+            _ => false,
+        }
+    }
+}
+impl Eq for GodependencyInterfaceKey {}
+impl PartialOrd for GodependencyInterfaceKey {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }
+}
+impl Ord for GodependencyInterfaceKey {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        if self == other { return std::cmp::Ordering::Equal; }
+        match self.identity().cmp(&other.identity()) {
+            std::cmp::Ordering::Equal => self.addr().cmp(&other.addr()),
+            ordering => ordering,
+        }
+    }
+}
+impl std::fmt::Debug for GodependencyInterfaceKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "{}", self.identity().1) }
+}
+impl std::fmt::Display for GodependencyInterfaceKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "{}", self.identity().1) }
+}
+
 impl Object for Box<dyn dependency + Send + Sync> {
     fn __go_clone_box_object(&self) -> Box<dyn Object + Send + Sync> {
         Box::new((*self).clone()) as Box<dyn Object + Send + Sync>
@@ -330,7 +380,7 @@ impl crate::check::Checker {
 
                 // if n still depends on other nodes, we have a cycle
         if { let __tmp_x = (*{ let __field = (*n.lock().unwrap().as_ref().unwrap()).ndeps.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x > __tmp_y } {
-        let mut cycle = find_path({ let __field = self.obj_map.clone(); __field }, { let __inner: Box<dyn Object + Send + Sync> = (*(*n.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).clone(); Arc::new(Mutex::new(Some(__inner))) }, { let __inner: Box<dyn Object + Send + Sync> = (*(*n.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).clone(); Arc::new(Mutex::new(Some(__inner))) }, Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<Box<dyn Object + Send + Sync>>, Arc<Mutex<Option<bool>>>>::new()))));
+        let mut cycle = find_path({ let __field = self.obj_map.clone(); __field }, { let __inner: Box<dyn Object + Send + Sync> = (*(*n.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).clone(); Arc::new(Mutex::new(Some(__inner))) }, { let __inner: Box<dyn Object + Send + Sync> = (*(*n.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).clone(); Arc::new(Mutex::new(Some(__inner))) }, Arc::new(Mutex::new(Some(BTreeMap::<GoObjectInterfaceKey, Arc<Mutex<Option<bool>>>>::new()))));
                 // If n.obj is not part of the cycle (e.g., n.obj->b->c->d->c),
                 // cycle will be nil. Don't report anything in that case since
                 // the cycle is reported when the algorithm gets to an object
@@ -377,7 +427,7 @@ impl crate::check::Checker {
             (Arc::new(Mutex::new(None::<crate::object::Var>)), false)
         }
     });
-        let mut info = { let __map = { let __map_holder = self.obj_map.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(Arc::new(Mutex::new(Some(Box::new(crate::object::VarPtr(v.clone())) as Box<dyn Object + Send + Sync>)))))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
+        let mut info = { let __map = { let __map_holder = self.obj_map.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoObjectInterfaceKey::new(Arc::new(Mutex::new(Some(Box::new(crate::object::VarPtr(v.clone())) as Box<dyn Object + Send + Sync>)))))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
         if (*v.lock().unwrap()).is_none() || !{ let __recv = info.clone(); let __recv_ptr: *const crate::resolver::declInfo = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::resolver::declInfo }; let __result = unsafe { &*__recv_ptr }.has_initializer(); __result } {
         continue
     }
@@ -534,15 +584,15 @@ impl nodeQueue {
 /// findPath returns the (reversed) list of objects []Object{to, ... from}
 /// such that there is a path of object dependencies from 'from' to 'to'.
 /// If there is no such path, the result is nil.
-pub fn find_path(objMap: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<Box<dyn Object + Send + Sync>>, Arc<Mutex<Option<declInfo>>>>>>>, from: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>, to: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>, seen: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<Box<dyn Object + Send + Sync>>, Arc<Mutex<Option<bool>>>>>>>) -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>>>>> {
-    if { let __map = { let __map_holder = seen.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(from.clone()))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| false) } {
+pub fn find_path(objMap: Arc<Mutex<Option<BTreeMap<GoObjectInterfaceKey, Arc<Mutex<Option<declInfo>>>>>>>, from: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>, to: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>, seen: Arc<Mutex<Option<BTreeMap<GoObjectInterfaceKey, Arc<Mutex<Option<bool>>>>>>>) -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>>>>> {
+    if { let __map = { let __map_holder = seen.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoObjectInterfaceKey::new(from.clone()))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| false) } {
         return Arc::new(Mutex::new(None));
     }
-    { let __map_key = GoLocalPtrKey::new(from.clone()); let __map_value = Arc::new(Mutex::new(Some(true))); (*seen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = GoObjectInterfaceKey::new(from.clone()); let __map_value = Arc::new(Mutex::new(Some(true))); (*seen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
 
         // sort deps for deterministic result
     let mut deps: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
-    for (__range_key, _) in { let __range_holder = (*{ let __map = { let __map_holder = objMap.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(from.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap()).deps.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+    for (__range_key, _) in { let __range_holder = (*{ let __map = { let __map_holder = objMap.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoObjectInterfaceKey::new(from.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap()).deps.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         let d = __range_key.value();
         { let new_val = { let __append_target = deps.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(d.clone()); __append_target.clone() }; deps = new_val; };
     }
@@ -568,9 +618,9 @@ pub fn find_path(objMap: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<Box<dyn Object 
 /// dependencyGraph computes the object dependency graph from the given objMap,
 /// with any function nodes removed. The resulting graph contains only constants
 /// and variables.
-pub fn dependency_graph(objMap: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<Box<dyn Object + Send + Sync>>, Arc<Mutex<Option<declInfo>>>>>>>) -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<graphNode>>>>>>> {
+pub fn dependency_graph(objMap: Arc<Mutex<Option<BTreeMap<GoObjectInterfaceKey, Arc<Mutex<Option<declInfo>>>>>>>) -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<graphNode>>>>>>> {
         // M is the dependency (Object) -> graphNode mapping
-    let mut M = Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<Box<dyn dependency + Send + Sync>>, Arc<Mutex<Option<graphNode>>>>::new())));
+    let mut M = Arc::new(Mutex::new(Some(BTreeMap::<GodependencyInterfaceKey, Arc<Mutex<Option<graphNode>>>>::new())));
     for (__range_key, _) in { let __range_holder = objMap.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         let mut obj = __range_key.value();
                 // only consider nodes that may be an initialization dependency
@@ -593,7 +643,7 @@ pub fn dependency_graph(objMap: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<Box<dyn 
         }
     });;
         if (*obj.lock().unwrap()).is_some() {
-            { let __map_key = GoLocalPtrKey::new(obj.clone()); let __map_value = Arc::new(Mutex::new(Some(graphNode { obj: obj.clone(), ..Default::default() }))); (*M.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };;
+            { let __map_key = GodependencyInterfaceKey::new(obj.clone()); let __map_value = Arc::new(Mutex::new(Some(graphNode { obj: obj.clone(), ..Default::default() }))); (*M.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };;
         }
     }
     }
@@ -605,7 +655,7 @@ pub fn dependency_graph(objMap: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<Box<dyn 
     for (__range_key, n) in { let __range_holder = M.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         let obj = __range_key.value();
                 // for each dependency obj -> d (= deps[i]), create graph edges n->s and s->n
-        for (__range_key, _) in { let __range_holder = (*{ let __map = { let __map_holder = objMap.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new({ let __inner: Box<dyn Object + Send + Sync> = (*obj.lock().unwrap().as_ref().unwrap()).clone(); Arc::new(Mutex::new(Some(__inner))) }))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap()).deps.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
+        for (__range_key, _) in { let __range_holder = (*{ let __map = { let __map_holder = objMap.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoObjectInterfaceKey::new({ let __inner: Box<dyn Object + Send + Sync> = (*obj.lock().unwrap().as_ref().unwrap()).clone(); Arc::new(Mutex::new(Some(__inner))) }))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap()).deps.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         let mut d = __range_key.value();
                 // only consider nodes that may be an initialization dependency
         {
@@ -627,7 +677,7 @@ pub fn dependency_graph(objMap: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<Box<dyn 
         }
     });;
         if (*d.lock().unwrap()).is_some() {
-            let mut d = { let __map = { let __map_holder = M.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(d.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };;
+            let mut d = { let __map = { let __map_holder = M.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GodependencyInterfaceKey::new(d.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };;
             (*(*n.lock().unwrap().as_ref().unwrap()).succ.lock().unwrap().as_mut().unwrap()).add(d.clone());;
             (*(*d.lock().unwrap().as_ref().unwrap()).pred.lock().unwrap().as_mut().unwrap()).add(n.clone());;
         }

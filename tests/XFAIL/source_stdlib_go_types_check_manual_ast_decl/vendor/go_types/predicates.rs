@@ -922,14 +922,14 @@ pub fn comparable(T: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> bool {
 
 /// If dynamic is set, non-type parameter interfaces are always comparable.
 /// If reportf != nil, it may be used to report why T is not comparable.
-pub fn comparable_type(T: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, dynamic: Arc<Mutex<Option<bool>>>, mut seen: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<Box<dyn Type + Send + Sync>>, Arc<Mutex<Option<bool>>>>>>>, reportf: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> () + Send + Sync>>>>) -> bool {
-    if { let __map = { let __map_holder = seen.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(T.clone()))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| false) } {
+pub fn comparable_type(T: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, dynamic: Arc<Mutex<Option<bool>>>, mut seen: Arc<Mutex<Option<BTreeMap<GoTypeInterfaceKey, Arc<Mutex<Option<bool>>>>>>>, reportf: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> () + Send + Sync>>>>) -> bool {
+    if { let __map = { let __map_holder = seen.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoTypeInterfaceKey::new(T.clone()))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| false) } {
         return true;
     }
     if (*seen.lock().unwrap()).is_none() {
-        { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<Box<dyn Type + Send + Sync>>, Arc<Mutex<Option<bool>>>>::new()))); seen = new_val; };
+        { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<GoTypeInterfaceKey, Arc<Mutex<Option<bool>>>>::new()))); seen = new_val; };
     }
-    { let __map_key = GoLocalPtrKey::new(T.clone()); let __map_value = Arc::new(Mutex::new(Some(true))); (*seen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+    { let __map_key = GoTypeInterfaceKey::new(T.clone()); let __map_value = Arc::new(Mutex::new(Some(true))); (*seen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
 
     {
     let _ts_subject = under(T.clone()).clone();

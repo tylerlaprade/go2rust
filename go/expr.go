@@ -9735,6 +9735,17 @@ func writeInterfaceMapLookupKeyWithType(out *strings.Builder, mapExpr ast.Expr, 
 	if keyType == nil {
 		return false
 	}
+	if ifaceName, ok := localNamedInterfaceTypeNameFromTypes(keyType); ok {
+		out.WriteString("&")
+		out.WriteString(localInterfaceMapKeyTypeName(RustTypeNameForUse(ifaceName)))
+		out.WriteString("::new(")
+		if !writeLocalInterfaceMapKeyHandle(out, index, keyType) {
+			TranspileExpressionContext(out, index, LValue)
+			out.WriteString(".clone()")
+		}
+		out.WriteString(")")
+		return true
+	}
 	if stubOwnedSourceMappedMapExprUsesAnyPtrKey(mapExpr, keyType) {
 		NeedGoAnyPtrKey()
 		out.WriteString("&GoAnyPtrKey::new(")
@@ -10090,6 +10101,18 @@ func writeMapLiteralKeyWithType(out *strings.Builder, key ast.Expr, keyType type
 func writeMapLiteralKeyWithOwnerPackage(out *strings.Builder, key ast.Expr, keyType types.Type, ownerPkgPath string) {
 	if keyType != nil && writeStdlibInterfaceComparableConversion(out, key, keyType) {
 		return
+	}
+	if keyType != nil {
+		if ifaceName, ok := localNamedInterfaceTypeNameFromTypes(keyType); ok {
+			out.WriteString(localInterfaceMapKeyTypeName(RustTypeNameForUse(ifaceName)))
+			out.WriteString("::new(")
+			if !writeLocalInterfaceMapKeyHandle(out, key, keyType) {
+				TranspileExpressionContext(out, key, LValue)
+				out.WriteString(".clone()")
+			}
+			out.WriteString(")")
+			return
+		}
 	}
 	if stubOwnedSourceMappedMapKeyUsesAnyPtr(ownerPkgPath, keyType) {
 		NeedGoAnyPtrKey()

@@ -84,7 +84,7 @@ pub(crate) const ENABLE_REVERSE_TYPE_INFERENCE: bool = true;
 #[derive(Clone, Default)]
 pub struct tpWalker {
     pub tparams: Arc<Mutex<Option<Vec<Arc<Mutex<Option<TypeParam>>>>>>>,
-    pub seen: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<Box<dyn Type + Send + Sync>>, Arc<Mutex<Option<bool>>>>>>>,
+    pub seen: Arc<Mutex<Option<BTreeMap<GoTypeInterfaceKey, Arc<Mutex<Option<bool>>>>>>>,
 }
 
 impl tpWalker {
@@ -112,7 +112,7 @@ impl GoJsonDecode for tpWalker {
 pub struct cycleFinder {
     pub tparams: Arc<Mutex<Option<Vec<Arc<Mutex<Option<TypeParam>>>>>>>,
     pub inferred: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>>>>>,
-    pub seen: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<Box<dyn Type + Send + Sync>>, Arc<Mutex<Option<bool>>>>>>>,
+    pub seen: Arc<Mutex<Option<BTreeMap<GoTypeInterfaceKey, Arc<Mutex<Option<bool>>>>>>>,
 }
 
 impl cycleFinder {
@@ -874,7 +874,7 @@ impl tpWalker {
         let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                         // detect cycles
             {
-        let (mut x, mut ok) = { let __map = { let __map_holder = self.seen.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(typ.clone()))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Arc::new(Mutex::new(Some(false))), false) } };;
+        let (mut x, mut ok) = { let __map = { let __map_holder = self.seen.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&GoTypeInterfaceKey::new(typ.clone()))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Arc::new(Mutex::new(Some(false))), false) } };;
         if ok {
             {
         { let new_val = x.lock().unwrap().as_ref().unwrap().clone(); *res.lock().unwrap() = Some(new_val); };;
@@ -886,10 +886,10 @@ impl tpWalker {
     };
         }
     }
-            { let __map_key = GoLocalPtrKey::new(typ.clone()); let __map_value = Arc::new(Mutex::new(Some(false))); (*self.seen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+            { let __map_key = GoTypeInterfaceKey::new(typ.clone()); let __map_value = Arc::new(Mutex::new(Some(false))); (*self.seen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
             let res_defer_captured = res.clone(); let typ_defer_captured = typ.clone(); let mut w_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
-        { let __map_key = GoLocalPtrKey::new(typ_defer_captured.clone()); let __map_value = Arc::new(Mutex::new(Some((*res_defer_captured.lock().unwrap().as_ref().unwrap()).clone()))); (*w_defer_captured.seen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+        { let __map_key = GoTypeInterfaceKey::new(typ_defer_captured.clone()); let __map_value = Arc::new(Mutex::new(Some((*res_defer_captured.lock().unwrap().as_ref().unwrap()).clone()))); (*w_defer_captured.seen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
             {
@@ -1107,7 +1107,7 @@ impl cycleFinder {
         std::panic::set_hook(Box::new(|_| {}));
         let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             { let __iface_handle = unalias(typ.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
-            if { let __map = { let __map_holder = self.seen.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(typ.clone()))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| false) } {
+            if { let __map = { let __map_holder = self.seen.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoTypeInterfaceKey::new(typ.clone()))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| false) } {
                 // We have seen typ before. If it is one of the type parameters
                 // in w.tparams, iterative substitution will lead to infinite expansion.
                 // Nil out the corresponding type which effectively kills the cycle.
@@ -1151,9 +1151,9 @@ impl cycleFinder {
                         // cycle through tpar
                         // If we don't have one of our type parameters, the cycle is due
                         // to an ordinary recursive type and we can just stop walking it.
-            { let __map_key = GoLocalPtrKey::new(typ.clone()); let __map_value = Arc::new(Mutex::new(Some(true))); (*self.seen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+            { let __map_key = GoTypeInterfaceKey::new(typ.clone()); let __map_value = Arc::new(Mutex::new(Some(true))); (*self.seen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
             let typ_defer_captured = typ.clone(); let mut w_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
-        { let __map_handle = w_defer_captured.seen.clone(); let mut __map_guard = __map_handle.lock().unwrap(); __map_guard.as_mut().unwrap().remove(&GoLocalPtrKey::new(typ_defer_captured.clone())); };
+        { let __map_handle = w_defer_captured.seen.clone(); let mut __map_guard = __map_handle.lock().unwrap(); __map_guard.as_mut().unwrap().remove(&GoTypeInterfaceKey::new(typ_defer_captured.clone())); };
     }));
             {
     let _ts_subject = typ.clone();
@@ -1288,7 +1288,7 @@ pub fn type_params_string(list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<TypeParam>
 /// If typ is a generic function, isParameterized ignores the type parameter declarations;
 /// it only considers the signature proper (incoming and result parameters).
 pub fn is_parameterized(tparams: Arc<Mutex<Option<Vec<Arc<Mutex<Option<TypeParam>>>>>>>, typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> bool {
-    let mut w = Arc::new(Mutex::new(Some(tpWalker { tparams: tparams.clone(), seen: Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<Box<dyn Type + Send + Sync>>, Arc<Mutex<Option<bool>>>>::new()))), ..Default::default() })));
+    let mut w = Arc::new(Mutex::new(Some(tpWalker { tparams: tparams.clone(), seen: Arc::new(Mutex::new(Some(BTreeMap::<GoTypeInterfaceKey, Arc<Mutex<Option<bool>>>>::new()))), ..Default::default() })));
     return (*w.lock().unwrap().as_mut().unwrap()).is_parameterized(typ.clone());
 }
 
@@ -1340,7 +1340,7 @@ pub fn core_term(tpar: Arc<Mutex<Option<TypeParam>>>) -> (Arc<Mutex<Option<crate
 /// TODO(gri) Determine if we can simply abort inference as soon as we have
 /// found a single cycle.
 pub fn kill_cycles(tparams: Arc<Mutex<Option<Vec<Arc<Mutex<Option<TypeParam>>>>>>>, inferred: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>>>>>) {
-    let mut w = Arc::new(Mutex::new(Some(cycleFinder { tparams: tparams.clone(), inferred: inferred.clone(), seen: Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<Box<dyn Type + Send + Sync>>, Arc<Mutex<Option<bool>>>>::new()))), ..Default::default() })));
+    let mut w = Arc::new(Mutex::new(Some(cycleFinder { tparams: tparams.clone(), inferred: inferred.clone(), seen: Arc::new(Mutex::new(Some(BTreeMap::<GoTypeInterfaceKey, Arc<Mutex<Option<bool>>>>::new()))), ..Default::default() })));
     { let __range_holder = tparams.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for t in __range_values.iter() {
         (*w.lock().unwrap().as_mut().unwrap()).typ(Arc::new(Mutex::new(Some(Box::new(crate::typeparam::TypeParamPtr(t.clone())) as Box<dyn Type + Send + Sync>))));
     } }

@@ -89,7 +89,7 @@ pub struct Context {
     pub mu: sync::mutex::Mutex,
     pub type_map: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<Vec<ctxtEntry>>>>>>>>,
     pub next_i_d: Arc<Mutex<Option<i32>>>,
-    pub origin_i_ds: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<Box<dyn Type + Send + Sync>>, Arc<Mutex<Option<i32>>>>>>>,
+    pub origin_i_ds: Arc<Mutex<Option<BTreeMap<GoTypeInterfaceKey, Arc<Mutex<Option<i32>>>>>>>,
 }
 
 impl Context {
@@ -287,10 +287,10 @@ impl Context {
             let mut ctxt_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         ctxt_defer_captured.mu.unlock();
     }));
-            let (mut id, mut ok) = { let __map = { let __map_holder = self.origin_i_ds.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(t.clone()))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Arc::new(Mutex::new(Some(0))), false) } };
+            let (mut id, mut ok) = { let __map = { let __map_holder = self.origin_i_ds.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&GoTypeInterfaceKey::new(t.clone()))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Arc::new(Mutex::new(Some(0))), false) } };
             if !ok {
         { let new_val = { let __selector_holder = self.next_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *id.lock().unwrap() = Some(new_val); };
-        { let __map_key = GoLocalPtrKey::new(t.clone()); let __map_value = Arc::new(Mutex::new(Some((*id.lock().unwrap().as_ref().unwrap()).clone()))); (*self.origin_i_ds.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+        { let __map_key = GoTypeInterfaceKey::new(t.clone()); let __map_value = Arc::new(Mutex::new(Some((*id.lock().unwrap().as_ref().unwrap()).clone()))); (*self.origin_i_ds.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
         { let __target = self.next_i_d.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
             {
@@ -318,7 +318,7 @@ impl Context {
 
 /// NewContext creates a new Context.
 pub fn new_context() -> Arc<Mutex<Option<Context>>> {
-    Arc::new(Mutex::new(Some(Context { type_map: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Vec<ctxtEntry>>>>>::new()))), origin_i_ds: Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<Box<dyn Type + Send + Sync>>, Arc<Mutex<Option<i32>>>>::new()))), ..Default::default() })))
+    Arc::new(Mutex::new(Some(Context { type_map: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Vec<ctxtEntry>>>>>::new()))), origin_i_ds: Arc::new(Mutex::new(Some(BTreeMap::<GoTypeInterfaceKey, Arc<Mutex<Option<i32>>>>::new()))), ..Default::default() })))
 }
 
 impl GoValueClone for Context {

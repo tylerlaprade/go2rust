@@ -4628,6 +4628,18 @@ func writeMapKeyExpressionWithType(out *strings.Builder, expr ast.Expr, keyType 
 	if keyType != nil && writeStdlibInterfaceComparableConversion(out, expr, keyType) {
 		return
 	}
+	if keyType != nil {
+		if ifaceName, ok := localNamedInterfaceTypeNameFromTypes(keyType); ok {
+			out.WriteString(localInterfaceMapKeyTypeName(RustTypeNameForUse(ifaceName)))
+			out.WriteString("::new(")
+			if !writeLocalInterfaceMapKeyHandle(out, expr, keyType) {
+				TranspileExpressionContext(out, expr, LValue)
+				out.WriteString(".clone()")
+			}
+			out.WriteString(")")
+			return
+		}
+	}
 	// Interface-typed map keys: wrap with GoLocalPtrKey to match the map's
 	// key type. The wrapped interface handle's identity is the Arc/Rc
 	// pointer, which matches Go's interface identity for pointer-backed

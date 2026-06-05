@@ -95,7 +95,7 @@ pub type Qualifier = Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<crate::pack
 #[derive(Clone)]
 pub struct typeWriter {
     pub buf: Arc<Mutex<Option<bytes_Buffer>>>,
-    pub seen: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<Box<dyn Type + Send + Sync>>, Arc<Mutex<Option<bool>>>>>>>,
+    pub seen: Arc<Mutex<Option<BTreeMap<GoTypeInterfaceKey, Arc<Mutex<Option<bool>>>>>>>,
     pub qf: Qualifier,
     pub ctxt: Arc<Mutex<Option<Context>>>,
     pub tparams: Arc<Mutex<Option<TypeParamList>>>,
@@ -198,7 +198,7 @@ impl typeWriter {
         let __go_previous_panic_hook = std::panic::take_hook();
         std::panic::set_hook(Box::new(|_| {}));
         let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            if { let __map = { let __map_holder = self.seen.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(typ.clone()))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| false) } {
+            if { let __map = { let __map_holder = self.seen.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoTypeInterfaceKey::new(typ.clone()))).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| false) } {
         self.error(Arc::new(Mutex::new(Some(format!("{}{}", "cycle to ".to_string(), (*go_type_name(typ.clone()).lock().unwrap().as_ref().unwrap()))))));
         {
         // Execute deferred functions
@@ -208,9 +208,9 @@ impl typeWriter {
         return;
     }
     }
-            { let __map_key = GoLocalPtrKey::new(typ.clone()); let __map_value = Arc::new(Mutex::new(Some(true))); (*self.seen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+            { let __map_key = GoTypeInterfaceKey::new(typ.clone()); let __map_value = Arc::new(Mutex::new(Some(true))); (*self.seen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
             let typ_defer_captured = typ.clone(); let mut w_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
-        { let __map_handle = w_defer_captured.seen.clone(); let mut __map_guard = __map_handle.lock().unwrap(); __map_guard.as_mut().unwrap().remove(&GoLocalPtrKey::new(typ_defer_captured.clone())); };
+        { let __map_handle = w_defer_captured.seen.clone(); let mut __map_guard = __map_handle.lock().unwrap(); __map_guard.as_mut().unwrap().remove(&GoTypeInterfaceKey::new(typ_defer_captured.clone())); };
     }));
             '__go_switch_1: loop {
     {
@@ -768,12 +768,12 @@ pub fn write_signature(buf: Arc<Mutex<Option<bytes_Buffer>>>, sig: Arc<Mutex<Opt
 }
 
 pub fn new_type_writer(buf: Arc<Mutex<Option<bytes_Buffer>>>, qf: Qualifier) -> Arc<Mutex<Option<typeWriter>>> {
-    Arc::new(Mutex::new(Some(typeWriter { buf: buf.clone(), seen: Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<Box<dyn Type + Send + Sync>>, Arc<Mutex<Option<bool>>>>::new()))), qf: qf.clone(), ctxt: Default::default(), tparams: Default::default(), param_names: Arc::new(Mutex::new(Some(true))), tp_subscripts: Arc::new(Mutex::new(Some(false))), pkg_info: Arc::new(Mutex::new(Some(false))), ..Default::default() })))
+    Arc::new(Mutex::new(Some(typeWriter { buf: buf.clone(), seen: Arc::new(Mutex::new(Some(BTreeMap::<GoTypeInterfaceKey, Arc<Mutex<Option<bool>>>>::new()))), qf: qf.clone(), ctxt: Default::default(), tparams: Default::default(), param_names: Arc::new(Mutex::new(Some(true))), tp_subscripts: Arc::new(Mutex::new(Some(false))), pkg_info: Arc::new(Mutex::new(Some(false))), ..Default::default() })))
 }
 
 pub fn new_type_hasher(buf: Arc<Mutex<Option<bytes_Buffer>>>, ctxt: Arc<Mutex<Option<Context>>>) -> Arc<Mutex<Option<typeWriter>>> {
     assert(Arc::new(Mutex::new(Some((*ctxt.lock().unwrap()).is_some()))));
-    Arc::new(Mutex::new(Some(typeWriter { buf: buf.clone(), seen: Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<Box<dyn Type + Send + Sync>>, Arc<Mutex<Option<bool>>>>::new()))), qf: Default::default(), ctxt: ctxt.clone(), tparams: Default::default(), param_names: Arc::new(Mutex::new(Some(false))), tp_subscripts: Arc::new(Mutex::new(Some(false))), pkg_info: Arc::new(Mutex::new(Some(false))), ..Default::default() })))
+    Arc::new(Mutex::new(Some(typeWriter { buf: buf.clone(), seen: Arc::new(Mutex::new(Some(BTreeMap::<GoTypeInterfaceKey, Arc<Mutex<Option<bool>>>>::new()))), qf: Default::default(), ctxt: ctxt.clone(), tparams: Default::default(), param_names: Arc::new(Mutex::new(Some(false))), tp_subscripts: Arc::new(Mutex::new(Some(false))), pkg_info: Arc::new(Mutex::new(Some(false))), ..Default::default() })))
 }
 
 /// subscript returns the decimal (utf8) representation of x using subscript digits.

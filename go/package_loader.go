@@ -1024,6 +1024,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	pkgState.FunctionBoundKinds = genericFunctionBoundKinds(collectPackageFunctions(pkg.Syntax))
 	pkgState.LocalInterfaceGoValueClone = collectLocalInterfaceGoValueCloneTypes(pkg.Syntax, pkgState.FunctionBoundKinds)
 	pkgState.LocalInterfaceGoComparable = collectLocalInterfaceGoComparableTypes(pkg.Syntax)
+	pkgState.LocalInterfaceMapKeyTypes = collectLocalInterfaceMapKeyTypes(pkg.Syntax)
 
 	var generatedModules []generatedRustModule
 	var initModules []generatedInitModule

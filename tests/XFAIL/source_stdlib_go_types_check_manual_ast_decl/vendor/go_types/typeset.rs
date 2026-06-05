@@ -198,7 +198,7 @@ impl _TypeSet {
     }
 
     /// IsComparable reports whether each type in the set is comparable.
-    pub fn is_comparable(&self, seen: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<Box<dyn Type + Send + Sync>>, Arc<Mutex<Option<bool>>>>>>>) -> bool {
+    pub fn is_comparable(&self, seen: Arc<Mutex<Option<BTreeMap<GoTypeInterfaceKey, Arc<Mutex<Option<bool>>>>>>>) -> bool {
         if (*self.terms.lock().unwrap().as_ref().unwrap()).is_all() {
         return (*self.comparable.lock().unwrap().as_ref().unwrap());
     }

@@ -91,7 +91,7 @@ pub struct declInfo {
     pub inherited: Arc<Mutex<Option<bool>>>,
     pub tdecl: Arc<Mutex<Option<go_ast::r#mod::TypeSpec>>>,
     pub fdecl: Arc<Mutex<Option<go_ast::r#mod::FuncDecl>>>,
-    pub deps: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<Box<dyn Object + Send + Sync>>, Arc<Mutex<Option<bool>>>>>>>,
+    pub deps: Arc<Mutex<Option<BTreeMap<GoObjectInterfaceKey, Arc<Mutex<Option<bool>>>>>>>,
 }
 
 impl declInfo {
@@ -133,10 +133,10 @@ impl declInfo {
     pub fn add_dep(&mut self, obj: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>) {
         let mut m = self.deps.clone();
         if (*m.lock().unwrap()).is_none() {
-        { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<Box<dyn Object + Send + Sync>>, Arc<Mutex<Option<bool>>>>::new()))); m = new_val; };
+        { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<GoObjectInterfaceKey, Arc<Mutex<Option<bool>>>>::new()))); m = new_val; };
         { let new_val = m.clone(); self.deps = new_val; };
     }
-        { let __map_key = GoLocalPtrKey::new(obj.clone()); let __map_value = Arc::new(Mutex::new(Some(true))); (*m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+        { let __map_key = GoObjectInterfaceKey::new(obj.clone()); let __map_value = Arc::new(Mutex::new(Some(true))); (*m.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
     }
 }
 
@@ -190,7 +190,7 @@ impl crate::check::Checker {
         return;
     }
         { let __method_arg0 = { let __field = (*self.pkg.lock().unwrap().as_ref().unwrap()).scope.clone(); __field }; let __method_arg1 = ident.clone(); let __method_arg2 = obj.clone(); let __method_arg3 = Arc::new(Mutex::new(Some({ let __arg_holder = nopos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))); self.declare(__method_arg0, __method_arg1, __method_arg2, __method_arg3) };
-        { let __map_key = GoLocalPtrKey::new(obj.clone()); let __map_value = d.clone(); (*self.obj_map.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+        { let __map_key = GoObjectInterfaceKey::new(obj.clone()); let __map_value = d.clone(); (*self.obj_map.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
         (*obj.lock().unwrap().as_mut().unwrap()).set_order(Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.obj_map.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))));
     }
 
@@ -529,7 +529,7 @@ impl crate::check::Checker {
     };
         let _ = { let __tmp_x = (*(*(*(*d.lock().unwrap().as_ref().unwrap()).decl.lock().unwrap().as_ref().unwrap()).r#type.lock().unwrap().as_ref().unwrap()).type_params.lock().unwrap().as_ref().unwrap()).num_fields(); let __tmp_y = 0; __tmp_x != __tmp_y } && !{ let __v = (*hasTParamError.lock().unwrap().as_ref().unwrap()).clone(); __v } && check_closure_clone_closure_clone.verify_versionf(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::FieldPtr({ let __seq = { let __seq_holder = (*(*(*(*d.lock().unwrap().as_ref().unwrap()).decl.lock().unwrap().as_ref().unwrap()).r#type.lock().unwrap().as_ref().unwrap()).type_params.lock().unwrap().as_ref().unwrap()).list.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = go1_18.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("type parameter".to_string()))), Arc::new(Mutex::new(Some(vec![]))));;
         let mut info = Arc::new(Mutex::new(Some(declInfo { file: fileScope_closure_clone.clone(), version: Arc::new(Mutex::new(Some({ let __selector_holder = (*check_closure_clone_closure_clone.environment.lock().unwrap().as_ref().unwrap()).version.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), fdecl: { let __field = (*d.lock().unwrap().as_ref().unwrap()).decl.clone(); __field }, ..Default::default() })));;
-        { let __map_key = GoLocalPtrKey::new(Arc::new(Mutex::new(Some(Box::new(crate::object::FuncPtr(obj.clone())) as Box<dyn Object + Send + Sync>)))); let __map_value = info.clone(); (*check_closure_clone_closure_clone.obj_map.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };;
+        { let __map_key = GoObjectInterfaceKey::new(Arc::new(Mutex::new(Some(Box::new(crate::object::FuncPtr(obj.clone())) as Box<dyn Object + Send + Sync>)))); let __map_value = info.clone(); (*check_closure_clone_closure_clone.obj_map.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };;
         { let __recv = obj.clone(); let __recv_ptr: *mut crate::object::Func = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::object::Func }; let __result = unsafe { &mut *__recv_ptr }.set_order(Arc::new(Mutex::new(Some(({ let __len_target = { let __field = check_closure_clone_closure_clone.obj_map.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32)))); __result };;
     }
     }
@@ -791,7 +791,7 @@ impl crate::check::Checker {
     }
 
                 // we're done if tdecl describes a defined type (not an alias)
-        let mut tdecl = (*{ let __map = { let __map_holder = self.obj_map.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(Arc::new(Mutex::new(Some(Box::new(crate::object::TypeNamePtr(tname.clone())) as Box<dyn Object + Send + Sync>)))))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap()).tdecl.clone();
+        let mut tdecl = (*{ let __map = { let __map_holder = self.obj_map.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoObjectInterfaceKey::new(Arc::new(Mutex::new(Some(Box::new(crate::object::TypeNamePtr(tname.clone())) as Box<dyn Object + Send + Sync>)))))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap()).tdecl.clone();
         if !go_token::position::Pos::is_valid(&(*(*tdecl.lock().unwrap().as_ref().unwrap()).assign.lock().unwrap().as_ref().unwrap())) {
         return ({ let __v = (*ptr.lock().unwrap().as_ref().unwrap()).clone(); __v }, tname.clone());
     }
@@ -958,7 +958,7 @@ impl crate::check::Checker {
         }
     });;
         if (*tname.lock().unwrap()).is_some() {
-            if go_token::position::Pos::is_valid(&(*(*(*{ let __map = { let __map_holder = self.obj_map.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(Arc::new(Mutex::new(Some(Box::new(crate::object::TypeNamePtr(tname.clone())) as Box<dyn Object + Send + Sync>)))))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap()).tdecl.lock().unwrap().as_ref().unwrap()).assign.lock().unwrap().as_ref().unwrap())) {
+            if go_token::position::Pos::is_valid(&(*(*(*{ let __map = { let __map_holder = self.obj_map.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoObjectInterfaceKey::new(Arc::new(Mutex::new(Some(Box::new(crate::object::TypeNamePtr(tname.clone())) as Box<dyn Object + Send + Sync>)))))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap().as_ref().unwrap()).tdecl.lock().unwrap().as_ref().unwrap()).assign.lock().unwrap().as_ref().unwrap())) {
         { let new_val = { let __append_target = aliasList.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(tname.clone()); __append_target.clone() }; aliasList = new_val; };
     } else {
         self.obj_decl(obj.clone(), Arc::new(Mutex::new(None)));

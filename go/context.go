@@ -27,6 +27,7 @@ type PackageState struct {
 	FunctionBoundKinds            map[*ast.FuncDecl]genericMethodBoundKind
 	LocalInterfaceGoValueClone    map[string]bool
 	LocalInterfaceGoComparable    map[string]bool
+	LocalInterfaceMapKeyTypes     map[string]bool
 	GlobalNameOverrides           map[string]string
 	MethodNameOverrides           map[string]string
 	MethodsByType                 map[string][]*ast.FuncDecl
@@ -151,6 +152,7 @@ func NewPackageState() *PackageState {
 		FunctionBoundKinds:            make(map[*ast.FuncDecl]genericMethodBoundKind),
 		LocalInterfaceGoValueClone:    make(map[string]bool),
 		LocalInterfaceGoComparable:    make(map[string]bool),
+		LocalInterfaceMapKeyTypes:     make(map[string]bool),
 		GlobalNameOverrides:           make(map[string]string),
 		MethodNameOverrides:           make(map[string]string),
 		MethodsByType:                 make(map[string][]*ast.FuncDecl),
@@ -327,6 +329,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		}
 		if ctx.Package.LocalInterfaceGoComparable == nil {
 			ctx.Package.LocalInterfaceGoComparable = make(map[string]bool)
+		}
+		if ctx.Package.LocalInterfaceMapKeyTypes == nil {
+			ctx.Package.LocalInterfaceMapKeyTypes = make(map[string]bool)
 		}
 		if ctx.Package.GlobalNameOverrides == nil {
 			ctx.Package.GlobalNameOverrides = make(map[string]string)

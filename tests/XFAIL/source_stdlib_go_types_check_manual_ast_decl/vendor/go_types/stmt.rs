@@ -836,7 +836,7 @@ impl crate::check::Checker {
     /// If there is exactly one type expression, T is the type of that expression. If there
     /// are multiple type expressions, or if predeclared nil is among the types, the result
     /// is the type of x. If x is invalid (nil), the result is the invalid type.
-    pub fn case_types(&mut self, x: Arc<Mutex<Option<operand>>>, types: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>>, seen: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<Box<dyn Type + Send + Sync>>, Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>>) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {
+    pub fn case_types(&mut self, x: Arc<Mutex<Option<operand>>>, types: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>>, seen: Arc<Mutex<Option<BTreeMap<GoTypeInterfaceKey, Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>>) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {
         let mut T: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> = Arc::new(Mutex::new(None));
         let mut dummy: Arc<Mutex<Option<operand>>> = Arc::new(Mutex::new(Some(Default::default())));
         { let __range_holder = types.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); 'l: for e in __range_values.iter() {
@@ -869,7 +869,7 @@ impl crate::check::Checker {
     }
     }
                 // talk about "case" rather than "type" because of nil case
-        { let __map_key = GoLocalPtrKey::new(T.clone()); let __map_value = (*e).clone(); (*seen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+        { let __map_key = GoTypeInterfaceKey::new(T.clone()); let __map_value = (*e).clone(); (*seen.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
         if (*x.lock().unwrap()).is_some() && (*T.lock().unwrap()).is_some() {
         self.type_assertion(e.clone(), x.clone(), T.clone(), Arc::new(Mutex::new(Some(true))));
     }
@@ -1477,7 +1477,7 @@ impl crate::check::Checker {
 };
         self.multiple_defaults({ let __field = (*(*s.lock().unwrap().as_ref().unwrap()).body.lock().unwrap().as_ref().unwrap()).list.clone(); __field });;
         let mut lhsVars: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Var>>>>>>> = Arc::new(Mutex::new(None));;
-        let mut seen = Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<Box<dyn Type + Send + Sync>>, Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>::new())));;
+        let mut seen = Arc::new(Mutex::new(Some(BTreeMap::<GoTypeInterfaceKey, Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>::new())));;
         { let __range_holder = (*(*s.lock().unwrap().as_ref().unwrap()).body.lock().unwrap().as_ref().unwrap()).list.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for s in __range_values.iter() {
         let (mut clause, _) = ({
         let val = s.clone();
