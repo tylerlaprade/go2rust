@@ -2760,6 +2760,92 @@ func use(inter *Type) {
 	}
 }
 
+func TestGoPtrForeignFieldAssignmentConvertsHelperType(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Type struct {
+	id int
+}
+
+type EmptyInterface struct {
+	Type *Type
+}
+
+func store(e *EmptyInterface, t *Type) {
+	e.Type = t
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	var assign *ast.AssignStmt
+	ast.Inspect(file, func(node ast.Node) bool {
+		if stmt, ok := node.(*ast.AssignStmt); ok {
+			assign = stmt
+			return false
+		}
+		return true
+	})
+	if assign == nil || len(assign.Lhs) != 1 || len(assign.Rhs) != 1 {
+		t.Fatalf("fixture missing single assignment")
+	}
+	sel, ok := assign.Lhs[0].(*ast.SelectorExpr)
+	if !ok {
+		t.Fatalf("fixture assignment lhs should be a selector")
+	}
+
+	prevTypeInfo := GetTypeInfo()
+	prevCtx := GetTranspileContext()
+	prevVarTable := GetVarTable()
+	t.Cleanup(func() {
+		SetTypeInfo(prevTypeInfo)
+		SetTranspileContext(prevCtx)
+		SetVarTable(prevVarTable)
+	})
+	ctx := &TranspileContext{
+		Session:        NewTranspileSession(typeInfo, map[string]string{"example.com/abi": "example_com_abi"}),
+		Package:        NewPackageState(),
+		PackageMapping: map[string]string{"example.com/abi": "example_com_abi"},
+	}
+	SetTypeInfo(typeInfo)
+	SetTranspileContext(ctx)
+	key, fieldInfo, ok := sliceElemPtrFieldKeyForSelector(sel)
+	if !ok {
+		t.Fatalf("fixture selector should expose pointer field metadata")
+	}
+	fieldInfo.ownerPkgPath = "example.com/abi"
+	ctx.Package.SliceElemPtrFields[key] = fieldInfo
+	recordGeneratedGoPtrFieldForKey(key)
+
+	vt := NewVarTable()
+	vt.Register("e", &VarInfo{WrapLevel: WrapNone, RustType: "GoPtr<EmptyInterface>", Source: SourceParam, PointerKind: PointerGoPtr})
+	vt.Register("t", &VarInfo{WrapLevel: WrapNone, RustType: "GoPtr<Type>", Source: SourceParam, PointerKind: PointerGoPtr})
+	SetVarTable(vt)
+
+	var out strings.Builder
+	if !writeSliceElemPtrFieldAssignment(&out, assign.Lhs[0], assign.Rhs[0]) {
+		t.Fatalf("foreign GoPtr field assignment should lower")
+	}
+	rust := out.String()
+	if strings.Contains(rust, `unimplemented!("slice element pointer field assignment requires compatible pointer value")`) {
+		t.Fatalf("foreign GoPtr field assignment should not fall back to an unimplemented value path:\n%s", rust)
+	}
+	if !strings.Contains(rust, "match __go_ptr { GoPtr::Nil => example_com_abi::GoPtr::nil()") {
+		t.Fatalf("foreign GoPtr field assignment should convert the RHS helper type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "e.with_mut(|__ptr_value| { __ptr_value.r#type = new_val; });") {
+		t.Fatalf("foreign GoPtr field assignment should mutate the pointed struct field:\n%s", rust)
+	}
+	if strings.Contains(rust, "} = new_val") {
+		t.Fatalf("foreign GoPtr field assignment should not assign to a cloned field expression:\n%s", rust)
+	}
+}
+
 func TestSliceElemPointerPromotedFieldAssignmentUsesGoPtrField(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

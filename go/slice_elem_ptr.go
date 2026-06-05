@@ -4455,10 +4455,27 @@ func writeSliceElemPtrFieldAssignment(out *strings.Builder, lhs ast.Expr, rhs as
 		out.WriteString(`unimplemented!("slice element pointer field assignment requires compatible pointer value")`)
 	}
 	out.WriteString("; ")
+	if writeGoPtrLocalFieldAssignment(out, sel) {
+		out.WriteString(" }")
+		return true
+	}
 	if !writePointerHandleSelectorTarget(out, sel) {
 		TranspileExpressionContext(out, sel, LValue)
 	}
 	out.WriteString(" = new_val; }")
+	return true
+}
+
+func writeGoPtrLocalFieldAssignment(out *strings.Builder, sel *ast.SelectorExpr) bool {
+	ident, ok := unwrapParens(sel.X).(*ast.Ident)
+	fieldInfo := selectorFieldAccessInfo(sel)
+	if !ok || !isGoPtrVar(ident.Name) || fieldInfo.IsPromoted {
+		return false
+	}
+	out.WriteString(rustIdentForUseWithCapture(ident))
+	out.WriteString(".with_mut(|__ptr_value| { __ptr_value.")
+	out.WriteString(fieldInfo.FieldName)
+	out.WriteString(" = new_val; });")
 	return true
 }
 
@@ -4619,11 +4636,15 @@ func writeSliceElemPtrFieldValueWithInfo(out *strings.Builder, rhs ast.Expr, fie
 			if typeInfo != nil {
 				elemType, _ = sliceElemPtrPointerElemType(typeInfo.GetType(ident))
 			}
-			if !sliceElemPtrElemCompatible(elemType, elemRustType, fieldInfo) || helperPrefix != "" {
+			if !sliceElemPtrElemCompatible(elemType, elemRustType, fieldInfo) {
 				return false
 			}
-			out.WriteString(RustIdentForUse(ident))
-			out.WriteString(".clone()")
+			if helperPrefix != "" {
+				writeQualifiedGoPtrVarConversion(out, ident, goPtrHelperQualifierForOwnerPackage(fieldInfo.ownerPkgPath))
+			} else {
+				out.WriteString(RustIdentForUse(ident))
+				out.WriteString(".clone()")
+			}
 			return true
 		}
 	}
