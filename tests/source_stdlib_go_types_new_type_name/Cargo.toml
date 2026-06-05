@@ -1,0 +1,54 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/cmp",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/go_ast",
+    "vendor/go_constant",
+    "vendor/go_token",
+    "vendor/go_types",
+    "vendor/go_version",
+    "vendor/internal_buildcfg",
+    "vendor/internal_godebug",
+    "vendor/internal_goexperiment",
+    "vendor/internal_gover",
+    "vendor/internal_goversion",
+    "vendor/internal_types_errors",
+    "vendor/math",
+    "vendor/math_big",
+    "vendor/math_bits",
+    "vendor/slices",
+    "vendor/unicode",
+    "vendor/unicode_utf8",
+]
+
+[package]
+name = "source_stdlib_go_types_new_type_name"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "source_stdlib_go_types_new_type_name"
+path = "main.rs"
+
+[dependencies]
+cmp = { path = "vendor/cmp" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+go_ast = { path = "vendor/go_ast" }
+go_constant = { path = "vendor/go_constant" }
+go_token = { path = "vendor/go_token" }
+go_types = { path = "vendor/go_types" }
+go_version = { path = "vendor/go_version" }
+internal_buildcfg = { path = "vendor/internal_buildcfg" }
+internal_godebug = { path = "vendor/internal_godebug" }
+internal_goexperiment = { path = "vendor/internal_goexperiment" }
+internal_gover = { path = "vendor/internal_gover" }
+internal_goversion = { path = "vendor/internal_goversion" }
+internal_types_errors = { path = "vendor/internal_types_errors" }
+math = { path = "vendor/math" }
+math_big = { path = "vendor/math_big" }
+math_bits = { path = "vendor/math_bits" }
+slices = { path = "vendor/slices" }
+unicode = { path = "vendor/unicode" }
+unicode_utf8 = { path = "vendor/unicode_utf8" }
