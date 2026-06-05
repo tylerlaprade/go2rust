@@ -155,15 +155,15 @@ impl Context {
         assert(Arc::new(Mutex::new(Some((*orig.lock().unwrap()).is_some()))));
         let mut buf: Arc<Mutex<Option<bytes_Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
         let mut h = new_type_hasher(buf.clone(), Arc::new(Mutex::new(Some(self.clone()))));
-        { let __recv = h.clone(); let __recv_ptr: *const crate::typestring::typeWriter = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::typestring::typeWriter }; let __result = unsafe { &*__recv_ptr }.string(Arc::new(Mutex::new(Some((self.get_i_d(orig.clone())).to_string())))); __result };
+        { let __recv = h.clone(); let __recv_ptr: *const typeWriter = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const typeWriter }; let __result = unsafe { &*__recv_ptr }.string(Arc::new(Mutex::new(Some((self.get_i_d(orig.clone())).to_string())))); __result };
                 // Because we've already written the unique origin ID this call to h.typ is
                 // unnecessary, but we leave it for hash readability. It can be removed later
                 // if performance is an issue.
-        { let __recv = h.clone(); let __recv_ptr: *mut crate::typestring::typeWriter = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::typestring::typeWriter }; let __result = unsafe { &mut *__recv_ptr }.typ(orig.clone()); __result };
+        { let __recv = h.clone(); let __recv_ptr: *mut typeWriter = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut typeWriter }; let __result = unsafe { &mut *__recv_ptr }.typ(orig.clone()); __result };
         if { let __tmp_x = ((*targs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
                 // TODO(rfindley): consider asserting on isGeneric(typ) here, if and when
                 // isGeneric handles *Signature types.
-        { let __recv = h.clone(); let __recv_ptr: *mut crate::typestring::typeWriter = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::typestring::typeWriter }; let __result = unsafe { &mut *__recv_ptr }.type_list(targs.clone()); __result };
+        { let __recv = h.clone(); let __recv_ptr: *mut typeWriter = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut typeWriter }; let __result = unsafe { &mut *__recv_ptr }.type_list(targs.clone()); __result };
     }
                 // TODO(rfindley): consider asserting on isGeneric(typ) here, if and when
                 // isGeneric handles *Signature types.

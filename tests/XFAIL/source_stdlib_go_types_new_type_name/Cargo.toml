@@ -3,8 +3,13 @@
 members = [
     ".",
     "vendor/go2rust_stdlib_stubs",
+    "vendor/go_ast",
+    "vendor/go_token",
     "vendor/go_types",
+    "vendor/internal_buildcfg",
+    "vendor/internal_goexperiment",
     "vendor/internal_types_errors",
+    "vendor/slices",
 ]
 
 [package]
@@ -18,5 +23,10 @@ path = "main.rs"
 
 [dependencies]
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+go_ast = { path = "vendor/go_ast" }
+go_token = { path = "vendor/go_token" }
 go_types = { path = "vendor/go_types" }
+internal_buildcfg = { path = "vendor/internal_buildcfg" }
+internal_goexperiment = { path = "vendor/internal_goexperiment" }
 internal_types_errors = { path = "vendor/internal_types_errors" }
+slices = { path = "vendor/slices" }

@@ -141,13 +141,13 @@ const inaccessible: i32 = 4;
         if { let __v = (*structLit.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         { let _switch_val = { let __v = (*e.lock().unwrap().as_ref().unwrap()).clone(); __v };
     if _switch_val == (1) {
-            return self.sprintf(Arc::new(Mutex::new(Some("unknown field %s in struct literal of type %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = sel.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = typ.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
+            return self.sprintf(Arc::new(Mutex::new(Some("unknown field %s in struct literal of type %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new((*sel.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>, Box::new((*typ.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>]))));
         } else if _switch_val == (2) {
-            return self.sprintf(Arc::new(Mutex::new(Some("unknown field %s in struct literal of type %s, but does have %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = sel.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = typ.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = alt.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
+            return self.sprintf(Arc::new(Mutex::new(Some("unknown field %s in struct literal of type %s, but does have %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new((*sel.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>, Box::new((*typ.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>, Box::new((*alt.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>]))));
         } else if _switch_val == (3) {
-            return self.sprintf(Arc::new(Mutex::new(Some("unknown field %s in struct literal of type %s, but does have unexported %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = sel.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = typ.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = alt.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
+            return self.sprintf(Arc::new(Mutex::new(Some("unknown field %s in struct literal of type %s, but does have unexported %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new((*sel.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>, Box::new((*typ.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>, Box::new((*alt.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>]))));
         } else if _switch_val == (4) {
-            return self.sprintf(Arc::new(Mutex::new(Some("cannot refer to unexported field %s in struct literal of type %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = alt.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = typ.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
+            return self.sprintf(Arc::new(Mutex::new(Some("cannot refer to unexported field %s in struct literal of type %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new((*alt.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>, Box::new((*typ.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>]))));
         }
     }
     } else {
@@ -156,31 +156,24 @@ const inaccessible: i32 = 4;
     let _ts_subject = obj.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
-    let _ts_owned = _ts_guard.as_ref().cloned();
-    drop(_ts_guard);
-    let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {
-        let __any = __v.__go_as_any();
-        if let Some(__boxed) = __any.downcast_ref::<Box<dyn Object + Send + Sync>>() {
-            __boxed.__go_as_any()
-        } else {
-            __any
-        }
-    });
+    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.__go_as_any());
     if _ts_val.and_then(|__v| __v.downcast_ref::<crate::object::VarPtr>()).is_some() {
+        drop(_ts_guard);
         { let new_val = "field".to_string(); *what.lock().unwrap() = Some(new_val); };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::object::FuncPtr>()).is_some() {
+        drop(_ts_guard);
         { let new_val = "method".to_string(); *what.lock().unwrap() = Some(new_val); };;
     }
     }
         { let _switch_val = { let __v = (*e.lock().unwrap().as_ref().unwrap()).clone(); __v };
     if _switch_val == (1) {
-            return self.sprintf(Arc::new(Mutex::new(Some("type %s has no field or method %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = typ.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = sel.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
+            return self.sprintf(Arc::new(Mutex::new(Some("type %s has no field or method %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new((*typ.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>, Box::new((*sel.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>]))));
         } else if _switch_val == (2) {
-            return self.sprintf(Arc::new(Mutex::new(Some("type %s has no field or method %s, but does have %s %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = typ.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = sel.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = what.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = alt.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
+            return self.sprintf(Arc::new(Mutex::new(Some("type %s has no field or method %s, but does have %s %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new((*typ.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>, Box::new((*sel.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>, Box::new((*what.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>, Box::new((*alt.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>]))));
         } else if _switch_val == (3) {
-            return self.sprintf(Arc::new(Mutex::new(Some("type %s has no field or method %s, but does have unexported %s %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = typ.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = sel.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = what.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = alt.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
+            return self.sprintf(Arc::new(Mutex::new(Some("type %s has no field or method %s, but does have unexported %s %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new((*typ.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>, Box::new((*sel.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>, Box::new((*what.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>, Box::new((*alt.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>]))));
         } else if _switch_val == (4) {
-            return self.sprintf(Arc::new(Mutex::new(Some("cannot refer to unexported %s %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = what.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = alt.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
+            return self.sprintf(Arc::new(Mutex::new(Some("cannot refer to unexported %s %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new((*what.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>, Box::new((*alt.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>]))));
         }
     }
     }

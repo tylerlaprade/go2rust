@@ -109,7 +109,7 @@ impl GoJsonDecode for Tuple {
 pub struct AnonymousStruct1 {
     pub obj: Arc<Mutex<Option<Func>>>,
     pub ptr: Arc<Mutex<Option<bool>>>,
-    pub recv: Arc<Mutex<Option<ast_Ident>>>,
+    pub recv: Arc<Mutex<Option<go_ast::r#mod::Ident>>>,
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
@@ -143,13 +143,13 @@ impl Tuple {
     /// Len returns the number variables of tuple t.
     pub fn len(&self) -> i32 {
         if true {
-        return ({ let __len_target = { let __field = self.vars.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32;
+        return (*self.vars.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32;
     }
         0
     }
 
     /// At returns the i'th variable of tuple t.
-    pub fn at(&self, i: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<crate::object::Var>>> {
+    pub fn at(&self, i: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Var>>> {
         { let __seq = { let __seq_holder = self.vars.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }
     }
 
@@ -190,7 +190,7 @@ pub struct TuplePtr(pub Arc<Mutex<Option<Tuple>>>);
 impl std::fmt::Display for TuplePtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
     }
 }
 

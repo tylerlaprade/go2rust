@@ -97,7 +97,7 @@ impl Display for termlist {
 pub struct AnonymousStruct1 {
     pub obj: Arc<Mutex<Option<Func>>>,
     pub ptr: Arc<Mutex<Option<bool>>>,
-    pub recv: Arc<Mutex<Option<ast_Ident>>>,
+    pub recv: Arc<Mutex<Option<go_ast::r#mod::Ident>>>,
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
@@ -157,7 +157,7 @@ impl termlist {
         if { let __tmp_x = i as i32; let __tmp_y = 0; __tmp_x > __tmp_y } {
         (*buf.lock().unwrap().as_mut().unwrap()).push_str(TERM_SEP);
     }
-        (*buf.lock().unwrap().as_mut().unwrap()).push_str(&(*{ let __recv = x.clone(); let __recv_ptr: *const crate::typeterm::term = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::typeterm::term }; let __result = unsafe { &*__recv_ptr }.string(); __result }.lock().unwrap().as_ref().unwrap()).clone());
+        (*buf.lock().unwrap().as_mut().unwrap()).push_str(&(*{ let __recv = x.clone(); let __recv_ptr: *const term = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const term }; let __result = unsafe { &*__recv_ptr }.string(); __result }.lock().unwrap().as_ref().unwrap()).clone());
     } }
         return Arc::new(Mutex::new(Some({ let __builder = buf.clone(); let __guard = __builder.lock().unwrap(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value })));
     }
@@ -181,7 +181,7 @@ impl termlist {
                 // If the termlist is in normal form, this requires at most
                 // one iteration.
         { let __range_holder = self.0.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter() {
-        if (*x.lock().unwrap()).is_some() && { let __iface_handle = { let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
+        if (*x.lock().unwrap()).is_some() && (*(*x.lock().unwrap().as_ref().unwrap()).typ.lock().unwrap()).is_none() {
         return true;
     }
     } }
@@ -205,9 +205,9 @@ impl termlist {
         { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }; continue
     }
         {
-        let (mut u1, mut u2) = { let __recv = xi.clone(); let __recv_ptr: *const crate::typeterm::term = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::typeterm::term }; let __result = unsafe { &*__recv_ptr }.union(xj.clone()); __result };;
+        let (mut u1, mut u2) = { let __recv = xi.clone(); let __recv_ptr: *const term = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const term }; let __result = unsafe { &*__recv_ptr }.union(xj.clone()); __result };;
         if (*u2.lock().unwrap()).is_none() {
-            if { let __iface_handle = { let __field = (*u1.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
+            if (*(*u1.lock().unwrap().as_ref().unwrap()).typ.lock().unwrap()).is_none() {
         return allTermlist.clone();
     };
             { let new_val = u1.clone(); xi = new_val; };;
@@ -251,7 +251,7 @@ impl termlist {
         { let __range_holder = self.0.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter() {
         { let __range_holder = { let __named_slice = (*yl.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for y in __range_values.iter() {
         {
-        let mut r = { let __recv = x.clone(); let __recv_ptr: *const crate::typeterm::term = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::typeterm::term }; let __result = unsafe { &*__recv_ptr }.intersect((*y).clone()); __result };;
+        let mut r = { let __recv = x.clone(); let __recv_ptr: *const term = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const term }; let __result = unsafe { &*__recv_ptr }.intersect((*y).clone()); __result };;
         if (*r.lock().unwrap()).is_some() {
             { let new_val = { let __base = { let __named_slice = (*rl.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __base_guard = __base.lock().unwrap(); let mut __values = __base_guard.as_ref().cloned().unwrap_or_else(Vec::new); drop(__base_guard); __values.push(r.clone()); Arc::new(Mutex::new(Some(termlist(Arc::new(Mutex::new(Some(__values))))))) }; let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *rl.lock().unwrap() = __moved_val; };;
         }
@@ -270,7 +270,7 @@ impl termlist {
     /// includes reports whether t ∈ xl.
     pub fn includes(&self, t: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> bool {
         { let __range_holder = self.0.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter() {
-        if { let __recv = x.clone(); let __recv_ptr: *const crate::typeterm::term = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::typeterm::term }; let __result = unsafe { &*__recv_ptr }.includes(t.clone()); __result } {
+        if { let __recv = x.clone(); let __recv_ptr: *const term = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const term }; let __result = unsafe { &*__recv_ptr }.includes(t.clone()); __result } {
         return true;
     }
     } }
@@ -280,7 +280,7 @@ impl termlist {
     /// supersetOf reports whether y ⊆ xl.
     pub fn superset_of(&self, y: Arc<Mutex<Option<term>>>) -> bool {
         { let __range_holder = self.0.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter() {
-        if { let __recv = y.clone(); let __recv_ptr: *const crate::typeterm::term = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::typeterm::term }; let __result = unsafe { &*__recv_ptr }.subset_of((*x).clone()); __result } {
+        if { let __recv = y.clone(); let __recv_ptr: *const term = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const term }; let __result = unsafe { &*__recv_ptr }.subset_of((*x).clone()); __result } {
         return true;
     }
     } }

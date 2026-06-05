@@ -11,4 +11,8 @@ path = "lib.rs"
 num = "0.4"
 serde_json = "1"
 go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
+go_ast = { path = "../go_ast" }
+go_token = { path = "../go_token" }
+internal_buildcfg = { path = "../internal_buildcfg" }
 internal_types_errors = { path = "../internal_types_errors" }
+slices = { path = "../slices" }

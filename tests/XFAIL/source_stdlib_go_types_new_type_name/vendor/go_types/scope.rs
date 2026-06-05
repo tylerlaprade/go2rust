@@ -88,8 +88,8 @@ pub struct Scope {
     pub children: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Scope>>>>>>>,
     pub number: Arc<Mutex<Option<i32>>>,
     pub elems: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>>>>>,
-    pub pos: Arc<Mutex<Option<token_Pos>>>,
-    pub end: Arc<Mutex<Option<token_Pos>>>,
+    pub pos: Arc<Mutex<Option<go_token::position::Pos>>>,
+    pub end: Arc<Mutex<Option<go_token::position::Pos>>>,
     pub comment: Arc<Mutex<Option<String>>>,
     pub is_func: Arc<Mutex<Option<bool>>>,
 }
@@ -103,7 +103,7 @@ impl Scope {
 
 impl Default for Scope {
     fn default() -> Self {
-        Self { parent: Arc::new(Mutex::new(None)), children: Arc::new(Mutex::new(None)), number: Arc::new(Mutex::new(Some(0))), elems: Arc::new(Mutex::new(None)), pos: Arc::new(Mutex::new(Some(token_Pos(0)))), end: Arc::new(Mutex::new(Some(token_Pos(0)))), comment: Arc::new(Mutex::new(Some(String::new()))), is_func: Arc::new(Mutex::new(Some(false))) }
+        Self { parent: Arc::new(Mutex::new(None)), children: Arc::new(Mutex::new(None)), number: Arc::new(Mutex::new(Some(0))), elems: Arc::new(Mutex::new(None)), pos: Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(0))))))), end: Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(0))))))), comment: Arc::new(Mutex::new(Some(String::new()))), is_func: Arc::new(Mutex::new(Some(false))) }
     }
 }
 
@@ -175,7 +175,7 @@ impl GoJsonDecode for lazyObject {
 pub struct AnonymousStruct1 {
     pub obj: Arc<Mutex<Option<Func>>>,
     pub ptr: Arc<Mutex<Option<bool>>>,
-    pub recv: Arc<Mutex<Option<ast_Ident>>>,
+    pub recv: Arc<Mutex<Option<go_ast::r#mod::Ident>>>,
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
@@ -213,24 +213,24 @@ impl Scope {
 
     /// Len returns the number of scope elements.
     pub fn len(&self) -> i32 {
-        ({ let __len_target = { let __field = self.elems.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32
+        (*self.elems.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32
     }
 
     /// Names returns the scope's element names in sorted order.
     pub fn names(&self) -> Arc<Mutex<Option<Vec<String>>>> {
-        let mut names = Arc::new(Mutex::new(Some(vec!["".to_string(); (({ let __len_target = { let __field = self.elems.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) as usize])));
+        let mut names = Arc::new(Mutex::new(Some(vec!["".to_string(); ((*self.elems.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize])));
         let mut i = Arc::new(Mutex::new(Some(0)));
         for (name, _) in { let __range_holder = self.elems.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         (*names.lock().unwrap().as_mut().unwrap())[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = name;
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-        { let mut __sort_guard = names.lock().unwrap(); if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } };
+        slices::sort::<Vec<String>, String>(names.clone());
         return names.clone();
     }
 
     /// NumChildren returns the number of scopes nested in s.
     pub fn num_children(&self) -> i32 {
-        ({ let __len_target = { let __field = self.children.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32
+        (*self.children.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32
     }
 
     /// Child returns the i'th child scope for 0 <= i < NumChildren().
@@ -250,7 +250,7 @@ impl Scope {
                 // s.elems. The only external API to access scope elements is Lookup.
                 //
                 // TODO: remove this once gotypesalias=0 is no longer supported.
-        if { let __left_holder = obj.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Object + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_wrapper = crate::object::TypeNamePtr({ let __arg_holder = universeAnyAlias.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }); let __right_opt: Option<&(dyn Object + Send + Sync)> = Some(&__right_wrapper as &(dyn Object + Send + Sync)); let __eq = match (__left_opt, __right_opt) { (Some(__left), Some(__right)) => __left.__go_eq_object(__right), _ => false }; __eq } && !alias_any() {
+        if { let __left_holder = obj.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Object + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = { let __arg_holder = universeAnyAlias.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }; let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Object + Send + Sync)> = __right_guard.as_ref().map(|__v| __v as &(dyn Object + Send + Sync)); let __eq = match (__left_opt, __right_opt) { (Some(__left), Some(__right)) => __left.__go_eq_object(__right), _ => false }; __eq } && !alias_any() {
         return Arc::new(Mutex::new(Some(Box::new(crate::object::TypeNamePtr({ let __arg_holder = universeAnyNoAlias.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })) as Box<dyn Object + Send + Sync>)));
     }
         return obj.clone();
@@ -334,7 +334,7 @@ impl Scope {
 }
 
 impl positioner for Scope {
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         Scope::pos(self)
     }
     fn __go_clone_box_positioner(&self) -> Box<dyn positioner + Send + Sync> {
@@ -358,12 +358,12 @@ pub struct ScopePtr(pub Arc<Mutex<Option<Scope>>>);
 impl std::fmt::Display for ScopePtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
     }
 }
 
 impl positioner for ScopePtr {
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Scope::pos(__recv)
@@ -390,11 +390,11 @@ impl lazyObject {
         panic!("unreachable");
     }
 
-    pub fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    pub fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         panic!("unreachable");
     }
 
-    pub fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    pub fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         panic!("unreachable");
     }
 
@@ -422,7 +422,7 @@ impl lazyObject {
         panic!("unreachable");
     }
 
-    pub fn color(&self) -> Arc<Mutex<Option<crate::object::color>>> {
+    pub fn color(&self) -> Arc<Mutex<Option<color>>> {
         panic!("unreachable");
     }
 
@@ -446,11 +446,11 @@ impl lazyObject {
         panic!("unreachable");
     }
 
-    pub fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    pub fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         panic!("unreachable");
     }
 
-    pub fn set_scope_pos(&self, __arg0: Arc<Mutex<Option<token_Pos>>>) {
+    pub fn set_scope_pos(&self, __arg0: Arc<Mutex<Option<go_token::position::Pos>>>) {
         panic!("unreachable");
     }
 }
@@ -468,10 +468,10 @@ impl Object for lazyObject {
     fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         lazyObject::parent(self)
     }
-    fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         lazyObject::pkg(self)
     }
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         lazyObject::pos(self)
     }
     fn string(&self) -> Arc<Mutex<Option<String>>> {
@@ -480,19 +480,19 @@ impl Object for lazyObject {
     fn r#type(&self) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {
         lazyObject::r#type(self)
     }
-    fn color(&self) -> Arc<Mutex<Option<crate::object::color>>> {
+    fn color(&self) -> Arc<Mutex<Option<color>>> {
         lazyObject::color(self)
     }
     fn order(&self) -> u32 {
         lazyObject::order(self)
     }
-    fn same_id(&self, pkg: Arc<Mutex<Option<crate::package::Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
+    fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
         lazyObject::same_id(self, pkg, name, foldCase)
     }
-    fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         lazyObject::scope_pos(self)
     }
-    fn set_color(&mut self, color_local: Arc<Mutex<Option<crate::object::color>>>) {
+    fn set_color(&mut self, color_local: Arc<Mutex<Option<color>>>) {
         lazyObject::set_color(self, color_local)
     }
     fn set_order(&mut self, __arg0: Arc<Mutex<Option<u32>>>) {
@@ -501,7 +501,7 @@ impl Object for lazyObject {
     fn set_parent(&mut self, __arg0: Arc<Mutex<Option<Scope>>>) {
         lazyObject::set_parent(self, __arg0)
     }
-    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         lazyObject::set_scope_pos(self, pos)
     }
     fn set_type(&mut self, __arg0: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) {
@@ -528,7 +528,7 @@ pub struct lazyObjectPtr(pub Arc<Mutex<Option<lazyObject>>>);
 impl std::fmt::Display for lazyObjectPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
     }
 }
 
@@ -553,12 +553,12 @@ impl Object for lazyObjectPtr {
         let __recv = __recv_guard.as_ref().unwrap();
         lazyObject::parent(__recv)
     }
-    fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         lazyObject::pkg(__recv)
     }
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         lazyObject::pos(__recv)
@@ -573,7 +573,7 @@ impl Object for lazyObjectPtr {
         let __recv = __recv_guard.as_ref().unwrap();
         lazyObject::r#type(__recv)
     }
-    fn color(&self) -> Arc<Mutex<Option<crate::object::color>>> {
+    fn color(&self) -> Arc<Mutex<Option<color>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         lazyObject::color(__recv)
@@ -583,17 +583,17 @@ impl Object for lazyObjectPtr {
         let __recv = __recv_guard.as_ref().unwrap();
         lazyObject::order(__recv)
     }
-    fn same_id(&self, pkg: Arc<Mutex<Option<crate::package::Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
+    fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         lazyObject::same_id(__recv, pkg, name, foldCase)
     }
-    fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         lazyObject::scope_pos(__recv)
     }
-    fn set_color(&mut self, color_local: Arc<Mutex<Option<crate::object::color>>>) {
+    fn set_color(&mut self, color_local: Arc<Mutex<Option<color>>>) {
         let mut __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_mut().unwrap();
         lazyObject::set_color(__recv, color_local)
@@ -608,7 +608,7 @@ impl Object for lazyObjectPtr {
         let __recv = __recv_guard.as_mut().unwrap();
         lazyObject::set_parent(__recv, __arg0)
     }
-    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         let mut __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_mut().unwrap();
         lazyObject::set_scope_pos(__recv, pos)
@@ -634,7 +634,7 @@ impl Object for lazyObjectPtr {
 }
 
 impl positioner for lazyObject {
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         lazyObject::pos(self)
     }
     fn __go_clone_box_positioner(&self) -> Box<dyn positioner + Send + Sync> {
@@ -653,7 +653,7 @@ impl positioner for lazyObject {
 }
 
 impl positioner for lazyObjectPtr {
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         lazyObject::pos(__recv)
@@ -675,13 +675,13 @@ impl positioner for lazyObjectPtr {
 
 /// NewScope returns a new, empty scope contained in the given parent
 /// scope, if any. The comment is for debugging only.
-pub fn new_scope(parent: Arc<Mutex<Option<Scope>>>, pos: Arc<Mutex<Option<token_Pos>>>, end: Arc<Mutex<Option<token_Pos>>>, comment: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Scope>>> {
-    let mut s = Arc::new(Mutex::new(Some(Scope { parent: parent.clone(), children: Arc::new(Mutex::new(None)), number: Arc::new(Mutex::new(Some(0))), elems: Arc::new(Mutex::new(None)), pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), end: Arc::new(Mutex::new(Some({ let __arg_holder = end.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), comment: Arc::new(Mutex::new(Some({ let __arg_holder = comment.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), is_func: Arc::new(Mutex::new(Some(false))), ..Default::default() })));
+pub fn new_scope(parent: Arc<Mutex<Option<Scope>>>, pos: Arc<Mutex<Option<go_token::position::Pos>>>, end: Arc<Mutex<Option<go_token::position::Pos>>>, comment: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Scope>>> {
+    let mut s = Arc::new(Mutex::new(Some(Scope { parent: parent.clone(), children: Arc::new(Mutex::new(None)), number: Arc::new(Mutex::new(Some(0))), elems: Arc::new(Mutex::new(None)), pos: pos.clone(), end: end.clone(), comment: comment.clone(), is_func: Arc::new(Mutex::new(Some(false))), ..Default::default() })));
 
         // don't add children to Universe scope!
     if (*parent.lock().unwrap()).is_some() && { let __left = parent.clone(); let __right = (*Universe.lock().unwrap().as_ref().unwrap()).clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
         { let new_val = { let __append_target = (*parent.lock().unwrap().as_ref().unwrap()).children.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(s.clone()); __append_target.clone() }; (*parent.lock().unwrap().as_mut().unwrap()).children = new_val; };
-        { let new_val = ({ let __len_target = { let __field = (*parent.lock().unwrap().as_ref().unwrap()).children.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32; *(*s.lock().unwrap().as_ref().unwrap()).number.lock().unwrap() = Some(new_val); };
+        { let new_val = (*(*parent.lock().unwrap().as_ref().unwrap()).children.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32; *(*s.lock().unwrap().as_ref().unwrap()).number.lock().unwrap() = Some(new_val); };
     }
     return s.clone();
 }
@@ -689,7 +689,7 @@ pub fn new_scope(parent: Arc<Mutex<Option<Scope>>>, pos: Arc<Mutex<Option<token_
 /// resolve returns the Object represented by obj, resolving lazy
 /// objects as appropriate.
 pub fn resolve(name: Arc<Mutex<Option<String>>>, mut obj: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>> {
-    let mut obj: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>> = Arc::new(Mutex::new(obj.lock().unwrap().as_ref().map(|__v| Object::__go_clone_box_object(__v.as_ref()))));
+    let mut obj: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>> = obj.clone();
     {
         let (mut lazy, mut ok) = ({
         let val = obj.clone();

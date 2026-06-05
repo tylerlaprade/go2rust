@@ -96,7 +96,7 @@ pub trait Object: std::fmt::Display + Any {
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_object(&self, other: &(dyn Object + Send + Sync)) -> bool;
     fn parent(&self) -> Arc<Mutex<Option<Scope>>>;
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>>;
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>>;
     fn pkg(&self) -> Arc<Mutex<Option<Package>>>;
     fn name(&self) -> Arc<Mutex<Option<String>>>;
     fn r#type(&self) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>;
@@ -110,13 +110,19 @@ pub trait Object: std::fmt::Display + Any {
     fn set_color(&mut self, color_local: Arc<Mutex<Option<color>>>);
     fn set_parent(&mut self, __arg0: Arc<Mutex<Option<Scope>>>);
     fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool;
-    fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>>;
-    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>);
+    fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>>;
+    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>);
 }
 
 impl Clone for Box<dyn Object + Send + Sync> {
     fn clone(&self) -> Self {
-        Object::__go_clone_box_object(self.as_ref())
+        self.__go_clone_box_object()
+    }
+}
+
+impl GoValueClone for Box<dyn Object + Send + Sync> {
+    fn go_value_clone(&self) -> Self {
+        self.__go_clone_box_object()
     }
 }
 
@@ -131,7 +137,7 @@ impl positioner for Box<dyn Object + Send + Sync> {
         let _ = other;
         panic!("interface equality for structurally adapted Object as positioner")
     }
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         (**self).pos()
     }
 }
@@ -140,13 +146,13 @@ impl positioner for Box<dyn Object + Send + Sync> {
 #[derive(Clone)]
 pub struct object {
     pub parent: Arc<Mutex<Option<Scope>>>,
-    pub pos: Arc<Mutex<Option<token_Pos>>>,
+    pub pos: Arc<Mutex<Option<go_token::position::Pos>>>,
     pub pkg: Arc<Mutex<Option<Package>>>,
     pub name: Arc<Mutex<Option<String>>>,
     pub typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>,
     pub order_: Arc<Mutex<Option<u32>>>,
     pub color_: Arc<Mutex<Option<color>>>,
-    pub scope_pos_: Arc<Mutex<Option<token_Pos>>>,
+    pub scope_pos_: Arc<Mutex<Option<go_token::position::Pos>>>,
 }
 
 impl object {
@@ -158,7 +164,7 @@ impl object {
 
 impl Default for object {
     fn default() -> Self {
-        Self { parent: Arc::new(Mutex::new(None)), pos: Arc::new(Mutex::new(Some(token_Pos(0)))), pkg: Arc::new(Mutex::new(None)), name: Arc::new(Mutex::new(Some(String::new()))), typ: Arc::new(Mutex::new(None)), order_: Arc::new(Mutex::new(Some(0))), color_: Arc::new(Mutex::new(Some(color(Arc::new(Mutex::new(Some(0))))))), scope_pos_: Arc::new(Mutex::new(Some(token_Pos(0)))) }
+        Self { parent: Arc::new(Mutex::new(None)), pos: Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(0))))))), pkg: Arc::new(Mutex::new(None)), name: Arc::new(Mutex::new(Some(String::new()))), typ: Arc::new(Mutex::new(None)), order_: Arc::new(Mutex::new(Some(0))), color_: Arc::new(Mutex::new(Some(color(Arc::new(Mutex::new(Some(0))))))), scope_pos_: Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(0))))))) }
     }
 }
 
@@ -813,7 +819,7 @@ impl Builtin {
 
 impl Default for Builtin {
     fn default() -> Self {
-        Self { object: Arc::new(Mutex::new(Some(object::default()))), id: Arc::new(Mutex::new(Some(crate::universe::builtinId(Arc::new(Mutex::new(Some(0))))))) }
+        Self { object: Arc::new(Mutex::new(Some(object::default()))), id: Arc::new(Mutex::new(Some(builtinId(Arc::new(Mutex::new(Some(0))))))) }
     }
 }
 
@@ -883,18 +889,18 @@ impl color {
 impl object {
     /// Parent returns the scope in which the object is declared.
     /// The result is nil for methods and struct fields.
-    pub fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    pub fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         self.parent.clone()
     }
 
     /// Pos returns the declaration position of the object's identifier.
-    pub fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    pub fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         return self.pos.clone();
     }
 
     /// Pkg returns the package to which the object belongs.
     /// The result is nil for labels and objects in the Universe scope.
-    pub fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    pub fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         self.pkg.clone()
     }
 
@@ -932,7 +938,7 @@ impl object {
         return self.color_.clone();
     }
 
-    pub fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    pub fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         return self.scope_pos_.clone();
     }
 
@@ -954,7 +960,7 @@ impl object {
         { let new_val = color_local.lock().unwrap().as_ref().unwrap().clone(); *self.color_.lock().unwrap() = Some(new_val); };
     }
 
-    pub fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    pub fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         { let new_val = pos.lock().unwrap().as_ref().unwrap().clone(); *self.scope_pos_.lock().unwrap() = Some(new_val); };
     }
 
@@ -1029,13 +1035,13 @@ impl Object for object {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
         object::name(self)
     }
-    fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         object::parent(self)
     }
-    fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         object::pkg(self)
     }
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         object::pos(self)
     }
     fn string(&self) -> Arc<Mutex<Option<String>>> {
@@ -1050,10 +1056,10 @@ impl Object for object {
     fn order(&self) -> u32 {
         object::order(self)
     }
-    fn same_id(&self, pkg: Arc<Mutex<Option<crate::package::Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
+    fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
         object::same_id(self, pkg, name, foldCase)
     }
-    fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         object::scope_pos(self)
     }
     fn set_color(&mut self, color_local: Arc<Mutex<Option<color>>>) {
@@ -1062,10 +1068,10 @@ impl Object for object {
     fn set_order(&mut self, __arg0: Arc<Mutex<Option<u32>>>) {
         object::set_order(self, __arg0)
     }
-    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<crate::scope::Scope>>>) {
+    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<Scope>>>) {
         object::set_parent(self, __arg0)
     }
-    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         object::set_scope_pos(self, pos)
     }
     fn set_type(&mut self, __arg0: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) {
@@ -1092,7 +1098,7 @@ pub struct objectPtr(pub Arc<Mutex<Option<object>>>);
 impl std::fmt::Display for objectPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
     }
 }
 
@@ -1112,17 +1118,17 @@ impl Object for objectPtr {
         let __recv = __recv_guard.as_ref().unwrap();
         object::name(__recv)
     }
-    fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         object::parent(__recv)
     }
-    fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         object::pkg(__recv)
     }
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         object::pos(__recv)
@@ -1147,12 +1153,12 @@ impl Object for objectPtr {
         let __recv = __recv_guard.as_ref().unwrap();
         object::order(__recv)
     }
-    fn same_id(&self, pkg: Arc<Mutex<Option<crate::package::Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
+    fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         object::same_id(__recv, pkg, name, foldCase)
     }
-    fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         object::scope_pos(__recv)
@@ -1167,12 +1173,12 @@ impl Object for objectPtr {
         let __recv = __recv_guard.as_mut().unwrap();
         object::set_order(__recv, __arg0)
     }
-    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<crate::scope::Scope>>>) {
+    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<Scope>>>) {
         let mut __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_mut().unwrap();
         object::set_parent(__recv, __arg0)
     }
-    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         let mut __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_mut().unwrap();
         object::set_scope_pos(__recv, pos)
@@ -1198,7 +1204,7 @@ impl Object for objectPtr {
 }
 
 impl positioner for object {
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         object::pos(self)
     }
     fn __go_clone_box_positioner(&self) -> Box<dyn positioner + Send + Sync> {
@@ -1217,7 +1223,7 @@ impl positioner for object {
 }
 
 impl positioner for objectPtr {
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         object::pos(__recv)
@@ -1240,7 +1246,7 @@ impl positioner for objectPtr {
 impl PkgName {
     /// Imported returns the package that was imported.
     /// It is distinct from Pkg(), which is the package containing the import statement.
-    pub fn imported(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    pub fn imported(&self) -> Arc<Mutex<Option<Package>>> {
         self.imported.clone()
     }
 
@@ -1272,7 +1278,7 @@ impl PkgName {
         embedded_ref.name()
     }
 
-    pub fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    pub fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -1280,7 +1286,7 @@ impl PkgName {
         embedded_ref.parent()
     }
 
-    pub fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    pub fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -1288,7 +1294,7 @@ impl PkgName {
         embedded_ref.pkg()
     }
 
-    pub fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    pub fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -1336,7 +1342,7 @@ impl PkgName {
         embedded_ref.same_id(pkg, name, foldCase)
     }
 
-    pub fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    pub fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -1368,7 +1374,7 @@ impl PkgName {
         embedded_ref.set_parent(parent)
     }
 
-    pub fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    pub fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let mut guard = embedded.lock().unwrap();
@@ -1395,13 +1401,13 @@ impl Object for PkgName {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
         PkgName::name(self)
     }
-    fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         PkgName::parent(self)
     }
-    fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         PkgName::pkg(self)
     }
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         PkgName::pos(self)
     }
     fn string(&self) -> Arc<Mutex<Option<String>>> {
@@ -1416,10 +1422,10 @@ impl Object for PkgName {
     fn order(&self) -> u32 {
         PkgName::order(self)
     }
-    fn same_id(&self, pkg: Arc<Mutex<Option<crate::package::Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
+    fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
         PkgName::same_id(self, pkg, name, foldCase)
     }
-    fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         PkgName::scope_pos(self)
     }
     fn set_color(&mut self, color_local: Arc<Mutex<Option<color>>>) {
@@ -1428,10 +1434,10 @@ impl Object for PkgName {
     fn set_order(&mut self, __arg0: Arc<Mutex<Option<u32>>>) {
         PkgName::set_order(self, __arg0)
     }
-    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<crate::scope::Scope>>>) {
+    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<Scope>>>) {
         PkgName::set_parent(self, __arg0)
     }
-    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         PkgName::set_scope_pos(self, pos)
     }
     fn set_type(&mut self, __arg0: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) {
@@ -1458,7 +1464,7 @@ pub struct PkgNamePtr(pub Arc<Mutex<Option<PkgName>>>);
 impl std::fmt::Display for PkgNamePtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
     }
 }
 
@@ -1478,17 +1484,17 @@ impl Object for PkgNamePtr {
         let __recv = __recv_guard.as_ref().unwrap();
         PkgName::name(__recv)
     }
-    fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         PkgName::parent(__recv)
     }
-    fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         PkgName::pkg(__recv)
     }
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         PkgName::pos(__recv)
@@ -1513,12 +1519,12 @@ impl Object for PkgNamePtr {
         let __recv = __recv_guard.as_ref().unwrap();
         PkgName::order(__recv)
     }
-    fn same_id(&self, pkg: Arc<Mutex<Option<crate::package::Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
+    fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         PkgName::same_id(__recv, pkg, name, foldCase)
     }
-    fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         PkgName::scope_pos(__recv)
@@ -1533,12 +1539,12 @@ impl Object for PkgNamePtr {
         let __recv = __recv_guard.as_mut().unwrap();
         PkgName::set_order(__recv, __arg0)
     }
-    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<crate::scope::Scope>>>) {
+    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<Scope>>>) {
         let mut __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_mut().unwrap();
         PkgName::set_parent(__recv, __arg0)
     }
-    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         let mut __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_mut().unwrap();
         PkgName::set_scope_pos(__recv, pos)
@@ -1564,7 +1570,7 @@ impl Object for PkgNamePtr {
 }
 
 impl positioner for PkgName {
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         PkgName::pos(self)
     }
     fn __go_clone_box_positioner(&self) -> Box<dyn positioner + Send + Sync> {
@@ -1583,7 +1589,7 @@ impl positioner for PkgName {
 }
 
 impl positioner for PkgNamePtr {
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         PkgName::pos(__recv)
@@ -1640,7 +1646,7 @@ impl Const {
         embedded_ref.name()
     }
 
-    pub fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    pub fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -1648,7 +1654,7 @@ impl Const {
         embedded_ref.parent()
     }
 
-    pub fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    pub fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -1656,7 +1662,7 @@ impl Const {
         embedded_ref.pkg()
     }
 
-    pub fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    pub fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -1704,7 +1710,7 @@ impl Const {
         embedded_ref.same_id(pkg, name, foldCase)
     }
 
-    pub fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    pub fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -1736,7 +1742,7 @@ impl Const {
         embedded_ref.set_parent(parent)
     }
 
-    pub fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    pub fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let mut guard = embedded.lock().unwrap();
@@ -1763,13 +1769,13 @@ impl Object for Const {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
         Const::name(self)
     }
-    fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         Const::parent(self)
     }
-    fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         Const::pkg(self)
     }
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         Const::pos(self)
     }
     fn string(&self) -> Arc<Mutex<Option<String>>> {
@@ -1784,10 +1790,10 @@ impl Object for Const {
     fn order(&self) -> u32 {
         Const::order(self)
     }
-    fn same_id(&self, pkg: Arc<Mutex<Option<crate::package::Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
+    fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
         Const::same_id(self, pkg, name, foldCase)
     }
-    fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         Const::scope_pos(self)
     }
     fn set_color(&mut self, color_local: Arc<Mutex<Option<color>>>) {
@@ -1796,10 +1802,10 @@ impl Object for Const {
     fn set_order(&mut self, __arg0: Arc<Mutex<Option<u32>>>) {
         Const::set_order(self, __arg0)
     }
-    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<crate::scope::Scope>>>) {
+    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<Scope>>>) {
         Const::set_parent(self, __arg0)
     }
-    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         Const::set_scope_pos(self, pos)
     }
     fn set_type(&mut self, __arg0: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) {
@@ -1826,7 +1832,7 @@ pub struct ConstPtr(pub Arc<Mutex<Option<Const>>>);
 impl std::fmt::Display for ConstPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
     }
 }
 
@@ -1846,17 +1852,17 @@ impl Object for ConstPtr {
         let __recv = __recv_guard.as_ref().unwrap();
         Const::name(__recv)
     }
-    fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Const::parent(__recv)
     }
-    fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Const::pkg(__recv)
     }
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Const::pos(__recv)
@@ -1881,12 +1887,12 @@ impl Object for ConstPtr {
         let __recv = __recv_guard.as_ref().unwrap();
         Const::order(__recv)
     }
-    fn same_id(&self, pkg: Arc<Mutex<Option<crate::package::Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
+    fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Const::same_id(__recv, pkg, name, foldCase)
     }
-    fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Const::scope_pos(__recv)
@@ -1901,12 +1907,12 @@ impl Object for ConstPtr {
         let __recv = __recv_guard.as_mut().unwrap();
         Const::set_order(__recv, __arg0)
     }
-    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<crate::scope::Scope>>>) {
+    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<Scope>>>) {
         let mut __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_mut().unwrap();
         Const::set_parent(__recv, __arg0)
     }
-    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         let mut __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_mut().unwrap();
         Const::set_scope_pos(__recv, pos)
@@ -1966,7 +1972,7 @@ impl dependency for ConstPtr {
 }
 
 impl positioner for Const {
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         Const::pos(self)
     }
     fn __go_clone_box_positioner(&self) -> Box<dyn positioner + Send + Sync> {
@@ -1985,7 +1991,7 @@ impl positioner for Const {
 }
 
 impl positioner for ConstPtr {
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Const::pos(__recv)
@@ -2012,33 +2018,29 @@ impl TypeName {
     let _ts_subject = (*self.object.lock().unwrap().as_ref().unwrap()).typ.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
-    let _ts_owned = _ts_guard.as_ref().cloned();
-    drop(_ts_guard);
-    let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {
-        let __any = __v.__go_as_any();
-        if let Some(__boxed) = __any.downcast_ref::<Box<dyn Type + Send + Sync>>() {
-            __boxed.__go_as_any()
-        } else {
-            __any
-        }
-    });
+    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.__go_as_any());
     if _ts_is_nil {
         let t = (*self.object.lock().unwrap().as_ref().unwrap()).typ.clone();
+        drop(_ts_guard);
         return false;;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::basic::BasicPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::basic::BasicPtr>()).unwrap().0.clone();
+        drop(_ts_guard);
         if { let __left = (*self.object.lock().unwrap().as_ref().unwrap()).pkg.clone(); let __right = (*Unsafe.lock().unwrap().as_ref().unwrap()).clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
         return false;
     };
-        return { let __nil_target = (*self.object.lock().unwrap().as_ref().unwrap()).pkg.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } || { let __tmp_x = { let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = (*(*self.object.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } || { let __left_wrapper = crate::basic::BasicPtr(t.clone()); let __left_opt: Option<&(dyn Type + Send + Sync)> = Some(&__left_wrapper as &(dyn Type + Send + Sync)); let __right_holder = universeByte.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; __eq } || { let __left_wrapper = crate::basic::BasicPtr(t.clone()); let __left_opt: Option<&(dyn Type + Send + Sync)> = Some(&__left_wrapper as &(dyn Type + Send + Sync)); let __right_holder = universeRune.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; __eq };;
+        return { let __nil_target = (*self.object.lock().unwrap().as_ref().unwrap()).pkg.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } || { let __tmp_x = { let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = (*(*self.object.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } || { let __left_holder = t.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v as &(dyn Type + Send + Sync)); let __right_holder = universeByte.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; __eq } || { let __left_holder = t.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v as &(dyn Type + Send + Sync)); let __right_holder = universeRune.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; __eq };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::named::NamedPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::named::NamedPtr>()).unwrap().0.clone();
+        drop(_ts_guard);
         return { let __peer = (*t.lock().unwrap().as_ref().unwrap()).obj.clone(); let __peer_guard = __peer.lock().unwrap(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); !__eq };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::typeparam::TypeParamPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::typeparam::TypeParamPtr>()).unwrap().0.clone();
+        drop(_ts_guard);
         return { let __peer = (*t.lock().unwrap().as_ref().unwrap()).obj.clone(); let __peer_guard = __peer.lock().unwrap(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); !__eq };;
     } else {
         let t = (*self.object.lock().unwrap().as_ref().unwrap()).typ.clone();
+        drop(_ts_guard);
         return true;;
     }
     }
@@ -2073,7 +2075,7 @@ impl TypeName {
         embedded_ref.name()
     }
 
-    pub fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    pub fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -2081,7 +2083,7 @@ impl TypeName {
         embedded_ref.parent()
     }
 
-    pub fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    pub fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -2089,7 +2091,7 @@ impl TypeName {
         embedded_ref.pkg()
     }
 
-    pub fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    pub fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -2137,7 +2139,7 @@ impl TypeName {
         embedded_ref.same_id(pkg, name, foldCase)
     }
 
-    pub fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    pub fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -2169,7 +2171,7 @@ impl TypeName {
         embedded_ref.set_parent(parent)
     }
 
-    pub fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    pub fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let mut guard = embedded.lock().unwrap();
@@ -2196,13 +2198,13 @@ impl Object for TypeName {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
         TypeName::name(self)
     }
-    fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         TypeName::parent(self)
     }
-    fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         TypeName::pkg(self)
     }
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         TypeName::pos(self)
     }
     fn string(&self) -> Arc<Mutex<Option<String>>> {
@@ -2217,10 +2219,10 @@ impl Object for TypeName {
     fn order(&self) -> u32 {
         TypeName::order(self)
     }
-    fn same_id(&self, pkg: Arc<Mutex<Option<crate::package::Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
+    fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
         TypeName::same_id(self, pkg, name, foldCase)
     }
-    fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         TypeName::scope_pos(self)
     }
     fn set_color(&mut self, color_local: Arc<Mutex<Option<color>>>) {
@@ -2229,10 +2231,10 @@ impl Object for TypeName {
     fn set_order(&mut self, __arg0: Arc<Mutex<Option<u32>>>) {
         TypeName::set_order(self, __arg0)
     }
-    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<crate::scope::Scope>>>) {
+    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<Scope>>>) {
         TypeName::set_parent(self, __arg0)
     }
-    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         TypeName::set_scope_pos(self, pos)
     }
     fn set_type(&mut self, __arg0: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) {
@@ -2259,7 +2261,7 @@ pub struct TypeNamePtr(pub Arc<Mutex<Option<TypeName>>>);
 impl std::fmt::Display for TypeNamePtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
     }
 }
 
@@ -2279,17 +2281,17 @@ impl Object for TypeNamePtr {
         let __recv = __recv_guard.as_ref().unwrap();
         TypeName::name(__recv)
     }
-    fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         TypeName::parent(__recv)
     }
-    fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         TypeName::pkg(__recv)
     }
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         TypeName::pos(__recv)
@@ -2314,12 +2316,12 @@ impl Object for TypeNamePtr {
         let __recv = __recv_guard.as_ref().unwrap();
         TypeName::order(__recv)
     }
-    fn same_id(&self, pkg: Arc<Mutex<Option<crate::package::Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
+    fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         TypeName::same_id(__recv, pkg, name, foldCase)
     }
-    fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         TypeName::scope_pos(__recv)
@@ -2334,12 +2336,12 @@ impl Object for TypeNamePtr {
         let __recv = __recv_guard.as_mut().unwrap();
         TypeName::set_order(__recv, __arg0)
     }
-    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<crate::scope::Scope>>>) {
+    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<Scope>>>) {
         let mut __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_mut().unwrap();
         TypeName::set_parent(__recv, __arg0)
     }
-    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         let mut __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_mut().unwrap();
         TypeName::set_scope_pos(__recv, pos)
@@ -2365,7 +2367,7 @@ impl Object for TypeNamePtr {
 }
 
 impl positioner for TypeName {
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         TypeName::pos(self)
     }
     fn __go_clone_box_positioner(&self) -> Box<dyn positioner + Send + Sync> {
@@ -2384,7 +2386,7 @@ impl positioner for TypeName {
 }
 
 impl positioner for TypeNamePtr {
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         TypeName::pos(__recv)
@@ -2466,7 +2468,7 @@ impl Var {
         embedded_ref.name()
     }
 
-    pub fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    pub fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -2474,7 +2476,7 @@ impl Var {
         embedded_ref.parent()
     }
 
-    pub fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    pub fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -2482,7 +2484,7 @@ impl Var {
         embedded_ref.pkg()
     }
 
-    pub fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    pub fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -2530,7 +2532,7 @@ impl Var {
         embedded_ref.same_id(pkg, name, foldCase)
     }
 
-    pub fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    pub fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -2562,7 +2564,7 @@ impl Var {
         embedded_ref.set_parent(parent)
     }
 
-    pub fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    pub fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let mut guard = embedded.lock().unwrap();
@@ -2589,13 +2591,13 @@ impl Object for Var {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
         Var::name(self)
     }
-    fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         Var::parent(self)
     }
-    fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         Var::pkg(self)
     }
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         Var::pos(self)
     }
     fn string(&self) -> Arc<Mutex<Option<String>>> {
@@ -2610,10 +2612,10 @@ impl Object for Var {
     fn order(&self) -> u32 {
         Var::order(self)
     }
-    fn same_id(&self, pkg: Arc<Mutex<Option<crate::package::Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
+    fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
         Var::same_id(self, pkg, name, foldCase)
     }
-    fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         Var::scope_pos(self)
     }
     fn set_color(&mut self, color_local: Arc<Mutex<Option<color>>>) {
@@ -2622,10 +2624,10 @@ impl Object for Var {
     fn set_order(&mut self, __arg0: Arc<Mutex<Option<u32>>>) {
         Var::set_order(self, __arg0)
     }
-    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<crate::scope::Scope>>>) {
+    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<Scope>>>) {
         Var::set_parent(self, __arg0)
     }
-    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         Var::set_scope_pos(self, pos)
     }
     fn set_type(&mut self, __arg0: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) {
@@ -2652,7 +2654,7 @@ pub struct VarPtr(pub Arc<Mutex<Option<Var>>>);
 impl std::fmt::Display for VarPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
     }
 }
 
@@ -2672,17 +2674,17 @@ impl Object for VarPtr {
         let __recv = __recv_guard.as_ref().unwrap();
         Var::name(__recv)
     }
-    fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Var::parent(__recv)
     }
-    fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Var::pkg(__recv)
     }
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Var::pos(__recv)
@@ -2707,12 +2709,12 @@ impl Object for VarPtr {
         let __recv = __recv_guard.as_ref().unwrap();
         Var::order(__recv)
     }
-    fn same_id(&self, pkg: Arc<Mutex<Option<crate::package::Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
+    fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Var::same_id(__recv, pkg, name, foldCase)
     }
-    fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Var::scope_pos(__recv)
@@ -2727,12 +2729,12 @@ impl Object for VarPtr {
         let __recv = __recv_guard.as_mut().unwrap();
         Var::set_order(__recv, __arg0)
     }
-    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<crate::scope::Scope>>>) {
+    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<Scope>>>) {
         let mut __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_mut().unwrap();
         Var::set_parent(__recv, __arg0)
     }
-    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         let mut __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_mut().unwrap();
         Var::set_scope_pos(__recv, pos)
@@ -2792,7 +2794,7 @@ impl dependency for VarPtr {
 }
 
 impl positioner for Var {
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         Var::pos(self)
     }
     fn __go_clone_box_positioner(&self) -> Box<dyn positioner + Send + Sync> {
@@ -2811,7 +2813,7 @@ impl positioner for Var {
 }
 
 impl positioner for VarPtr {
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Var::pos(__recv)
@@ -2833,8 +2835,8 @@ impl positioner for VarPtr {
 
 impl Func {
     /// Signature returns the signature (type) of the function or method.
-    pub fn signature(&self) -> Arc<Mutex<Option<crate::signature::Signature>>> {
-        if { let __iface_handle = { let __field = (*self.object.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
+    pub fn signature(&self) -> Arc<Mutex<Option<Signature>>> {
+        if (*(*self.object.lock().unwrap().as_ref().unwrap()).typ.lock().unwrap()).is_some() {
         return ({
         let val = (*self.object.lock().unwrap().as_ref().unwrap()).typ.clone();
         let guard = val.lock().unwrap();
@@ -2872,7 +2874,7 @@ impl Func {
     /// Scope returns the scope of the function's body block.
     /// The result is nil for imported or instantiated functions and methods
     /// (but there is also no mechanism to get to an instantiated function).
-    pub fn scope(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    pub fn scope(&self) -> Arc<Mutex<Option<Scope>>> {
         (*({
         let val = (*self.object.lock().unwrap().as_ref().unwrap()).typ.clone();
         let guard = val.lock().unwrap();
@@ -2906,7 +2908,7 @@ impl Func {
     ///
     /// The result is nil for methods of types in the Universe scope,
     /// like method Error of the error built-in interface type.
-    pub fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    pub fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         (*self.object.lock().unwrap().as_ref().unwrap()).pkg()
     }
 
@@ -2924,10 +2926,10 @@ impl Func {
             if let Some(typed_val) = <dyn Type + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<crate::signature::SignaturePtr>() {
                 (typed_val.0.clone(), true)
             } else {
-                (Arc::new(Mutex::new(None::<crate::signature::Signature>)), false)
+                (Arc::new(Mutex::new(None::<Signature>)), false)
             }
         } else {
-            (Arc::new(Mutex::new(None::<crate::signature::Signature>)), false)
+            (Arc::new(Mutex::new(None::<Signature>)), false)
         }
     });;
         if (*sig.lock().unwrap()).is_some() && { let __nil_target = (*sig.lock().unwrap().as_ref().unwrap()).recv.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
@@ -2974,7 +2976,7 @@ impl Func {
         embedded_ref.name()
     }
 
-    pub fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    pub fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -2982,7 +2984,7 @@ impl Func {
         embedded_ref.parent()
     }
 
-    pub fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    pub fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -3030,7 +3032,7 @@ impl Func {
         embedded_ref.same_id(pkg, name, foldCase)
     }
 
-    pub fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    pub fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -3062,7 +3064,7 @@ impl Func {
         embedded_ref.set_parent(parent)
     }
 
-    pub fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    pub fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let mut guard = embedded.lock().unwrap();
@@ -3089,13 +3091,13 @@ impl Object for Func {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
         Func::name(self)
     }
-    fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         Func::parent(self)
     }
-    fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         Func::pkg(self)
     }
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         Func::pos(self)
     }
     fn string(&self) -> Arc<Mutex<Option<String>>> {
@@ -3110,10 +3112,10 @@ impl Object for Func {
     fn order(&self) -> u32 {
         Func::order(self)
     }
-    fn same_id(&self, pkg: Arc<Mutex<Option<crate::package::Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
+    fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
         Func::same_id(self, pkg, name, foldCase)
     }
-    fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         Func::scope_pos(self)
     }
     fn set_color(&mut self, color_local: Arc<Mutex<Option<color>>>) {
@@ -3122,10 +3124,10 @@ impl Object for Func {
     fn set_order(&mut self, __arg0: Arc<Mutex<Option<u32>>>) {
         Func::set_order(self, __arg0)
     }
-    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<crate::scope::Scope>>>) {
+    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<Scope>>>) {
         Func::set_parent(self, __arg0)
     }
-    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         Func::set_scope_pos(self, pos)
     }
     fn set_type(&mut self, __arg0: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) {
@@ -3152,7 +3154,7 @@ pub struct FuncPtr(pub Arc<Mutex<Option<Func>>>);
 impl std::fmt::Display for FuncPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
     }
 }
 
@@ -3172,17 +3174,17 @@ impl Object for FuncPtr {
         let __recv = __recv_guard.as_ref().unwrap();
         Func::name(__recv)
     }
-    fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Func::parent(__recv)
     }
-    fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Func::pkg(__recv)
     }
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Func::pos(__recv)
@@ -3207,12 +3209,12 @@ impl Object for FuncPtr {
         let __recv = __recv_guard.as_ref().unwrap();
         Func::order(__recv)
     }
-    fn same_id(&self, pkg: Arc<Mutex<Option<crate::package::Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
+    fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Func::same_id(__recv, pkg, name, foldCase)
     }
-    fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Func::scope_pos(__recv)
@@ -3227,12 +3229,12 @@ impl Object for FuncPtr {
         let __recv = __recv_guard.as_mut().unwrap();
         Func::set_order(__recv, __arg0)
     }
-    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<crate::scope::Scope>>>) {
+    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<Scope>>>) {
         let mut __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_mut().unwrap();
         Func::set_parent(__recv, __arg0)
     }
-    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         let mut __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_mut().unwrap();
         Func::set_scope_pos(__recv, pos)
@@ -3292,7 +3294,7 @@ impl dependency for FuncPtr {
 }
 
 impl positioner for Func {
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         Func::pos(self)
     }
     fn __go_clone_box_positioner(&self) -> Box<dyn positioner + Send + Sync> {
@@ -3311,7 +3313,7 @@ impl positioner for Func {
 }
 
 impl positioner for FuncPtr {
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Func::pos(__recv)
@@ -3360,7 +3362,7 @@ impl Label {
         embedded_ref.name()
     }
 
-    pub fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    pub fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -3368,7 +3370,7 @@ impl Label {
         embedded_ref.parent()
     }
 
-    pub fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    pub fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -3376,7 +3378,7 @@ impl Label {
         embedded_ref.pkg()
     }
 
-    pub fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    pub fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -3424,7 +3426,7 @@ impl Label {
         embedded_ref.same_id(pkg, name, foldCase)
     }
 
-    pub fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    pub fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -3456,7 +3458,7 @@ impl Label {
         embedded_ref.set_parent(parent)
     }
 
-    pub fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    pub fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let mut guard = embedded.lock().unwrap();
@@ -3483,13 +3485,13 @@ impl Object for Label {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
         Label::name(self)
     }
-    fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         Label::parent(self)
     }
-    fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         Label::pkg(self)
     }
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         Label::pos(self)
     }
     fn string(&self) -> Arc<Mutex<Option<String>>> {
@@ -3504,10 +3506,10 @@ impl Object for Label {
     fn order(&self) -> u32 {
         Label::order(self)
     }
-    fn same_id(&self, pkg: Arc<Mutex<Option<crate::package::Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
+    fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
         Label::same_id(self, pkg, name, foldCase)
     }
-    fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         Label::scope_pos(self)
     }
     fn set_color(&mut self, color_local: Arc<Mutex<Option<color>>>) {
@@ -3516,10 +3518,10 @@ impl Object for Label {
     fn set_order(&mut self, __arg0: Arc<Mutex<Option<u32>>>) {
         Label::set_order(self, __arg0)
     }
-    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<crate::scope::Scope>>>) {
+    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<Scope>>>) {
         Label::set_parent(self, __arg0)
     }
-    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         Label::set_scope_pos(self, pos)
     }
     fn set_type(&mut self, __arg0: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) {
@@ -3546,7 +3548,7 @@ pub struct LabelPtr(pub Arc<Mutex<Option<Label>>>);
 impl std::fmt::Display for LabelPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
     }
 }
 
@@ -3566,17 +3568,17 @@ impl Object for LabelPtr {
         let __recv = __recv_guard.as_ref().unwrap();
         Label::name(__recv)
     }
-    fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Label::parent(__recv)
     }
-    fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Label::pkg(__recv)
     }
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Label::pos(__recv)
@@ -3601,12 +3603,12 @@ impl Object for LabelPtr {
         let __recv = __recv_guard.as_ref().unwrap();
         Label::order(__recv)
     }
-    fn same_id(&self, pkg: Arc<Mutex<Option<crate::package::Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
+    fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Label::same_id(__recv, pkg, name, foldCase)
     }
-    fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Label::scope_pos(__recv)
@@ -3621,12 +3623,12 @@ impl Object for LabelPtr {
         let __recv = __recv_guard.as_mut().unwrap();
         Label::set_order(__recv, __arg0)
     }
-    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<crate::scope::Scope>>>) {
+    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<Scope>>>) {
         let mut __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_mut().unwrap();
         Label::set_parent(__recv, __arg0)
     }
-    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         let mut __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_mut().unwrap();
         Label::set_scope_pos(__recv, pos)
@@ -3652,7 +3654,7 @@ impl Object for LabelPtr {
 }
 
 impl positioner for Label {
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         Label::pos(self)
     }
     fn __go_clone_box_positioner(&self) -> Box<dyn positioner + Send + Sync> {
@@ -3671,7 +3673,7 @@ impl positioner for Label {
 }
 
 impl positioner for LabelPtr {
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Label::pos(__recv)
@@ -3720,7 +3722,7 @@ impl Builtin {
         embedded_ref.name()
     }
 
-    pub fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    pub fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -3728,7 +3730,7 @@ impl Builtin {
         embedded_ref.parent()
     }
 
-    pub fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    pub fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -3736,7 +3738,7 @@ impl Builtin {
         embedded_ref.pkg()
     }
 
-    pub fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    pub fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -3784,7 +3786,7 @@ impl Builtin {
         embedded_ref.same_id(pkg, name, foldCase)
     }
 
-    pub fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    pub fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -3816,7 +3818,7 @@ impl Builtin {
         embedded_ref.set_parent(parent)
     }
 
-    pub fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    pub fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let mut guard = embedded.lock().unwrap();
@@ -3843,13 +3845,13 @@ impl Object for Builtin {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
         Builtin::name(self)
     }
-    fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         Builtin::parent(self)
     }
-    fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         Builtin::pkg(self)
     }
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         Builtin::pos(self)
     }
     fn string(&self) -> Arc<Mutex<Option<String>>> {
@@ -3864,10 +3866,10 @@ impl Object for Builtin {
     fn order(&self) -> u32 {
         Builtin::order(self)
     }
-    fn same_id(&self, pkg: Arc<Mutex<Option<crate::package::Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
+    fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
         Builtin::same_id(self, pkg, name, foldCase)
     }
-    fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         Builtin::scope_pos(self)
     }
     fn set_color(&mut self, color_local: Arc<Mutex<Option<color>>>) {
@@ -3876,10 +3878,10 @@ impl Object for Builtin {
     fn set_order(&mut self, __arg0: Arc<Mutex<Option<u32>>>) {
         Builtin::set_order(self, __arg0)
     }
-    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<crate::scope::Scope>>>) {
+    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<Scope>>>) {
         Builtin::set_parent(self, __arg0)
     }
-    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         Builtin::set_scope_pos(self, pos)
     }
     fn set_type(&mut self, __arg0: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) {
@@ -3906,7 +3908,7 @@ pub struct BuiltinPtr(pub Arc<Mutex<Option<Builtin>>>);
 impl std::fmt::Display for BuiltinPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
     }
 }
 
@@ -3926,17 +3928,17 @@ impl Object for BuiltinPtr {
         let __recv = __recv_guard.as_ref().unwrap();
         Builtin::name(__recv)
     }
-    fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Builtin::parent(__recv)
     }
-    fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Builtin::pkg(__recv)
     }
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Builtin::pos(__recv)
@@ -3961,12 +3963,12 @@ impl Object for BuiltinPtr {
         let __recv = __recv_guard.as_ref().unwrap();
         Builtin::order(__recv)
     }
-    fn same_id(&self, pkg: Arc<Mutex<Option<crate::package::Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
+    fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Builtin::same_id(__recv, pkg, name, foldCase)
     }
-    fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Builtin::scope_pos(__recv)
@@ -3981,12 +3983,12 @@ impl Object for BuiltinPtr {
         let __recv = __recv_guard.as_mut().unwrap();
         Builtin::set_order(__recv, __arg0)
     }
-    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<crate::scope::Scope>>>) {
+    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<Scope>>>) {
         let mut __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_mut().unwrap();
         Builtin::set_parent(__recv, __arg0)
     }
-    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         let mut __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_mut().unwrap();
         Builtin::set_scope_pos(__recv, pos)
@@ -4012,7 +4014,7 @@ impl Object for BuiltinPtr {
 }
 
 impl positioner for Builtin {
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         Builtin::pos(self)
     }
     fn __go_clone_box_positioner(&self) -> Box<dyn positioner + Send + Sync> {
@@ -4031,7 +4033,7 @@ impl positioner for Builtin {
 }
 
 impl positioner for BuiltinPtr {
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Builtin::pos(__recv)
@@ -4080,7 +4082,7 @@ impl Nil {
         embedded_ref.name()
     }
 
-    pub fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    pub fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -4088,7 +4090,7 @@ impl Nil {
         embedded_ref.parent()
     }
 
-    pub fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    pub fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -4096,7 +4098,7 @@ impl Nil {
         embedded_ref.pkg()
     }
 
-    pub fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    pub fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -4144,7 +4146,7 @@ impl Nil {
         embedded_ref.same_id(pkg, name, foldCase)
     }
 
-    pub fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    pub fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let guard = embedded.lock().unwrap();
@@ -4176,7 +4178,7 @@ impl Nil {
         embedded_ref.set_parent(parent)
     }
 
-    pub fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    pub fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         // Forward to embedded type's method
         let embedded = self.object.clone();
         let mut guard = embedded.lock().unwrap();
@@ -4203,13 +4205,13 @@ impl Object for Nil {
     fn name(&self) -> Arc<Mutex<Option<String>>> {
         Nil::name(self)
     }
-    fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         Nil::parent(self)
     }
-    fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         Nil::pkg(self)
     }
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         Nil::pos(self)
     }
     fn string(&self) -> Arc<Mutex<Option<String>>> {
@@ -4224,10 +4226,10 @@ impl Object for Nil {
     fn order(&self) -> u32 {
         Nil::order(self)
     }
-    fn same_id(&self, pkg: Arc<Mutex<Option<crate::package::Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
+    fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
         Nil::same_id(self, pkg, name, foldCase)
     }
-    fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         Nil::scope_pos(self)
     }
     fn set_color(&mut self, color_local: Arc<Mutex<Option<color>>>) {
@@ -4236,10 +4238,10 @@ impl Object for Nil {
     fn set_order(&mut self, __arg0: Arc<Mutex<Option<u32>>>) {
         Nil::set_order(self, __arg0)
     }
-    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<crate::scope::Scope>>>) {
+    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<Scope>>>) {
         Nil::set_parent(self, __arg0)
     }
-    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         Nil::set_scope_pos(self, pos)
     }
     fn set_type(&mut self, __arg0: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) {
@@ -4266,7 +4268,7 @@ pub struct NilPtr(pub Arc<Mutex<Option<Nil>>>);
 impl std::fmt::Display for NilPtr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let __guard = self.0.lock().unwrap();
-        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+        match __guard.as_ref() { Some(__v) => write!(f, "{}", __v), None => write!(f, "<nil>") }
     }
 }
 
@@ -4286,17 +4288,17 @@ impl Object for NilPtr {
         let __recv = __recv_guard.as_ref().unwrap();
         Nil::name(__recv)
     }
-    fn parent(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    fn parent(&self) -> Arc<Mutex<Option<Scope>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Nil::parent(__recv)
     }
-    fn pkg(&self) -> Arc<Mutex<Option<crate::package::Package>>> {
+    fn pkg(&self) -> Arc<Mutex<Option<Package>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Nil::pkg(__recv)
     }
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Nil::pos(__recv)
@@ -4321,12 +4323,12 @@ impl Object for NilPtr {
         let __recv = __recv_guard.as_ref().unwrap();
         Nil::order(__recv)
     }
-    fn same_id(&self, pkg: Arc<Mutex<Option<crate::package::Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
+    fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Nil::same_id(__recv, pkg, name, foldCase)
     }
-    fn scope_pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn scope_pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Nil::scope_pos(__recv)
@@ -4341,12 +4343,12 @@ impl Object for NilPtr {
         let __recv = __recv_guard.as_mut().unwrap();
         Nil::set_order(__recv, __arg0)
     }
-    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<crate::scope::Scope>>>) {
+    fn set_parent(&mut self, __arg0: Arc<Mutex<Option<Scope>>>) {
         let mut __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_mut().unwrap();
         Nil::set_parent(__recv, __arg0)
     }
-    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<token_Pos>>>) {
+    fn set_scope_pos(&mut self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) {
         let mut __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_mut().unwrap();
         Nil::set_scope_pos(__recv, pos)
@@ -4372,7 +4374,7 @@ impl Object for NilPtr {
 }
 
 impl positioner for Nil {
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         Nil::pos(self)
     }
     fn __go_clone_box_positioner(&self) -> Box<dyn positioner + Send + Sync> {
@@ -4391,7 +4393,7 @@ impl positioner for Nil {
 }
 
 impl positioner for NilPtr {
-    fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         let __recv_guard = self.0.lock().unwrap();
         let __recv = __recv_guard.as_ref().unwrap();
         Nil::pos(__recv)
@@ -4412,7 +4414,7 @@ impl positioner for NilPtr {
 }
 
 pub fn is_exported(name: Arc<Mutex<Option<String>>>) -> bool {
-    let (mut ch, _) = utf8::decode_rune_in_string(name.clone());
+    let (mut ch, _) = utf8::decode_rune_in_string({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
     unicode::is_upper(ch)
 }
 
@@ -4449,14 +4451,14 @@ pub fn color_for(t: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc<Mute
 
 /// NewPkgName returns a new PkgName object representing an imported package.
 /// The remaining arguments set the attributes found with all Objects.
-pub fn new_pkg_name(pos: Arc<Mutex<Option<token_Pos>>>, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, imported: Arc<Mutex<Option<Package>>>) -> Arc<Mutex<Option<PkgName>>> {
-    { let __owner = Arc::new(Mutex::new(Some(PkgName { object: Arc::new(Mutex::new(Some(object { parent: Default::default(), pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), pkg: pkg.clone(), name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), typ: Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr({ let __seq = { let __seq_holder = Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(INVALID as i32) as usize].clone() }.clone())) as Box<dyn Type + Send + Sync>))), order_: Arc::new(Mutex::new(Some(0 as u32))), color_: Arc::new(Mutex::new(Some(color(Arc::new(Mutex::new(Some(BLACK as u32))))))), scope_pos_: Arc::new(Mutex::new(Some({ let __arg_holder = nopos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))), imported: imported.clone(), ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().object.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner }
+pub fn new_pkg_name(pos: Arc<Mutex<Option<go_token::position::Pos>>>, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, imported: Arc<Mutex<Option<Package>>>) -> Arc<Mutex<Option<PkgName>>> {
+    { let __owner = Arc::new(Mutex::new(Some(PkgName { object: Arc::new(Mutex::new(Some(object { parent: Default::default(), pos: pos.clone(), pkg: pkg.clone(), name: name.clone(), typ: Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr({ let __seq = { let __seq_holder = Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(INVALID as i32) as usize].clone() }.clone())) as Box<dyn Type + Send + Sync>))), order_: Arc::new(Mutex::new(Some(0 as u32))), color_: Arc::new(Mutex::new(Some(color(Arc::new(Mutex::new(Some(BLACK as u32))))))), scope_pos_: nopos.clone(), ..Default::default() }))), imported: imported.clone(), ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().object.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner }
 }
 
 /// NewConst returns a new constant with value val.
 /// The remaining arguments set the attributes found with all Objects.
-pub fn new_const(pos: Arc<Mutex<Option<token_Pos>>>, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, val: Arc<Mutex<Option<constant_Value>>>) -> Arc<Mutex<Option<Const>>> {
-    { let __owner = Arc::new(Mutex::new(Some(Const { object: Arc::new(Mutex::new(Some(object { parent: Default::default(), pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), pkg: pkg.clone(), name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), typ: typ.clone(), order_: Arc::new(Mutex::new(Some(0 as u32))), color_: color_for(typ.clone()), scope_pos_: Arc::new(Mutex::new(Some({ let __arg_holder = nopos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))), val: val.clone(), ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().object.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner }
+pub fn new_const(pos: Arc<Mutex<Option<go_token::position::Pos>>>, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, val: Arc<Mutex<Option<constant_Value>>>) -> Arc<Mutex<Option<Const>>> {
+    { let __owner = Arc::new(Mutex::new(Some(Const { object: Arc::new(Mutex::new(Some(object { parent: Default::default(), pos: pos.clone(), pkg: pkg.clone(), name: name.clone(), typ: typ.clone(), order_: Arc::new(Mutex::new(Some(0 as u32))), color_: color_for(typ.clone()), scope_pos_: nopos.clone(), ..Default::default() }))), val: val.clone(), ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().object.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner }
 }
 
 /// NewTypeName returns a new type name denoting the given typ.
@@ -4466,31 +4468,31 @@ pub fn new_const(pos: Arc<Mutex<Option<token_Pos>>>, pkg: Arc<Mutex<Option<Packa
 /// It may also be nil such that the returned TypeName can be used as
 /// argument for NewNamed, which will set the TypeName's type as a side-
 /// effect.
-pub fn new_type_name(pos: Arc<Mutex<Option<token_Pos>>>, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc<Mutex<Option<TypeName>>> {
-    { let __owner = Arc::new(Mutex::new(Some(TypeName { object: Arc::new(Mutex::new(Some(object { parent: Default::default(), pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), pkg: pkg.clone(), name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), typ: typ.clone(), order_: Arc::new(Mutex::new(Some(0 as u32))), color_: color_for(typ.clone()), scope_pos_: Arc::new(Mutex::new(Some({ let __arg_holder = nopos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))), ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().object.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner }
+pub fn new_type_name(pos: Arc<Mutex<Option<go_token::position::Pos>>>, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc<Mutex<Option<TypeName>>> {
+    { let __owner = Arc::new(Mutex::new(Some(TypeName { object: Arc::new(Mutex::new(Some(object { parent: Default::default(), pos: pos.clone(), pkg: pkg.clone(), name: name.clone(), typ: typ.clone(), order_: Arc::new(Mutex::new(Some(0 as u32))), color_: color_for(typ.clone()), scope_pos_: nopos.clone(), ..Default::default() }))), ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().object.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner }
 }
 
 /// NewVar returns a new variable.
 /// The arguments set the attributes found with all Objects.
-pub fn new_var(pos: Arc<Mutex<Option<token_Pos>>>, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc<Mutex<Option<Var>>> {
-    { let __owner = Arc::new(Mutex::new(Some(Var { object: Arc::new(Mutex::new(Some(object { parent: Default::default(), pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), pkg: pkg.clone(), name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), typ: typ.clone(), order_: Arc::new(Mutex::new(Some(0 as u32))), color_: color_for(typ.clone()), scope_pos_: Arc::new(Mutex::new(Some({ let __arg_holder = nopos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))), ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().object.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner }
+pub fn new_var(pos: Arc<Mutex<Option<go_token::position::Pos>>>, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc<Mutex<Option<Var>>> {
+    { let __owner = Arc::new(Mutex::new(Some(Var { object: Arc::new(Mutex::new(Some(object { parent: Default::default(), pos: pos.clone(), pkg: pkg.clone(), name: name.clone(), typ: typ.clone(), order_: Arc::new(Mutex::new(Some(0 as u32))), color_: color_for(typ.clone()), scope_pos_: nopos.clone(), ..Default::default() }))), ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().object.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner }
 }
 
 /// NewParam returns a new variable representing a function parameter.
-pub fn new_param(pos: Arc<Mutex<Option<token_Pos>>>, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc<Mutex<Option<Var>>> {
-    { let __owner = Arc::new(Mutex::new(Some(Var { object: Arc::new(Mutex::new(Some(object { parent: Default::default(), pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), pkg: pkg.clone(), name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), typ: typ.clone(), order_: Arc::new(Mutex::new(Some(0 as u32))), color_: color_for(typ.clone()), scope_pos_: Arc::new(Mutex::new(Some({ let __arg_holder = nopos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))), is_param: Arc::new(Mutex::new(Some(true))), ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().object.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner }
+pub fn new_param(pos: Arc<Mutex<Option<go_token::position::Pos>>>, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc<Mutex<Option<Var>>> {
+    { let __owner = Arc::new(Mutex::new(Some(Var { object: Arc::new(Mutex::new(Some(object { parent: Default::default(), pos: pos.clone(), pkg: pkg.clone(), name: name.clone(), typ: typ.clone(), order_: Arc::new(Mutex::new(Some(0 as u32))), color_: color_for(typ.clone()), scope_pos_: nopos.clone(), ..Default::default() }))), is_param: Arc::new(Mutex::new(Some(true))), ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().object.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner }
 }
 
 /// NewField returns a new variable representing a struct field.
 /// For embedded fields, the name is the unqualified type name
 /// under which the field is accessible.
-pub fn new_field(pos: Arc<Mutex<Option<token_Pos>>>, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, embedded: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<Var>>> {
-    { let __owner = Arc::new(Mutex::new(Some(Var { object: Arc::new(Mutex::new(Some(object { parent: Default::default(), pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), pkg: pkg.clone(), name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), typ: typ.clone(), order_: Arc::new(Mutex::new(Some(0 as u32))), color_: color_for(typ.clone()), scope_pos_: Arc::new(Mutex::new(Some({ let __arg_holder = nopos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))), embedded: Arc::new(Mutex::new(Some({ let __arg_holder = embedded.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), is_field: Arc::new(Mutex::new(Some(true))), ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().object.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner }
+pub fn new_field(pos: Arc<Mutex<Option<go_token::position::Pos>>>, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, embedded: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<Var>>> {
+    { let __owner = Arc::new(Mutex::new(Some(Var { object: Arc::new(Mutex::new(Some(object { parent: Default::default(), pos: pos.clone(), pkg: pkg.clone(), name: name.clone(), typ: typ.clone(), order_: Arc::new(Mutex::new(Some(0 as u32))), color_: color_for(typ.clone()), scope_pos_: nopos.clone(), ..Default::default() }))), embedded: embedded.clone(), is_field: Arc::new(Mutex::new(Some(true))), ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().object.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner }
 }
 
 /// NewFunc returns a new function with the given signature, representing
 /// the function's type.
-pub fn new_func(pos: Arc<Mutex<Option<token_Pos>>>, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, sig: Arc<Mutex<Option<Signature>>>) -> Arc<Mutex<Option<Func>>> {
+pub fn new_func(pos: Arc<Mutex<Option<go_token::position::Pos>>>, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, sig: Arc<Mutex<Option<Signature>>>) -> Arc<Mutex<Option<Func>>> {
     let mut typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> = Arc::new(Mutex::new(None));
     if (*sig.lock().unwrap()).is_some() {
         { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(crate::signature::SignaturePtr(sig.clone())) as Box<dyn Type + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
@@ -4500,20 +4502,20 @@ pub fn new_func(pos: Arc<Mutex<Option<token_Pos>>>, pkg: Arc<Mutex<Option<Packag
         // We can't simply replace it with new(Signature) either,
         // as this would violate object.{Type,color} invariants.
         // TODO(adonovan): propose to disallow NewFunc with nil *Signature.
-    return { let __owner = Arc::new(Mutex::new(Some(Func { object: Arc::new(Mutex::new(Some(object { parent: Default::default(), pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), pkg: pkg.clone(), name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), typ: typ.clone(), order_: Arc::new(Mutex::new(Some(0 as u32))), color_: color_for(typ.clone()), scope_pos_: Arc::new(Mutex::new(Some({ let __arg_holder = nopos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))), has_ptr_recv_: Arc::new(Mutex::new(Some(false))), origin: Default::default(), ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().object.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner };
+    return { let __owner = Arc::new(Mutex::new(Some(Func { object: Arc::new(Mutex::new(Some(object { parent: Default::default(), pos: pos.clone(), pkg: pkg.clone(), name: name.clone(), typ: typ.clone(), order_: Arc::new(Mutex::new(Some(0 as u32))), color_: color_for(typ.clone()), scope_pos_: nopos.clone(), ..Default::default() }))), has_ptr_recv_: Arc::new(Mutex::new(Some(false))), origin: Default::default(), ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().object.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner };
 }
 
 /// NewLabel returns a new label.
-pub fn new_label(pos: Arc<Mutex<Option<token_Pos>>>, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Label>>> {
-    { let __owner = Arc::new(Mutex::new(Some(Label { object: Arc::new(Mutex::new(Some(object { pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), pkg: pkg.clone(), name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), typ: Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr({ let __seq = { let __seq_holder = Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(INVALID as i32) as usize].clone() }.clone())) as Box<dyn Type + Send + Sync>))), color_: Arc::new(Mutex::new(Some(color(Arc::new(Mutex::new(Some(BLACK as u32))))))), ..Default::default() }))), used: Arc::new(Mutex::new(Some(false))), ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().object.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner }
+pub fn new_label(pos: Arc<Mutex<Option<go_token::position::Pos>>>, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Label>>> {
+    { let __owner = Arc::new(Mutex::new(Some(Label { object: Arc::new(Mutex::new(Some(object { pos: pos.clone(), pkg: pkg.clone(), name: name.clone(), typ: Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr({ let __seq = { let __seq_holder = Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(INVALID as i32) as usize].clone() }.clone())) as Box<dyn Type + Send + Sync>))), color_: Arc::new(Mutex::new(Some(color(Arc::new(Mutex::new(Some(BLACK as u32))))))), ..Default::default() }))), used: Arc::new(Mutex::new(Some(false))), ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().object.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner }
 }
 
 pub fn new_builtin(id: Arc<Mutex<Option<builtinId>>>) -> Arc<Mutex<Option<Builtin>>> {
-    { let __owner = Arc::new(Mutex::new(Some(Builtin { object: Arc::new(Mutex::new(Some(object { name: Arc::new(Mutex::new(Some({ let __selector_holder = { let __seq = { let __seq_holder = predeclaredFuncs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), typ: Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr({ let __seq = { let __seq_holder = Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(INVALID as i32) as usize].clone() }.clone())) as Box<dyn Type + Send + Sync>))), color_: Arc::new(Mutex::new(Some(color(Arc::new(Mutex::new(Some(BLACK as u32))))))), ..Default::default() }))), id: Arc::new(Mutex::new(Some({ let __arg_holder = id.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().object.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner }
+    { let __owner = Arc::new(Mutex::new(Some(Builtin { object: Arc::new(Mutex::new(Some(object { name: Arc::new(Mutex::new(Some({ let __selector_holder = { let __seq = { let __seq_holder = predeclaredFuncs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), typ: Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr({ let __seq = { let __seq_holder = Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(INVALID as i32) as usize].clone() }.clone())) as Box<dyn Type + Send + Sync>))), color_: Arc::new(Mutex::new(Some(color(Arc::new(Mutex::new(Some(BLACK as u32))))))), ..Default::default() }))), id: id.clone(), ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().object.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner }
 }
 
-pub fn write_object(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut obj: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>, qf: crate::typestring::Qualifier) {
-    let mut obj: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>> = Arc::new(Mutex::new(obj.lock().unwrap().as_ref().map(|__v| Object::__go_clone_box_object(__v.as_ref()))));
+pub fn write_object(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut obj: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>, qf: Qualifier) {
+    let mut obj: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>> = obj.clone();
     let mut tname: Arc<Mutex<Option<TypeName>>> = Arc::new(Mutex::new(None));
     let mut typ = (*obj.lock().unwrap().as_ref().unwrap()).r#type();
 
@@ -4521,18 +4523,10 @@ pub fn write_object(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut obj: Arc<Mutex<Op
     let _ts_subject = obj.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
-    let _ts_owned = _ts_guard.as_ref().cloned();
-    drop(_ts_guard);
-    let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {
-        let __any = __v.__go_as_any();
-        if let Some(__boxed) = __any.downcast_ref::<Box<dyn Object + Send + Sync>>() {
-            __boxed.__go_as_any()
-        } else {
-            __any
-        }
-    });
+    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.__go_as_any());
     if _ts_val.and_then(|__v| __v.downcast_ref::<PkgNamePtr>()).is_some() {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<PkgNamePtr>()).unwrap().0.clone();
+        drop(_ts_guard);
         { let __s = format!("package {}", (*{ let __recv = obj.clone(); let __recv_ptr: *const PkgName = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const PkgName }; let __result = unsafe { &*__recv_ptr }.name(); __result }.lock().unwrap().as_ref().unwrap())); let __n = __s.len() as i32; (*buf.lock().unwrap().as_ref().unwrap()).__go_write_bytes(__s.as_bytes()); (__n, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))) };;
         {
         let mut path = Arc::new(Mutex::new(Some({ let __selector_holder = (*(*obj.lock().unwrap().as_ref().unwrap()).imported.lock().unwrap().as_ref().unwrap()).path.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));;
@@ -4543,9 +4537,11 @@ pub fn write_object(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut obj: Arc<Mutex<Op
         return;;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<ConstPtr>()).is_some() {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<ConstPtr>()).unwrap().0.clone();
+        drop(_ts_guard);
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("const".to_string()); __result };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<TypeNamePtr>()).is_some() {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<TypeNamePtr>()).unwrap().0.clone();
+        drop(_ts_guard);
         { let new_val = obj.clone(); tname = new_val; };;
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("type".to_string()); __result };;
         if is_type_param(typ.clone()) {
@@ -4553,6 +4549,7 @@ pub fn write_object(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut obj: Arc<Mutex<Op
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<VarPtr>()).is_some() {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<VarPtr>()).unwrap().0.clone();
+        drop(_ts_guard);
         if (*{ let __field = (*obj.lock().unwrap().as_ref().unwrap()).is_field.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("field".to_string()); __result };
     } else {
@@ -4560,6 +4557,7 @@ pub fn write_object(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut obj: Arc<Mutex<Op
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<FuncPtr>()).is_some() {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<FuncPtr>()).unwrap().0.clone();
+        drop(_ts_guard);
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("func ".to_string()); __result };;
         write_func_name(buf.clone(), obj.clone(), qf.clone());;
         if (*typ.lock().unwrap()).is_some() {
@@ -4580,18 +4578,22 @@ pub fn write_object(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut obj: Arc<Mutex<Op
         return;;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<LabelPtr>()).is_some() {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<LabelPtr>()).unwrap().0.clone();
+        drop(_ts_guard);
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("label".to_string()); __result };;
         *typ.lock().unwrap() = None;;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<BuiltinPtr>()).is_some() {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<BuiltinPtr>()).unwrap().0.clone();
+        drop(_ts_guard);
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("builtin".to_string()); __result };;
         *typ.lock().unwrap() = None;;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<NilPtr>()).is_some() {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<NilPtr>()).unwrap().0.clone();
+        drop(_ts_guard);
         { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("nil".to_string()); __result };;
         return;;
     } else {
         let obj = obj.clone();
+        drop(_ts_guard);
         panic!("writeObject({})", format!("{}", (*obj.lock().unwrap().as_ref().unwrap())));;
     }
     }
@@ -4613,21 +4615,14 @@ pub fn write_object(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut obj: Arc<Mutex<Op
     let _ts_subject = typ.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
-    let _ts_owned = _ts_guard.as_ref().cloned();
-    drop(_ts_guard);
-    let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {
-        let __any = __v.__go_as_any();
-        if let Some(__boxed) = __any.downcast_ref::<Box<dyn Type + Send + Sync>>() {
-            __boxed.__go_as_any()
-        } else {
-            __any
-        }
-    });
+    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.__go_as_any());
     if _ts_val.and_then(|__v| __v.downcast_ref::<crate::basic::BasicPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::basic::BasicPtr>()).unwrap().0.clone();
+        drop(_ts_guard);
         return;;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::alias::AliasPtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<crate::named::NamedPtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<crate::signature::SignaturePtr>()).is_some() {
         let t: Arc<Mutex<Option<Box<dyn genericType + Send + Sync>>>> = unimplemented!("type info required: type switch on interface case with 3 concrete implementors needs a synthesized trait object");
+        drop(_ts_guard);
         if { let __tmp_x = { let __recv = (*t.lock().unwrap().as_mut().unwrap()).type_params(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).len(); __result }; let __tmp_y = 0; __tmp_x > __tmp_y } {
         { let __recv = new_type_writer(buf.clone(), qf.clone()); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).t_param_list({ let __recv = (*t.lock().unwrap().as_mut().unwrap()).type_params(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).list(); __result }); __result };
     };
@@ -4645,10 +4640,10 @@ pub fn write_object(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut obj: Arc<Mutex<Op
             if let Some(typed_val) = <dyn Type + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<crate::alias::AliasPtr>() {
                 (typed_val.0.clone(), true)
             } else {
-                (Arc::new(Mutex::new(None::<crate::alias::Alias>)), false)
+                (Arc::new(Mutex::new(None::<Alias>)), false)
             }
         } else {
-            (Arc::new(Mutex::new(None::<crate::alias::Alias>)), false)
+            (Arc::new(Mutex::new(None::<Alias>)), false)
         }
     });;
         if ok {
@@ -4663,10 +4658,10 @@ pub fn write_object(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut obj: Arc<Mutex<Op
             if let Some(typed_val) = <dyn Type + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<crate::typeparam::TypeParamPtr>() {
                 (typed_val.0.clone(), true)
             } else {
-                (Arc::new(Mutex::new(None::<crate::typeparam::TypeParam>)), false)
+                (Arc::new(Mutex::new(None::<TypeParam>)), false)
             }
         } else {
-            (Arc::new(Mutex::new(None::<crate::typeparam::TypeParam>)), false)
+            (Arc::new(Mutex::new(None::<TypeParam>)), false)
         }
     });;
         if (*t.lock().unwrap()).is_some() {
@@ -4694,7 +4689,7 @@ pub fn write_object(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut obj: Arc<Mutex<Op
     write_type(buf.clone(), typ.clone(), qf.clone());
 }
 
-pub fn package_prefix(pkg: Arc<Mutex<Option<Package>>>, qf: crate::typestring::Qualifier) -> Arc<Mutex<Option<String>>> {
+pub fn package_prefix(pkg: Arc<Mutex<Option<Package>>>, qf: Qualifier) -> Arc<Mutex<Option<String>>> {
     if (*pkg.lock().unwrap()).is_none() {
         return Arc::new(Mutex::new(Some("".to_string())));
     }
@@ -4702,7 +4697,7 @@ pub fn package_prefix(pkg: Arc<Mutex<Option<Package>>>, qf: crate::typestring::Q
     if (*qf.lock().unwrap()).is_some() {
         { let new_val = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Package>>>) -> Arc<Mutex<Option<String>>> + Send + Sync> = { let mut __f_guard = qf.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Package>>>) -> Arc<Mutex<Option<String>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(pkg.clone()) }; let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_val; };
     } else {
-        { let new_val = { let __recv = pkg.clone(); let __recv_ptr: *const crate::package::Package = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::package::Package }; let __result = unsafe { &*__recv_ptr }.path(); __result }; let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_val; };
+        { let new_val = { let __recv = pkg.clone(); let __recv_ptr: *const Package = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Package }; let __result = unsafe { &*__recv_ptr }.path(); __result }; let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_val; };
     }
     if { let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
         { (*s.lock().unwrap().as_mut().unwrap()).push_str(&".".to_string()); };
@@ -4713,14 +4708,14 @@ pub fn package_prefix(pkg: Arc<Mutex<Option<Package>>>, qf: crate::typestring::Q
 /// ObjectString returns the string form of obj.
 /// The Qualifier controls the printing of
 /// package-level objects, and may be nil.
-pub fn object_string(obj: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>, qf: crate::typestring::Qualifier) -> Arc<Mutex<Option<String>>> {
+pub fn object_string(obj: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>, qf: Qualifier) -> Arc<Mutex<Option<String>>> {
     let mut buf: Arc<Mutex<Option<bytes_Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
     write_object(buf.clone(), obj.clone(), qf.clone());
     return (*buf.lock().unwrap().as_mut().unwrap()).string();
 }
 
-pub fn write_func_name(buf: Arc<Mutex<Option<bytes_Buffer>>>, f: Arc<Mutex<Option<Func>>>, qf: crate::typestring::Qualifier) {
-    if { let __iface_handle = { let __field = (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
+pub fn write_func_name(buf: Arc<Mutex<Option<bytes_Buffer>>>, f: Arc<Mutex<Option<Func>>>, qf: Qualifier) {
+    if (*(*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap()).is_some() {
         let mut sig = ({
         let val = (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone();
         let guard = val.lock().unwrap();
@@ -4735,7 +4730,7 @@ pub fn write_func_name(buf: Arc<Mutex<Option<bytes_Buffer>>>, f: Arc<Mutex<Optio
         }
     }).clone();
         {
-        let mut recv = { let __recv = sig.clone(); let __recv_ptr: *const crate::signature::Signature = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signature::Signature }; let __result = unsafe { &*__recv_ptr }.recv(); __result };;
+        let mut recv = { let __recv = sig.clone(); let __recv_ptr: *const Signature = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Signature }; let __result = unsafe { &*__recv_ptr }.recv(); __result };;
         if (*recv.lock().unwrap()).is_some() {
             { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte(('(' as i32) as u8); __result };;
             {
@@ -4746,10 +4741,10 @@ pub fn write_func_name(buf: Arc<Mutex<Option<bytes_Buffer>>>, f: Arc<Mutex<Optio
             if let Some(typed_val) = <dyn Type + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<crate::interface::InterfacePtr>() {
                 (typed_val.0.clone(), true)
             } else {
-                (Arc::new(Mutex::new(None::<crate::interface::Interface>)), false)
+                (Arc::new(Mutex::new(None::<Interface>)), false)
             }
         } else {
-            (Arc::new(Mutex::new(None::<crate::interface::Interface>)), false)
+            (Arc::new(Mutex::new(None::<Interface>)), false)
         }
     });;
         if ok {
@@ -4769,7 +4764,7 @@ pub fn write_func_name(buf: Arc<Mutex<Option<bytes_Buffer>>>, f: Arc<Mutex<Optio
         // named interfaces using the interface type
         // (not the named type) as the receiver.
         // Don't print it in full.
-    { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string({ let __go_arg = { let __selector_holder = (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __go_arg }); __result };
+    { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string({ let __selector_holder = (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }); __result };
 }
 
 impl GoValueClone for object {

@@ -81,13 +81,13 @@ impl crate::check::Checker {
     /// overflow checks that the constant x is representable by its type.
     /// For untyped constants, it checks that the value doesn't become
     /// arbitrarily large.
-    pub fn overflow(&self, x: Arc<Mutex<Option<operand>>>, opPos: Arc<Mutex<Option<token_Pos>>>) {
-        assert(Arc::new(Mutex::new(Some({ let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(CONSTANT_ as u8)))); __tmp_x == __tmp_y }))));
+    pub fn overflow(&self, x: Arc<Mutex<Option<operand>>>, opPos: Arc<Mutex<Option<go_token::position::Pos>>>) {
+        assert(Arc::new(Mutex::new(Some({ let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = operandMode(Arc::new(Mutex::new(Some(CONSTANT_ as u8)))); __tmp_x == __tmp_y }))));
         if { let __tmp_x = (*(*(*x.lock().unwrap().as_ref().unwrap()).val.lock().unwrap().as_ref().unwrap()).kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = constant::UNKNOWN; __tmp_x == __tmp_y } {
                 // TODO(gri) We should report exactly what went wrong. At the
                 //           moment we don't have the (go/constant) API for that.
                 //           See also TODO in go/constant/value.go.
-        self.error(Arc::new(Mutex::new(Some(Box::new(crate::errors::atPos(Arc::new(Mutex::new(Some((*opPos.lock().unwrap().as_ref().unwrap()).clone()))))) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_CONST_VAL as i32))))))), Arc::new(Mutex::new(Some("constant result is not representable".to_string()))));
+        self.error(Arc::new(Mutex::new(Some(Box::new(atPos(Arc::new(Mutex::new(Some((*opPos.lock().unwrap().as_ref().unwrap()).clone()))))) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_CONST_VAL as i32))))))), Arc::new(Mutex::new(Some("constant result is not representable".to_string()))));
         return;
     }
                 // TODO(gri) We should report exactly what went wrong. At the
@@ -117,11 +117,11 @@ impl crate::check::Checker {
         const prec: i32 = 512;
 
         if { let __tmp_x = (*(*(*x.lock().unwrap().as_ref().unwrap()).val.lock().unwrap().as_ref().unwrap()).kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = constant::INT; __tmp_x == __tmp_y } && { let __tmp_x = constant::bit_len({ let __go_arg = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).val.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __go_arg }); let __tmp_y = 512; __tmp_x > __tmp_y } {
-        let mut op = op_name({ let __field = (*x.lock().unwrap().as_ref().unwrap()).expr.clone(); __field });
+        let mut op = op_name((*x.lock().unwrap().as_ref().unwrap()).expr.clone());
         if { let __tmp_x = (*op.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
         { (*op.lock().unwrap().as_mut().unwrap()).push_str(&" ".to_string()); };
     }
-        self.errorf(Arc::new(Mutex::new(Some(Box::new(crate::errors::atPos(Arc::new(Mutex::new(Some((*opPos.lock().unwrap().as_ref().unwrap()).clone()))))) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_CONST_VAL as i32))))))), Arc::new(Mutex::new(Some("constant %soverflow".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = op.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
+        self.errorf(Arc::new(Mutex::new(Some(Box::new(atPos(Arc::new(Mutex::new(Some((*opPos.lock().unwrap().as_ref().unwrap()).clone()))))) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_CONST_VAL as i32))))))), Arc::new(Mutex::new(Some("constant %soverflow".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new((*op.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>]))));
         { let new_val = constant::make_unknown(); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *(*x.lock().unwrap().as_ref().unwrap()).val.lock().unwrap() = __moved_val; };
     }
     }
@@ -132,7 +132,7 @@ impl crate::check::Checker {
         let (mut v, mut code) = self.representation(x.clone(), typ.clone());
         if { let __tmp_x = (*code.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(0 as i32)))); __tmp_x != __tmp_y } {
         self.invalid_conversion(Arc::new(Mutex::new(Some({ let __arg_holder = code.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), x.clone(), Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr(typ.clone())) as Box<dyn Type + Send + Sync>))));
-        { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
+        { let new_val = operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
         return;
     }
         assert(Arc::new(Mutex::new(Some((*v.lock().unwrap()).is_some()))));
@@ -144,7 +144,7 @@ impl crate::check::Checker {
     ///
     /// If no such representation is possible, it returns a non-zero error code.
     pub fn representation(&self, x: Arc<Mutex<Option<operand>>>, typ: Arc<Mutex<Option<Basic>>>) -> (Arc<Mutex<Option<constant_Value>>>, Arc<Mutex<Option<internal_types_errors::codes::Code>>>) {
-        assert(Arc::new(Mutex::new(Some({ let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(CONSTANT_ as u8)))); __tmp_x == __tmp_y }))));
+        assert(Arc::new(Mutex::new(Some({ let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = operandMode(Arc::new(Mutex::new(Some(CONSTANT_ as u8)))); __tmp_x == __tmp_y }))));
         let mut v = { let __src = (*x.lock().unwrap().as_ref().unwrap()).val.clone(); let __copied = (*__src.lock().unwrap().as_ref().unwrap()).clone(); Arc::new(Mutex::new(Some(__copied))) };
         if !representable_const({ let __field = (*x.lock().unwrap().as_ref().unwrap()).val.clone(); __field }, Arc::new(Mutex::new(Some(self.clone()))), typ.clone(), v.clone()) {
         if is_numeric((*x.lock().unwrap().as_ref().unwrap()).typ.clone()) && is_numeric(Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr(typ.clone())) as Box<dyn Type + Send + Sync>)))) {
@@ -189,7 +189,7 @@ impl crate::check::Checker {
             { let new_val = "%s overflows %s".to_string(); *msg.lock().unwrap() = Some(new_val); };
         }
     }
-        self.errorf(Arc::new(Mutex::new(Some(Box::new(crate::operand::operandPtr(x.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = code.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = msg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(vec![Box::new(x.clone()) as Box<dyn Any + Send + Sync>, Box::new({ let __arg_holder = target.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>]))));
+        self.errorf(Arc::new(Mutex::new(Some(Box::new(crate::operand::operandPtr(x.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = code.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = msg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(vec![Box::new(x.clone()) as Box<dyn Any + Send + Sync>, Box::new((*target.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>]))));
     }
 
     /// convertUntyped attempts to set the type of an untyped value to the target type.
@@ -201,16 +201,16 @@ impl crate::check::Checker {
         { let __iface_handle = safe_underlying(target.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *t.lock().unwrap() = (*__iface_guard).clone(); };
     }
         self.invalid_conversion(Arc::new(Mutex::new(Some({ let __arg_holder = code.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), x.clone(), t.clone());
-        { let new_val = crate::operand::operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
+        { let new_val = operandMode(Arc::new(Mutex::new(Some(INVALID_1 as u8)))); *(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap() = Some(new_val); };
         return;
     }
         if (*val.lock().unwrap()).is_some() {
         { let new_val = val.lock().unwrap().as_ref().unwrap().clone(); *(*x.lock().unwrap().as_ref().unwrap()).val.lock().unwrap() = Some(new_val); };
-        self.update_expr_val({ let __field = (*x.lock().unwrap().as_ref().unwrap()).expr.clone(); __field }, val.clone());
+        self.update_expr_val((*x.lock().unwrap().as_ref().unwrap()).expr.clone(), val.clone());
     }
         if { let __left_holder = newType.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; !__eq } {
         { let __iface_handle = newType.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*x.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
-        self.update_expr_type({ let __field = (*x.lock().unwrap().as_ref().unwrap()).expr.clone(); __field }, newType.clone(), Arc::new(Mutex::new(Some(false))));
+        self.update_expr_type((*x.lock().unwrap().as_ref().unwrap()).expr.clone(), newType.clone(), Arc::new(Mutex::new(Some(false))));
     }
     }
 }
@@ -239,7 +239,7 @@ pub fn representable_const(mut x: Arc<Mutex<Option<constant_Value>>>, check: Arc
     }
 
     let conf_closure_clone = conf.clone(); let mut sizeof = Arc::new(Mutex::new(Some(Box::new(move |T: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>| -> i64 {
-        let mut s = { let __recv = conf_closure_clone.clone(); let __recv_ptr: *const crate::api::Config = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::api::Config }; let __result = unsafe { &*__recv_ptr }.sizeof(T.clone()); __result };
+        let mut s = { let __recv = conf_closure_clone.clone(); let __recv_ptr: *const Config = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Config }; let __result = unsafe { &*__recv_ptr }.sizeof(T.clone()); __result };
         s
     }) as Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> i64 + Send + Sync>)));
 
@@ -255,44 +255,44 @@ pub fn representable_const(mut x: Arc<Mutex<Option<constant_Value>>>, check: Arc
         let (mut x, mut ok) = constant::int64_val(x.clone());;
         if ok {
             { let _switch_val = { let __selector_holder = (*typ.lock().unwrap().as_ref().unwrap()).kind.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
-    if _switch_val == (crate::basic::BasicKind(Arc::new(Mutex::new(Some(INT as i32))))) {
+    if _switch_val == (BasicKind(Arc::new(Mutex::new(Some(INT as i32))))) {
             let mut s = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some({ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> i64 + Send + Sync> = { let mut __f_guard = sizeof.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> i64 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr(typ.clone())) as Box<dyn Type + Send + Sync>)))) } as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 8 as u64; __tmp_x * __tmp_y })));
-            return { let __tmp_x = { let __tmp_x = (-1 as i64); let __tmp_y = ({ let __tmp_x = { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u64; __tmp_x - __tmp_y }); __tmp_x << __tmp_y }; let __tmp_y = x; __tmp_x <= __tmp_y } && { let __tmp_x = x; let __tmp_y = { let __tmp_x = { let __tmp_x = (1 as i64); let __tmp_y = ({ let __tmp_x = { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u64; __tmp_x - __tmp_y }); __tmp_x << __tmp_y }; let __tmp_y = 1 as i64; __tmp_x - __tmp_y }; __tmp_x <= __tmp_y };
-        } else if _switch_val == (crate::basic::BasicKind(Arc::new(Mutex::new(Some(INT8 as i32))))) {
+            return { let __tmp_x = { let __tmp_x = ((*Arc::new(Mutex::new(Some(-(1) as i64))).lock().unwrap().as_ref().unwrap()) as i64); let __tmp_y = ({ let __tmp_x = { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u64; __tmp_x - __tmp_y }); __tmp_x << __tmp_y }; let __tmp_y = x; __tmp_x <= __tmp_y } && { let __tmp_x = x; let __tmp_y = { let __tmp_x = { let __tmp_x = ((*Arc::new(Mutex::new(Some(1 as i64))).lock().unwrap().as_ref().unwrap()) as i64); let __tmp_y = ({ let __tmp_x = { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u64; __tmp_x - __tmp_y }); __tmp_x << __tmp_y }; let __tmp_y = 1 as i64; __tmp_x - __tmp_y }; __tmp_x <= __tmp_y };
+        } else if _switch_val == (BasicKind(Arc::new(Mutex::new(Some(INT8 as i32))))) {
             const s: i32 = 8;
 
-            return { let __tmp_x = (-((1 as i64)) << ((s as i64) - (1 as i64))) as i64; let __tmp_y = x; __tmp_x <= __tmp_y } && { let __tmp_x = x; let __tmp_y = (((1 as i64) << ((s as i64) - (1 as i64))) - (1 as i64)) as i64; __tmp_x <= __tmp_y };
-        } else if _switch_val == (crate::basic::BasicKind(Arc::new(Mutex::new(Some(INT16 as i32))))) {
+            return { let __tmp_x = ((-1 as i64) << ((s as i64) - (1 as i64))) as i64; let __tmp_y = x; __tmp_x <= __tmp_y } && { let __tmp_x = x; let __tmp_y = (((1 as i64) << ((s as i64) - (1 as i64))) - (1 as i64)) as i64; __tmp_x <= __tmp_y };
+        } else if _switch_val == (BasicKind(Arc::new(Mutex::new(Some(INT16 as i32))))) {
             const s: i32 = 16;
 
-            return { let __tmp_x = (-((1 as i64)) << ((s as i64) - (1 as i64))) as i64; let __tmp_y = x; __tmp_x <= __tmp_y } && { let __tmp_x = x; let __tmp_y = (((1 as i64) << ((s as i64) - (1 as i64))) - (1 as i64)) as i64; __tmp_x <= __tmp_y };
-        } else if _switch_val == (crate::basic::BasicKind(Arc::new(Mutex::new(Some(INT32 as i32))))) {
+            return { let __tmp_x = ((-1 as i64) << ((s as i64) - (1 as i64))) as i64; let __tmp_y = x; __tmp_x <= __tmp_y } && { let __tmp_x = x; let __tmp_y = (((1 as i64) << ((s as i64) - (1 as i64))) - (1 as i64)) as i64; __tmp_x <= __tmp_y };
+        } else if _switch_val == (BasicKind(Arc::new(Mutex::new(Some(INT32 as i32))))) {
             const s: i32 = 32;
 
-            return { let __tmp_x = (-((1 as i64)) << ((s as i64) - (1 as i64))) as i64; let __tmp_y = x; __tmp_x <= __tmp_y } && { let __tmp_x = x; let __tmp_y = (((1 as i64) << ((s as i64) - (1 as i64))) - (1 as i64)) as i64; __tmp_x <= __tmp_y };
-        } else if _switch_val == (crate::basic::BasicKind(Arc::new(Mutex::new(Some(INT64 as i32))))) || _switch_val == (crate::basic::BasicKind(Arc::new(Mutex::new(Some(UNTYPED_INT as i32))))) {
+            return { let __tmp_x = ((-1 as i64) << ((s as i64) - (1 as i64))) as i64; let __tmp_y = x; __tmp_x <= __tmp_y } && { let __tmp_x = x; let __tmp_y = (((1 as i64) << ((s as i64) - (1 as i64))) - (1 as i64)) as i64; __tmp_x <= __tmp_y };
+        } else if _switch_val == (BasicKind(Arc::new(Mutex::new(Some(INT64 as i32))))) || _switch_val == (BasicKind(Arc::new(Mutex::new(Some(UNTYPED_INT as i32))))) {
             return true;
-        } else if _switch_val == (crate::basic::BasicKind(Arc::new(Mutex::new(Some(UINT as i32))))) || _switch_val == (crate::basic::BasicKind(Arc::new(Mutex::new(Some(UINTPTR as i32))))) {
+        } else if _switch_val == (BasicKind(Arc::new(Mutex::new(Some(UINT as i32))))) || _switch_val == (BasicKind(Arc::new(Mutex::new(Some(UINTPTR as i32))))) {
             {
         let mut s = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some({ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> i64 + Send + Sync> = { let mut __f_guard = sizeof.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> i64 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr(typ.clone())) as Box<dyn Type + Send + Sync>)))) } as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 8 as u64; __tmp_x * __tmp_y })));;
         if { let __tmp_x = { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 64 as u64; __tmp_x < __tmp_y } {
-            return { let __tmp_x = 0 as i64; let __tmp_y = x; __tmp_x <= __tmp_y } && { let __tmp_x = x; let __tmp_y = { let __tmp_x = { let __tmp_x = (1 as i64); let __tmp_y = { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }; let __tmp_y = 1 as i64; __tmp_x - __tmp_y }; __tmp_x <= __tmp_y };;
+            return { let __tmp_x = 0 as i64; let __tmp_y = x; __tmp_x <= __tmp_y } && { let __tmp_x = x; let __tmp_y = { let __tmp_x = { let __tmp_x = ((*Arc::new(Mutex::new(Some(1 as i64))).lock().unwrap().as_ref().unwrap()) as i64); let __tmp_y = { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }; let __tmp_y = 1 as i64; __tmp_x - __tmp_y }; __tmp_x <= __tmp_y };;
         }
     }
             return { let __tmp_x = 0 as i64; let __tmp_y = x; __tmp_x <= __tmp_y };
-        } else if _switch_val == (crate::basic::BasicKind(Arc::new(Mutex::new(Some(UINT8 as i32))))) {
+        } else if _switch_val == (BasicKind(Arc::new(Mutex::new(Some(UINT8 as i32))))) {
             const s: i32 = 8;
 
             return { let __tmp_x = 0 as i64; let __tmp_y = x; __tmp_x <= __tmp_y } && { let __tmp_x = x; let __tmp_y = (((1 as i64) << (s as i64)) - (1 as i64)) as i64; __tmp_x <= __tmp_y };
-        } else if _switch_val == (crate::basic::BasicKind(Arc::new(Mutex::new(Some(UINT16 as i32))))) {
+        } else if _switch_val == (BasicKind(Arc::new(Mutex::new(Some(UINT16 as i32))))) {
             const s: i32 = 16;
 
             return { let __tmp_x = 0 as i64; let __tmp_y = x; __tmp_x <= __tmp_y } && { let __tmp_x = x; let __tmp_y = (((1 as i64) << (s as i64)) - (1 as i64)) as i64; __tmp_x <= __tmp_y };
-        } else if _switch_val == (crate::basic::BasicKind(Arc::new(Mutex::new(Some(UINT32 as i32))))) {
+        } else if _switch_val == (BasicKind(Arc::new(Mutex::new(Some(UINT32 as i32))))) {
             const s: i32 = 32;
 
             return { let __tmp_x = 0 as i64; let __tmp_y = x; __tmp_x <= __tmp_y } && { let __tmp_x = x; let __tmp_y = (((1 as i64) << (s as i64)) - (1 as i64)) as i64; __tmp_x <= __tmp_y };
-        } else if _switch_val == (crate::basic::BasicKind(Arc::new(Mutex::new(Some(UINT64 as i32))))) {
+        } else if _switch_val == (BasicKind(Arc::new(Mutex::new(Some(UINT64 as i32))))) {
             return { let __tmp_x = 0 as i64; let __tmp_y = x; __tmp_x <= __tmp_y };
         } else {
             panic!("unreachable");
@@ -303,12 +303,12 @@ pub fn representable_const(mut x: Arc<Mutex<Option<constant_Value>>>, check: Arc
                         // x does not fit into int64
             let mut n = constant::bit_len(x.clone());
     { let _switch_val = { let __selector_holder = (*typ.lock().unwrap().as_ref().unwrap()).kind.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
-    if _switch_val == (crate::basic::BasicKind(Arc::new(Mutex::new(Some(UINT as i32))))) || _switch_val == (crate::basic::BasicKind(Arc::new(Mutex::new(Some(UINTPTR as i32))))) {
+    if _switch_val == (BasicKind(Arc::new(Mutex::new(Some(UINT as i32))))) || _switch_val == (BasicKind(Arc::new(Mutex::new(Some(UINTPTR as i32))))) {
             let mut s = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some({ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> i64 + Send + Sync> = { let mut __f_guard = sizeof.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> i64 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr(typ.clone())) as Box<dyn Type + Send + Sync>)))) } as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 8 as u64; __tmp_x * __tmp_y })));
             return { let __tmp_x = constant::sign(x.clone()); let __tmp_y = 0; __tmp_x >= __tmp_y } && { let __tmp_x = n; let __tmp_y = (*Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x <= __tmp_y };
-        } else if _switch_val == (crate::basic::BasicKind(Arc::new(Mutex::new(Some(UINT64 as i32))))) {
+        } else if _switch_val == (BasicKind(Arc::new(Mutex::new(Some(UINT64 as i32))))) {
             return { let __tmp_x = constant::sign(x.clone()); let __tmp_y = 0; __tmp_x >= __tmp_y } && { let __tmp_x = n; let __tmp_y = 64; __tmp_x <= __tmp_y };
-        } else if _switch_val == (crate::basic::BasicKind(Arc::new(Mutex::new(Some(UNTYPED_INT as i32))))) {
+        } else if _switch_val == (BasicKind(Arc::new(Mutex::new(Some(UNTYPED_INT as i32))))) {
             return true;
         }
     }
@@ -318,7 +318,7 @@ pub fn representable_const(mut x: Arc<Mutex<Option<constant_Value>>>, check: Arc
         return false;
     }
             { let _switch_val = { let __selector_holder = (*typ.lock().unwrap().as_ref().unwrap()).kind.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
-    if _switch_val == (crate::basic::BasicKind(Arc::new(Mutex::new(Some(FLOAT32 as i32))))) {
+    if _switch_val == (BasicKind(Arc::new(Mutex::new(Some(FLOAT32 as i32))))) {
             if (*rounded.lock().unwrap()).is_none() {
         return fits_float32(x.clone());
     }
@@ -327,7 +327,7 @@ pub fn representable_const(mut x: Arc<Mutex<Option<constant_Value>>>, check: Arc
         { let new_val = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; *rounded.lock().unwrap() = Some(new_val); };
         return true;
     }
-        } else if _switch_val == (crate::basic::BasicKind(Arc::new(Mutex::new(Some(FLOAT64 as i32))))) {
+        } else if _switch_val == (BasicKind(Arc::new(Mutex::new(Some(FLOAT64 as i32))))) {
             if (*rounded.lock().unwrap()).is_none() {
         return fits_float64(x.clone());
     }
@@ -336,7 +336,7 @@ pub fn representable_const(mut x: Arc<Mutex<Option<constant_Value>>>, check: Arc
         { let new_val = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; *rounded.lock().unwrap() = Some(new_val); };
         return true;
     }
-        } else if _switch_val == (crate::basic::BasicKind(Arc::new(Mutex::new(Some(UNTYPED_FLOAT as i32))))) {
+        } else if _switch_val == (BasicKind(Arc::new(Mutex::new(Some(UNTYPED_FLOAT as i32))))) {
             return true;
         } else {
             panic!("unreachable");
@@ -348,27 +348,27 @@ pub fn representable_const(mut x: Arc<Mutex<Option<constant_Value>>>, check: Arc
         return false;
     }
             { let _switch_val = { let __selector_holder = (*typ.lock().unwrap().as_ref().unwrap()).kind.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
-    if _switch_val == (crate::basic::BasicKind(Arc::new(Mutex::new(Some(COMPLEX64 as i32))))) {
+    if _switch_val == (BasicKind(Arc::new(Mutex::new(Some(COMPLEX64 as i32))))) {
             if (*rounded.lock().unwrap()).is_none() {
         return fits_float32(constant::real(x.clone())) && fits_float32(constant::imag(x.clone()));
     }
             let mut re = round_float32(constant::real(x.clone()));
             let mut im = round_float32(constant::imag(x.clone()));
             if (*re.lock().unwrap()).is_some() && (*im.lock().unwrap()).is_some() {
-        { let new_val = (*constant::binary_op(re.clone(), token::A_D_D, constant::make_imag(im.clone())).lock().unwrap().as_ref().unwrap()).clone(); *rounded.lock().unwrap() = Some(new_val); };
+        { let new_val = (*constant::binary_op(re.clone(), go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_D_D as i32)))), constant::make_imag(im.clone())).lock().unwrap().as_ref().unwrap()).clone(); *rounded.lock().unwrap() = Some(new_val); };
         return true;
     }
-        } else if _switch_val == (crate::basic::BasicKind(Arc::new(Mutex::new(Some(COMPLEX128 as i32))))) {
+        } else if _switch_val == (BasicKind(Arc::new(Mutex::new(Some(COMPLEX128 as i32))))) {
             if (*rounded.lock().unwrap()).is_none() {
         return fits_float64(constant::real(x.clone())) && fits_float64(constant::imag(x.clone()));
     }
             let mut re = round_float64(constant::real(x.clone()));
             let mut im = round_float64(constant::imag(x.clone()));
             if (*re.lock().unwrap()).is_some() && (*im.lock().unwrap()).is_some() {
-        { let new_val = (*constant::binary_op(re.clone(), token::A_D_D, constant::make_imag(im.clone())).lock().unwrap().as_ref().unwrap()).clone(); *rounded.lock().unwrap() = Some(new_val); };
+        { let new_val = (*constant::binary_op(re.clone(), go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_D_D as i32)))), constant::make_imag(im.clone())).lock().unwrap().as_ref().unwrap()).clone(); *rounded.lock().unwrap() = Some(new_val); };
         return true;
     }
-        } else if _switch_val == (crate::basic::BasicKind(Arc::new(Mutex::new(Some(UNTYPED_COMPLEX as i32))))) {
+        } else if _switch_val == (BasicKind(Arc::new(Mutex::new(Some(UNTYPED_COMPLEX as i32))))) {
             return true;
         } else {
             panic!("unreachable");
@@ -387,14 +387,14 @@ pub fn representable_const(mut x: Arc<Mutex<Option<constant_Value>>>, check: Arc
 pub fn fits_float32(x: Arc<Mutex<Option<constant_Value>>>) -> bool {
     let (mut f32, _) = constant::float32_val(x.clone());
     let mut f = Arc::new(Mutex::new(Some(f32 as f64)));
-    return !math::is_inf(f.clone(), 0);
+    return !math::is_inf({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }, 0);
 }
 
 pub fn round_float32(x: Arc<Mutex<Option<constant_Value>>>) -> Arc<Mutex<Option<constant_Value>>> {
     let (mut f32, _) = constant::float32_val(x.clone());
     let mut f = Arc::new(Mutex::new(Some(f32 as f64)));
-    if !math::is_inf(f.clone(), 0) {
-        return constant::make_float64(f.clone());
+    if !math::is_inf({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }, 0) {
+        return constant::make_float64({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
     }
     return Arc::new(Mutex::new(None));
 }

@@ -79,7 +79,7 @@ use std::sync::{Arc, Mutex};
 pub struct AnonymousStruct1 {
     pub obj: Arc<Mutex<Option<Func>>>,
     pub ptr: Arc<Mutex<Option<bool>>>,
-    pub recv: Arc<Mutex<Option<ast_Ident>>>,
+    pub recv: Arc<Mutex<Option<go_ast::r#mod::Ident>>>,
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
@@ -122,12 +122,12 @@ impl crate::scope::Scope {
     /// object was inserted into the scope and already had a parent at that
     /// time (see Insert). This can only happen for dot-imported objects
     /// whose parent is the scope of the package that exported them.
-    pub fn lookup_parent(&mut self, name: Arc<Mutex<Option<String>>>, pos: Arc<Mutex<Option<token_Pos>>>) -> (Arc<Mutex<Option<crate::scope::Scope>>>, Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>) {
+    pub fn lookup_parent(&mut self, name: Arc<Mutex<Option<String>>>, pos: Arc<Mutex<Option<go_token::position::Pos>>>) -> (Arc<Mutex<Option<Scope>>>, Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>) {
         let mut __self = Arc::new(Mutex::new(Some(self.clone())));
         while { let __self_guard = __self.lock().unwrap(); __self_guard.is_some() } {
         {
         let mut obj = (*__self.lock().unwrap().as_ref().unwrap()).lookup(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
-        if (*obj.lock().unwrap()).is_some() && (!token_Pos::is_valid(&(*pos.lock().unwrap().as_ref().unwrap())) || { let __tmp_x = cmp_pos((*obj.lock().unwrap().as_ref().unwrap()).scope_pos(), Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __tmp_y = 0; __tmp_x <= __tmp_y }) {
+        if (*obj.lock().unwrap()).is_some() && (!(*pos.lock().unwrap().as_ref().unwrap()).is_valid() || { let __tmp_x = cmp_pos((*obj.lock().unwrap().as_ref().unwrap()).scope_pos(), Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __tmp_y = 0; __tmp_x <= __tmp_y }) {
             return (__self.clone(), obj.clone());;
         }
     }
@@ -140,18 +140,18 @@ impl crate::scope::Scope {
     /// The results are guaranteed to be valid only if the type-checked
     /// AST has complete position information. The extent is undefined
     /// for Universe and package scopes.
-    pub fn pos(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    pub fn pos(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         return self.pos.clone();
     }
 
-    pub fn end(&self) -> Arc<Mutex<Option<token_Pos>>> {
+    pub fn end(&self) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         return self.end.clone();
     }
 
     /// Contains reports whether pos is within the scope's extent.
     /// The result is guaranteed to be valid only if the type-checked
     /// AST has complete position information.
-    pub fn contains(&self, pos: Arc<Mutex<Option<token_Pos>>>) -> bool {
+    pub fn contains(&self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) -> bool {
         return { let __tmp_x = cmp_pos({ let __field = self.pos.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __tmp_y = 0; __tmp_x <= __tmp_y } && { let __tmp_x = cmp_pos(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), { let __field = self.end.clone(); __field }); let __tmp_y = 0; __tmp_x < __tmp_y };
     }
 
@@ -160,13 +160,13 @@ impl crate::scope::Scope {
     /// The result is also nil for the Universe scope.
     /// The result is guaranteed to be valid only if the type-checked
     /// AST has complete position information.
-    pub fn innermost(&self, pos: Arc<Mutex<Option<token_Pos>>>) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    pub fn innermost(&self, pos: Arc<Mutex<Option<go_token::position::Pos>>>) -> Arc<Mutex<Option<Scope>>> {
                 // Package scopes do not have extents since they may be
                 // discontiguous, so iterate over the package's files.
         if { let __left = self.parent.clone(); let __right = (*Universe.lock().unwrap().as_ref().unwrap()).clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
         { let __range_holder = self.children.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for s in __range_values.iter() {
         {
-        let mut inner = { let __recv = s.clone(); let __recv_ptr: *const crate::scope::Scope = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::scope::Scope }; let __result = unsafe { &*__recv_ptr }.innermost(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result };;
+        let mut inner = { let __recv = s.clone(); let __recv_ptr: *const Scope = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Scope }; let __result = unsafe { &*__recv_ptr }.innermost(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result };;
         if (*inner.lock().unwrap()).is_some() {
             return inner.clone();;
         }
@@ -175,8 +175,8 @@ impl crate::scope::Scope {
     }
         if self.contains(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
         { let __range_holder = self.children.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for s in __range_values.iter() {
-        if { let __recv = s.clone(); let __recv_ptr: *const crate::scope::Scope = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::scope::Scope }; let __result = unsafe { &*__recv_ptr }.contains(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result } {
-        return { let __recv = s.clone(); let __recv_ptr: *const crate::scope::Scope = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::scope::Scope }; let __result = unsafe { &*__recv_ptr }.innermost(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result };
+        if { let __recv = s.clone(); let __recv_ptr: *const Scope = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Scope }; let __result = unsafe { &*__recv_ptr }.contains(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result } {
+        return { let __recv = s.clone(); let __recv_ptr: *const Scope = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Scope }; let __result = unsafe { &*__recv_ptr }.innermost(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result };
     }
     } }
         return Arc::new(Mutex::new(Some(self.clone())));

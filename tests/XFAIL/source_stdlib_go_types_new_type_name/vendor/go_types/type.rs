@@ -88,13 +88,13 @@ pub trait Type: std::fmt::Display + Any {
 
 impl Clone for Box<dyn Type + Send + Sync> {
     fn clone(&self) -> Self {
-        Type::__go_clone_box_type_(self.as_ref())
+        self.__go_clone_box_type_()
     }
 }
 
 impl GoValueClone for Box<dyn Type + Send + Sync> {
     fn go_value_clone(&self) -> Self {
-        Type::__go_clone_box_type_(self.as_ref())
+        self.__go_clone_box_type_()
     }
 }
 
@@ -111,7 +111,7 @@ impl GoComparable for Box<dyn Type + Send + Sync> {
 pub struct AnonymousStruct1 {
     pub obj: Arc<Mutex<Option<Func>>>,
     pub ptr: Arc<Mutex<Option<bool>>>,
-    pub recv: Arc<Mutex<Option<ast_Ident>>>,
+    pub recv: Arc<Mutex<Option<go_ast::r#mod::Ident>>>,
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {

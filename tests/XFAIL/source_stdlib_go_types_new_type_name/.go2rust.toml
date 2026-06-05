@@ -1,1 +1,1 @@
-source_stdlib_packages = "go/types,internal/types/errors"
+source_stdlib_packages = "go/types,internal/types/errors,go/token,go/ast,slices,internal/buildcfg,internal/goexperiment"

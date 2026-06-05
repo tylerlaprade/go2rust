@@ -450,7 +450,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 			states = append(states, packageLoader.GetPackageStates()...)
 		}
 		states = append(states, packageState)
-		if err := WriteSharedStdlibStubCrate(pg.projectPath, states); err != nil {
+		if err := WriteSharedStdlibStubCrate(pg.projectPath, states, pg.packageMapping); err != nil {
 			return err
 		}
 	}

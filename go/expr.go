@@ -174,6 +174,13 @@ func writeNamedIntegerBinaryPrimitiveExpression(out *strings.Builder, expr *ast.
 	if !ok || !isNamedIntegerType(named) {
 		return false
 	}
+	return writeNamedIntegerBinaryPrimitiveExpressionForNamed(out, expr, named)
+}
+
+func writeNamedIntegerBinaryPrimitiveExpressionForNamed(out *strings.Builder, expr *ast.BinaryExpr, named *types.Named) bool {
+	if expr == nil || named == nil || !isNamedIntegerType(named) {
+		return false
+	}
 	primitiveType := ""
 	if basic, ok := types.Unalias(named.Underlying()).(*types.Basic); ok {
 		primitiveType, _ = rustCastTypeForDefinedUnderlying(basic.Name())
@@ -192,7 +199,11 @@ func writeNamedIntegerBinaryPrimitiveExpression(out *strings.Builder, expr *ast.
 	out.WriteString(" ")
 	out.WriteString(rustBinaryOp(expr.Op))
 	out.WriteString(" ")
-	writeNamedIntegerPrimitiveOperand(out, expr.Y, primitiveType)
+	if (expr.Op == token.SHL || expr.Op == token.SHR) && writeShiftCountPrimitiveOperand(out, expr.Y, expr) {
+		// Shift counts stay primitive; they do not adopt the left operand's named type.
+	} else {
+		writeNamedIntegerPrimitiveOperand(out, expr.Y, primitiveType)
+	}
 	out.WriteString(")")
 	return true
 }
@@ -271,6 +282,11 @@ func writeNamedIntegerValueForExpected(out *strings.Builder, expr ast.Expr, name
 	if isTimeDurationType(named) {
 		writeTimeDurationValue(out, expr)
 		return true
+	}
+	if binary, ok := expr.(*ast.BinaryExpr); ok && (binary.Op == token.SHL || binary.Op == token.SHR) {
+		if writeNamedIntegerBinaryPrimitiveExpressionForNamed(out, binary, named) {
+			return true
+		}
 	}
 	if rustType, ok := externalIntegerRustTypeForNamed(named); ok {
 		out.WriteString(goTypesNamedTypeToRust(named))
@@ -399,10 +415,36 @@ func writeShiftCountPrimitiveOperand(out *strings.Builder, expr ast.Expr, shift 
 		return false
 	}
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !isNamedIntegerType(typeInfo.GetType(expr)) {
+	if typeInfo == nil {
 		return false
 	}
-	return writeNamedIntegerPrimitiveExpression(out, expr)
+	if isNamedIntegerType(typeInfo.GetType(expr)) {
+		return writeNamedIntegerPrimitiveExpression(out, expr)
+	}
+	if writeNamedIntegerShiftCountLiteral(out, expr, shift, typeInfo) {
+		return true
+	}
+	if !isConstantExpression(expr) {
+		return false
+	}
+	TranspileExpression(out, expr)
+	return true
+}
+
+func writeNamedIntegerShiftCountLiteral(out *strings.Builder, expr ast.Expr, shift *ast.BinaryExpr, typeInfo *TypeInfo) bool {
+	if typeInfo == nil || shift == nil || expr != shift.Y || (shift.Op != token.SHL && shift.Op != token.SHR) {
+		return false
+	}
+	if !isNamedIntegerType(typeInfo.GetType(shift.X)) && !isNamedIntegerType(typeInfo.GetType(shift)) {
+		return false
+	}
+	lit, ok := expr.(*ast.BasicLit)
+	if !ok || lit.Kind != token.INT {
+		return false
+	}
+	out.WriteString(lit.Value)
+	out.WriteString("i32")
+	return true
 }
 
 // shiftOperandEmissionNeedsParens reports whether a shift LHS emission ends
@@ -3048,6 +3090,14 @@ func writeExternalStubCallArgument(out *strings.Builder, arg ast.Expr, expected 
 	if expected != nil && writeConstExpressionForExpectedGoType(out, arg, expected) {
 		return
 	}
+	if expected != nil && writeOrderedTypeParamCallArgument(out, nil, 0, arg, expected) {
+		return
+	}
+	if expected != nil && externalStubCallArgumentExpectsRawBasic(expected) {
+		if writeCallArgumentValue(out, arg) {
+			return
+		}
+	}
 	if externalStubCallArgumentNeedsTemp(arg) {
 		var inner strings.Builder
 		writeExternalStubCallArgumentDirect(&inner, arg)
@@ -3057,6 +3107,14 @@ func writeExternalStubCallArgument(out *strings.Builder, arg ast.Expr, expected 
 		return
 	}
 	writeExternalStubCallArgumentDirect(out, arg)
+}
+
+func externalStubCallArgumentExpectsRawBasic(expected types.Type) bool {
+	if expected == nil {
+		return false
+	}
+	_, ok := types.Unalias(expected).Underlying().(*types.Basic)
+	return ok
 }
 
 func externalStubCallArgumentNeedsTemp(arg ast.Expr) bool {

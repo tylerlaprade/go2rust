@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -1225,7 +1226,7 @@ func GeneratePackageExternalStubs(pkg *PackageState) string {
 	return generateExternalStubs(pkg.ExternalTypeStubs, pkg.ExternalTypeStubInterfaces, pkg.ExternalTypeStubIntegerTypes, pkg.ExternalTypeStubTupleTypes, pkg.ExternalTypeStubFields, pkg.ExternalTypeStubMethods, pkg.ExternalTypeStubConversions, pkg.ExternalPackageStubs)
 }
 
-func WriteSharedStdlibStubCrate(workDir string, states []*PackageState) error {
+func WriteSharedStdlibStubCrate(workDir string, states []*PackageState, packageMapping map[string]string) error {
 	outputDir := filepath.Join(workDir, "vendor", sharedStdlibStubCrateName)
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return fmt.Errorf("failed to create shared stdlib stub crate: %v", err)
@@ -1246,6 +1247,7 @@ func WriteSharedStdlibStubCrate(workDir string, states []*PackageState) error {
 		return fmt.Errorf("failed to write shared stdlib stub lib.rs: %v", err)
 	}
 
+	sourceMappedDeps := sourceMappedCrateDependenciesForStubCode(stubCode, packageMapping)
 	cargoToml := fmt.Sprintf(`[package]
 name = "%s"
 version = "0.1.0"
@@ -1259,12 +1261,36 @@ path = "lib.rs"
 serde_json = "1"
 gosyn = "0.2.9"
 `, sharedStdlibStubCrateName, sharedStdlibStubCrateName)
+	for _, depCrate := range sourceMappedDeps {
+		cargoToml += fmt.Sprintf("%s = { path = \"../%s\" }\n", depCrate, depCrate)
+	}
 	cargoPath := filepath.Join(outputDir, "Cargo.toml")
 	if err := os.WriteFile(cargoPath, []byte(cargoToml), 0644); err != nil {
 		return fmt.Errorf("failed to write shared stdlib stub Cargo.toml: %v", err)
 	}
 
 	return nil
+}
+
+func sourceMappedCrateDependenciesForStubCode(stubCode string, packageMapping map[string]string) []string {
+	if stubCode == "" || len(packageMapping) == 0 {
+		return nil
+	}
+	seen := make(map[string]bool)
+	for _, crateName := range packageMapping {
+		if crateName == "" || crateName == sharedStdlibStubCrateName {
+			continue
+		}
+		if strings.Contains(stubCode, crateName+"::") {
+			seen[crateName] = true
+		}
+	}
+	deps := make([]string, 0, len(seen))
+	for crateName := range seen {
+		deps = append(deps, crateName)
+	}
+	sort.Strings(deps)
+	return deps
 }
 
 func MergeExternalStubPackageStates(states ...*PackageState) *PackageState {

@@ -144,7 +144,7 @@ impl Package {
     /// holding the objects declared at package level (TypeNames,
     /// Consts, Vars, and Funcs).
     /// For a nil pkg receiver, Scope returns the Universe scope.
-    pub fn scope(&self) -> Arc<Mutex<Option<crate::scope::Scope>>> {
+    pub fn scope(&self) -> Arc<Mutex<Option<Scope>>> {
         if true {
         return self.scope.clone();
     }
@@ -190,7 +190,7 @@ impl Package {
 /// The package is not complete and contains no explicit imports.
 pub fn new_package(path: Arc<Mutex<Option<String>>>, name: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Package>>> {
     let mut scope = new_scope({ let __arg_holder = Universe.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }, Arc::new(Mutex::new(Some({ let __arg_holder = nopos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = nopos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(format!("package {:?}", { let __v = (*path.lock().unwrap().as_ref().unwrap()).clone(); __v })))));
-    return Arc::new(Mutex::new(Some(Package { path: Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), scope: scope.clone(), ..Default::default() })));
+    return Arc::new(Mutex::new(Some(Package { path: path.clone(), name: name.clone(), scope: scope.clone(), ..Default::default() })));
 }
 
 impl GoValueClone for Package {

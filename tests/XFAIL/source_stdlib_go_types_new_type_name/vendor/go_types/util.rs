@@ -82,7 +82,7 @@ pub(crate) const IS_TYPES2: bool = false;
 pub struct AnonymousStruct1 {
     pub obj: Arc<Mutex<Option<Func>>>,
     pub ptr: Arc<Mutex<Option<bool>>>,
-    pub recv: Arc<Mutex<Option<ast_Ident>>>,
+    pub recv: Arc<Mutex<Option<go_ast::r#mod::Ident>>>,
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
@@ -127,7 +127,7 @@ impl AnonymousStruct2 {
 
 impl Default for AnonymousStruct2 {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(String::new()))), kind: Arc::new(Mutex::new(Some(crate::basic::BasicKind(Arc::new(Mutex::new(Some(0))))))), val: Arc::new(Mutex::new(None)) }
+        Self { name: Arc::new(Mutex::new(Some(String::new()))), kind: Arc::new(Mutex::new(Some(BasicKind(Arc::new(Mutex::new(Some(0))))))), val: Arc::new(Mutex::new(None)) }
     }
 }
 
@@ -162,7 +162,7 @@ impl AnonymousStruct3 {
 
 impl Default for AnonymousStruct3 {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(String::new()))), nargs: Arc::new(Mutex::new(Some(0))), variadic: Arc::new(Mutex::new(Some(false))), kind: Arc::new(Mutex::new(Some(crate::expr::exprKind(Arc::new(Mutex::new(Some(0))))))) }
+        Self { name: Arc::new(Mutex::new(Some(String::new()))), nargs: Arc::new(Mutex::new(Some(0))), variadic: Arc::new(Mutex::new(Some(false))), kind: Arc::new(Mutex::new(Some(exprKind(Arc::new(Mutex::new(Some(0))))))) }
     }
 }
 
@@ -189,38 +189,38 @@ impl GoJsonDecode for AnonymousStruct3 {
 ///
 /// If p and q are in different files, p is before q if the filename
 /// of p sorts lexicographically before the filename of q.
-pub fn cmp_pos(p: Arc<Mutex<Option<token_Pos>>>, q: Arc<Mutex<Option<token_Pos>>>) -> i32 {
-    (*Arc::new(Mutex::new(Some((({ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }.0 - { let __v = (*q.lock().unwrap().as_ref().unwrap()).clone(); __v }.0)) as i32))).lock().unwrap().as_ref().unwrap())
+pub fn cmp_pos(p: Arc<Mutex<Option<go_token::position::Pos>>>, q: Arc<Mutex<Option<go_token::position::Pos>>>) -> i32 {
+    (*Arc::new(Mutex::new(Some((((*{ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) - (*{ let __v = (*q.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()))) as i32))).lock().unwrap().as_ref().unwrap())
 }
 
 /// hasDots reports whether the last argument in the call is followed by ...
-pub fn has_dots(call: Arc<Mutex<Option<ast_CallExpr>>>) -> bool {
-    token_Pos::is_valid(&(*(*call.lock().unwrap().as_ref().unwrap()).ellipsis.lock().unwrap().as_ref().unwrap()))
+pub fn has_dots(call: Arc<Mutex<Option<go_ast::r#mod::CallExpr>>>) -> bool {
+    (*(*call.lock().unwrap().as_ref().unwrap()).ellipsis.lock().unwrap().as_ref().unwrap()).is_valid()
 }
 
 /// dddErrPos returns the positioner for reporting an invalid ... use in a call.
-pub fn ddd_err_pos(call: Arc<Mutex<Option<ast_CallExpr>>>) -> Arc<Mutex<Option<Box<dyn positioner + Send + Sync>>>> {
-    Arc::new(Mutex::new(Some(Box::new(crate::errors::atPos(Arc::new(Mutex::new(Some({ let __named_value_holder = (*call.lock().unwrap().as_ref().unwrap()).ellipsis.clone(); let __named_value_guard = __named_value_holder.lock().unwrap(); let __cloned = (*__named_value_guard.as_ref().unwrap()).clone(); drop(__named_value_guard); __cloned }))))) as Box<dyn positioner + Send + Sync>)))
+pub fn ddd_err_pos(call: Arc<Mutex<Option<go_ast::r#mod::CallExpr>>>) -> Arc<Mutex<Option<Box<dyn positioner + Send + Sync>>>> {
+    Arc::new(Mutex::new(Some(Box::new(atPos(Arc::new(Mutex::new(Some({ let __named_value_holder = (*call.lock().unwrap().as_ref().unwrap()).ellipsis.clone(); let __named_value_guard = __named_value_holder.lock().unwrap(); let __cloned = (*__named_value_guard.as_ref().unwrap()).clone(); drop(__named_value_guard); __cloned }))))) as Box<dyn positioner + Send + Sync>)))
 }
 
 /// isdddArray reports whether atyp is of the form [...]E.
-pub fn isddd_array(atyp: Arc<Mutex<Option<ast_ArrayType>>>) -> bool {
-    if { let __nil_target = (*atyp.lock().unwrap().as_ref().unwrap()).len.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
+pub fn isddd_array(atyp: Arc<Mutex<Option<go_ast::r#mod::ArrayType>>>) -> bool {
+    if (*(*atyp.lock().unwrap().as_ref().unwrap()).len.lock().unwrap()).is_some() {
         {
         let (mut ddd, _) = ({
         let val = (*atyp.lock().unwrap().as_ref().unwrap()).len.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = any_val.downcast_ref::<ast_Ellipsis>() {
-                (Arc::new(Mutex::new(Some(typed_val.clone()))), true)
+            if let Some(typed_val) = <dyn go_ast::r#mod::Expr + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<go_ast::r#mod::Ellipsis>() {
+            (Arc::new(Mutex::new(Some(typed_val.clone()))), true)
             } else {
-                (Arc::new(Mutex::new(None::<ast_Ellipsis>)), false)
+                (Arc::new(Mutex::new(None::<go_ast::r#mod::Ellipsis>)), false)
             }
         } else {
-            (Arc::new(Mutex::new(None::<ast_Ellipsis>)), false)
+            (Arc::new(Mutex::new(None::<go_ast::r#mod::Ellipsis>)), false)
         }
     });;
-        if (*ddd.lock().unwrap()).is_some() && { let __nil_target = (*ddd.lock().unwrap().as_ref().unwrap()).elt.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
+        if (*ddd.lock().unwrap()).is_some() && (*(*ddd.lock().unwrap().as_ref().unwrap()).elt.lock().unwrap()).is_none() {
             return true;;
         }
     }
@@ -229,21 +229,21 @@ pub fn isddd_array(atyp: Arc<Mutex<Option<ast_ArrayType>>>) -> bool {
 }
 
 /// argErrPos returns positioner for reporting an invalid argument count.
-pub fn arg_err_pos(call: Arc<Mutex<Option<ast_CallExpr>>>) -> Arc<Mutex<Option<Box<dyn positioner + Send + Sync>>>> {
-    Arc::new(Mutex::new(Some(Box::new((*in_node({ let __arg = call.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<ast_Node> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) }, { let __field = (*call.lock().unwrap().as_ref().unwrap()).rparen.clone(); __field }).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn positioner + Send + Sync>)))
+pub fn arg_err_pos(call: Arc<Mutex<Option<go_ast::r#mod::CallExpr>>>) -> Arc<Mutex<Option<Box<dyn positioner + Send + Sync>>>> {
+    Arc::new(Mutex::new(Some(Box::new((*in_node(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::CallExprPtr(call.clone())) as Box<dyn go_ast::r#mod::Node + Send + Sync>))), { let __field = (*call.lock().unwrap().as_ref().unwrap()).rparen.clone(); __field }).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn positioner + Send + Sync>)))
 }
 
 /// startPos returns the start position of node n.
-pub fn start_pos(n: Arc<Mutex<Option<ast_Node>>>) -> Arc<Mutex<Option<token_Pos>>> {
+pub fn start_pos(n: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Node + Send + Sync>>>>) -> Arc<Mutex<Option<go_token::position::Pos>>> {
     (*n.lock().unwrap().as_ref().unwrap()).pos()
 }
 
 /// endPos returns the position of the first character immediately after node n.
-pub fn end_pos(n: Arc<Mutex<Option<ast_Node>>>) -> Arc<Mutex<Option<token_Pos>>> {
+pub fn end_pos(n: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Node + Send + Sync>>>>) -> Arc<Mutex<Option<go_token::position::Pos>>> {
     (*n.lock().unwrap().as_ref().unwrap()).end()
 }
 
 /// makeFromLiteral returns the constant value for the given literal string and kind.
-pub fn make_from_literal(lit: Arc<Mutex<Option<String>>>, kind: Arc<Mutex<Option<token_Token>>>) -> Arc<Mutex<Option<constant_Value>>> {
-    constant::make_from_literal(lit.clone(), kind.clone(), 0 as u64)
+pub fn make_from_literal(lit: Arc<Mutex<Option<String>>>, kind: Arc<Mutex<Option<go_token::r#mod::Token>>>) -> Arc<Mutex<Option<constant_Value>>> {
+    constant::make_from_literal({ let __arg_holder = lit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }, { let __arg_holder = kind.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }, 0 as u64)
 }

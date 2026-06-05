@@ -432,6 +432,9 @@ func goTypeParamOrderedTraitConstraintName(t types.Type) (string, bool) {
 	if !ok || named.Obj() == nil {
 		return "", false
 	}
+	if pkg := named.Obj().Pkg(); pkg != nil && isStdlibPackage(pkg.Path()) && !isSourceMappedPackagePath(pkg.Path()) {
+		return "", false
+	}
 	iface, ok := named.Underlying().(*types.Interface)
 	if !ok || !interfaceEmbedsOnlyOrderedTerms(iface) {
 		return "", false

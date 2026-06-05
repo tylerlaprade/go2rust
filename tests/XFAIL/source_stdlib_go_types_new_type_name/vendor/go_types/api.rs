@@ -86,13 +86,13 @@ use std::sync::{Arc, Mutex};
 /// behavior if ignored.
 #[derive(Clone)]
 pub struct Error {
-    pub fset: Arc<Mutex<Option<token_FileSet>>>,
-    pub pos: Arc<Mutex<Option<token_Pos>>>,
+    pub fset: Arc<Mutex<Option<go_token::position::FileSet>>>,
+    pub pos: Arc<Mutex<Option<go_token::position::Pos>>>,
     pub msg: Arc<Mutex<Option<String>>>,
     pub soft: Arc<Mutex<Option<bool>>>,
     pub go116code: Arc<Mutex<Option<Code>>>,
-    pub go116start: Arc<Mutex<Option<token_Pos>>>,
-    pub go116end: Arc<Mutex<Option<token_Pos>>>,
+    pub go116start: Arc<Mutex<Option<go_token::position::Pos>>>,
+    pub go116end: Arc<Mutex<Option<go_token::position::Pos>>>,
 }
 
 impl Error {
@@ -104,7 +104,7 @@ impl Error {
 
 impl Default for Error {
     fn default() -> Self {
-        Self { fset: Arc::new(Mutex::new(None)), pos: Arc::new(Mutex::new(Some(token_Pos(0)))), msg: Arc::new(Mutex::new(Some(String::new()))), soft: Arc::new(Mutex::new(Some(false))), go116code: Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(0))))))), go116start: Arc::new(Mutex::new(Some(token_Pos(0)))), go116end: Arc::new(Mutex::new(Some(token_Pos(0)))) }
+        Self { fset: Arc::new(Mutex::new(None)), pos: Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(0))))))), msg: Arc::new(Mutex::new(Some(String::new()))), soft: Arc::new(Mutex::new(Some(false))), go116code: Arc::new(Mutex::new(Some(internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(0))))))), go116start: Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(0))))))), go116end: Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(0))))))) }
     }
 }
 
@@ -148,7 +148,7 @@ pub trait Importer: std::fmt::Display + Any {
 
 impl Clone for Box<dyn Importer + Send + Sync> {
     fn clone(&self) -> Self {
-        Importer::__go_clone_box_importer(self.as_ref())
+        self.__go_clone_box_importer()
     }
 }
 
@@ -546,7 +546,7 @@ pub trait ImporterFrom: Importer + std::fmt::Display + Any {
 
 impl Clone for Box<dyn ImporterFrom + Send + Sync> {
     fn clone(&self) -> Self {
-        ImporterFrom::__go_clone_box_importer_from(self.as_ref())
+        self.__go_clone_box_importer_from()
     }
 }
 
@@ -560,7 +560,7 @@ impl Importer for Box<dyn ImporterFrom + Send + Sync> {
     fn __go_eq_importer(&self, other: &(dyn Importer + Send + Sync)) -> bool {
         (**self).__go_eq_importer(other)
     }
-    fn import(&self, path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<crate::package::Package>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    fn import(&self, path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Package>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         (**self).import(path)
     }
 }
@@ -629,15 +629,15 @@ impl GoJsonDecode for Config {
 /// be incomplete.
 #[derive(Clone, Default)]
 pub struct Info {
-    pub types: Arc<Mutex<Option<BTreeMap<ast_Expr, Arc<Mutex<Option<TypeAndValue>>>>>>>,
-    pub instances: Arc<Mutex<Option<BTreeMap<GoPtrKey<ast_Ident>, Arc<Mutex<Option<Instance>>>>>>>,
-    pub defs: Arc<Mutex<Option<BTreeMap<GoPtrKey<ast_Ident>, Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>>>>>,
-    pub uses: Arc<Mutex<Option<BTreeMap<GoPtrKey<ast_Ident>, Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>>>>>,
-    pub implicits: Arc<Mutex<Option<BTreeMap<ast_Node, Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>>>>>,
-    pub selections: Arc<Mutex<Option<BTreeMap<GoPtrKey<ast_SelectorExpr>, Arc<Mutex<Option<Selection>>>>>>>,
-    pub scopes: Arc<Mutex<Option<BTreeMap<ast_Node, Arc<Mutex<Option<Scope>>>>>>>,
+    pub types: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<Box<dyn go_ast::r#mod::Expr + Send + Sync>>, Arc<Mutex<Option<TypeAndValue>>>>>>>,
+    pub instances: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<go_ast::r#mod::Ident>, Arc<Mutex<Option<Instance>>>>>>>,
+    pub defs: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<go_ast::r#mod::Ident>, Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>>>>>,
+    pub uses: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<go_ast::r#mod::Ident>, Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>>>>>,
+    pub implicits: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<Box<dyn go_ast::r#mod::Node + Send + Sync>>, Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>>>>>,
+    pub selections: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<go_ast::r#mod::SelectorExpr>, Arc<Mutex<Option<Selection>>>>>>>,
+    pub scopes: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<Box<dyn go_ast::r#mod::Node + Send + Sync>>, Arc<Mutex<Option<Scope>>>>>>>,
     pub init_order: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Initializer>>>>>>>,
-    pub file_versions: Arc<Mutex<Option<BTreeMap<GoPtrKey<ast_File>, Arc<Mutex<Option<String>>>>>>>,
+    pub file_versions: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<go_ast::r#mod::File>, Arc<Mutex<Option<String>>>>>>>,
 }
 
 impl Info {
@@ -679,7 +679,7 @@ impl TypeAndValue {
 
 impl Default for TypeAndValue {
     fn default() -> Self {
-        Self { mode: Arc::new(Mutex::new(Some(crate::operand::operandMode(Arc::new(Mutex::new(Some(0))))))), r#type: Arc::new(Mutex::new(None)), value: Arc::new(Mutex::new(None)) }
+        Self { mode: Arc::new(Mutex::new(Some(operandMode(Arc::new(Mutex::new(Some(0))))))), r#type: Arc::new(Mutex::new(None)), value: Arc::new(Mutex::new(None)) }
     }
 }
 
@@ -735,7 +735,7 @@ impl GoJsonDecode for Instance {
 #[derive(Clone, Default)]
 pub struct Initializer {
     pub lhs: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Var>>>>>>>,
-    pub rhs: Arc<Mutex<Option<ast_Expr>>>,
+    pub rhs: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>,
 }
 
 impl Initializer {
@@ -763,7 +763,7 @@ impl Error {
     /// Error returns an error string formatted as follows:
     /// filename:line:column: message
     pub fn error(&self) -> Arc<Mutex<Option<String>>> {
-        Arc::new(Mutex::new(Some(format!("{}: {}", (*(*self.fset.lock().unwrap().as_mut().unwrap()).position({ let __go_arg = { let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __go_arg }).lock().unwrap().as_ref().unwrap()), (*self.msg.lock().unwrap().as_ref().unwrap())))))
+        Arc::new(Mutex::new(Some(format!("{}: {}", (*(*self.fset.lock().unwrap().as_ref().unwrap()).position({ let __field = self.pos.clone(); __field }).lock().unwrap().as_ref().unwrap()), (*self.msg.lock().unwrap().as_ref().unwrap())))))
     }
 }
 
@@ -777,9 +777,9 @@ impl Info {
 
     /// TypeOf returns the type of expression e, or nil if not found.
     /// Precondition: the Types, Uses and Defs maps are populated.
-    pub fn type_of(&self, e: Arc<Mutex<Option<ast_Expr>>>) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {
+    pub fn type_of(&self, e: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {
         {
-        let (mut t, mut ok) = { let __map = { let __map_holder = self.types.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&(*e.lock().unwrap().as_ref().unwrap()).clone())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Arc::new(Mutex::new(Some(Default::default()))), false) } };;
+        let (mut t, mut ok) = { let __map = { let __map_holder = self.types.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(e.clone()))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Arc::new(Mutex::new(Some(Default::default()))), false) } };;
         if ok {
             return (*t.lock().unwrap().as_ref().unwrap()).r#type.clone();;
         }
@@ -789,13 +789,13 @@ impl Info {
         let val = e.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = any_val.downcast_ref::<ast_Ident>() {
-                (Arc::new(Mutex::new(Some(typed_val.clone()))), true)
+            if let Some(typed_val) = <dyn go_ast::r#mod::Expr + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<go_ast::r#mod::Ident>() {
+            (Arc::new(Mutex::new(Some(typed_val.clone()))), true)
             } else {
-                (Arc::new(Mutex::new(None::<ast_Ident>)), false)
+                (Arc::new(Mutex::new(None::<go_ast::r#mod::Ident>)), false)
             }
         } else {
-            (Arc::new(Mutex::new(None::<ast_Ident>)), false)
+            (Arc::new(Mutex::new(None::<go_ast::r#mod::Ident>)), false)
         }
     });;
         if (*id.lock().unwrap()).is_some() {
@@ -817,14 +817,14 @@ impl Info {
     /// it defines, not the type (*[TypeName]) it uses.
     ///
     /// Precondition: the Uses and Defs maps are populated.
-    pub fn object_of(&self, id: Arc<Mutex<Option<ast_Ident>>>) -> Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>> {
+    pub fn object_of(&self, id: Arc<Mutex<Option<go_ast::r#mod::Ident>>>) -> Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>> {
         {
-        let mut obj = { let __map = { let __map_holder = self.defs.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoPtrKey::new(id.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };;
+        let mut obj = { let __map = { let __map_holder = self.defs.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(id.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };;
         if (*obj.lock().unwrap()).is_some() {
             return obj.clone();;
         }
     }
-        { let __map = { let __map_holder = self.uses.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoPtrKey::new(id.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }
+        { let __map = { let __map_holder = self.uses.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(id.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }
     }
 
     /// PkgNameOf returns the local package name defined by the import,
@@ -833,12 +833,12 @@ impl Info {
     /// For dot-imports, the package name is ".".
     ///
     /// Precondition: the Defs and Implicts maps are populated.
-    pub fn pkg_name_of(&self, imp: Arc<Mutex<Option<ast_ImportSpec>>>) -> Arc<Mutex<Option<crate::object::PkgName>>> {
+    pub fn pkg_name_of(&self, imp: Arc<Mutex<Option<go_ast::r#mod::ImportSpec>>>) -> Arc<Mutex<Option<PkgName>>> {
         let mut obj: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>> = Arc::new(Mutex::new(None));
         if { let __nil_target = (*imp.lock().unwrap().as_ref().unwrap()).name.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
-        { let __iface_handle = { let __map = { let __map_holder = self.defs.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoPtrKey::new((*imp.lock().unwrap().as_ref().unwrap()).name.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *obj.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __map = { let __map_holder = self.defs.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new((*imp.lock().unwrap().as_ref().unwrap()).name.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *obj.lock().unwrap() = (*__iface_guard).clone(); };
     } else {
-        { let __iface_handle = { let __map = { let __map_holder = self.implicits.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&{ let __arg = imp.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: ast_Node = __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(ast_Node::default); __converted }; __converted })).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *obj.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __map = { let __map_holder = self.implicits.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ImportSpecPtr(imp.clone())) as Box<dyn go_ast::r#mod::Node + Send + Sync>)))))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *obj.lock().unwrap() = (*__iface_guard).clone(); };
     }
         let (mut pkgname, _) = ({
         let val = obj.clone();
@@ -847,10 +847,10 @@ impl Info {
             if let Some(typed_val) = <dyn Object + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<crate::object::PkgNamePtr>() {
                 (typed_val.0.clone(), true)
             } else {
-                (Arc::new(Mutex::new(None::<crate::object::PkgName>)), false)
+                (Arc::new(Mutex::new(None::<PkgName>)), false)
             }
         } else {
-            (Arc::new(Mutex::new(None::<crate::object::PkgName>)), false)
+            (Arc::new(Mutex::new(None::<PkgName>)), false)
         }
     });
         return pkgname.clone();
@@ -861,18 +861,18 @@ impl TypeAndValue {
     /// IsVoid reports whether the corresponding expression
     /// is a function call without results.
     pub fn is_void(&self) -> bool {
-        return { let __tmp_x = { let __selector_holder = self.mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(NOVALUE as u8)))); __tmp_x == __tmp_y };
+        return { let __tmp_x = { let __selector_holder = self.mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = operandMode(Arc::new(Mutex::new(Some(NOVALUE as u8)))); __tmp_x == __tmp_y };
     }
 
     /// IsType reports whether the corresponding expression specifies a type.
     pub fn is_type(&self) -> bool {
-        return { let __tmp_x = { let __selector_holder = self.mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(TYPEXPR as u8)))); __tmp_x == __tmp_y };
+        return { let __tmp_x = { let __selector_holder = self.mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = operandMode(Arc::new(Mutex::new(Some(TYPEXPR as u8)))); __tmp_x == __tmp_y };
     }
 
     /// IsBuiltin reports whether the corresponding expression denotes
     /// a (possibly parenthesized) built-in function.
     pub fn is_builtin(&self) -> bool {
-        return { let __tmp_x = { let __selector_holder = self.mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(BUILTIN as u8)))); __tmp_x == __tmp_y };
+        return { let __tmp_x = { let __selector_holder = self.mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = operandMode(Arc::new(Mutex::new(Some(BUILTIN as u8)))); __tmp_x == __tmp_y };
     }
 
     /// IsValue reports whether the corresponding expression is a value.
@@ -880,7 +880,7 @@ impl TypeAndValue {
     /// nil Value.
     pub fn is_value(&self) -> bool {
         { let _switch_val = { let __selector_holder = self.mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
-    if _switch_val == (crate::operand::operandMode(Arc::new(Mutex::new(Some(CONSTANT_ as u8))))) || _switch_val == (crate::operand::operandMode(Arc::new(Mutex::new(Some(VARIABLE as u8))))) || _switch_val == (crate::operand::operandMode(Arc::new(Mutex::new(Some(MAPINDEX as u8))))) || _switch_val == (crate::operand::operandMode(Arc::new(Mutex::new(Some(VALUE as u8))))) || _switch_val == (crate::operand::operandMode(Arc::new(Mutex::new(Some(COMMAOK as u8))))) || _switch_val == (crate::operand::operandMode(Arc::new(Mutex::new(Some(COMMAERR as u8))))) {
+    if _switch_val == (operandMode(Arc::new(Mutex::new(Some(CONSTANT_ as u8))))) || _switch_val == (operandMode(Arc::new(Mutex::new(Some(VARIABLE as u8))))) || _switch_val == (operandMode(Arc::new(Mutex::new(Some(MAPINDEX as u8))))) || _switch_val == (operandMode(Arc::new(Mutex::new(Some(VALUE as u8))))) || _switch_val == (operandMode(Arc::new(Mutex::new(Some(COMMAOK as u8))))) || _switch_val == (operandMode(Arc::new(Mutex::new(Some(COMMAERR as u8))))) {
             return true;
         }
     }
@@ -890,25 +890,25 @@ impl TypeAndValue {
     /// IsNil reports whether the corresponding expression denotes the
     /// predeclared value nil.
     pub fn is_nil(&self) -> bool {
-        return { let __tmp_x = { let __selector_holder = self.mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(VALUE as u8)))); __tmp_x == __tmp_y } && { let __left_holder = self.r#type.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_wrapper = crate::basic::BasicPtr({ let __seq = { let __seq_holder = Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(UNTYPED_NIL as i32) as usize].clone() }.clone()); let __right_opt: Option<&(dyn Type + Send + Sync)> = Some(&__right_wrapper as &(dyn Type + Send + Sync)); let __eq = match (__left_opt, __right_opt) { (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; __eq };
+        return { let __tmp_x = { let __selector_holder = self.mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = operandMode(Arc::new(Mutex::new(Some(VALUE as u8)))); __tmp_x == __tmp_y } && { let __left_holder = self.r#type.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = { let __seq = { let __seq_holder = Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(UNTYPED_NIL as i32) as usize].clone() }.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v as &(dyn Type + Send + Sync)); let __eq = match (__left_opt, __right_opt) { (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; __eq };
     }
 
     /// Addressable reports whether the corresponding expression
     /// is addressable (https://golang.org/ref/spec#Address_operators).
     pub fn addressable(&self) -> bool {
-        return { let __tmp_x = { let __selector_holder = self.mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(VARIABLE as u8)))); __tmp_x == __tmp_y };
+        return { let __tmp_x = { let __selector_holder = self.mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = operandMode(Arc::new(Mutex::new(Some(VARIABLE as u8)))); __tmp_x == __tmp_y };
     }
 
     /// Assignable reports whether the corresponding expression
     /// is assignable to (provided a value of the right type).
     pub fn assignable(&self) -> bool {
-        return { let __tmp_x = { let __selector_holder = self.mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(VARIABLE as u8)))); __tmp_x == __tmp_y } || { let __tmp_x = { let __selector_holder = self.mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(MAPINDEX as u8)))); __tmp_x == __tmp_y };
+        return { let __tmp_x = { let __selector_holder = self.mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = operandMode(Arc::new(Mutex::new(Some(VARIABLE as u8)))); __tmp_x == __tmp_y } || { let __tmp_x = { let __selector_holder = self.mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = operandMode(Arc::new(Mutex::new(Some(MAPINDEX as u8)))); __tmp_x == __tmp_y };
     }
 
     /// HasOk reports whether the corresponding expression may be
     /// used on the rhs of a comma-ok assignment.
     pub fn has_ok(&self) -> bool {
-        return { let __tmp_x = { let __selector_holder = self.mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(COMMAOK as u8)))); __tmp_x == __tmp_y } || { let __tmp_x = { let __selector_holder = self.mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::operand::operandMode(Arc::new(Mutex::new(Some(MAPINDEX as u8)))); __tmp_x == __tmp_y };
+        return { let __tmp_x = { let __selector_holder = self.mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = operandMode(Arc::new(Mutex::new(Some(COMMAOK as u8)))); __tmp_x == __tmp_y } || { let __tmp_x = { let __selector_holder = self.mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = operandMode(Arc::new(Mutex::new(Some(MAPINDEX as u8)))); __tmp_x == __tmp_y };
     }
 }
 
@@ -919,10 +919,10 @@ impl Initializer {
         if { let __tmp_x = i as i32; let __tmp_y = 0; __tmp_x > __tmp_y } {
         (*buf.lock().unwrap().as_mut().unwrap()).write_string(", ".to_string());
     }
-        (*buf.lock().unwrap().as_mut().unwrap()).write_string({ let __recv = lhs.clone(); let __recv_ptr: *const crate::object::Var = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::Var }; let __result = unsafe { &*__recv_ptr }.name(); __result });
+        (*buf.lock().unwrap().as_mut().unwrap()).write_string({ let __recv = lhs.clone(); let __recv_ptr: *const Var = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Var }; let __result = unsafe { &*__recv_ptr }.name(); __result });
     } }
         (*buf.lock().unwrap().as_mut().unwrap()).write_string(" = ".to_string());
-        write_expr(buf.clone(), { let __field = self.rhs.clone(); __field });
+        write_expr(buf.clone(), self.rhs.clone());
         return (*buf.lock().unwrap().as_mut().unwrap()).string();
     }
 }
@@ -939,7 +939,7 @@ impl Config {
     /// The package is specified by a list of *ast.Files and corresponding
     /// file set, and the package path the package is identified with.
     /// The clean path must not be empty or dot (".").
-    pub fn check(&self, path: Arc<Mutex<Option<String>>>, fset: Arc<Mutex<Option<token_FileSet>>>, files: Arc<Mutex<Option<Vec<Arc<Mutex<Option<ast_File>>>>>>>, info: Arc<Mutex<Option<Info>>>) -> (Arc<Mutex<Option<crate::package::Package>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn check(&self, path: Arc<Mutex<Option<String>>>, fset: Arc<Mutex<Option<go_token::position::FileSet>>>, files: Arc<Mutex<Option<Vec<Arc<Mutex<Option<go_ast::r#mod::File>>>>>>>, info: Arc<Mutex<Option<Info>>>) -> (Arc<Mutex<Option<Package>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         let mut pkg = new_package(Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("".to_string()))));
         return (pkg.clone(), { let __recv = new_checker(Arc::new(Mutex::new(Some(self.clone()))), fset.clone(), pkg.clone(), info.clone()); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).files(files.clone()); __result });
     }

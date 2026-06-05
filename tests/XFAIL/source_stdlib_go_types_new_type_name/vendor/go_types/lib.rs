@@ -147,7 +147,11 @@ static __GO_INIT_ONCE: std::sync::Once = std::sync::Once::new();
 
 pub fn __go_init_all() {
     __GO_INIT_ONCE.call_once(|| {
+        go_ast::__go_init_all();
+        go_token::__go_init_all();
+        internal_buildcfg::__go_init_all();
         internal_types_errors::__go_init_all();
+        slices::__go_init_all();
         call::__go_zero_globals();
         check::__go_zero_globals();
         expr::__go_zero_globals();

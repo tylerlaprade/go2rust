@@ -566,7 +566,7 @@ impl GoJsonDecode for Selection {
 pub struct AnonymousStruct1 {
     pub obj: Arc<Mutex<Option<Func>>>,
     pub ptr: Arc<Mutex<Option<bool>>>,
-    pub recv: Arc<Mutex<Option<ast_Ident>>>,
+    pub recv: Arc<Mutex<Option<go_ast::r#mod::Ident>>>,
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
@@ -739,7 +739,7 @@ impl Selection {
 ///	"field (T) f int"
 ///	"method (T) f(X) Y"
 ///	"method expr (T) f(X) Y"
-pub fn selection_string(s: Arc<Mutex<Option<Selection>>>, qf: crate::typestring::Qualifier) -> Arc<Mutex<Option<String>>> {
+pub fn selection_string(s: Arc<Mutex<Option<Selection>>>, qf: Qualifier) -> Arc<Mutex<Option<String>>> {
     let mut k: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
     { let _switch_val = { let __selector_holder = (*s.lock().unwrap().as_ref().unwrap()).kind.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (SelectionKind(Arc::new(Mutex::new(Some(FIELD_VAL as i32))))) {
@@ -753,7 +753,7 @@ pub fn selection_string(s: Arc<Mutex<Option<Selection>>>, qf: crate::typestring:
         }
     }
     let mut buf: Arc<Mutex<Option<bytes_Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
-    (*buf.lock().unwrap().as_mut().unwrap()).write_string(k.clone());
+    (*buf.lock().unwrap().as_mut().unwrap()).write_string({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
     (*buf.lock().unwrap().as_mut().unwrap()).write_byte(('(' as i32) as u8);
     write_type(buf.clone(), { let __recv = s.clone(); let __recv_ptr: *const Selection = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Selection }; let __result = unsafe { &*__recv_ptr }.recv(); __result }.clone(), qf.clone());
     { let __s = format!(") {}", (*(*(*s.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap())); let __n = __s.len() as i32; (*buf.clone().lock().unwrap().as_ref().unwrap()).__go_write_bytes(__s.as_bytes()); (__n, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))) };

@@ -101,7 +101,7 @@ impl PartialEq for goVersion {
 pub struct AnonymousStruct1 {
     pub obj: Arc<Mutex<Option<Func>>>,
     pub ptr: Arc<Mutex<Option<bool>>>,
-    pub recv: Arc<Mutex<Option<ast_Ident>>>,
+    pub recv: Arc<Mutex<Option<go_ast::r#mod::Ident>>>,
 }
 impl AnonymousStruct1 {
     pub fn __go_value_clone(&self) -> Self {
@@ -146,7 +146,7 @@ impl AnonymousStruct2 {
 
 impl Default for AnonymousStruct2 {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(String::new()))), kind: Arc::new(Mutex::new(Some(crate::basic::BasicKind(Arc::new(Mutex::new(Some(0))))))), val: Arc::new(Mutex::new(None)) }
+        Self { name: Arc::new(Mutex::new(Some(String::new()))), kind: Arc::new(Mutex::new(Some(BasicKind(Arc::new(Mutex::new(Some(0))))))), val: Arc::new(Mutex::new(None)) }
     }
 }
 
@@ -181,7 +181,7 @@ impl AnonymousStruct3 {
 
 impl Default for AnonymousStruct3 {
     fn default() -> Self {
-        Self { name: Arc::new(Mutex::new(Some(String::new()))), nargs: Arc::new(Mutex::new(Some(0))), variadic: Arc::new(Mutex::new(Some(false))), kind: Arc::new(Mutex::new(Some(crate::expr::exprKind(Arc::new(Mutex::new(Some(0))))))) }
+        Self { name: Arc::new(Mutex::new(Some(String::new()))), nargs: Arc::new(Mutex::new(Some(0))), variadic: Arc::new(Mutex::new(Some(false))), kind: Arc::new(Mutex::new(Some(exprKind(Arc::new(Mutex::new(Some(0))))))) }
     }
 }
 
@@ -344,7 +344,7 @@ impl crate::check::Checker {
 /// asGoVersion returns v as a goVersion (e.g., "go1.20.1" becomes "go1.20").
 /// If v is not a valid Go version, the result is the empty string.
 pub fn as_go_version(v: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<goVersion>>> {
-    Arc::new(Mutex::new(Some(goVersion(Arc::new(Mutex::new(Some((*version::lang(v.clone()).lock().unwrap().as_ref().unwrap()).clone())))))))
+    Arc::new(Mutex::new(Some(goVersion(Arc::new(Mutex::new(Some((*version::lang({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }).lock().unwrap().as_ref().unwrap()).clone())))))))
 }
 
 pub(crate) fn __go_init_functions() {
