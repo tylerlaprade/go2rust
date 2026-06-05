@@ -22,6 +22,7 @@ type PackageLoader struct {
 	packageMapping              map[string]string            // Go import -> Rust crate name
 	sourceStdlibPackages        map[string]bool              // stdlib packages selected for source transpilation
 	sourceStdlibDepsExpanded    map[string]bool              // selected stdlib packages whose imports were traversed as source deps
+	sourceStdlibReachable       map[types.Object]bool        // reachable source-stdlib objects computed for pruning
 	packageTypeModules          map[string]map[string]string // import path -> Go type name -> Rust module name
 	packageStates               map[string]*PackageState
 	sliceElemPtrReturnFuncNames map[string]sliceElemPtrReturnInfo
@@ -579,8 +580,9 @@ func (pl *PackageLoader) TranspileAll() error {
 	// funcs/methods/types in those packages so peripheral declarations pulling
 	// in heavy deps (go/ast's reflect printer, filepath's os-based Glob) don't
 	// block compilation of the subset the program actually uses.
+	pl.sourceStdlibReachable = pl.computeSourceStdlibReachable()
 	prevSourceStdlibReachable := sourceStdlibReachable
-	SetSourceStdlibReachable(pl.computeSourceStdlibReachable())
+	SetSourceStdlibReachable(pl.sourceStdlibReachable)
 	defer SetSourceStdlibReachable(prevSourceStdlibReachable)
 	pl.packageTypeModules = pl.collectPackageTypeModuleNames()
 	SetSourceFunctionDeclsByFunc(pl.collectSourceFunctionDeclsByFunc())
@@ -1247,6 +1249,10 @@ func (pl *PackageLoader) GetPackageMapping() map[string]string {
 
 func (pl *PackageLoader) GetPackageTypeModuleNames() map[string]map[string]string {
 	return pl.packageTypeModules
+}
+
+func (pl *PackageLoader) GetSourceStdlibReachable() map[types.Object]bool {
+	return pl.sourceStdlibReachable
 }
 
 func (pl *PackageLoader) GetGoPtrParamFuncNames() map[string]map[int]string {

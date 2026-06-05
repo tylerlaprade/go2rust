@@ -305,6 +305,11 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	runCtx.Package.MethodsByType = collectPackageMethods(astFiles)
 	SetTranspileContext(runCtx)
 	defer SetTranspileContext(nil)
+	if packageLoader != nil {
+		prevSourceStdlibReachable := sourceStdlibReachable
+		SetSourceStdlibReachable(packageLoader.GetSourceStdlibReachable())
+		defer SetSourceStdlibReachable(prevSourceStdlibReachable)
+	}
 	if packageImports != nil {
 		SetPackageImports(packageImports)
 	}

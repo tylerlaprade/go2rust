@@ -5246,6 +5246,37 @@ func main() {
 	}
 }
 
+func TestSourceStdlibReachabilityAppliesDuringMainGeneration(t *testing.T) {
+	t.Setenv(sourceStdlibPackagesEnv, "errors")
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/source-stdlib-main-reachability
+
+go 1.24
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "errors"
+
+func sink(v any) {}
+
+func main() {
+	err := errors.New("x")
+	sink(err)
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "joinError") {
+		t.Fatalf("main-package error-to-any lowering should not reference pruned source-stdlib error candidates:\n%s", mainRS)
+	}
+}
+
 func TestSourceStdlibRerunRemovesStaleGeneratedVendorCrates(t *testing.T) {
 	t.Setenv(sourceStdlibPackagesEnv, "go/token")
 	tempDir := t.TempDir()
