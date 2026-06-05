@@ -101,10 +101,15 @@ in the first place.
 ### types-config-check-surface
 
 - Location: `go/external_type_stubs.go:243`
-- Go symbol: `go/types.Config.Check` (registration surface)
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
-- Removal trigger: transpiler can lower `go/types` source; drop bridge surface registration.
+- Go symbol: `go/types.Config` and `go/types.Config.Check` (registration surface)
+- Transpiler gap: source-mapped `go/types.Config` field construction now
+  passes for `Config.Error`, but non-source-mapped `Config.Check` callers
+  still register the hand-written bridge surface.
+- Fixture: `tests/stdlib_function_field_stub/` now source-maps `go/types`
+  and verifies `types.Config{Error: func(error){}}` through
+  `go_types::api::Config`.
+- Removal trigger: all remaining `go/types.Config` and `Config.Check` callers
+  use source-transpiled `go/types` instead of the external bridge surface.
 - Added: 2026-05-27 (backfill)
 
 ### parser-parsefile-surface
