@@ -1,0 +1,1 @@
+source_stdlib_packages = "go/token,go/types,go/version,internal/gover,internal/goversion,internal/types/errors,go/ast,go/constant,math/big,math,math/bits,cmp,slices,sync/atomic,unicode,unicode/utf8,internal/buildcfg,internal/goexperiment,internal/godebug"

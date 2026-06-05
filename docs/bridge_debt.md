@@ -205,12 +205,15 @@ in the first place.
 
 - Location: `go/external_type_stubs.go:3520` (`writeTypesTypeNameStub`, `writeTypesTypeParamStub`)
 - Go symbol: `go/types.TypeName` and `go/types.TypeParam`
-- Transpiler gap: the source-mapped `go/types.NewTypeName` path now passes,
-  but non-source-mapped callers and `TypeParam` values stored through the
-  `types.Type` interface still hit the bridge.
+- Transpiler gap: the source-mapped `go/types.NewTypeName` and
+  `go/types.NewTypeParam` constructor paths now pass, but non-source-mapped
+  callers and `TypeParam` values stored through the `types.Type` interface
+  still hit the bridge.
 - Fixture: `tests/stdlib_interface_map_value_assignment/main.go`;
   `tests/source_stdlib_go_types_new_type_name/` source-maps `go/types` and
-  verifies the direct `NewTypeName` path from source.
+  verifies the direct `NewTypeName` path from source;
+  `tests/source_stdlib_go_token_types_bridge_arg/` source-maps `go/token` and
+  `go/types` together and verifies the direct `NewTypeParam` constructor path.
 - Removal trigger: transpiler can lower `go/types.TypeName`, `go/types.TypeParam`, and their object/type relationships from source.
 - Added: 2026-06-03
 
@@ -218,10 +221,13 @@ in the first place.
 
 - Location: `go/external_type_stubs.go:7501` (`writeTypesNewTupleFunction`, `writeTypesNewTypeNameFunction`, `writeTypesNewTypeParamFunction`)
 - Go symbol: `go/types.NewTuple`, `go/types.NewTypeName`, and `go/types.NewTypeParam`
-- Transpiler gap: same vendored-`go/types` source gap as `types-tuple` and `types-type-name-param`.
+- Transpiler gap: `NewTypeName` and `NewTypeParam` pass when `go/types` is
+  source-mapped; `NewTuple` and non-source-mapped constructor callers still
+  hit the bridge.
 - Fixture: `tests/stdlib_interface_ident_argument/main.go`; `tests/stdlib_interface_map_value_assignment/main.go`;
-  `tests/XFAIL/source_stdlib_go_token_types_bridge_arg/` captures the
-  source-transpiled `go/token.Pos` to bridged `types.NewTypeName` boundary;
+  `tests/source_stdlib_go_token_types_bridge_arg/` verifies the source-mapped
+  `go/token.Pos` to source-mapped `types.NewTypeName` boundary plus direct
+  `NewTypeParam`;
   `tests/source_stdlib_go_types_new_type_name/` verifies the direct
   source-transpiled `go/types.NewTypeName` path.
 - Removal trigger: retired together with `types-tuple` and `types-type-name-param`.
@@ -361,12 +367,11 @@ in the first place.
 - Location: `go/external_type_stubs.go:4442`
 - Go symbol: `go/token` package
 - Transpiler gap: source package fixture covers `Lookup`, `Token.String`,
-  `Token.IsKeyword`, and `Pos.IsValid`; remaining work is shrinking external
-  `go/token` callers off the package bridge. `go/types` bridge callers are
-  still blocked because they accept bridged `token_Pos`, not source
-  `go_token::position::Pos`.
+  `Token.IsKeyword`, and `Pos.IsValid`; source-mapped `go/token.Pos` now
+  reaches source-mapped `go/types.NewTypeName`. Remaining work is shrinking
+  non-source-mapped external `go/token` callers off the package bridge.
 - Fixture: `tests/source_stdlib_go_token_lookup/`;
-  `tests/XFAIL/source_stdlib_go_token_types_bridge_arg/`
+  `tests/source_stdlib_go_token_types_bridge_arg/`
 - Removal trigger: transpiler can lower `go/token` source.
 - Added: 2026-05-27 (backfill)
 
