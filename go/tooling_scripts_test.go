@@ -22,6 +22,7 @@ func TestCleanupScriptSweepsAllGeneratedTempRoots(t *testing.T) {
 		"go2rust-stdout.*",
 		"go2rust-stderr.*",
 		"go2rust-test-binary.*",
+		"go2rust-bats-gocache",
 		"go2rust-go-cache",
 		"go2rust-go-cache.*",
 	} {
@@ -386,6 +387,7 @@ func TestCleanupScriptRemovesKnownGo2RustArtifacts(t *testing.T) {
 		`go2rust-self-cargo-home`,
 		`go2rust-self-cargo-home.*`,
 		`go2rust-test-binary.*`,
+		`go2rust-bats-gocache`,
 		`go2rust-go-cache`,
 		`go2rust-go-cache.*`,
 		`go2rust-rust-work.*`,

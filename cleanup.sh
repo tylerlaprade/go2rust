@@ -537,6 +537,7 @@ cleanup_temp_root() {
         -name 'go2rust-self-cargo-home' -o \
         -name 'go2rust-self-cargo-home.*' -o \
         -name 'go2rust-test-binary.*' -o \
+        -name 'go2rust-bats-gocache' -o \
         -name 'go2rust-go-cache' -o \
         -name 'go2rust-go-cache.*' -o \
         -name 'go2rust-go-cache-current' -o \
