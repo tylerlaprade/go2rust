@@ -2078,12 +2078,13 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 		slices.Sort(methodNames)
 		for _, methodName := range methodNames {
 			method := methods[methodName]
+			if name == "types_Checker" && methodName == "files" {
+				continue
+			}
 			if name == "build_Context" && methodName == "import" {
 				writeBuildContextImportMethod(&out, methodName, method)
 			} else if name == "types_Config" && methodName == "check" {
 				writeTypesConfigCheckMethod(&out, method)
-			} else if name == "types_Checker" && methodName == "files" {
-				writeTypesCheckerFilesMethod(&out, method)
 			} else if name == "token_Pos" && methodName == "is_valid" {
 				writeTokenPosIsValidMethod(&out)
 			} else if name == "fs_FileMode" && methodName == "is_dir" {
@@ -4440,49 +4441,6 @@ func writeTypesConfigCheckMethod(out *strings.Builder, method externalTypeStubMe
 	out.WriteString("),\n")
 	out.WriteString("        }\n")
 	out.WriteString("    }\n")
-}
-
-// TEMPORARY: hand-written Rust shim for go/types.Checker.Files.
-// Long-term fix: transpile go/types source.
-func writeTypesCheckerFilesMethod(out *strings.Builder, method externalTypeStubMethod) {
-	out.WriteString("    pub fn files")
-	writeExternalStubGenericParams(out, method.ParamCount)
-	out.WriteString("(&self")
-	writeExternalStubArgs(out, method.ParamCount)
-	out.WriteString(")")
-	if len(method.ReturnTypes) > 0 {
-		out.WriteString(" -> ")
-		writeExternalStubReturnType(out, method.ReturnTypes)
-	}
-	out.WriteString(" {\n")
-	out.WriteString("        panic!(\"go/types Checker.Files is required for TypeInfo; generated stdlib stubs must not synthesize type information\")\n")
-	out.WriteString("    }\n")
-}
-
-// MACHINERY: generic-parameter emitter for stub function signatures.
-func writeExternalStubGenericParams(out *strings.Builder, count int) {
-	if count <= 0 {
-		return
-	}
-	out.WriteString("<")
-	for i := 0; i < count; i++ {
-		if i > 0 {
-			out.WriteString(", ")
-		}
-		out.WriteString("T")
-		out.WriteString(strconv.Itoa(i))
-	}
-	out.WriteString(">")
-}
-
-// MACHINERY: argument-list emitter for stub function signatures.
-func writeExternalStubArgs(out *strings.Builder, count int) {
-	for i := 0; i < count; i++ {
-		out.WriteString(", _arg")
-		out.WriteString(strconv.Itoa(i))
-		out.WriteString(": T")
-		out.WriteString(strconv.Itoa(i))
-	}
 }
 
 // TEMPORARY: hand-written Rust shim for go/token.Pos.IsValid.

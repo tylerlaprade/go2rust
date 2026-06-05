@@ -989,17 +989,24 @@ func TestTypesStubsDoNotSilentlySynthesizeTypeInfo(t *testing.T) {
 		t.Fatalf("types.Config Check stub should no longer panic at the bridge boundary:\n%s", got)
 	}
 
-	out.Reset()
-	writeTypesCheckerFilesMethod(&out, externalTypeStubMethod{
-		ParamCount:  1,
-		ReturnTypes: []string{"Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>"},
-	})
-	got = out.String()
-	if !strings.Contains(got, "go/types Checker.Files is required for TypeInfo") {
-		t.Fatalf("types.Checker Files stub should fail at the missing type checker boundary:\n%s", got)
-	}
-	if strings.Contains(got, "Default::default()") {
-		t.Fatalf("types.Checker Files stub must not return default type info:\n%s", got)
+}
+
+func TestTypesCheckerFilesStubIsRetired(t *testing.T) {
+	got := generateExternalStubs(
+		map[string]bool{"types_Checker": true},
+		nil, nil, nil, nil,
+		map[string]map[string]externalTypeStubMethod{
+			"types_Checker": {
+				"files": {
+					ParamCount:  1,
+					ReturnTypes: []string{"Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>"},
+				},
+			},
+		},
+		nil, nil,
+	)
+	if strings.Contains(got, "pub fn files") {
+		t.Fatalf("types.Checker Files should use source-transpiled go/types, not an external stub method:\n%s", got)
 	}
 }
 

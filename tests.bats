@@ -2463,6 +2463,10 @@ run_xfail_test() {
     run_test "tests/source_stdlib_go_types_check_manual_ast_decl"
 }
 
+@test "source_stdlib_go_types_checker_files" {
+    run_test "tests/source_stdlib_go_types_checker_files"
+}
+
 @test "source_stdlib_go_types_new_type_name" {
     run_test "tests/source_stdlib_go_types_new_type_name"
 }

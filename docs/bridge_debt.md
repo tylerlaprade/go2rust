@@ -337,15 +337,6 @@ in the first place.
 - Removal trigger: transpiler can lower `go/types.Config.Check` source.
 - Added: 2026-05-27 (backfill)
 
-### types-checker-files
-
-- Location: `go/external_type_stubs.go:3670`
-- Go symbol: `go/types.Checker.Files`
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
-- Removal trigger: transpiler can lower `go/types.Checker.Files` source.
-- Added: 2026-05-27 (backfill)
-
 ### token-pos-isvalid
 
 - Location: `go/external_type_stubs.go:3713`
