@@ -98,26 +98,6 @@ before committing.** A row whose gap and fixture are both still `TODO:` after
 its shim is edited indicates the same drift pattern that produced the bridge
 in the first place.
 
-### types-config-check-surface
-
-- Location: `go/external_type_stubs.go:243`
-- Go symbol: `go/types.Config`, `go/types.Config.Check`, and
-  `go/types.NewChecker` (registration surface)
-- Transpiler gap: source-mapped `go/types.Config` field construction now
-  passes for `Config.Error`, and source-mapped `go/types.NewChecker` now
-  passes when `go/types` and its `internal/godebugs` table dependency are
-  both translated from source; non-source-mapped checker callers still
-  register the hand-written bridge surface.
-- Fixture: `tests/stdlib_function_field_stub/` now source-maps `go/types`
-  and verifies `types.Config{Error: func(error){}}` through
-  `go_types::api::Config`. `tests/external_stub_selector_args/` now
-  source-maps `go/types` plus `internal/godebugs` and verifies
-  `types.NewChecker` without the package-selector bridge.
-- Removal trigger: all remaining `go/types.Config`, `Config.Check`, and
-  `NewChecker` callers use source-transpiled `go/types` instead of the
-  external bridge surface.
-- Added: 2026-05-27 (backfill)
-
 ### parser-parsefile-surface
 
 - Location: `go/external_type_stubs.go:671`
@@ -307,35 +287,6 @@ in the first place.
   source-transpiled `go/types.NewTypeName` path.
 - Removal trigger: retired together with `types-tuple` and `types-type-name-param`.
 - Added: 2026-06-03
-
-### types-info-helpers
-
-- Location: `go/external_type_stubs.go:3925`
-- Go symbol: `go/types.Info` and helper trait support
-- Transpiler gap: source-mapped `go/types.Info` map fields now pass when keyed
-  by source-generated `*ast.File`, `*ast.Ident`, and `ast.Node`, but
-  non-source-mapped callers still route through the external `types_Info`
-  helper surface and erased pointer-key bridge support.
-- Fixture: `tests/stdlib_struct_field_map/` now source-maps `go/types` and
-  `go/ast`, and verifies `Info.FileVersions`, `Info.Instances`,
-  `Info.Implicits`, and `Info.Scopes` with source-generated map key/value
-  types.
-- Removal trigger: all remaining `go/types.Info` callers use source-transpiled
-  `go/types` instead of the external bridge surface.
-- Added: 2026-05-27 (backfill; expanded 2026-06-05)
-
-### types-config-check-impl
-
-- Location: `go/external_type_stubs.go:3640`
-- Go symbol: `go/types.Config.Check` (implementation)
-- Transpiler gap: bridged `types.Config.Check` still accepts external
-  `ast_File` inputs, while source `go/parser` returns source-generated
-  `go_ast::r#mod::File` values. Fixing this by teaching the bridge source AST
-  semantics would preserve the bridge; the real removal path is source
-  `go/types`.
-- Fixture: `tests/source_stdlib_go_parser_types_check_bridge_arg/`
-- Removal trigger: transpiler can lower `go/types.Config.Check` source.
-- Added: 2026-05-27 (backfill)
 
 ### token-pos-isvalid
 

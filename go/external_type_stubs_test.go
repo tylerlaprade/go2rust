@@ -485,10 +485,9 @@ func TestRegisterTypesBasicAlsoRegistersFieldTypes(t *testing.T) {
 	}
 }
 
-// Registering types_Config alone (e.g. for a struct literal) must not pull in
-// writeTypesBridgeSupport, which references ast_Expr, ast_File, types_Info,
-// and other types that are only wired through the Check() method path.
-func TestTypesBridgeSupportGatedOnConfigCheck(t *testing.T) {
+// Registering types_Config.Check must not pull in the retired subprocess
+// bridge. Source-transpiled go/types owns Config.Check behavior now.
+func TestTypesConfigCheckStubIsRetired(t *testing.T) {
 	noCheck := generateExternalStubs(
 		map[string]bool{"types_Config": true},
 		nil, nil, nil, nil,
@@ -507,8 +506,14 @@ func TestTypesBridgeSupportGatedOnConfigCheck(t *testing.T) {
 		},
 		nil, nil,
 	)
-	if !strings.Contains(withCheck, "GoTypesBridgeStringArg") {
-		t.Fatalf("bridge support should appear when types.Config.Check is registered:\n%s", withCheck)
+	for _, unwanted := range []string{
+		"GoTypesBridgeStringArg",
+		"__go_types_config_check",
+		"pub fn check",
+	} {
+		if strings.Contains(withCheck, unwanted) {
+			t.Fatalf("types.Config.Check external stub must be retired; found %q:\n%s", unwanted, withCheck)
+		}
 	}
 }
 
@@ -969,28 +974,6 @@ func TestTokenPosIsValidStubUsesPositionValue(t *testing.T) {
 	}
 }
 
-func TestTypesStubsDoNotSilentlySynthesizeTypeInfo(t *testing.T) {
-	var out strings.Builder
-	writeTypesConfigCheckMethod(&out, externalTypeStubMethod{
-		ParamCount: 4,
-		ReturnTypes: []string{
-			"Arc<Mutex<Option<types_Package>>>",
-			"Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>",
-		},
-	})
-	got := out.String()
-	if !strings.Contains(got, "pub fn check<T0: GoTypesBridgeStringArg, T1, T3: GoTypesBridgeInfoArg>") {
-		t.Fatalf("types.Config Check stub should use the generated type bridge signature:\n%s", got)
-	}
-	if !strings.Contains(got, "__go_types_config_check(_arg0, _arg2, _arg3)") {
-		t.Fatalf("types.Config Check stub should call the go/types bridge:\n%s", got)
-	}
-	if strings.Contains(got, "go/types Config.Check is required for TypeInfo") {
-		t.Fatalf("types.Config Check stub should no longer panic at the bridge boundary:\n%s", got)
-	}
-
-}
-
 func TestTypesCheckerFilesStubIsRetired(t *testing.T) {
 	got := generateExternalStubs(
 		map[string]bool{"types_Checker": true},
@@ -1005,8 +988,10 @@ func TestTypesCheckerFilesStubIsRetired(t *testing.T) {
 		},
 		nil, nil,
 	)
-	if strings.Contains(got, "pub fn files") {
-		t.Fatalf("types.Checker Files should use source-transpiled go/types, not an external stub method:\n%s", got)
+	for _, unwanted := range []string{"pub fn files", "__go_types_checker_files"} {
+		if strings.Contains(got, unwanted) {
+			t.Fatalf("types.Checker Files should use source-transpiled go/types, not an external stub method; found %q:\n%s", unwanted, got)
+		}
 	}
 }
 
@@ -1038,23 +1023,6 @@ func TestTypesTypeBridgeMethodsPanicOnUnsupportedKinds(t *testing.T) {
 	}
 	if !strings.Contains(got, "panic!(") {
 		t.Fatalf("types.Type.Underlying() bridge must panic on unsupported kinds:\n%s", got)
-	}
-}
-
-func TestTypesConfigCheckBridgeRunsGoTypes(t *testing.T) {
-	var out strings.Builder
-	writeTypesBridgeSupport(&out)
-	got := out.String()
-	for _, want := range []string{
-		"go/types",
-		"impl GoTypesBridgeInfoArg for ()",
-		"config.Check(req.Path, fset, files, info)",
-		"types.Unalias(tv.Type).Underlying().(*types.Basic)",
-		"types_map.insert(expr.clone()",
-	} {
-		if !strings.Contains(got, want) {
-			t.Fatalf("types.Config Check bridge should contain %q:\n%s", want, got)
-		}
 	}
 }
 

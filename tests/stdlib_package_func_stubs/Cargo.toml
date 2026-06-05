@@ -8,5 +8,4 @@ name = "stdlib_package_func_stubs"
 path = "main.rs"
 
 [dependencies]
-serde_json = "1"
 gosyn = "0.2.9"
