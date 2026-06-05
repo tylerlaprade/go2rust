@@ -13851,7 +13851,17 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 			WriteBorrowMethod(out, false)
 			out.WriteString(";\n")
 			out.WriteString("    let _ts_is_nil = _ts_guard.as_ref().is_none();\n")
-			out.WriteString("    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.as_ref() as &dyn Any);\n")
+			out.WriteString("    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {\n")
+			out.WriteString("        let mut __any = __v.as_ref() as &dyn Any;\n")
+			if NeedsConcurrentWrapper() {
+				out.WriteString("        while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any + Send + Sync>>() {\n")
+			} else {
+				out.WriteString("        while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any>>() {\n")
+			}
+			out.WriteString("            __any = __boxed.as_ref() as &dyn Any;\n")
+			out.WriteString("        }\n")
+			out.WriteString("        __any\n")
+			out.WriteString("    });\n")
 		} else if subjectIsLocalInterfaceRef {
 			originalBindingSubject = "_ts_subject"
 			out.WriteString("    let _ts_subject = ")

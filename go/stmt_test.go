@@ -663,6 +663,34 @@ func rewrite(args []any) {
 	}
 }
 
+func TestConcurrentTypeSwitchOnAnyUnwrapsBoxedAnyPayload(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type marker struct{}
+
+func classify(v any) string {
+	done := make(chan bool)
+	_ = done
+	switch v.(type) {
+	case marker:
+		return "marker"
+	default:
+		return "other"
+	}
+}
+`)
+
+	for _, want := range []string{
+		"let mut __any = __v.as_ref() as &dyn Any;",
+		"while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any + Send + Sync>>()",
+		"__any = __boxed.as_ref() as &dyn Any;",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("concurrent type switch on any should unwrap boxed any payload fragment %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestTypeSwitchInterfaceCaseUnimplementedBindingIsTyped(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

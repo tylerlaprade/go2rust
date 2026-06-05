@@ -966,6 +966,34 @@ func fail(value any) {
 	}
 }
 
+func TestPanicRecoverHelperUnwrapsNestedAnyPayload(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func fail() {
+	done := make(chan bool)
+	_ = done
+	defer func() {
+		_ = recover()
+	}()
+	panic("boom")
+}
+`)
+
+	if strings.Contains(rust, "__GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(*boxed));\n            return;") {
+		t.Fatalf("recover helper should not stop after the first boxed any payload:\n%s", rust)
+	}
+	for _, want := range []string{
+		"let mut payload = *boxed;",
+		"loop {",
+		"match payload.downcast::<Box<dyn Any + Send + Sync>>()",
+		"__GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(payload));",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("recover helper missing nested boxed any unwrap fragment %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestCopyToSliceTypeAssertionUsesBareDestination(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

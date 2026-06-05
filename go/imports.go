@@ -199,7 +199,7 @@ func (ht *HelperTracker) withoutSharedStdlibHelpers() *HelperTracker {
 	helperCopy.needsGoChannel = false
 	helperCopy.needsGoContext = false
 	helperCopy.needsGoTime = false
-	if helperCopy.needsGoValueClone {
+	if helperCopy.needsGoValueClone && len(helperCopy.anyCloneTypes) == 0 {
 		helperCopy.needsAnyClone = false
 	}
 	helperCopy.needsGoValueClone = false
@@ -1100,8 +1100,18 @@ func generatePanicRecoverHelper(out *strings.Builder) {
 	out.WriteString(`fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
     let payload = match payload.downcast::<Box<dyn Any + Send + Sync>>() {
         Ok(boxed) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(*boxed));
-            return;
+            let mut payload = *boxed;
+            loop {
+                match payload.downcast::<Box<dyn Any + Send + Sync>>() {
+                    Ok(boxed) => {
+                        payload = *boxed;
+                    }
+                    Err(payload) => {
+                        __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(payload));
+                        return;
+                    }
+                }
+            }
         }
         Err(payload) => payload,
     };

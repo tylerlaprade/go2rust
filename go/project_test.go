@@ -390,6 +390,65 @@ func use(items []item) item {
 	}
 }
 
+func TestSharedGoValueCloneKeepsLocalAnyCloneArms(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+func Touch() {}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+type marker struct{}
+
+func first[E any](values []E) E {
+	return values[0]
+}
+
+func use(values []marker) marker {
+	dep.Touch()
+	return first(values)
+}
+
+func fail() {
+	done := make(chan bool)
+	_ = done
+	panic(marker{})
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if !strings.Contains(mainRS, "use go2rust_stdlib_stubs::*;") {
+		t.Fatalf("root package should still import shared helpers, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "impl GoValueClone for marker") {
+		t.Fatalf("root local type should still implement shared GoValueClone, got:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "fn go_any_clone(value: &(dyn Any + Send + Sync))") ||
+		!strings.Contains(mainRS, "value.downcast_ref::<marker>()") {
+		t.Fatalf("root package should keep local any clone arms for local dynamic panic payloads, got:\n%s", mainRS)
+	}
+}
+
 func TestSharedGoComparableTraitCrossesTranspiledCrates(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
