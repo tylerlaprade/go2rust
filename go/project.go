@@ -26,6 +26,10 @@ type ProjectGenerator struct {
 	goImports                map[string][]string // package path -> list of imports
 	packageMapping           map[string]string   // Go import path -> Rust crate name
 	packageTypeModules       map[string]map[string]string
+	goPtrParamFuncNames      map[string]map[int]string
+	goPtrReturnFuncNames     map[string]map[int]goPtrResultInfo
+	goPtrArrayFields         map[string]goPtrArrayFieldInfo
+	generatedGoPtrFields     map[string]bool
 	isVendorPackage          bool // True if this is a vendor package (no go.mod required)
 	useSharedStdlibStubCrate bool // True when transpiled packages share one stdlib stub crate
 	usePackageHelpers        bool // True when helper definitions must be shared across generated modules
@@ -180,6 +184,10 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		pg.typeInfo = loader.GetTypeInfo()
 		pg.packageMapping = loader.GetPackageMapping()
 		pg.packageTypeModules = loader.GetPackageTypeModuleNames()
+		pg.goPtrParamFuncNames = loader.GetGoPtrParamFuncNames()
+		pg.goPtrReturnFuncNames = loader.GetGoPtrReturnFuncNames()
+		pg.goPtrArrayFields = loader.GetGoPtrArrayFields()
+		pg.generatedGoPtrFields = loader.GetGeneratedGoPtrFields()
 		pg.useSharedStdlibStubCrate = len(pg.packageMapping) > 0
 
 		// CRITICAL: Replace our AST files with the ones from PackageLoader
@@ -279,6 +287,10 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	pg.usePackageHelpers = len(astFiles) > 1
 	session := NewTranspileSession(pg.typeInfo, pg.packageMapping)
 	session.PackageTypeModuleNames = pg.packageTypeModules
+	session.GoPtrParamFuncNames = pg.goPtrParamFuncNames
+	session.GoPtrReturnFuncNames = pg.goPtrReturnFuncNames
+	session.GoPtrArrayFields = pg.goPtrArrayFields
+	session.GeneratedGoPtrFields = pg.generatedGoPtrFields
 	runCtx := &TranspileContext{
 		Session:                 session,
 		Package:                 packageState,
@@ -296,15 +308,15 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	if packageImports != nil {
 		SetPackageImports(packageImports)
 	}
-	packageState.FunctionBoundKinds = genericFunctionBoundKinds(collectPackageFunctions(astFiles))
-	packageState.LocalInterfaceGoValueClone = collectLocalInterfaceGoValueCloneTypes(astFiles, packageState.FunctionBoundKinds)
-	packageState.LocalInterfaceGoComparable = collectLocalInterfaceGoComparableTypes(astFiles)
 	packageState.ImportedInterfaceImpls = packageAnalysis.importedInterfaceImpls
+	packageState.ImportedPointerInterfaceImpls = packageAnalysis.importedPointerInterfaceImpls
 	packageState.ExternalLocalInterfaceImpls = packageAnalysis.externalLocalInterfaceImpls(collectPackageInterfaceDecls(astFiles))
 	registerPackageTypeFactsFromFiles(astFiles)
 	registerFunctionSignaturesFromFiles(astFiles)
-	registerSliceElemPtrReturnsFromFiles(astFiles)
-	registerSliceElemPtrFieldsFromFiles(astFiles)
+	registerSliceElemPtrFactsFromFiles(astFiles)
+	packageState.FunctionBoundKinds = genericFunctionBoundKinds(collectPackageFunctions(astFiles))
+	packageState.LocalInterfaceGoValueClone = collectLocalInterfaceGoValueCloneTypes(astFiles, packageState.FunctionBoundKinds)
+	packageState.LocalInterfaceGoComparable = collectLocalInterfaceGoComparableTypes(astFiles)
 
 	nonMainModuleNames := pg.nonMainModuleNames(astFilesByPath)
 	for _, filename := range pg.goFiles {

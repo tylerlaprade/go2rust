@@ -679,6 +679,9 @@ func generateAnonymousStructType(structType *ast.StructType) string {
 	// Check if we've already generated a type for this struct signature
 	sig := getStructSignature(structType)
 	if typeName, exists := anonymousStructTypeMap[sig]; exists {
+		if _, registered := structDefs[typeName]; !registered {
+			registerStructDef(typeName, structType)
+		}
 		return typeName
 	}
 
@@ -687,6 +690,7 @@ func generateAnonymousStructType(structType *ast.StructType) string {
 	typeName := fmt.Sprintf("AnonymousStruct%d", anonymousStructCounter)
 	anonymousStructs[typeName] = structType
 	anonymousStructTypeMap[sig] = typeName
+	registerStructDef(typeName, structType)
 
 	// Process nested structs in fields to ensure they're also generated
 	for _, field := range structType.Fields.List {
@@ -1176,6 +1180,11 @@ func goTypeToRustBase(expr ast.Expr) string {
 }
 
 func goMapKeyTypeToRustBase(expr ast.Expr) string {
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		if typ := typeInfo.GetType(expr); typ != nil {
+			return goTypesMapKeyToRust(typ)
+		}
+	}
 	if star, ok := expr.(*ast.StarExpr); ok {
 		keyHelper := "GoLocalPtrKey"
 		if typeInfo := GetTypeInfo(); typeInfo != nil {
@@ -1319,6 +1328,9 @@ func zeroValueForTypesType(typ types.Type) string {
 		return rustEmptyErrorHandleValue()
 	}
 	if named, ok := types.Unalias(typ).(*types.Named); ok {
+		if zeroValue, ok := zeroValueForNamedOverNamedArray(named); ok {
+			return zeroValue
+		}
 		if zeroValue, ok := zeroValueForNamedOverNamedScalar(named); ok {
 			return zeroValue
 		}
@@ -1394,7 +1406,21 @@ func zeroValueForTypesType(typ types.Type) string {
 	}
 }
 
+func zeroValueForNamedOverNamedArray(named *types.Named) (string, bool) {
+	return zeroValueForNamedOverNamedUnderlying(named, func(underlyingNamed *types.Named) bool {
+		_, ok := types.Unalias(underlyingNamed.Underlying()).(*types.Array)
+		return ok
+	})
+}
+
 func zeroValueForNamedOverNamedScalar(named *types.Named) (string, bool) {
+	return zeroValueForNamedOverNamedUnderlying(named, func(underlyingNamed *types.Named) bool {
+		_, ok := types.Unalias(underlyingNamed.Underlying()).(*types.Basic)
+		return ok
+	})
+}
+
+func zeroValueForNamedOverNamedUnderlying(named *types.Named, accepts func(*types.Named) bool) (string, bool) {
 	if named == nil || named.Obj() == nil {
 		return "", false
 	}
@@ -1406,7 +1432,7 @@ func zeroValueForNamedOverNamedScalar(named *types.Named) (string, bool) {
 	if !ok {
 		return "", false
 	}
-	if _, ok := types.Unalias(underlyingNamed.Underlying()).(*types.Basic); !ok {
+	if accepts == nil || !accepts(underlyingNamed) {
 		return "", false
 	}
 	var out strings.Builder
@@ -1744,6 +1770,9 @@ func goTypesMapKeyToRust(t types.Type) string {
 		NeedGoPtrKey()
 		return "GoLocalPtrKey<" + rustAnyTraitObject() + ">"
 	}
+	if _, ok := t.(*types.Alias); ok {
+		return goTypesTypeToRust(types.Unalias(t))
+	}
 	return goTypesTypeToRust(t)
 }
 
@@ -1806,8 +1835,9 @@ func goTypesNamedTypeToRust(named *types.Named) string {
 		return rustNamedTypeWithArgs(named, RustTypeNameForUse(obj.Name()))
 	}
 	typeInfo := GetTypeInfo()
-	if typeInfo != nil && typeInfo.pkg != nil && obj.Pkg() == typeInfo.pkg {
-		return rustNamedTypeWithArgs(named, RustTypeNameForUse(obj.Name()))
+	if typeInfo != nil && typeInfo.pkg != nil &&
+		(obj.Pkg() == typeInfo.pkg || obj.Pkg().Path() == typeInfo.pkg.Path()) {
+		return rustNamedTypeWithArgs(named, rustImplTypeNameForUse(obj.Name()))
 	}
 	if rustName, ok := rustTypeNameForImportedPackagePath(obj.Pkg().Path(), obj.Name()); ok {
 		return rustNamedTypeWithArgs(named, rustName)

@@ -432,7 +432,7 @@ pub fn read_source(filename: Arc<Mutex<Option<String>>>, src: Arc<Mutex<Option<B
         return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("invalid source".to_string())))));
     }
         // is io.Reader, but src is already available in []byte form
-    os::read_file({ let __arg_holder = filename.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })
+    os::read_file(filename.clone())
 }
 
 /// ParseFile parses the source code of a single Go source file and returns

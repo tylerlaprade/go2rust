@@ -13,7 +13,11 @@ type TranspileSession struct {
 	PackageMapping              map[string]string            // Go import path -> Rust crate name
 	PackageTypeModuleNames      map[string]map[string]string // Go import path -> Go type name -> Rust module name
 	SliceElemPtrReturnFuncNames map[string]sliceElemPtrReturnInfo
+	GoPtrParamFuncNames         map[string]map[int]string
+	GoPtrReturnFuncNames        map[string]map[int]goPtrResultInfo
 	SliceElemPtrFields          map[string]sliceElemPtrFieldInfo
+	GoPtrArrayFields            map[string]goPtrArrayFieldInfo
+	GeneratedGoPtrFields        map[string]bool
 }
 
 // PackageState holds package-scoped registries that should be shared across files.
@@ -39,7 +43,12 @@ type PackageState struct {
 	SliceElemPtrReturnFuncNames   map[string]sliceElemPtrReturnInfo
 	SliceElemPtrSliceReturnFuncs  map[*types.Func]sliceElemPtrSliceReturnInfo
 	SliceElemPtrSliceParamFuncs   map[*types.Func]map[int]string
+	GoPtrParamFuncs               map[*types.Func]map[int]string
+	GoPtrReturnFuncs              map[*types.Func]map[int]goPtrResultInfo
+	GoPtrReturnFuncNames          map[string]map[int]goPtrResultInfo
 	SliceElemPtrFields            map[string]sliceElemPtrFieldInfo
+	GoPtrArrayFields              map[string]goPtrArrayFieldInfo
+	GeneratedGoPtrFields          map[string]bool
 	ArrayElemPtrResultFuncs       map[*types.Func]map[int]arrayElemPtrInfo
 	ArrayElemPtrResultFuncNames   map[string]map[int]arrayElemPtrInfo
 	MapKeyStructTypes             map[string]bool
@@ -57,6 +66,7 @@ type PackageState struct {
 	AnonymousStructTypeMap        map[string]string
 	AnonymousStructAliases        map[string]string
 	ImportedInterfaceImpls        map[string]map[string]*types.Interface
+	ImportedPointerInterfaceImpls map[string]map[string]*types.Interface
 	ExternalLocalInterfaceImpls   map[string]map[string]externalLocalInterfaceImpl
 	ExternalTypeStubs             map[string]bool
 	ExternalTypeStubInterfaces    map[string]bool
@@ -126,7 +136,11 @@ func NewTranspileSession(typeInfo *TypeInfo, packageMapping map[string]string) *
 		TypeInfo:                    typeInfo,
 		PackageMapping:              packageMapping,
 		SliceElemPtrReturnFuncNames: make(map[string]sliceElemPtrReturnInfo),
+		GoPtrParamFuncNames:         make(map[string]map[int]string),
+		GoPtrReturnFuncNames:        make(map[string]map[int]goPtrResultInfo),
 		SliceElemPtrFields:          make(map[string]sliceElemPtrFieldInfo),
+		GoPtrArrayFields:            make(map[string]goPtrArrayFieldInfo),
+		GeneratedGoPtrFields:        make(map[string]bool),
 	}
 }
 
@@ -153,7 +167,12 @@ func NewPackageState() *PackageState {
 		SliceElemPtrReturnFuncNames:   make(map[string]sliceElemPtrReturnInfo),
 		SliceElemPtrSliceReturnFuncs:  make(map[*types.Func]sliceElemPtrSliceReturnInfo),
 		SliceElemPtrSliceParamFuncs:   make(map[*types.Func]map[int]string),
+		GoPtrParamFuncs:               make(map[*types.Func]map[int]string),
+		GoPtrReturnFuncs:              make(map[*types.Func]map[int]goPtrResultInfo),
+		GoPtrReturnFuncNames:          make(map[string]map[int]goPtrResultInfo),
 		SliceElemPtrFields:            make(map[string]sliceElemPtrFieldInfo),
+		GoPtrArrayFields:              make(map[string]goPtrArrayFieldInfo),
+		GeneratedGoPtrFields:          make(map[string]bool),
 		ArrayElemPtrResultFuncs:       make(map[*types.Func]map[int]arrayElemPtrInfo),
 		ArrayElemPtrResultFuncNames:   make(map[string]map[int]arrayElemPtrInfo),
 		MapKeyStructTypes:             make(map[string]bool),
@@ -170,6 +189,7 @@ func NewPackageState() *PackageState {
 		AnonymousStructTypeMap:        make(map[string]string),
 		AnonymousStructAliases:        make(map[string]string),
 		ImportedInterfaceImpls:        make(map[string]map[string]*types.Interface),
+		ImportedPointerInterfaceImpls: make(map[string]map[string]*types.Interface),
 		ExternalLocalInterfaceImpls:   make(map[string]map[string]externalLocalInterfaceImpl),
 		ExternalTypeStubs:             make(map[string]bool),
 		ExternalTypeStubInterfaces:    make(map[string]bool),
@@ -276,8 +296,20 @@ func (ctx *TranspileContext) ensureDefaults() {
 		if ctx.Session.SliceElemPtrReturnFuncNames == nil {
 			ctx.Session.SliceElemPtrReturnFuncNames = make(map[string]sliceElemPtrReturnInfo)
 		}
+		if ctx.Session.GoPtrParamFuncNames == nil {
+			ctx.Session.GoPtrParamFuncNames = make(map[string]map[int]string)
+		}
+		if ctx.Session.GoPtrReturnFuncNames == nil {
+			ctx.Session.GoPtrReturnFuncNames = make(map[string]map[int]goPtrResultInfo)
+		}
 		if ctx.Session.SliceElemPtrFields == nil {
 			ctx.Session.SliceElemPtrFields = make(map[string]sliceElemPtrFieldInfo)
+		}
+		if ctx.Session.GoPtrArrayFields == nil {
+			ctx.Session.GoPtrArrayFields = make(map[string]goPtrArrayFieldInfo)
+		}
+		if ctx.Session.GeneratedGoPtrFields == nil {
+			ctx.Session.GeneratedGoPtrFields = make(map[string]bool)
 		}
 	}
 	if ctx.Package != nil {
@@ -314,8 +346,23 @@ func (ctx *TranspileContext) ensureDefaults() {
 		if ctx.Package.SliceElemPtrSliceParamFuncs == nil {
 			ctx.Package.SliceElemPtrSliceParamFuncs = make(map[*types.Func]map[int]string)
 		}
+		if ctx.Package.GoPtrParamFuncs == nil {
+			ctx.Package.GoPtrParamFuncs = make(map[*types.Func]map[int]string)
+		}
+		if ctx.Package.GoPtrReturnFuncs == nil {
+			ctx.Package.GoPtrReturnFuncs = make(map[*types.Func]map[int]goPtrResultInfo)
+		}
+		if ctx.Package.GoPtrReturnFuncNames == nil {
+			ctx.Package.GoPtrReturnFuncNames = make(map[string]map[int]goPtrResultInfo)
+		}
 		if ctx.Package.SliceElemPtrFields == nil {
 			ctx.Package.SliceElemPtrFields = make(map[string]sliceElemPtrFieldInfo)
+		}
+		if ctx.Package.GoPtrArrayFields == nil {
+			ctx.Package.GoPtrArrayFields = make(map[string]goPtrArrayFieldInfo)
+		}
+		if ctx.Package.GeneratedGoPtrFields == nil {
+			ctx.Package.GeneratedGoPtrFields = make(map[string]bool)
 		}
 		if ctx.Package.ArrayElemPtrResultFuncs == nil {
 			ctx.Package.ArrayElemPtrResultFuncs = make(map[*types.Func]map[int]arrayElemPtrInfo)
@@ -385,6 +432,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		}
 		if ctx.Package.ImportedInterfaceImpls == nil {
 			ctx.Package.ImportedInterfaceImpls = make(map[string]map[string]*types.Interface)
+		}
+		if ctx.Package.ImportedPointerInterfaceImpls == nil {
+			ctx.Package.ImportedPointerInterfaceImpls = make(map[string]map[string]*types.Interface)
 		}
 		if ctx.Package.ExternalLocalInterfaceImpls == nil {
 			ctx.Package.ExternalLocalInterfaceImpls = make(map[string]map[string]externalLocalInterfaceImpl)
@@ -708,6 +758,27 @@ func NeedFormatNestedSliceWrapped() {
 	}
 }
 
+// NeedFormatNestedPointerSlice marks that we need the
+// format_nested_pointer_slice helper (an outer sequence whose elements are
+// pointers to inner sequences of raw Display values, e.g. []*[N]T).
+func NeedFormatNestedPointerSlice() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsFormatSlice = true
+		helpers.needsFormatNestedPointerSlice = true
+	}
+}
+
+// NeedFormatNestedPointerSliceWrapped marks that we need the
+// format_nested_pointer_slice_wrapped helper (an outer sequence whose elements
+// are pointers to inner sequences of wrapped pointer handles, e.g. []*[N]*T).
+func NeedFormatNestedPointerSliceWrapped() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsFormatSlice = true
+		helpers.needsFormatSliceWrappedValues = true
+		helpers.needsFormatNestedPointerSliceWrapped = true
+	}
+}
+
 // NeedFormatAny marks that we need the format_any helper
 func NeedFormatAny() {
 	if helpers := activeHelperTracker(); helpers != nil {
@@ -754,6 +825,22 @@ func NeedGoComparable() {
 	}
 	markSharedStdlibHelper(func(helpers *HelperTracker) {
 		helpers.needsGoComparable = true
+	})
+}
+
+func NeedGoConstStrEq() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoConstStrEq = true
+	}
+}
+
+func NeedGoAnyTypeMetadata() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoAnyTypeMetadata = true
+		TrackImport("Any")
+	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsGoAnyTypeMetadata = true
 	})
 }
 
@@ -852,6 +939,15 @@ func NeedGoPtrKey() {
 	}
 }
 
+func NeedGoAnyPtrKey() {
+	if helpers := activeHelperTracker(); helpers != nil {
+		helpers.needsGoAnyPtrKey = true
+	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsGoAnyPtrKey = true
+	})
+}
+
 // NeedGoChannel marks that we need the GoChannel helper struct
 func NeedGoChannel() {
 	if helpers := activeHelperTracker(); helpers != nil {
@@ -895,6 +991,7 @@ func NeedGoOnce() {
 func NeedGoAtomicPointer() {
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsGoAtomicPointer = true
+		helpers.needsSliceElemPtr = true
 	}
 }
 

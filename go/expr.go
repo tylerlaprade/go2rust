@@ -79,6 +79,16 @@ func writeNamedIntegerPrimitiveExpression(out *strings.Builder, expr ast.Expr) b
 	if unary, ok := expr.(*ast.UnaryExpr); ok {
 		return writeNamedIntegerUnaryPrimitiveExpression(out, unary)
 	}
+	if paren, ok := expr.(*ast.ParenExpr); ok {
+		var inner strings.Builder
+		if !writeNamedIntegerPrimitiveExpression(&inner, paren.X) {
+			return false
+		}
+		out.WriteString("(")
+		out.WriteString(inner.String())
+		out.WriteString(")")
+		return true
+	}
 	primitiveType := ""
 	if basic, ok := types.Unalias(named.Underlying()).(*types.Basic); ok {
 		primitiveType, _ = rustCastTypeForDefinedUnderlying(basic.Name())
@@ -284,7 +294,14 @@ func writeNamedIntegerValueForExpected(out *strings.Builder, expr ast.Expr, name
 		return true
 	}
 	if binary, ok := expr.(*ast.BinaryExpr); ok && (binary.Op == token.SHL || binary.Op == token.SHR) {
-		if writeNamedIntegerBinaryPrimitiveExpressionForNamed(out, binary, named) {
+		var primitive strings.Builder
+		if writeNamedIntegerBinaryPrimitiveExpressionForNamed(&primitive, binary, named) {
+			out.WriteString(goTypesNamedTypeToRust(named))
+			out.WriteString("(")
+			WriteWrapperPrefix(out)
+			out.WriteString(primitive.String())
+			WriteWrapperSuffix(out)
+			out.WriteString(")")
 			return true
 		}
 	}
@@ -385,11 +402,25 @@ func writeConstShiftLeftOperandForResult(out *strings.Builder, expr ast.Expr, sh
 	if shift == nil || (shift.Op != token.SHL && shift.Op != token.SHR) || expr != shift.X {
 		return false
 	}
-	if !isConstantExpression(expr) {
-		return false
-	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
+		return false
+	}
+	if call, ok := expr.(*ast.CallExpr); ok && typeInfo.IsTypeConversion(call) && len(call.Args) == 1 && isConstantExpression(call.Args[0]) {
+		var inner strings.Builder
+		if writeConstTypeConversion(&inner, call, 0) {
+			emission := inner.String()
+			if shiftOperandEmissionNeedsParens(emission) {
+				out.WriteString("(")
+				out.WriteString(emission)
+				out.WriteString(")")
+			} else {
+				out.WriteString(emission)
+			}
+			return true
+		}
+	}
+	if !isConstantExpression(expr) {
 		return false
 	}
 	if resultType := typeInfo.GetType(shift); resultType != nil {
@@ -1459,6 +1490,13 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 	if expectedArgType == nil {
 		expectedArgType = expectedTypeFromParamExpr(expectedArgExpr)
 	}
+	if info, ok := goPtrParamResultInfoForCall(call, index); ok {
+		if writeGoPtrCallArgumentWithQualifierForInfo(out, arg, info, goPtrHelperQualifierForCall(call)) {
+			return
+		}
+		out.WriteString(`unimplemented!("GoPtr parameter argument requires pointer-compatible value")`)
+		return
+	}
 	if expectedArgType != nil && writeGoErrorCallArgument(out, arg, expectedArgType) {
 		return
 	}
@@ -1478,7 +1516,7 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 		WriteWrappedNone(out)
 		return
 	}
-	if isFunctionSignatureTypeExpr(expectedArgExpr) && writeFunctionValueHandle(out, arg) {
+	if expectedArgType == nil && isFunctionSignatureTypeExpr(expectedArgExpr) && writeFunctionValueHandle(out, arg) {
 		return
 	}
 	if expectedArgType != nil {
@@ -1529,6 +1567,8 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 	WriteWrapperPrefix(out)
 	if expectedArgType != nil && writeConstExpressionForExpectedGoType(out, arg, expectedArgType) {
 		// Constant emitted in the parameter's expected representation.
+	} else if expectedArgType == nil && writeConstExpressionForTypeInfoType(out, arg) {
+		// Constant emitted in its contextual go/types representation.
 	} else if expectedArgType != nil && writeRangeStringCallArgumentValue(out, arg, expectedArgType) {
 		// Range string reference cloned for an owned string parameter.
 	} else if expectedArgType != nil && writeRangeCharForExpectedType(out, arg, expectedArgType) {
@@ -1565,6 +1605,9 @@ func writeVariadicPackedElementValue(out *strings.Builder, arg ast.Expr, elemTyp
 			if writeLocalInterfaceReferenceCallArgument(out, arg, elemType) {
 				return
 			}
+		}
+		if writeGoErrorCallArgument(out, arg, elemType) {
+			return
 		}
 		if ident, ok := arg.(*ast.Ident); ok && isStdlibNamedInterfaceValueType(types.Unalias(elemType)) && writeOwnedRangeValue(out, ident) {
 			return
@@ -2283,7 +2326,14 @@ func namedArrayTypeForExpr(expr ast.Expr) (*types.Named, *types.Array, bool) {
 	if typeInfo == nil {
 		return nil, nil, false
 	}
-	return namedArrayTypeFromType(typeInfo.GetType(expr))
+	typ := typeInfo.GetType(expr)
+	if named, arrayType, ok := namedArrayTypeFromType(typ); ok {
+		return named, arrayType, true
+	}
+	if ptr, ok := types.Unalias(typ).Underlying().(*types.Pointer); ok {
+		return namedArrayTypeFromType(ptr.Elem())
+	}
+	return nil, nil, false
 }
 
 func isNamedArrayExpression(expr ast.Expr) bool {
@@ -2324,6 +2374,51 @@ func writeNamedArrayInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap()).0.clone(); __named_array }")
 	return true
+}
+
+func namedArrayNestedInnerDepth(named *types.Named) int {
+	depth := 0
+	seen := map[string]bool{}
+	for named != nil && named.Obj() != nil {
+		key := named.Obj().Name()
+		if pkg := named.Obj().Pkg(); pkg != nil {
+			key = pkg.Path() + "." + key
+		}
+		if seen[key] {
+			break
+		}
+		seen[key] = true
+		underlyingType, ok := LookupTypeDefinitionUnderlyingType(named.Obj().Name())
+		if !ok || underlyingType == nil {
+			break
+		}
+		next, ok := types.Unalias(underlyingType).(*types.Named)
+		if !ok || next.Obj() == nil {
+			break
+		}
+		if _, ok := types.Unalias(next.Underlying()).(*types.Array); !ok {
+			break
+		}
+		depth++
+		named = next
+	}
+	return depth
+}
+
+func writeNamedArrayNestedInnerPeels(out *strings.Builder, named *types.Named) {
+	for i := 0; i < namedArrayNestedInnerDepth(named); i++ {
+		suffix := strconv.Itoa(i)
+		out.WriteString("let __seq_inner_holder_")
+		out.WriteString(suffix)
+		out.WriteString(" = __seq.0.clone(); let __seq_inner_guard_")
+		out.WriteString(suffix)
+		out.WriteString(" = __seq_inner_holder_")
+		out.WriteString(suffix)
+		WriteBorrowMethod(out, false)
+		out.WriteString("; let __seq = __seq_inner_guard_")
+		out.WriteString(suffix)
+		out.WriteString(".as_ref().unwrap(); ")
+	}
 }
 
 func writeNamedSliceInnerHandleClone(out *strings.Builder, expr ast.Expr) bool {
@@ -2654,14 +2749,17 @@ func writeNamedSliceIndexValue(out *strings.Builder, expr ast.Expr, index ast.Ex
 }
 
 func writeNamedArrayIndexValue(out *strings.Builder, expr ast.Expr, index ast.Expr) bool {
-	if !isNamedArrayExpression(expr) {
+	named, _, ok := namedArrayTypeForExpr(expr)
+	if !ok {
 		return false
 	}
 	out.WriteString("{ let __seq_holder = ")
 	writeNamedArrayInnerHandleClone(out, expr)
 	out.WriteString("; let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let __seq = __seq_guard.as_ref().unwrap(); __seq[")
+	out.WriteString("; let __seq = __seq_guard.as_ref().unwrap(); ")
+	writeNamedArrayNestedInnerPeels(out, named)
+	out.WriteString("__seq[")
 	writeExpressionAsUsize(out, index)
 	out.WriteString("].clone() }")
 	return true
@@ -2866,6 +2964,9 @@ func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 
 	ident, ok := arg.(*ast.Ident)
 	if !ok {
+		if writeScopedTranspiledInterfaceMethodCallArgumentValue(out, arg) {
+			return true
+		}
 		if !isCopyTypeExpression(arg) && writeOwnedExpressionValue(out, arg) {
 			return true
 		}
@@ -2914,6 +3015,38 @@ func writeCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 	default:
 		return false
 	}
+}
+
+func writeScopedTranspiledInterfaceMethodCallArgumentValue(out *strings.Builder, arg ast.Expr) bool {
+	if !transpiledInterfaceMethodCallArgumentNeedsScope(arg) {
+		return false
+	}
+	out.WriteString("{ let __arg_value = ")
+	TranspileExpression(out, arg)
+	out.WriteString("; __arg_value }")
+	return true
+}
+
+func transpiledInterfaceMethodCallArgumentNeedsScope(arg ast.Expr) bool {
+	call, ok := arg.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(sel.X)); !ok {
+		return false
+	}
+	if !isCopyTypeExpression(call) {
+		return false
+	}
+	return true
 }
 
 func writeCompositeLiteralHandleCallArgument(out *strings.Builder, arg ast.Expr) bool {
@@ -3476,6 +3609,151 @@ func writePointerHandleCallArgument(out *strings.Builder, arg ast.Expr, expected
 	return true
 }
 
+type noEscapeElemPtrCallArg struct {
+	index int
+	arg   ast.Expr
+}
+
+func writeNoEscapeElemPtrCall(out *strings.Builder, call *ast.CallExpr) bool {
+	if call == nil || !sourceFunctionNoEscapeBodylessDecl(call) {
+		return false
+	}
+	sig, ok := sourceFunctionSignatureForCall(call)
+	if !ok || sig == nil || sig.Params() == nil || sig.Variadic() {
+		return false
+	}
+	params := sig.Params()
+	var elemArgs []noEscapeElemPtrCallArg
+	adapted := make(map[int]bool)
+	for i, arg := range call.Args {
+		if i >= params.Len() {
+			return false
+		}
+		if _, ok := goPtrParamInfoForCall(call, i); ok {
+			return false
+		}
+		if noEscapeElemPtrCallArgCompatible(arg, params.At(i).Type()) {
+			elemArgs = append(elemArgs, noEscapeElemPtrCallArg{index: i, arg: arg})
+			adapted[i] = true
+		}
+	}
+	if len(elemArgs) == 0 {
+		return false
+	}
+
+	trackWrapperImports()
+	out.WriteString("{ ")
+	for _, elemArg := range elemArgs {
+		index := strconv.Itoa(elemArg.index)
+		out.WriteString("let __elem_ptr_")
+		out.WriteString(index)
+		out.WriteString(" = ")
+		writeElemPtrNoEscapeOptionValue(out, elemArg.arg)
+		out.WriteString("; let __arg")
+		out.WriteString(index)
+		out.WriteString(" = ")
+		out.WriteString(GetOuterWrapperType())
+		out.WriteString("::new(")
+		out.WriteString(GetInnerWrapperType())
+		out.WriteString("::new(__elem_ptr_")
+		out.WriteString(index)
+		out.WriteString(".as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); ")
+	}
+	out.WriteString("let __result = ")
+	writeNoEscapeElemPtrCallTarget(out, call)
+	out.WriteString("(")
+	for i, arg := range call.Args {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		if adapted[i] {
+			out.WriteString("__arg")
+			out.WriteString(strconv.Itoa(i))
+			out.WriteString(".clone()")
+			continue
+		}
+		writeFunctionSignatureCallArgument(out, arg, params.At(i).Type())
+	}
+	out.WriteString("); ")
+	for _, elemArg := range elemArgs {
+		index := strconv.Itoa(elemArg.index)
+		out.WriteString("if let Some(__ptr) = __elem_ptr_")
+		out.WriteString(index)
+		out.WriteString(".as_ref() { let mut __elem_guard_")
+		out.WriteString(index)
+		out.WriteString(" = __ptr.borrow_mut(); *__elem_guard_")
+		out.WriteString(index)
+		out.WriteString(" = (*__arg")
+		out.WriteString(index)
+		WriteBorrowMethod(out, false)
+		out.WriteString(").clone(); }; ")
+	}
+	out.WriteString("__result }")
+	return true
+}
+
+func noEscapeElemPtrCallArgCompatible(arg ast.Expr, expected types.Type) bool {
+	ptr, ok := types.Unalias(expected).Underlying().(*types.Pointer)
+	if !ok {
+		return false
+	}
+	expectedElemRustType := goTypesTypeToRust(ptr.Elem())
+	if elemRustType, ok := sliceElemPtrAddressElemRustType(arg); ok {
+		return elemRustType == expectedElemRustType
+	}
+	if elemRustType, ok := arrayElemPtrAddressElemRustType(arg); ok {
+		return elemRustType == expectedElemRustType
+	}
+	if ident, ok := unwrapParens(arg).(*ast.Ident); ok {
+		if info, ok := sliceElemPtrVarInfo(ident.Name); ok {
+			return info.RustType == "Option<GoSliceElemPtr<"+expectedElemRustType+">>"
+		}
+		if info, ok := arrayElemPtrVarInfo(ident.Name); ok {
+			return strings.HasPrefix(info.RustType, "Option<GoArrayElemPtr<"+expectedElemRustType+", ") &&
+				strings.HasSuffix(info.RustType, ">>")
+		}
+		return false
+	}
+	if call, ok := unwrapParens(arg).(*ast.CallExpr); ok {
+		if info, ok := sliceElemPtrReturnInfoForCall(call); ok {
+			return info.elemRustType == expectedElemRustType
+		}
+		if info, ok := arrayElemPtrResultInfoForCall(call, 0); ok {
+			return info.elemRustType == expectedElemRustType
+		}
+	}
+	return false
+}
+
+func writeElemPtrNoEscapeOptionValue(out *strings.Builder, arg ast.Expr) {
+	if _, ok := sliceElemPtrAddressElemRustType(arg); ok {
+		out.WriteString("Some(")
+		TranspileExpression(out, arg)
+		out.WriteString(")")
+		return
+	}
+	if _, ok := arrayElemPtrAddressElemRustType(arg); ok {
+		out.WriteString("Some(")
+		TranspileExpression(out, arg)
+		out.WriteString(")")
+		return
+	}
+	TranspileExpression(out, arg)
+}
+
+func writeNoEscapeElemPtrCallTarget(out *strings.Builder, call *ast.CallExpr) {
+	switch fun := call.Fun.(type) {
+	case *ast.SelectorExpr:
+		TranspileExpression(out, fun)
+		writeInferredSelectorCallTypeArgs(out, fun)
+	case *ast.Ident:
+		out.WriteString(rustFunctionNameForUse(fun.Name))
+		writeInferredCallTypeArgs(out, fun)
+	default:
+		TranspileExpression(out, fun)
+	}
+}
+
 func writeGoErrorCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
 	if !isGoErrorType(expected) {
 		return false
@@ -3868,7 +4146,7 @@ func sourceMappedPointerInterfaceWrapperType(arg ast.Expr, expected types.Type) 
 	if !isSourceMappedPackagePath(elemNamed.Obj().Pkg().Path()) {
 		return "", false
 	}
-	if !sourceMappedPointerWrapperAvailable(elemNamed) {
+	if !sourceMappedPointerWrapperAvailableForInterface(elemNamed, expected) {
 		return "", false
 	}
 	return sourceMappedPointerWrapperTypeName(elemNamed), true
@@ -3884,6 +4162,41 @@ func sourceMappedPointerWrapperTypeName(named *types.Named) string {
 
 func writeSourceMappedPointerInterfaceWrapperValue(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
 	wrapperType, ok := sourceMappedPointerInterfaceWrapperType(arg, expected)
+	if !ok {
+		return false
+	}
+	out.WriteString(wrapperType)
+	out.WriteString("(")
+	writePointerConcreteInterfaceHandle(out, arg)
+	out.WriteString(")")
+	return true
+}
+
+func currentPackagePointerTranspiledInterfaceWrapperType(arg ast.Expr, expected types.Type) (string, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil || arg == nil || expected == nil {
+		return "", false
+	}
+	if _, _, ok := importedTranspiledInterfaceFromType(expected); !ok {
+		return "", false
+	}
+	argType := typeInfo.GetType(arg)
+	if argType == nil || !types.AssignableTo(argType, expected) {
+		return "", false
+	}
+	ptr, ok := types.Unalias(argType).(*types.Pointer)
+	if !ok {
+		return "", false
+	}
+	elemNamed, ok := types.Unalias(ptr.Elem()).(*types.Named)
+	if !ok || elemNamed.Obj() == nil || elemNamed.Obj().Pkg() != typeInfo.pkg {
+		return "", false
+	}
+	return pointerLocalInterfaceWrapperNameForUse(elemNamed.Obj().Name(), ""), true
+}
+
+func writeCurrentPackagePointerTranspiledInterfaceWrapperValue(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
+	wrapperType, ok := currentPackagePointerTranspiledInterfaceWrapperType(arg, expected)
 	if !ok {
 		return false
 	}
@@ -3915,6 +4228,9 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 		return
 	}
 	if writePointerLocalInterfaceWrapperValue(out, arg, expectedIface, "") {
+		return
+	}
+	if writeCurrentPackagePointerTranspiledInterfaceWrapperValue(out, arg, expectedIface) {
 		return
 	}
 	if writeSourceMappedPointerInterfaceWrapperValue(out, arg, expectedIface) {
@@ -3994,10 +4310,7 @@ func writeLocalInterfaceWrappedConstructionInnerValue(out *strings.Builder, arg 
 			TranspileExpression(out, ident)
 			return
 		}
-		out.WriteString("(*")
-		out.WriteString(varName)
-		WriteBorrowMethod(out, false)
-		out.WriteString(".as_ref().unwrap()).clone()")
+		writeScopedValueClone(out, varName)
 		return
 	}
 	if unary, ok := arg.(*ast.UnaryExpr); ok && unary.Op == token.AND {
@@ -4280,6 +4593,34 @@ func SetSourceFunctionDeclsByFunc(decls map[*types.Func]sourceFunctionDeclInfo) 
 	sourceFunctionReadOnlyParamCache = make(map[sourceFunctionParamKey]bool)
 }
 
+func sourceFunctionDeclObjectForFunc(fn *types.Func) (*types.Func, sourceFunctionDeclInfo, bool) {
+	if fn == nil || sourceFunctionDeclsByFunc == nil {
+		return nil, sourceFunctionDeclInfo{}, false
+	}
+	if info, ok := sourceFunctionDeclsByFunc[fn]; ok {
+		return fn, info, true
+	}
+	targetMethodKey := methodOverrideKey(fn)
+	targetFullName := fn.FullName()
+	for sourceFn, info := range sourceFunctionDeclsByFunc {
+		if sourceFn == nil {
+			continue
+		}
+		if targetMethodKey != "" && methodOverrideKey(sourceFn) == targetMethodKey {
+			return sourceFn, info, true
+		}
+		if targetFullName != "" && sourceFn.FullName() == targetFullName {
+			return sourceFn, info, true
+		}
+	}
+	return nil, sourceFunctionDeclInfo{}, false
+}
+
+func sourceFunctionDeclInfoForFunc(fn *types.Func) (sourceFunctionDeclInfo, bool) {
+	_, info, ok := sourceFunctionDeclObjectForFunc(fn)
+	return info, ok
+}
+
 func sourceFunctionObjectForCall(call *ast.CallExpr) *types.Func {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil || call == nil {
@@ -4323,6 +4664,34 @@ func sourceFunctionParamReadOnlyForObject(fn *types.Func, index int) bool {
 		return false
 	}
 	return sourceBlockParamReadOnly(info.info, info.decl.Body, paramObj)
+}
+
+func sourceFunctionNoEscapeBodylessDecl(call *ast.CallExpr) bool {
+	fn := sourceFunctionObjectForCall(call)
+	return sourceFunctionIsNoEscapeBodyless(fn)
+}
+
+func sourceFunctionIsNoEscapeBodyless(fn *types.Func) bool {
+	if fn == nil || sourceFunctionDeclsByFunc == nil {
+		return false
+	}
+	info, ok := sourceFunctionDeclInfoForFunc(fn)
+	if !ok || info.decl == nil || info.decl.Body != nil {
+		return false
+	}
+	return funcDeclHasGoNoEscape(info.decl)
+}
+
+func funcDeclHasGoNoEscape(fn *ast.FuncDecl) bool {
+	if fn == nil || fn.Doc == nil {
+		return false
+	}
+	for _, comment := range fn.Doc.List {
+		if comment != nil && strings.Contains(comment.Text, "go:noescape") {
+			return true
+		}
+	}
+	return false
 }
 
 func sourceBlockParamReadOnly(info *types.Info, body *ast.BlockStmt, paramObj types.Object) bool {
@@ -4541,6 +4910,11 @@ func callSignatureFromTypeInfo(call *ast.CallExpr) (*types.Signature, bool) {
 		if fn, isFunc := typeInfo.info.Uses[ident].(*types.Func); isFunc {
 			return signatureFromType(fn.Type())
 		}
+		if typeInfo.pkg != nil && typeInfo.pkg.Scope() != nil {
+			if fn, isFunc := typeInfo.pkg.Scope().Lookup(ident.Name).(*types.Func); isFunc {
+				return signatureFromType(fn.Type())
+			}
+		}
 	} else if sel, isSelector := call.Fun.(*ast.SelectorExpr); isSelector {
 		if fn, isFunc := typeInfo.info.Uses[sel.Sel].(*types.Func); isFunc {
 			return signatureFromType(fn.Type())
@@ -4568,14 +4942,33 @@ func writeGoErrorEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	if !isGoErrorType(leftType) || !isGoErrorType(rightType) {
 		return false
 	}
-	writeGoErrorNilState(out, expr.X)
-	if expr.Op == token.EQL {
-		out.WriteString(" == ")
-	} else {
-		out.WriteString(" != ")
-	}
-	writeGoErrorNilState(out, expr.Y)
+	writeGoErrorHandleEquality(out, expr.X, expr.Y, expr.Op)
 	return true
+}
+
+func writeGoErrorHandleEquality(out *strings.Builder, left ast.Expr, right ast.Expr, op token.Token) {
+	trackWrapperImports()
+	out.WriteString("{ let __left = ")
+	TranspileExpressionContext(out, left, LValue)
+	out.WriteString(".clone(); let __right = ")
+	TranspileExpressionContext(out, right, LValue)
+	out.WriteString(".clone(); let __same_handle = ")
+	if NeedsConcurrentWrapper() {
+		out.WriteString("Arc::ptr_eq(&__left, &__right)")
+	} else {
+		out.WriteString("Rc::ptr_eq(&__left, &__right)")
+	}
+	out.WriteString("; let __eq = if __same_handle { true } else { let __left_guard = __left")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __right_guard = __right")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; if __left_guard.is_none() || __right_guard.is_none() { __left_guard.is_none() == __right_guard.is_none() } else { false } }; ")
+	if op == token.EQL {
+		out.WriteString("__eq")
+	} else {
+		out.WriteString("!__eq")
+	}
+	out.WriteString(" }")
 }
 
 func writeGoErrorConcreteEquality(out *strings.Builder, errorExpr ast.Expr, concreteExpr ast.Expr, concreteType types.Type, op token.Token) bool {
@@ -5246,6 +5639,20 @@ func writeLocalInterfaceNilComparison(out *strings.Builder, expr ast.Expr, op to
 		}
 		return true
 	}
+	if sel, ok := expr.(*ast.SelectorExpr); ok {
+		out.WriteString("{ let __iface_handle = ")
+		writeSelectorHandleClone(out, sel)
+		out.WriteString("; let __iface_guard = __iface_handle")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; (*__iface_guard).is_")
+		if isNil {
+			out.WriteString("none()")
+		} else {
+			out.WriteString("some()")
+		}
+		out.WriteString(" }")
+		return true
+	}
 	out.WriteString("(*")
 	TranspileExpressionContext(out, expr, LValue)
 	WriteBorrowMethod(out, false)
@@ -5377,6 +5784,30 @@ func writeUnsafePointerInterfaceDerefValue(out *strings.Builder, star *ast.StarE
 	return true
 }
 
+func writeUnsafePointerFunctionDerefValue(out *strings.Builder, star *ast.StarExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || star == nil {
+		return false
+	}
+	call, ok := unwrapParens(star.X).(*ast.CallExpr)
+	if !ok || len(call.Args) != 1 || !typeInfo.IsTypeConversion(call) {
+		return false
+	}
+	if !isUnsafePointerLikeType(typeInfo.GetType(call.Args[0])) {
+		return false
+	}
+	valueType := typeInfo.GetType(star)
+	if valueType == nil {
+		out.WriteString("/* ERROR: Type information required for unsafe.Pointer function dereference */ unimplemented!(\"type info required for unsafe.Pointer function dereference\")")
+		return true
+	}
+	if !isFunctionSignatureType(valueType) {
+		return false
+	}
+	out.WriteString(`unimplemented!("unsafe.Pointer conversion to function value")`)
+	return true
+}
+
 func writeLocalInterfaceReferenceBinding(out *strings.Builder, name string, expr ast.Expr) (bare bool) {
 	if isBareLocalInterfaceValue(expr) {
 		out.WriteString("let ")
@@ -5408,13 +5839,13 @@ func writeLocalInterfaceEquality(out *strings.Builder, left ast.Expr, right ast.
 	if op != token.EQL && op != token.NEQ {
 		return false
 	}
-	leftKind, rightKind, ifaceName, ok := interfaceEqualityKinds(left, right)
+	leftKind, rightKind, ifaceName, ifaceType, ok := interfaceEqualityKinds(left, right)
 	if !ok {
 		return false
 	}
 	out.WriteString("{ ")
-	writeInterfaceEqualityOptionBinding(out, "__left", left, ifaceName, leftKind)
-	writeInterfaceEqualityOptionBinding(out, "__right", right, ifaceName, rightKind)
+	writeInterfaceEqualityOptionBinding(out, "__left", left, ifaceName, ifaceType, leftKind)
+	writeInterfaceEqualityOptionBinding(out, "__right", right, ifaceName, ifaceType, rightKind)
 	out.WriteString("let __eq = match (__left_opt, __right_opt) { ")
 	if leftKind == interfaceEqualityOperandInterface && rightKind == interfaceEqualityOperandInterface {
 		out.WriteString("(None, None) => true, ")
@@ -5436,7 +5867,7 @@ const (
 	interfaceEqualityOperandConcrete
 )
 
-func writeInterfaceEqualityOptionBinding(out *strings.Builder, name string, expr ast.Expr, ifaceName string, kind interfaceEqualityOperandKind) {
+func writeInterfaceEqualityOptionBinding(out *strings.Builder, name string, expr ast.Expr, ifaceName string, ifaceType types.Type, kind interfaceEqualityOperandKind) {
 	bareType := rustLocalInterfaceParamBare(ifaceName)
 	if kind == interfaceEqualityOperandInterface && isBareLocalInterfaceValue(expr) {
 		out.WriteString("let ")
@@ -5446,6 +5877,9 @@ func writeInterfaceEqualityOptionBinding(out *strings.Builder, name string, expr
 		out.WriteString("> = Some(")
 		TranspileExpression(out, expr)
 		out.WriteString("); ")
+		return
+	}
+	if kind == interfaceEqualityOperandConcrete && writeInterfaceEqualityPointerWrapperOptionBinding(out, name, expr, ifaceName, ifaceType) {
 		return
 	}
 	out.WriteString("let ")
@@ -5477,6 +5911,30 @@ func writeInterfaceEqualityOptionBinding(out *strings.Builder, name string, expr
 		out.WriteString(bareType)
 	}
 	out.WriteString("); ")
+}
+
+func writeInterfaceEqualityPointerWrapperOptionBinding(out *strings.Builder, name string, expr ast.Expr, ifaceName string, ifaceType types.Type) bool {
+	var wrapper strings.Builder
+	if !writePointerLocalInterfaceWrapperValue(&wrapper, expr, ifaceType, ifaceName) &&
+		!writeCurrentPackagePointerTranspiledInterfaceWrapperValue(&wrapper, expr, ifaceType) &&
+		!writeSourceMappedPointerInterfaceWrapperValue(&wrapper, expr, ifaceType) {
+		return false
+	}
+	bareType := rustLocalInterfaceParamBare(ifaceName)
+	out.WriteString("let ")
+	out.WriteString(name)
+	out.WriteString("_wrapper = ")
+	out.WriteString(wrapper.String())
+	out.WriteString("; let ")
+	out.WriteString(name)
+	out.WriteString("_opt: Option<")
+	out.WriteString(bareType)
+	out.WriteString("> = Some(&")
+	out.WriteString(name)
+	out.WriteString("_wrapper as ")
+	out.WriteString(bareType)
+	out.WriteString("); ")
+	return true
 }
 
 func writeInterfaceEqualityReferenceBinding(out *strings.Builder, name string, expr ast.Expr, ifaceName string, kind interfaceEqualityOperandKind) {
@@ -5535,45 +5993,45 @@ func writePointerConcreteInterfaceHandle(out *strings.Builder, expr ast.Expr) {
 	out.WriteString(".clone()")
 }
 
-func interfaceEqualityKinds(left ast.Expr, right ast.Expr) (interfaceEqualityOperandKind, interfaceEqualityOperandKind, string, bool) {
+func interfaceEqualityKinds(left ast.Expr, right ast.Expr) (interfaceEqualityOperandKind, interfaceEqualityOperandKind, string, types.Type, bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
-		return 0, 0, "", false
+		return 0, 0, "", nil, false
 	}
 	leftType := expressionTypeForInterfaceEquality(typeInfo, left)
 	rightType := expressionTypeForInterfaceEquality(typeInfo, right)
-	leftIfaceName, leftIface := namedInterfaceForTraitEquality(leftType)
-	rightIfaceName, rightIface := namedInterfaceForTraitEquality(rightType)
+	leftIfaceName, leftIfaceType, leftIface := namedInterfaceForTraitEquality(leftType)
+	rightIfaceName, rightIfaceType, rightIface := namedInterfaceForTraitEquality(rightType)
 	if leftIface && rightIface {
 		if !types.AssignableTo(leftType, rightType) || !types.AssignableTo(rightType, leftType) {
-			return 0, 0, "", false
+			return 0, 0, "", nil, false
 		}
 		if leftIfaceName != "" {
-			return interfaceEqualityOperandInterface, interfaceEqualityOperandInterface, leftIfaceName, true
+			return interfaceEqualityOperandInterface, interfaceEqualityOperandInterface, leftIfaceName, leftIfaceType, true
 		}
 		if rightIfaceName != "" {
-			return interfaceEqualityOperandInterface, interfaceEqualityOperandInterface, rightIfaceName, true
+			return interfaceEqualityOperandInterface, interfaceEqualityOperandInterface, rightIfaceName, rightIfaceType, true
 		}
-		return 0, 0, "", false
+		return 0, 0, "", nil, false
 	}
 	if leftIface && leftIfaceName != "" && concreteAssignableToInterface(rightType, leftType) {
-		return interfaceEqualityOperandInterface, interfaceEqualityOperandConcrete, leftIfaceName, true
+		return interfaceEqualityOperandInterface, interfaceEqualityOperandConcrete, leftIfaceName, leftIfaceType, true
 	}
 	if rightIface && rightIfaceName != "" && concreteAssignableToInterface(leftType, rightType) {
-		return interfaceEqualityOperandConcrete, interfaceEqualityOperandInterface, rightIfaceName, true
+		return interfaceEqualityOperandConcrete, interfaceEqualityOperandInterface, rightIfaceName, rightIfaceType, true
 	}
-	return 0, 0, "", false
+	return 0, 0, "", nil, false
 }
 
-func namedInterfaceForTraitEquality(typ types.Type) (string, bool) {
+func namedInterfaceForTraitEquality(typ types.Type) (string, types.Type, bool) {
 	if !isNonEmptyInterfaceType(typ) {
-		return "", false
+		return "", nil, false
 	}
 	name, ok := transpiledNamedInterfaceTypeNameFromTypes(typ)
 	if !ok {
-		return "", true
+		return "", typ, true
 	}
-	return name, true
+	return name, typ, true
 }
 
 func concreteAssignableToInterface(concrete types.Type, iface types.Type) bool {
@@ -5669,6 +6127,14 @@ func writeCurrentReceiverPointerComparison(out *strings.Builder, expr *ast.Binar
 	}
 	if typeInfo := GetTypeInfo(); typeInfo == nil || !typeInfo.IsPointer(receiverExpr) {
 		return false
+	}
+	if currentReceiverRustAliasIsGoPtr {
+		if expr.Op == token.NEQ {
+			out.WriteString("!")
+		}
+		out.WriteString(currentReceiverRustName())
+		out.WriteString(".is_nil()")
+		return true
 	}
 	if currentReceiverRustAliasIsPointerHandle {
 		out.WriteString("{ let __self_guard = ")
@@ -5914,11 +6380,21 @@ func writeSliceElemPointerEquality(out *strings.Builder, expr *ast.BinaryExpr) b
 }
 
 func writeSliceElemPtrNewExpression(out *strings.Builder, indexExpr *ast.IndexExpr) bool {
+	return writeSliceElemPtrNewExpressionWithQualifier(out, indexExpr, "")
+}
+
+func writeSliceElemPtrNewExpressionWithQualifier(out *strings.Builder, indexExpr *ast.IndexExpr, helperQualifier string) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || indexExpr == nil || !typeInfo.IsSlice(indexExpr.X) {
 		return false
 	}
-	NeedSliceElemPtr()
+	if helperQualifier == "" {
+		NeedSliceElemPtr()
+	}
+	if helperQualifier != "" {
+		out.WriteString(helperQualifier)
+		out.WriteString("::")
+	}
 	out.WriteString("GoSliceElemPtr::new(")
 	if writeRangeSliceElemPtrSequenceHandle(out, indexExpr.X) {
 		// Range values for slice elements are bare references; wrap a temporary handle.
@@ -6216,6 +6692,13 @@ func writeSelectorRValueClose(out *strings.Builder, expr *ast.SelectorExpr) {
 	if selectorRValueNeedsClone(expr) {
 		out.WriteString(".clone()")
 	}
+}
+
+func writeWrappedSelectorBasePointee(out *strings.Builder, expr ast.Expr) {
+	out.WriteString("(*")
+	TranspileExpressionContext(out, expr, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap())")
 }
 
 func writePackageGlobalPointerPointee(out *strings.Builder, ident *ast.Ident) {
@@ -7010,11 +7493,10 @@ func writeOwnedNamedTypeDefinitionValue(out *strings.Builder, expr ast.Expr) {
 }
 
 func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
-	if typeInfo := GetTypeInfo(); typeInfo != nil && isErrorInterfaceType(typeInfo.GetType(expr)) {
-		out.WriteString("Box::new(format!(\"{}\", ")
-		writeUnwrappedForFormat(out, expr)
-		out.WriteString(")) as ")
-		out.WriteString(rustAnyTraitObject())
+	if writeGoErrorInterfaceAnyBox(out, expr) {
+		return
+	}
+	if call, ok := expr.(*ast.CallExpr); ok && writeTypedNilPointerAnyBox(out, call) {
 		return
 	}
 	if writeBareAnyReferenceBoxClone(out, expr) {
@@ -7053,6 +7535,8 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 		out.WriteString(".clone()")
 	} else if isNamedTypeDefinitionValue(expr) {
 		writeOwnedNamedTypeDefinitionValue(out, expr)
+	} else if ident, ok := expr.(*ast.Ident); ok && isWrappedValueIdent(ident) {
+		writeScopedIdentValueClone(out, ident)
 	} else if !writeOwnedExpressionValue(out, expr) {
 		writeMaybeUnwrappedExpression(out, expr)
 	}
@@ -7109,6 +7593,173 @@ func writeStdlibInterfaceTypeConversionAnyBox(out *strings.Builder, expr ast.Exp
 	return true
 }
 
+func writeTypedNilPointerAnyBox(out *strings.Builder, call *ast.CallExpr) bool {
+	targetType, ok := typedNilPointerConversionType(call)
+	if !ok {
+		return false
+	}
+	NeedGoAnyTypeMetadata()
+	out.WriteString("{ let __boxed = Box::new(")
+	TranspileExpression(out, call)
+	out.WriteString(") as ")
+	out.WriteString(rustAnyTraitObject())
+	out.WriteString("; ")
+	writeRegisterAnyTypeMetadata(out, typedNilPointerAnyPayloadRustType(call, targetType), targetType)
+	out.WriteString("; __boxed }")
+	return true
+}
+
+func typedNilPointerAnyPayloadRustType(call *ast.CallExpr, typ types.Type) string {
+	if named, ok := typ.(*types.Named); ok {
+		return goTypesNamedTypeToRust(named)
+	}
+	if target, ok := typedPointerTypeConversionTarget(call); ok {
+		return goTypesWrappedRustType(pointerConversionTargetTypeToRust(target))
+	}
+	return goTypesTypeToRust(typ)
+}
+
+func writeRegisterAnyTypeMetadata(out *strings.Builder, rustType string, typ types.Type) {
+	elemType, hasElem := pointerElemType(typ)
+	if hasElem {
+		out.WriteString("go_register_any_type_with_elem::<")
+	} else {
+		out.WriteString("go_register_any_type::<")
+	}
+	out.WriteString(rustType)
+	out.WriteString(">(\"")
+	out.WriteString(goAnyMetadataKind(typ))
+	out.WriteString("\", ")
+	writeBoolLiteral(out, types.Comparable(typ))
+	if hasElem {
+		out.WriteString(", \"")
+		out.WriteString(goAnyMetadataKind(elemType))
+		out.WriteString("\", ")
+		writeBoolLiteral(out, types.Comparable(elemType))
+	}
+	out.WriteString(")")
+}
+
+func pointerElemType(typ types.Type) (types.Type, bool) {
+	if typ == nil {
+		return nil, false
+	}
+	ptr, ok := types.Unalias(typ).Underlying().(*types.Pointer)
+	if !ok {
+		return nil, false
+	}
+	return ptr.Elem(), true
+}
+
+func writeBoolLiteral(out *strings.Builder, value bool) {
+	if value {
+		out.WriteString("true")
+		return
+	}
+	out.WriteString("false")
+}
+
+func writeGoErrorInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isErrorInterfaceType(typeInfo.GetType(expr)) {
+		return false
+	}
+	NeedGoAnyTypeMetadata()
+	errorObj := types.Universe.Lookup("error")
+	if errorObj == nil {
+		out.WriteString(`unimplemented!("type info required to box error interface as any")`)
+		return true
+	}
+	errorIface, _ := errorObj.Type().Underlying().(*types.Interface)
+	candidates := localInterfaceAssertionCandidates(errorIface, typeInfo.GetType(expr))
+	out.WriteString("{ let __err_holder = ")
+	TranspileExpressionContext(out, expr, LValue)
+	out.WriteString(".clone(); let __err_guard = __err_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; match __err_guard.as_ref() { None => panic!(\"nil error-to-any lowering requires nil interface representation\"), Some(__err) => ")
+	if len(candidates) == 0 {
+		out.WriteString(`panic!("type info required: error-to-any has no visible dynamic error implementors")`)
+	} else {
+		for i, candidate := range candidates {
+			if i == 0 {
+				out.WriteString("if ")
+			} else {
+				out.WriteString(" else if ")
+			}
+			out.WriteString("let Some(typed_val) = __err.downcast_ref::<")
+			out.WriteString(candidate.rustType)
+			out.WriteString(">() { ")
+			writeGoAnyMetadataBox(out, "typed_val.clone()", candidate)
+			out.WriteString(" }")
+		}
+		out.WriteString(` else { panic!("type info required: error-to-any for unknown dynamic error type") }`)
+	}
+	out.WriteString(" } }")
+	return true
+}
+
+func writeGoAnyMetadataBox(out *strings.Builder, valueExpr string, candidate localInterfaceAssertionCandidate) {
+	out.WriteString("go_box_any_with_metadata(")
+	out.WriteString(valueExpr)
+	out.WriteString(", \"")
+	out.WriteString(goAnyMetadataKind(candidate.typ))
+	out.WriteString("\", ")
+	if types.Comparable(candidate.typ) {
+		out.WriteString("true")
+	} else {
+		out.WriteString("false")
+	}
+	out.WriteString(")")
+}
+
+func goAnyMetadataKind(typ types.Type) string {
+	if typ == nil {
+		return "invalid"
+	}
+	switch types.Unalias(typ).Underlying().(type) {
+	case *types.Struct:
+		return "struct"
+	case *types.Pointer:
+		return "pointer"
+	case *types.Slice:
+		return "slice"
+	case *types.Map:
+		return "map"
+	case *types.Interface:
+		return "interface"
+	case *types.Chan:
+		return "chan"
+	case *types.Signature:
+		return "func"
+	case *types.Array:
+		return "array"
+	case *types.Basic:
+		return "basic"
+	default:
+		return "invalid"
+	}
+}
+
+func isInternalReflectliteTypeOfCall(call *ast.CallExpr) bool {
+	if call == nil {
+		return false
+	}
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok || sel.Sel == nil || sel.Sel.Name != "TypeOf" {
+		return false
+	}
+	base, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+	pkgName, ok := typeInfo.info.Uses[base].(*types.PkgName)
+	return ok && pkgName.Imported() != nil && pkgName.Imported().Path() == "internal/reflectlite"
+}
+
 func writeInternalABITypeOfMapTypeCall(out *strings.Builder, call *ast.CallExpr) bool {
 	arg, ok := internalABITypeOfMapTypeArg(call)
 	if !ok {
@@ -7130,6 +7781,44 @@ func writeInternalABITypeOfMapTypeCall(out *strings.Builder, call *ast.CallExpr)
 	}
 	writeInternalABIMapTypeValue(out, mapType)
 	return true
+}
+
+func writeInternalABITypeOfMapTypeGoPtrValue(out *strings.Builder, call *ast.CallExpr, info goPtrResultInfo, helperQualifier string) bool {
+	if !goPtrInfoTargetsInternalABISwissMapType(info) {
+		return false
+	}
+	arg, ok := internalABITypeOfMapTypeArg(call)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	argType := typeInfo.GetType(arg)
+	if argType == nil {
+		return false
+	}
+	mapType, ok := coreUnderlyingType(argType).(*types.Map)
+	if !ok {
+		return false
+	}
+	writeGoPtrQualifiedConstructor(out, helperQualifier, "local")
+	out.WriteString("(")
+	writeInternalABIMapTypeValue(out, mapType)
+	out.WriteString(")")
+	return true
+}
+
+func goPtrInfoTargetsInternalABISwissMapType(info goPtrResultInfo) bool {
+	if named, ok := types.Unalias(info.elemType).(*types.Named); ok && named.Obj() != nil && named.Obj().Pkg() != nil {
+		return named.Obj().Pkg().Path() == "internal/abi" && named.Obj().Name() == "SwissMapType"
+	}
+	elemRustType := goPtrResultElemRustType(info)
+	return elemRustType == "internal_abi::SwissMapType" ||
+		elemRustType == "internal_abi::map_swiss::SwissMapType" ||
+		elemRustType == "crate::map_swiss::SwissMapType" ||
+		elemRustType == "SwissMapType"
 }
 
 func internalABITypeOfMapTypeArg(call *ast.CallExpr) (ast.Expr, bool) {
@@ -7632,7 +8321,7 @@ func writeWrappedStructFieldValueWithOwnerPackage(out *strings.Builder, value as
 		return
 	}
 
-	if lit, ok := value.(*ast.CompositeLit); ok && expectedFieldType != nil && sourceMappedPackageKeyHelperQualifier(fieldOwnerPkgPath) != "" {
+	if lit, ok := value.(*ast.CompositeLit); ok && expectedFieldType != nil && mapFieldNeedsOwnerPackageKey(fieldOwnerPkgPath, expectedFieldType) {
 		if mapType, ok := types.Unalias(expectedFieldType).Underlying().(*types.Map); ok {
 			writeTypedMapLiteralHandleForOwnerPackage(out, mapType, lit.Elts, fieldOwnerPkgPath)
 			return
@@ -7676,14 +8365,19 @@ func writeWrappedStructFieldValueWithOwnerPackage(out *strings.Builder, value as
 				out.WriteString(".clone()")
 			}
 			WriteWrapperSuffix(out)
-		} else {
-			// It's already wrapped, just clone it.
+		} else if structFieldValueKeepsHandle(fieldExpr, expectedFieldType) {
 			fieldValueName := RustIdentForUse(valIdent)
 			if renamed, ok := captureRenameForIdent(valIdent); ok {
 				fieldValueName = RustLocalIdent(renamed)
 			}
 			out.WriteString(fieldValueName)
 			out.WriteString(".clone()")
+		} else {
+			WriteWrapperPrefix(out)
+			if !writeCallArgumentValue(out, value) {
+				TranspileExpression(out, value)
+			}
+			WriteWrapperSuffix(out)
 		}
 	} else if isCompositeLitSelfWrapping(value) {
 		// Slice/map literals already wrap themselves.
@@ -7931,6 +8625,10 @@ func selectorFieldValueKeepsHandle(typ types.Type) bool {
 	}
 }
 
+func structFieldValueKeepsHandle(fieldExpr ast.Expr, fieldType types.Type) bool {
+	return selectorFieldValueKeepsHandle(fieldType) || fieldExprKeepsHandle(fieldExpr)
+}
+
 func writeCurrentReceiverPointerFieldValue(out *strings.Builder, value ast.Expr, fieldExpr ast.Expr, fieldType types.Type) bool {
 	ident, ok := value.(*ast.Ident)
 	if !ok || !isCurrentReceiverIdent(ident) {
@@ -8095,8 +8793,14 @@ func writeLocalInterfaceFieldValue(out *strings.Builder, value ast.Expr, fieldEx
 	typeInfo := GetTypeInfo()
 	if typeInfo != nil {
 		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(typeInfo.GetType(value)); ok {
-			TranspileExpressionContext(out, value, LValue)
-			out.WriteString(".clone()")
+			if _, ok := value.(*ast.SelectorExpr); ok {
+				out.WriteString("{ let __field = ")
+				TranspileExpressionContext(out, value, LValue)
+				out.WriteString(".clone(); __field }")
+			} else {
+				TranspileExpressionContext(out, value, LValue)
+				out.WriteString(".clone()")
+			}
 			return true
 		}
 		expected := fieldType
@@ -8382,7 +9086,7 @@ func writeTypesStructCompositeLiteral(out *strings.Builder, structTypeName strin
 			wroteFields = true
 			out.WriteString(ToSnakeCase(field.Name()))
 			out.WriteString(": ")
-			writeWrappedStructFieldValueWithOwnerPackage(out, elt, nil, field.Type(), typesStructFieldOwnerPackagePath(field, structType))
+			writeTypesStructCompositeLiteralFieldValue(out, elt, structType, field)
 		}
 	} else {
 		for _, elt := range elts {
@@ -8399,7 +9103,11 @@ func writeTypesStructCompositeLiteral(out *strings.Builder, structTypeName strin
 					if field != nil {
 						fieldType = field.Type()
 					}
-					writeWrappedStructFieldValueWithOwnerPackage(out, kv.Value, nil, fieldType, typesStructFieldOwnerPackagePath(field, structType))
+					if field != nil {
+						writeTypesStructCompositeLiteralFieldValue(out, kv.Value, structType, field)
+					} else {
+						writeWrappedStructFieldValueWithOwnerPackage(out, kv.Value, nil, fieldType, typesStructFieldOwnerPackagePath(field, structType))
+					}
 				}
 			}
 		}
@@ -8409,6 +9117,29 @@ func writeTypesStructCompositeLiteral(out *strings.Builder, structTypeName strin
 	}
 	out.WriteString("..Default::default()")
 	out.WriteString(" }")
+}
+
+func writeTypesStructCompositeLiteralFieldValue(out *strings.Builder, value ast.Expr, structType types.Type, field *types.Var) {
+	if fieldInfo, ok := sliceElemPtrFieldInfoForOwnerStructField(structType, field); ok {
+		if writeSliceElemPtrFieldValueWithInfo(out, value, fieldInfo) {
+			return
+		}
+		out.WriteString(`unimplemented!("GoPtr struct literal field requires compatible pointer value")`)
+		return
+	}
+	writeWrappedStructFieldValueWithOwnerPackage(out, value, nil, field.Type(), typesStructFieldOwnerPackagePath(field, structType))
+}
+
+func structTypeHasGoPtrBackedField(structType types.Type, structUnder *types.Struct) bool {
+	if structType == nil || structUnder == nil {
+		return false
+	}
+	for i := 0; i < structUnder.NumFields(); i++ {
+		if _, ok := sliceElemPtrFieldInfoForOwnerStructField(structType, structUnder.Field(i)); ok {
+			return true
+		}
+	}
+	return false
 }
 
 func registerExternalStructCompositeLiteralFields(structType types.Type, structUnder *types.Struct, elts []ast.Expr) {
@@ -8443,7 +9174,7 @@ func registerExternalStructCompositeLiteralFields(structType types.Type, structU
 				break
 			}
 			field := structUnder.Field(i)
-			RegisterExternalTypeStubField(typeName, ToSnakeCase(field.Name()), field.Type())
+			RegisterExternalTypeStubField(typeName, ToSnakeCase(field.Name()), field.Type(), named.Obj().Pkg().Path())
 		}
 		return
 	}
@@ -8459,7 +9190,7 @@ func registerExternalStructCompositeLiteralFields(structType types.Type, structU
 		for i := 0; i < structUnder.NumFields(); i++ {
 			field := structUnder.Field(i)
 			if field.Name() == key.Name {
-				RegisterExternalTypeStubField(typeName, ToSnakeCase(field.Name()), field.Type())
+				RegisterExternalTypeStubField(typeName, ToSnakeCase(field.Name()), field.Type(), named.Obj().Pkg().Path())
 				break
 			}
 		}
@@ -8467,7 +9198,7 @@ func registerExternalStructCompositeLiteralFields(structType types.Type, structU
 }
 
 func writeSourceMappedMapMakeFieldValue(out *strings.Builder, value ast.Expr, expectedFieldType types.Type, fieldOwnerPkgPath string) bool {
-	if expectedFieldType == nil || sourceMappedPackageKeyHelperQualifier(fieldOwnerPkgPath) == "" {
+	if expectedFieldType == nil || !mapFieldNeedsOwnerPackageKey(fieldOwnerPkgPath, expectedFieldType) {
 		return false
 	}
 	call, ok := value.(*ast.CallExpr)
@@ -8493,6 +9224,17 @@ func writeSourceMappedMapMakeFieldValue(out *strings.Builder, value ast.Expr, ex
 	}
 	writeTypedMapMakeHandleForOwnerPackage(out, mapType, fieldOwnerPkgPath)
 	return true
+}
+
+func mapFieldNeedsOwnerPackageKey(fieldOwnerPkgPath string, expectedFieldType types.Type) bool {
+	if sourceMappedPackageKeyHelperQualifier(fieldOwnerPkgPath) != "" {
+		return true
+	}
+	mapType, ok := types.Unalias(expectedFieldType).Underlying().(*types.Map)
+	if !ok {
+		return false
+	}
+	return stubOwnedSourceMappedMapKeyUsesAnyPtr(fieldOwnerPkgPath, mapType.Key())
 }
 
 func writeWrappedMapValue(out *strings.Builder, value ast.Expr, valueExpr ast.Expr, valueType types.Type) {
@@ -8731,6 +9473,14 @@ func mapPointerKeyHelperForMapExpr(helper string, mapExpr ast.Expr) string {
 	return helper
 }
 
+func mapPointerKeyHelperForMapExprAndType(helper string, mapExpr ast.Expr, keyType types.Type) string {
+	if helper == "GoLocalPtrKey" && stubOwnedSourceMappedMapExprUsesAnyPtrKey(mapExpr, keyType) {
+		NeedGoAnyPtrKey()
+		return "GoAnyPtrKey"
+	}
+	return mapPointerKeyHelperForMapExpr(helper, mapExpr)
+}
+
 func localMapPointerKeyHelperForMapExpr(mapExpr ast.Expr) string {
 	return mapPointerKeyHelperForMapExpr("GoLocalPtrKey", mapExpr)
 }
@@ -8756,6 +9506,25 @@ func sourceMappedMapFieldKeyHelperQualifier(mapExpr ast.Expr) string {
 		return ""
 	}
 	return sourceMappedPackageKeyHelperQualifier(pkgPath)
+}
+
+func mapFieldOwnerPackagePath(mapExpr ast.Expr) string {
+	sel, ok := mapExpr.(*ast.SelectorExpr)
+	if !ok {
+		return ""
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return ""
+	}
+	if selection := typeInfo.info.Selections[sel]; selection != nil {
+		if obj := selection.Obj(); obj != nil && obj.Pkg() != nil {
+			return obj.Pkg().Path()
+		}
+	} else if obj := typeInfo.GetObject(sel.Sel); obj != nil && obj.Pkg() != nil {
+		return obj.Pkg().Path()
+	}
+	return ""
 }
 
 func sourceMappedPackageKeyHelperQualifier(pkgPath string) string {
@@ -8787,7 +9556,19 @@ func mapPointerKeyHelperForOwnerPackage(helper string, ownerPkgPath string) stri
 	return helper
 }
 
+func mapPointerKeyHelperForOwnerPackageAndType(helper string, ownerPkgPath string, keyType types.Type) string {
+	if helper == "GoLocalPtrKey" && stubOwnedSourceMappedMapKeyUsesAnyPtr(ownerPkgPath, keyType) {
+		NeedGoAnyPtrKey()
+		return "GoAnyPtrKey"
+	}
+	return mapPointerKeyHelperForOwnerPackage(helper, ownerPkgPath)
+}
+
 func goTypesMapKeyToRustForOwnerPackage(t types.Type, ownerPkgPath string) string {
+	if stubOwnedSourceMappedMapKeyUsesAnyPtr(ownerPkgPath, t) {
+		NeedGoAnyPtrKey()
+		return "GoAnyPtrKey"
+	}
 	keyRust := goTypesMapKeyToRust(t)
 	helper, ok := mapPointerKeyHelperFromRustType(keyRust)
 	if !ok {
@@ -8800,29 +9581,92 @@ func goTypesMapKeyToRustForOwnerPackage(t types.Type, ownerPkgPath string) strin
 	return qualifiedHelper + strings.TrimPrefix(keyRust, helper)
 }
 
+func stubOwnedSourceMappedMapExprUsesAnyPtrKey(mapExpr ast.Expr, keyType types.Type) bool {
+	return stubOwnedSourceMappedMapKeyUsesAnyPtr(mapFieldOwnerPackagePath(mapExpr), keyType)
+}
+
+func stubOwnedSourceMappedMapKeyUsesAnyPtr(ownerPkgPath string, keyType types.Type) bool {
+	if ownerPkgPath == "" || !isStubBackedStdlibPackagePath(ownerPkgPath) || keyType == nil {
+		return false
+	}
+	if !mapKeyNeedsPointerIdentity(keyType) {
+		return false
+	}
+	return typeReferencesSourceMappedPackage(keyType)
+}
+
+func mapKeyNeedsPointerIdentity(keyType types.Type) bool {
+	if keyType == nil {
+		return false
+	}
+	if _, ok := types.Unalias(keyType).Underlying().(*types.Pointer); ok {
+		return true
+	}
+	if _, ok := types.Unalias(keyType).Underlying().(*types.Interface); ok {
+		return true
+	}
+	return false
+}
+
+func typeReferencesSourceMappedPackage(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	switch t := types.Unalias(typ).(type) {
+	case *types.Named:
+		return t.Obj() != nil && t.Obj().Pkg() != nil && isSourceMappedPackagePath(t.Obj().Pkg().Path())
+	case *types.Pointer:
+		return typeReferencesSourceMappedPackage(t.Elem())
+	case *types.Slice:
+		return typeReferencesSourceMappedPackage(t.Elem())
+	case *types.Array:
+		return typeReferencesSourceMappedPackage(t.Elem())
+	case *types.Map:
+		return typeReferencesSourceMappedPackage(t.Key()) || typeReferencesSourceMappedPackage(t.Elem())
+	case *types.Signature:
+		if params := t.Params(); params != nil {
+			for i := 0; i < params.Len(); i++ {
+				if typeReferencesSourceMappedPackage(params.At(i).Type()) {
+					return true
+				}
+			}
+		}
+		if results := t.Results(); results != nil {
+			for i := 0; i < results.Len(); i++ {
+				if typeReferencesSourceMappedPackage(results.At(i).Type()) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 func mapPointerKeyHelperFromRustType(rustType string) (string, bool) {
 	switch {
 	case strings.HasPrefix(rustType, "GoLocalPtrKey<"):
 		return "GoLocalPtrKey", true
 	case strings.HasPrefix(rustType, "GoPtrKey<"):
 		return "GoPtrKey", true
+	case rustType == "GoAnyPtrKey":
+		return "GoAnyPtrKey", true
 	default:
 		return "", false
 	}
 }
 
 func writeMapLookupKeyWithRustType(out *strings.Builder, mapExpr ast.Expr, index ast.Expr, keyRustType string, keyType types.Type) bool {
-	if keyType != nil {
-		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(keyType); ok {
-			return false
-		}
-		if isEmptyInterfaceType(keyType) {
-			return false
-		}
-	}
 	keyHelper, ok := mapPointerKeyHelperFromRustType(keyRustType)
 	if !ok {
 		return false
+	}
+	if keyType != nil {
+		if _, ok := transpiledNamedInterfaceTypeNameFromTypes(keyType); ok && keyHelper != "GoAnyPtrKey" {
+			return false
+		}
+		if isEmptyInterfaceType(keyType) && keyHelper != "GoAnyPtrKey" {
+			return false
+		}
 	}
 	if keyHelper == "GoLocalPtrKey" {
 		var key strings.Builder
@@ -8843,6 +9687,13 @@ func writeMapLookupKeyWithRustType(out *strings.Builder, mapExpr ast.Expr, index
 func writeInterfaceMapLookupKeyWithType(out *strings.Builder, mapExpr ast.Expr, index ast.Expr, keyType types.Type) bool {
 	if keyType == nil {
 		return false
+	}
+	if stubOwnedSourceMappedMapExprUsesAnyPtrKey(mapExpr, keyType) {
+		NeedGoAnyPtrKey()
+		out.WriteString("&GoAnyPtrKey::new(")
+		TranspileExpressionContext(out, index, LValue)
+		out.WriteString(".clone())")
+		return true
 	}
 	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(keyType); !ok && !isEmptyInterfaceType(keyType) {
 		return false
@@ -8877,7 +9728,7 @@ func writeMapLookupKeyWithMapExpr(out *strings.Builder, mapExpr ast.Expr, index 
 			if typeInfoIsPointerExpr(index) && !isPointerKeyRangeVarType(varType) {
 				out.WriteString("&")
 				typeInfo := GetTypeInfo()
-				out.WriteString(mapPointerKeyHelperForMapExpr(goPtrKeyHelperNameForType(typeInfo.GetType(index)), mapExpr))
+				out.WriteString(mapPointerKeyHelperForMapExprAndType(goPtrKeyHelperNameForType(typeInfo.GetType(index)), mapExpr, keyType))
 				out.WriteString("::new(")
 				TranspileExpressionContext(out, index, LValue)
 				out.WriteString(".clone())")
@@ -8912,7 +9763,7 @@ func writeMapLookupKeyWithMapExpr(out *strings.Builder, mapExpr ast.Expr, index 
 		if writeSliceElemPtrMapKeyExpression(out, index) {
 			return
 		}
-		out.WriteString(mapPointerKeyHelperForMapExpr(goPtrKeyHelperNameForType(typeInfo.GetType(index)), mapExpr))
+		out.WriteString(mapPointerKeyHelperForMapExprAndType(goPtrKeyHelperNameForType(typeInfo.GetType(index)), mapExpr, keyType))
 		out.WriteString("::new(")
 		TranspileExpressionContext(out, index, LValue)
 		out.WriteString(".clone())")
@@ -9175,8 +10026,10 @@ func writeWrappedRangeValueForRustElemType(out *strings.Builder, arg ast.Expr, e
 func isPointerKeyRangeVarType(varType string) bool {
 	return strings.HasPrefix(varType, "GoPtrKey<") ||
 		strings.HasPrefix(varType, "GoLocalPtrKey<") ||
+		varType == "GoAnyPtrKey" ||
 		strings.HasPrefix(varType, "&GoPtrKey<") ||
-		strings.HasPrefix(varType, "&GoLocalPtrKey<")
+		strings.HasPrefix(varType, "&GoLocalPtrKey<") ||
+		varType == "&GoAnyPtrKey"
 }
 
 func writeMapLiteralKey(out *strings.Builder, key ast.Expr) {
@@ -9191,12 +10044,19 @@ func writeMapLiteralKeyWithOwnerPackage(out *strings.Builder, key ast.Expr, keyT
 	if keyType != nil && writeStdlibInterfaceComparableConversion(out, key, keyType) {
 		return
 	}
+	if stubOwnedSourceMappedMapKeyUsesAnyPtr(ownerPkgPath, keyType) {
+		NeedGoAnyPtrKey()
+		out.WriteString("GoAnyPtrKey::new(")
+		TranspileExpressionContext(out, key, LValue)
+		out.WriteString(".clone())")
+		return
+	}
 	if typeInfoIsPointerExpr(key) {
 		typeInfo := GetTypeInfo()
 		if writeSliceElemPtrMapKeyExpression(out, key) {
 			return
 		}
-		out.WriteString(mapPointerKeyHelperForOwnerPackage(goPtrKeyHelperNameForType(typeInfo.GetType(key)), ownerPkgPath))
+		out.WriteString(mapPointerKeyHelperForOwnerPackageAndType(goPtrKeyHelperNameForType(typeInfo.GetType(key)), ownerPkgPath, keyType))
 		out.WriteString("::new(")
 		TranspileExpressionContext(out, key, LValue)
 		out.WriteString(".clone())")
@@ -9492,6 +10352,33 @@ func isPackageSelectorBaseIdent(ident *ast.Ident) bool {
 	return isFallbackStdlib
 }
 
+func packageSelectorCrateName(sel *ast.SelectorExpr) string {
+	if sel == nil {
+		return ""
+	}
+	ident, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return ""
+	}
+	pkgPath := ""
+	if typeInfo := GetTypeInfo(); typeInfo != nil && typeInfo.info != nil {
+		if obj, ok := typeInfo.info.Uses[ident].(*types.PkgName); ok && obj.Imported() != nil {
+			pkgPath = obj.Imported().Path()
+		}
+	}
+	if pkgPath == "" {
+		pkgPath = goPackageImports[ident.Name]
+	}
+	if pkgPath == "" {
+		return ""
+	}
+	ctx := GetTranspileContext()
+	if ctx == nil || ctx.PackageMapping == nil {
+		return ""
+	}
+	return ctx.PackageMapping[pkgPath]
+}
+
 // namedIntegerConstReceiverType reports the named-integer type of a method
 // receiver expression when that receiver is a *types.Const emitted as a raw
 // scalar (a current-package constant or a source-transpiled stdlib constant).
@@ -9536,6 +10423,158 @@ func namedIntegerConstReceiverType(expr ast.Expr) (*types.Named, bool) {
 		return named, true
 	}
 	return nil, false
+}
+
+func writeNamedIntegerValueReceiverMethodCall(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || sel == nil || call == nil {
+		return false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	if !ok || selection.Kind() != types.MethodVal {
+		return false
+	}
+	fn, ok := selection.Obj().(*types.Func)
+	if !ok {
+		return false
+	}
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok || sig.Recv() == nil {
+		return false
+	}
+	recvType := types.Unalias(sig.Recv().Type())
+	if _, ok := recvType.(*types.Pointer); ok {
+		return false
+	}
+	named, ok := recvType.(*types.Named)
+	if !ok || !isNamedIntegerType(named) {
+		return false
+	}
+	receiverIsCurrentScalar := currentScalarReceiverExpr(sel.X)
+	receiverIsGoPtr := goPtrNamedIntegerMethodReceiverExpr(sel.X)
+	receiverNeedsUnwrap := receiverIsGoPtr || (!receiverIsCurrentScalar && namedIntegerMethodReceiverNeedsUnwrap(sel.X))
+	receiverIsBare := receiverIsCurrentScalar || (!receiverIsGoPtr && isExpressionResultBare(sel.X))
+	if !receiverNeedsUnwrap && !receiverIsBare {
+		return false
+	}
+
+	out.WriteString(goTypesNamedTypeToRust(named))
+	out.WriteString("::")
+	out.WriteString(rustMethodSelectorName(sel))
+	out.WriteString("(")
+	if receiverIsCurrentScalar {
+		out.WriteString(currentReceiverRustName())
+	} else if receiverNeedsUnwrap {
+		if !writeGoPtrNamedIntegerMethodReceiverValue(out, sel.X) {
+			out.WriteString("&")
+			out.WriteString("(*")
+			writeNamedIntegerMethodReceiverHandle(out, sel.X)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap())")
+		}
+	} else {
+		out.WriteString("&")
+		out.WriteString("(")
+		TranspileExpression(out, sel.X)
+		out.WriteString(")")
+	}
+
+	var args strings.Builder
+	externalStdlibStubMethodCall := IsExternalStdlibSelectorMethod(sel)
+	bareArgumentMethodCall := methodCallUsesBareArguments(sel)
+	if !writeMethodCallArguments(&args, sel, call, externalStdlibStubMethodCall, bareArgumentMethodCall) {
+		for i, arg := range call.Args {
+			if i > 0 {
+				args.WriteString(", ")
+			}
+			if externalStdlibStubMethodCall {
+				writeExternalStubCallArgument(&args, arg, selectedMethodParamType(sel, i))
+			} else if bareArgumentMethodCall {
+				writeBareMethodCallArgument(&args, sel, arg, i)
+			} else {
+				writeRegularMethodCallArgument(&args, sel, call, arg, i)
+			}
+		}
+	}
+	if args.Len() > 0 {
+		out.WriteString(", ")
+		out.WriteString(args.String())
+	}
+	out.WriteString(")")
+	return true
+}
+
+func currentScalarReceiverExpr(expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	return ok && isCurrentReceiverIdent(ident) && currentReceiverScalarTypeDefinition()
+}
+
+func namedIntegerMethodReceiverNeedsUnwrap(expr ast.Expr) bool {
+	if methodReceiverExpressionNeedsUnwrap(expr) {
+		return true
+	}
+	if isExpressionResultBare(expr) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.ReturnsWrappedValue(expr) {
+		return true
+	}
+	switch expr.(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+		return true
+	default:
+		return false
+	}
+}
+
+func writeNamedIntegerMethodReceiverHandle(out *strings.Builder, expr ast.Expr) {
+	switch expr.(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+		TranspileExpressionContext(out, expr, LValue)
+	default:
+		TranspileExpression(out, expr)
+	}
+}
+
+func writeGoPtrNamedIntegerMethodReceiverValue(out *strings.Builder, expr ast.Expr) bool {
+	switch e := unwrapParens(expr).(type) {
+	case *ast.CallExpr:
+		if _, ok := goPtrResultInfoForCall(e, 0); !ok {
+			return false
+		}
+		out.WriteString("&({ let __recv = ")
+		TranspileExpression(out, e)
+		out.WriteString("; let __recv_value = __recv.borrow(); __recv_value.as_ref().unwrap().clone() })")
+		return true
+	case *ast.Ident:
+		if !isGoPtrVar(e.Name) {
+			if _, ok := goPtrCandidateForDecl(e); !ok {
+				return false
+			}
+		}
+		out.WriteString("&({ let __recv_value = ")
+		out.WriteString(rustIdentForUseWithCapture(e))
+		out.WriteString(".borrow(); __recv_value.as_ref().unwrap().clone() })")
+		return true
+	}
+	return false
+}
+
+func goPtrNamedIntegerMethodReceiverExpr(expr ast.Expr) bool {
+	switch e := unwrapParens(expr).(type) {
+	case *ast.CallExpr:
+		_, ok := goPtrResultInfoForCall(e, 0)
+		return ok
+	case *ast.Ident:
+		if isGoPtrVar(e.Name) {
+			return true
+		}
+		_, ok := goPtrCandidateForDecl(e)
+		return ok
+	default:
+		return false
+	}
 }
 
 func methodCallNeedsMutableReceiver(sel *ast.SelectorExpr) bool {
@@ -9875,6 +10914,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					fieldInfo = resolveFieldAccess(currentReceiverType, e.Sel.Name)
 				}
 
+				if writeGoPtrCurrentReceiverFieldSelector(out, fieldInfo, e, ctx) {
+					break
+				}
 				if fieldInfo.IsPromoted {
 					// Accessing promoted field through embedded struct(s)
 					// For nested embedding like C.B.A.x, we need:
@@ -9974,6 +11016,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 					break
 				}
 				if writeSliceElemPtrFieldSelector(out, ident, fieldInfo, e, ctx) {
+					break
+				}
+				if writeArrayElemPtrFieldSelector(out, ident, fieldInfo, e, ctx) {
 					break
 				}
 
@@ -10132,6 +11177,58 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 						TranspileExpressionContext(out, e.X, LValue)
 						WriteBorrowMethod(out, false)
 						out.WriteString(".as_ref().unwrap())")
+						for _, embedded := range fieldInfo.EmbeddedPath {
+							out.WriteString(".")
+							out.WriteString(ToSnakeCase(embedded))
+							WriteBorrowMethod(out, false)
+							out.WriteString(".as_ref().unwrap()")
+						}
+						out.WriteString(".")
+						out.WriteString(fieldInfo.FieldName)
+					}
+				} else if _, isSelectorBase := e.X.(*ast.SelectorExpr); isSelectorBase && typeInfo != nil && typeInfo.ReturnsWrappedValue(e.X) {
+					if ctx == RValue {
+						out.WriteString("(*")
+						writeWrappedSelectorBasePointee(out, e.X)
+						for _, embedded := range fieldInfo.EmbeddedPath {
+							out.WriteString(".")
+							out.WriteString(ToSnakeCase(embedded))
+							WriteBorrowMethod(out, false)
+							out.WriteString(".as_ref().unwrap()")
+						}
+						out.WriteString(".")
+						out.WriteString(fieldInfo.FieldName)
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap()")
+						writeSelectorRValueClose(out, e)
+					} else {
+						writeWrappedSelectorBasePointee(out, e.X)
+						for _, embedded := range fieldInfo.EmbeddedPath {
+							out.WriteString(".")
+							out.WriteString(ToSnakeCase(embedded))
+							WriteBorrowMethod(out, false)
+							out.WriteString(".as_ref().unwrap()")
+						}
+						out.WriteString(".")
+						out.WriteString(fieldInfo.FieldName)
+					}
+				} else if _, isCallReceiver := e.X.(*ast.CallExpr); isCallReceiver && typeInfo != nil && typeInfo.ReturnsWrappedValue(e.X) {
+					if ctx == RValue {
+						out.WriteString("(*")
+						writeWrappedSelectorBasePointee(out, e.X)
+						for _, embedded := range fieldInfo.EmbeddedPath {
+							out.WriteString(".")
+							out.WriteString(ToSnakeCase(embedded))
+							WriteBorrowMethod(out, false)
+							out.WriteString(".as_ref().unwrap()")
+						}
+						out.WriteString(".")
+						out.WriteString(fieldInfo.FieldName)
+						WriteBorrowMethod(out, false)
+						out.WriteString(".as_ref().unwrap()")
+						writeSelectorRValueClose(out, e)
+					} else {
+						writeWrappedSelectorBasePointee(out, e.X)
 						for _, embedded := range fieldInfo.EmbeddedPath {
 							out.WriteString(".")
 							out.WriteString(ToSnakeCase(embedded))
@@ -10307,6 +11404,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 				break
 			}
+			if ident, ok := e.X.(*ast.Ident); ok && isGoPtrVar(ident.Name) {
+				if ctx == RValue {
+					writeGoPtrDerefRead(out, ident)
+				} else {
+					out.WriteString(`unimplemented!("GoPtr dereference assignment should be lowered by statement assignment")`)
+				}
+				break
+			}
 			if ctx == RValue {
 				if writeTypeParamNewDerefZeroValue(out, e.X) {
 					break
@@ -10316,6 +11421,12 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				}
 				if ident, ok := packageGlobalPointerIdent(e.X); ok {
 					writePackageGlobalPointerDerefRead(out, ident, e)
+					break
+				}
+				if writeGoPtrCallDerefRead(out, e.X) {
+					break
+				}
+				if writeGoPtrFieldDerefRead(out, e.X) {
 					break
 				}
 				out.WriteString("{ let __v = (*")
@@ -10387,6 +11498,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			break
 		}
+		if ident, ok := e.X.(*ast.Ident); ok && isGoPtrVar(ident.Name) {
+			if ctx == RValue {
+				writeGoPtrDerefRead(out, ident)
+			} else {
+				out.WriteString(`unimplemented!("GoPtr dereference assignment should be lowered by statement assignment")`)
+			}
+			break
+		}
 		// Dereference pointer - unwrap the wrapper to get T
 		if ctx == RValue {
 			if writeTypeParamNewDerefZeroValue(out, e.X) {
@@ -10397,6 +11516,15 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			if ident, ok := packageGlobalPointerIdent(e.X); ok {
 				writePackageGlobalPointerDerefRead(out, ident, e)
+				break
+			}
+			if writeGoPtrCallDerefRead(out, e.X) {
+				break
+			}
+			if writeGoPtrFieldDerefRead(out, e.X) {
+				break
+			}
+			if writeUnsafePointerFunctionDerefValue(out, e) {
 				break
 			}
 			if writeUnsafePointerInterfaceDerefValue(out, e) {
@@ -10432,6 +11560,14 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 			// Check if left side is the receiver (self)
 			if leftIdent, ok := e.X.(*ast.Ident); ok && isCurrentReceiverIdent(leftIdent) {
+				if currentReceiverRustAliasIsGoPtr {
+					if e.Op.String() == "!=" {
+						out.WriteString("!")
+					}
+					out.WriteString(currentReceiverRustName())
+					out.WriteString(".is_nil()")
+					return
+				}
 				if currentReceiverRustAliasIsPointerHandle {
 					out.WriteString("{ let __self_guard = ")
 					out.WriteString(currentReceiverRustName())
@@ -10477,6 +11613,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				return
 			}
 			if writeSliceElemPtrFieldNilComparison(out, e.X, e.Op) {
+				return
+			}
+			if writeGoPtrNilComparison(out, e.X, e.Op) {
 				return
 			}
 			if writeSelectorNilComparison(out, e.X, e.Op) {
@@ -10530,6 +11669,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			return
 		}
 		if writeSliceElemPointerEquality(out, e) {
+			return
+		}
+		if writeGoPtrPointerEquality(out, e) {
 			return
 		}
 		if writePointerEquality(out, e) {
@@ -10732,6 +11874,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 		if NeedsConcurrentWrapper() && e.Op != token.LAND && e.Op != token.LOR {
 			writeTempOperand := func(expr ast.Expr, other ast.Expr, isStringLit bool, needsUnwrap bool) {
+				if writeShiftCountPrimitiveOperand(out, expr, e) {
+					return
+				}
 				if writeConstShiftLeftOperandForResult(out, expr, e) {
 					return
 				}
@@ -10762,7 +11907,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		if needsUnwrapX || needsUnwrapY || xIsStringLit || yIsStringLit {
 			// At least one operand needs special handling
 			// Handle X operand
-			if writeConstExpressionForBinaryPeer(out, e.X, e.Y) {
+			if writeConstShiftLeftOperandForResult(out, e.X, e) {
+				// Left operand of a shift uses the shift result type, not the count type.
+			} else if writeConstExpressionForBinaryPeer(out, e.X, e.Y) {
 				// Constant emitted in the peer's expected representation.
 			} else if xLit, ok := e.X.(*ast.BasicLit); ok && xLit.Kind == token.INT && isFloatExpression(e.Y) {
 				out.WriteString(xLit.Value)
@@ -10774,7 +11921,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			out.WriteString(rustBinaryOp(e.Op))
 			out.WriteString(" ")
 			// Handle Y operand
-			if writeConstExpressionForBinaryPeer(out, e.Y, e.X) {
+			if writeShiftCountPrimitiveOperand(out, e.Y, e) {
+				// Shift counts stay primitive; they do not adopt the left operand's named type.
+			} else if writeConstExpressionForBinaryPeer(out, e.Y, e.X) {
 				// Constant emitted in the peer's expected representation.
 			} else if yLit, ok := e.Y.(*ast.BasicLit); ok && yLit.Kind == token.INT && isFloatExpression(e.X) {
 				out.WriteString(yLit.Value)
@@ -10859,6 +12008,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// (e.g., a bare-scalar-returning call like `limit(values)`).
 			} else if lit, ok := e.Y.(*ast.BasicLit); ok && writeCharLiteralForPeer(out, lit, e.X) {
 				// Character literal emitted as byte.
+			} else if writeShiftCountPrimitiveOperand(out, e.Y, e) {
+				// Shift counts stay primitive; they do not adopt the left operand's named type.
 			} else if writeConstExpressionForSyntaxPeer(out, e.Y, e.X) {
 				// Constant emitted in the peer's syntax-proven representation.
 			} else if writeConstExpressionForBinaryPeer(out, e.Y, e.X) {
@@ -10989,6 +12140,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Named slice element emitted by helper.
 			} else if writeNamedArrayIndexValue(out, e.X, e.Index) {
 				// Named array element emitted by helper.
+			} else if writeGoPtrPointedArrayIndexValue(out, e.X, e.Index) {
+				// GoPtr pointer-to-array helper read.
 			} else if writeArrayElemPtrPointedArrayIndexValue(out, e.X, e.Index) {
 				// Pointer-to-array helper read.
 			} else if writePointerDerefSequenceIndexValue(out, e.X, e.Index) {
@@ -11439,6 +12592,13 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 							}
 						}
 					}
+					if structUnder, ok := types.Unalias(typ).Underlying().(*types.Struct); ok && structTypeHasGoPtrBackedField(typ, structUnder) {
+						structTypeName := typesStructLiteralName(typ, structUnder)
+						if structTypeName != "" {
+							writeTypesStructCompositeLiteral(out, structTypeName, typ, structUnder, e.Elts)
+							return
+						}
+					}
 					if sliceType, ok := typ.Underlying().(*types.Slice); ok {
 						wrapInTypeDefinition := !IsTypeAlias(ident.Name)
 						if wrapInTypeDefinition {
@@ -11844,6 +13004,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				return
 			}
 			if wrapperType, _, ok := localInterfacePointerAssertionWrapperForAssert(e); ok {
+				writeTraitObjectPointerAssertionValue(out, e, wrapperType)
+				return
+			}
+			if wrapperType, _, ok := sourceMappedPointerInterfaceAssertionWrapperForAssert(e); ok {
 				writeTraitObjectPointerAssertionValue(out, e, wrapperType)
 				return
 			}
@@ -12637,18 +13801,22 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 	// Parameters
 	if funcLit.Type.Params != nil {
 		var params []string
+		paramIndex := 0
 		for _, field := range funcLit.Type.Params.List {
-			paramType := GoTypeToRustParam(field.Type)
 			for _, name := range field.Names {
+				paramType := funcLitParamTypeToRust(funcLit, field.Type, paramIndex)
 				paramName := RustLocalIdent(name.Name)
 				if blockIdentAssigned(funcLit.Body, name.Name) {
 					paramName = "mut " + paramName
 				}
 				params = append(params, paramName+": "+paramType)
+				paramIndex++
 			}
 			// Handle unnamed parameters
 			if len(field.Names) == 0 {
+				paramType := funcLitParamTypeToRust(funcLit, field.Type, paramIndex)
 				params = append(params, "_: "+paramType)
+				paramIndex++
 			}
 		}
 		out.WriteString(strings.Join(params, ", "))
@@ -12684,9 +13852,23 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 		vt.PushScope()
 		defer vt.PopScope()
 		if funcLit.Type.Params != nil {
+			paramIndex := 0
 			for _, field := range funcLit.Type.Params.List {
 				for _, name := range field.Names {
 					rustType := goTypeToRustBase(field.Type)
+					if info, ok := funcLitGoPtrParamInfo(funcLit, paramIndex); ok {
+						elemRustType := goPtrResultElemRustType(info)
+						NeedSliceElemPtr()
+						vt.Register(name.Name, &VarInfo{
+							WrapLevel:   WrapNone,
+							RustType:    "GoPtr<" + elemRustType + ">",
+							Source:      SourceParam,
+							PointerKind: PointerGoPtr,
+							GoType:      info.elemType,
+						})
+						paramIndex++
+						continue
+					}
 					if functionRustType, ok := functionTypeRustNameFromTypeExpr(field.Type); ok {
 						rustType = functionRustType
 					}
@@ -12719,6 +13901,10 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 							Source:    SourceParam,
 						})
 					}
+					paramIndex++
+				}
+				if len(field.Names) == 0 {
+					paramIndex++
 				}
 			}
 		}
@@ -12775,10 +13961,18 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 
 	// Cast to the right type and close wrappers
 	out.WriteString(" as ")
-	out.WriteString(generateClosureTypeWithResultOverrides(funcLit.Type, resultOverrides))
+	out.WriteString(generateFuncLitClosureTypeWithResultOverrides(funcLit, resultOverrides))
 	if len(inlineCaptures) > 0 {
 		out.WriteString(" }")
 	}
+}
+
+func funcLitParamTypeToRust(funcLit *ast.FuncLit, defaultType ast.Expr, paramIndex int) string {
+	if info, ok := funcLitGoPtrParamInfo(funcLit, paramIndex); ok {
+		NeedSliceElemPtr()
+		return "GoPtr<" + goPtrResultElemRustType(info) + ">"
+	}
+	return GoTypeToRustParam(defaultType)
 }
 
 func funcLitReturnTypeForSlot(defaultType ast.Expr, slot int, overrides map[int]funcLitReturnOverride) string {
@@ -12859,20 +14053,79 @@ func funcLitResultTypes(funcLit *ast.FuncLit) []types.Type {
 	return typesList
 }
 
-func generateClosureTypeWithResultOverrides(funcType *ast.FuncType, overrides map[int]funcLitReturnOverride) string {
-	if len(overrides) == 0 {
-		return generateClosureType(funcType)
+func generateFuncLitClosureType(funcLit *ast.FuncLit) string {
+	if funcLit == nil || funcLit.Type == nil {
+		if NeedsConcurrentWrapper() {
+			return "Box<dyn FnMut() -> () + Send + Sync>"
+		}
+		return "Box<dyn FnMut() -> ()>"
 	}
+	funcType := funcLit.Type
 	var paramTypes []string
 	if funcType.Params != nil {
+		paramIndex := 0
 		for _, field := range funcType.Params.List {
-			paramType := GoTypeToRustParam(field.Type)
 			count := len(field.Names)
 			if count == 0 {
 				count = 1
 			}
 			for i := 0; i < count; i++ {
+				paramTypes = append(paramTypes, funcLitParamTypeToRust(funcLit, field.Type, paramIndex))
+				paramIndex++
+			}
+		}
+	}
+
+	var returnType string
+	if funcType.Results == nil || len(funcType.Results.List) == 0 {
+		returnType = "()"
+	} else if len(funcType.Results.List) == 1 && len(funcType.Results.List[0].Names) == 0 {
+		returnType = GoReturnTypeToRust(funcType.Results.List[0].Type)
+	} else {
+		var retTypes []string
+		for _, field := range funcType.Results.List {
+			retType := GoReturnTypeToRust(field.Type)
+			count := len(field.Names)
+			if count == 0 {
+				count = 1
+			}
+			for i := 0; i < count; i++ {
+				retTypes = append(retTypes, retType)
+			}
+		}
+		returnType = "(" + strings.Join(retTypes, ", ") + ")"
+	}
+
+	paramsStr := strings.Join(paramTypes, ", ")
+	if NeedsConcurrentWrapper() {
+		return fmt.Sprintf("Box<dyn FnMut(%s) -> %s + Send + Sync>", paramsStr, returnType)
+	}
+	return fmt.Sprintf("Box<dyn FnMut(%s) -> %s>", paramsStr, returnType)
+}
+
+func generateFuncLitClosureTypeWithResultOverrides(funcLit *ast.FuncLit, overrides map[int]funcLitReturnOverride) string {
+	if funcLit == nil {
+		return generateFuncLitClosureType(nil)
+	}
+	if funcLit.Type == nil {
+		return generateFuncLitClosureType(funcLit)
+	}
+	funcType := funcLit.Type
+	if len(overrides) == 0 {
+		return generateFuncLitClosureType(funcLit)
+	}
+	var paramTypes []string
+	if funcType.Params != nil {
+		paramIndex := 0
+		for _, field := range funcType.Params.List {
+			count := len(field.Names)
+			if count == 0 {
+				count = 1
+			}
+			for i := 0; i < count; i++ {
+				paramType := funcLitParamTypeToRust(funcLit, field.Type, paramIndex)
 				paramTypes = append(paramTypes, paramType)
+				paramIndex++
 			}
 		}
 	}
@@ -12907,7 +14160,7 @@ func generateClosureTypeWithResultOverrides(funcType *ast.FuncType, overrides ma
 
 func functionBoxTypeForCallTarget(expr ast.Expr) string {
 	if lit, ok := expr.(*ast.FuncLit); ok {
-		return generateClosureType(lit.Type)
+		return generateFuncLitClosureType(lit)
 	}
 	if ident, ok := expr.(*ast.Ident); ok {
 		if vt := GetVarTable(); vt != nil {
@@ -12973,6 +14226,28 @@ func functionBoxTypeFromTrackedMapValueRustType(rustType string) (string, bool) 
 		return rustType[start:], true
 	}
 	return "", false
+}
+
+func writeFunctionPointerDerefCallTarget(out *strings.Builder, star *ast.StarExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || star == nil || !isFunctionSignatureType(typeInfo.GetType(star)) {
+		return false
+	}
+	ptr, ok := types.Unalias(typeInfo.GetType(star.X)).Underlying().(*types.Pointer)
+	if !ok || !isFunctionSignatureType(ptr.Elem()) {
+		return false
+	}
+	boxType := functionBoxTypeForCallTarget(star)
+	out.WriteString("{ let __f_holder = ")
+	TranspileExpressionContext(out, star.X, LValue)
+	out.WriteString(".clone(); let __f_ptr: *mut ")
+	out.WriteString(boxType)
+	out.WriteString(" = { let mut __f_guard = __f_holder")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; __f_guard.as_mut().unwrap() as *mut ")
+	out.WriteString(boxType)
+	out.WriteString(" }; let __f = unsafe { &mut *__f_ptr }; (*__f)")
+	return true
 }
 
 // TranspileTypeConversion handles type conversions like int(x), float64(y), etc.
@@ -13069,7 +14344,7 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	if named, rustType, ok := externalIntegerConversionTarget(call); ok {
 		out.WriteString(goTypesNamedTypeToRust(named))
 		out.WriteString("(")
-		writeNumericConversionValue(out, call.Args[0])
+		writeNumericConversionValueForRustType(out, call.Args[0], rustType)
 		out.WriteString(" as ")
 		out.WriteString(rustType)
 		out.WriteString(")")
@@ -13091,7 +14366,7 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString(goTypesNamedTypeToRust(named))
 		out.WriteString("(")
 		WriteWrapperPrefix(out)
-		writeNumericConversionValue(out, call.Args[0])
+		writeNumericConversionValueForRustType(out, call.Args[0], rustType)
 		out.WriteString(" as ")
 		out.WriteString(rustType)
 		WriteWrapperSuffix(out)
@@ -13328,7 +14603,7 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString("(")
 				WriteWrapperPrefix(out)
 				if rustType, ok := rustCastTypeForDefinedUnderlying(underlying); ok {
-					writeNumericConversionValue(out, call.Args[0])
+					writeNumericConversionValueForRustType(out, call.Args[0], rustType)
 					out.WriteString(" as ")
 					out.WriteString(rustType)
 				} else {
@@ -13348,13 +14623,17 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(" as ")
 			out.WriteString(rustType)
 		} else if !writeIntegerTypeParamToRustNumericConversion(out, call.Args[0], rustType) {
-			needsParens := numericConversionCastNeedsParens(call.Args[0])
-			if needsParens {
-				out.WriteString("(")
-			}
-			writeNumericConversionValue(out, call.Args[0])
-			if needsParens {
-				out.WriteString(")")
+			if writeConstNumericConversionValueForRustType(out, call.Args[0], rustType) {
+				// Constant operands were emitted in a Rust integer type wide enough for evaluation.
+			} else {
+				needsParens := numericConversionCastNeedsParens(call.Args[0])
+				if needsParens {
+					out.WriteString("(")
+				}
+				writeNumericConversionValue(out, call.Args[0])
+				if needsParens {
+					out.WriteString(")")
+				}
 			}
 			out.WriteString(" as ")
 			out.WriteString(rustType)
@@ -13438,6 +14717,30 @@ func writeTimeDurationConversionMultiplier(out *strings.Builder, expr ast.Expr) 
 }
 
 func typedNilConversionType(call *ast.CallExpr) (types.Type, bool) {
+	targetType, ok := typedNilConversionTargetType(call)
+	if !ok {
+		return nil, false
+	}
+	switch types.Unalias(targetType).Underlying().(type) {
+	case *types.Map, *types.Slice, *types.Chan, *types.Signature:
+		return targetType, true
+	default:
+		return nil, false
+	}
+}
+
+func typedNilPointerConversionType(call *ast.CallExpr) (types.Type, bool) {
+	targetType, ok := typedNilConversionTargetType(call)
+	if !ok {
+		return nil, false
+	}
+	if _, ok := types.Unalias(targetType).Underlying().(*types.Pointer); !ok {
+		return nil, false
+	}
+	return targetType, true
+}
+
+func typedNilConversionTargetType(call *ast.CallExpr) (types.Type, bool) {
 	if call == nil || len(call.Args) != 1 {
 		return nil, false
 	}
@@ -13453,12 +14756,7 @@ func typedNilConversionType(call *ast.CallExpr) (types.Type, bool) {
 	if targetType == nil {
 		return nil, false
 	}
-	switch types.Unalias(targetType).Underlying().(type) {
-	case *types.Map, *types.Slice, *types.Chan, *types.Signature:
-		return targetType, true
-	default:
-		return nil, false
-	}
+	return targetType, true
 }
 
 func writeTypedNilConversion(out *strings.Builder, call *ast.CallExpr) bool {
@@ -13511,8 +14809,7 @@ func writeTranspiledInterfaceTypeConversion(out *strings.Builder, call *ast.Call
 	}
 	targetType := typeInfo.GetType(call)
 	if targetType == nil {
-		out.WriteString(`unimplemented!("type info required to lower interface conversion")`)
-		return true
+		return false
 	}
 	if _, ok := transpiledNamedInterfaceTypeNameFromTypes(targetType); !ok {
 		return false
@@ -13577,8 +14874,7 @@ func writeUnnamedSliceTypeConversionFromNamedSlice(out *strings.Builder, call *a
 	}
 	targetType := typeInfo.GetType(call)
 	if targetType == nil {
-		out.WriteString("unimplemented!(\"type info required for unnamed slice conversion\")")
-		return true
+		return false
 	}
 	if _, ok := types.Unalias(targetType).(*types.Named); ok {
 		return false
@@ -13795,6 +15091,9 @@ func writePointerTypeConversion(out *strings.Builder, target ast.Expr, source as
 }
 
 func writePointerTypeConversionFromUnsafePointer(out *strings.Builder, target ast.Expr, source ast.Expr) {
+	if writeInternalABIEmptyInterfacePointerConversion(out, target, source) {
+		return
+	}
 	if writeEmbeddedOwnerPointerConversion(out, target, source) {
 		return
 	}
@@ -13819,6 +15118,63 @@ func writePointerTypeConversionFromUnsafePointer(out *strings.Builder, target as
 	out.WriteString(">(")
 	writeUnsafePointerConversionUnsupported(out, targetType)
 	out.WriteString(") } }))")
+}
+
+func writeInternalABIEmptyInterfacePointerConversion(out *strings.Builder, target ast.Expr, source ast.Expr) bool {
+	if !targetIsInternalABIEmptyInterface(target) {
+		return false
+	}
+	sourceArg, ok := unsafePointerAddressSource(source)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString("/* ERROR: Type information required for internal/abi.EmptyInterface pointer conversion */ unimplemented!(\"type info required for internal/abi.EmptyInterface pointer conversion\")")
+		return true
+	}
+	if !isEmptyInterfaceType(typeInfo.GetType(sourceArg)) {
+		return false
+	}
+	writeInternalABIEmptyInterfaceValueWrapper(out, target, sourceArg)
+	return true
+}
+
+func writeInternalABIEmptyInterfaceValueWrapper(out *strings.Builder, target ast.Expr, sourceArg ast.Expr) {
+	targetType := pointerConversionTargetTypeToRust(target)
+	out.WriteString("{ let __iface_value = ")
+	writeEmptyInterfaceHandleClone(out, sourceArg)
+	out.WriteString("; ")
+	WriteWrapperPrefix(out)
+	out.WriteString(targetType)
+	out.WriteString(" { ")
+	out.WriteString(ToSnakeCase("Type"))
+	out.WriteString(": ")
+	out.WriteString(internalABICrateQualifier())
+	out.WriteString("type_of(__iface_value.clone()), ")
+	out.WriteString(ToSnakeCase("Data"))
+	out.WriteString(": ")
+	WriteWrapperPrefix(out)
+	out.WriteString("0 as usize")
+	WriteWrapperSuffix(out)
+	out.WriteString(", ..Default::default() }")
+	WriteWrapperSuffix(out)
+	out.WriteString(" }")
+}
+
+func targetIsInternalABIEmptyInterface(target ast.Expr) bool {
+	typ, ok := typeInfoTypeForTypeExpr(target)
+	if !ok || typ == nil {
+		return false
+	}
+	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
+		typ = ptr.Elem()
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	return named.Obj().Name() == "EmptyInterface" && named.Obj().Pkg().Path() == "internal/abi"
 }
 
 func writeEmbeddedOwnerPointerConversion(out *strings.Builder, target ast.Expr, source ast.Expr) bool {
@@ -13899,12 +15255,34 @@ func unsafePointerCallArg(expr ast.Expr) (ast.Expr, bool) {
 
 func writeUnsafePointerConversionSource(out *strings.Builder, source ast.Expr) {
 	typeInfo := GetTypeInfo()
+	if unsafePointerConversionSourceNeedsValueWrapper(source, typeInfo) {
+		WriteWrapperPrefix(out)
+		TranspileExpressionContext(out, source, RValue)
+		WriteWrapperSuffix(out)
+		return
+	}
 	if typeInfo != nil && source != nil && isUnsafePointerLikeType(typeInfo.GetType(source)) {
 		TranspileExpressionContext(out, source, LValue)
 		out.WriteString(".clone()")
 		return
 	}
 	TranspileExpression(out, source)
+}
+
+func writeUnsafePointerRawAddress(out *strings.Builder, source ast.Expr) {
+	out.WriteString("{ let __ptr = ")
+	writeUnsafePointerConversionSource(out, source)
+	out.WriteString("; let __ptr_guard = __ptr")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __ptr_guard.as_ref().copied().unwrap_or(0) }")
+}
+
+func unsafePointerConversionSourceNeedsValueWrapper(source ast.Expr, typeInfo *TypeInfo) bool {
+	if source == nil || typeInfo == nil || !isUnsafePointerLikeType(typeInfo.GetType(source)) {
+		return false
+	}
+	_, ok := unwrapParens(source).(*ast.StarExpr)
+	return ok
 }
 
 func writeUnsafePointerConversionUnsupported(out *strings.Builder, targetType string) {
@@ -14329,6 +15707,10 @@ func writeStringTypeDefinitionInnerValue(out *strings.Builder, arg ast.Expr) boo
 	}
 	if argType != nil {
 		if basic, ok := types.Unalias(argType).Underlying().(*types.Basic); ok && basic.Kind() == types.String {
+			if selectorOverBareBaseReturnsBareValue(arg) {
+				TranspileExpression(out, arg)
+				return true
+			}
 			if typeInfo != nil && typeInfo.ReturnsWrappedValue(arg) {
 				out.WriteString("(*")
 				TranspileExpression(out, arg)
@@ -14363,6 +15745,17 @@ func writeStringTypeDefinitionInnerValue(out *strings.Builder, arg ast.Expr) boo
 		return true
 	}
 	return false
+}
+
+func selectorOverBareBaseReturnsBareValue(arg ast.Expr) bool {
+	sel, ok := unwrapParens(arg).(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	if selectorExpressionKeepsHandle(sel) {
+		return false
+	}
+	return isExpressionResultBare(sel.X)
 }
 
 func writeStringTypeDefinitionConstructor(out *strings.Builder, rustTypeName string, arg ast.Expr) {
@@ -14511,6 +15904,90 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 	writeExternalIntegerTupleField(out, argType)
 }
 
+func writeNumericConversionValueForRustType(out *strings.Builder, arg ast.Expr, rustType string) {
+	if writeConstNumericConversionValueForRustType(out, arg, rustType) {
+		return
+	}
+	writeNumericConversionValue(out, arg)
+}
+
+func writeConstNumericConversionValueForRustType(out *strings.Builder, arg ast.Expr, rustType string) bool {
+	if rustIntegerTypeWidth(rustType) == 0 || !isConstantExpression(arg) || constExprContainsIota(arg) {
+		return false
+	}
+	if !constNumericConversionNeedsExpressionRewrite(arg) {
+		return false
+	}
+	if !constExpressionNeedsExpectedRustIntegerOperands(arg, rustType) {
+		return false
+	}
+	writeConstNumericConversionOperand(out, arg, rustType)
+	return true
+}
+
+func constNumericConversionNeedsExpressionRewrite(arg ast.Expr) bool {
+	switch unwrapParens(arg).(type) {
+	case *ast.BinaryExpr, *ast.UnaryExpr:
+		return true
+	default:
+		return false
+	}
+}
+
+func writeConstNumericConversionOperand(out *strings.Builder, arg ast.Expr, rustType string) {
+	operandRustType := constExpressionOperandRustType(arg, rustType)
+	switch expr := unwrapParens(arg).(type) {
+	case *ast.BinaryExpr:
+		if constExpressionCastsOperandsForOp(expr.Op) && isConstantExpression(expr) {
+			out.WriteString("(")
+			writeConstNumericConversionOperand(out, expr.X, operandRustType)
+			out.WriteString(" ")
+			out.WriteString(rustBinaryOp(expr.Op))
+			out.WriteString(" ")
+			writeConstNumericConversionOperand(out, expr.Y, operandRustType)
+			out.WriteString(")")
+			return
+		}
+	case *ast.UnaryExpr:
+		if isConstantExpression(expr.X) {
+			switch expr.Op {
+			case token.ADD:
+				out.WriteString("(")
+				writeConstNumericConversionOperand(out, expr.X, operandRustType)
+				out.WriteString(")")
+				return
+			case token.SUB:
+				out.WriteString("-(")
+				writeConstNumericConversionOperand(out, expr.X, operandRustType)
+				out.WriteString(")")
+				return
+			case token.XOR:
+				out.WriteString("!(")
+				writeConstNumericConversionOperand(out, expr.X, operandRustType)
+				out.WriteString(")")
+				return
+			}
+		}
+	case *ast.CallExpr:
+		if len(expr.Args) == 1 {
+			typeInfo := GetTypeInfo()
+			if typeInfo != nil && typeInfo.IsTypeConversion(expr) {
+				callRustType := operandRustType
+				if targetRustType, ok := rustIntegerCastTypeForExpected(typeInfo.GetType(expr)); ok && rustIntegerTypeWidth(targetRustType) > 0 {
+					callRustType = targetRustType
+				}
+				out.WriteString("(")
+				writeConstNumericConversionOperand(out, expr.Args[0], callRustType)
+				out.WriteString(" as ")
+				out.WriteString(callRustType)
+				out.WriteString(")")
+				return
+			}
+		}
+	}
+	writeConstExpressionOperandAsRustInteger(out, arg, operandRustType)
+}
+
 func writeBareBasicNumericConversionValue(out *strings.Builder, call *ast.CallExpr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || call == nil || len(call.Args) != 1 || !typeInfo.IsTypeConversion(call) {
@@ -14528,7 +16005,7 @@ func writeBareBasicNumericConversionValue(out *strings.Builder, call *ast.CallEx
 	if needsParens {
 		out.WriteString("(")
 	}
-	writeNumericConversionValue(out, call.Args[0])
+	writeNumericConversionValueForRustType(out, call.Args[0], rustType)
 	if needsParens {
 		out.WriteString(")")
 	}
@@ -14799,11 +16276,23 @@ func writeUnsafePointerConversion(out *strings.Builder, arg ast.Expr) {
 				WriteWrapperSuffix(out)
 				return
 			}
+			if isGoPtrVar(ident.Name) {
+				out.WriteString(RustIdentForUse(ident))
+				out.WriteString(".addr()")
+				WriteWrapperSuffix(out)
+				return
+			}
 			if isSliceElemPtrVar(ident.Name) {
 				out.WriteString(`{ let __unsupported: usize = unimplemented!("unsafe.Pointer conversion from slice element pointer"); __unsupported }`)
 				WriteWrapperSuffix(out)
 				return
 			}
+		}
+		if sel, ok := unwrapParens(arg).(*ast.SelectorExpr); ok && generatedGoPtrFieldForSelector(sel) {
+			TranspileExpressionContext(out, sel, LValue)
+			out.WriteString(".addr()")
+			WriteWrapperSuffix(out)
+			return
 		}
 		out.WriteString(GetOuterWrapperType())
 		out.WriteString("::as_ptr(&")
@@ -14923,25 +16412,63 @@ func writeUnsafePointerIndexedElementAddress(out *strings.Builder, indexExpr *as
 	if typeInfo == nil || typeInfo.GetType(indexExpr.X) == nil {
 		return false
 	}
+	if writeUnsafePointerNestedIndexedElementAddress(out, indexExpr) {
+		return true
+	}
 	if !typeInfo.IsArray(indexExpr.X) && !typeInfo.IsSlice(indexExpr.X) && !typeInfo.IsPointerToArray(indexExpr.X) {
 		return false
 	}
 	out.WriteString("{ let __seq_holder = ")
-	if pointerArray, ok := pointerToArrayDerefOperand(indexExpr.X, typeInfo); ok {
-		TranspileExpressionContext(out, pointerArray, LValue)
-		out.WriteString(".clone()")
-	} else if _, _, ok := namedSliceTypeForExpr(indexExpr.X); ok {
-		writeNamedSliceInnerHandleClone(out, indexExpr.X)
-	} else {
-		TranspileExpressionContext(out, indexExpr.X, LValue)
-		out.WriteString(".clone()")
-	}
+	writeUnsafePointerIndexedSequenceHolder(out, indexExpr.X)
 	out.WriteString("; let __seq_guard = __seq_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString("; &__seq_guard.as_ref().unwrap()[")
 	writeExpressionAsUsize(out, indexExpr.Index)
 	out.WriteString("] as *const _ as usize }")
 	return true
+}
+
+func writeUnsafePointerNestedIndexedElementAddress(out *strings.Builder, indexExpr *ast.IndexExpr) bool {
+	outerIndex, ok := unwrapParens(indexExpr.X).(*ast.IndexExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.GetType(outerIndex.X) == nil || typeInfo.GetType(outerIndex) == nil {
+		return false
+	}
+	if typeInfo.IsMap(outerIndex.X) || typeInfo.IsMap(outerIndex) {
+		return false
+	}
+	if !typeInfo.IsArray(outerIndex.X) && !typeInfo.IsSlice(outerIndex.X) && !typeInfo.IsPointerToArray(outerIndex.X) {
+		return false
+	}
+	if !typeInfo.IsArray(outerIndex) && !typeInfo.IsSlice(outerIndex) && !typeInfo.IsPointerToArray(outerIndex) {
+		return false
+	}
+	out.WriteString("{ let __outer_holder = ")
+	writeUnsafePointerIndexedSequenceHolder(out, outerIndex.X)
+	out.WriteString("; let __outer_guard = __outer_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __inner_seq = &__outer_guard.as_ref().unwrap()[")
+	writeExpressionAsUsize(out, outerIndex.Index)
+	out.WriteString("]; &__inner_seq[")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("] as *const _ as usize }")
+	return true
+}
+
+func writeUnsafePointerIndexedSequenceHolder(out *strings.Builder, expr ast.Expr) {
+	typeInfo := GetTypeInfo()
+	if pointerArray, ok := pointerToArrayDerefOperand(expr, typeInfo); ok {
+		TranspileExpressionContext(out, pointerArray, LValue)
+		out.WriteString(".clone()")
+	} else if _, _, ok := namedSliceTypeForExpr(expr); ok {
+		writeNamedSliceInnerHandleClone(out, expr)
+	} else {
+		TranspileExpressionContext(out, expr, LValue)
+		out.WriteString(".clone()")
+	}
 }
 
 func pointerToArrayDerefOperand(expr ast.Expr, typeInfo *TypeInfo) (ast.Expr, bool) {
@@ -15128,6 +16655,33 @@ func localInterfacePointerAssertionWrapperForAssert(e *ast.TypeAssertExpr) (wrap
 		return "", "", false
 	}
 	return localInterfacePointerAssertionWrapperFor(typeInfo.GetType(e.X), targetType)
+}
+
+func sourceMappedPointerInterfaceAssertionWrapperForAssert(e *ast.TypeAssertExpr) (wrapperType string, pointeeRustType string, ok bool) {
+	if e == nil || e.Type == nil {
+		return "", "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return "", "", false
+	}
+	targetType, ok := typeInfoTypeForTypeExpr(e.Type)
+	if !ok {
+		return "", "", false
+	}
+	wrapperType, ok = sourceMappedPointerInterfaceWrapperTypeForTypes(typeInfo.GetType(e.X), targetType)
+	if !ok {
+		return "", "", false
+	}
+	ptr, ok := types.Unalias(targetType).(*types.Pointer)
+	if !ok {
+		return "", "", false
+	}
+	elemNamed, ok := types.Unalias(ptr.Elem()).(*types.Named)
+	if !ok {
+		return "", "", false
+	}
+	return wrapperType, goTypesNamedTypeToRust(elemNamed), true
 }
 
 func typeAssertionSourceUsesTraitObject(expr ast.Expr) bool {
@@ -15797,6 +17351,10 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 		writeTraitObjectPointerAssertionCommaOk(out, e, wrapperType, pointeeRustType)
 		return
 	}
+	if wrapperType, pointeeRustType, ok := sourceMappedPointerInterfaceAssertionWrapperForAssert(e); ok {
+		writeTraitObjectPointerAssertionCommaOk(out, e, wrapperType, pointeeRustType)
+		return
+	}
 
 	// Get the Rust type for the assertion
 	rustType := ""
@@ -16397,23 +17955,7 @@ func writeCurrentReceiverPromotedMethodCall(out *strings.Builder, sel *ast.Selec
 	if !ok || !isCurrentReceiverIdent(recvIdent) {
 		return false
 	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || typeInfo.info == nil {
-		return false
-	}
-	selection, ok := typeInfo.info.Selections[sel]
-	if !ok || selection.Kind() != types.MethodVal {
-		return false
-	}
-	indexes := selection.Index()
-	if len(indexes) < 2 {
-		return false
-	}
-	fields, ok := promotedFieldPath(selection.Recv(), indexes[:len(indexes)-1])
-	if !ok || len(fields) == 0 {
-		return false
-	}
-	fn, ok := selection.Obj().(*types.Func)
+	fields, fn, ok := promotedMethodCallInfo(sel)
 	if !ok {
 		return false
 	}
@@ -16513,6 +18055,247 @@ func writeCurrentReceiverPromotedMethodCall(out *strings.Builder, sel *ast.Selec
 	return true
 }
 
+func writeElemPtrCallResultFieldMethodCall(out *strings.Builder, fieldSel *ast.SelectorExpr, sel *ast.SelectorExpr, call *ast.CallExpr) bool {
+	receiverCall, ok := fieldSel.X.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	if _, ok := sliceElemPtrReturnInfoForCall(receiverCall); !ok {
+		if _, ok := arrayElemPtrResultInfoForCall(receiverCall, 0); !ok {
+			return false
+		}
+	}
+	fieldInfo := selectorFieldAccessInfo(fieldSel)
+	if fieldInfo.FieldName == "" {
+		return false
+	}
+
+	out.WriteString("{ let __recv = ")
+	TranspileExpression(out, receiverCall)
+	out.WriteString("; let __field = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap())")
+	if fieldInfo.IsPromoted {
+		for _, embedded := range fieldInfo.EmbeddedPath {
+			out.WriteString(".")
+			out.WriteString(ToSnakeCase(embedded))
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()")
+		}
+	}
+	out.WriteString(".")
+	out.WriteString(fieldInfo.FieldName)
+	out.WriteString(".clone(); let __result = (*__field")
+	fieldNeedsMut := methodCallNeedsMutableReceiver(sel)
+	WriteBorrowMethod(out, fieldNeedsMut)
+	if fieldNeedsMut {
+		out.WriteString(".as_mut().unwrap()).")
+	} else {
+		out.WriteString(".as_ref().unwrap()).")
+	}
+	out.WriteString(rustMethodSelectorName(sel))
+	out.WriteString("(")
+
+	var args strings.Builder
+	externalStdlibStubMethodCall := IsExternalStdlibSelectorMethod(sel)
+	bareArgumentMethodCall := methodCallUsesBareArguments(sel)
+	if !writeMethodCallArguments(&args, sel, call, externalStdlibStubMethodCall, bareArgumentMethodCall) {
+		for i, arg := range call.Args {
+			if i > 0 {
+				args.WriteString(", ")
+			}
+			if externalStdlibStubMethodCall {
+				writeExternalStubCallArgument(&args, arg, selectedMethodParamType(sel, i))
+			} else if bareArgumentMethodCall {
+				writeBareMethodCallArgument(&args, sel, arg, i)
+			} else {
+				writeRegularMethodCallArgument(&args, sel, call, arg, i)
+			}
+		}
+	}
+	out.WriteString(args.String())
+	out.WriteString("); __result }")
+	return true
+}
+
+func writeGoPtrFieldMethodCall(out *strings.Builder, fieldSel *ast.SelectorExpr, sel *ast.SelectorExpr, call *ast.CallExpr) bool {
+	if _, ok := sliceElemPtrFieldInfoForSelector(fieldSel); !ok {
+		return false
+	}
+	out.WriteString("{ let __recv_field = ")
+	TranspileExpressionContext(out, fieldSel, LValue)
+	out.WriteString(".clone()")
+	needsMut := methodCallNeedsMutableReceiver(sel)
+	if needsMut {
+		out.WriteString("; let __result = __recv_field.with_mut(|__recv_value| __recv_value.")
+	} else {
+		out.WriteString("; let __recv_value = __recv_field.borrow(); let __result = (*__recv_value.as_ref().unwrap()).")
+	}
+	out.WriteString(rustMethodSelectorName(sel))
+	out.WriteString("(")
+
+	externalStdlibStubMethodCall := IsExternalStdlibSelectorMethod(sel)
+	bareArgumentMethodCall := methodCallUsesBareArguments(sel)
+	if !writeMethodCallArguments(out, sel, call, externalStdlibStubMethodCall, bareArgumentMethodCall) {
+		for i, arg := range call.Args {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			if externalStdlibStubMethodCall {
+				writeExternalStubCallArgument(out, arg, selectedMethodParamType(sel, i))
+			} else if bareArgumentMethodCall {
+				writeBareMethodCallArgument(out, sel, arg, i)
+			} else {
+				writeRegularMethodCallArgument(out, sel, call, arg, i)
+			}
+		}
+	}
+	if needsMut {
+		out.WriteString(")); __result }")
+	} else {
+		out.WriteString("); __result }")
+	}
+	return true
+}
+
+func promotedMethodCallInfo(sel *ast.SelectorExpr) ([]string, *types.Func, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil, nil, false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	if !ok || selection.Kind() != types.MethodVal {
+		return nil, nil, false
+	}
+	indexes := selection.Index()
+	if len(indexes) < 2 {
+		return nil, nil, false
+	}
+	fields, ok := promotedFieldPath(selection.Recv(), indexes[:len(indexes)-1])
+	if !ok || len(fields) == 0 {
+		return nil, nil, false
+	}
+	fn, ok := selection.Obj().(*types.Func)
+	if !ok {
+		return nil, nil, false
+	}
+	return fields, fn, true
+}
+
+func writeElemPtrPromotedMethodCall(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr) bool {
+	recvIdent, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	isSliceElemPtr := isSliceElemPtrVar(recvIdent.Name)
+	isArrayElemPtr := isArrayElemPtrVar(recvIdent.Name)
+	if !isSliceElemPtr && !isArrayElemPtr {
+		return false
+	}
+	writeElemPtrBorrow := func(mutable bool) bool {
+		if isSliceElemPtr {
+			writeSliceElemPtrBorrow(out, recvIdent, mutable)
+			return true
+		}
+		if isArrayElemPtr {
+			writeArrayElemPtrBorrow(out, recvIdent, mutable)
+			return true
+		}
+		return false
+	}
+	fields, fn, ok := promotedMethodCallInfo(sel)
+	if !ok {
+		return false
+	}
+	needsMut := methodCallNeedsMutableReceiver(sel)
+
+	if len(fields) == 1 {
+		out.WriteString("{ let __promoted_recv = (*")
+		writeElemPtrBorrow(false)
+		out.WriteString(".as_ref().unwrap()).")
+		out.WriteString(fields[0])
+		out.WriteString(".clone(); ")
+		if needsMut {
+			out.WriteString("let mut __promoted_guard = __promoted_recv")
+			WriteBorrowMethod(out, true)
+			out.WriteString("; let __promoted_ref = __promoted_guard.as_mut().unwrap(); ")
+		} else {
+			out.WriteString("let __promoted_guard = __promoted_recv")
+			WriteBorrowMethod(out, false)
+			out.WriteString("; let __promoted_ref = __promoted_guard.as_ref().unwrap(); ")
+		}
+		out.WriteString("let __result = __promoted_ref.")
+		out.WriteString(rustMethodNameForTypesFunc(fn))
+		out.WriteString("(")
+		if !writeMethodCallArguments(out, sel, call, IsExternalStdlibSelectorMethod(sel), methodCallUsesBareArguments(sel)) {
+			for i, arg := range call.Args {
+				if i > 0 {
+					out.WriteString(", ")
+				}
+				writeRegularMethodCallArgument(out, sel, call, arg, i)
+			}
+		}
+		out.WriteString("); __result }")
+		return true
+	}
+
+	out.WriteString("{ ")
+	for i, field := range fields {
+		index := strconv.Itoa(i)
+		out.WriteString("let __promoted_recv_")
+		out.WriteString(index)
+		out.WriteString(" = ")
+		if i == 0 {
+			out.WriteString("(*")
+			writeElemPtrBorrow(false)
+			out.WriteString(".as_ref().unwrap())")
+		} else {
+			out.WriteString("__promoted_ref_")
+			out.WriteString(strconv.Itoa(i - 1))
+		}
+		out.WriteString(".")
+		out.WriteString(field)
+		out.WriteString(".clone(); ")
+		finalField := i == len(fields)-1
+		if finalField && needsMut {
+			out.WriteString("let mut __promoted_guard_")
+			out.WriteString(index)
+			out.WriteString(" = __promoted_recv_")
+			out.WriteString(index)
+			WriteBorrowMethod(out, true)
+			out.WriteString("; let __promoted_ref_")
+			out.WriteString(index)
+			out.WriteString(" = __promoted_guard_")
+			out.WriteString(index)
+			out.WriteString(".as_mut().unwrap(); ")
+		} else {
+			out.WriteString("let __promoted_guard_")
+			out.WriteString(index)
+			out.WriteString(" = __promoted_recv_")
+			out.WriteString(index)
+			WriteBorrowMethod(out, false)
+			out.WriteString("; let __promoted_ref_")
+			out.WriteString(index)
+			out.WriteString(" = __promoted_guard_")
+			out.WriteString(index)
+			out.WriteString(".as_ref().unwrap(); ")
+		}
+	}
+	out.WriteString("let __result = __promoted_ref_")
+	out.WriteString(strconv.Itoa(len(fields) - 1))
+	out.WriteString(".")
+	out.WriteString(rustMethodNameForTypesFunc(fn))
+	out.WriteString("(")
+	if !writeMethodCallArguments(out, sel, call, IsExternalStdlibSelectorMethod(sel), methodCallUsesBareArguments(sel)) {
+		for i, arg := range call.Args {
+			if i > 0 {
+				out.WriteString(", ")
+			}
+			writeRegularMethodCallArgument(out, sel, call, arg, i)
+		}
+	}
+	out.WriteString("); __result }")
+	return true
+}
+
 func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	if writeInternalABITypeOfMapTypeCall(out, call) {
 		return
@@ -16559,6 +18342,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	if writeMutatingSourceTypeParamSliceCallWithConcreteArgs(out, call) {
 		return
 	}
+	if writeNoEscapeElemPtrCall(out, call) {
+		return
+	}
 
 	if len(call.Args) == 1 {
 		if target, ok := pointerTypeConversionTargetFromCall(call); ok {
@@ -16578,7 +18364,14 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			if ident, ok := sel.X.(*ast.Ident); ok && isVarBare(ident.Name) {
 				WriteWrapperPrefix(out)
 				out.WriteString("format!(\"{}\", ")
-				out.WriteString(rustIdentForUseWithCapture(ident))
+				if typeInfo != nil && isGoErrorType(typeInfo.GetType(ident)) {
+					out.WriteString("(*")
+					out.WriteString(rustIdentForUseWithCapture(ident))
+					WriteBorrowMethod(out, false)
+					out.WriteString(".as_ref().unwrap())")
+				} else {
+					out.WriteString(rustIdentForUseWithCapture(ident))
+				}
 				out.WriteString(")")
 				WriteWrapperSuffix(out)
 				return
@@ -16644,6 +18437,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					return
 				}
 			}
+			goPtrHelperQualifier := ""
+			if !isExternalStdlibStubCall {
+				goPtrHelperQualifier = packageSelectorCrateName(sel)
+			}
 			for i, arg := range call.Args {
 				if i > 0 {
 					out.WriteString(", ")
@@ -16668,6 +18465,13 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 						continue
 					}
 					if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
+						continue
+					}
+					if info, ok := goPtrParamResultInfoForCall(call, i); ok {
+						if writeGoPtrCallArgumentWithQualifierForInfo(out, arg, info, goPtrHelperQualifier) {
+							continue
+						}
+						out.WriteString(`unimplemented!("GoPtr parameter argument requires pointer-compatible value")`)
 						continue
 					}
 					if writeReadOnlyTypeParamSliceCallArgument(out, call, i, arg, expectedArgType) {
@@ -16715,6 +18519,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				WriteWrapperPrefix(out)
 				if expectedArgType != nil && writeConstExpressionForExpectedGoType(out, arg, expectedArgType) {
 					// Constant emitted in the parameter's expected representation.
+				} else if expectedArgType == nil && writeConstExpressionForTypeInfoType(out, arg) {
+					// Constant emitted in its contextual go/types representation.
 				} else if expectedArgType != nil && writeRangeStringCallArgumentValue(out, arg, expectedArgType) {
 					// Range string reference cloned for an owned string parameter.
 				} else if expectedArgType != nil && writeRangeCharForExpectedType(out, arg, expectedArgType) {
@@ -16749,6 +18555,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		if writeCurrentReceiverPromotedMethodCall(out, sel, call) {
 			return
 		}
+		if writeElemPtrPromotedMethodCall(out, sel, call) {
+			return
+		}
 
 		// This is a method call - handle it specially
 		// For method calls, we need to check if the receiver is a wrapped type or not
@@ -16758,6 +18567,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		// Check what kind of receiver we have
 		needsUnwrap := false
 		closeReceiverBlock := false
+		receiverBlockSuffix := "; __result }"
 
 		// A named-integer constant receiver (current-package or
 		// source-transpiled stdlib) is emitted as a raw scalar, so calling a
@@ -16778,6 +18588,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString(")")
 				return
 			}
+		}
+		if writeNamedIntegerValueReceiverMethodCall(out, sel, call) {
+			return
 		}
 
 		// Check if the receiver is a simple identifier (local variable)
@@ -16821,15 +18634,19 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				} else {
 					out.WriteString(".as_ref().unwrap()).")
 				}
-			} else if isGoPtrVar(ident.Name) {
+			} else if isGoPtrIdent(ident) {
 				if methodCallNeedsMutableReceiver(sel) {
-					out.WriteString(`unimplemented!("GoPtr local method call requires mutable receiver support")`)
-					return
+					out.WriteString("{ let __result = ")
+					out.WriteString(rustIdentForUseWithCapture(ident))
+					out.WriteString(".with_mut(|__recv_value| __recv_value.")
+					closeReceiverBlock = true
+					receiverBlockSuffix = "); __result }"
+				} else {
+					out.WriteString("{ let __recv_value = ")
+					out.WriteString(rustIdentForUseWithCapture(ident))
+					out.WriteString(".borrow(); let __result = (*__recv_value.as_ref().unwrap()).")
+					closeReceiverBlock = true
 				}
-				out.WriteString("{ let __recv_value = ")
-				out.WriteString(rustIdentForUseWithCapture(ident))
-				out.WriteString(".borrow(); let __result = (*__recv_value.as_ref().unwrap()).")
-				closeReceiverBlock = true
 			} else if isArrayElemPtrVar(ident.Name) {
 				needsMut := methodCallNeedsMutableReceiver(sel)
 				out.WriteString("(*")
@@ -16937,6 +18754,12 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				closeReceiverBlock = shouldClose
 			}
 		} else if fieldSel, ok := sel.X.(*ast.SelectorExpr); ok {
+			if writeElemPtrCallResultFieldMethodCall(out, fieldSel, sel, call) {
+				return
+			}
+			if writeGoPtrFieldMethodCall(out, fieldSel, sel, call) {
+				return
+			}
 			isBareSyncFieldMethodCall := false
 			typeInfo := GetTypeInfo()
 			if typeInfo != nil {
@@ -16978,6 +18801,28 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					out.WriteString(".borrow_mut().as_mut().unwrap()).")
 				} else {
 					out.WriteString(".borrow().as_ref().unwrap()).")
+				}
+				closeReceiverBlock = true
+			} else if _, ok := arrayElemPtrResultInfoForCall(receiverCall, 0); ok {
+				needsMut := methodCallNeedsMutableReceiver(sel)
+				out.WriteString("{ let __recv = ")
+				TranspileExpression(out, receiverCall)
+				out.WriteString("; let __result = (*__recv.as_ref().unwrap()")
+				if needsMut {
+					out.WriteString(".borrow_mut().as_mut().unwrap()).")
+				} else {
+					out.WriteString(".borrow().as_ref().unwrap()).")
+				}
+				closeReceiverBlock = true
+			} else if _, ok := goPtrResultInfoForCall(receiverCall, 0); ok {
+				needsMut := methodCallNeedsMutableReceiver(sel)
+				out.WriteString("{ let __recv = ")
+				TranspileExpression(out, receiverCall)
+				if needsMut {
+					out.WriteString("; let __result = __recv.with_mut(|__recv_value| __recv_value.")
+					receiverBlockSuffix = "); __result }"
+				} else {
+					out.WriteString("; let __recv_value = __recv.borrow(); let __result = (*__recv_value.as_ref().unwrap()).")
 				}
 				closeReceiverBlock = true
 			} else if methodReceiverExpressionNeedsUnwrap(sel.X) {
@@ -17053,7 +18898,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		}
 		out.WriteString(")")
 		if closeReceiverBlock {
-			out.WriteString("; __result }")
+			out.WriteString(receiverBlockSuffix)
 		}
 		return
 	}
@@ -17095,6 +18940,8 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 	} else if typeAssert, ok := call.Fun.(*ast.TypeAssertExpr); ok && typeAssertionEmitsBareFunctionValue(typeAssert) {
 		writeFunctionTypeAssertionCallTarget(out, typeAssert)
 		closureCallSuffix = "\n        } else {\n            panic!(\"type assertion on nil interface\")\n        }\n    })"
+	} else if star, ok := unwrapParens(call.Fun).(*ast.StarExpr); ok && writeFunctionPointerDerefCallTarget(out, star) {
+		closureCallSuffix = " }"
 	} else {
 		// Complex expression for the function (e.g., function returning a function)
 		out.WriteString("{ let __f_holder = ")
@@ -17144,7 +18991,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				out.WriteString(", ")
 			}
 			expectedArgType := callParamTypeFromTypeInfo(call, i)
-			writeFunctionSignatureCallArgument(out, call.Args[i], expectedArgType)
+			writeFunctionSignatureCallArgumentForCall(out, call, i, call.Args[i], expectedArgType)
 		}
 
 		// Now handle variadic args
@@ -17358,6 +19205,14 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 
 				if writeReadOnlyTypeParamSliceCallArgument(out, call, i, arg, expectedArgType) {
+					continue
+				}
+
+				if info, ok := goPtrParamResultInfoForCall(call, i); ok {
+					if writeGoPtrCallArgumentWithQualifierForInfo(out, arg, info, goPtrHelperQualifierForCall(call)) {
+						continue
+					}
+					out.WriteString(`unimplemented!("GoPtr parameter argument requires pointer-compatible value")`)
 					continue
 				}
 
@@ -17599,6 +19454,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					WriteWrapperPrefix(out)
 					writeLenCapCallArgumentForExpectedType(out, arg, expectedArgType)
 					WriteWrapperSuffix(out)
+				} else if transpiledInterfaceMethodCallArgumentNeedsScope(arg) {
+					WriteWrapperPrefix(out)
+					writeScopedTranspiledInterfaceMethodCallArgumentValue(out, arg)
+					WriteWrapperSuffix(out)
 				} else if typeInfo != nil && typeInfo.ReturnsWrappedValue(callArg) && !callReturnsBareChannelValue(callArg) {
 					TranspileExpression(out, arg)
 				} else {
@@ -17653,6 +19512,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					}
 				} else if expectedArgType != nil && writeConstExpressionForExpectedGoType(out, arg, expectedArgType) {
 					// Constant emitted in the parameter's expected representation.
+				} else if expectedArgType == nil && writeConstExpressionForTypeInfoType(out, arg) {
+					// Constant emitted in its contextual go/types representation.
+				} else if paramTypeForArg != nil && writeExpressionForExpectedType(out, arg, paramTypeForArg) {
+					// Constant emitted in the parameter syntax type's expected representation.
 				} else if lit, ok := arg.(*ast.BasicLit); ok && writeCharLiteralForExpectedType(out, lit, paramTypeForArg) {
 					// Character literal emitted as byte.
 				} else if writeOwnedExpressionValue(out, arg) {
@@ -17894,7 +19757,7 @@ func writeVariadicCallArgumentsFromTypes(out *strings.Builder, call *ast.CallExp
 		if i > 0 {
 			out.WriteString(", ")
 		}
-		writeFunctionSignatureCallArgument(out, call.Args[i], params.At(i).Type())
+		writeFunctionSignatureCallArgumentForCall(out, call, i, call.Args[i], params.At(i).Type())
 	}
 
 	if variadicStart > 0 {
@@ -18137,6 +20000,8 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 	WriteWrapperPrefix(out)
 	if writeConstExpressionForExpectedGoType(out, arg, expected) {
 		// Constant emitted in the parameter's expected representation.
+	} else if expected == nil && writeConstExpressionForTypeInfoType(out, arg) {
+		// Constant emitted in its contextual go/types representation.
 	} else if writeRangeStringCallArgumentValue(out, arg, expected) {
 		// Range string reference cloned for an owned string parameter.
 	} else if writeRangeCharForExpectedType(out, arg, expected) {
@@ -18149,6 +20014,17 @@ func writeFunctionSignatureCallArgument(out *strings.Builder, arg ast.Expr, expe
 		TranspileExpression(out, arg)
 	}
 	WriteWrapperSuffix(out)
+}
+
+func writeFunctionSignatureCallArgumentForCall(out *strings.Builder, call *ast.CallExpr, paramIndex int, arg ast.Expr, expected types.Type) {
+	if info, ok := goPtrParamResultInfoForCall(call, paramIndex); ok {
+		if writeGoPtrCallArgumentWithQualifierForInfo(out, arg, info, goPtrHelperQualifierForCall(call)) {
+			return
+		}
+		out.WriteString(`unimplemented!("GoPtr parameter argument requires pointer-compatible value")`)
+		return
+	}
+	writeFunctionSignatureCallArgument(out, arg, expected)
 }
 
 func writeTypeParamIdentValueCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
@@ -18651,6 +20527,9 @@ func writeAlreadyWrappedSelectorCallArgument(out *strings.Builder, arg ast.Expr,
 	if !ok {
 		return false
 	}
+	if isExpressionResultBare(sel.X) && !bareSelectorOwnerCanProvideFieldHandle(sel.X) {
+		return false
+	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
 		return false
@@ -18665,6 +20544,18 @@ func writeAlreadyWrappedSelectorCallArgument(out *strings.Builder, arg ast.Expr,
 	}
 	writeSelectorHandleClone(out, sel)
 	return true
+}
+
+func bareSelectorOwnerCanProvideFieldHandle(expr ast.Expr) bool {
+	ident, ok := unwrapParens(expr).(*ast.Ident)
+	if !ok {
+		return false
+	}
+	if isCurrentReceiverIdent(ident) {
+		return true
+	}
+	info := lookupVarInfo(ident.Name)
+	return info != nil && info.WrapLevel == WrapNone
 }
 
 func writeNamedSliceInnerHandleCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {

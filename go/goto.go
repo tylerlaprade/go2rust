@@ -129,10 +129,12 @@ func TranspileGotoStatementList(out *strings.Builder, stmts []ast.Stmt, fnType *
 	closeBackwardLabelsEndingAt := func(index int) {
 		for len(backwardStack) > 0 && backwardStack[len(backwardStack)-1].end == index {
 			top := backwardStack[len(backwardStack)-1]
-			out.WriteString(currentIndent())
-			out.WriteString("break '")
-			out.WriteString(top.label)
-			out.WriteString(";\n")
+			if index < 0 || index >= len(stmts) || !stmtPreventsSyntheticBackwardBreak(stmts[index], top.label) {
+				out.WriteString(currentIndent())
+				out.WriteString("break '")
+				out.WriteString(top.label)
+				out.WriteString(";\n")
+			}
 			out.WriteString(indent)
 			out.WriteString(strings.Repeat("    ", len(forwardStack)+len(backwardStack)-1))
 			out.WriteString("};\n")
@@ -181,10 +183,12 @@ func TranspileGotoStatementList(out *strings.Builder, stmts []ast.Stmt, fnType *
 	}
 	for len(backwardStack) > 0 {
 		top := backwardStack[len(backwardStack)-1]
-		out.WriteString(currentIndent())
-		out.WriteString("break '")
-		out.WriteString(top.label)
-		out.WriteString(";\n")
+		if len(stmts) == 0 || !stmtPreventsSyntheticBackwardBreak(stmts[len(stmts)-1], top.label) {
+			out.WriteString(currentIndent())
+			out.WriteString("break '")
+			out.WriteString(top.label)
+			out.WriteString(";\n")
+		}
 		out.WriteString(indent)
 		out.WriteString(strings.Repeat("    ", len(forwardStack)+len(backwardStack)-1))
 		out.WriteString("};\n")
@@ -194,6 +198,43 @@ func TranspileGotoStatementList(out *strings.Builder, stmts []ast.Stmt, fnType *
 		closeForwardLabel(forwardStack[len(forwardStack)-1])
 	}
 	return prevStmt
+}
+
+func stmtPreventsSyntheticBackwardBreak(stmt ast.Stmt, label string) bool {
+	if stmtTerminates(stmt) {
+		return true
+	}
+	switch s := stmt.(type) {
+	case *ast.BranchStmt:
+		return s.Tok == token.GOTO && s.Label != nil && ToSnakeCase(s.Label.Name) == label
+	case *ast.BlockStmt:
+		return stmtListPreventsSyntheticBackwardBreak(s.List, label)
+	case *ast.IfStmt:
+		if s.Else == nil {
+			return false
+		}
+		return stmtListPreventsSyntheticBackwardBreak(s.Body.List, label) &&
+			stmtPreventsSyntheticBackwardBreak(s.Else, label)
+	case *ast.LabeledStmt:
+		return stmtPreventsSyntheticBackwardBreak(s.Stmt, label)
+	default:
+		return false
+	}
+}
+
+func stmtListPreventsSyntheticBackwardBreak(stmts []ast.Stmt, label string) bool {
+	for _, stmt := range stmts {
+		if _, ok := stmt.(*ast.EmptyStmt); ok {
+			continue
+		}
+		if stmtPreventsSyntheticBackwardBreak(stmt, label) {
+			return true
+		}
+		if stmtTerminates(stmt) {
+			return true
+		}
+	}
+	return false
 }
 
 func forwardLabelStarts(plan gotoPlan) map[int][]string {

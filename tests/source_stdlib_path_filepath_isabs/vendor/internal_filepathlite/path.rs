@@ -15,6 +15,20 @@ fn __go_init_globals() {
 }
 
 
+pub(crate) fn __go_zero_globals() {
+    *errInvalidPath.lock().unwrap() = None;
+}
+
+
+pub(crate) fn __go_init_order_0() {
+    { let __rhs_holder = Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("invalid path".to_string())))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *errInvalidPath.lock().unwrap() = new_val; }
+}
+
+
+pub(crate) fn __go_init_functions() {
+}
+
+
 pub(crate) fn __go_init_all() {
     self::__go_init_globals();
 }

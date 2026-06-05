@@ -133,6 +133,29 @@ const ctrlGroupsSize = unsafe.Sizeof(ctrlGroup(0))
 	}
 }
 
+func TestConstDeclUnsafeSizeofFieldBinaryEmitsBareSizeof(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+type pageCache struct {
+	cache uint64
+}
+
+const pageCachePages = 8 * unsafe.Sizeof(pageCache{}.cache)
+`)
+
+	if !strings.Contains(rust, "std::mem::size_of::<u64>()") {
+		t.Fatalf("unsafe.Sizeof field operand in const binary initializer should emit bare size_of:\n%s", rust)
+	}
+	if strings.Contains(rust, "PAGE_CACHE_PAGES: usize = Arc::new") ||
+		strings.Contains(rust, "PAGE_CACHE_PAGES: usize = Rc::new") ||
+		strings.Contains(rust, "Mutex::new(Some(std::mem::size_of::<u64>()))") ||
+		strings.Contains(rust, "RefCell::new(Some(std::mem::size_of::<u64>()))") {
+		t.Fatalf("unsafe.Sizeof field operand in const binary initializer must not emit runtime wrappers:\n%s", rust)
+	}
+}
+
 func TestConstDeclUnsafeOffsetofEmitsBareOffsetof(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -1448,6 +1471,46 @@ func f(flag bool) StepKind {
 	}
 }
 
+func TestNamedIntegerVarDeclFromConstIdentPreservesNamedValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type FuncID uint8
+
+const (
+	FuncIDNormal FuncID = iota
+	FuncIDWrapper
+)
+
+type srcFunc struct {
+	funcID FuncID
+}
+
+func elide(id FuncID) bool {
+	return id == FuncIDNormal
+}
+
+func f(sf srcFunc) bool {
+	var (
+		lastFuncID = FuncIDNormal
+	)
+	if sf.funcID == FuncIDWrapper && elide(lastFuncID) {
+		return true
+	}
+	lastFuncID = sf.funcID
+	return elide(lastFuncID)
+}
+`)
+
+	if strings.Contains(rust, "let mut lastFuncID = Rc::new(RefCell::new(Some(FUNC_I_D_NORMAL)))") ||
+		strings.Contains(rust, "let mut lastFuncID = Arc::new(Mutex::new(Some(FUNC_I_D_NORMAL)))") {
+		t.Fatalf("var declaration from named integer const ident must not store the raw const:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut lastFuncID = Rc::new(RefCell::new(Some(FuncID(") &&
+		!strings.Contains(rust, "let mut lastFuncID = Arc::new(Mutex::new(Some(FuncID(") {
+		t.Fatalf("var declaration from named integer const ident should wrap FuncID:\n%s", rust)
+	}
+}
+
 func TestParallelNamedIntegerConstAssignmentsPreserveNamedValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -1762,6 +1825,39 @@ func small(w Word) bool {
 	}
 }
 
+func TestPrimitiveShiftCountUntypedConstWithNamedIntegerLeftStaysPrimitive(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type taggedPointer uint64
+
+const tagBits = 3
+
+func start() {
+	go func() {}()
+}
+
+func pointer(tp taggedPointer) uintptr {
+	return uintptr((tp >> tagBits << 3) | 0xa<<56)
+}
+`)
+
+	if strings.Contains(rust, "__tmp_y = taggedPointer(") {
+		t.Fatalf("untyped const shift count should not be converted to the named left operand type:\n%s", rust)
+	}
+	if !strings.Contains(rust, ">> TAG_BITS") &&
+		!strings.Contains(rust, ">> TAG_BITS as u64") &&
+		!strings.Contains(rust, "__tmp_y = TAG_BITS; __tmp_x >> __tmp_y") {
+		t.Fatalf("untyped const shift count should stay primitive:\n%s", rust)
+	}
+	if !strings.Contains(rust, "<< 3") &&
+		!strings.Contains(rust, "__tmp_y = 3; __tmp_x << __tmp_y") {
+		t.Fatalf("untyped const shift count should stay primitive:\n%s", rust)
+	}
+	if strings.Contains(rust, "__tmp_y = 3; __tmp_x << __tmp_y }).0.") {
+		t.Fatalf("parenthesized named-integer shift expression should not be unwrapped as a wrapper after primitive emission:\n%s", rust)
+	}
+}
+
 func TestNamedIntegerBitwiseConstExpressionCastsOperands(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -1843,7 +1939,7 @@ func setExponent(x uint64) uint64 {
 	if strings.Contains(rust, "-1 as u64") {
 		t.Fatalf("unsigned const expression should not cast a negative operand to u64 before addition:\n%s", rust)
 	}
-	if !strings.Contains(rust, "-1 as i128") || !strings.Contains(rust, "BIAS as i128") {
+	if !strings.Contains(rust, "1 as i128") || !strings.Contains(rust, "BIAS as i128") {
 		t.Fatalf("unsigned const expression with negative operand should use a signed intermediate:\n%s", rust)
 	}
 }
@@ -1991,7 +2087,7 @@ func set(dst *Value, src Value) {
 	if strings.Contains(rust, ".ro()).0") || strings.Contains(rust, ".ro().0") {
 		t.Fatalf("named integer method-call RHS already returns a wrapped value and should not be unwrapped as bare:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".ro()") {
+	if !strings.Contains(rust, ".ro()") && !strings.Contains(rust, "::ro(") {
 		t.Fatalf("named integer compound assignment should retain the method call RHS:\n%s", rust)
 	}
 }

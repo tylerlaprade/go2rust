@@ -27,27 +27,31 @@ type PackageInfo struct {
 
 // UnifiedTranspiler handles transpilation of main package and all dependencies together
 type UnifiedTranspiler struct {
-	workDir        string
-	vendorDir      string
-	mainPackage    *PackageInfo
-	vendorPackages map[string]*PackageInfo // import path -> package info
-	globalTypeInfo *TypeInfo               // Shared across ALL packages
-	packageMapping map[string]string       // Go import -> Rust crate name
-	fileSet        *token.FileSet
-	allASTFiles    []*ast.File // All AST files from all packages
-	rustOutputDir  string      // Temporary directory for Rust output
+	workDir              string
+	vendorDir            string
+	mainPackage          *PackageInfo
+	vendorPackages       map[string]*PackageInfo // import path -> package info
+	globalTypeInfo       *TypeInfo               // Shared across ALL packages
+	packageMapping       map[string]string       // Go import -> Rust crate name
+	goPtrReturnFuncNames map[string]map[int]goPtrResultInfo
+	generatedGoPtrFields map[string]bool
+	fileSet              *token.FileSet
+	allASTFiles          []*ast.File // All AST files from all packages
+	rustOutputDir        string      // Temporary directory for Rust output
 }
 
 // NewUnifiedTranspiler creates a new unified transpiler
 func NewUnifiedTranspiler(workDir string, mainFiles []string) *UnifiedTranspiler {
 	return &UnifiedTranspiler{
-		workDir:        workDir,
-		vendorDir:      filepath.Join(workDir, "vendor"),
-		vendorPackages: make(map[string]*PackageInfo),
-		packageMapping: make(map[string]string),
-		fileSet:        token.NewFileSet(),
-		allASTFiles:    []*ast.File{},
-		rustOutputDir:  filepath.Join(workDir, ".rust_vendor_output"),
+		workDir:              workDir,
+		vendorDir:            filepath.Join(workDir, "vendor"),
+		vendorPackages:       make(map[string]*PackageInfo),
+		packageMapping:       make(map[string]string),
+		goPtrReturnFuncNames: make(map[string]map[int]goPtrResultInfo),
+		generatedGoPtrFields: make(map[string]bool),
+		fileSet:              token.NewFileSet(),
+		allASTFiles:          []*ast.File{},
+		rustOutputDir:        filepath.Join(workDir, ".rust_vendor_output"),
 	}
 }
 
@@ -344,19 +348,24 @@ func (ut *UnifiedTranspiler) transpilePackage(pkg *PackageInfo) error {
 	pkgState.MapKeyStructTypes = packageAnalysis.mapKeyStructTypes
 	pkgState.ComparableStructTypes = packageAnalysis.comparableStructTypes
 	pkgState.ImportedInterfaceImpls = packageAnalysis.importedInterfaceImpls
+	pkgState.ImportedPointerInterfaceImpls = packageAnalysis.importedPointerInterfaceImpls
 	pkgState.ExternalLocalInterfaceImpls = packageAnalysis.externalLocalInterfaceImpls(collectPackageInterfaceDecls(pkg.ASTFiles))
+	session := NewTranspileSession(ut.globalTypeInfo, ut.packageMapping)
+	session.GoPtrReturnFuncNames = ut.goPtrReturnFuncNames
+	session.GeneratedGoPtrFields = ut.generatedGoPtrFields
 	runCtx := &TranspileContext{
-		Session:        NewTranspileSession(ut.globalTypeInfo, ut.packageMapping),
+		Session:        session,
 		Package:        pkgState,
 		PackageMapping: ut.packageMapping,
 	}
 	SetTranspileContext(runCtx)
 	defer SetTranspileContext(parentCtx)
+	registerPackageTypeFactsFromFiles(pkg.ASTFiles)
+	registerFunctionSignaturesFromFiles(pkg.ASTFiles)
+	registerSliceElemPtrFactsFromFiles(pkg.ASTFiles)
 	pkgState.FunctionBoundKinds = genericFunctionBoundKinds(collectPackageFunctions(pkg.ASTFiles))
 	pkgState.LocalInterfaceGoValueClone = collectLocalInterfaceGoValueCloneTypes(pkg.ASTFiles, pkgState.FunctionBoundKinds)
 	pkgState.LocalInterfaceGoComparable = collectLocalInterfaceGoComparableTypes(pkg.ASTFiles)
-	registerPackageTypeFactsFromFiles(pkg.ASTFiles)
-	registerFunctionSignaturesFromFiles(pkg.ASTFiles)
 
 	// Generate lib.rs with all modules
 	var libRs strings.Builder

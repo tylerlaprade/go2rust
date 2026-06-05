@@ -157,9 +157,11 @@ in the first place.
 - Location: `go/external_type_stubs.go:2364`
 - Go symbol: `go/token.Token` enum
 - Transpiler gap: `go/token` source now lowers enough to exercise `Lookup`,
-  `Token.String`, and `Token.IsKeyword`; remaining work is shrinking callers
-  off the external `token_Token` stub surface.
-- Fixture: `tests/source_stdlib_go_token_lookup/`
+  `Token.String`, and `Token.IsKeyword`; the remaining removal check is proving
+  callers no longer need the external `token_Token` stub surface.
+- Fixture: `tests/source_stdlib_go_token_lookup/`;
+  `tests/external_named_integer_conversion/` now source-maps `go/token` and
+  emits `go_token::position::Pos` instead of the external `token_Pos` stub.
 - Removal trigger: transpiler can lower `go/token` enum definitions.
 - Added: 2026-05-27 (backfill)
 
@@ -204,7 +206,9 @@ in the first place.
 - Location: `go/external_type_stubs.go:3520` (`writeTypesTypeNameStub`, `writeTypesTypeParamStub`)
 - Go symbol: `go/types.TypeName` and `go/types.TypeParam`
 - Transpiler gap: vendored `go/types` source does not yet transpile cleanly, so type-parameter values stored through the `types.Type` interface still hit the bridge.
-- Fixture: `tests/stdlib_interface_map_value_assignment/main.go`.
+- Fixture: `tests/stdlib_interface_map_value_assignment/main.go`;
+  `tests/XFAIL/source_stdlib_go_types_new_type_name/` source-maps `go/types`
+  and captures the current source-stdlib blocker.
 - Removal trigger: transpiler can lower `go/types.TypeName`, `go/types.TypeParam`, and their object/type relationships from source.
 - Added: 2026-06-03
 
@@ -213,7 +217,11 @@ in the first place.
 - Location: `go/external_type_stubs.go:7501` (`writeTypesNewTupleFunction`, `writeTypesNewTypeNameFunction`, `writeTypesNewTypeParamFunction`)
 - Go symbol: `go/types.NewTuple`, `go/types.NewTypeName`, and `go/types.NewTypeParam`
 - Transpiler gap: same vendored-`go/types` source gap as `types-tuple` and `types-type-name-param`.
-- Fixture: `tests/stdlib_interface_ident_argument/main.go`; `tests/stdlib_interface_map_value_assignment/main.go`.
+- Fixture: `tests/stdlib_interface_ident_argument/main.go`; `tests/stdlib_interface_map_value_assignment/main.go`;
+  `tests/XFAIL/source_stdlib_go_token_types_bridge_arg/` captures the
+  source-transpiled `go/token.Pos` to bridged `types.NewTypeName` boundary;
+  `tests/XFAIL/source_stdlib_go_types_new_type_name/` captures the direct
+  source-transpiled `go/types` path.
 - Removal trigger: retired together with `types-tuple` and `types-type-name-param`.
 - Added: 2026-06-03
 
@@ -221,8 +229,11 @@ in the first place.
 
 - Location: `go/external_type_stubs.go:3150`
 - Go symbol: `go/types.Info` and helper trait support
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
+- Transpiler gap: vendored `go/types` source does not yet transpile cleanly;
+  source-mapped `go/ast` callers now cross the bridge through erased pointer
+  keys instead of embedding source crate types in shared stub fields.
+- Fixture: `tests/stdlib_struct_field_map/` source-maps `go/ast` and exercises
+  `types.Info` map fields keyed by `*ast.File`, `*ast.Ident`, and `ast.Node`.
 - Removal trigger: transpiler can lower `go/types.Info` source.
 - Added: 2026-05-27 (backfill)
 
@@ -230,8 +241,12 @@ in the first place.
 
 - Location: `go/external_type_stubs.go:3640`
 - Go symbol: `go/types.Config.Check` (implementation)
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
+- Transpiler gap: bridged `types.Config.Check` still accepts external
+  `ast_File` inputs, while source `go/parser` returns source-generated
+  `go_ast::r#mod::File` values. Fixing this by teaching the bridge source AST
+  semantics would preserve the bridge; the real removal path is source
+  `go/types`.
+- Fixture: `tests/XFAIL/source_stdlib_go_parser_types_check_bridge_arg/`
 - Removal trigger: transpiler can lower `go/types.Config.Check` source.
 - Added: 2026-05-27 (backfill)
 
@@ -248,10 +263,12 @@ in the first place.
 
 - Location: `go/external_type_stubs.go:3713`
 - Go symbol: `go/token.Pos.IsValid`
-- Transpiler gap: `go/token` source now lowers enough to exercise
-  `Pos.IsValid`; remaining work is proving callers no longer need the external
+- Transpiler gap: `go/token` source now lowers enough to exercise `Pos.IsValid`;
+  the remaining removal check is proving callers no longer need the external
   `token_Pos` stub method.
-- Fixture: `tests/source_stdlib_go_token_lookup/`
+- Fixture: `tests/source_stdlib_go_token_lookup/`;
+  `tests/external_named_integer_conversion/` now source-maps `go/token` and
+  emits `go_token::position::Pos` instead of the external `token_Pos` stub.
 - Removal trigger: transpiler can lower `go/token.Pos.IsValid` source.
 - Added: 2026-05-27 (backfill)
 
@@ -268,8 +285,31 @@ in the first place.
 
 - Location: `go/external_type_stubs.go:3952`
 - Go symbol: `go/ast` package
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
+- Transpiler gap: source package fixture covers constructing AST nodes and
+  walking them, and an existing type-signature fixture now carries `*ast.File`
+  through the source-generated package; remaining work is shrinking external
+  `go/ast` callers off the package bridge.
+- Fixture: `tests/source_stdlib_go_ast_walk_call_expr/`;
+  `tests/stdlib_type_signatures/` source-maps `go/ast` and emits
+  `go_ast::r#mod::File` instead of the external `ast_File` stub;
+  `tests/stdlib_interface_downcast/` source-maps `go/ast` and asserts an
+  `ast.Expr` back to `*ast.Ident` through the source-generated `IdentPtr`;
+  `tests/stdlib_interface_index_assertion/` and
+  `tests/stdlib_interface_range_value_short_decl/` cover indexed and ranged
+  source-generated interface values asserted back to AST pointer wrappers;
+  `tests/concurrent_stdlib_selector_string_compare/`,
+  `tests/stdlib_interface_slice_append_nil/`,
+  `tests/stdlib_interface_slice_literal_range_value/`, and
+  `tests/stdlib_pointer_field_stub/` cover concurrent interface method calls,
+  nil appends, literal ranges, and pointer-field access through source
+  `go/ast`;
+  `tests/stdlib_struct_field_map/` covers source `go/ast` values crossing the
+  existing `go/types.Info` bridge through map fields keyed by AST pointers and
+  interfaces;
+  `tests/stdlib_interface_slice_nil_compare/`, `tests/stdlib_interface_return/`,
+  and `tests/range_stdlib_interface_slice_call/` cover source-generated
+  interface slices, nil checks, returns, appends, ranges, type switches, and
+  pointer assertions.
 - Removal trigger: transpiler can lower `go/ast` source.
 - Added: 2026-05-27 (backfill)
 
@@ -277,8 +317,10 @@ in the first place.
 
 - Location: `go/external_type_stubs.go:4013`
 - Go symbol: `ast.Inspect` / `ast.Walk`
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
+- Transpiler gap: source package fixture covers `ast.Inspect` and `ast.Walk`;
+  remaining work is removing external callers that still depend on the bridged
+  ast package.
+- Fixture: `tests/source_stdlib_go_ast_walk_call_expr/`
 - Removal trigger: transpiler can lower `ast.Inspect`/`ast.Walk` source.
 - Added: 2026-05-27 (backfill)
 
@@ -286,8 +328,12 @@ in the first place.
 
 - Location: `go/external_type_stubs.go:4377`
 - Go symbol: `ast.NewIdent`
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
+- Transpiler gap: source package fixture covers `ast.NewIdent`; remaining work
+  is removing external callers that still depend on the bridged ast package.
+- Fixture: `tests/source_stdlib_go_ast_walk_call_expr/`;
+  `tests/stdlib_interface_downcast/`; `tests/stdlib_interface_return/`;
+  `tests/range_stdlib_interface_slice_call/`;
+  `tests/stdlib_interface_slice_nil_compare/`.
 - Removal trigger: transpiler can lower `ast.NewIdent` source.
 - Added: 2026-05-27 (backfill)
 
@@ -295,8 +341,16 @@ in the first place.
 
 - Location: `go/external_type_stubs.go:4389`
 - Go symbol: `go/parser` package
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
+- Transpiler gap: `go/parser` source now lowers enough for
+  `parser.ParseFile` import-list behavior when its source dependencies are
+  source-mapped with it; remaining mixed `go/types` callers are blocked by the
+  existing `go/types` bridge expecting external `ast_*` types.
+- Fixture: `tests/parser_parse_file_package_imports/` source-maps
+  `go/parser`, `go/scanner`, `go/ast`, `go/token`, `strings`, `slices`, `cmp`,
+  `path/filepath`, `internal/filepathlite`, `internal/stringslite`,
+  `internal/bytealg`, and `internal/cpu`; `tests/parser_mode_const_expression/`
+  uses the same source package set for parser mode constants and `[]byte`
+  source input.
 - Removal trigger: transpiler can lower `go/parser` source.
 - Added: 2026-05-27 (backfill)
 
@@ -306,8 +360,11 @@ in the first place.
 - Go symbol: `go/token` package
 - Transpiler gap: source package fixture covers `Lookup`, `Token.String`,
   `Token.IsKeyword`, and `Pos.IsValid`; remaining work is shrinking external
-  `go/token` callers off the package bridge.
-- Fixture: `tests/source_stdlib_go_token_lookup/`
+  `go/token` callers off the package bridge. `go/types` bridge callers are
+  still blocked because they accept bridged `token_Pos`, not source
+  `go_token::position::Pos`.
+- Fixture: `tests/source_stdlib_go_token_lookup/`;
+  `tests/XFAIL/source_stdlib_go_token_types_bridge_arg/`
 - Removal trigger: transpiler can lower `go/token` source.
 - Added: 2026-05-27 (backfill)
 
@@ -315,8 +372,11 @@ in the first place.
 
 - Location: `go/external_type_stubs.go:4595`
 - Go symbol: `go/parser` argument traits
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
+- Transpiler gap: same source `go/parser` progress as `parser-package`; callers
+  that use source `go/parser.ParseFile` no longer need the bridge argument
+  traits.
+- Fixture: `tests/parser_parse_file_package_imports/`;
+  `tests/parser_mode_const_expression/`
 - Removal trigger: transpiler can lower `go/parser` argument-passing source.
 - Added: 2026-05-27 (backfill)
 
@@ -324,8 +384,10 @@ in the first place.
 
 - Location: `go/external_type_stubs.go:4682`
 - Go symbol: `go/parser.ParseFile` (implementation)
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
+- Transpiler gap: source `go/parser.ParseFile` now compiles and preserves the
+  existing import-list behavior fixture when its dependency set is source-mapped.
+- Fixture: `tests/parser_parse_file_package_imports/`;
+  `tests/parser_mode_const_expression/`
 - Removal trigger: transpiler can lower `go/parser.ParseFile` source.
 - Added: 2026-05-27 (backfill)
 
@@ -423,8 +485,11 @@ in the first place.
 
 - Location: `go/external_type_stubs.go:6336`
 - Go symbol: `path/filepath` `Base` / `Dir` / `Ext` / `Clean`
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
+- Transpiler gap: `path/filepath` source now lowers enough for `Base` in an
+  existing `os.ReadDir` fixture; the remaining removal check is moving default
+  `path/filepath` callers off the external package bridge.
+- Fixture: `tests/os_readdir_filepath/` source-maps `path/filepath` and calls
+  source-generated `path_filepath::base`; `tests/source_stdlib_path_filepath_isabs/`.
 - Removal trigger: transpiler can lower these `filepath` functions from source.
 - Added: 2026-05-27 (backfill)
 
@@ -432,8 +497,11 @@ in the first place.
 
 - Location: `go/external_type_stubs.go:6351`
 - Go symbol: `path/filepath.Join`
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
+- Transpiler gap: `path/filepath` source now lowers enough for `Join` in an
+  existing `os.ReadDir` fixture; the remaining removal check is moving default
+  `path/filepath` callers off the external package bridge.
+- Fixture: `tests/os_readdir_filepath/` source-maps `path/filepath` and calls
+  source-generated `path_filepath::join`.
 - Removal trigger: transpiler can lower `filepath.Join` from source.
 - Added: 2026-05-27 (backfill)
 
@@ -441,8 +509,10 @@ in the first place.
 
 - Location: `go/external_type_stubs.go:6408`
 - Go symbol: `path/filepath.IsAbs`
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
+- Transpiler gap: `path/filepath` source now lowers enough for `IsAbs`; the
+  remaining removal check is moving default `path/filepath` callers off the
+  external package bridge.
+- Fixture: `tests/source_stdlib_path_filepath_isabs/`.
 - Removal trigger: transpiler can lower `filepath.IsAbs` from source.
 - Added: 2026-05-27 (backfill)
 

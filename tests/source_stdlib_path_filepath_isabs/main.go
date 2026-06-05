@@ -11,14 +11,9 @@ import (
 //
 // The pipeline (PackageLoader.shouldTranspileStdlibPackage + vendor crate
 // generation) runs end-to-end, producing vendor/path_filepath/*.rs from
-// the system Go source. Today the resulting Rust does not yet compile
-// because of multiple transpiler gaps that the full path/filepath
-// surface exposes (wrapped-type arithmetic, generics handling, etc.).
-// Each is a focused fixture target in its own right.
-//
-// When those gaps close, this fixture promotes from XFAIL to passing
-// (./test.sh auto-promotes) and the matching filepath-* rows in
-// docs/bridge_debt.md become retirable.
+// the system Go source. Passing this fixture proves IsAbs can come from
+// the source-generated crate; the bridge rows retire when default callers
+// no longer need the external package shim.
 func main() {
 	fmt.Println(filepath.IsAbs("/foo"))
 	fmt.Println(filepath.IsAbs("foo"))

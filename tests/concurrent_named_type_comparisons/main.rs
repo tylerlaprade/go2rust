@@ -246,6 +246,76 @@ impl std::ops::Sub<Kind> for i8 {
     }
 }
 
+impl std::ops::Mul for Kind {
+    type Output = Kind;
+    fn mul(self, other: Self) -> Kind {
+        Kind(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() * *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Mul<i8> for Kind {
+    type Output = Kind;
+    fn mul(self, other: i8) -> Kind {
+        Kind(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() * other))))
+    }
+}
+
+impl std::ops::Mul<Kind> for i8 {
+    type Output = Kind;
+    fn mul(self, other: Kind) -> Kind {
+        Kind(Arc::new(Mutex::new(Some(self * *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div for Kind {
+    type Output = Kind;
+    fn div(self, other: Self) -> Kind {
+        Kind(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() / *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Div<i8> for Kind {
+    type Output = Kind;
+    fn div(self, other: i8) -> Kind {
+        Kind(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() / other))))
+    }
+}
+
+impl std::ops::Div<Kind> for i8 {
+    type Output = Kind;
+    fn div(self, other: Kind) -> Kind {
+        Kind(Arc::new(Mutex::new(Some(self / *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Neg for Kind {
+    type Output = Kind;
+    fn neg(self) -> Kind {
+        Kind(Arc::new(Mutex::new(Some(-*self.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem for Kind {
+    type Output = Kind;
+    fn rem(self, other: Self) -> Kind {
+        Kind(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() % *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
+impl std::ops::Rem<i8> for Kind {
+    type Output = Kind;
+    fn rem(self, other: i8) -> Kind {
+        Kind(Arc::new(Mutex::new(Some(*self.0.lock().unwrap().as_ref().unwrap() % other))))
+    }
+}
+
+impl std::ops::Rem<Kind> for i8 {
+    type Output = Kind;
+    fn rem(self, other: Kind) -> Kind {
+        Kind(Arc::new(Mutex::new(Some(self % *other.0.lock().unwrap().as_ref().unwrap()))))
+    }
+}
+
 impl std::ops::BitAnd for Kind {
     type Output = Kind;
     fn bitand(self, other: Self) -> Kind {
@@ -502,7 +572,7 @@ impl Symbol {
     }
 
     pub fn has_field_flag(&self) -> bool {
-        return { let __tmp_x = Kind(Arc::new(Mutex::new(Some(((*(*self.kind.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & FIELD))))); let __tmp_y = Kind(Arc::new(Mutex::new(Some(0 as i8)))); __tmp_x != __tmp_y } && { let __tmp_x = Kind(Arc::new(Mutex::new(Some(((*(*self.kind.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) | METHOD))))); let __tmp_y = Kind(Arc::new(Mutex::new(Some(INVALID as i8)))); __tmp_x != __tmp_y };
+        return { let __tmp_x = Kind(Arc::new(Mutex::new(Some(((*(*self.kind.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & FIELD as i8))))); let __tmp_y = Kind(Arc::new(Mutex::new(Some(0 as i8)))); __tmp_x != __tmp_y } && { let __tmp_x = Kind(Arc::new(Mutex::new(Some(((*(*self.kind.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) | METHOD as i8))))); let __tmp_y = Kind(Arc::new(Mutex::new(Some(INVALID as i8)))); __tmp_x != __tmp_y };
     }
 
     pub fn kind_name(&self) -> Arc<Mutex<Option<String>>> {

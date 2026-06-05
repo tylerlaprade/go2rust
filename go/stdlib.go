@@ -14,7 +14,8 @@ type StdlibHandler func(*strings.Builder, *ast.CallExpr)
 func GetStdlibHandler(call *ast.CallExpr) StdlibHandler {
 	// Handle selector expressions like fmt.Println
 	if key, ok := stdlibCallKey(call.Fun); ok {
-		if handler, exists := stdlibMappings[key]; exists && !stdlibCallUsesSourceMappedPackage(call.Fun) {
+		if handler, exists := stdlibMappings[key]; exists &&
+			(!stdlibCallUsesSourceMappedPackage(call.Fun) || sourceMappedStdlibCallUsesHandler(key)) {
 			return handler
 		}
 	}
@@ -27,6 +28,15 @@ func GetStdlibHandler(call *ast.CallExpr) StdlibHandler {
 	}
 
 	return nil
+}
+
+func sourceMappedStdlibCallUsesHandler(key string) bool {
+	switch key {
+	case "sort.Slice", "sort.SliceStable":
+		return true
+	default:
+		return false
+	}
 }
 
 func stdlibCallUsesSourceMappedPackage(expr ast.Expr) bool {
@@ -382,6 +392,10 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 		if writeGoErrorFormatArg(out, arg, argType) {
 			return
 		}
+		if call, ok := arg.(*ast.CallExpr); ok && typeInfo.IsTypeConversion(call) && !typeConversionEmitsWrappedValue(call) {
+			TranspileExpression(out, arg)
+			return
+		}
 
 		// Check if it's any kind of interface
 		if intf, ok := argType.Underlying().(*types.Interface); ok {
@@ -517,6 +531,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 			}
 			return
 		}
+		if writePointerAddressPrintArg(out, arg, argType) {
+			return
+		}
 		// Check if it's a pointer to a struct - Go prints "&{...}" for these
 		if ptr, ok := argType.(*types.Pointer); ok {
 			if _, ok := ptr.Elem().Underlying().(*types.Struct); ok {
@@ -529,6 +546,8 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 				out.WriteString("format!(\"&{}\", (*")
 				if ident, ok := arg.(*ast.Ident); ok {
 					out.WriteString(RustIdentForUse(ident))
+				} else if sel, ok := arg.(*ast.SelectorExpr); ok {
+					writeSelectorHandleClone(out, sel)
 				} else {
 					TranspileExpression(out, arg)
 				}
@@ -661,6 +680,36 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 
 	// For other cases, just use regular expression transpilation
 	TranspileExpression(out, arg)
+}
+
+func writePointerAddressPrintArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
+	if !isPointerToPointerType(argType) {
+		return false
+	}
+	unary, ok := unwrapParens(arg).(*ast.UnaryExpr)
+	if !ok || unary.Op != token.AND {
+		return false
+	}
+	ident, ok := unwrapParens(unary.X).(*ast.Ident)
+	if !ok || ident.Name == "_" || ident.Name == "nil" {
+		return false
+	}
+	trackWrapperImports()
+	out.WriteString("format!(\"0x{:x}\", ")
+	out.WriteString(GetOuterWrapperType())
+	out.WriteString("::as_ptr(&")
+	out.WriteString(rustIdentForUseWithCapture(ident))
+	out.WriteString(") as usize)")
+	return true
+}
+
+func isPointerToPointerType(typ types.Type) bool {
+	ptr, ok := types.Unalias(typ).Underlying().(*types.Pointer)
+	if !ok {
+		return false
+	}
+	_, ok = types.Unalias(ptr.Elem()).Underlying().(*types.Pointer)
+	return ok
 }
 
 func writeGoErrorFormatArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
@@ -3644,6 +3693,9 @@ func transpileUnsafeSlice(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func transpileUnsafeString(out *strings.Builder, call *ast.CallExpr) {
+	if writeUnsafeStringFromByteSliceAddress(out, call) {
+		return
+	}
 	transpileUnsupportedUnsafeIntrinsic(out, call, "String")
 }
 
@@ -3656,9 +3708,9 @@ func transpileUnsafeStringData(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func transpileUnsupportedUnsafeIntrinsic(out *strings.Builder, call *ast.CallExpr, goFunc string) {
-	WriteWrapperPrefix(out)
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil {
+		WriteWrapperPrefix(out)
 		out.WriteString("unimplemented!(\"type info required for unsafe.")
 		out.WriteString(goFunc)
 		out.WriteString("\")")
@@ -3667,6 +3719,7 @@ func transpileUnsupportedUnsafeIntrinsic(out *strings.Builder, call *ast.CallExp
 	}
 	resultType := typeInfo.GetType(call)
 	if resultType == nil {
+		WriteWrapperPrefix(out)
 		out.WriteString("unimplemented!(\"type info required for unsafe.")
 		out.WriteString(goFunc)
 		out.WriteString("\")")
@@ -3674,11 +3727,63 @@ func transpileUnsupportedUnsafeIntrinsic(out *strings.Builder, call *ast.CallExp
 		return
 	}
 	out.WriteString("{ let __go_unsafe_result: ")
-	out.WriteString(goTypesTypeToRust(resultType))
+	out.WriteString(goTypesReturnTypeToRust(resultType))
 	out.WriteString(" = unimplemented!(\"unsafe.")
 	out.WriteString(goFunc)
 	out.WriteString(" requires unsafe intrinsic support\"); __go_unsafe_result }")
+}
+
+func writeUnsafeStringFromByteSliceAddress(out *strings.Builder, call *ast.CallExpr) bool {
+	if len(call.Args) != 2 {
+		return false
+	}
+	indexExpr, ok := addressOfIndexExpr(call.Args[0])
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		WriteWrapperPrefix(out)
+		out.WriteString(`unimplemented!("type info required for unsafe.String byte-slice address")`)
+		WriteWrapperSuffix(out)
+		return true
+	}
+	seqType := typeInfo.GetType(indexExpr.X)
+	if seqType == nil {
+		WriteWrapperPrefix(out)
+		out.WriteString(`unimplemented!("type info required for unsafe.String byte-slice address")`)
+		WriteWrapperSuffix(out)
+		return true
+	}
+	sliceType, ok := types.Unalias(seqType).Underlying().(*types.Slice)
+	if !ok || !isByteType(sliceType.Elem()) {
+		return false
+	}
+
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __bytes_holder = ")
+	TranspileExpressionContext(out, indexExpr.X, LValue)
+	out.WriteString(".clone(); let __bytes_guard = __bytes_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __bytes = __bytes_guard.as_ref().unwrap(); let __start = ")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("; let __len = ")
+	if unsafeStringLengthUsesBorrowedSlice(call.Args[1], indexExpr.X) {
+		out.WriteString("__bytes.len()")
+	} else {
+		writeExpressionAsUsize(out, call.Args[1])
+	}
+	out.WriteString("; let __end = __start + __len; String::from_utf8(__bytes[__start..__end].to_vec()).unwrap() }")
 	WriteWrapperSuffix(out)
+	return true
+}
+
+func unsafeStringLengthUsesBorrowedSlice(length ast.Expr, slice ast.Expr) bool {
+	call, ok := unwrapParens(length).(*ast.CallExpr)
+	if !ok || len(call.Args) != 1 || !isBareBuiltinCallName(call, "len") {
+		return false
+	}
+	return sameExpressionSyntax(call.Args[0], slice)
 }
 
 func transpileRandSeed(out *strings.Builder, call *ast.CallExpr) {
@@ -3897,6 +4002,10 @@ func writeConcreteLocalInterfaceValue(out *strings.Builder, expr ast.Expr, expec
 		out.WriteString(")")
 	} else if writePointerLocalInterfaceWrapperValue(out, expr, expected, ifaceName) {
 		// Pointer dynamic values compare by handle identity when stored in an interface.
+	} else if writeCurrentPackagePointerTranspiledInterfaceWrapperValue(out, expr, expected) {
+		// Current-package pointers implementing source-mapped interfaces need the same identity wrapper.
+	} else if writeSourceMappedPointerInterfaceWrapperValue(out, expr, expected) {
+		// Imported source-mapped pointer dynamic values must keep their *T identity.
 	} else if ident, ok := expr.(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
 		out.WriteString(currentReceiverRustName())
 		out.WriteString(".clone()")
@@ -4440,10 +4549,18 @@ func transpileLen(out *strings.Builder, call *ast.CallExpr) {
 			TranspileExpressionContext(out, call.Args[0], LValue)
 			out.WriteString(".len()")
 		} else if typeInfo != nil && (typeInfo.IsSlice(call.Args[0]) || typeInfo.IsMap(call.Args[0])) {
-			out.WriteString("(*")
-			TranspileExpressionContext(out, call.Args[0], LValue)
-			WriteBorrowMethod(out, false)
-			out.WriteString(").as_ref().map(|__v| __v.len()).unwrap_or(0)")
+			if sel, ok := call.Args[0].(*ast.SelectorExpr); ok {
+				out.WriteString("({ let __len_target = ")
+				writeSelectorHandleClone(out, sel)
+				out.WriteString("; let __len_guard = __len_target")
+				WriteBorrowMethod(out, false)
+				out.WriteString("; __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })")
+			} else {
+				out.WriteString("(*")
+				TranspileExpressionContext(out, call.Args[0], LValue)
+				WriteBorrowMethod(out, false)
+				out.WriteString(").as_ref().map(|__v| __v.len()).unwrap_or(0)")
+			}
 		} else {
 			// The argument is wrapped, so we need to unwrap it first
 			// Keep as usize - Rust's natural size type for collections
@@ -4769,10 +4886,18 @@ func transpileCap(out *strings.Builder, call *ast.CallExpr) {
 			out.WriteString(".")
 			out.WriteString(member)
 		} else if typeInfo != nil && typeInfo.IsSlice(call.Args[0]) {
-			out.WriteString("(*")
-			TranspileExpressionContext(out, call.Args[0], LValue)
-			WriteBorrowMethod(out, false)
-			out.WriteString(").as_ref().map(|__v| __v.capacity()).unwrap_or(0)")
+			if sel, ok := call.Args[0].(*ast.SelectorExpr); ok {
+				out.WriteString("({ let __cap_target = ")
+				writeSelectorHandleClone(out, sel)
+				out.WriteString("; let __cap_guard = __cap_target")
+				WriteBorrowMethod(out, false)
+				out.WriteString("; __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) })")
+			} else {
+				out.WriteString("(*")
+				TranspileExpressionContext(out, call.Args[0], LValue)
+				WriteBorrowMethod(out, false)
+				out.WriteString(").as_ref().map(|__v| __v.capacity()).unwrap_or(0)")
+			}
 		} else {
 			out.WriteString("(*")
 			TranspileExpressionContext(out, call.Args[0], LValue)
@@ -5075,23 +5200,39 @@ func writeNamedSliceCopySourceValue(out *strings.Builder, expr ast.Expr) bool {
 	expr = unwrapParens(expr)
 	if slice, ok := expr.(*ast.SliceExpr); ok {
 		sliceSubject := unwrapParens(slice.X)
-		if !isNamedSliceExpression(sliceSubject) {
-			return false
+		if isNamedSliceExpression(sliceSubject) {
+			out.WriteString("{ let __slice_holder = ")
+			writeNamedSliceInnerHandleClone(out, sliceSubject)
+			out.WriteString("; let __slice_guard = __slice_holder")
+			WriteBorrowMethod(out, false)
+			out.WriteString("; let __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); __seq[")
+			if slice.Low != nil {
+				writeExpressionAsUsize(out, slice.Low)
+			}
+			out.WriteString("..")
+			if slice.High != nil {
+				writeExpressionAsUsize(out, slice.High)
+			}
+			out.WriteString("].to_vec() }")
+			return true
 		}
-		out.WriteString("{ let __slice_holder = ")
-		writeNamedSliceInnerHandleClone(out, sliceSubject)
-		out.WriteString("; let __slice_guard = __slice_holder")
-		WriteBorrowMethod(out, false)
-		out.WriteString("; let __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); __seq[")
-		if slice.Low != nil {
-			writeExpressionAsUsize(out, slice.Low)
+		if isNamedArrayExpression(sliceSubject) {
+			out.WriteString("{ let __array_holder = ")
+			writeNamedArrayInnerHandleClone(out, sliceSubject)
+			out.WriteString("; let __array_guard = __array_holder")
+			WriteBorrowMethod(out, false)
+			out.WriteString("; let __seq = __array_guard.as_ref().unwrap(); __seq[")
+			if slice.Low != nil {
+				writeExpressionAsUsize(out, slice.Low)
+			}
+			out.WriteString("..")
+			if slice.High != nil {
+				writeExpressionAsUsize(out, slice.High)
+			}
+			out.WriteString("].to_vec() }")
+			return true
 		}
-		out.WriteString("..")
-		if slice.High != nil {
-			writeExpressionAsUsize(out, slice.High)
-		}
-		out.WriteString("].to_vec() }")
-		return true
+		return false
 	}
 	if !isNamedSliceExpression(expr) {
 		return false
@@ -5127,10 +5268,30 @@ func writeCopySliceLen(out *strings.Builder, slice *ast.SliceExpr) {
 
 func transpileNew(out *strings.Builder, call *ast.CallExpr) {
 	if len(call.Args) > 0 {
+		if newCallAllocatesFunctionSlot(call) {
+			WriteWrappedNone(out)
+			return
+		}
 		WriteWrapperPrefix(out)
 		out.WriteString(rustDefaultConstructorExpression(goTypeToRustBase(call.Args[0])))
 		out.WriteString(")))")
 	}
+}
+
+func newCallAllocatesFunctionSlot(call *ast.CallExpr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	typ := typeInfo.GetType(call)
+	if typ == nil {
+		return false
+	}
+	ptr, ok := types.Unalias(typ).(*types.Pointer)
+	if !ok {
+		return false
+	}
+	return isFunctionSignatureType(ptr.Elem())
 }
 
 func rustDefaultConstructorExpression(rustType string) string {
@@ -5570,6 +5731,128 @@ where
             .as_ref()
             .iter()
             .map(|inner| format_slice_wrapped_values(inner.as_ref()))
+            .collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+`)
+	}
+}
+
+func generateNestedPointerSliceFormatter(out *strings.Builder) {
+	TrackImport("Display")
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString(`fn format_nested_pointer_slice<T, C, Inner>(slice: &Arc<Mutex<Option<C>>>) -> String
+where
+    C: AsRef<[Arc<Mutex<Option<Inner>>>]>,
+    Inner: AsRef<[T]>,
+    T: Display,
+{
+    let guard = slice.lock().unwrap();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s
+            .as_ref()
+            .iter()
+            .map(|inner| {
+                let inner_guard = inner.lock().unwrap();
+                match inner_guard.as_ref() {
+                    Some(values) => format!("&{}", format_slice_values(values.as_ref())),
+                    None => "<nil>".to_string(),
+                }
+            })
+            .collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+`)
+	} else {
+		TrackImport("Rc")
+		TrackImport("RefCell")
+		out.WriteString(`fn format_nested_pointer_slice<T, C, Inner>(slice: &Rc<RefCell<Option<C>>>) -> String
+where
+    C: AsRef<[Rc<RefCell<Option<Inner>>>]>,
+    Inner: AsRef<[T]>,
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s
+            .as_ref()
+            .iter()
+            .map(|inner| {
+                let inner_guard = inner.borrow();
+                match inner_guard.as_ref() {
+                    Some(values) => format!("&{}", format_slice_values(values.as_ref())),
+                    None => "<nil>".to_string(),
+                }
+            })
+            .collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+`)
+	}
+}
+
+func generateNestedPointerSliceWrappedFormatter(out *strings.Builder) {
+	TrackImport("Display")
+	if NeedsConcurrentWrapper() {
+		TrackImport("Arc")
+		TrackImport("Mutex")
+		out.WriteString(`fn format_nested_pointer_slice_wrapped<T, C, Inner>(slice: &Arc<Mutex<Option<C>>>) -> String
+where
+    C: AsRef<[Arc<Mutex<Option<Inner>>>]>,
+    Inner: AsRef<[Arc<Mutex<Option<T>>>]>,
+    T: Display,
+{
+    let guard = slice.lock().unwrap();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s
+            .as_ref()
+            .iter()
+            .map(|inner| {
+                let inner_guard = inner.lock().unwrap();
+                match inner_guard.as_ref() {
+                    Some(values) => format!("&{}", format_slice_wrapped_values(values.as_ref())),
+                    None => "<nil>".to_string(),
+                }
+            })
+            .collect();
+        format!("[{}]", formatted.join(" "))
+    } else {
+        "[]".to_string()
+    }
+}
+`)
+	} else {
+		TrackImport("Rc")
+		TrackImport("RefCell")
+		out.WriteString(`fn format_nested_pointer_slice_wrapped<T, C, Inner>(slice: &Rc<RefCell<Option<C>>>) -> String
+where
+    C: AsRef<[Rc<RefCell<Option<Inner>>>]>,
+    Inner: AsRef<[Rc<RefCell<Option<T>>>]>,
+    T: Display,
+{
+    let guard = slice.borrow();
+    if let Some(ref s) = *guard {
+        let formatted: Vec<String> = s
+            .as_ref()
+            .iter()
+            .map(|inner| {
+                let inner_guard = inner.borrow();
+                match inner_guard.as_ref() {
+                    Some(values) => format!("&{}", format_slice_wrapped_values(values.as_ref())),
+                    None => "<nil>".to_string(),
+                }
+            })
             .collect();
         format!("[{}]", formatted.join(" "))
     } else {

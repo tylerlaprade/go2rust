@@ -46,6 +46,11 @@ var currentReceiverRustAlias string
 // against nil.
 var currentReceiverRustAliasIsPointerHandle bool
 
+// currentReceiverRustAliasIsGoPtr records reassigned receivers that must preserve
+// Go pointer identity because they receive GoPtr values.
+var currentReceiverRustAliasIsGoPtr bool
+var currentReceiverRustAliasGoPtrInfo goPtrResultInfo
+
 // currentTypeMethods tracks the current impl block's method set for receiver self-call analysis
 var currentTypeMethods = []*ast.FuncDecl{}
 
@@ -178,25 +183,27 @@ type StructDef struct {
 var structDefs = make(map[string]*StructDef)
 
 type transpileFileAnalysis struct {
-	comparableStructTypes       map[string]bool
-	mapKeyStructTypes           map[string]bool
-	pointerComparablePointees   map[string]bool
-	localInterfaceEqualityTypes map[string]bool
-	functionLocalInterfaces     map[string]*ast.InterfaceType
-	importedInterfaceImpls      map[string]map[string]*types.Interface
-	externalLocalInterfaceArgs  []externalLocalInterfaceArg
-	typeAssertExprs             []*ast.TypeAssertExpr
-	typeSwitchStmts             []*ast.TypeSwitchStmt
+	comparableStructTypes         map[string]bool
+	mapKeyStructTypes             map[string]bool
+	pointerComparablePointees     map[string]bool
+	localInterfaceEqualityTypes   map[string]bool
+	functionLocalInterfaces       map[string]*ast.InterfaceType
+	importedInterfaceImpls        map[string]map[string]*types.Interface
+	importedPointerInterfaceImpls map[string]map[string]*types.Interface
+	externalLocalInterfaceArgs    []externalLocalInterfaceArg
+	typeAssertExprs               []*ast.TypeAssertExpr
+	typeSwitchStmts               []*ast.TypeSwitchStmt
 }
 
 func newTranspileFileAnalysis() *transpileFileAnalysis {
 	return &transpileFileAnalysis{
-		comparableStructTypes:       make(map[string]bool),
-		mapKeyStructTypes:           make(map[string]bool),
-		pointerComparablePointees:   make(map[string]bool),
-		localInterfaceEqualityTypes: make(map[string]bool),
-		functionLocalInterfaces:     make(map[string]*ast.InterfaceType),
-		importedInterfaceImpls:      make(map[string]map[string]*types.Interface),
+		comparableStructTypes:         make(map[string]bool),
+		mapKeyStructTypes:             make(map[string]bool),
+		pointerComparablePointees:     make(map[string]bool),
+		localInterfaceEqualityTypes:   make(map[string]bool),
+		functionLocalInterfaces:       make(map[string]*ast.InterfaceType),
+		importedInterfaceImpls:        make(map[string]map[string]*types.Interface),
+		importedPointerInterfaceImpls: make(map[string]map[string]*types.Interface),
 	}
 }
 
@@ -456,12 +463,23 @@ func (analysis *transpileFileAnalysis) recordImportedInterfaceImplForType(expect
 	if !types.Implements(argType, ifaceType) {
 		return
 	}
-	typeName, ok := currentPackageConcreteTypeName(argType)
+	named, isPointer, ok := currentPackageConcreteNamedTypeForm(argType)
 	if !ok {
 		return
 	}
-	analysis.recordImportedInterfaceImplByName(typeName, ifaceName, ifaceType)
-	analysis.recordImportedEmbeddedInterfaceImpls(typeName, ifaceType)
+	typeName := named.Obj().Name()
+	if !isPointer {
+		analysis.recordImportedInterfaceImplByName(typeName, ifaceName, ifaceType)
+		analysis.recordImportedEmbeddedInterfaceImpls(typeName, ifaceType)
+		return
+	}
+	ifaceType.Complete()
+	if types.Implements(named, ifaceType) {
+		analysis.recordImportedInterfaceImplByName(typeName, ifaceName, ifaceType)
+	}
+	analysis.recordImportedEmbeddedInterfaceImplsForConcrete(typeName, named, ifaceType)
+	analysis.recordImportedPointerInterfaceImplByName(typeName, ifaceName, ifaceType)
+	analysis.recordImportedPointerEmbeddedInterfaceImpls(typeName, ifaceType)
 }
 
 func (analysis *transpileFileAnalysis) recordImportedInterfaceImplByName(typeName, ifaceName string, ifaceType *types.Interface) {
@@ -485,6 +503,47 @@ func (analysis *transpileFileAnalysis) recordImportedEmbeddedInterfaceImpls(type
 		}
 		analysis.recordImportedInterfaceImplByName(typeName, embeddedName, embeddedIface)
 		analysis.recordImportedEmbeddedInterfaceImpls(typeName, embeddedIface)
+	}
+}
+
+func (analysis *transpileFileAnalysis) recordImportedEmbeddedInterfaceImplsForConcrete(typeName string, concrete types.Type, ifaceType *types.Interface) {
+	if concrete == nil || ifaceType == nil {
+		return
+	}
+	for i := 0; i < ifaceType.NumEmbeddeds(); i++ {
+		embeddedName, embeddedIface, ok := importedTranspiledInterfaceFromType(ifaceType.EmbeddedType(i))
+		if !ok {
+			continue
+		}
+		embeddedIface.Complete()
+		if types.Implements(concrete, embeddedIface) {
+			analysis.recordImportedInterfaceImplByName(typeName, embeddedName, embeddedIface)
+		}
+		analysis.recordImportedEmbeddedInterfaceImplsForConcrete(typeName, concrete, embeddedIface)
+	}
+}
+
+func (analysis *transpileFileAnalysis) recordImportedPointerInterfaceImplByName(typeName, ifaceName string, ifaceType *types.Interface) {
+	if typeName == "" || ifaceName == "" || ifaceType == nil {
+		return
+	}
+	if analysis.importedPointerInterfaceImpls[typeName] == nil {
+		analysis.importedPointerInterfaceImpls[typeName] = make(map[string]*types.Interface)
+	}
+	analysis.importedPointerInterfaceImpls[typeName][ifaceName] = ifaceType
+}
+
+func (analysis *transpileFileAnalysis) recordImportedPointerEmbeddedInterfaceImpls(typeName string, ifaceType *types.Interface) {
+	if ifaceType == nil {
+		return
+	}
+	for i := 0; i < ifaceType.NumEmbeddeds(); i++ {
+		embeddedName, embeddedIface, ok := importedTranspiledInterfaceFromType(ifaceType.EmbeddedType(i))
+		if !ok {
+			continue
+		}
+		analysis.recordImportedPointerInterfaceImplByName(typeName, embeddedName, embeddedIface)
+		analysis.recordImportedPointerEmbeddedInterfaceImpls(typeName, embeddedIface)
 	}
 }
 
@@ -600,7 +659,7 @@ func (analysis *transpileFileAnalysis) externalLocalInterfaceImpls(interfaces ma
 		rustType := goTypesNamedTypeToRust(named)
 		_, sourceIsInterface := types.Unalias(named.Underlying()).(*types.Interface)
 		implRustType := rustType
-		if sourceIsInterface {
+		if sourceIsInterface && !isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
 			implRustType = rustLocalInterfaceTraitObject(rustType)
 			sourcePointerWrapper = false
 		} else if sourcePointerWrapper && sourceMappedPointerWrapperAvailable(named) {
@@ -945,22 +1004,36 @@ func importedTranspiledInterfaceFromType(typ types.Type) (string, *types.Interfa
 }
 
 func currentPackageConcreteTypeName(typ types.Type) (string, bool) {
+	name, _, ok := currentPackageConcreteTypeNameForm(typ)
+	return name, ok
+}
+
+func currentPackageConcreteTypeNameForm(typ types.Type) (name string, isPointer bool, ok bool) {
+	named, isPointer, ok := currentPackageConcreteNamedTypeForm(typ)
+	if !ok {
+		return "", false, false
+	}
+	return named.Obj().Name(), isPointer, true
+}
+
+func currentPackageConcreteNamedTypeForm(typ types.Type) (named *types.Named, isPointer bool, ok bool) {
 	if typ == nil {
-		return "", false
+		return nil, false, false
 	}
 	typ = types.Unalias(typ)
 	if ptr, ok := typ.(*types.Pointer); ok {
 		typ = types.Unalias(ptr.Elem())
+		isPointer = true
 	}
-	named, ok := typ.(*types.Named)
+	named, ok = typ.(*types.Named)
 	if !ok || named.Obj() == nil {
-		return "", false
+		return nil, false, false
 	}
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.pkg == nil || named.Obj().Pkg() != typeInfo.pkg {
-		return "", false
+		return nil, false, false
 	}
-	return named.Obj().Name(), true
+	return named, isPointer, true
 }
 
 func collectImportedInterfaceImpls(file *ast.File) map[string]map[string]*types.Interface {
@@ -1113,9 +1186,11 @@ func writeAnonymousInterfaceAssertionTrait(out *strings.Builder, trait anonymous
 	out.WriteString(rustLocalInterfaceTraitObject(trait.name))
 	out.WriteString(" {\n")
 	out.WriteString("    fn clone(&self) -> Self {\n")
-	out.WriteString("        self.__go_clone_box_")
+	out.WriteString("        ")
+	out.WriteString(trait.name)
+	out.WriteString("::__go_clone_box_")
 	out.WriteString(traitSnake)
-	out.WriteString("()\n")
+	out.WriteString("(self.as_ref())\n")
 	out.WriteString("    }\n")
 	out.WriteString("}")
 
@@ -1277,6 +1352,9 @@ func localInterfaceAssertionCandidates(ifaceType *types.Interface, sourceType ty
 		if _, isInterface := named.Underlying().(*types.Interface); isInterface {
 			return
 		}
+		if sourceMappedDeclIsPruned(named.Obj()) {
+			return
+		}
 		forms := []types.Type{named, types.NewPointer(named)}
 		var matchedForm types.Type
 		for _, form := range forms {
@@ -1288,7 +1366,7 @@ func localInterfaceAssertionCandidates(ifaceType *types.Interface, sourceType ty
 		if matchedForm == nil {
 			return
 		}
-		rustType := localInterfaceAssertionCandidateRustType(named, matchedForm)
+		rustType := localInterfaceAssertionCandidateRustType(named, matchedForm, sourceType)
 		if rustType == "" || seen[rustType] {
 			return
 		}
@@ -1326,12 +1404,15 @@ func localInterfaceAssertionCandidates(ifaceType *types.Interface, sourceType ty
 	return candidates
 }
 
-func localInterfaceAssertionCandidateRustType(named *types.Named, matchedForm types.Type) string {
+func localInterfaceAssertionCandidateRustType(named *types.Named, matchedForm types.Type, sourceType types.Type) string {
 	rustType := goTypesNamedTypeToRust(named)
 	if named == nil || named.Obj() == nil {
 		return rustType
 	}
 	if _, ok := types.Unalias(matchedForm).(*types.Pointer); !ok {
+		return rustType
+	}
+	if isGoErrorType(sourceType) {
 		return rustType
 	}
 	typeInfo := GetTypeInfo()
@@ -1372,6 +1453,24 @@ func sourceMappedPointerWrapperAvailable(named *types.Named) bool {
 		}
 	}
 	return false
+}
+
+func sourceMappedPointerWrapperAvailableForInterface(named *types.Named, expected types.Type) bool {
+	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil || expected == nil {
+		return false
+	}
+	if !isSourceMappedPackagePath(named.Obj().Pkg().Path()) {
+		return false
+	}
+	if !sourceMappedPointerWrapperAvailable(named) {
+		return false
+	}
+	iface, ok := types.Unalias(expected).Underlying().(*types.Interface)
+	if !ok || iface.NumMethods() == 0 {
+		return false
+	}
+	iface.Complete()
+	return types.Implements(types.NewPointer(named), iface)
 }
 
 func localInterfaceAssertionTarget(e *ast.TypeAssertExpr) (string, *types.Interface, types.Type, []localInterfaceAssertionCandidate, bool) {
@@ -1904,6 +2003,54 @@ func collectPromotedMethods(structDef *StructDef, methods map[string][]*ast.Func
 	}
 }
 
+func writePromotedMethodForwarders(out *strings.Builder, structDef *StructDef, packageMethods map[string][]*ast.FuncDecl, existingMethodNames map[string]bool, existingRustMethodNames map[string]bool, methodCount *int) {
+	if structDef == nil || methodCount == nil {
+		return
+	}
+	if existingMethodNames == nil {
+		existingMethodNames = make(map[string]bool)
+	}
+	if existingRustMethodNames == nil {
+		existingRustMethodNames = make(map[string]bool)
+	}
+
+	promotedMethods := make(map[string]struct {
+		embeddedType string
+		method       *ast.FuncDecl
+	})
+	collectPromotedMethods(structDef, packageMethods, promotedMethods)
+
+	var promotedMethodNames []string
+	for methodName := range promotedMethods {
+		promotedMethodNames = append(promotedMethodNames, methodName)
+	}
+	slices.Sort(promotedMethodNames)
+
+	for _, methodName := range promotedMethodNames {
+		methodInfo := promotedMethods[methodName]
+		methodRustName := rustMethodName(methodInfo.method)
+		if existingMethodNames[methodName] || existingRustMethodNames[methodRustName] {
+			continue
+		}
+		if *methodCount > 0 {
+			out.WriteString("\n")
+		}
+		generatePromotedMethod(out, methodInfo.method, methodInfo.embeddedType)
+		existingMethodNames[methodName] = true
+		existingRustMethodNames[methodRustName] = true
+		*methodCount = *methodCount + 1
+	}
+
+	for _, promotedMethod := range collectExternalPromotedMethods(structDef, existingRustMethodNames) {
+		if *methodCount > 0 {
+			out.WriteString("\n")
+		}
+		generateExternalPromotedMethod(out, promotedMethod)
+		existingRustMethodNames[promotedMethod.RustMethodName] = true
+		*methodCount = *methodCount + 1
+	}
+}
+
 func typeHasExplicitErrorStringMethod(typeMethods []*ast.FuncDecl) bool {
 	for _, method := range typeMethods {
 		if method.Name.Name != "Error" || method.Type.Results == nil || len(method.Type.Results.List) != 1 {
@@ -1934,6 +2081,8 @@ func writeEmbeddedGoErrorMethod(out *strings.Builder) {
 func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, embeddedTypeName string) {
 	mutableReceiver := methodRequiresMutableReceiver(method)
 	params := promotedMethodParamBindings(method.Type.Params)
+	goPtrResultInfos := goPtrResultInfosForFunc(method)
+	goPtrResultSig, hasGoPtrResultSig := funcDeclSignatureFromTypeInfo(method)
 
 	out.WriteString("    pub fn ")
 	out.WriteString(rustMethodName(method))
@@ -1960,12 +2109,22 @@ func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, embedded
 		}
 		out.WriteString(param.name)
 		out.WriteString(": ")
-		out.WriteString(GoTypeToRust(param.typ))
+		if elemRustType, ok := goPtrParamDeclElemRustType(method, i); ok {
+			out.WriteString("GoPtr<")
+			out.WriteString(elemRustType)
+			out.WriteString(">")
+		} else {
+			out.WriteString(GoTypeToRust(param.typ))
+		}
 	}
 
 	out.WriteString(")")
 
-	writeFuncDeclResultTypes(out, method)
+	if len(goPtrResultInfos) > 0 && hasGoPtrResultSig {
+		writeGoPtrFuncResultTypesFromInfos(out, goPtrResultSig, goPtrResultInfos)
+	} else {
+		writeFuncDeclResultTypes(out, method)
+	}
 
 	out.WriteString(" {\n")
 	out.WriteString("        // Forward to embedded type's method\n")
@@ -1983,20 +2142,27 @@ func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, embedded
 		out.WriteString(";\n")
 		out.WriteString("        let embedded_ref = guard.as_ref().unwrap();\n")
 	}
-	out.WriteString("        embedded_ref.")
-	out.WriteString(rustMethodName(method))
-	out.WriteString("(")
+	out.WriteString("        ")
+	if !writePromotedGoPtrForwardedResult(out, goPtrResultSig, goPtrResultInfos, "", func() {
+		writePromotedMethodForwardedCall(out, rustMethodName(method), params)
+	}) {
+		writePromotedMethodForwardedCall(out, rustMethodName(method), params)
+	}
+	out.WriteString("\n")
+	out.WriteString("    }\n")
+}
 
-	// Pass through parameters
+func writePromotedMethodForwardedCall(out *strings.Builder, methodName string, params []promotedMethodParamBinding) {
+	out.WriteString("embedded_ref.")
+	out.WriteString(methodName)
+	out.WriteString("(")
 	for i, param := range params {
 		if i > 0 {
 			out.WriteString(", ")
 		}
 		out.WriteString(param.name)
 	}
-
-	out.WriteString(")\n")
-	out.WriteString("    }\n")
+	out.WriteString(")")
 }
 
 type promotedMethodParamBinding struct {
@@ -2037,6 +2203,7 @@ func generateExternalPromotedMethod(out *strings.Builder, method externalPromote
 	}
 	params := sig.Params()
 	results := sig.Results()
+	goPtrResultInfos, _ := goPtrResultInfosForFuncObject(method.Func)
 
 	out.WriteString("    pub fn ")
 	out.WriteString(method.RustMethodName)
@@ -2059,7 +2226,9 @@ func generateExternalPromotedMethod(out *strings.Builder, method externalPromote
 		}
 	}
 	out.WriteString(")")
-	if results.Len() > 0 {
+	if len(goPtrResultInfos) > 0 {
+		writeGoPtrFuncResultTypesFromInfos(out, sig, goPtrResultInfos)
+	} else if results.Len() > 0 {
 		out.WriteString(" -> ")
 		if results.Len() == 1 {
 			out.WriteString(goTypesReturnTypeToRust(results.At(0).Type()))
@@ -2089,17 +2258,72 @@ func generateExternalPromotedMethod(out *strings.Builder, method externalPromote
 		out.WriteString(";\n")
 		out.WriteString("        let embedded_ref = guard.as_ref().unwrap();\n")
 	}
-	out.WriteString("        embedded_ref.")
-	out.WriteString(method.RustMethodName)
+	out.WriteString("        ")
+	inputHelperQualifier := goPtrHelperQualifierForFunc(method.Func)
+	if !writePromotedGoPtrForwardedResult(out, sig, goPtrResultInfos, inputHelperQualifier, func() {
+		writeExternalPromotedMethodForwardedCall(out, method.RustMethodName, params.Len())
+	}) {
+		writeExternalPromotedMethodForwardedCall(out, method.RustMethodName, params.Len())
+	}
+	out.WriteString("\n")
+	out.WriteString("    }\n")
+}
+
+func writeExternalPromotedMethodForwardedCall(out *strings.Builder, methodName string, paramCount int) {
+	out.WriteString("embedded_ref.")
+	out.WriteString(methodName)
 	out.WriteString("(")
-	for i := 0; i < params.Len(); i++ {
+	for i := 0; i < paramCount; i++ {
 		if i > 0 {
 			out.WriteString(", ")
 		}
 		fmt.Fprintf(out, "_arg%d", i)
 	}
-	out.WriteString(")\n")
-	out.WriteString("    }\n")
+	out.WriteString(")")
+}
+
+func writePromotedGoPtrForwardedResult(out *strings.Builder, sig *types.Signature, resultInfos map[int]goPtrResultInfo, inputHelperQualifier string, writeCall func()) bool {
+	if len(resultInfos) == 0 || sig == nil || sig.Results() == nil || sig.Results().Len() == 0 {
+		return false
+	}
+	results := sig.Results()
+	if results.Len() == 1 {
+		if _, ok := resultInfos[0]; !ok {
+			return false
+		}
+		if inputHelperQualifier == "" {
+			writeCall()
+		} else {
+			writeGoPtrConversion(out, inputHelperQualifier, "", writeCall)
+		}
+		return true
+	}
+
+	out.WriteString("{ let __result = ")
+	writeCall()
+	out.WriteString("; (")
+	for i := 0; i < results.Len(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		if _, ok := resultInfos[i]; ok && inputHelperQualifier != "" {
+			index := i
+			writeGoPtrConversion(out, inputHelperQualifier, "", func() {
+				fmt.Fprintf(out, "__result.%d", index)
+			})
+		} else {
+			fmt.Fprintf(out, "__result.%d", i)
+		}
+	}
+	out.WriteString(") }")
+	return true
+}
+
+func goPtrHelperQualifierForFunc(fn *types.Func) string {
+	if fn == nil || fn.Pkg() == nil {
+		return ""
+	}
+	return goPtrHelperQualifierForOwnerPackage(fn.Pkg().Path())
 }
 
 func shouldSplitGenericOwnMethodImpls(typeSpec *ast.TypeSpec, typeName string, typeMethods []*ast.FuncDecl, declaredTypeNames map[string]bool) bool {
@@ -2194,6 +2418,9 @@ func genericMethodBoundKinds(typeMethods []*ast.FuncDecl) map[*ast.FuncDecl]gene
 		if genericMethodUsesDirectTypeParamValue(method) {
 			boundKind |= genericMethodBoundGoValueClone
 		}
+		if genericSignatureUsesGoPtrDirectTypeParam(method) {
+			boundKind |= genericMethodBoundRustClone
+		}
 		boundKinds[method] = boundKind
 	}
 	if len(methodByObject) == 0 {
@@ -2267,6 +2494,9 @@ func genericFunctionBoundKinds(functions []*ast.FuncDecl) map[*ast.FuncDecl]gene
 		var boundKind genericMethodBoundKind
 		if genericFunctionUsesDirectTypeParamValue(fn) {
 			boundKind |= genericMethodBoundGoValueClone
+		}
+		if genericSignatureUsesGoPtrDirectTypeParam(fn) {
+			boundKind |= genericMethodBoundRustClone
 		}
 		boundKinds[fn] = boundKind
 	}
@@ -2523,6 +2753,55 @@ func genericMethodUsesDirectTypeParamValue(method *ast.FuncDecl) bool {
 	return methodBodyUsesDirectTypeParamValue(typeInfo, method.Body)
 }
 
+func genericSignatureUsesGoPtrDirectTypeParam(fn *ast.FuncDecl) bool {
+	if fn == nil {
+		return false
+	}
+	fnObj, hasFnObj := sliceElemPtrReturnFuncObject(fn)
+	sig, ok := funcDeclSignatureFromTypeInfo(fn)
+	if !ok {
+		return false
+	}
+	if params := sig.Params(); params != nil {
+		for i := 0; i < params.Len(); i++ {
+			if hasFnObj {
+				if info, ok := goPtrParamResultInfoForFunc(fnObj, i); ok && goPtrInfoElemIsDirectTypeParam(info) {
+					return true
+				}
+			}
+			if _, ok := goPtrParamInfoForDeclObject(fn, i); ok && pointerElemIsDirectTypeParam(params.At(i).Type()) {
+				return true
+			}
+		}
+	}
+	if results := sig.Results(); results != nil {
+		resultInfos := goPtrResultInfosForFunc(fn)
+		for i := 0; i < results.Len(); i++ {
+			if _, ok := resultInfos[i]; ok && pointerElemIsDirectTypeParam(results.At(i).Type()) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func goPtrInfoElemIsDirectTypeParam(info goPtrResultInfo) bool {
+	if info.elemType == nil {
+		return false
+	}
+	_, ok := types.Unalias(info.elemType).(*types.TypeParam)
+	return ok
+}
+
+func pointerElemIsDirectTypeParam(typ types.Type) bool {
+	ptr, ok := types.Unalias(typ).Underlying().(*types.Pointer)
+	if !ok {
+		return false
+	}
+	_, ok = types.Unalias(ptr.Elem()).(*types.TypeParam)
+	return ok
+}
+
 func fieldListHasDirectTypeParam(typeInfo *TypeInfo, fields *ast.FieldList) bool {
 	if fields == nil {
 		return false
@@ -2725,12 +3004,6 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.MethodsByType) == 0 {
 		currentContext.Package.MethodsByType = collectPackageMethods([]*ast.File{file})
 	}
-	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.FunctionBoundKinds) == 0 {
-		currentContext.Package.FunctionBoundKinds = genericFunctionBoundKinds(collectPackageFunctions([]*ast.File{file}))
-	}
-	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.LocalInterfaceGoValueClone) == 0 {
-		currentContext.Package.LocalInterfaceGoValueClone = collectLocalInterfaceGoValueCloneTypes([]*ast.File{file}, currentContext.Package.FunctionBoundKinds)
-	}
 	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.LocalInterfaceGoComparable) == 0 {
 		currentContext.Package.LocalInterfaceGoComparable = collectLocalInterfaceGoComparableTypes([]*ast.File{file})
 	}
@@ -2893,8 +3166,13 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	for _, fn := range functions {
 		registerFunctionSignatureDecl(fn)
 	}
-	registerSliceElemPtrReturnsFromFiles([]*ast.File{file})
-	registerSliceElemPtrFieldsFromFiles([]*ast.File{file})
+	registerSliceElemPtrFactsFromFiles([]*ast.File{file})
+	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.FunctionBoundKinds) == 0 {
+		currentContext.Package.FunctionBoundKinds = genericFunctionBoundKinds(collectPackageFunctions([]*ast.File{file}))
+	}
+	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.LocalInterfaceGoValueClone) == 0 {
+		currentContext.Package.LocalInterfaceGoValueClone = collectLocalInterfaceGoValueCloneTypes([]*ast.File{file}, currentContext.Package.FunctionBoundKinds)
+	}
 	functionNames := assignFunctionNames(functions)
 	if parentCtx == nil && currentContext != nil && currentContext.Package != nil {
 		functionOverrideNames := currentContext.Package.FunctionNameOverrides
@@ -2953,6 +3231,10 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	importedInterfaceImpls := fileAnalysis.importedInterfaceImpls
 	if ctx := GetTranspileContext(); ctx != nil && ctx.Package != nil && len(ctx.Package.ImportedInterfaceImpls) > 0 {
 		importedInterfaceImpls = ctx.Package.ImportedInterfaceImpls
+	}
+	importedPointerInterfaceImpls := fileAnalysis.importedPointerInterfaceImpls
+	if ctx := GetTranspileContext(); ctx != nil && ctx.Package != nil && len(ctx.Package.ImportedPointerInterfaceImpls) > 0 {
+		importedPointerInterfaceImpls = ctx.Package.ImportedPointerInterfaceImpls
 	}
 	externalLocalInterfaceImpls := fileAnalysis.externalLocalInterfaceImpls(interfaces)
 	if ctx := GetTranspileContext(); ctx != nil && ctx.Package != nil && len(ctx.Package.ExternalLocalInterfaceImpls) > 0 {
@@ -3137,45 +3419,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 					existingMethodNames[ownMethod.Name.Name] = true
 					existingRustMethodNames[rustMethodName(ownMethod)] = true
 				}
-
-				// Collect all methods that should be promoted (including from nested embeds)
-				promotedMethods := make(map[string]struct {
-					embeddedType string
-					method       *ast.FuncDecl
-				})
-				collectPromotedMethods(structDef, packageMethods, promotedMethods)
-
-				// Generate forwarding methods for all promoted methods
-				// Sort method names for deterministic output
-				var promotedMethodNames []string
-				for methodName := range promotedMethods {
-					promotedMethodNames = append(promotedMethodNames, methodName)
-				}
-				slices.Sort(promotedMethodNames)
-
-				for _, methodName := range promotedMethodNames {
-					methodInfo := promotedMethods[methodName]
-					// Check if this method is already defined by the outer type (shadowing)
-					methodRustName := rustMethodName(methodInfo.method)
-					if !existingMethodNames[methodName] && !existingRustMethodNames[methodRustName] {
-						// Generate a forwarding method
-						if methodCount > 0 {
-							body.WriteString("\n")
-						}
-						generatePromotedMethod(&body, methodInfo.method, methodInfo.embeddedType)
-						existingMethodNames[methodName] = true
-						existingRustMethodNames[methodRustName] = true
-						methodCount++
-					}
-				}
-
-				for _, promotedMethod := range collectExternalPromotedMethods(structDef, existingRustMethodNames) {
-					if methodCount > 0 {
-						body.WriteString("\n")
-					}
-					generateExternalPromotedMethod(&body, promotedMethod)
-					methodCount++
-				}
+				writePromotedMethodForwarders(&body, structDef, packageMethods, existingMethodNames, existingRustMethodNames, &methodCount)
 			}
 
 			body.WriteString("}")
@@ -3279,6 +3523,21 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 				currentTypeMethods = previousTraitTypeMethods
 				writeLocalInterfaceSupportImpl(&body, ifaceName, typeName, ifaceType)
 				body.WriteString("}")
+			}
+
+			var importedPointerIfaceNames []string
+			for ifaceName := range importedPointerInterfaceImpls[typeName] {
+				importedPointerIfaceNames = append(importedPointerIfaceNames, ifaceName)
+			}
+			slices.Sort(importedPointerIfaceNames)
+			for _, ifaceName := range importedPointerIfaceNames {
+				ifaceType := importedPointerInterfaceImpls[typeName][ifaceName]
+				if !currentPackagePointerImplementsInterface(typeName, ifaceType) || !typeMethodsImplementTypesInterface(importedTraitMethods, ifaceType) {
+					continue
+				}
+				body.WriteString("\n\n")
+				writePointerLocalInterfaceWrapper(&body, typeName, ifaceName, ifaceType, !pointerWrapperEmitted)
+				pointerWrapperEmitted = true
 			}
 		}
 		currentTypeMethods = previousTypeMethods
@@ -3431,6 +3690,34 @@ func reserveSiblingRustTypeNames(imports *ImportTracker) {
 	}
 }
 
+func currentPackageMethodsForPromotion() map[string][]*ast.FuncDecl {
+	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.MethodsByType) > 0 {
+		return currentContext.Package.MethodsByType
+	}
+	return nil
+}
+
+func writeAnonymousStructPromotedMethods(out *strings.Builder, typeName string) {
+	structDef, exists := structDefs[typeName]
+	if !exists || len(structDef.EmbeddedTypes) == 0 {
+		return
+	}
+
+	var methods strings.Builder
+	methodCount := 0
+	writePromotedMethodForwarders(&methods, structDef, currentPackageMethodsForPromotion(), nil, nil, &methodCount)
+	if methodCount == 0 {
+		return
+	}
+
+	out.WriteString("\n")
+	out.WriteString("impl ")
+	out.WriteString(typeName)
+	out.WriteString(" {\n")
+	out.WriteString(methods.String())
+	out.WriteString("}\n")
+}
+
 func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted map[string]bool) {
 	var anonTypeNames []string
 	for typeName := range anonymousStructs {
@@ -3458,7 +3745,14 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 					body.WriteString("    pub ")
 					body.WriteString(rustStructFieldName(name, fieldIndex, nameIndex))
 					body.WriteString(": ")
-					body.WriteString(GoTypeToRust(field.Type))
+					if fieldInfo, ok := sliceElemPtrFieldInfoForAnonymousStructField(structType, name.Name); ok {
+						NeedSliceElemPtr()
+						body.WriteString("GoPtr<")
+						body.WriteString(sliceElemPtrFieldElemRustType(fieldInfo))
+						body.WriteString(">")
+					} else {
+						body.WriteString(GoTypeToRust(field.Type))
+					}
 					body.WriteString(",\n")
 				}
 			} else {
@@ -3473,6 +3767,7 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 
 		body.WriteString("}\n")
 		generateStructValueClone(body, typeName, structType, rustTypeGenerics{})
+		writeAnonymousStructPromotedMethods(body, typeName)
 		body.WriteString("\n")
 		generateStructDefault(body, nil, typeName, structType, rustTypeGenerics{})
 		body.WriteString("\n")

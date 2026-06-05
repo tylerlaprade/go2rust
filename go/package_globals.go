@@ -830,6 +830,9 @@ func writePackageGlobalSingleInit(out *strings.Builder, global packageGlobal, rh
 	if writePackageGlobalErrorHandleInit(out, global, rhs) {
 		return
 	}
+	if writePackageGlobalAnyHandleInit(out, global, rhs) {
+		return
+	}
 	if writePackageGlobalInterfaceHandleInit(out, global, rhs) {
 		return
 	}
@@ -1219,6 +1222,15 @@ func writePackageGlobalErrorHandleInit(out *strings.Builder, global packageGloba
 		return false
 	}
 	exprType := typeInfo.GetType(expr)
+	if concrete, ok := concreteGoErrorConversionOperand(expr, typeInfo); ok {
+		out.WriteString("    *")
+		out.WriteString(rustPackageGlobalName(global.name))
+		WriteBorrowMethod(out, true)
+		out.WriteString(" = Some(")
+		writeConcreteErrorBox(out, concrete)
+		out.WriteString(");\n")
+		return true
+	}
 	if isGoErrorType(exprType) {
 		out.WriteString("    { let __rhs_holder = ")
 		TranspileExpressionContext(out, expr, LValue)
@@ -1240,6 +1252,32 @@ func writePackageGlobalErrorHandleInit(out *strings.Builder, global packageGloba
 		return true
 	}
 	return false
+}
+
+func writePackageGlobalAnyHandleInit(out *strings.Builder, global packageGlobal, expr ast.Expr) bool {
+	if !isEmptyInterfaceType(global.typ) {
+		return false
+	}
+	out.WriteString("    *")
+	out.WriteString(rustPackageGlobalName(global.name))
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = ")
+	if ident, ok := expr.(*ast.Ident); ok && ident.Name == "nil" {
+		out.WriteString("None;\n")
+		return true
+	}
+	if isEmptyInterfaceValueExpr(expr) {
+		out.WriteString("{ let __rhs_holder = ")
+		writeEmptyInterfaceHandleClone(out, expr)
+		out.WriteString("; let __rhs_guard = __rhs_holder")
+		WriteBorrowMethod(out, false)
+		out.WriteString("; (*__rhs_guard).clone() };\n")
+		return true
+	}
+	out.WriteString("Some(")
+	writeInterfaceBoxedValue(out, expr)
+	out.WriteString(");\n")
+	return true
 }
 
 func writePackageGlobalInterfaceHandleInit(out *strings.Builder, global packageGlobal, expr ast.Expr) bool {
@@ -1303,6 +1341,9 @@ func writePackageGlobalInitValue(out *strings.Builder, expr ast.Expr, targetType
 		out.WriteString(")")
 		return
 	}
+	if writePackageGlobalPointerSelectorHandleInitValue(out, expr, targetType) {
+		return
+	}
 	if writeConstExpressionForExpectedGoType(out, expr, targetType) {
 		return
 	}
@@ -1336,6 +1377,29 @@ func writePackageGlobalInitValue(out *strings.Builder, expr ast.Expr, targetType
 		return
 	}
 	TranspileExpression(out, expr)
+}
+
+func writePackageGlobalPointerSelectorHandleInitValue(out *strings.Builder, expr ast.Expr, targetType types.Type) bool {
+	if !isPointerGlobalType(targetType) {
+		return false
+	}
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	exprType := typeInfo.GetType(expr)
+	if exprType == nil || !types.AssignableTo(exprType, targetType) {
+		return false
+	}
+	if !selectorFieldValueKeepsHandle(exprType) {
+		return false
+	}
+	writeSelectorHandleClone(out, sel)
+	return true
 }
 
 func packageGlobalFunctionObjectInit(expr ast.Expr, targetType types.Type) bool {

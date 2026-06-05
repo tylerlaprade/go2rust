@@ -31,6 +31,7 @@ type externalPromotedMethod struct {
 	EmbeddedFieldName string
 	MethodName        string
 	RustMethodName    string
+	Func              *types.Func
 	Signature         *types.Signature
 	GenericArguments  bool
 	MutableReceiver   bool
@@ -213,13 +214,13 @@ func externalTupleRustTypeForNamed(named *types.Named) (string, bool) {
 	}
 }
 
-func RegisterExternalTypeStubField(typeName string, fieldName string, fieldType types.Type) {
+func RegisterExternalTypeStubField(typeName string, fieldName string, fieldType types.Type, ownerPkgPath string) {
 	if !canDefineExternalTypeStub(typeName) || fieldName == "" || fieldType == nil {
 		return
 	}
 	RegisterExternalTypeStub(typeName)
 	trackWrapperImports()
-	fieldTypeRust := canonicalPackageExternalStubRustType(goTypesFieldTypeToRust(fieldType))
+	fieldTypeRust := canonicalPackageExternalStubRustType(goTypesFieldTypeToRustForOwnerPackage(fieldType, ownerPkgPath))
 	fields := currentExternalTypeStubFields()
 	if fields[typeName] == nil {
 		fields[typeName] = make(map[string]string)
@@ -228,8 +229,16 @@ func RegisterExternalTypeStubField(typeName string, fieldName string, fieldType 
 }
 
 func goTypesFieldTypeToRust(t types.Type) string {
+	return goTypesFieldTypeToRustForOwnerPackage(t, "")
+}
+
+func goTypesFieldTypeToRustForOwnerPackage(t types.Type, ownerPkgPath string) string {
 	if _, ok := types.Unalias(t).Underlying().(*types.Pointer); ok {
 		return goTypesTypeToRust(t)
+	}
+	if mapType, ok := types.Unalias(t).Underlying().(*types.Map); ok {
+		TrackImport("BTreeMap")
+		return goTypesWrappedRustType("BTreeMap<" + goTypesMapKeyToRustForOwnerPackage(mapType.Key(), ownerPkgPath) + ", " + goTypesMapValueToRust(mapType.Elem()) + ">")
 	}
 	return goTypesTypeToRustWrapped(t)
 }
@@ -345,7 +354,7 @@ func RegisterExternalSelectorField(sel *ast.SelectorExpr) {
 	if !ok {
 		return
 	}
-	RegisterExternalTypeStubField(goTypesNamedTypeToRust(named), ToSnakeCase(field.Name()), field.Type())
+	RegisterExternalTypeStubField(goTypesNamedTypeToRust(named), ToSnakeCase(field.Name()), field.Type(), named.Obj().Pkg().Path())
 }
 
 func RegisterExternalSelectorMethod(sel *ast.SelectorExpr) {
@@ -475,6 +484,7 @@ func collectExternalPromotedMethods(structDef *StructDef, existingRustNames map[
 				EmbeddedFieldName: ToSnakeCase(getEmbeddedFieldName(field.Type)),
 				MethodName:        methodName,
 				RustMethodName:    rustMethodName,
+				Func:              fn,
 				Signature:         sig,
 				GenericArguments:  stubBacked,
 				MutableReceiver:   !stubBacked && signatureHasPointerReceiver(sig),
@@ -1369,14 +1379,19 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	}
 	dst.needsFormatMap = dst.needsFormatMap || src.needsFormatMap
 	dst.needsFormatSlice = dst.needsFormatSlice || src.needsFormatSlice
+	dst.needsFormatSliceWrappedValues = dst.needsFormatSliceWrappedValues || src.needsFormatSliceWrappedValues
+	dst.needsFormatSliceWrappedStringer = dst.needsFormatSliceWrappedStringer || src.needsFormatSliceWrappedStringer
 	dst.needsFormatNestedSlice = dst.needsFormatNestedSlice || src.needsFormatNestedSlice
 	dst.needsFormatNestedSliceWrapped = dst.needsFormatNestedSliceWrapped || src.needsFormatNestedSliceWrapped
+	dst.needsFormatNestedPointerSlice = dst.needsFormatNestedPointerSlice || src.needsFormatNestedPointerSlice
+	dst.needsFormatNestedPointerSliceWrapped = dst.needsFormatNestedPointerSliceWrapped || src.needsFormatNestedPointerSliceWrapped
 	dst.needsFormatAny = dst.needsFormatAny || src.needsFormatAny
 	dst.needsFormatAnySlice = dst.needsFormatAnySlice || src.needsFormatAnySlice
 	dst.needsAnyEq = dst.needsAnyEq || src.needsAnyEq
 	dst.needsAnyClone = dst.needsAnyClone || src.needsAnyClone
 	dst.needsGoValueClone = dst.needsGoValueClone || src.needsGoValueClone
 	dst.needsGoComparable = dst.needsGoComparable || src.needsGoComparable
+	dst.needsGoAnyTypeMetadata = dst.needsGoAnyTypeMetadata || src.needsGoAnyTypeMetadata
 	if len(src.anyCloneTypes) > 0 {
 		if dst.anyCloneTypes == nil {
 			dst.anyCloneTypes = make(map[string]bool)
@@ -1412,6 +1427,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsReflect = dst.needsReflect || src.needsReflect
 	dst.needsGoHttpResponse = dst.needsGoHttpResponse || src.needsGoHttpResponse
 	dst.needsGoPtrKey = dst.needsGoPtrKey || src.needsGoPtrKey
+	dst.needsGoAnyPtrKey = dst.needsGoAnyPtrKey || src.needsGoAnyPtrKey
 }
 
 func mergeBoolMap(dst map[string]bool, src map[string]bool) {

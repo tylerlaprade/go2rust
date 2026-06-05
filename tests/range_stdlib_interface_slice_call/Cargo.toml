@@ -1,3 +1,13 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/go_ast",
+    "vendor/go_token",
+    "vendor/strings",
+]
+
 [package]
 name = "range_stdlib_interface_slice_call"
 version = "0.1.0"
@@ -6,3 +16,9 @@ edition = "2021"
 [[bin]]
 name = "range_stdlib_interface_slice_call"
 path = "main.rs"
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+go_ast = { path = "vendor/go_ast" }
+go_token = { path = "vendor/go_token" }
+strings = { path = "vendor/strings" }

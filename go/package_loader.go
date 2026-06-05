@@ -25,7 +25,11 @@ type PackageLoader struct {
 	packageTypeModules          map[string]map[string]string // import path -> Go type name -> Rust module name
 	packageStates               map[string]*PackageState
 	sliceElemPtrReturnFuncNames map[string]sliceElemPtrReturnInfo
+	goPtrParamFuncNames         map[string]map[int]string
+	goPtrReturnFuncNames        map[string]map[int]goPtrResultInfo
 	sliceElemPtrFields          map[string]sliceElemPtrFieldInfo
+	goPtrArrayFields            map[string]goPtrArrayFieldInfo
+	generatedGoPtrFields        map[string]bool
 	comparableByPackage         map[string]map[string]bool
 	pointerComparableByPackage  map[string]map[string]bool
 	concurrencyDetector         *ConcurrencyDetector
@@ -46,7 +50,11 @@ func NewPackageLoader(workDir string) *PackageLoader {
 		packageTypeModules:          make(map[string]map[string]string),
 		packageStates:               make(map[string]*PackageState),
 		sliceElemPtrReturnFuncNames: make(map[string]sliceElemPtrReturnInfo),
+		goPtrParamFuncNames:         make(map[string]map[int]string),
+		goPtrReturnFuncNames:        make(map[string]map[int]goPtrResultInfo),
 		sliceElemPtrFields:          make(map[string]sliceElemPtrFieldInfo),
+		goPtrArrayFields:            make(map[string]goPtrArrayFieldInfo),
+		generatedGoPtrFields:        make(map[string]bool),
 		comparableByPackage:         make(map[string]map[string]bool),
 		pointerComparableByPackage:  make(map[string]map[string]bool),
 	}
@@ -571,8 +579,11 @@ func (pl *PackageLoader) TranspileAll() error {
 	// funcs/methods/types in those packages so peripheral declarations pulling
 	// in heavy deps (go/ast's reflect printer, filepath's os-based Glob) don't
 	// block compilation of the subset the program actually uses.
+	prevSourceStdlibReachable := sourceStdlibReachable
 	SetSourceStdlibReachable(pl.computeSourceStdlibReachable())
+	defer SetSourceStdlibReachable(prevSourceStdlibReachable)
 	pl.packageTypeModules = pl.collectPackageTypeModuleNames()
+	SetSourceFunctionDeclsByFunc(pl.collectSourceFunctionDeclsByFunc())
 	pl.collectSliceElemPtrFacts()
 
 	resetPackageMethodReceiverMutability()
@@ -590,7 +601,6 @@ func (pl *PackageLoader) TranspileAll() error {
 	// interface methods lower to `&mut self` (any implementor mutates through
 	// them). Trait defs, impls, and dispatch call sites all consult this.
 	registerInterfaceMethodMutableReceivers(allPackageTypes)
-	SetSourceFunctionDeclsByFunc(pl.collectSourceFunctionDeclsByFunc())
 	pl.comparableByPackage = pl.collectComparableStructTypesByPackage()
 	pl.pointerComparableByPackage = pl.collectPointerComparablePointeeTypesByPackage()
 
@@ -880,10 +890,7 @@ func (pl *PackageLoader) collectPackageTypeModuleNames() map[string]map[string]s
 
 func (pl *PackageLoader) collectSliceElemPtrFacts() {
 	pl.withEachPackageTypeContext(func(pkg *packages.Package) {
-		registerSliceElemPtrReturnsFromFiles(pkg.Syntax)
-	})
-	pl.withEachPackageTypeContext(func(pkg *packages.Package) {
-		registerSliceElemPtrFieldsFromFiles(pkg.Syntax)
+		registerSliceElemPtrFactsFromFiles(pkg.Syntax)
 	})
 }
 
@@ -906,7 +913,11 @@ func (pl *PackageLoader) withEachPackageTypeContext(fn func(*packages.Package)) 
 		session := NewTranspileSession(pkgTypeInfo, pl.packageMapping)
 		session.PackageTypeModuleNames = pl.packageTypeModules
 		session.SliceElemPtrReturnFuncNames = pl.sliceElemPtrReturnFuncNames
+		session.GoPtrParamFuncNames = pl.goPtrParamFuncNames
+		session.GoPtrReturnFuncNames = pl.goPtrReturnFuncNames
 		session.SliceElemPtrFields = pl.sliceElemPtrFields
+		session.GoPtrArrayFields = pl.goPtrArrayFields
+		session.GeneratedGoPtrFields = pl.generatedGoPtrFields
 		SetTranspileContext(&TranspileContext{
 			Session:        session,
 			Package:        pkgState,
@@ -961,7 +972,11 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	session := NewTranspileSession(pkgTypeInfo, pl.packageMapping)
 	session.PackageTypeModuleNames = pl.packageTypeModules
 	session.SliceElemPtrReturnFuncNames = pl.sliceElemPtrReturnFuncNames
+	session.GoPtrParamFuncNames = pl.goPtrParamFuncNames
+	session.GoPtrReturnFuncNames = pl.goPtrReturnFuncNames
 	session.SliceElemPtrFields = pl.sliceElemPtrFields
+	session.GoPtrArrayFields = pl.goPtrArrayFields
+	session.GeneratedGoPtrFields = pl.generatedGoPtrFields
 	SetTranspileContext(&TranspileContext{
 		Session:                 session,
 		Package:                 pkgState,
@@ -973,9 +988,6 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	parentTypeInfo := GetTypeInfo()
 	SetTypeInfo(pkgTypeInfo)
 	defer SetTypeInfo(parentTypeInfo)
-	pkgState.FunctionBoundKinds = genericFunctionBoundKinds(collectPackageFunctions(pkg.Syntax))
-	pkgState.LocalInterfaceGoValueClone = collectLocalInterfaceGoValueCloneTypes(pkg.Syntax, pkgState.FunctionBoundKinds)
-	pkgState.LocalInterfaceGoComparable = collectLocalInterfaceGoComparableTypes(pkg.Syntax)
 	packageAnalysis := analyzeTranspileFiles(pkg.Syntax, pkgTypeInfo)
 	pkgState.MapKeyStructTypes = packageAnalysis.mapKeyStructTypes
 	pkgState.ComparableStructTypes = make(map[string]bool)
@@ -1001,12 +1013,15 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 		pkgCtx.UsePackageHelpers = usePackageHelpers
 	}
 	pkgState.ImportedInterfaceImpls = packageAnalysis.importedInterfaceImpls
+	pkgState.ImportedPointerInterfaceImpls = packageAnalysis.importedPointerInterfaceImpls
 	pkgState.ExternalLocalInterfaceImpls = packageAnalysis.externalLocalInterfaceImpls(collectPackageInterfaceDecls(pkg.Syntax))
 	registerPackageTypeModuleNames(pkgState, pkg.Syntax, moduleNamesByIndex)
 	registerPackageTypeFactsFromFiles(pkg.Syntax)
 	registerFunctionSignaturesFromFiles(pkg.Syntax)
-	registerSliceElemPtrReturnsFromFiles(pkg.Syntax)
-	registerSliceElemPtrFieldsFromFiles(pkg.Syntax)
+	registerSliceElemPtrFactsFromFiles(pkg.Syntax)
+	pkgState.FunctionBoundKinds = genericFunctionBoundKinds(collectPackageFunctions(pkg.Syntax))
+	pkgState.LocalInterfaceGoValueClone = collectLocalInterfaceGoValueCloneTypes(pkg.Syntax, pkgState.FunctionBoundKinds)
+	pkgState.LocalInterfaceGoComparable = collectLocalInterfaceGoComparableTypes(pkg.Syntax)
 
 	var generatedModules []generatedRustModule
 	var initModules []generatedInitModule
@@ -1232,6 +1247,22 @@ func (pl *PackageLoader) GetPackageMapping() map[string]string {
 
 func (pl *PackageLoader) GetPackageTypeModuleNames() map[string]map[string]string {
 	return pl.packageTypeModules
+}
+
+func (pl *PackageLoader) GetGoPtrParamFuncNames() map[string]map[int]string {
+	return pl.goPtrParamFuncNames
+}
+
+func (pl *PackageLoader) GetGoPtrReturnFuncNames() map[string]map[int]goPtrResultInfo {
+	return pl.goPtrReturnFuncNames
+}
+
+func (pl *PackageLoader) GetGeneratedGoPtrFields() map[string]bool {
+	return pl.generatedGoPtrFields
+}
+
+func (pl *PackageLoader) GetGoPtrArrayFields() map[string]goPtrArrayFieldInfo {
+	return pl.goPtrArrayFields
 }
 
 func (pl *PackageLoader) GetPackageStates() []*PackageState {

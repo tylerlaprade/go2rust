@@ -209,8 +209,62 @@ func TestTranspileSyncRuntimeLinkedFunctionsUseLocalRuntimeBodies(t *testing.T) 
 		},
 	}, fset, nil)
 	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("runtime_Semacquire"),
+		Type: &ast.FuncType{Params: &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("s")}, Type: &ast.StarExpr{X: ast.NewIdent("uint32")}}}}},
+	}, fset, nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("runtime_SemacquireWaitGroup"),
+		Type: &ast.FuncType{Params: &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("s")}, Type: &ast.StarExpr{X: ast.NewIdent("uint32")}}}}},
+	}, fset, nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("runtime_SemacquireRWMutexR"),
+		Type: &ast.FuncType{Params: &ast.FieldList{List: []*ast.Field{
+			{Names: []*ast.Ident{ast.NewIdent("s")}, Type: &ast.StarExpr{X: ast.NewIdent("uint32")}},
+			{Names: []*ast.Ident{ast.NewIdent("lifo")}, Type: ast.NewIdent("bool")},
+			{Names: []*ast.Ident{ast.NewIdent("skipframes")}, Type: ast.NewIdent("int")},
+		}}},
+	}, fset, nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("runtime_Semrelease"),
+		Type: &ast.FuncType{Params: &ast.FieldList{List: []*ast.Field{
+			{Names: []*ast.Ident{ast.NewIdent("s")}, Type: &ast.StarExpr{X: ast.NewIdent("uint32")}},
+			{Names: []*ast.Ident{ast.NewIdent("handoff")}, Type: ast.NewIdent("bool")},
+			{Names: []*ast.Ident{ast.NewIdent("skipframes")}, Type: ast.NewIdent("int")},
+		}}},
+	}, fset, nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("runtime_notifyListAdd"),
+		Type: &ast.FuncType{
+			Params:  &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("l")}, Type: &ast.StarExpr{X: ast.NewIdent("notifyList")}}}},
+			Results: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("uint32")}}},
+		},
+	}, fset, nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("runtime_notifyListWait"),
+		Type: &ast.FuncType{Params: &ast.FieldList{List: []*ast.Field{
+			{Names: []*ast.Ident{ast.NewIdent("l")}, Type: &ast.StarExpr{X: ast.NewIdent("notifyList")}},
+			{Names: []*ast.Ident{ast.NewIdent("t")}, Type: ast.NewIdent("uint32")},
+		}}},
+	}, fset, nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("runtime_notifyListNotifyAll"),
+		Type: &ast.FuncType{Params: &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("l")}, Type: &ast.StarExpr{X: ast.NewIdent("notifyList")}}}}},
+	}, fset, nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("runtime_notifyListNotifyOne"),
+		Type: &ast.FuncType{Params: &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("l")}, Type: &ast.StarExpr{X: ast.NewIdent("notifyList")}}}}},
+	}, fset, nil)
+	TranspileFunction(&out, &ast.FuncDecl{
 		Name: ast.NewIdent("runtime_notifyListCheck"),
 		Type: &ast.FuncType{Params: &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("size")}, Type: ast.NewIdent("uintptr")}}}},
+	}, fset, nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("throw"),
+		Type: &ast.FuncType{Params: &ast.FieldList{List: []*ast.Field{{Names: []*ast.Ident{ast.NewIdent("message")}, Type: ast.NewIdent("string")}}}},
+	}, fset, nil)
+	TranspileFunction(&out, &ast.FuncDecl{
+		Name: ast.NewIdent("fatal"),
+		Type: &ast.FuncType{Params: &ast.FieldList{List: []*ast.Field{{Type: ast.NewIdent("string")}}}},
 	}, fset, nil)
 
 	got := out.String()
@@ -223,7 +277,14 @@ func TestTranspileSyncRuntimeLinkedFunctionsUseLocalRuntimeBodies(t *testing.T) 
 		"let _ = n;",
 		"let __value = (*ptr.lock().unwrap().as_ref().unwrap()).clone();",
 		"*ptr.lock().unwrap().as_mut().unwrap() = __stored;",
+		"*__sem -= 1;",
+		"std::thread::yield_now();",
+		"*__sem = __sem.saturating_add(1);",
+		"let _ = l;",
+		"let _ = t;",
 		"let _ = size;",
+		"let __message = { let __arg_holder = __arg0.clone();",
+		"panic!(\"{}\", __message);",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("missing %q in:\n%s", want, got)
@@ -365,27 +426,59 @@ func (x *Pointer[T]) CompareAndSwap(old, new *T) (swapped bool) {
 
 	for _, forbidden := range []string{
 		"pub v: Arc<Mutex<Option<usize>>>",
+		"pub v: Arc<Mutex<Option<Arc<Mutex<Option<T>>>>>>",
 		"unsafe.Pointer conversion to T",
 		"load_pointer(self.v.clone())",
 		"store_pointer(self.v.clone()",
 		"swap_pointer(self.v.clone()",
 		"compare_and_swap_pointer(self.v.clone()",
+		"val.lock().unwrap().is_some()",
+		"new.lock().unwrap().is_some()",
+		"Arc::ptr_eq(__current, &old)",
+		"pub fn load(&self) -> Arc<Mutex<Option<T>>>",
+		"pub fn swap(&self, new: Arc<Mutex<Option<T>>>) -> Arc<Mutex<Option<T>>>",
+		"pub fn compare_and_swap(&self, old: Arc<Mutex<Option<T>>>, new: Arc<Mutex<Option<T>>>) -> bool",
 	} {
 		if strings.Contains(rust, forbidden) {
 			t.Fatalf("sync/atomic Pointer should use a typed pointer-handle slot, found %q:\n%s", forbidden, rust)
 		}
 	}
 	for _, want := range []string{
-		"pub v: Arc<Mutex<Option<Arc<Mutex<Option<T>>>>>>",
+		"pub struct Pointer<T: Any + Clone + Send + Sync + 'static>",
+		"pub v: Arc<Mutex<Option<GoPtr<T>>>>",
 		"v: Arc::new(Mutex::new(None))",
-		"__guard.as_ref().cloned().unwrap_or_else(|| Arc::new(Mutex::new(None)))",
-		"let __stored = if val.lock().unwrap().is_some() { Some(val.clone()) } else { None };",
-		"let __stored = if new.lock().unwrap().is_some() { Some(new.clone()) } else { None };",
-		"Arc::ptr_eq(__current, &old)",
+		"__guard.as_ref().cloned().unwrap_or_else(|| GoPtr::nil())",
+		"let __stored = if val.is_nil() { None } else { Some(val.clone()) };",
+		"let __stored = if new.is_nil() { None } else { Some(new.clone()) };",
+		"GoPtr::ptr_eq(__current, &old)",
+		"pub fn load(&self) -> GoPtr<T>",
+		"pub fn swap(&self, new: GoPtr<T>) -> GoPtr<T>",
+		"pub fn compare_and_swap(&self, old: GoPtr<T>, new: GoPtr<T>) -> bool",
 	} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("missing %q in sync/atomic Pointer lowering:\n%s", want, rust)
 		}
+	}
+}
+
+func TestNamedTypeOverImportedNamedStructImplementsDisplay(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "sync/atomic"
+
+type profileStateHolder atomic.Uint32
+
+type goroutine struct {
+	profiled profileStateHolder
+}
+`)
+
+	if !strings.Contains(rust, "impl Display for profileStateHolder") &&
+		!strings.Contains(rust, "impl std::fmt::Display for profileStateHolder") {
+		t.Fatalf("defined type over an imported named struct should implement Display:\n%s", rust)
+	}
+	if !strings.Contains(rust, `write!(f, "{}", self.0`) {
+		t.Fatalf("defined type over an imported named struct should delegate Display to the inner named value:\n%s", rust)
 	}
 }
 
@@ -460,12 +553,97 @@ func TestTranspileInternalABITypeOfUsesRuntimeTypeIntrinsic(t *testing.T) {
 	}
 	for _, want := range []string{
 		"<dyn std::any::Any>::is::<String>",
+		"<dyn std::any::Any>::is::<char>",
+		"<dyn std::any::Any>::is::<Vec<String>>",
+		"<dyn std::any::Any>::is::<Vec<Box<dyn Any>>>",
+		"<dyn std::any::Any>::is::<Box<dyn Any>>",
+		"<dyn std::any::Any>::is::<Rc<RefCell<Option<Box<dyn Any>>>>",
+		"<dyn std::any::Any>::is::<Rc<RefCell<Option<Vec<Box<dyn Any>>>>>",
 		"std::mem::size_of_val(__value)",
+		"std::any::type_name_of_val(__value)",
 		"internal/abi.TypeOf unsupported Rust Any payload",
+		"if let Some(__go_meta) = __go_any_metadata { if __go_meta.kind == \"pointer\"",
+		"let mut __ptr_type = PtrType::default()",
+		"if let Some(__go_elem_kind) = __go_meta.elem_kind",
+		"go_register_embedded_owner(__embedded_key, __owner.clone())",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("missing %q in:\n%s", want, got)
 		}
+	}
+}
+
+func TestGoPtrStructFieldUsesCurrentPackageModuleForCachedSamePathElem(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "iface.go", `package abi
+
+type Type struct{}
+
+type EmptyInterface struct {
+	Type *Type
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfoWithImporter("example.com/abi", []*ast.File{file}, fset, nil)
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter() error = %v", err)
+	}
+
+	var emptySpec *ast.TypeSpec
+	for _, decl := range file.Decls {
+		gen, ok := decl.(*ast.GenDecl)
+		if !ok || gen.Tok != token.TYPE {
+			continue
+		}
+		for _, spec := range gen.Specs {
+			typeSpec := spec.(*ast.TypeSpec)
+			if typeSpec.Name.Name == "EmptyInterface" {
+				emptySpec = typeSpec
+			}
+		}
+	}
+	if emptySpec == nil {
+		t.Fatalf("test fixture missing EmptyInterface type")
+	}
+
+	typeObj := typeInfo.pkg.Scope().Lookup("Type").(*types.TypeName)
+	emptyObj := typeInfo.pkg.Scope().Lookup("EmptyInterface").(*types.TypeName)
+	key := sliceElemPtrFieldKey(emptyObj.Type().(*types.Named), "Type")
+
+	prevTypeInfo := currentTypeInfo
+	prevCtx := GetTranspileContext()
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		SetTranspileContext(prevCtx)
+	}()
+	SetTranspileContext(&TranspileContext{
+		CurrentModuleName: "iface",
+		Package: &PackageState{
+			TypeModuleNames: map[string]string{
+				"Type":           "r#type",
+				"EmptyInterface": "iface",
+			},
+			SliceElemPtrFields: map[string]sliceElemPtrFieldInfo{
+				key: {
+					elemRustType: "example_com_abi::r#type::Type",
+					elemType:     typeObj.Type(),
+				},
+			},
+		},
+		Session: &TranspileSession{TypeInfo: typeInfo},
+	})
+	SetTypeInfo(typeInfo)
+
+	var out strings.Builder
+	emitStructTypeDeclBody(&out, emptySpec, emptySpec.Type.(*ast.StructType))
+	got := out.String()
+	if strings.Contains(got, "example_com_abi::") {
+		t.Fatalf("GoPtr field should not reuse cached external crate type inside declaring package:\n%s", got)
+	}
+	if !strings.Contains(got, "pub r#type: GoPtr<crate::r#type::Type>") {
+		t.Fatalf("GoPtr field should render the current package sibling module type:\n%s", got)
 	}
 }
 
@@ -1396,7 +1574,7 @@ func use(specs []Spec) Spec {
 	if !strings.Contains(rust, "pub fn first<E: Any + GoValueClone + 'static>") {
 		t.Fatalf("generic helper returning a direct type-param element should require GoValueClone:\n%s", rust)
 	}
-	want := "impl GoValueClone for Box<dyn Spec> {\n    fn go_value_clone(&self) -> Self {\n        self.__go_clone_box_spec()\n    }\n}"
+	want := "impl GoValueClone for Box<dyn Spec> {\n    fn go_value_clone(&self) -> Self {\n        Spec::__go_clone_box_spec(self.as_ref())\n    }\n}"
 	if !strings.Contains(rust, want) {
 		t.Fatalf("local interface used as a GoValueClone generic argument should implement the trait, missing %q:\n%s", want, rust)
 	}
@@ -1908,6 +2086,48 @@ func mark() Bitmap {
 	}
 }
 
+func TestNamedArrayOverNamedArrayDefaultUsesInnerNamedArray(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type PageBits [2]uint64
+type PallocBits PageBits
+
+func mark() PallocBits {
+	var p PallocBits
+	return p
+}
+`)
+
+	if !strings.Contains(rust, "pub struct PallocBits(pub Rc<RefCell<Option<PageBits>>>);") &&
+		!strings.Contains(rust, "pub struct PallocBits(pub Arc<Mutex<Option<PageBits>>>);") {
+		t.Fatalf("named array over named array should store the inner named array type:\n%s", rust)
+	}
+	if strings.Contains(rust, "PallocBits(Rc::new(RefCell::new(Some(std::array::from_fn(|_| 0)))))") ||
+		strings.Contains(rust, "PallocBits(Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))))") {
+		t.Fatalf("named array over named array default must not initialize a raw array in the inner named slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "PallocBits(Rc::new(RefCell::new(Some(PageBits(") &&
+		!strings.Contains(rust, "PallocBits(Arc::new(Mutex::new(Some(PageBits(") {
+		t.Fatalf("named array over named array default should initialize the inner named array value:\n%s", rust)
+	}
+
+	displayStart := strings.Index(rust, "impl Display for PallocBits")
+	if displayStart < 0 {
+		t.Fatalf("named array over named array should implement Display:\n%s", rust)
+	}
+	displayEnd := strings.Index(rust[displayStart:], "\n}\n")
+	if displayEnd < 0 {
+		t.Fatalf("could not isolate PallocBits Display impl:\n%s", rust)
+	}
+	displayImpl := rust[displayStart : displayStart+displayEnd]
+	if strings.Contains(displayImpl, "format_slice(&self.0)") {
+		t.Fatalf("named array over named array Display must not format the outer inner-named slot as a raw slice:\n%s", rust)
+	}
+	if !strings.Contains(displayImpl, "__inner_guard.as_ref().unwrap()") {
+		t.Fatalf("named array over named array Display should format through the inner named value:\n%s", rust)
+	}
+}
+
 func TestNamedMapTypeDefinitionUsesFormatMapDisplay(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -1939,6 +2159,46 @@ type ranges struct {
 	}
 	if !strings.Contains(rust, "format_slice(&self.p)") {
 		t.Fatalf("pointer-to-slice struct display should use the slice formatter:\n%s", rust)
+	}
+}
+
+func TestStructDisplayNestedPointerArrayUsesNestedPointerWrappedFormatter(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type arena struct {
+	id int
+}
+
+type heap struct {
+	arenas [2]*[4]*arena
+}
+`)
+
+	if strings.Contains(rust, "format_slice_wrapped(&self.arenas)") {
+		t.Fatalf("nested pointer-array struct display should not use the single-level wrapped formatter:\n%s", rust)
+	}
+	if !strings.Contains(rust, "format_nested_pointer_slice_wrapped(&self.arenas)") {
+		t.Fatalf("nested pointer-array struct display should use the nested pointer wrapped formatter:\n%s", rust)
+	}
+}
+
+func TestStructDisplayNestedPointerRawArrayUsesNestedPointerFormatter(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type data struct {
+	id int
+}
+
+type page struct {
+	chunks [2]*[4]data
+}
+`)
+
+	if strings.Contains(rust, "format_slice_wrapped(&self.chunks)") {
+		t.Fatalf("nested pointer-array struct display should not use the single-level wrapped formatter:\n%s", rust)
+	}
+	if !strings.Contains(rust, "format_nested_pointer_slice(&self.chunks)") {
+		t.Fatalf("nested pointer-array struct display should use the nested pointer formatter:\n%s", rust)
 	}
 }
 
@@ -2001,6 +2261,40 @@ type nodeQueue []*graphNode
 	}
 	if !strings.Contains(rust, "#[derive(Clone, Default)]\npub struct nodeQueue") {
 		t.Fatalf("named slice over non-Debug element should still derive Clone and Default:\n%s", rust)
+	}
+}
+
+func TestNamedPointerSliceTypeDefinitionOverStringerImplementsDisplay(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type sortable interface {
+	Len() int
+	Less(i, j int) bool
+	Swap(i, j int)
+}
+
+type TypeParam struct{}
+
+func (*TypeParam) String() string { return "T" }
+
+type typeParamsById []*TypeParam
+
+func (t typeParamsById) Len() int           { return len(t) }
+func (t typeParamsById) Less(i, j int) bool { return false }
+func (t typeParamsById) Swap(i, j int)      {}
+
+func use(s sortable) {}
+
+func call(t typeParamsById) {
+	use(t)
+}
+`)
+
+	if !strings.Contains(rust, "impl Display for typeParamsById") {
+		t.Fatalf("named pointer slice over Stringer should implement Display for interface objects:\n%s", rust)
+	}
+	if !strings.Contains(rust, "format_slice_wrapped(&self.0)") {
+		t.Fatalf("named pointer slice Display should use wrapped slice formatting:\n%s", rust)
 	}
 }
 
@@ -2110,6 +2404,38 @@ type Expr interface {
 	}
 	if !strings.Contains(rust, "fn pos(&self) -> i32") {
 		t.Fatalf("Node method should be delegated on boxed Expr trait object:\n%s", rust)
+	}
+}
+
+func TestEmbeddedImportedSameNameInterfaceCloneUsesQualifiedHelper(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "sort"
+
+type Interface interface {
+	sort.Interface
+	Push(x any)
+	Pop() any
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"sort": "sort"})
+	if !strings.Contains(rust, "pub trait Interface: sort::Interface +") {
+		t.Fatalf("same-name embedded imported interface should be emitted as a supertrait:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Interface::__go_clone_box_interface(self.as_ref())") {
+		t.Fatalf("Clone impl should qualify the local trait clone helper:\n%s", rust)
+	}
+	if strings.Contains(rust, "self.__go_clone_box_interface()") {
+		t.Fatalf("Clone impl should not use ambiguous method-call syntax:\n%s", rust)
 	}
 }
 
@@ -2377,6 +2703,53 @@ var Holder struct {
 	}
 }
 
+func TestAnonymousStructEmbeddedLocalMethodsAreForwarded(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type List struct {
+	head int
+}
+
+func (l *List) empty() bool {
+	return l.head == 0
+}
+
+func (l *List) pop() int {
+	v := l.head
+	l.head = 0
+	return v
+}
+
+var holder struct {
+	List
+	n int
+}
+
+func use() int {
+	if holder.empty() {
+		return 0
+	}
+	return holder.pop()
+}
+
+func main() {
+	go func() {}()
+}
+`)
+
+	promotedImplStart := strings.Index(rust, "impl AnonymousStruct1 {\n    pub fn empty(&self) -> bool")
+	if promotedImplStart < 0 {
+		t.Fatalf("anonymous embedded struct should forward read-only promoted methods:\n%s", rust)
+	}
+	promotedImpl := rust[promotedImplStart:]
+	if !strings.Contains(promotedImpl, "    pub fn pop(&mut self) -> i32") {
+		t.Fatalf("anonymous embedded struct should forward mutating promoted methods:\n%s", rust)
+	}
+	if !strings.Contains(promotedImpl, "let embedded = self.list.clone();") {
+		t.Fatalf("anonymous promoted method should delegate through the embedded field:\n%s", rust)
+	}
+}
+
 func TestGenericEmbeddedFieldUsesBaseTypeName(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -2616,6 +2989,121 @@ func TestTranspileConstDeclUsesPackageVisibility(t *testing.T) {
 	}
 	if !strings.Contains(got, `pub(crate) const PRIVATE_VALUE: i32 = 1;`) {
 		t.Fatalf("private package const should be crate-visible, got:\n%s", got)
+	}
+}
+
+func TestTranspileTypedIntegerConstDeclCastsBinaryInitializer(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const heapAddrBits = 48
+const is64 = 1
+const maxAlloc int64 = (1 << heapAddrBits) - (1 - is64) * 1
+const arenaBaseOffset uint64 = 0xffff800000000000*is64 + 1
+
+func use() {
+	_, _ = maxAlloc, arenaBaseOffset
+}
+`)
+
+	if strings.Contains(rust, "pub(crate) const MAX_ALLOC: i64 = (1 << HEAP_ADDR_BITS)") {
+		t.Fatalf("typed i64 const binary initializer should not stay at default integer width:\n%s", rust)
+	}
+	if !strings.Contains(rust, "HEAP_ADDR_BITS as i64") || !strings.Contains(rust, "IS64 as i64") {
+		t.Fatalf("typed i64 const binary initializer should cast operands to the declared width:\n%s", rust)
+	}
+	if !strings.Contains(rust, "IS64 as u64") {
+		t.Fatalf("typed u64 const binary initializer should cast named const operands to the declared width:\n%s", rust)
+	}
+}
+
+func TestTranspileTypedIntegerConstDeclCastsImportedSelectorOperands(t *testing.T) {
+	rust := transpileTypedRegression(t, `package runtime
+
+import (
+	"internal/goarch"
+	"internal/goos"
+)
+
+const arenaBaseOffset uint64 = 0xffff800000000000*goarch.IsAmd64 + 0x0a00000000000000*goos.IsAix
+
+func use() {
+	_ = arenaBaseOffset
+}
+`)
+
+	if strings.Contains(rust, "0xffff800000000000 * internal_goarch::IS_AMD64 +") ||
+		strings.Contains(rust, "0x0a00000000000000 * internal_goos::IS_AIX") {
+		t.Fatalf("typed u64 const binary initializer should not leave imported selector operands at their source width:\n%s", rust)
+	}
+	if strings.Count(rust, "as u64") < 4 {
+		t.Fatalf("typed u64 const binary initializer should cast imported selector operands and literals to u64:\n%s", rust)
+	}
+}
+
+func TestTranspileTypedIntegerConstDeclKeepsIotaSubstitution(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const (
+	state0 uint32 = iota
+	state1 uint32 = 1 << (iota - 1)
+	state2
+)
+
+func use() {
+	_, _, _ = state0, state1, state2
+}
+`)
+
+	if strings.Contains(rust, "iota") {
+		t.Fatalf("typed const binary initializer should preserve iota substitution:\n%s", rust)
+	}
+	if strings.Contains(rust, "(0 as u32) - (1 as u32)") {
+		t.Fatalf("typed const binary initializer should not cast iota subtraction into unsigned underflow:\n%s", rust)
+	}
+}
+
+func TestTranspileTypedIntegerConstConversionCastsShiftOperands(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const marker = uintptr(0xdeaddead | 0xdeaddead<<32)
+
+func use() uintptr {
+	return marker
+}
+`)
+
+	if strings.Contains(rust, "0xdeaddead << 32") {
+		t.Fatalf("integer const conversion should not leave shift operands at default integer width:\n%s", rust)
+	}
+	if !strings.Contains(rust, "0xdeaddead as usize") || !strings.Contains(rust, "32 as usize") {
+		t.Fatalf("integer const conversion should cast shift operands to the conversion width:\n%s", rust)
+	}
+}
+
+func TestTranspileNestedIntegerConstConversionCastsShiftOperands(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type pallocSum uint64
+
+const pallocChunkPages = 1 << 9
+const logMaxPackedValue = 21
+const freeChunkSum = pallocSum(uint64(pallocChunkPages) |
+	uint64(pallocChunkPages<<logMaxPackedValue) |
+	uint64(pallocChunkPages<<(2*logMaxPackedValue)))
+
+func use() pallocSum {
+	return freeChunkSum
+}
+`)
+
+	if strings.Contains(rust, "PALLOC_CHUNK_PAGES << LOG_MAX_PACKED_VALUE") ||
+		strings.Contains(rust, "PALLOC_CHUNK_PAGES << (2 * LOG_MAX_PACKED_VALUE)") {
+		t.Fatalf("nested integer const conversion should not leave shift operands at default integer width:\n%s", rust)
+	}
+	if !strings.Contains(rust, "PALLOC_CHUNK_PAGES as u64") ||
+		!strings.Contains(rust, "LOG_MAX_PACKED_VALUE as u64") ||
+		!strings.Contains(rust, "2 as u64") {
+		t.Fatalf("nested integer const conversion should cast shift operands to the conversion width:\n%s", rust)
 	}
 }
 

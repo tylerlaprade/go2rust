@@ -203,6 +203,9 @@ func writeConstExpressionForExpectedTypeExpr(out *strings.Builder, value ast.Exp
 	if !ok {
 		return false
 	}
+	if writeConstNumericConversionValueForRustType(out, value, rustType) {
+		return true
+	}
 	TranspileExpression(out, value)
 	out.WriteString(" as ")
 	out.WriteString(rustType)
@@ -450,6 +453,14 @@ func writeConstExpressionForExpectedGoType(out *strings.Builder, value ast.Expr,
 	TranspileExpression(out, value)
 	out.WriteString(" as u8")
 	return true
+}
+
+func writeConstExpressionForTypeInfoType(out *strings.Builder, value ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	return writeConstExpressionForExpectedGoType(out, value, typeInfo.GetType(value))
 }
 
 func constStringLiteral(expr ast.Expr) (string, bool) {
@@ -833,6 +844,33 @@ func writeConstExpressionForExpectedFloat(out *strings.Builder, expr ast.Expr, e
 	return true
 }
 
+func writeConstIdentifierForExpectedFloat(out *strings.Builder, expr ast.Expr, expected types.Type) bool {
+	rustType, ok := rustFloatTypeForGoType(expected)
+	if !ok {
+		return false
+	}
+	switch expr.(type) {
+	case *ast.Ident, *ast.SelectorExpr:
+	default:
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	if _, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named); ok {
+		return false
+	}
+	value, ok := constExpressionValue(expr)
+	if !ok || (value.Kind() != constant.Int && value.Kind() != constant.Float) {
+		return false
+	}
+	TranspileExpression(out, expr)
+	out.WriteString(" as ")
+	out.WriteString(rustType)
+	return true
+}
+
 func writeConstZeroExpressionForExpectedComplex(out *strings.Builder, value ast.Expr, expected types.Type) bool {
 	if !isConstantExpression(value) || expected == nil {
 		return false
@@ -878,7 +916,9 @@ func writeConstExpressionForExpectedInteger(out *strings.Builder, value ast.Expr
 	if !ok {
 		return false
 	}
-	if writeConstExpressionWithRustIntegerOperandsForExpected(out, value, rustType) {
+	if writeConstNumericConversionValueForRustType(out, value, rustType) {
+		// Constant operands were emitted in the expected primitive type.
+	} else if writeConstExpressionWithRustIntegerOperandsForExpected(out, value, rustType) {
 		// Constant operands were emitted in the expected primitive type.
 	} else {
 		writeConstExpressionCastValue(out, value)
@@ -892,6 +932,10 @@ func writeConstExpressionForExpectedGoInt(out *strings.Builder, expr ast.Expr, e
 	basic, ok := types.Unalias(expected).(*types.Basic)
 	if !ok || basic.Kind() != types.Int {
 		return false
+	}
+	if sel, ok := expr.(*ast.SelectorExpr); ok && isPackageConstSelector(sel) {
+		TranspileExpression(out, sel)
+		return true
 	}
 	value, ok := constExpressionValue(expr)
 	if !ok {
@@ -1042,6 +1086,9 @@ func writeConstExpressionForBinaryPeer(out *strings.Builder, expr ast.Expr, othe
 			}
 			return writeNamedIntegerConstForExpected(out, expr, expectedNamed)
 		}
+	}
+	if writeConstIdentifierForExpectedFloat(out, expr, expected) {
+		return true
 	}
 	if writeConstExpressionForExpectedGoType(out, expr, expected) {
 		return true
@@ -1317,7 +1364,7 @@ func writeNamedIntegerUnaryConstPrimitiveForExpected(out *strings.Builder, value
 }
 
 func writeConstExpressionWithRustIntegerOperands(out *strings.Builder, value ast.Expr, rustType string) bool {
-	if rustType == "" || !isConstantExpression(value) {
+	if rustType == "" || !isConstantExpression(value) || !constExpressionNeedsExpectedRustIntegerOperands(value, rustType) {
 		return false
 	}
 	binary, ok := unwrapParens(value).(*ast.BinaryExpr)
@@ -1336,7 +1383,26 @@ func writeConstExpressionWithRustIntegerOperands(out *strings.Builder, value ast
 }
 
 func writeConstExpressionWithRustIntegerOperandsForExpected(out *strings.Builder, value ast.Expr, rustType string) bool {
-	if rustType == "" || !isConstantExpression(value) || !constExpressionNeedsExpectedRustIntegerOperands(value, rustType) {
+	if rustType == "" || !constExpressionNeedsExpectedRustIntegerOperands(value, rustType) {
+		return false
+	}
+	binary, ok := unwrapParens(value).(*ast.BinaryExpr)
+	if !ok || !constExpressionCastsOperandsForOp(binary.Op) {
+		return false
+	}
+	operandRustType := constExpressionOperandRustType(value, rustType)
+	out.WriteString("(")
+	writeConstExpressionOperandAsRustInteger(out, binary.X, operandRustType)
+	out.WriteString(" ")
+	out.WriteString(rustBinaryOp(binary.Op))
+	out.WriteString(" ")
+	writeConstExpressionOperandAsRustInteger(out, binary.Y, operandRustType)
+	out.WriteString(")")
+	return true
+}
+
+func writeDeclaredConstExpressionWithRustIntegerOperands(out *strings.Builder, value ast.Expr, rustType string) bool {
+	if rustType == "" || !isConstantExpression(value) {
 		return false
 	}
 	binary, ok := unwrapParens(value).(*ast.BinaryExpr)
@@ -1586,12 +1652,12 @@ func constExpressionHasRustIntegerOperandMismatch(expr ast.Expr, rustType string
 		}
 		switch e := node.(type) {
 		case *ast.Ident:
-			if operandRustType, ok := syntaxIntegerRustType(e); ok && operandRustType != rustType {
+			if operandRustType, ok := constExpressionOperandSyntaxRustType(e); ok && operandRustType != rustType {
 				mismatch = true
 				return false
 			}
 		case *ast.SelectorExpr:
-			if operandRustType, ok := syntaxIntegerRustType(e); ok && operandRustType != rustType {
+			if operandRustType, ok := constExpressionOperandSyntaxRustType(e); ok && operandRustType != rustType {
 				mismatch = true
 				return false
 			}
@@ -1599,6 +1665,30 @@ func constExpressionHasRustIntegerOperandMismatch(expr ast.Expr, rustType string
 		return true
 	})
 	return mismatch
+}
+
+func constExpressionOperandSyntaxRustType(expr ast.Expr) (string, bool) {
+	if rustType, ok := syntaxIntegerRustType(expr); ok {
+		return rustType, true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return "", false
+	}
+	if rustType, ok := rustIntegerCastTypeForExpected(typeInfo.GetType(expr)); ok {
+		return rustType, true
+	}
+	switch e := expr.(type) {
+	case *ast.Ident:
+		if obj, ok := typeInfo.GetObject(e).(*types.Const); ok {
+			return rustIntegerCastTypeForExpected(obj.Type())
+		}
+	case *ast.SelectorExpr:
+		if obj, ok := typeInfo.GetObject(e.Sel).(*types.Const); ok {
+			return rustIntegerCastTypeForExpected(obj.Type())
+		}
+	}
+	return "", false
 }
 
 func constExpressionCastsTopOperandsForOp(op token.Token) bool {
@@ -1689,7 +1779,9 @@ func writeWrappedExpressionForExpectedType(out *strings.Builder, value ast.Expr,
 		TranspileExpression(out, value)
 		out.WriteString(".to_string()")
 	} else if !writeExpressionForExpectedType(out, value, expected) {
-		TranspileExpression(out, value)
+		if !writeConstExpressionForTypeInfoType(out, value) {
+			TranspileExpression(out, value)
+		}
 	}
 	WriteWrapperSuffix(out)
 }

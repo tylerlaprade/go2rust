@@ -1090,6 +1090,36 @@ impl Ord for constraint_Expr {
 }
 
 
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct fs_FileInfo {
+    pub name: String,
+    pub is_dir: bool,
+    pub size: i64,
+}
+
+impl std::fmt::Display for fs_FileInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<fs_FileInfo>")
+    }
+}
+
+
+impl fs_FileInfo {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn name(&self) -> Arc<Mutex<Option<String>>> {
+        Arc::new(Mutex::new(Some::<String>(self.name.clone())))
+    }
+    pub fn size(&self) -> i64 {
+        self.size
+    }
+    pub fn is_dir(&self) -> bool {
+        self.is_dir
+    }
+}
+
+
 #[derive(Clone)]
 pub struct io_Reader {
     pub __go_id: usize,
@@ -1140,6 +1170,123 @@ impl PartialOrd for io_Reader {
 impl Ord for io_Reader {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.__go_id.cmp(&other.__go_id)
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct os_File {
+    pub __go_data: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
+    pub __go_closed: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    pub __go_wait_for_close: bool,
+}
+
+impl Default for os_File {
+    fn default() -> Self {
+        Self {
+            __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
+            __go_closed: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            __go_wait_for_close: false,
+        }
+    }
+}
+
+impl std::fmt::Display for os_File {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<os_File>")
+    }
+}
+
+impl PartialEq for os_File {
+    fn eq(&self, other: &Self) -> bool {
+        std::sync::Arc::ptr_eq(&self.__go_data, &other.__go_data)
+    }
+}
+
+impl Eq for os_File {}
+
+impl os_File {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+
+    pub fn __go_write_bytes(&self, data: &[u8]) {
+        self.__go_data.lock().unwrap().extend_from_slice(data);
+    }
+
+    pub fn __go_read_all(&self) -> Vec<u8> {
+        self.__go_data.lock().unwrap().clone()
+    }
+
+    pub fn __go_read_all_for_copy(&self) -> Vec<u8> {
+        while self.__go_wait_for_close && !self.__go_closed.load(std::sync::atomic::Ordering::SeqCst) {
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+        self.__go_read_all()
+    }
+
+    pub fn close(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+        self.__go_closed.store(true, std::sync::atomic::Ordering::SeqCst);
+        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+    }
+
+    pub fn write<T0: 'static>(&self, arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
+            v.clone()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
+            v.lock().unwrap().as_ref().cloned().unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+        let n = bytes.len() as i32;
+        self.__go_write_bytes(&bytes);
+        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    }
+
+    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<String>() {
+            v.clone()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<&str>() {
+            (*v).to_string()
+        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<String>>>>() {
+            v.lock().unwrap().as_ref().cloned().unwrap_or_default()
+        } else {
+            String::new()
+        };
+        let bytes = value.into_bytes();
+        let n = bytes.len() as i32;
+        self.__go_write_bytes(&bytes);
+        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    }
+
+    pub fn read<T0>(&self, _arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        (Arc::new(Mutex::new(Some::<i32>(0))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    }
+
+    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        let offset = if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<i64>() {
+            *v
+        } else if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<i64>>>>() {
+            v.lock().unwrap().as_ref().copied().unwrap_or_default()
+        } else {
+            0
+        };
+        let data = self.__go_read_all();
+        let mut n = 0i32;
+        if offset >= 0 {
+            let start = offset as usize;
+            if start < data.len() {
+                if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
+                    let mut guard = v.lock().unwrap();
+                    if let Some(target) = guard.as_mut() {
+                        let count = std::cmp::min(target.len(), data.len() - start);
+                        target[..count].copy_from_slice(&data[start..start + count]);
+                        n = count as i32;
+                    }
+                }
+            }
+        }
+        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
 }
 
@@ -1404,6 +1551,14 @@ impl types_TypeAndValue {
 }
 
 
+pub mod bits {
+    use super::*;
+    pub fn mul<T0, T1>(_arg0: T0, _arg1: T1) -> (u64, u64) {
+        panic!("mul bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
 pub mod bytes {
     use super::*;
     pub fn has_prefix<T0, T1>(_arg0: T0, _arg1: T1) -> bool {
@@ -1412,14 +1567,6 @@ pub mod bytes {
 
     pub fn last_index_byte<T0, T1>(_arg0: T0, _arg1: T1) -> i32 {
         panic!("last_index_byte bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
-
-
-pub mod cmp {
-    use super::*;
-    pub fn compare<T>(_arg0: T, _arg1: T) -> i32 {
-        panic!("compare bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -1436,96 +1583,14 @@ pub mod constraint {
 }
 
 
-pub mod filepath {
+pub mod fs {
     use super::*;
-    use std::path::{Path, PathBuf};
-
-    pub trait GoStringArg {
-        fn into_go_string(self) -> String;
+    pub fn SkipAll() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
     }
 
-    impl GoStringArg for String {
-        fn into_go_string(self) -> String {
-            self
-        }
-    }
-
-    impl<'a> GoStringArg for &'a str {
-        fn into_go_string(self) -> String {
-            self.to_string()
-        }
-    }
-
-    impl<'a> GoStringArg for &'a String {
-        fn into_go_string(self) -> String {
-            self.clone()
-        }
-    }
-
-    impl GoStringArg for Arc<Mutex<Option<String>>> {
-        fn into_go_string(self) -> String {
-            self.lock().unwrap().as_ref().cloned().unwrap_or_default()
-        }
-    }
-
-    pub trait GoPathJoinArgs {
-        fn into_path_parts(self) -> Vec<String>;
-    }
-
-    impl<T0: GoStringArg> GoPathJoinArgs for (T0,) {
-        fn into_path_parts(self) -> Vec<String> {
-            vec![self.0.into_go_string()]
-        }
-    }
-
-    impl<T0: GoStringArg, T1: GoStringArg> GoPathJoinArgs for (T0, T1) {
-        fn into_path_parts(self) -> Vec<String> {
-            vec![self.0.into_go_string(), self.1.into_go_string()]
-        }
-    }
-
-    impl<T0: GoStringArg, T1: GoStringArg, T2: GoStringArg> GoPathJoinArgs for (T0, T1, T2) {
-        fn into_path_parts(self) -> Vec<String> {
-            vec![self.0.into_go_string(), self.1.into_go_string(), self.2.into_go_string()]
-        }
-    }
-
-    type GoError = Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>;
-
-    fn no_error() -> GoError {
-        Arc::new(Mutex::new(None))
-    }
-
-    fn io_error(err: std::io::Error) -> GoError {
-        Arc::new(Mutex::new(Some(Box::new(err))))
-    }
-
-    fn normalize_path(path: PathBuf) -> String {
-        path.components().collect::<PathBuf>().to_string_lossy().into_owned()
-    }
-
-    pub fn clean<T0: GoStringArg>(_arg0: T0) -> Arc<Mutex<Option<String>>> {
-        let path = _arg0.into_go_string();
-        Arc::new(Mutex::new(Some::<String>(normalize_path(PathBuf::from(path)))))
-    }
-
-    pub fn is_abs<T0: GoStringArg>(_arg0: T0) -> bool {
-        let path = _arg0.into_go_string();
-        Path::new(&path).is_absolute()
-    }
-
-    pub fn join<T0: GoPathJoinArgs>(_arg0: T0) -> Arc<Mutex<Option<String>>> {
-        let mut path = PathBuf::new();
-        for part in _arg0.into_path_parts() {
-            if !part.is_empty() {
-                path.push(part);
-            }
-        }
-        Arc::new(Mutex::new(Some::<String>(path.to_string_lossy().into_owned())))
-    }
-
-    pub fn split<T0>(_arg0: T0) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<String>>>) {
-        panic!("split bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    pub fn SkipDir() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
     }
 }
 
@@ -1580,20 +1645,26 @@ pub mod os {
         Arc::new(Mutex::new(Some(Box::new(err))))
     }
 
+    pub const PATH_LIST_SEPARATOR: i32 = 58;
+    pub const PATH_SEPARATOR: i32 = 47;
+
+    pub fn lstat<T0: GoStringArg>(_arg0: T0) -> (Arc<Mutex<Option<fs_FileInfo>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        let path = _arg0.into_go_string();
+        match std::fs::symlink_metadata(&path) {
+            Ok(metadata) => {
+                let name = Path::new(&path).file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_else(|| path.clone());
+                (Arc::new(Mutex::new(Some::<fs_FileInfo>(fs_FileInfo { name, is_dir: metadata.is_dir(), size: metadata.len() as i64 }))), no_error())
+            }
+            Err(err) => (Arc::new(Mutex::new(Some::<fs_FileInfo>(fs_FileInfo::default()))), io_error(err)),
+        }
+    }
+
     pub fn read_file<T0: GoStringArg>(_arg0: T0) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         let path = _arg0.into_go_string();
         match std::fs::read(&path) {
             Ok(data) => (Arc::new(Mutex::new(Some::<Vec<u8>>(data))), no_error()),
             Err(err) => (Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::new()))), io_error(err)),
         }
-    }
-}
-
-
-pub mod slices {
-    use super::*;
-    pub fn binary_search_func<S, E, T>(_arg0: Arc<Mutex<Option<Vec<Arc<Mutex<Option<E>>>>>>>, _arg1: Arc<Mutex<Option<T>>>, _arg2: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<E>>>, Arc<Mutex<Option<T>>>) -> i32 + Send + Sync>>>>) -> (i32, bool) {
-        panic!("binary_search_func bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -1724,11 +1795,19 @@ pub mod utf8 {
     pub const RUNE_ERROR: i32 = 65533;
     pub const RUNE_SELF: i32 = 128;
 
+    pub fn append_rune<T0, T1>(_arg0: T0, _arg1: T1) -> Arc<Mutex<Option<Vec<u8>>>> {
+        panic!("append_rune bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+
     pub fn decode_rune<T0>(_arg0: T0) -> (i32, i32) {
         panic!("decode_rune bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 
     pub fn decode_rune_in_string<T0>(_arg0: T0) -> (i32, i32) {
         panic!("decode_rune_in_string bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+
+    pub fn rune_count_in_string<T0>(_arg0: T0) -> i32 {
+        panic!("rune_count_in_string bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }

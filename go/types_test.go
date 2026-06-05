@@ -88,6 +88,48 @@ func TestGoTypesReturnTypeToRustWrapsCurrentStdlibInterfaceTraitObject(t *testin
 	}
 }
 
+func TestGoTypesNamedTypeToRustUsesCurrentPackageModuleForSamePathPackage(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevCtx := GetTranspileContext()
+	defer func() {
+		currentTypeInfo = prevTypeInfo
+		SetTranspileContext(prevCtx)
+	}()
+
+	currentPkg := types.NewPackage("example.com/abi", "abi")
+	declPkg := types.NewPackage("example.com/abi", "abi")
+	named := types.NewNamed(
+		types.NewTypeName(token.NoPos, declPkg, "Type", nil),
+		types.NewStruct(nil, nil),
+		nil,
+	)
+
+	typeInfo := &TypeInfo{pkg: currentPkg}
+	SetTypeInfo(typeInfo)
+	SetTranspileContext(&TranspileContext{
+		CurrentModuleName: "iface",
+		Package: &PackageState{
+			TypeModuleNames: map[string]string{"Type": "r#type"},
+		},
+		PackageMapping: map[string]string{"example.com/abi": "example_com_abi"},
+		Session: &TranspileSession{
+			TypeInfo:       typeInfo,
+			PackageMapping: map[string]string{"example.com/abi": "example_com_abi"},
+			PackageTypeModuleNames: map[string]map[string]string{
+				"example.com/abi": {"Type": "r#type"},
+			},
+		},
+	})
+
+	got := goTypesTypeToRust(named)
+	if strings.Contains(got, "example_com_abi::") {
+		t.Fatalf("same-package named type should not use the package's external crate path: %q", got)
+	}
+	if got != "crate::r#type::Type" {
+		t.Fatalf("same-package named type = %q, want sibling module path", got)
+	}
+}
+
 func TestTypeInfoUsesCoreTypeForTypeParameterRanges(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
@@ -467,7 +509,7 @@ func TestCollectImportedInterfaceImplsRecordsCurrentConcreteArgs(t *testing.T) {
 		},
 	}
 
-	SetTypeInfo(&TypeInfo{
+	typeInfo := &TypeInfo{
 		info: &types.Info{
 			Uses: map[*ast.Ident]types.Object{
 				sel.Sel: of64,
@@ -475,12 +517,16 @@ func TestCollectImportedInterfaceImplsRecordsCurrentConcreteArgs(t *testing.T) {
 			},
 		},
 		pkg: keysPkg,
-	})
+	}
+	SetTypeInfo(typeInfo)
 	defer SetTypeInfo(nil)
 
-	impls := collectImportedInterfaceImpls(file)
-	if _, ok := impls["Value"]["example_com_label::Key"]; !ok {
-		t.Fatalf("collectImportedInterfaceImpls() = %#v, want Value to implement imported Key", impls)
+	analysis := analyzeTranspileFile(file, typeInfo)
+	if _, ok := analysis.importedInterfaceImpls["Value"]["example_com_label::Key"]; ok {
+		t.Fatalf("imported interface value impls = %#v, did not want Value to implement imported Key", analysis.importedInterfaceImpls)
+	}
+	if _, ok := analysis.importedPointerInterfaceImpls["Value"]["example_com_label::Key"]; !ok {
+		t.Fatalf("imported interface pointer impls = %#v, want *Value to implement imported Key", analysis.importedPointerInterfaceImpls)
 	}
 }
 
@@ -545,7 +591,7 @@ func TestCollectImportedInterfaceImplsRecordsStructLiteralInterfaceFields(t *tes
 		},
 	}
 
-	SetTypeInfo(&TypeInfo{
+	typeInfo := &TypeInfo{
 		info: &types.Info{
 			Types: map[ast.Expr]types.TypeAndValue{
 				lit:   {Type: configNamed},
@@ -556,11 +602,15 @@ func TestCollectImportedInterfaceImplsRecordsStructLiteralInterfaceFields(t *tes
 			},
 		},
 		pkg: mainPkg,
-	})
+	}
+	SetTypeInfo(typeInfo)
 	defer SetTypeInfo(nil)
 
-	impls := collectImportedInterfaceImpls(file)
-	if _, ok := impls["Importer"]["example_com_dep::Importer"]; !ok {
-		t.Fatalf("collectImportedInterfaceImpls() = %#v, want Importer to implement imported struct field interface", impls)
+	analysis := analyzeTranspileFile(file, typeInfo)
+	if _, ok := analysis.importedInterfaceImpls["Importer"]["example_com_dep::Importer"]; ok {
+		t.Fatalf("imported interface value impls = %#v, did not want Importer value to implement imported struct field interface", analysis.importedInterfaceImpls)
+	}
+	if _, ok := analysis.importedPointerInterfaceImpls["Importer"]["example_com_dep::Importer"]; !ok {
+		t.Fatalf("imported interface pointer impls = %#v, want *Importer to implement imported struct field interface", analysis.importedPointerInterfaceImpls)
 	}
 }

@@ -1,3 +1,13 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/internal_filepathlite",
+    "vendor/internal_stringslite",
+    "vendor/path_filepath",
+]
+
 [package]
 name = "os_readdir_filepath"
 version = "0.1.0"
@@ -6,3 +16,9 @@ edition = "2021"
 [[bin]]
 name = "os_readdir_filepath"
 path = "main.rs"
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+internal_filepathlite = { path = "vendor/internal_filepathlite" }
+internal_stringslite = { path = "vendor/internal_stringslite" }
+path_filepath = { path = "vendor/path_filepath" }

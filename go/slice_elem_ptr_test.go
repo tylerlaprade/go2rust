@@ -180,6 +180,62 @@ func update() int {
 	}
 }
 
+func TestGoPtrArrayPointerFieldSlotsPreserveHandle(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type node struct {
+	value int
+}
+
+type cache struct {
+	buf [2]*node
+	len int
+}
+
+func fill(c *cache, items []node) {
+	var p *node
+	p = &items[0]
+	c.buf[0] = p
+	c.len = 1
+}
+
+func pop(c *cache) *node {
+	s := c.buf[c.len-1]
+	c.len--
+	return s
+}
+
+func use(c *cache, items []node) *node {
+	fill(c, items)
+	p := pop(c)
+	return p
+}
+`)
+
+	if !strings.Contains(rust, "pub buf: Rc<RefCell<Option<[GoPtr<node>; 2]>>>") &&
+		!strings.Contains(rust, "pub buf: Arc<Mutex<Option<[GoPtr<node>; 2]>>>") {
+		t.Fatalf("pointer array field assigned a GoPtr value should store GoPtr slots:\n%s", rust)
+	}
+	if strings.Contains(rust, "pub buf: Rc<RefCell<Option<[Rc<RefCell<Option<node>>>; 2]>>>") ||
+		strings.Contains(rust, "pub buf: Arc<Mutex<Option<[Arc<Mutex<Option<node>>>; 2]>>>") {
+		t.Fatalf("pointer array field should not use ordinary pointer wrappers once GoPtr slot identity is proven:\n%s", rust)
+	}
+	if !strings.Contains(rust, "std::array::from_fn(|_| GoPtr::nil())") {
+		t.Fatalf("GoPtr pointer array field default should initialize nil slots:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*(*c.borrow().as_ref().unwrap()).buf.borrow_mut().as_mut().unwrap())[(0) as usize] = GoPtr::slice_elem_opt(p.clone())") &&
+		!strings.Contains(rust, "(*(*c.lock().unwrap().as_ref().unwrap()).buf.lock().unwrap().as_mut().unwrap())[(0) as usize] = GoPtr::slice_elem_opt(p.clone())") {
+		t.Fatalf("assignment into a GoPtr pointer array slot should convert the slice-element handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "fn pop(c: Rc<RefCell<Option<cache>>>) -> GoPtr<node>") &&
+		!strings.Contains(rust, "fn pop(c: Arc<Mutex<Option<cache>>>) -> GoPtr<node>") {
+		t.Fatalf("return from a GoPtr pointer array slot should use GoPtr result type:\n%s", rust)
+	}
+	if strings.Contains(rust, "return GoPtr::local(s.clone())") {
+		t.Fatalf("return from a GoPtr pointer array slot should not rewrap the handle:\n%s", rust)
+	}
+}
+
 func TestArrayElemAddressShortDeclUsesArrayElemPtr(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
@@ -238,11 +294,42 @@ func update(ch uint64) uint64 {
 	if !strings.Contains(rust, "< (4 as i32)") {
 		t.Fatalf("len(cache) should use the typed pointer-to-array length:\n%s", rust)
 	}
-	if !strings.Contains(rust, "load(Rc::new(RefCell::new({ let __seq = cache.as_ref().unwrap().borrow(); Some(__seq.as_ref().unwrap()[") {
-		t.Fatalf("read-only &cache[i] call argument should borrow the pointed-to array element:\n%s", rust)
+	if strings.Contains(rust, "array element address through pointer-to-array requires nested pointer representation") {
+		t.Fatalf("address of an element through a pointer-to-array should not use the old unimplemented path:\n%s", rust)
+	}
+	if !strings.Contains(rust, "load(GoPtr::array_elem(GoArrayElemPtr::from_array_elem(cache.as_ref().unwrap().clone(),") {
+		t.Fatalf("address of an element through a pointer-to-array should preserve pointer identity:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let __range_values = { let __seq = cache.as_ref().unwrap().borrow(); __seq.as_ref().unwrap().clone() }; for x in __range_values.iter().copied()") {
 		t.Fatalf("range over cache should materialize the pointed-to array through GoArrayElemPtr:\n%s", rust)
+	}
+}
+
+func TestNestedArrayElemAddressWritesBackThroughOuterArray(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type cache struct {
+	entries [2][4]uint64
+}
+
+func update(c *cache, ck int, i int) uint64 {
+	ent := &c.entries[ck][i]
+	*ent = 7
+	return c.entries[ck][i]
+}
+`)
+
+	if strings.Contains(rust, "let __seq =") && strings.Contains(rust, "GoArrayElemPtr::new({") {
+		t.Fatalf("nested array element address should not build a pointer from a cloned inner array:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut ent: Option<GoArrayElemPtr<u64, 4>>") {
+		t.Fatalf("nested array element address should keep the inner array pointer type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoArrayElemPtr::nested(") {
+		t.Fatalf("nested array element address should use a nested array pointer helper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*ent.as_ref().unwrap().borrow_mut() = Some(new_val)") {
+		t.Fatalf("nested array element pointer field assignment should write back through the helper:\n%s", rust)
 	}
 }
 
@@ -280,6 +367,46 @@ func find(i *indirect, hash uint, shift uint) int {
 	}
 	if !strings.Contains(rust, "slot = Some(GoArrayElemPtr::new(") {
 		t.Fatalf("array element pointer assignment should preserve array identity and index:\n%s", rust)
+	}
+	if !strings.Contains(rust, "slot.as_ref().unwrap().borrow().as_ref().unwrap()).load(") {
+		t.Fatalf("array element pointer method call should borrow through the array helper:\n%s", rust)
+	}
+}
+
+func TestArrayElemPointerReceiverBeatsGoPtrCandidate(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type Pointer[T any] struct {
+	value *T
+}
+
+func (p *Pointer[T]) Load() *T {
+	return p.value
+}
+
+type node struct {
+	value int
+}
+
+type indirect struct {
+	children [16]Pointer[node]
+}
+
+func find(i *indirect, hash uint, shift uint) *node {
+	var slot *Pointer[node]
+	for shift != 0 {
+		slot = &i.children[(hash>>shift)&15]
+		return slot.Load()
+	}
+	return nil
+}
+`)
+
+	if !strings.Contains(rust, "let mut slot: Option<GoArrayElemPtr<Pointer<node>, 16>> = None") {
+		t.Fatalf("declared array element pointer variable should use the array element pointer helper:\n%s", rust)
+	}
+	if strings.Contains(rust, "slot.with_mut(") || strings.Contains(rust, "slot.borrow()") {
+		t.Fatalf("array element pointer receiver should not be handled by the broader GoPtr receiver path:\n%s", rust)
 	}
 	if !strings.Contains(rust, "slot.as_ref().unwrap().borrow().as_ref().unwrap()).load(") {
 		t.Fatalf("array element pointer method call should borrow through the array helper:\n%s", rust)
@@ -442,6 +569,141 @@ func (b *box[T]) useAfterGenericMethodTuple(hash uint, shift uint) (swapped bool
 	}
 }
 
+func TestUnnamedReturnArrayElemPointerUsesArrayElemPtr(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+func pick(values *[8]byte, i int) *byte {
+	if i > 0 {
+		return &(*values)[7]
+	}
+	return &(*values)[0]
+}
+
+func use(values *[8]byte) byte {
+	p := pick(values, 0)
+	return *p
+}
+`)
+
+	if !strings.Contains(rust, "fn pick(values: Rc<RefCell<Option<[u8; 8]>>>, i: Rc<RefCell<Option<i32>>>) -> Option<GoArrayElemPtr<u8, 8>>") &&
+		!strings.Contains(rust, "fn pick(values: Arc<Mutex<Option<[u8; 8]>>>, i: Arc<Mutex<Option<i32>>>) -> Option<GoArrayElemPtr<u8, 8>>") {
+		t.Fatalf("unnamed array element pointer result should use the array element pointer helper in the signature:\n%s", rust)
+	}
+	if !strings.Contains(rust, "return Some(GoArrayElemPtr::new(values.clone(), (7) as usize));") ||
+		!strings.Contains(rust, "Some(GoArrayElemPtr::new(values.clone(), (0) as usize))") {
+		t.Fatalf("direct array element pointer returns should preserve array identity and index:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut p") || !strings.Contains(rust, "= pick(") || !strings.Contains(rust, "p.as_ref().unwrap().borrow()") {
+		t.Fatalf("short declaration from an unnamed array element pointer return should register the local representation:\n%s", rust)
+	}
+	if strings.Contains(rust, "p.lock()") || strings.Contains(rust, "p.borrow()") {
+		t.Fatalf("array element pointer call result should not use normal pointer wrapper borrows:\n%s", rust)
+	}
+}
+
+func TestUnnamedMethodReturnArrayElemPointerSelectorBorrowsElement(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type delta struct {
+	committed *int64
+}
+
+type holder struct {
+	stats [3]delta
+}
+
+func (h *holder) acquire() *delta {
+	return &h.stats[0]
+}
+
+func use(h *holder) *int64 {
+	stats := h.acquire()
+	return stats.committed
+}
+`)
+
+	if !strings.Contains(rust, "fn acquire(&self) -> Option<GoArrayElemPtr<delta, 3>>") {
+		t.Fatalf("unnamed method array element pointer result should use the array element pointer helper in the signature:\n%s", rust)
+	}
+	if strings.Contains(rust, "(*stats.lock()") || strings.Contains(rust, "(*stats.borrow()") {
+		t.Fatalf("selector on array element pointer method result should not use normal pointer wrapper borrows:\n%s", rust)
+	}
+	if !strings.Contains(rust, "stats.as_ref().unwrap().borrow().as_ref().unwrap()).committed.clone()") {
+		t.Fatalf("selector on array element pointer method result should borrow through the array helper:\n%s", rust)
+	}
+}
+
+func TestUnnamedMethodReturnArrayElemPointerCallResultReceiverBorrowsElement(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type delta struct {
+	committed *int64
+}
+
+func (d *delta) get() *int64 {
+	return d.committed
+}
+
+type holder struct {
+	stats [3]delta
+}
+
+func (h *holder) acquire() *delta {
+	return &h.stats[0]
+}
+
+func use(h *holder) *int64 {
+	return h.acquire().get()
+}
+`)
+
+	if !strings.Contains(rust, "fn acquire(&self) -> Option<GoArrayElemPtr<delta, 3>>") {
+		t.Fatalf("unnamed method array element pointer result should use the array element pointer helper in the signature:\n%s", rust)
+	}
+	if strings.Contains(rust, "(*__recv.lock()") || strings.Contains(rust, "(*__recv.borrow()") {
+		t.Fatalf("method call on array element pointer call result should not use normal pointer wrapper borrows:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__recv.as_ref().unwrap().borrow().as_ref().unwrap()).get(") {
+		t.Fatalf("method call on array element pointer call result should borrow through the array helper:\n%s", rust)
+	}
+}
+
+func TestArrayElemPointerCallResultFieldMethodBorrowsElement(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type bits struct {
+	words [1]uint64
+}
+
+func (b *bits) setRange(i, n uint) {
+	b.words[0] = uint64(i + n)
+}
+
+type chunk struct {
+	scavenged bits
+}
+
+type holder struct {
+	chunks [3]chunk
+}
+
+func (h *holder) acquire() *chunk {
+	return &h.chunks[0]
+}
+
+func use(h *holder) {
+	h.acquire().scavenged.setRange(1, 2)
+}
+`)
+
+	if strings.Contains(rust, "acquire().lock()") || strings.Contains(rust, "acquire().borrow()") {
+		t.Fatalf("field method on array element pointer call result should not use normal wrapper borrows:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__recv.as_ref().unwrap().borrow().as_ref().unwrap()).scavenged") {
+		t.Fatalf("field method on array element pointer call result should borrow the returned element before selecting the field:\n%s", rust)
+	}
+}
+
 func TestShortDeclSliceElemPointerSelectorBorrowsElement(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
@@ -542,6 +804,45 @@ func assign(cases []runtimeSelect, i int, typ *typ) {
 	}
 }
 
+func TestSliceElemPointerIfInitFieldAssignmentMutatesElement(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type expr interface {
+	exprNode()
+}
+
+type ident struct{}
+
+func (*ident) exprNode() {}
+
+type field struct {
+	name *ident
+	typ  expr
+}
+
+func propagate(list []field) {
+	var typ expr
+	for i := len(list) - 1; i >= 0; i-- {
+		if par := &list[i]; par.typ != nil {
+			typ = par.typ
+		} else if typ != nil {
+			par.typ = typ
+		}
+	}
+}
+`)
+
+	if !strings.Contains(rust, "let mut par: Option<GoSliceElemPtr<field>> = Some(GoSliceElemPtr::new(list.clone(),") {
+		t.Fatalf("if-init slice element pointer should preserve backing slice identity:\n%s", rust)
+	}
+	if strings.Contains(rust, "par.lock()") || strings.Contains(rust, "par.borrow()") {
+		t.Fatalf("if-init slice element pointer should not be treated as a wrapped pointer slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*(*par.as_ref().unwrap().borrow_mut().as_mut().unwrap()).typ.borrow_mut() = (*__iface_guard).clone()") {
+		t.Fatalf("if-init slice element pointer field assignment should mutate the element:\n%s", rust)
+	}
+}
+
 func TestSliceElemPointerDerefNilStoresPointerHandle(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
@@ -566,7 +867,7 @@ func clear(files []*File) {
 	}
 }
 
-func TestSliceElemPointerStructFieldInitializerFailsLoudly(t *testing.T) {
+func TestSliceElemPointerStructFieldInitializerUsesGoPtrField(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
 type Name struct {
@@ -579,11 +880,53 @@ func makeName() Name {
 }
 `)
 
-	if strings.Contains(rust, "bytes: GoSliceElemPtr::new") {
-		t.Fatalf("slice element pointer field initializer should not emit an incompatible helper value:\n%s", rust)
+	if !strings.Contains(rust, "pub bytes: GoPtr<u8>") {
+		t.Fatalf("slice element pointer field initializer should promote the field to GoPtr storage:\n%s", rust)
 	}
-	if !strings.Contains(rust, `unimplemented!("slice element pointer cannot initialize pointer field")`) {
-		t.Fatalf("slice element pointer field initializer should fail loudly:\n%s", rust)
+	if !strings.Contains(rust, "bytes: GoPtr::slice_elem(") {
+		t.Fatalf("slice element pointer field initializer should store a GoPtr slice element handle:\n%s", rust)
+	}
+	if strings.Contains(rust, `unimplemented!("slice element pointer cannot initialize pointer field")`) {
+		t.Fatalf("slice element pointer field initializer should no longer fail loudly once the field is GoPtr-backed:\n%s", rust)
+	}
+}
+
+func TestGoPtrCurrentReceiverFieldDerefAndUnsafePointerUseGoPtr(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type Name struct {
+	Bytes *byte
+}
+
+func makeName(b []byte) Name {
+	return Name{Bytes: &b[0]}
+}
+
+func forceConcurrent(ch chan bool) {
+	go func() {
+		ch <- true
+	}()
+}
+
+func (n Name) flag() bool {
+	return (*n.Bytes & 1) != 0
+}
+
+func (n Name) addr() uintptr {
+	return uintptr(unsafe.Pointer(n.Bytes))
+}
+`)
+
+	if strings.Contains(rust, "self.bytes.lock()") || strings.Contains(rust, "Arc::as_ptr(&self.bytes") {
+		t.Fatalf("current receiver GoPtr field reads should not use wrapper lock/as_ptr paths:\n%s", rust)
+	}
+	if !strings.Contains(rust, "self.bytes.borrow()") {
+		t.Fatalf("dereferencing a current receiver GoPtr field should borrow through GoPtr:\n%s", rust)
+	}
+	if !strings.Contains(rust, "self.bytes.addr()") {
+		t.Fatalf("unsafe.Pointer conversion of a current receiver GoPtr field should use GoPtr::addr:\n%s", rust)
 	}
 }
 
@@ -668,6 +1011,1425 @@ func load(s *setting, name string) bool {
 	}
 }
 
+func TestGoPtrFieldReturnedFromFunctionUsesGoPtrResult(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type Type struct {
+	Data *byte
+}
+
+func set(t *Type, buf []byte) {
+	t.Data = &buf[0]
+}
+
+func get(t *Type) *byte {
+	return t.Data
+}
+`)
+
+	if !strings.Contains(rust, "pub data: GoPtr<u8>") {
+		t.Fatalf("pointer field assigned a slice element address should use GoPtr storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn get(") || !strings.Contains(rust, " -> GoPtr<u8>") {
+		t.Fatalf("function returning a GoPtr field should use a GoPtr result type:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".data.clone()") {
+		t.Fatalf("returning a GoPtr field should clone the field handle:\n%s", rust)
+	}
+}
+
+func TestAnonymousNestedPointerFieldAssignedSliceElemAddressUsesGoPtrField(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type Hint struct {
+	next *Hint
+}
+
+type Heap struct {
+	arenaHints *Hint
+	userArena struct {
+		arenaHints *Hint
+	}
+}
+
+var hints = []Hint{{}}
+
+func initHeap(h *Heap) {
+	h.arenaHints = &hints[0]
+	h.userArena.arenaHints = &hints[0]
+}
+
+func choose(h *Heap, useMain bool) {
+	hintList := &h.userArena.arenaHints
+	if useMain {
+		hintList = &h.arenaHints
+	}
+	_ = hintList
+}
+`)
+
+	if count := strings.Count(rust, "pub arena_hints: GoPtr<Hint>"); count < 2 {
+		t.Fatalf("both named and anonymous pointer fields assigned slice element addresses should use GoPtr storage, found %d:\n%s", count, rust)
+	}
+	if strings.Contains(rust, "pub arena_hints: Rc<RefCell<Option<Hint>>>") ||
+		strings.Contains(rust, "pub arena_hints: Arc<Mutex<Option<Hint>>>") {
+		t.Fatalf("anonymous pointer field assigned a slice element address should not keep the old pointer wrapper:\n%s", rust)
+	}
+}
+
+func TestGoPtrReturnMergesFieldAndUnsafeRawPointer(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type Type struct {
+	Data *byte
+}
+
+func set(t *Type, buf []byte) {
+	t.Data = &buf[0]
+}
+
+func raw(addr uintptr) *byte {
+	return (*byte)(unsafe.Pointer(addr))
+}
+
+func get(t *Type, addr uintptr, flag bool) *byte {
+	if flag {
+		return raw(addr)
+	}
+	return t.Data
+}
+`)
+
+	if !strings.Contains(rust, "pub data: GoPtr<u8>") {
+		t.Fatalf("pointer field assigned a slice element address should use GoPtr storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn raw(") || !strings.Contains(rust, " -> GoPtr<u8>") {
+		t.Fatalf("function returning an unsafe raw pointer should use GoPtr result type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoPtr::raw(") {
+		t.Fatalf("unsafe raw pointer conversion should produce a GoPtr raw address:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn get(") || !strings.Contains(rust, " -> GoPtr<u8>") {
+		t.Fatalf("function merging raw pointer and GoPtr field returns should use GoPtr result type:\n%s", rust)
+	}
+	if strings.Contains(rust, " -> Rc<RefCell<Option<u8>>>") ||
+		strings.Contains(rust, " -> Arc<Mutex<Option<u8>>>") {
+		t.Fatalf("mixed GoPtr/raw pointer returns should not keep the old pointer wrapper result:\n%s", rust)
+	}
+}
+
+func TestGoPtrCallResultDerefReadUsesGoPtrBorrow(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type Name struct {
+	Bytes *byte
+}
+
+func set(n *Name, buf []byte) {
+	n.Bytes = &buf[0]
+}
+
+func add(p unsafe.Pointer, off uintptr) unsafe.Pointer {
+	return p
+}
+
+func (n Name) Data(off int) *byte {
+	return (*byte)(add(unsafe.Pointer(n.Bytes), uintptr(off)))
+}
+
+func read(n Name) byte {
+	return *n.Data(2)
+}
+`)
+
+	if !strings.Contains(rust, "pub fn data(") || !strings.Contains(rust, " -> GoPtr<u8>") {
+		t.Fatalf("method returning an unsafe raw pointer should use GoPtr result type:\n%s", rust)
+	}
+	if strings.Contains(rust, ".data(Rc::new(RefCell::new(Some(2)))).borrow().as_ref().unwrap()") ||
+		strings.Contains(rust, ".data(Arc::new(Mutex::new(Some(2)))).lock().unwrap().as_ref().unwrap()") {
+		t.Fatalf("dereferencing a GoPtr call result should not treat it as the old pointer wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __ptr_handle =") || !strings.Contains(rust, "__ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone()") {
+		t.Fatalf("dereferencing a GoPtr call result should borrow through GoPtr:\n%s", rust)
+	}
+}
+
+func TestGoPtrCallResultMethodCallBorrowsThroughGoPtr(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type bits struct {
+	value int
+}
+
+func (b *bits) get(i int) int {
+	return b.value + i
+}
+
+func (b *bits) set(i int) {
+	b.value = i
+}
+
+type heap struct {
+	marks *bits
+}
+
+func initHeap(h *heap, all []bits) {
+	h.marks = &all[0]
+}
+
+func (h *heap) current() *bits {
+	return h.marks
+}
+
+func read(h *heap) int {
+	return h.current().get(3)
+}
+
+func write(h *heap) {
+	h.current().set(4)
+}
+
+func readLocal(h *heap) int {
+	current := h.current()
+	return current.get(5)
+}
+
+func writeLocal(h *heap) {
+	current := h.current()
+	current.set(6)
+}
+
+func forceConcurrent(ch chan bool) {
+	go func() {
+		ch <- true
+	}()
+}
+`)
+
+	if !strings.Contains(rust, "pub fn current(") || !strings.Contains(rust, " -> GoPtr<bits>") {
+		t.Fatalf("method returning a GoPtr field should return GoPtr<bits>:\n%s", rust)
+	}
+	if strings.Contains(rust, "__recv.lock()") || strings.Contains(rust, "__recv.borrow_mut()") {
+		t.Fatalf("method call on GoPtr call result should not use wrapper borrows directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __recv_value = __recv.borrow(); let __result = (*__recv_value.as_ref().unwrap()).get(") {
+		t.Fatalf("read-only method call on GoPtr call result should borrow through GoPtr:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __result = __recv.with_mut(|__recv_value| __recv_value.set(") {
+		t.Fatalf("mutating method call on GoPtr call result should dispatch through with_mut:\n%s", rust)
+	}
+	if strings.Contains(rust, "current.lock()") || strings.Contains(rust, "current.borrow_mut()") {
+		t.Fatalf("method call on local copied from GoPtr call result should not use wrapper borrows directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __recv_value = current.borrow(); let __result = (*__recv_value.as_ref().unwrap()).get(") {
+		t.Fatalf("read-only method call on local copied from GoPtr call result should borrow through GoPtr:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __result = current.with_mut(|__recv_value| __recv_value.set(") {
+		t.Fatalf("mutating method call on local copied from GoPtr call result should dispatch through with_mut:\n%s", rust)
+	}
+}
+
+func TestGoPtrCallResultNamedScalarValueMethodBorrowsThroughGoPtr(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type word uint64
+
+func (w word) mask(off uint64) uint64 {
+	return uint64(w) + off
+}
+
+type holder struct {
+	current *word
+}
+
+func initHolder(h *holder, all []word) {
+	h.current = &all[0]
+}
+
+func read(h *holder) uint64 {
+	return h.controls().mask(3)
+}
+
+func readLocal(h *holder) uint64 {
+	controls := h.controls()
+	return controls.mask(4)
+}
+
+func (h *holder) controls() *word {
+	return h.current
+}
+
+func forceConcurrent(ch chan bool) {
+	go func() {
+		ch <- true
+	}()
+}
+`)
+
+	if !strings.Contains(rust, "pub fn controls(") || !strings.Contains(rust, " -> GoPtr<word>") {
+		t.Fatalf("method returning a GoPtr named scalar should return GoPtr<word>:\n%s", rust)
+	}
+	if strings.Contains(rust, ".controls().lock()") || strings.Contains(rust, ".controls().borrow()") {
+		t.Fatalf("named scalar value method on GoPtr call result should not borrow the returned handle as a wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __recv = (*h.") ||
+		!strings.Contains(rust, ".controls(); let __recv_value = __recv.borrow(); __recv_value.as_ref().unwrap().clone()") {
+		t.Fatalf("named scalar value method on GoPtr call result should borrow through GoPtr:\n%s", rust)
+	}
+	if strings.Contains(rust, "controls.lock()") || strings.Contains(rust, "controls.borrow().as_ref().unwrap()") {
+		t.Fatalf("named scalar value method on local copied from GoPtr call result should not use wrapper borrows directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __recv_value = controls.borrow(); __recv_value.as_ref().unwrap().clone()") {
+		t.Fatalf("named scalar value method on local copied from GoPtr call result should borrow through GoPtr:\n%s", rust)
+	}
+}
+
+func TestGoPtrReturnMergesNilLocalAddressAndFieldPointer(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type Type struct {
+	Value int
+}
+
+type Holder struct {
+	Data *Type
+}
+
+func set(h *Holder, values []Type) {
+	h.Data = &values[0]
+}
+
+func makePtr(h *Holder, flag int) *Type {
+	if flag == 0 {
+		return nil
+	}
+	if flag == 1 {
+		var typ Type
+		return &typ
+	}
+	return h.Data
+}
+`)
+
+	if !strings.Contains(rust, "pub fn make_ptr(") || !strings.Contains(rust, " -> GoPtr<Type>") {
+		t.Fatalf("function merging nil, local address, and GoPtr field returns should use GoPtr result type:\n%s", rust)
+	}
+	if strings.Contains(rust, "return Rc::new(RefCell::new(None))") ||
+		strings.Contains(rust, "return Arc::new(Mutex::new(None))") ||
+		strings.Contains(rust, "Rc::new(RefCell::new(Some(typ") ||
+		strings.Contains(rust, "Arc::new(Mutex::new(Some(typ") {
+		t.Fatalf("GoPtr return function should not emit old pointer wrapper returns:\n%s", rust)
+	}
+	if !strings.Contains(rust, "return GoPtr::nil();") {
+		t.Fatalf("nil return in a GoPtr function should emit GoPtr::nil():\n%s", rust)
+	}
+	if !strings.Contains(rust, "return GoPtr::local(") {
+		t.Fatalf("local address return in a GoPtr function should emit GoPtr::local(...):\n%s", rust)
+	}
+}
+
+func TestGoPtrLocalAssignedFromRegisteredFieldUsesGoPtr(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct{}
+
+type list struct {
+	first *node
+}
+
+func use(l *list, n *node, flag bool) *node {
+	var p *node
+	p = l.first
+	if flag {
+		p = ordinary(n)
+	}
+	return p
+}
+
+func ordinary(n *node) *node {
+	return n
+}
+
+func raw(n *node) *node {
+	return (*node)(unsafe.Pointer(n))
+}
+
+func fill(l *list, n *node) {
+	l.first = raw(n)
+}
+`)
+
+	if !strings.Contains(rust, "pub first: GoPtr<node>") {
+		t.Fatalf("field assigned a GoPtr value should use GoPtr storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut p: GoPtr<node> = GoPtr::nil();") {
+		t.Fatalf("local assigned from a GoPtr field should use GoPtr storage:\n%s", rust)
+	}
+	if strings.Contains(rust, "let mut p: Rc<RefCell<Option<node>>>") ||
+		strings.Contains(rust, "let mut p: Arc<Mutex<Option<node>>>") {
+		t.Fatalf("local assigned from a GoPtr field should not keep ordinary pointer wrapper storage:\n%s", rust)
+	}
+}
+
+func TestGenericUnsafePointerLoadKeepsTypeParamPointerWrapper(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "unsafe"
+
+type UnsafePointer struct {
+	value unsafe.Pointer
+}
+
+func (u *UnsafePointer) Load() unsafe.Pointer {
+	return u.value
+}
+
+type Pointer[T any] struct {
+	u UnsafePointer
+}
+
+func (p *Pointer[T]) Load() *T {
+	return (*T)(p.u.Load())
+}
+
+func main() {
+	go func() {}()
+}
+`)
+
+	if strings.Contains(rust, "GoPtr<Box<dyn Any") {
+		t.Fatalf("generic pointer load should not erase T into a GoPtr<Box<dyn Any>>:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn load(&self) -> Arc<Mutex<Option<T>>>") {
+		t.Fatalf("generic pointer load should return the typed pointer wrapper:\n%s", rust)
+	}
+}
+
+func TestGoPtrLocalSeededFromOrdinaryPointerThenAssignedGoPtr(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type Pointer[T any] struct {
+	value *T
+}
+
+func (p *Pointer[T]) Load() *T {
+	return p.value
+}
+
+type indirect struct {
+	child Pointer[node]
+}
+
+type node struct {
+	isEntry bool
+}
+
+func (n *node) indirect() *indirect {
+	return (*indirect)(unsafe.Pointer(n))
+}
+
+type table struct {
+	root Pointer[indirect]
+}
+
+func walk(t *table, flag bool) *indirect {
+	i := t.root.Load()
+	for flag {
+		n := i.child.Load()
+		if n == nil {
+			return i
+		}
+		i = n.indirect()
+		flag = false
+	}
+	return i
+}
+`)
+
+	if !strings.Contains(rust, "pub fn load(&self) -> Rc<RefCell<Option<T>>>") {
+		t.Fatalf("generic pointer load should keep the ordinary typed pointer wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn indirect(&self) -> GoPtr<indirect>") {
+		t.Fatalf("unsafe pointer conversion method should still return GoPtr<indirect>:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut i: GoPtr<indirect> = GoPtr::local(") {
+		t.Fatalf("local later assigned a GoPtr should be seeded from the ordinary pointer as GoPtr::local:\n%s", rust)
+	}
+	if !strings.Contains(rust, "i = ") || !strings.Contains(rust, ".indirect();") {
+		t.Fatalf("assignment from GoPtr-returning method should preserve the GoPtr handle:\n%s", rust)
+	}
+}
+
+func TestGoPtrCandidateArgPromotesPointerParam(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type Pointer[T any] struct {
+	value *T
+}
+
+func (p *Pointer[T]) Load() *T {
+	return p.value
+}
+
+type indirect struct {
+	child Pointer[node]
+}
+
+type node struct {
+	isEntry bool
+}
+
+func (n *node) indirect() *indirect {
+	return (*indirect)(unsafe.Pointer(n))
+}
+
+type table struct {
+	root Pointer[indirect]
+}
+
+func consume(i *indirect) {
+}
+
+func walk(t *table, flag bool) *indirect {
+	i := t.root.Load()
+	for flag {
+		n := i.child.Load()
+		i = n.indirect()
+		consume(i)
+		flag = false
+	}
+	return i
+}
+`)
+
+	if !strings.Contains(rust, "pub fn consume(i: GoPtr<indirect>)") {
+		t.Fatalf("callee receiving a promoted GoPtr local should use a GoPtr parameter:\n%s", rust)
+	}
+	if strings.Contains(rust, "pub fn consume(i: Rc<RefCell<Option<indirect>>>)") ||
+		strings.Contains(rust, "pub fn consume(i: Arc<Mutex<Option<indirect>>>)") {
+		t.Fatalf("callee receiving a promoted GoPtr local should not keep the ordinary pointer wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "consume(i.clone())") {
+		t.Fatalf("call should pass the GoPtr local without wrapping it as an ordinary pointer:\n%s", rust)
+	}
+}
+
+func TestGoPtrDerefCompoundAssignUsesGoPtrMutation(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type holder struct {
+	ptr *byte
+}
+
+func remember(h *holder, buf []byte) {
+	h.ptr = &buf[0]
+}
+
+func edit(h *holder, mask byte) {
+	p := h.ptr
+	*p &= mask
+	*p |= 1
+}
+`)
+
+	if strings.Contains(rust, "p.lock()") || strings.Contains(rust, "p.borrow_mut()") {
+		t.Fatalf("compound assignment through a GoPtr should not use wrapper mutation:\n%s", rust)
+	}
+	if strings.Count(rust, "p.with_mut(") < 2 {
+		t.Fatalf("compound assignment through a GoPtr should mutate through GoPtr::with_mut:\n%s", rust)
+	}
+}
+
+func TestGoPtrCompositeLiteralFieldFromCapturedLocalUsesGoPtrField(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type cursor struct {
+	ptr *byte
+	n int
+}
+
+func use(buf []byte) {
+	p := &buf[0]
+	func() {
+		_ = cursor{ptr: p, n: 1}
+	}()
+}
+`)
+
+	if !strings.Contains(rust, "pub ptr: GoPtr<u8>") {
+		t.Fatalf("struct field initialized from a captured GoPtr local should use GoPtr storage:\n%s", rust)
+	}
+	if strings.Contains(rust, "pub ptr: Rc<RefCell<Option<u8>>>") ||
+		strings.Contains(rust, "pub ptr: Arc<Mutex<Option<u8>>>") {
+		t.Fatalf("struct field initialized from a captured GoPtr local should not keep wrapper storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, "ptr: GoPtr::slice_elem_opt(") {
+		t.Fatalf("composite literal should initialize the GoPtr field from the slice element handle:\n%s", rust)
+	}
+}
+
+func TestGoPtrCandidateArgPromotesMethodPointerParam(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type Pointer[T any] struct {
+	value *T
+}
+
+func (p *Pointer[T]) Load() *T {
+	return p.value
+}
+
+type indirect struct {
+	child Pointer[node]
+}
+
+type node struct {
+	isEntry bool
+}
+
+func (n *node) indirect() *indirect {
+	return (*indirect)(unsafe.Pointer(n))
+}
+
+type table struct {
+	root Pointer[indirect]
+}
+
+func (t *table) consume(i *indirect) {
+}
+
+func walk(t *table, flag bool) *indirect {
+	i := t.root.Load()
+	for flag {
+		n := i.child.Load()
+		i = n.indirect()
+		t.consume(i)
+		flag = false
+	}
+	return i
+}
+`)
+
+	if !strings.Contains(rust, "pub fn consume(&self, i: GoPtr<indirect>)") {
+		t.Fatalf("method receiving a promoted GoPtr local should use a GoPtr parameter:\n%s", rust)
+	}
+	if strings.Contains(rust, "pub fn consume(&self, i: Rc<RefCell<Option<indirect>>>)") ||
+		strings.Contains(rust, "pub fn consume(&self, i: Arc<Mutex<Option<indirect>>>)") {
+		t.Fatalf("method receiving a promoted GoPtr local should not keep the ordinary pointer wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".consume(i.clone())") {
+		t.Fatalf("method call should pass the GoPtr local without wrapping it as an ordinary pointer:\n%s", rust)
+	}
+}
+
+func TestGoPtrCallResultArgPromotesMethodPointerParam(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type indirect struct {
+	value int
+}
+
+type holder struct {
+	current *indirect
+}
+
+func initHolder(h *holder, all []indirect) {
+	h.current = &all[0]
+}
+
+func (h *holder) Current() *indirect {
+	return h.current
+}
+
+type table struct {
+	seen int
+}
+
+func (t *table) consume(i *indirect) {
+	t.seen = i.value
+}
+
+func walk(t *table, h *holder) {
+	t.consume(h.Current())
+}
+`)
+
+	if !strings.Contains(rust, "pub fn current(") || !strings.Contains(rust, " -> GoPtr<indirect>") {
+		t.Fatalf("source method should return a GoPtr handle for this regression:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn consume(&mut self, i: GoPtr<indirect>)") {
+		t.Fatalf("method receiving a GoPtr-returning call result should use a GoPtr parameter:\n%s", rust)
+	}
+	if strings.Contains(rust, "pub fn consume(&mut self, i: Rc<RefCell<Option<indirect>>>)") ||
+		strings.Contains(rust, "pub fn consume(&mut self, i: Arc<Mutex<Option<indirect>>>)") {
+		t.Fatalf("method receiving a GoPtr-returning call result should not keep the ordinary pointer wrapper:\n%s", rust)
+	}
+	if strings.Contains(rust, ".consume(Rc::new") || strings.Contains(rust, ".consume(Arc::new") {
+		t.Fatalf("method call should pass the GoPtr call result without wrapping it as an ordinary pointer:\n%s", rust)
+	}
+}
+
+func TestGoPtrCallResultNilComparisonUsesGoPtrNilCheck(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type indirect struct {
+	value int
+}
+
+type holder struct {
+	current *indirect
+}
+
+func initHolder(h *holder, all []indirect) {
+	h.current = &all[0]
+}
+
+func (h *holder) Current() *indirect {
+	return h.current
+}
+
+func hasCurrent(h *holder) bool {
+	return h.Current() != nil
+}
+`)
+
+	if !strings.Contains(rust, "pub fn current(") || !strings.Contains(rust, " -> GoPtr<indirect>") {
+		t.Fatalf("source method should return a GoPtr handle for this regression:\n%s", rust)
+	}
+	if strings.Contains(rust, ".current().borrow()") || strings.Contains(rust, ".current().lock()") {
+		t.Fatalf("GoPtr call result nil comparison should not use ordinary pointer wrapper borrows:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".current().is_nil()") {
+		t.Fatalf("GoPtr call result nil comparison should call is_nil():\n%s", rust)
+	}
+}
+
+func TestGoPtrCallResultInLaterReturnSlotUsesGoPtrResult(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type node struct {
+	value int
+}
+
+type holder struct {
+	current *node
+}
+
+func initHolder(h *holder, all []node) {
+	h.current = &all[0]
+}
+
+func (h *holder) Current() *node {
+	return h.current
+}
+
+func pick(h *holder) (int, *node, bool) {
+	return 1, h.Current(), true
+}
+`)
+
+	if !strings.Contains(rust, "pub fn current(") || !strings.Contains(rust, " -> GoPtr<node>") {
+		t.Fatalf("source method should return a GoPtr handle for this regression:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn pick(") || !strings.Contains(rust, " -> (i32, GoPtr<node>, bool)") {
+		t.Fatalf("GoPtr call result in a later return slot should promote that result type:\n%s", rust)
+	}
+	if strings.Contains(rust, " -> (i32, Rc<RefCell<Option<node>>>, bool)") ||
+		strings.Contains(rust, " -> (i32, Arc<Mutex<Option<node>>>, bool)") {
+		t.Fatalf("GoPtr call result in a later return slot should not keep the ordinary pointer wrapper:\n%s", rust)
+	}
+}
+
+func TestGoPtrImportedGenericCallResultInLaterReturnSlotUsesInstantiatedType(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "sync/atomic"
+
+type entry[K comparable, V any] struct {
+	overflow atomic.Pointer[entry[K, V]]
+	key K
+	value V
+}
+
+func (head *entry[K, V]) loadAndDelete(hit bool) (V, *entry[K, V], bool) {
+	if hit {
+		return head.value, head.overflow.Load(), true
+	}
+	return head.value, head, false
+}
+
+func (head *entry[K, V]) next() *entry[K, V] {
+	return head.overflow.Load()
+}
+
+func use(head *entry[int, string]) bool {
+	ok := false
+	_, e, ok := head.next().loadAndDelete(false)
+	if e != nil {
+		head.overflow.Store(e)
+	}
+	return ok
+}
+`)
+
+	if !strings.Contains(rust, "pub fn load_and_delete(") ||
+		!strings.Contains(rust, "GoPtr<entry<K, V>>") {
+		t.Fatalf("imported generic GoPtr call result should use its instantiated pointer element type:\n%s", rust)
+	}
+	if strings.Contains(rust, "Rc<RefCell<Option<entry<K, V>>>>") ||
+		strings.Contains(rust, "Arc<Mutex<Option<entry<K, V>>>>") {
+		t.Fatalf("imported generic GoPtr call result should not keep the ordinary pointer wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoPtr::local(") || !strings.Contains(rust, "Some(self.clone())") {
+		t.Fatalf("current receiver returned through a promoted GoPtr slot should be wrapped as a local GoPtr:\n%s", rust)
+	}
+	if strings.Contains(rust, "e.lock()") || strings.Contains(rust, "e.borrow().is_some()") {
+		t.Fatalf("tuple local receiving a promoted GoPtr result should not use ordinary pointer wrapper operations:\n%s", rust)
+	}
+	if !strings.Contains(rust, "!e.is_nil()") {
+		t.Fatalf("tuple local receiving a promoted GoPtr result should use GoPtr nil checks:\n%s", rust)
+	}
+}
+
+func TestGoPtrTupleResultFromPromotedReceiverRegistersLocal(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node[K comparable, V any] struct {
+	isEntry bool
+}
+
+type entry[K comparable, V any] struct {
+	node node[K, V]
+	key K
+	value V
+}
+
+type table[K comparable, V any] struct {
+}
+
+func (n *node[K, V]) entryPtr() *entry[K, V] {
+	return (*entry[K, V])(unsafe.Pointer(n))
+}
+
+func consume[K comparable, V any](n *node[K, V]) {
+}
+
+func (ht *table[K, V]) use(n *node[K, V]) (loaded bool) {
+	_, e, loaded := n.entryPtr().loadAndDelete(false)
+	if e != nil {
+		consume(&e.node)
+	}
+	return loaded
+}
+
+func (head *entry[K, V]) next() *entry[K, V] {
+	return (*entry[K, V])(unsafe.Pointer(head))
+}
+
+func (head *entry[K, V]) loadAndDelete(hit bool) (V, *entry[K, V], bool) {
+	if hit {
+		return head.value, head.next(), true
+	}
+	return head.value, head, false
+}
+`)
+
+	if !strings.Contains(rust, "GoPtr<entry<K, V>>") {
+		t.Fatalf("promoted tuple result should use a GoPtr entry result:\n%s", rust)
+	}
+	if strings.Contains(rust, "e.lock()") || strings.Contains(rust, "e.borrow().is_some()") {
+		t.Fatalf("tuple local from promoted receiver result should not use ordinary pointer wrapper operations:\n%s", rust)
+	}
+	if !strings.Contains(rust, "!e.is_nil()") {
+		t.Fatalf("tuple local from promoted receiver result should use GoPtr nil checks:\n%s", rust)
+	}
+}
+
+func TestGoPtrReassignedPointerReceiverAliasUsesGoPtr(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type entry[K comparable, V any] struct {
+	key K
+	value V
+}
+
+func (e *entry[K, V]) next() *entry[K, V] {
+	return (*entry[K, V])(unsafe.Pointer(e))
+}
+
+func (e *entry[K, V]) lookup(key K) (V, bool) {
+	for e != nil {
+		if e.key == key {
+			return e.value, true
+		}
+		e = e.next()
+	}
+	var zero V
+	return zero, false
+}
+`)
+
+	if !strings.Contains(rust, "let mut __self = GoPtr::local(") {
+		t.Fatalf("reassigned pointer receiver receiving GoPtr values should use a GoPtr alias:\n%s", rust)
+	}
+	if !strings.Contains(rust, "while !__self.is_nil()") {
+		t.Fatalf("GoPtr receiver alias nil checks should use GoPtr::is_nil:\n%s", rust)
+	}
+	if strings.Contains(rust, "__self.lock()") || strings.Contains(rust, "__self.borrow().is_some()") {
+		t.Fatalf("GoPtr receiver alias should not use ordinary pointer wrapper operations:\n%s", rust)
+	}
+}
+
+func TestGoPtrDeferredFieldSelectorUsesCapturedClone(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type lock struct{}
+
+func (l *lock) Unlock() {}
+
+type indirect[T any] struct {
+	mu lock
+	value T
+}
+
+type node[T any] struct {
+	value T
+}
+
+func (n *node[T]) indirect() *indirect[T] {
+	return (*indirect[T])(unsafe.Pointer(n))
+}
+
+func use[T any](*indirect[T]) {}
+
+func test[T any](n *node[T]) {
+	i := n.indirect()
+	defer i.mu.Unlock()
+	use(i)
+}
+`)
+
+	if !strings.Contains(rust, "let i_defer_captured = i.clone();") {
+		t.Fatalf("deferred GoPtr local selector should capture the local clone:\n%s", rust)
+	}
+	if !strings.Contains(rust, "i_defer_captured.borrow()") {
+		t.Fatalf("deferred GoPtr field selector should borrow through the captured clone:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __ptr_value = i.borrow()") {
+		t.Fatalf("deferred GoPtr field selector should not move the outer local into the closure:\n%s", rust)
+	}
+}
+
+func TestGoPtrCandidateArgPromotesGenericMethodPointerParam(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type Pointer[T any] struct {
+	value *T
+}
+
+func (p *Pointer[T]) Load() *T {
+	return p.value
+}
+
+type indirect[T any] struct {
+	child Pointer[node[T]]
+}
+
+type node[T any] struct {
+	value T
+}
+
+func (n *node[T]) indirect() *indirect[T] {
+	return (*indirect[T])(unsafe.Pointer(n))
+}
+
+type table[T any] struct {
+	root Pointer[indirect[T]]
+}
+
+func (t *table[T]) consume(i *indirect[T]) {
+}
+
+func walk[T any](t *table[T], flag bool) *indirect[T] {
+	i := t.root.Load()
+	for flag {
+		n := i.child.Load()
+		i = n.indirect()
+		t.consume(i)
+		flag = false
+	}
+	return i
+}
+`)
+
+	if !strings.Contains(rust, "pub fn consume(&self, i: GoPtr<indirect<T>>)") {
+		t.Fatalf("generic method receiving a promoted GoPtr local should use a GoPtr parameter:\n%s", rust)
+	}
+	if strings.Contains(rust, "pub fn consume(&self, i: Rc<RefCell<Option<indirect<T>>>>)") ||
+		strings.Contains(rust, "pub fn consume(&self, i: Arc<Mutex<Option<indirect<T>>>>)") {
+		t.Fatalf("generic method receiving a promoted GoPtr local should not keep the ordinary pointer wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".consume(i.clone())") {
+		t.Fatalf("generic method call should pass the GoPtr local without wrapping it as an ordinary pointer:\n%s", rust)
+	}
+}
+
+func TestGoPtrVarAssignedFromGenericMethodPromotesGenericMethodPointerParam(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type entry[T any] struct {
+	value T
+}
+
+type indirect[T any] struct {
+	next *entry[T]
+}
+
+type node[T any] struct {
+	value T
+}
+
+func (n *node[T]) entry() *entry[T] {
+	return (*entry[T])(unsafe.Pointer(n))
+}
+
+func (n *node[T]) indirect() *indirect[T] {
+	return (*indirect[T])(unsafe.Pointer(n))
+}
+
+type table[T any] struct {
+}
+
+func (t *table[T]) expand(old *entry[T], parent *indirect[T]) {
+}
+
+func walk[T any](t *table[T], n *node[T]) {
+	var old *entry[T]
+	var parent *indirect[T]
+	if n != nil {
+		old = n.entry()
+		parent = n.indirect()
+	}
+	if old != nil {
+		t.expand(old, parent)
+	}
+}
+`)
+
+	if !strings.Contains(rust, "pub fn expand(&self, old: GoPtr<entry<T>>, parent: GoPtr<indirect<T>>)") {
+		t.Fatalf("generic method receiving var-assigned GoPtr locals should use GoPtr parameters:\n%s", rust)
+	}
+	if strings.Contains(rust, "old: Rc<RefCell<Option<entry<T>>>>") ||
+		strings.Contains(rust, "old: Arc<Mutex<Option<entry<T>>>>") ||
+		strings.Contains(rust, "parent: Rc<RefCell<Option<indirect<T>>>>") ||
+		strings.Contains(rust, "parent: Arc<Mutex<Option<indirect<T>>>>") {
+		t.Fatalf("generic method receiving var-assigned GoPtr locals should not keep ordinary pointer wrappers:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".expand(old.clone(), parent.clone())") {
+		t.Fatalf("generic method call should pass var-assigned GoPtr locals directly:\n%s", rust)
+	}
+}
+
+func TestGoPtrVarsPromoteGroupedGenericMethodPointerParams(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type entry[T any] struct {
+	value T
+}
+
+type indirect[T any] struct {
+	next *entry[T]
+}
+
+type node[T any] struct {
+	value T
+}
+
+func (n *node[T]) entry() *entry[T] {
+	return (*entry[T])(unsafe.Pointer(n))
+}
+
+func (n *node[T]) indirect() *indirect[T] {
+	return (*indirect[T])(unsafe.Pointer(n))
+}
+
+type table[T any] struct {
+}
+
+func (t *table[T]) expand(old, next *entry[T], parent *indirect[T]) {
+}
+
+func walk[T any](t *table[T], n *node[T]) {
+	var old *entry[T]
+	var next *entry[T]
+	var parent *indirect[T]
+	if n != nil {
+		old = n.entry()
+		next = n.entry()
+		parent = n.indirect()
+	}
+	if old != nil {
+		t.expand(old, next, parent)
+	}
+}
+`)
+
+	if !strings.Contains(rust, "pub fn expand(&self, old: GoPtr<entry<T>>, next: GoPtr<entry<T>>, parent: GoPtr<indirect<T>>)") {
+		t.Fatalf("grouped generic method pointer params receiving GoPtr locals should use GoPtr parameters:\n%s", rust)
+	}
+	if strings.Contains(rust, "pub fn expand(&self, old: Rc<RefCell<Option<entry<T>>>>") ||
+		strings.Contains(rust, "pub fn expand(&self, old: Arc<Mutex<Option<entry<T>>>>") ||
+		strings.Contains(rust, "next: Rc<RefCell<Option<entry<T>>>>, parent") ||
+		strings.Contains(rust, "next: Arc<Mutex<Option<entry<T>>>>, parent") ||
+		strings.Contains(rust, "parent: Rc<RefCell<Option<indirect<T>>>>)") ||
+		strings.Contains(rust, "parent: Arc<Mutex<Option<indirect<T>>>>)") {
+		t.Fatalf("grouped generic method pointer params should not keep ordinary pointer wrappers:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".expand(old.clone(), next.clone(), parent.clone())") {
+		t.Fatalf("grouped generic method call should pass GoPtr locals directly:\n%s", rust)
+	}
+}
+
+func TestGoPtrVarPromotesOnlyMatchingGroupedGenericMethodPointerParam(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type entry[T any] struct {
+	value T
+}
+
+type indirect[T any] struct {
+	next *entry[T]
+}
+
+type node[T any] struct {
+	value T
+}
+
+func (n *node[T]) entry() *entry[T] {
+	return (*entry[T])(unsafe.Pointer(n))
+}
+
+func (n *node[T]) indirect() *indirect[T] {
+	return (*indirect[T])(unsafe.Pointer(n))
+}
+
+func newEntry[T any]() *entry[T] {
+	return new(entry[T])
+}
+
+type table[T any] struct {
+}
+
+func (t *table[T]) expand(old, fresh *entry[T], parent *indirect[T]) {
+}
+
+func walk[T any](t *table[T], n *node[T]) {
+	var old *entry[T]
+	var parent *indirect[T]
+	if n != nil {
+		old = n.entry()
+		parent = n.indirect()
+	}
+	fresh := newEntry[T]()
+	if old != nil {
+		t.expand(old, fresh, parent)
+	}
+}
+`)
+
+	if !strings.Contains(rust, "pub fn expand(&self, old: GoPtr<entry<T>>, fresh: Rc<RefCell<Option<entry<T>>>>, parent: GoPtr<indirect<T>>)") {
+		t.Fatalf("mixed grouped generic method params should promote only the GoPtr arguments:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".expand(old.clone(), fresh.clone(), parent.clone())") {
+		t.Fatalf("mixed grouped generic method call should pass each local with its own representation:\n%s", rust)
+	}
+}
+
+func TestGoPtrVarPromotesHashTrieStyleGenericMethodPointerParams(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type entry[K comparable, V any] struct {
+	key K
+	value V
+}
+
+type indirect[K comparable, V any] struct {
+	next *entry[K, V]
+}
+
+type node[K comparable, V any] struct {
+	key K
+	value V
+}
+
+func (n *node[K, V]) entry() *entry[K, V] {
+	return (*entry[K, V])(unsafe.Pointer(n))
+}
+
+func (n *node[K, V]) indirect() *indirect[K, V] {
+	return (*indirect[K, V])(unsafe.Pointer(n))
+}
+
+func newEntryNode[K comparable, V any](key K, value V) *entry[K, V] {
+	return &entry[K, V]{key: key, value: value}
+}
+
+type HashTrieMap[K comparable, V any] struct {
+}
+
+func (ht *HashTrieMap[K, V]) expand(oldEntry, newEntry *entry[K, V], parent *indirect[K, V]) *node[K, V] {
+	return nil
+}
+
+func (ht *HashTrieMap[K, V]) store(n *node[K, V], key K, value V) {
+	var oldEntry *entry[K, V]
+	var parent *indirect[K, V]
+	if n != nil {
+		oldEntry = n.entry()
+		parent = n.indirect()
+	}
+	newEntry := newEntryNode(key, value)
+	if oldEntry != nil {
+		_ = ht.expand(oldEntry, newEntry, parent)
+	}
+}
+`)
+
+	if !strings.Contains(rust, "pub fn expand(&self, oldEntry: GoPtr<entry<K, V>>, newEntry: Rc<RefCell<Option<entry<K, V>>>>, parent: GoPtr<indirect<K, V>>)") {
+		t.Fatalf("HashTrie-style generic method params should promote only GoPtr locals:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".expand(oldEntry.clone(), newEntry.clone(), parent.clone())") {
+		t.Fatalf("HashTrie-style generic method call should pass each local with its own representation:\n%s", rust)
+	}
+}
+
+func TestGoPtrConcreteArgPromotesGenericTypeParamPointerParam(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type Pointer[T any] struct {
+	value *T
+}
+
+func (p *Pointer[T]) Store(value *T) {
+	p.value = value
+}
+
+type entry[T any] struct {
+	value T
+}
+
+type node[T any] struct {
+	value T
+}
+
+func (n *node[T]) entry() *entry[T] {
+	return (*entry[T])(unsafe.Pointer(n))
+}
+
+func use[T any](slot *Pointer[entry[T]], n *node[T]) {
+	var old *entry[T]
+	if n != nil {
+		old = n.entry()
+	}
+	slot.Store(old)
+}
+`)
+
+	if !strings.Contains(rust, "pub fn store(&mut self, value: GoPtr<T>)") {
+		t.Fatalf("generic *T method param receiving a concrete GoPtr should use GoPtr<T> in the declaration:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl<T: Any + Clone + 'static> Pointer<T>") {
+		t.Fatalf("generic method impl containing a GoPtr<T> parameter should add the Clone bound required by GoPtr<T>:\n%s", rust)
+	}
+	if strings.Contains(rust, "pub fn store(&mut self, value: Rc<RefCell<Option<T>>>)") ||
+		strings.Contains(rust, "pub fn store(&mut self, value: Arc<Mutex<Option<T>>>)") {
+		t.Fatalf("generic *T method param receiving a concrete GoPtr should not keep the ordinary pointer wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".store(old.clone())") {
+		t.Fatalf("generic *T method call should pass the concrete GoPtr local directly:\n%s", rust)
+	}
+}
+
+func TestGoPtrParamAssignmentPromotesGenericStructField(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type holder[T any] struct {
+	value *entry[T]
+}
+
+func (h *holder[T]) init(value *entry[T]) {
+	h.value = value
+}
+
+func (h *holder[T]) pass(s *sink[T]) {
+	s.take(h.value)
+}
+
+type entry[T any] struct {
+	value T
+}
+
+type sink[T any] struct {
+}
+
+func (s *sink[T]) take(value *entry[T]) {
+}
+
+type node[T any] struct {
+	value T
+}
+
+func (n *node[T]) entry() *entry[T] {
+	return (*entry[T])(unsafe.Pointer(n))
+}
+
+func use[T any](h *holder[T], n *node[T]) {
+	var value *entry[T]
+	if n != nil {
+		value = n.entry()
+	}
+	h.init(value)
+}
+`)
+
+	if !strings.Contains(rust, "pub value: GoPtr<entry<T>>") {
+		t.Fatalf("field assigned from a promoted GoPtr parameter should use GoPtr storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn init(&mut self, value: GoPtr<entry<T>>)") {
+		t.Fatalf("method parameter receiving a GoPtr local should be promoted:\n%s", rust)
+	}
+	if !strings.Contains(rust, "{ let new_val = value.clone(); self.value = new_val; };") {
+		t.Fatalf("field assignment from a promoted GoPtr parameter should assign the GoPtr handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn take(&self, value: GoPtr<entry<T>>)") {
+		t.Fatalf("GoPtr field selector passed to another method should promote that method parameter:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".take(self.value.clone())") {
+		t.Fatalf("GoPtr field selector call argument should pass the field handle directly:\n%s", rust)
+	}
+}
+
+func TestGoPtrParamDeclUsesTypedCalleeModulePath(t *testing.T) {
+	const src = `package maps
+
+type Map struct{}
+type Iter struct{}
+
+func (it *Iter) Init(m *Map) {
+}
+`
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "table.go", src, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(table.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo error = %v", err)
+	}
+	var initFn *ast.FuncDecl
+	for _, decl := range file.Decls {
+		if fn, ok := decl.(*ast.FuncDecl); ok && fn.Name.Name == "Init" {
+			initFn = fn
+			break
+		}
+	}
+	if initFn == nil {
+		t.Fatalf("fixture missing Init method")
+	}
+
+	prevTypeInfo := GetTypeInfo()
+	prevCtx := GetTranspileContext()
+	t.Cleanup(func() {
+		SetTypeInfo(prevTypeInfo)
+		SetTranspileContext(prevCtx)
+	})
+	pkgState := NewPackageState()
+	pkgState.TypeModuleNames["Map"] = "map"
+	pkgState.TypeModuleNames["Iter"] = "table"
+	ctx := &TranspileContext{
+		CurrentModuleName: "table",
+		Package:           pkgState,
+		Session:           NewTranspileSession(typeInfo, nil),
+	}
+	SetTypeInfo(typeInfo)
+	SetTranspileContext(ctx)
+	fnObj, ok := sliceElemPtrReturnFuncObject(initFn)
+	if !ok {
+		t.Fatalf("missing Init method object")
+	}
+	if ctx.Package.GoPtrParamFuncs == nil {
+		ctx.Package.GoPtrParamFuncs = make(map[*types.Func]map[int]string)
+	}
+	ctx.Package.GoPtrParamFuncs[fnObj] = map[int]string{
+		0: "wrong_cached_crate::wrong::Map",
+	}
+	SetTypeInfo(&TypeInfo{
+		info: typeInfo.info,
+		pkg:  types.NewPackage("other/pkg", "other"),
+	})
+
+	var out strings.Builder
+	writeFuncDeclParam(&out, initFn, 0, "m", initFn.Type.Params.List[0].Type, false)
+	got := out.String()
+	if got != "m: GoPtr<crate::map::Map>" {
+		t.Fatalf("GoPtr param declaration should render the callee package module path, got %q", got)
+	}
+}
+
+func TestSliceElemPointerGoPtrFieldJsonDecodeWrapsLocalPointer(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegressionWithExternalStubs(t, `package main
+
+type Name struct {
+	Bytes *byte
+}
+
+func setName(n *Name, b []byte) {
+	n.Bytes = &b[0]
+}
+`)
+
+	if !strings.Contains(rust, "pub bytes: GoPtr<u8>") {
+		t.Fatalf("slice element pointer field should use GoPtr storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, "out.bytes = GoPtr::local(<") ||
+		!strings.Contains(rust, "as GoJsonDecode>::go_json_decode(field_value)?);") {
+		t.Fatalf("GoPtr field JSON decode should wrap decoded local pointer handles:\n%s", rust)
+	}
+}
+
 func TestSliceElemPointerGoPtrLocalSelectorBorrowsField(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
@@ -718,6 +2480,343 @@ func forceConcurrent(ch chan bool) {
 	}
 }
 
+func TestGoPtrFieldPointerEqualityUsesAddressIdentity(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type Type struct {
+	id int
+}
+
+type ITab struct {
+	Inter *Type
+}
+
+func initTab(tab *ITab, types []Type) {
+	tab.Inter = &types[0]
+}
+
+func find(m *ITab, inter *Type) bool {
+	return m.Inter == inter
+}
+
+func use(tabs []ITab, types []Type) bool {
+	initTab(&tabs[0], types)
+	return find(&tabs[0], &types[0])
+}
+
+func forceConcurrent(ch chan bool) {
+	go func() {
+		ch <- true
+	}()
+}
+`)
+
+	if !strings.Contains(rust, "fn find(m: GoPtr<ITab>, inter: GoPtr<Type>)") {
+		t.Fatalf("pointer params receiving slice element addresses should use GoPtr:\n%s", rust)
+	}
+	if strings.Contains(rust, "__left.lock()") || strings.Contains(rust, "__right.lock()") || strings.Contains(rust, "Arc::ptr_eq(&__left, &__right)") {
+		t.Fatalf("GoPtr pointer equality should not use wrapper lock or Arc pointer equality:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __left_addr = { let __ptr_value = m.borrow(); __ptr_value.as_ref().unwrap().inter.clone() }.addr()") ||
+		!strings.Contains(rust, "let __right_addr = inter.addr()") {
+		t.Fatalf("GoPtr pointer equality should compare pointer addresses:\n%s", rust)
+	}
+}
+
+func TestGoPtrPointerEqualityDoesNotTreatCandidateFieldAsGeneratedStorage(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Type struct {
+	id int
+}
+
+type ITab struct {
+	Typ *Type
+}
+
+func find(m *ITab, typ *Type) bool {
+	return m.Typ == typ
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	var expr *ast.BinaryExpr
+	ast.Inspect(file, func(node ast.Node) bool {
+		binary, ok := node.(*ast.BinaryExpr)
+		if ok && binary.Op == token.EQL {
+			expr = binary
+			return false
+		}
+		return true
+	})
+	if expr == nil {
+		t.Fatalf("fixture missing pointer equality expression")
+	}
+	sel, ok := expr.X.(*ast.SelectorExpr)
+	if !ok {
+		t.Fatalf("fixture equality left side should be a selector")
+	}
+
+	prevTypeInfo := GetTypeInfo()
+	prevCtx := GetTranspileContext()
+	prevVarTable := GetVarTable()
+	t.Cleanup(func() {
+		SetTypeInfo(prevTypeInfo)
+		SetTranspileContext(prevCtx)
+		SetVarTable(prevVarTable)
+	})
+	ctx := &TranspileContext{
+		Session: NewTranspileSession(typeInfo, nil),
+		Package: NewPackageState(),
+	}
+	SetTypeInfo(typeInfo)
+	SetTranspileContext(ctx)
+	key, fieldInfo, ok := sliceElemPtrFieldKeyForSelector(sel)
+	if !ok {
+		t.Fatalf("fixture selector should expose pointer field metadata")
+	}
+	ctx.Package.SliceElemPtrFields[key] = fieldInfo
+
+	vt := NewVarTable()
+	vt.Register("m", &VarInfo{WrapLevel: WrapNone, RustType: "GoPtr<ITab>", Source: SourceParam, PointerKind: PointerGoPtr})
+	vt.Register("typ", &VarInfo{WrapLevel: WrapNone, RustType: "GoPtr<Type>", Source: SourceParam, PointerKind: PointerGoPtr})
+	SetVarTable(vt)
+
+	var out strings.Builder
+	if !writeGoPtrPointerEquality(&out, expr) {
+		t.Fatalf("GoPtr pointer equality writer should handle candidate field plus GoPtr param")
+	}
+	rust := out.String()
+	if strings.Contains(rust, ".typ.clone() }.addr()") {
+		t.Fatalf("candidate-only field should not be treated as generated GoPtr storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoPtr::local({ let __ptr_value = m.borrow(); __ptr_value.as_ref().unwrap().typ.clone() }.clone())") {
+		t.Fatalf("candidate-only field should be converted from its wrapped pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __right_addr = typ.addr()") {
+		t.Fatalf("GoPtr parameter side should still use its address token:\n%s", rust)
+	}
+}
+
+func TestGoPtrGeneratedForeignFieldCallArgumentConvertsHelperType(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type Type struct {
+	id int
+}
+
+type ITab struct {
+	Inter *Type
+}
+
+func find(m *ITab) {
+	use(m.Inter)
+}
+
+func use(inter *Type) {
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	var sel *ast.SelectorExpr
+	ast.Inspect(file, func(node ast.Node) bool {
+		call, ok := node.(*ast.CallExpr)
+		if !ok || len(call.Args) != 1 {
+			return true
+		}
+		if argSel, ok := call.Args[0].(*ast.SelectorExpr); ok {
+			sel = argSel
+			return false
+		}
+		return true
+	})
+	if sel == nil {
+		t.Fatalf("fixture missing selector call argument")
+	}
+
+	prevTypeInfo := GetTypeInfo()
+	prevCtx := GetTranspileContext()
+	prevVarTable := GetVarTable()
+	t.Cleanup(func() {
+		SetTypeInfo(prevTypeInfo)
+		SetTranspileContext(prevCtx)
+		SetVarTable(prevVarTable)
+	})
+	ctx := &TranspileContext{
+		Session:        NewTranspileSession(typeInfo, map[string]string{"example.com/abi": "example_com_abi"}),
+		Package:        NewPackageState(),
+		PackageMapping: map[string]string{"example.com/abi": "example_com_abi"},
+	}
+	SetTypeInfo(typeInfo)
+	SetTranspileContext(ctx)
+	key, fieldInfo, ok := sliceElemPtrFieldKeyForSelector(sel)
+	if !ok {
+		t.Fatalf("fixture selector should expose pointer field metadata")
+	}
+	fieldInfo.ownerPkgPath = "example.com/abi"
+	ctx.Package.SliceElemPtrFields[key] = fieldInfo
+	recordGeneratedGoPtrFieldForKey(key)
+
+	vt := NewVarTable()
+	vt.Register("m", &VarInfo{WrapLevel: WrapNone, RustType: "GoPtr<ITab>", Source: SourceParam, PointerKind: PointerGoPtr})
+	SetVarTable(vt)
+
+	var out strings.Builder
+	if !writeGoPtrCallArgumentWithQualifierForInfo(&out, sel, goPtrResultInfo{elemRustType: "Type"}, "") {
+		t.Fatalf("foreign generated GoPtr field should lower as a call argument")
+	}
+	rust := out.String()
+	if !strings.Contains(rust, "match __go_ptr { example_com_abi::GoPtr::Nil => GoPtr::nil()") {
+		t.Fatalf("foreign generated GoPtr field should convert from the owner helper type:\n%s", rust)
+	}
+	if strings.Contains(rust, "GoPtr::local({ let __ptr_value = m.borrow(); __ptr_value.as_ref().unwrap().inter.clone() }.clone())") {
+		t.Fatalf("foreign generated GoPtr field should not be wrapped as a local pointer handle:\n%s", rust)
+	}
+}
+
+func TestSliceElemPointerPromotedFieldAssignmentUsesGoPtrField(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type Type struct {
+	GCData *byte
+}
+
+type StructType struct {
+	Type
+}
+
+func assign(x *StructType, b []byte) {
+	x.Type.GCData = nil
+	x.Type.GCData = &b[0]
+}
+`)
+
+	if !strings.Contains(rust, "pub g_c_data: GoPtr<u8>") {
+		t.Fatalf("promoted slice element pointer field should use GoPtr storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoPtr::nil()") {
+		t.Fatalf("promoted slice element pointer nil assignment should use GoPtr nil state:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoPtr::slice_elem(GoSliceElemPtr::new(b.clone(), (0) as usize))") {
+		t.Fatalf("promoted slice element pointer assignment should preserve backing slice identity:\n%s", rust)
+	}
+}
+
+func TestSliceElemPointerReturnMethodCallBorrowsElement(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type action struct {
+	desc int
+}
+
+func (a *action) describef(desc int) {
+	a.desc = desc
+}
+
+func later(actions []action) *action {
+	return &actions[0]
+}
+
+func use(actions []action) {
+	later(actions).describef(1)
+}
+`)
+
+	if strings.Contains(rust, "__recv.lock()") || strings.Contains(rust, "__recv.borrow()") {
+		t.Fatalf("method call on slice element pointer return should not treat the receiver option as a normal pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__recv.as_ref().unwrap().borrow_mut()") {
+		t.Fatalf("method call on slice element pointer return should borrow the returned element pointer:\n%s", rust)
+	}
+}
+
+func TestSliceElemPointerReturnMethodCallFuncLitReceiverClonesSharedCapture(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type action struct {
+	desc int
+	f func()
+}
+
+func (a *action) describef(desc int) {
+	a.desc = desc
+}
+
+type checker struct {
+	delayed []action
+}
+
+func (c *checker) later(f func()) *action {
+	i := len(c.delayed)
+	c.delayed = append(c.delayed, action{f: f})
+	return &c.delayed[i]
+}
+
+func (c *checker) use(pos int) {
+	c.later(func() {
+		_ = c.delayed
+		_ = pos
+	}).describef(pos)
+}
+`)
+
+	if !strings.Contains(rust, "pos_closure_clone_closure_clone") {
+		t.Fatalf("function literal in slice element pointer receiver should clone captures also used by outer method args:\n%s", rust)
+	}
+}
+
+func TestNestedSliceElemPointerReturnMethodCallFuncLitClonesSharedCapture(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type Pos struct {
+	value int
+}
+
+type action struct {
+	desc *Pos
+	f func()
+}
+
+func (a *action) describef(desc *Pos) {
+	a.desc = desc
+}
+
+type checker struct {
+	delayed []action
+}
+
+func (c *checker) later(f func()) *action {
+	i := len(c.delayed)
+	c.delayed = append(c.delayed, action{f: f})
+	return &c.delayed[i]
+}
+
+func (c *checker) outer(pos *Pos) func() {
+	return func() {
+		c.later(func() {
+			_ = pos.value
+		}).describef(pos)
+	}
+}
+`)
+
+	if !strings.Contains(rust, "pos_closure_clone_closure_clone") {
+		t.Fatalf("nested function literal in slice element pointer receiver should clone captures also used by outer method args:\n%s", rust)
+	}
+}
+
 func TestSliceElemPointerDirectReturnUsesSliceElemPtr(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
@@ -739,6 +2838,114 @@ func pick(bucket []entry) *entry {
 	}
 	if !strings.Contains(rust, "Some(GoSliceElemPtr::new(bucket.clone(),") {
 		t.Fatalf("direct slice element pointer return should preserve slice/index identity:\n%s", rust)
+	}
+}
+
+func TestSliceElemPointerLocalReturnUsesSliceElemPtr(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type entry struct {
+	value int
+}
+
+func pick(bucket []entry, i int) *entry {
+	ptr := &bucket[i]
+	if ptr.value > 0 {
+		return ptr
+	}
+	return nil
+}
+`)
+
+	if !strings.Contains(rust, "fn pick(") || !strings.Contains(rust, "-> Option<GoSliceElemPtr<entry>>") {
+		t.Fatalf("slice element pointer local return should expose the slice element pointer representation:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut ptr: Option<GoSliceElemPtr<entry>> = Some(GoSliceElemPtr::new(bucket.clone(),") {
+		t.Fatalf("slice element pointer local should preserve slice/index identity:\n%s", rust)
+	}
+	if !strings.Contains(rust, "return ptr.clone()") {
+		t.Fatalf("returning a slice element pointer local should return the slice element handle, not a GoPtr:\n%s", rust)
+	}
+	if strings.Contains(rust, "return GoPtr::slice_elem_opt(ptr.clone())") {
+		t.Fatalf("slice element pointer local return should not widen to GoPtr:\n%s", rust)
+	}
+}
+
+func TestSliceElemPointerFieldPointeePointerFieldSelectorReturnsHandle(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type holder struct {
+	current *outer
+}
+
+type outer struct {
+	inner *inner
+}
+
+type inner struct {
+	check func(int) bool
+}
+
+func (h *holder) init(items []outer) {
+	h.current = &items[0]
+}
+
+func (h *holder) call(v int) bool {
+	return h.current.inner.check(v)
+}
+`)
+
+	if strings.Contains(rust, "slice element pointer field selector requires rvalue support") {
+		t.Fatalf("pointer field selected through a GoPtr field should emit a handle, not a placeholder:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __ptr_value = self.current.borrow(); __ptr_value.as_ref().unwrap().inner.clone()") {
+		t.Fatalf("pointer field selected through a GoPtr field should clone the field handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".check.clone()") {
+		t.Fatalf("function field call should continue through the selected pointer field handle:\n%s", rust)
+	}
+}
+
+func TestSliceElemPointerFieldPointeePromotedFieldSelector(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type holder struct {
+	current *workbuf
+}
+
+type workbufhdr struct {
+	nobj int
+}
+
+type workbuf struct {
+	workbufhdr
+}
+
+func (h *holder) init(items []workbuf) {
+	h.current = &items[0]
+}
+
+func (h *holder) empty() bool {
+	return h.current.nobj == 0
+}
+
+func (h *holder) localCount() int {
+	w := h.current
+	return w.nobj
+}
+`)
+
+	if strings.Contains(rust, "slice element pointer field selector requires promoted-field support") {
+		t.Fatalf("promoted field selected through a GoPtr field should emit a typed embedded-field traversal:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __ptr_value = self.current.borrow(); let __field = __ptr_value.as_ref().unwrap().workbufhdr.borrow().as_ref().unwrap().nobj.clone(); __field") {
+		t.Fatalf("promoted field selected through a GoPtr field should traverse the embedded field handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "GoPtr local field selector requires promoted-field support") {
+		t.Fatalf("promoted field selected through a GoPtr local should emit a typed embedded-field traversal:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __ptr_value = w.borrow(); let __field = __ptr_value.as_ref().unwrap().workbufhdr.borrow().as_ref().unwrap().nobj.clone(); __field") {
+		t.Fatalf("promoted field selected through a GoPtr local should traverse the embedded field handle:\n%s", rust)
 	}
 }
 
@@ -770,34 +2977,6 @@ func Lookup(name string) *Info {
 	}
 	if !strings.Contains(rust, "return Some(GoSliceElemPtr::new(") {
 		t.Fatalf("package-global slice element pointer return should preserve slice/index identity:\n%s", rust)
-	}
-}
-
-func TestSliceElemPointerReturnMethodCallBorrowsElement(t *testing.T) {
-	rust := transpileTypedSliceElemPtrRegression(t, `package main
-
-type action struct {
-	desc int
-}
-
-func (a *action) describef(desc int) {
-	a.desc = desc
-}
-
-func later(actions []action) *action {
-	return &actions[0]
-}
-
-func use(actions []action) {
-	later(actions).describef(1)
-}
-`)
-
-	if strings.Contains(rust, "__recv.lock()") || strings.Contains(rust, "__recv.borrow()") {
-		t.Fatalf("method call on slice element pointer return should not treat the receiver option as a normal pointer handle:\n%s", rust)
-	}
-	if !strings.Contains(rust, "__recv.as_ref().unwrap().borrow_mut()") {
-		t.Fatalf("method call on slice element pointer return should borrow the returned element pointer:\n%s", rust)
 	}
 }
 
@@ -879,9 +3058,8 @@ func use(p []inst) int {
 	if !strings.Contains(rust, "if i.is_some()") {
 		t.Fatalf("if-init slice element pointer nil check should inspect the option directly:\n%s", rust)
 	}
-	if !strings.Contains(rust, "dump(Rc::new(RefCell::new((*i.as_ref().unwrap().borrow()).clone())))") &&
-		!strings.Contains(rust, "dump(Arc::new(Mutex::new((*i.as_ref().unwrap().borrow()).clone())))") {
-		t.Fatalf("if-init slice element pointer local should pass a cloned pointee to read-only pointer params:\n%s", rust)
+	if !strings.Contains(rust, "dump(GoPtr::slice_elem_opt(i.clone()))") {
+		t.Fatalf("if-init slice element pointer local should preserve pointer identity for pointer params:\n%s", rust)
 	}
 }
 
@@ -902,12 +3080,14 @@ func use(p []inst) int {
 }
 `)
 
-	if strings.Contains(rust, "dump(i.clone())") {
-		t.Fatalf("read-only pointer parameter should not receive the slice element pointer option directly:\n%s", rust)
+	if strings.Contains(rust, "dump(i.clone())") ||
+		strings.Contains(rust, "dump(Rc::new(RefCell::new((*i.as_ref().unwrap().borrow()).clone())))") ||
+		strings.Contains(rust, "dump(Arc::new(Mutex::new((*i.as_ref().unwrap().borrow()).clone())))") {
+		t.Fatalf("pointer parameter should not receive a cloned slice element pointee:\n%s", rust)
 	}
-	if !strings.Contains(rust, "dump(Rc::new(RefCell::new((*i.as_ref().unwrap().borrow()).clone())))") &&
-		!strings.Contains(rust, "dump(Arc::new(Mutex::new((*i.as_ref().unwrap().borrow()).clone())))") {
-		t.Fatalf("read-only pointer parameter should receive a cloned pointee handle:\n%s", rust)
+	if !strings.Contains(rust, "fn dump(i: GoPtr<inst>)") ||
+		!strings.Contains(rust, "dump(GoPtr::slice_elem_opt(i.clone()))") {
+		t.Fatalf("pointer parameter should preserve slice element pointer identity:\n%s", rust)
 	}
 }
 
@@ -923,12 +3103,13 @@ func use(chunks [][]int) int {
 }
 `)
 
-	if strings.Contains(rust, "dump(GoSliceElemPtr::new") {
-		t.Fatalf("read-only pointer parameter should not receive a direct slice element pointer helper:\n%s", rust)
+	if strings.Contains(rust, "dump(Rc::new(RefCell::new((*GoSliceElemPtr::new") ||
+		strings.Contains(rust, "dump(Arc::new(Mutex::new((*GoSliceElemPtr::new") {
+		t.Fatalf("pointer parameter should not receive a cloned direct slice element pointee:\n%s", rust)
 	}
-	if !strings.Contains(rust, "dump(Rc::new(RefCell::new((*GoSliceElemPtr::new(chunks.clone(), (0) as usize).borrow()).clone())))") &&
-		!strings.Contains(rust, "dump(Arc::new(Mutex::new((*GoSliceElemPtr::new(chunks.clone(), (0) as usize).borrow()).clone())))") {
-		t.Fatalf("read-only pointer parameter should receive a cloned direct slice element pointee handle:\n%s", rust)
+	if !strings.Contains(rust, "fn dump(values: GoPtr<Vec<i32>>)") ||
+		!strings.Contains(rust, "dump(GoPtr::slice_elem(GoSliceElemPtr::new(chunks.clone(), (0) as usize)))") {
+		t.Fatalf("pointer parameter should receive a GoPtr slice element handle:\n%s", rust)
 	}
 }
 
@@ -958,7 +3139,7 @@ func use(chunks [][]byte) {
 	}
 }
 
-func TestWritablePointerParamRejectsSliceElemAddressLoudly(t *testing.T) {
+func TestWritablePointerParamAcceptsSliceElemAddressWithGoPtr(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
 func mutate(p *byte) {
@@ -966,15 +3147,1127 @@ func mutate(p *byte) {
 }
 
 func use(buf []byte) {
+mutate(&buf[0])
+}
+`)
+
+	if strings.Contains(rust, `unimplemented!("slice element pointer cannot pass to writable pointer parameter")`) ||
+		strings.Contains(rust, "mutate(GoSliceElemPtr::new") {
+		t.Fatalf("writable pointer parameter should not use the old slice element rejection path:\n%s", rust)
+	}
+	if !strings.Contains(rust, "fn mutate(p: GoPtr<u8>)") ||
+		!strings.Contains(rust, "mutate(GoPtr::slice_elem(GoSliceElemPtr::new(buf.clone(), (0) as usize)))") ||
+		!strings.Contains(rust, "p.assign(Some(new_val));") {
+		t.Fatalf("writable pointer parameter should preserve and write through slice element identity:\n%s", rust)
+	}
+}
+
+func TestWritablePointerParamAcceptsArrayElemAddressWithGoPtr(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+func mutate(p *byte) {
+	*p = 1
+}
+
+func use() {
+	var buf [4]byte
 	mutate(&buf[0])
 }
 `)
 
-	if strings.Contains(rust, "mutate(GoSliceElemPtr::new") {
-		t.Fatalf("writable pointer parameter should not receive an incompatible slice element pointer helper:\n%s", rust)
+	if strings.Contains(rust, `unimplemented!("slice element pointer cannot pass to writable pointer parameter")`) ||
+		strings.Contains(rust, "mutate(GoArrayElemPtr::new") {
+		t.Fatalf("writable pointer parameter should not use the old array element temporary path:\n%s", rust)
 	}
-	if !strings.Contains(rust, `unimplemented!("slice element pointer cannot pass to writable pointer parameter")`) {
-		t.Fatalf("writable pointer parameter should fail loudly until pointer params can hold slice element identity:\n%s", rust)
+	if !strings.Contains(rust, "fn mutate(p: GoPtr<u8>)") ||
+		!strings.Contains(rust, "mutate(GoPtr::array_elem(GoArrayElemPtr::new(buf.clone(), (0) as usize)))") ||
+		!strings.Contains(rust, "p.assign(Some(new_val));") {
+		t.Fatalf("writable pointer parameter should preserve and write through array element identity:\n%s", rust)
+	}
+}
+
+func TestGoPtrParamPropagatesThroughForwardingCall(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+func leaf(p *byte) byte {
+	return *p
+}
+
+func mid(p *byte) byte {
+	return leaf(p)
+}
+
+func use(buf []byte) byte {
+	return mid(&buf[0])
+}
+`)
+
+	if !strings.Contains(rust, "fn mid(p: GoPtr<u8>)") ||
+		!strings.Contains(rust, "fn leaf(p: GoPtr<u8>)") {
+		t.Fatalf("GoPtr pointer parameters should propagate through forwarding calls:\n%s", rust)
+	}
+	if !strings.Contains(rust, "leaf(p.clone())") {
+		t.Fatalf("forwarded GoPtr parameter should be passed through without converting to a local handle:\n%s", rust)
+	}
+}
+
+func TestGoPtrParamPropagatesThroughNoEscapeForwardingCall(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+//go:noescape
+func leaf(p *byte)
+
+func mid(p *byte) {
+	leaf(p)
+}
+
+func use(buf []byte) {
+	mid(&buf[0])
+}
+`)
+
+	if !strings.Contains(rust, "fn mid(p: GoPtr<u8>)") ||
+		!strings.Contains(rust, "fn leaf(p: GoPtr<u8>)") {
+		t.Fatalf("forwarded GoPtr pointer parameters should propagate into noescape callees:\n%s", rust)
+	}
+	if !strings.Contains(rust, "leaf(p.clone())") {
+		t.Fatalf("forwarded GoPtr parameter should pass through to noescape callee:\n%s", rust)
+	}
+}
+
+func TestGoPtrReturnPropagatesThroughMixedAtomicPointerAndLocalReturns(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "sync/atomic"
+
+type File struct {
+	base int
+}
+
+type Set struct {
+	last atomic.Pointer[File]
+	files []*File
+}
+
+func (s *Set) file(hit bool) *File {
+	if hit {
+		f := s.last.Load()
+		if f != nil {
+			return f
+		}
+	}
+	if len(s.files) > 0 {
+		f := s.files[0]
+		s.last.Store(f)
+		return f
+	}
+	return nil
+}
+`)
+
+	if !strings.Contains(rust, "pub fn file(&self") || !strings.Contains(rust, " -> GoPtr<File>") {
+		t.Fatalf("mixed atomic/local pointer returns should promote the function result to GoPtr<File>:\n%s", rust)
+	}
+	if !strings.Contains(rust, "return f.clone();") {
+		t.Fatalf("GoPtr-returning branch should preserve the atomic pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "return GoPtr::local(f.clone());") {
+		t.Fatalf("ordinary local pointer return should adapt to GoPtr::local:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoPtr::nil()") {
+		t.Fatalf("nil pointer return should adapt to GoPtr::nil:\n%s", rust)
+	}
+}
+
+func TestGoPtrMethodArgAndSelectorReadUseGoPtr(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type pair struct {
+	v int
+}
+
+func (p *pair) merge(other *pair) {
+	p.v += other.v
+}
+
+func use(items []pair) {
+	items[0].merge(&items[1])
+}
+`)
+
+	if !strings.Contains(rust, "pub fn merge(&mut self, other: GoPtr<pair>)") {
+		t.Fatalf("method pointer parameter should use GoPtr when passed a slice element address:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".merge(GoPtr::slice_elem(GoSliceElemPtr::new(items.clone(), (1) as usize)))") {
+		t.Fatalf("method call argument should wrap slice element address in GoPtr:\n%s", rust)
+	}
+	if strings.Contains(rust, "other.lock()") {
+		t.Fatalf("selector reads from GoPtr params should not use wrapper lock directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "other.borrow()") {
+		t.Fatalf("selector reads from GoPtr params should borrow through GoPtr:\n%s", rust)
+	}
+}
+
+func TestGoPtrPromotedMethodForwardingUsesGoPtrParam(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type base struct {
+	v int
+}
+
+func (b *base) merge(other *base) {
+	b.v += other.v
+}
+
+type outer struct {
+	base
+}
+
+func use(dst *outer, items []base) {
+	dst.merge(&items[0])
+}
+`)
+
+	if !strings.Contains(rust, "pub fn merge(&mut self, other: GoPtr<base>)") {
+		t.Fatalf("promoted method forwarding should keep the embedded method's GoPtr parameter type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "embedded_ref.merge(other)") {
+		t.Fatalf("promoted method should forward the GoPtr parameter to the embedded method:\n%s", rust)
+	}
+	if strings.Contains(rust, "pub fn merge(&mut self, other: Rc<RefCell<Option<base>>>") ||
+		strings.Contains(rust, "pub fn merge(&mut self, other: Arc<Mutex<Option<base>>>") {
+		t.Fatalf("promoted method forwarding should not keep the old local pointer wrapper parameter:\n%s", rust)
+	}
+}
+
+func TestGoPtrPromotedMethodForwardingUsesGoPtrReturn(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type item struct {
+	v int
+}
+
+type base struct{}
+
+func (b *base) pick(items []item) *item {
+	p := &items[0]
+	return p
+}
+
+type outer struct {
+	base
+}
+
+func use(o *outer, items []item) *item {
+	return o.pick(items)
+}
+`)
+
+	if !strings.Contains(rust, "pub fn pick(&self, items: ") || !strings.Contains(rust, " -> GoPtr<item>") {
+		t.Fatalf("promoted method forwarding should keep the embedded method's GoPtr return type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "embedded_ref.pick(items)") {
+		t.Fatalf("promoted method should forward the embedded GoPtr-returning call:\n%s", rust)
+	}
+	if strings.Contains(rust, "pub fn pick(&self, items: ") &&
+		(strings.Contains(rust, " -> Rc<RefCell<Option<item>>>") ||
+			strings.Contains(rust, " -> Arc<Mutex<Option<item>>>")) {
+		t.Fatalf("promoted method forwarding should not keep the old local pointer wrapper return:\n%s", rust)
+	}
+}
+
+func TestGoPtrParamPropagatesThroughFuncLiteralForwardingCall(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type node struct {
+	value int
+}
+
+func sink(p *node) {
+	p.value = 1
+}
+
+func outer(p *node) {
+	func() {
+		sink(p)
+	}()
+}
+
+func use(items []node) {
+	outer(&items[0])
+}
+`)
+
+	if !strings.Contains(rust, "pub fn outer(mut p: GoPtr<node>)") &&
+		!strings.Contains(rust, "pub fn outer(p: GoPtr<node>)") {
+		t.Fatalf("outer should receive the slice element pointer as GoPtr:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn sink(mut p: GoPtr<node>)") &&
+		!strings.Contains(rust, "pub fn sink(p: GoPtr<node>)") {
+		t.Fatalf("callee reached only through a function literal should receive GoPtr:\n%s", rust)
+	}
+	if strings.Contains(rust, "sink(p.clone())") && strings.Contains(rust, "pub fn sink(mut p: Arc<Mutex<Option<node>>>") {
+		t.Fatalf("function literal forwarding should not leave the callee expecting the old wrapper type:\n%s", rust)
+	}
+}
+
+func TestGoPtrPointerSwitchUsesPointerIdentity(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+func match(p *byte, q *byte) int {
+	switch p {
+	case q:
+		return 1
+	case nil:
+		return 2
+	}
+	return 0
+}
+
+func use(buf []byte) int {
+	return match(&buf[0], &buf[0])
+}
+`)
+
+	if !strings.Contains(rust, "fn r#match(p: GoPtr<u8>, q: GoPtr<u8>)") {
+		t.Fatalf("pointer switch params receiving slice element addresses should use GoPtr:\n%s", rust)
+	}
+	if strings.Contains(rust, "p.lock()") || strings.Contains(rust, "let __switch_guard =") {
+		t.Fatalf("GoPtr pointer switch should not use wrapper lock directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoPtr::ptr_eq(&__switch_val, &__case)") &&
+		!strings.Contains(rust, "GoPtr::ptr_eq(&_switch_val, &__case)") {
+		t.Fatalf("GoPtr pointer switch should compare GoPtr identities:\n%s", rust)
+	}
+}
+
+func TestGoPtrPointerSwitchAddressOfFieldCaseUsesPointerIdentity(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type mutex struct {
+	state int
+}
+
+type scheduler struct {
+	lock mutex
+}
+
+var sched scheduler
+
+func prefer(l *mutex) bool {
+	switch l {
+	case &sched.lock:
+		return true
+	default:
+		return false
+	}
+}
+
+func use(buf []mutex) bool {
+	return prefer(&buf[0])
+}
+`)
+
+	if !strings.Contains(rust, "fn prefer(l: GoPtr<mutex>)") {
+		t.Fatalf("pointer switch param receiving slice element addresses should use GoPtr:\n%s", rust)
+	}
+	if strings.Contains(rust, "GoPtr switch case requires pointer-compatible value") {
+		t.Fatalf("address-of-field GoPtr switch case should not fall back to an unsupported case:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoPtr::ptr_eq(&__switch_val, &__case)") &&
+		!strings.Contains(rust, "GoPtr::ptr_eq(&_switch_val, &__case)") {
+		t.Fatalf("address-of-field GoPtr switch case should compare GoPtr identities:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoPtr::local(") || !strings.Contains(rust, ".lock.clone()") {
+		t.Fatalf("address-of-field GoPtr switch case should wrap the field handle as a local GoPtr:\n%s", rust)
+	}
+}
+
+func TestGoPtrPointerSwitchAddressOfCrossModuleFieldCaseUsesPointerIdentity(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevContext := currentContext
+	prevSourceFunctionDecls := sourceFunctionDeclsByFunc
+	t.Cleanup(func() {
+		currentTypeInfo = prevTypeInfo
+		currentContext = prevContext
+		sourceFunctionDeclsByFunc = prevSourceFunctionDecls
+	})
+
+	fset := token.NewFileSet()
+	runtime2File, err := parser.ParseFile(fset, "runtime2.go", `package main
+
+type mutex struct {
+	state int
+}
+
+type scheduler struct {
+	lock mutex
+}
+
+var sched scheduler
+`, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("ParseFile(runtime2.go) error = %v", err)
+	}
+	lockFile, err := parser.ParseFile(fset, "lock_spinbit.go", `package main
+
+func prefer(l *mutex) bool {
+	switch l {
+	case &sched.lock:
+		return true
+	default:
+		return false
+	}
+}
+
+func use(buf []mutex) bool {
+	return prefer(&buf[0])
+}
+`, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("ParseFile(lock_spinbit.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{runtime2File, lockFile}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	sourceDecls := make(map[*types.Func]sourceFunctionDeclInfo)
+	for _, decl := range lockFile.Decls {
+		fnDecl, ok := decl.(*ast.FuncDecl)
+		if !ok {
+			continue
+		}
+		fn, ok := typeInfo.info.Defs[fnDecl.Name].(*types.Func)
+		if ok && fn != nil {
+			sourceDecls[fn] = sourceFunctionDeclInfo{decl: fnDecl, info: typeInfo.info}
+		}
+	}
+	SetSourceFunctionDeclsByFunc(sourceDecls)
+
+	pkgState := NewPackageState()
+	pkgState.TypeModuleNames["mutex"] = "runtime2"
+	pkgState.TypeModuleNames["scheduler"] = "runtime2"
+	for fn := range sourceDecls {
+		if fn.Name() == "prefer" {
+			pkgState.GoPtrParamFuncs[fn] = map[int]string{0: "mutex"}
+		}
+	}
+	SetTranspileContext(&TranspileContext{
+		Session:           NewTranspileSession(typeInfo, nil),
+		Package:           pkgState,
+		CurrentModuleName: "lock_spinbit",
+	})
+
+	rust, _, _ := TranspileWithMapping(lockFile, fset, typeInfo, nil)
+	if !strings.Contains(rust, "fn prefer(l: GoPtr<") {
+		t.Fatalf("cross-module pointer switch param receiving slice element addresses should use GoPtr:\n%s", rust)
+	}
+	if strings.Contains(rust, "GoPtr switch case requires pointer-compatible value") {
+		t.Fatalf("cross-module address-of-field GoPtr switch case should not fall back to an unsupported case:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoPtr::ptr_eq(&__switch_val, &__case)") &&
+		!strings.Contains(rust, "GoPtr::ptr_eq(&_switch_val, &__case)") {
+		t.Fatalf("cross-module address-of-field GoPtr switch case should compare GoPtr identities:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoPtr::local(") || !strings.Contains(rust, ".lock.clone()") {
+		t.Fatalf("cross-module address-of-field GoPtr switch case should wrap the field handle as a local GoPtr:\n%s", rust)
+	}
+}
+
+func TestGoPtrPointerToArrayIndexBorrowsPointee(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+func load(raw unsafe.Pointer) byte {
+	q := (*[8]byte)(raw)
+	return q[7]
+}
+`)
+
+	if !strings.Contains(rust, "let mut q: GoPtr<[u8; 8]>") {
+		t.Fatalf("unsafe pointer conversion to array pointer should use GoPtr:\n%s", rust)
+	}
+	if strings.Contains(rust, "q[(7) as usize]") {
+		t.Fatalf("GoPtr pointer-to-array index should not index GoPtr directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __seq = q.borrow()") ||
+		!strings.Contains(rust, "__seq.as_ref().unwrap()[(7) as usize].clone()") {
+		t.Fatalf("GoPtr pointer-to-array index should borrow the pointed-to array:\n%s", rust)
+	}
+}
+
+func TestGoPtrUnsafePointerToUintptrUsesGoPtrAddress(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+func addr(p *byte) uintptr {
+	return uintptr(unsafe.Pointer(p))
+}
+
+func use(buf []byte) uintptr {
+	return addr(&buf[0])
+}
+`)
+
+	if !strings.Contains(rust, "fn addr(p: GoPtr<u8>)") {
+		t.Fatalf("unsafe pointer address helper should receive slice element address as GoPtr:\n%s", rust)
+	}
+	if strings.Contains(rust, "Arc::as_ptr(&p)") || strings.Contains(rust, "Rc::as_ptr(&p)") {
+		t.Fatalf("unsafe.Pointer conversion from GoPtr should not call wrapper as_ptr on GoPtr:\n%s", rust)
+	}
+	if !strings.Contains(rust, "p.addr()") {
+		t.Fatalf("unsafe.Pointer conversion from GoPtr should use the GoPtr address token:\n%s", rust)
+	}
+}
+
+func TestGoPtrMethodParamUnsafePointerToUintptrUsesGoPtrAddress(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type recorder struct{}
+
+func (rec *recorder) addr(p *byte) uintptr {
+	return uintptr(unsafe.Pointer(p))
+}
+
+func use(buf []byte, rec *recorder) uintptr {
+	return rec.addr(&buf[0])
+}
+`)
+
+	if !strings.Contains(rust, "pub fn addr(&self, p: GoPtr<u8>)") {
+		t.Fatalf("method pointer parameter should receive slice element address as GoPtr:\n%s", rust)
+	}
+	if strings.Contains(rust, "Arc::as_ptr(&p)") || strings.Contains(rust, "Rc::as_ptr(&p)") {
+		t.Fatalf("unsafe.Pointer conversion from method GoPtr parameter should not call wrapper as_ptr on GoPtr:\n%s", rust)
+	}
+	if !strings.Contains(rust, "p.addr()") {
+		t.Fatalf("unsafe.Pointer conversion from method GoPtr parameter should use the GoPtr address token:\n%s", rust)
+	}
+}
+
+func TestArrayElemPointerTupleReturnAssignedFieldUsesGoPtrField(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type node struct {
+	next *node
+}
+
+type buf struct {
+	items [4]node
+}
+
+type state struct {
+	root *node
+}
+
+func pick(b *buf, i int) (*node, *buf, int) {
+	return &b.items[i], b, i
+}
+
+func build(s *state, b *buf) {
+	s.root, _, _ = pick(b, 0)
+}
+`)
+
+	if !strings.Contains(rust, "pub root: GoPtr<node>") {
+		t.Fatalf("field assigned an array element pointer return should use GoPtr storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = GoPtr::array_elem_opt(__tmp_0.clone());") ||
+		!strings.Contains(rust, ".root = new_val;") {
+		t.Fatalf("tuple assignment into GoPtr field should preserve array element identity:\n%s", rust)
+	}
+}
+
+func TestArrayElemPointerRecursiveCallResultAnalysisDoesNotRecurse(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type node struct {
+	next *node
+}
+
+type buf struct {
+	items [4]node
+}
+
+func pick(b *buf, i int) (root *node, rest *buf, out int) {
+	if i > 0 {
+		child, _, _ := pick(b, i-1)
+		_ = child
+	}
+	root = &b.items[i]
+	return root, b, i
+}
+`)
+
+	if !strings.Contains(rust, "Option<GoArrayElemPtr<node, 4>>") {
+		t.Fatalf("recursive result analysis should still classify direct array element pointer returns:\n%s", rust)
+	}
+}
+
+func TestRecursiveArrayElemPointerTupleLocalsRegisterGoPtrFields(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type node struct {
+	left *node
+	right *node
+}
+
+type buf struct {
+	items [4]node
+}
+
+func build(b *buf, i int, n int) (root *node, rest *buf, out int) {
+	var left, right *node
+	if n > 1 {
+		left, b, i = build(b, i, n/2)
+	}
+	root = &b.items[i]
+	if n > 2 {
+		right, b, i = build(b, i, n-n/2-1)
+	}
+	root.left = left
+	root.right = right
+	return root, b, i
+}
+`)
+
+	if !strings.Contains(rust, "pub left: GoPtr<node>") || !strings.Contains(rust, "pub right: GoPtr<node>") {
+		t.Fatalf("fields assigned recursive tuple GoPtr locals should use GoPtr storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut left: GoPtr<node> = GoPtr::nil()") ||
+		!strings.Contains(rust, "let mut right: GoPtr<node> = GoPtr::nil()") {
+		t.Fatalf("recursive tuple locals receiving array element pointer results should use GoPtr storage:\n%s", rust)
+	}
+	if strings.Contains(rust, "GoPtr::local(left.clone())") || strings.Contains(rust, "GoPtr::local(right.clone())") {
+		t.Fatalf("assigning recursive tuple GoPtr locals into fields should not re-wrap existing GoPtr handles:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".left = new_val;") || !strings.Contains(rust, ".right = new_val;") {
+		t.Fatalf("recursive tuple GoPtr local field assignments should store through GoPtr fields:\n%s", rust)
+	}
+}
+
+func TestGoPtrFieldValueMethodCallBorrowsThroughGoPtr(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type bits struct {
+	value int
+}
+
+func (b *bits) bitp(i int) int {
+	b.value += i
+	return b.value + i
+}
+
+type heap struct {
+	marks *bits
+}
+
+func initHeap(h *heap, all []bits) {
+	h.marks = &all[0]
+}
+
+func use(h *heap) int {
+	return h.marks.bitp(3)
+}
+
+func forceConcurrent(ch chan bool) {
+	go func() {
+		ch <- true
+	}()
+}
+`)
+
+	if !strings.Contains(rust, "pub marks: GoPtr<bits>") {
+		t.Fatalf("field assigned a slice element pointer should use GoPtr storage:\n%s", rust)
+	}
+	if strings.Contains(rust, ".marks.lock()") {
+		t.Fatalf("GoPtr field method call should not call lock on GoPtr storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __result = __recv_field.with_mut(|__recv_value| __recv_value.bitp(") {
+		t.Fatalf("GoPtr field pointer-receiver method call should dispatch through with_mut:\n%s", rust)
+	}
+}
+
+func TestGoPtrLocalReassignedFromFieldAddressToArrayElementAddress(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type cell struct {
+	value int
+}
+
+func (c *cell) Load() int {
+	return c.value
+}
+
+func (c *cell) Store(v int) {
+	c.value = v
+}
+
+type node struct {
+	children [4]cell
+}
+
+type table struct {
+	root cell
+}
+
+func walk(t *table, n *node, i int) int {
+	m := &t.root
+	m.Store(1)
+	m = &n.children[i]
+	m.Store(2)
+	return m.Load()
+}
+`)
+
+	if !strings.Contains(rust, "let mut m: GoPtr<cell> = GoPtr::local(") {
+		t.Fatalf("pointer local initialized from a field and later assigned an array element should use GoPtr storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, "m = GoPtr::array_elem(GoArrayElemPtr::new(") {
+		t.Fatalf("GoPtr local assignment from an array element address should preserve array element identity:\n%s", rust)
+	}
+	if strings.Contains(rust, `unimplemented!("GoPtr local method call requires mutable receiver support")`) {
+		t.Fatalf("GoPtr local pointer-receiver methods should lower without a placeholder:\n%s", rust)
+	}
+	if !strings.Contains(rust, "m.with_mut(|__recv_value| __recv_value.store(") {
+		t.Fatalf("mutating GoPtr local method call should dispatch through with_mut:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __recv_value = m.borrow(); let __result = (*__recv_value.as_ref().unwrap()).load(") {
+		t.Fatalf("read-only GoPtr local method call should borrow through GoPtr:\n%s", rust)
+	}
+}
+
+func TestGoPtrLocalAssignmentNilComparisonAndReturnPreservesHandle(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type node struct {
+	off int
+	size int
+	left *node
+	right *node
+}
+
+type buf struct {
+	items [4]node
+}
+
+type state struct {
+	root *node
+}
+
+func pick(b *buf, i int) *node {
+	return &b.items[i]
+}
+
+func initState(s *state, b *buf) {
+	s.root = pick(b, 0)
+	obj := s.root
+	obj.left = pick(b, 1)
+	obj.right = pick(b, 2)
+}
+
+func find(s *state, a int) *node {
+	obj := s.root
+	for obj != nil {
+		if a < obj.off {
+			obj = obj.left
+			continue
+		}
+		if a >= obj.off+obj.size {
+			obj = obj.right
+			continue
+		}
+		return obj
+	}
+	return nil
+}
+`)
+
+	if !strings.Contains(rust, "pub fn find(") || !strings.Contains(rust, " -> GoPtr<node>") {
+		t.Fatalf("function returning a GoPtr local should return GoPtr<node>:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut obj: GoPtr<node> =") {
+		t.Fatalf("local copied from a GoPtr field should be declared as GoPtr<node>:\n%s", rust)
+	}
+	if strings.Contains(rust, "obj.lock()") || strings.Contains(rust, "obj.borrow().is_none()") {
+		t.Fatalf("GoPtr local nil comparison should use GoPtr::is_nil, not wrapper borrowing:\n%s", rust)
+	}
+	if !strings.Contains(rust, "obj.is_nil()") {
+		t.Fatalf("GoPtr local nil comparison should call is_nil:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".left.clone() }.clone()") || !strings.Contains(rust, ".right.clone() }.clone()") {
+		t.Fatalf("GoPtr local assignment from GoPtr fields should clone the field handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "return obj.clone();") {
+		t.Fatalf("returning a GoPtr local should clone the GoPtr handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoPtr::nil()") {
+		t.Fatalf("nil return from a GoPtr-returning function should produce GoPtr::nil():\n%s", rust)
+	}
+}
+
+func TestGoPtrNamedResultsAssignedFromGoPtrCallsUseGoPtrSlots(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct {
+	value int
+}
+
+func (n *node) identity() *node {
+	return (*node)(unsafe.Pointer(n))
+}
+
+func find(n *node, ok bool) (root *node, child *node) {
+	root = n.identity()
+	if ok {
+		child = n.identity()
+		return
+	}
+	return
+}
+`)
+
+	if !strings.Contains(rust, "pub fn find(") || !strings.Contains(rust, " -> (GoPtr<node>, GoPtr<node>)") {
+		t.Fatalf("named pointer results assigned GoPtr calls should use GoPtr result types:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut root: GoPtr<node> = GoPtr::nil();") ||
+		!strings.Contains(rust, "let mut child: GoPtr<node> = GoPtr::nil();") {
+		t.Fatalf("named pointer result locals assigned GoPtr calls should use GoPtr slots:\n%s", rust)
+	}
+	if strings.Contains(rust, "root.lock()") || strings.Contains(rust, "child.lock()") ||
+		strings.Contains(rust, "root.borrow()") || strings.Contains(rust, "child.borrow()") {
+		t.Fatalf("named GoPtr results should not be returned through ordinary pointer wrapper borrows:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(root.clone(), child.clone())") {
+		t.Fatalf("naked return should clone named GoPtr result handles:\n%s", rust)
+	}
+}
+
+func TestMixedGoPtrAndArrayElemNamedResultsComposeResultTypes(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct {
+	value int
+}
+
+func (n *node) read() int {
+	return n.value
+}
+
+func (n *node) identity() *node {
+	return (*node)(unsafe.Pointer(n))
+}
+
+type Pointer struct {
+	value *node
+}
+
+type table struct {
+	slots [2]Pointer
+}
+
+func pickSlot(t *table, i int) *Pointer {
+	return &t.slots[i]
+}
+
+func find(n *node, t *table) (root *node, slot *Pointer, child *node) {
+	root = n.identity()
+	slot = pickSlot(t, 0)
+	child = n.identity()
+	return
+}
+
+func use(n *node, t *table) int {
+	root, _, child := find(n, t)
+	if root == nil || child == nil {
+		return 0
+	}
+	return root.read() + child.read()
+}
+`)
+
+	if !strings.Contains(rust, " -> (GoPtr<node>, Option<GoArrayElemPtr<Pointer, 2>>, GoPtr<node>)") {
+		t.Fatalf("mixed GoPtr and array-element named results should compose result types:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut root: GoPtr<node> = GoPtr::nil();") ||
+		!strings.Contains(rust, "let mut slot: Option<GoArrayElemPtr<Pointer, 2>> = None;") ||
+		!strings.Contains(rust, "let mut child: GoPtr<node> = GoPtr::nil();") {
+		t.Fatalf("mixed named result locals should keep their specialized slots:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(root.clone(), slot.clone(), child.clone())") {
+		t.Fatalf("mixed naked return should clone specialized named result handles:\n%s", rust)
+	}
+	if strings.Contains(rust, "root.lock()") || strings.Contains(rust, "child.lock()") ||
+		strings.Contains(rust, "root.borrow().is_none()") || strings.Contains(rust, "child.borrow().is_none()") {
+		t.Fatalf("GoPtr tuple result locals should not use ordinary pointer wrapper operations:\n%s", rust)
+	}
+	if !strings.Contains(rust, "root.is_nil()") || !strings.Contains(rust, "child.is_nil()") {
+		t.Fatalf("GoPtr tuple result locals should use GoPtr nil checks:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __recv_value = root.borrow(); let __result = (*__recv_value.as_ref().unwrap()).read(") ||
+		!strings.Contains(rust, "let __recv_value = child.borrow(); let __result = (*__recv_value.as_ref().unwrap()).read(") {
+		t.Fatalf("GoPtr tuple result locals should borrow through GoPtr for method calls:\n%s", rust)
+	}
+}
+
+func TestGoPtrMethodReturnPreservesLocalHandle(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type node struct {
+	off int
+	left *node
+}
+
+type buf struct {
+	items [3]node
+}
+
+type state struct {
+	root *node
+}
+
+func pick(b *buf, i int) *node {
+	return &b.items[i]
+}
+
+func initState(s *state, b *buf) {
+	s.root = pick(b, 0)
+	obj := s.root
+	obj.left = pick(b, 1)
+}
+
+func (s *state) find(a int) *node {
+	obj := s.root
+	for obj != nil {
+		if a < obj.off {
+			obj = obj.left
+			continue
+		}
+		return obj
+	}
+	return nil
+}
+`)
+
+	if !strings.Contains(rust, "pub fn find(&self") || !strings.Contains(rust, " -> GoPtr<node>") {
+		t.Fatalf("method returning a GoPtr local should return GoPtr<node>:\n%s", rust)
+	}
+	if !strings.Contains(rust, "return obj.clone();") {
+		t.Fatalf("method returning a GoPtr local should clone the GoPtr handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoPtr::nil()") {
+		t.Fatalf("nil return from a GoPtr-returning method should produce GoPtr::nil():\n%s", rust)
+	}
+}
+
+func TestGoPtrFieldAssignedFromTupleLocalUsesGoPtrField(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type node struct {
+	left *node
+}
+
+type buf struct {
+	items [3]node
+}
+
+type state struct {
+	root *node
+}
+
+func pick(b *buf, i int) (*node, *buf) {
+	return &b.items[i], b
+}
+
+func build(s *state, b *buf) {
+	var child *node
+	s.root, b = pick(b, 0)
+	child, b = pick(b, 1)
+	s.root.left = child
+}
+`)
+
+	if !strings.Contains(rust, "pub left: GoPtr<node>") {
+		t.Fatalf("field assigned from a GoPtr tuple local should use GoPtr storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut child: GoPtr<node> = GoPtr::nil()") {
+		t.Fatalf("tuple local receiving an array element pointer result should use GoPtr storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".left = new_val;") {
+		t.Fatalf("assignment from GoPtr tuple local should update the GoPtr field handle:\n%s", rust)
+	}
+}
+
+func TestGoPtrFieldAssignedFromGoPtrReturnDoesNotRewrap(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type bits struct {
+	value int
+}
+
+type heap struct {
+	current *bits
+}
+
+func initHeap(h *heap, values []bits) {
+	h.current = &values[0]
+}
+
+func choose(h *heap) *bits {
+	p := h.current
+	return p
+}
+
+func refresh(h *heap) {
+	h.current = choose(h)
+}
+`)
+
+	if !strings.Contains(rust, "pub current: GoPtr<bits>") {
+		t.Fatalf("field assigned a slice element pointer should use GoPtr storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn choose(") || !strings.Contains(rust, " -> GoPtr<bits>") {
+		t.Fatalf("function returning a GoPtr field should return GoPtr<bits>:\n%s", rust)
+	}
+	if strings.Contains(rust, "GoPtr::local(choose(") {
+		t.Fatalf("GoPtr field assignment from GoPtr-returning call should not re-wrap the returned handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = choose(") || !strings.Contains(rust, ".current = new_val;") {
+		t.Fatalf("GoPtr field assignment from GoPtr-returning call should store the returned handle:\n%s", rust)
+	}
+}
+
+func TestPointerFieldPromotedSelectorDereferencesIntermediatePointerField(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type core struct {
+	id int
+}
+
+type info struct {
+	*core
+}
+
+type frame struct {
+	fn info
+}
+
+func check(fr *frame) int {
+	return fr.fn.id
+}
+`)
+
+	if strings.Contains(rust, ".r#fn.core") {
+		t.Fatalf("promoted selector through pointer-valued field should dereference the intermediate pointer field:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".r#fn") ||
+		!strings.Contains(rust, ".as_ref().unwrap()).core") {
+		t.Fatalf("promoted selector should borrow the pointer-valued field before selecting embedded fields:\n%s", rust)
+	}
+}
+
+func TestNoEscapeWritablePointerParamAcceptsSliceElemAddressWithWriteback(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+//go:noescape
+func mutate(p *byte)
+
+func use(buf []byte) {
+	mutate(&buf[0])
+}
+`)
+
+	if strings.Contains(rust, `unimplemented!("slice element pointer cannot pass to writable pointer parameter")`) {
+		t.Fatalf("noescape writable pointer parameter should use a temporary handle with writeback:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __elem_ptr_0 = Some(GoSliceElemPtr::new(buf.clone(), (0) as usize));") {
+		t.Fatalf("noescape slice element pointer argument should evaluate the element pointer once:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())") {
+		t.Fatalf("noescape slice element pointer argument should seed the temporary handle from the element:\n%s", rust)
+	}
+	if !strings.Contains(rust, "mutate(__arg0.clone())") {
+		t.Fatalf("noescape slice element pointer argument should pass the temporary pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*__elem_guard_0 = (*__arg0.borrow()).clone();") &&
+		!strings.Contains(rust, "*__elem_guard_0 = (*__arg0.lock().unwrap()).clone();") {
+		t.Fatalf("noescape slice element pointer argument should write the temporary handle back:\n%s", rust)
+	}
+}
+
+func TestNoEscapeWritablePointerParamAcceptsArrayElemCallResultWithWriteback(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+//go:noescape
+func mutate(p *byte)
+
+func pick(values *[8]byte) *byte {
+	return &(*values)[0]
+}
+
+func use(values *[8]byte) {
+	mutate(pick(values))
+}
+`)
+
+	if strings.Contains(rust, "mutate(pick(") {
+		t.Fatalf("noescape array element pointer call result should not pass the option directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __elem_ptr_0 = pick(values.clone());") {
+		t.Fatalf("noescape array element pointer call result should evaluate the pointer once:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())") {
+		t.Fatalf("noescape array element pointer call result should seed the temporary handle from the element:\n%s", rust)
+	}
+	if !strings.Contains(rust, "mutate(__arg0.clone())") {
+		t.Fatalf("noescape array element pointer call result should pass the temporary pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*__elem_guard_0 = (*__arg0.borrow()).clone();") &&
+		!strings.Contains(rust, "*__elem_guard_0 = (*__arg0.lock().unwrap()).clone();") {
+		t.Fatalf("noescape array element pointer call result should write the temporary handle back:\n%s", rust)
+	}
+}
+
+func TestNoEscapeWritablePointerParamAcceptsStructArrayFieldElemAddressWithWriteback(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type stats struct {
+	counts [4]uint64
+}
+
+//go:noescape
+func add(p *uint64, delta int64) uint64
+
+func use(s *stats) {
+	add(&s.counts[1], 2)
+}
+`)
+
+	if strings.Contains(rust, "add(GoArrayElemPtr::new") {
+		t.Fatalf("noescape struct array field element argument should not pass the element pointer directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __elem_ptr_0 = Some(GoArrayElemPtr::new(") ||
+		!strings.Contains(rust, ".counts.clone(), (1) as usize));") {
+		t.Fatalf("noescape struct array field element argument should evaluate the element pointer once:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())") {
+		t.Fatalf("noescape struct array field element argument should seed the temporary handle from the element:\n%s", rust)
+	}
+	if !strings.Contains(rust, "add(__arg0.clone(),") {
+		t.Fatalf("noescape struct array field element argument should pass the temporary pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*__elem_guard_0 = (*__arg0.borrow()).clone();") &&
+		!strings.Contains(rust, "*__elem_guard_0 = (*__arg0.lock().unwrap()).clone();") {
+		t.Fatalf("noescape struct array field element argument should write the temporary handle back:\n%s", rust)
 	}
 }
 
@@ -993,12 +4286,15 @@ func use(chunks [][]int) int {
 }
 `)
 
-	if strings.Contains(rust, "dump(GoSliceElemPtr::new") {
-		t.Fatalf("read-only pointer parameter passed through a function literal should not receive a direct helper:\n%s", rust)
+	if strings.Contains(rust, "dump(Rc::new(RefCell::new((*GoSliceElemPtr::new") ||
+		strings.Contains(rust, "dump(Arc::new(Mutex::new((*GoSliceElemPtr::new") {
+		t.Fatalf("read-only pointer parameter passed through a function literal should not receive a cloned pointee:\n%s", rust)
 	}
-	if !strings.Contains(rust, "dump(Rc::new(RefCell::new((*GoSliceElemPtr::new(chunks.clone(), (0) as usize).borrow()).clone())))") &&
-		!strings.Contains(rust, "dump(Arc::new(Mutex::new((*GoSliceElemPtr::new(chunks.clone(), (0) as usize).borrow()).clone())))") {
-		t.Fatalf("read-only pointer parameter passed through a function literal should receive a cloned pointee handle:\n%s", rust)
+	if !strings.Contains(rust, "pub fn dump(values: GoPtr<Vec<i32>>) -> i32") ||
+		!strings.Contains(rust, "Box<dyn FnMut(GoPtr<Vec<i32>>) -> i32>") ||
+		!strings.Contains(rust, "(*__f)(values.clone())") ||
+		!strings.Contains(rust, "dump(GoPtr::slice_elem(GoSliceElemPtr::new(chunks.clone(), (0) as usize)))") {
+		t.Fatalf("read-only pointer parameter passed through a function literal should preserve GoPtr handles:\n%s", rust)
 	}
 }
 
@@ -1026,12 +4322,14 @@ func use(m *machine, p []inst) *thread {
 }
 `)
 
-	if strings.Contains(rust, ".alloc(i.clone())") {
+	if strings.Contains(rust, ".alloc(i.clone())") ||
+		strings.Contains(rust, ".alloc(Rc::new(RefCell::new((*i.as_ref().unwrap().borrow()).clone())))") ||
+		strings.Contains(rust, ".alloc(Arc::new(Mutex::new((*i.as_ref().unwrap().borrow()).clone())))") {
 		t.Fatalf("read-only method pointer parameter should not receive the slice element pointer option directly:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".alloc(Rc::new(RefCell::new((*i.as_ref().unwrap().borrow()).clone())))") &&
-		!strings.Contains(rust, ".alloc(Arc::new(Mutex::new((*i.as_ref().unwrap().borrow()).clone())))") {
-		t.Fatalf("read-only method pointer parameter should receive a cloned pointee handle:\n%s", rust)
+	if !strings.Contains(rust, "pub fn alloc(&self, i: GoPtr<inst>)") ||
+		!strings.Contains(rust, ".alloc(GoPtr::slice_elem_opt(i.clone()))") {
+		t.Fatalf("read-only method pointer parameter should receive a GoPtr handle:\n%s", rust)
 	}
 }
 
@@ -1193,6 +4491,14 @@ func use() {
 }
 
 func transpileTypedSliceElemPtrRegression(t *testing.T, src string) string {
+	return transpileTypedSliceElemPtrRegressionWithOptions(t, src, false)
+}
+
+func transpileTypedSliceElemPtrRegressionWithExternalStubs(t *testing.T, src string) string {
+	return transpileTypedSliceElemPtrRegressionWithOptions(t, src, true)
+}
+
+func transpileTypedSliceElemPtrRegressionWithOptions(t *testing.T, src string, useExternalStubs bool) string {
 	t.Helper()
 
 	prevTypeInfo := currentTypeInfo
@@ -1207,7 +4513,7 @@ func transpileTypedSliceElemPtrRegression(t *testing.T, src string) string {
 	})
 
 	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, "main.go", src, 0)
+	file, err := parser.ParseFile(fset, "main.go", src, parser.ParseComments)
 	if err != nil {
 		t.Fatalf("ParseFile(main.go) error = %v", err)
 	}
@@ -1228,6 +4534,13 @@ func transpileTypedSliceElemPtrRegression(t *testing.T, src string) string {
 		sourceDecls[fn] = sourceFunctionDeclInfo{decl: fnDecl, info: typeInfo.info}
 	}
 	SetSourceFunctionDeclsByFunc(sourceDecls)
+	if useExternalStubs {
+		SetTranspileContext(&TranspileContext{
+			Session:                 NewTranspileSession(typeInfo, nil),
+			Package:                 NewPackageState(),
+			UsePackageExternalStubs: true,
+		})
+	}
 	rust, _, _ := Transpile(file, fset, typeInfo)
 	return rust
 }

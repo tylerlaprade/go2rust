@@ -131,6 +131,38 @@ func order(names []string) {
 	}
 }
 
+func TestSourceMappedSortSliceStillLowersToIndexSortWithoutReflectlite(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "sort"
+
+func order(names []string) {
+	sort.Slice(names, func(i, j int) bool {
+		return names[i] < names[j]
+	})
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"sort": "sort"})
+
+	if strings.Contains(rust, "sort::slice") ||
+		strings.Contains(rust, "internal_reflectlite") ||
+		strings.Contains(rust, "Box::new(names") {
+		t.Fatalf("source-mapped sort.Slice should still lower at the typed call site without reflectlite:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__sort_values.swap(__sort_j, __sort_j - 1)") {
+		t.Fatalf("source-mapped sort.Slice lowering should emit the typed in-place sort:\n%s", rust)
+	}
+}
+
 func TestSortSearchLowersBinarySearchWithoutBridge(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -657,6 +689,26 @@ func render(w Word) string {
 	}
 }
 
+func TestBuiltinPrintlnNamedIntegerConversionUsesBareValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type hex uint64
+
+func log(p uintptr) {
+	println("addr", hex(uint64(p)))
+}
+`)
+
+	if strings.Contains(rust, "hex(") &&
+		(strings.Contains(rust, ")).borrow().as_ref().unwrap()") ||
+			strings.Contains(rust, ")).lock().unwrap().as_ref().unwrap()")) {
+		t.Fatalf("builtin println should not unwrap a named integer conversion as a handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, `format!("{}", hex(`) {
+		t.Fatalf("builtin println should format the named integer conversion directly:\n%s", rust)
+	}
+}
+
 func TestStrconvItoaParenthesizesConvertedNamedInteger(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -731,6 +783,58 @@ func warn(field string) {
 	}
 	if strings.Contains(rust, "print(Rc::") || strings.Contains(rust, "print(Arc::") {
 		t.Fatalf("builtin print must not emit a call to a nonexistent Rust print function:\n%s", rust)
+	}
+}
+
+func TestBuiltinPrintPointerSelectorFormatsHandleOnce(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type node struct {
+	next *node
+}
+
+func warn(n *node) {
+	print(" next=", n.next)
+}
+
+func forceConcurrent(ch chan bool) {
+	go func() {
+		ch <- true
+	}()
+}
+`)
+
+	if strings.Contains(rust, ".next.clone(); __field }.lock().unwrap().as_ref().unwrap()).lock().unwrap()") {
+		t.Fatalf("printing a pointer selector should not unwrap the pointee and then lock it again:\n%s", rust)
+	}
+	if !strings.Contains(rust, `format!("{}", format!("&{}", (*{ let __field = (*n.lock().unwrap().as_ref().unwrap()).next.clone(); __field }.lock().unwrap().as_ref().unwrap())))`) {
+		t.Fatalf("printing a pointer selector should format the selector handle once:\n%s", rust)
+	}
+}
+
+func TestBuiltinPrintAddressOfPointerFormatsHandleAddress(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type node struct{}
+
+func warn(n *node) {
+	print(" slot=", &n)
+}
+
+func forceConcurrent(ch chan bool) {
+	go func() {
+		ch <- true
+	}()
+}
+`)
+
+	if strings.Contains(rust, `format!("{}", Arc::new(Mutex::new(Some(n.clone()))))`) ||
+		strings.Contains(rust, `format!("{}", Rc::new(RefCell::new(Some(n.clone()))))`) {
+		t.Fatalf("printing address of pointer variable should not format a freshly wrapped pointer slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, `format!("{}", format!("0x{:x}", Arc::as_ptr(&n) as usize))`) &&
+		!strings.Contains(rust, `format!("{}", format!("0x{:x}", Rc::as_ptr(&n) as usize))`) {
+		t.Fatalf("printing address of pointer variable should format the pointer handle address:\n%s", rust)
 	}
 }
 
@@ -960,6 +1064,33 @@ func fill(z nat, powers [2]nat) int {
 	}
 	if !strings.Contains(rust, "__named_slice.0.clone()") {
 		t.Fatalf("copy named-slice array element source should use the named value inner handle:\n%s", rust)
+	}
+}
+
+func TestBuiltinCopyPointerToNamedArraySourceSliceUsesInnerHandle(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type callers [4]uintptr
+
+type M struct {
+	callers *callers
+}
+
+func fill(m *M, dst []uintptr, n int) int {
+	return copy(dst[:], m.callers[:n])
+}
+
+func main() {
+	go func() {}()
+}
+`)
+
+	if strings.Contains(rust, "__seq[..") && !strings.Contains(rust, ".0.clone(); __named_array }") {
+		t.Fatalf("copy source slice from pointer to named array should not slice the named wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __array_holder = { let __named_array = (*") ||
+		!strings.Contains(rust, ".0.clone(); __named_array }") {
+		t.Fatalf("copy source slice from pointer to named array should use the inner array handle:\n%s", rust)
 	}
 }
 

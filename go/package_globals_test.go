@@ -55,6 +55,43 @@ var sink any
 	}
 }
 
+func TestPackageGlobalAnyDefinedTypeInitializersBoxConcreteValues(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type word uint16
+type text string
+type bytes []byte
+
+var wordAny any = word(0)
+var textAny any = text("")
+var bytesAny any = bytes(nil)
+
+func main() {
+	go func() {}()
+}
+`)
+
+	for _, bad := range []string{
+		"Some(word(",
+		"Some(text(",
+		"Some(bytes(",
+	} {
+		if strings.Contains(rust, bad) {
+			t.Fatalf("package-global any initializer should not store a concrete value directly in the Any slot (%q):\n%s", bad, rust)
+		}
+	}
+	for _, want := range []string{
+		"Some(Box::new(word(",
+		"Some(Box::new(text(",
+		"Some(Box::new(bytes(",
+		"as Box<dyn Any + Send + Sync>",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("package-global any initializer should box defined concrete values, missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestPackageGlobalInterfaceHandleAssignmentWritesSlot(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
@@ -125,10 +162,12 @@ var Interrupt Signal = dep.SIGINT
 	if strings.Contains(mainRS, "= Some(example_com_dep::S_I_G_I_N_T") || strings.Contains(mainRS, "= Some(SIGINT") {
 		t.Fatalf("package-global interface selector const should not store the raw constant:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "Box::new(example_com_dep::Sig(") || !strings.Contains(mainRS, "S_I_G_I_N_T as i32") || !strings.Contains(mainRS, "as Box<dyn Signal") {
+	if (!strings.Contains(mainRS, "Box::new(example_com_dep::Sig(") && !strings.Contains(mainRS, "Box::new(example_com_dep::r#mod::Sig(")) ||
+		!strings.Contains(mainRS, "S_I_G_I_N_T as i32") ||
+		!strings.Contains(mainRS, "as Box<dyn Signal") {
 		t.Fatalf("package-global interface selector const should box the named value as the interface:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "impl Signal for example_com_dep::Sig") {
+	if !strings.Contains(mainRS, "impl Signal for example_com_dep::Sig") && !strings.Contains(mainRS, "impl Signal for example_com_dep::r#mod::Sig") {
 		t.Fatalf("package-global interface selector const should register the external concrete interface impl:\n%s", mainRS)
 	}
 }
@@ -240,6 +279,37 @@ var Tables = map[string]*RangeTable{"C": C}
 	}
 }
 
+func TestPackageGlobalPointerInitFromSelectorCopiesHandle(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type Type struct{}
+
+type eface struct {
+	typ *Type
+}
+
+var sink any
+
+func efaceOf(ep *any) *eface {
+	return (*eface)(nil)
+}
+
+var typ *Type = efaceOf(&sink).typ
+
+func main() {
+	go func() {}()
+}
+`)
+
+	if strings.Contains(rust, ".typ.lock().unwrap().as_ref().unwrap()") ||
+		strings.Contains(rust, "Some((*(*eface_of(") {
+		t.Fatalf("package-global pointer initializer should not unwrap the selected pointer pointee:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".typ.clone()") {
+		t.Fatalf("package-global pointer initializer should clone the selected pointer handle:\n%s", rust)
+	}
+}
+
 func TestLargePackageGlobalMapLiteralIsChunked(t *testing.T) {
 	var src strings.Builder
 	src.WriteString("package main\n\n")
@@ -343,10 +413,12 @@ func store[T any](x T) {
 	if strings.Contains(rust, "sink = x.clone()") {
 		t.Fatalf("assignment to package-global any should not replace the global handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "pub fn store<T: Any + Clone + 'static>") {
+	if !strings.Contains(rust, "pub fn store<T: Any + GoValueClone + 'static>") {
 		t.Fatalf("generic any assignment should bound the Rust type parameter for boxing:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let new_val = Box::new(") || !strings.Contains(rust, "*sink.borrow_mut() = Some(new_val)") {
+	if !strings.Contains(rust, "let new_val = Box::new(") ||
+		!strings.Contains(rust, ".go_value_clone()") ||
+		!strings.Contains(rust, "*sink.borrow_mut() = Some(new_val)") {
 		t.Fatalf("assignment to package-global any should box into the global slot:\n%s", rust)
 	}
 }
@@ -422,6 +494,24 @@ var errEINVAL error = EINVAL
 	}
 	if !strings.Contains(rust, "Some(Box::new(Errno(") {
 		t.Fatalf("package global error const init should box the named error value:\n%s", rust)
+	}
+}
+
+func TestPackageGlobalErrorConversionInitBoxesConcreteValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type errorString string
+
+func (e errorString) Error() string { return string(e) }
+
+var errGlobal = error(errorString("bad"))
+`)
+
+	if strings.Contains(rust, "let __rhs_holder = errorString(") {
+		t.Fatalf("package global error conversion from concrete value should not move from a concrete newtype handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some(Box::new(errorString(") {
+		t.Fatalf("package global error conversion from concrete value should box the concrete error:\n%s", rust)
 	}
 }
 

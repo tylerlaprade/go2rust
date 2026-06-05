@@ -1,27 +1,14 @@
-use std::cell::{RefCell};
-use std::rc::{Rc};
+use go2rust_stdlib_stubs::*;
+use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ast_File;
-
-impl std::fmt::Display for ast_File {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<ast_File>")
-    }
-}
-
-
-impl ast_File {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
-    }
-}
-
-
-pub fn label(file: Rc<RefCell<Option<ast_File>>>) -> Rc<RefCell<Option<String>>> {
-    Rc::new(RefCell::new(Some("ok".to_string())))
+pub fn label(file: Arc<Mutex<Option<go_ast::r#mod::File>>>) -> Arc<Mutex<Option<String>>> {
+    Arc::new(Mutex::new(Some("ok".to_string())))
 }
 
 fn main() {
-    println!("{}", format!("{}", (*label(Rc::new(RefCell::new(None))).borrow().as_ref().unwrap())));
+    go_ast::__go_init_all();
+    go_token::__go_init_all();
+    strings::__go_init_all();
+
+    println!("{}", format!("{}", (*label(Arc::new(Mutex::new(None))).lock().unwrap().as_ref().unwrap())));
 }

@@ -262,7 +262,7 @@ func Use() int {
 
 	typeRS := mustReadFile(t, filepath.Join(tempDir, "type.rs"))
 	extraRS := mustReadFile(t, filepath.Join(tempDir, "extra.rs"))
-	implCount := strings.Count(typeRS, "impl I for") + strings.Count(extraRS, "impl I for")
+	implCount := strings.Count(typeRS, "impl I for T {") + strings.Count(extraRS, "impl I for T {")
 	if implCount != 1 {
 		t.Fatalf("cross-file methods should not emit duplicate trait impls, got %d\ntype.rs:\n%s\nextra.rs:\n%s", implCount, typeRS, extraRS)
 	}
@@ -505,7 +505,7 @@ func use(specs []Spec) Spec {
 	}
 
 	typesRS := mustReadFile(t, filepath.Join(tempDir, "types.rs"))
-	want := "impl GoValueClone for Box<dyn Spec> {\n    fn go_value_clone(&self) -> Self {\n        self.__go_clone_box_spec()\n    }\n}"
+	want := "impl GoValueClone for Box<dyn Spec> {\n    fn go_value_clone(&self) -> Self {\n        Spec::__go_clone_box_spec(self.as_ref())\n    }\n}"
 	if !strings.Contains(typesRS, want) {
 		t.Fatalf("local interface used with imported GoValueClone generic helper should implement the trait, missing %q:\n%s", want, typesRS)
 	}
@@ -690,10 +690,11 @@ func spanOf(at positioner) int {
 	}
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if strings.Contains(mainRS, "impl positioner for example_com_dep::Node") {
+	if strings.Contains(mainRS, "impl positioner for example_com_dep::Node") || strings.Contains(mainRS, "impl positioner for example_com_dep::r#mod::Node") {
 		t.Fatalf("imported interface cases should not emit an impl for the trait type itself:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "impl positioner for Box<dyn example_com_dep::Node>") {
+	if !strings.Contains(mainRS, "impl positioner for Box<dyn example_com_dep::Node>") &&
+		!strings.Contains(mainRS, "impl positioner for Box<dyn example_com_dep::r#mod::Node>") {
 		t.Fatalf("imported interface cases should implement the local interface for the boxed trait object:\n%s", mainRS)
 	}
 	if !strings.Contains(mainRS, "(**self).pos()") {
@@ -753,13 +754,15 @@ func use(expr dep.Expr) int {
 	}
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if !strings.Contains(mainRS, "impl positioner for Box<dyn example_com_dep::Expr>") {
+	if !strings.Contains(mainRS, "impl positioner for Box<dyn example_com_dep::Expr>") &&
+		!strings.Contains(mainRS, "impl positioner for Box<dyn example_com_dep::r#mod::Expr>") {
 		t.Fatalf("imported interface call arguments should implement the local interface for the boxed trait object:\n%s", mainRS)
 	}
 	if strings.Contains(mainRS, "let __inner: Box<dyn positioner> = (*expr.borrow().as_ref().unwrap()).clone()") {
 		t.Fatalf("imported interface call argument should not use local subtrait upcast shape:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "Box::new((*expr.borrow().as_ref().unwrap()).clone()) as Box<dyn positioner>") {
+	if !strings.Contains(mainRS, "Box::new((*expr.borrow().as_ref().unwrap()).clone()) as Box<dyn positioner>") &&
+		!strings.Contains(mainRS, "Box::new({ let __arg_holder = expr.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn positioner>") {
 		t.Fatalf("imported interface call argument should box the imported trait object as the local interface:\n%s", mainRS)
 	}
 	if !strings.Contains(mainRS, "(**self).pos()") {
@@ -957,7 +960,8 @@ func use(expr *dep.SelectorExpr) {
 	if strings.Contains(mainRS, "let __v = (*expr.borrow().as_ref().unwrap()); let __owned = (*__v.borrow().as_ref().unwrap()).clone()") {
 		t.Fatalf("interface conversion passed to variadic any should not treat the concrete pointer value as a wrapped handle:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "Box::new((*expr.borrow().as_ref().unwrap()).clone()) as Box<dyn example_com_dep::Expr>") {
+	if !strings.Contains(mainRS, "Box::new((*expr.borrow().as_ref().unwrap()).clone()) as Box<dyn example_com_dep::Expr>") &&
+		!strings.Contains(mainRS, "Box::new(example_com_dep::r#mod::SelectorExprPtr(expr.clone())) as Box<dyn example_com_dep::r#mod::Expr>") {
 		t.Fatalf("interface conversion passed to variadic any should build the converted interface handle before boxing as any:\n%s", mainRS)
 	}
 }
@@ -1029,11 +1033,13 @@ func useB(expr dep.Expr) int {
 	aRS := mustReadFile(t, filepath.Join(tempDir, "a.rs"))
 	bRS := mustReadFile(t, filepath.Join(tempDir, "b.rs"))
 	impl := "impl positioner for Box<dyn example_com_dep::Expr>"
-	implCount := strings.Count(ifaceRS, impl) + strings.Count(aRS, impl) + strings.Count(bRS, impl)
+	implMod := "impl positioner for Box<dyn example_com_dep::r#mod::Expr>"
+	implCount := strings.Count(ifaceRS, impl) + strings.Count(aRS, impl) + strings.Count(bRS, impl) +
+		strings.Count(ifaceRS, implMod) + strings.Count(aRS, implMod) + strings.Count(bRS, implMod)
 	if implCount != 1 {
 		t.Fatalf("external interface adapter should be emitted exactly once with the local interface, got %d\niface.rs:\n%s\na.rs:\n%s\nb.rs:\n%s", implCount, ifaceRS, aRS, bRS)
 	}
-	if !strings.Contains(ifaceRS, impl) {
+	if !strings.Contains(ifaceRS, impl) && !strings.Contains(ifaceRS, implMod) {
 		t.Fatalf("external interface adapter should be emitted in the file that defines the local interface:\n%s", ifaceRS)
 	}
 	if !strings.Contains(ifaceRS, "(**self).pos()") {
@@ -1092,7 +1098,8 @@ func use(rhs []dep.Expr) int {
 	if strings.Contains(mainRS, "Box::new({ let __seq =") {
 		t.Fatalf("indexed imported interface argument should not box the wrapped element handle:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, ".borrow().as_ref().unwrap()).clone()) as Box<dyn example_com_dep::Node>") {
+	if !strings.Contains(mainRS, ".borrow().as_ref().unwrap()).clone()) as Box<dyn example_com_dep::Node>") &&
+		!strings.Contains(mainRS, ".borrow().as_ref().unwrap()).clone()) as Box<dyn example_com_dep::r#mod::Node>") {
 		t.Fatalf("indexed imported interface argument should unwrap and box the element value as the expected interface:\n%s", mainRS)
 	}
 }
@@ -1151,7 +1158,8 @@ func recordPositional(selx *dep.SelectorExpr) operand {
 		t.Fatalf("selector-qualified interface struct field should not clone the concrete pointer handle:\n%s", mainRS)
 	}
 	if !strings.Contains(mainRS, "expr: Rc::new(RefCell::new(Some(Box::new((*selx.borrow().as_ref().unwrap()).clone()) as Box<dyn example_com_dep::Expr>)))") &&
-		!strings.Contains(mainRS, "expr: Arc::new(Mutex::new(Some(Box::new((*selx.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn example_com_dep::Expr + Send + Sync>)))") {
+		!strings.Contains(mainRS, "expr: Arc::new(Mutex::new(Some(Box::new((*selx.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn example_com_dep::Expr + Send + Sync>)))") &&
+		!strings.Contains(mainRS, "expr: Rc::new(RefCell::new(Some(Box::new(example_com_dep::r#mod::SelectorExprPtr(selx.clone())) as Box<dyn example_com_dep::r#mod::Expr>)))") {
 		t.Fatalf("selector-qualified interface struct field should box the concrete pointee:\n%s", mainRS)
 	}
 }
@@ -1503,7 +1511,8 @@ func main() {
 	}
 
 	callerRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_mainmod_caller", "mod.rs"))
-	if !strings.Contains(callerRS, "example_com_mainmod_fspkg::FileMode") {
+	if !strings.Contains(callerRS, "example_com_mainmod_fspkg::FileMode") &&
+		!strings.Contains(callerRS, "example_com_mainmod_fspkg::fs::FileMode") {
 		t.Fatalf("caller should reference the indirect type from the callee signature, got:\n%s", callerRS)
 	}
 
@@ -1944,6 +1953,14 @@ type Set struct {
 func (s *Set) Last() *File {
 	return s.last.Load()
 }
+
+func (s *Set) Store(file *File) {
+	s.last.Store(file)
+}
+
+func (s *Set) Clear(file *File) bool {
+	return s.last.CompareAndSwap(file, nil)
+}
 `)
 	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
 
@@ -1968,8 +1985,26 @@ func main() {
 	if !strings.Contains(depRS, "GoAtomicPointer<File>") {
 		t.Fatalf("atomic.Pointer[File] should use the package-local generic helper, got:\n%s", depRS)
 	}
-	if !strings.Contains(depRS, "struct GoAtomicPointer<T>") {
+	if !strings.Contains(depRS, "struct GoAtomicPointer<") {
 		t.Fatalf("external package should emit GoAtomicPointer helper, got:\n%s", depRS)
+	}
+	for _, forbidden := range []string{
+		"fn load(&self) -> Arc<Mutex<Option<T>>>",
+		"fn store(&self, value: Arc<Mutex<Option<T>>>)",
+		"fn compare_and_swap(&self, old: Arc<Mutex<Option<T>>>, new: Arc<Mutex<Option<T>>>) -> bool",
+	} {
+		if strings.Contains(depRS, forbidden) {
+			t.Fatalf("atomic.Pointer helper should use GoPtr handles, found %q:\n%s", forbidden, depRS)
+		}
+	}
+	for _, want := range []string{
+		"fn load(&self) -> GoPtr<T>",
+		"fn store(&self, value: GoPtr<T>)",
+		"fn compare_and_swap(&self, old: GoPtr<T>, new: GoPtr<T>) -> bool",
+	} {
+		if !strings.Contains(depRS, want) {
+			t.Fatalf("atomic.Pointer helper should include %q:\n%s", want, depRS)
+		}
 	}
 	if strings.Contains(stubsRS, "Option<File>") || strings.Contains(stubsRS, "atomic_Pointer") {
 		t.Fatalf("shared stdlib stubs must not capture package-local atomic.Pointer element types, got:\n%s", stubsRS)
@@ -2174,13 +2209,16 @@ type Exporter func(dep.Mapper) int
 	}
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if !strings.Contains(mainRS, "&dyn example_com_dep::Mapper") {
+	if !strings.Contains(mainRS, "&dyn example_com_dep::Mapper") &&
+		!strings.Contains(mainRS, "&dyn example_com_dep::r#mod::Mapper") {
 		t.Fatalf("function type alias should use a trait object for imported interface parameters, got:\n%s", mainRS)
 	}
-	if strings.Contains(mainRS, "Option<Box<dyn example_com_dep::Mapper") {
+	if strings.Contains(mainRS, "Option<Box<dyn example_com_dep::Mapper") ||
+		strings.Contains(mainRS, "Option<Box<dyn example_com_dep::r#mod::Mapper") {
 		t.Fatalf("function type alias should not wrap imported interface parameters, got:\n%s", mainRS)
 	}
-	if strings.Contains(mainRS, "Option<example_com_dep::Mapper>") {
+	if strings.Contains(mainRS, "Option<example_com_dep::Mapper>") ||
+		strings.Contains(mainRS, "Option<example_com_dep::r#mod::Mapper>") {
 		t.Fatalf("function type alias should not wrap an imported interface trait name as a concrete type, got:\n%s", mainRS)
 	}
 }
@@ -2222,13 +2260,16 @@ type Holder struct {
 	}
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if !strings.Contains(mainRS, "pub node: Rc<RefCell<Option<Box<dyn example_com_dep::Node>>>>") {
+	if !strings.Contains(mainRS, "pub node: Rc<RefCell<Option<Box<dyn example_com_dep::Node>>>>") &&
+		!strings.Contains(mainRS, "pub node: Rc<RefCell<Option<Box<dyn example_com_dep::r#mod::Node>>>>") {
 		t.Fatalf("imported interface field should use a boxed trait object, got:\n%s", mainRS)
 	}
-	if strings.Contains(mainRS, "Option<example_com_dep::Node>") {
+	if strings.Contains(mainRS, "Option<example_com_dep::Node>") ||
+		strings.Contains(mainRS, "Option<example_com_dep::r#mod::Node>") {
 		t.Fatalf("imported interface field should not use a bare trait name as a type, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "Vec<Rc<RefCell<Option<Box<dyn example_com_dep::Node>>>>>") {
+	if !strings.Contains(mainRS, "Vec<Rc<RefCell<Option<Box<dyn example_com_dep::Node>>>>>") &&
+		!strings.Contains(mainRS, "Vec<Rc<RefCell<Option<Box<dyn example_com_dep::r#mod::Node>>>>>") {
 		t.Fatalf("imported interface slices should wrap boxed trait-object elements, got:\n%s", mainRS)
 	}
 }
@@ -2290,7 +2331,8 @@ func collect(ident dep.Ident) []dep.Node {
 	if strings.Contains(mainRS, "return ident.clone();") {
 		t.Fatalf("concrete imported values returned as an imported interface should be boxed, got:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "Box::new((*ident.borrow().as_ref().unwrap()).clone()) as Box<dyn example_com_dep::Node>") {
+	if !strings.Contains(mainRS, "Box::new((*ident.borrow().as_ref().unwrap()).clone()) as Box<dyn example_com_dep::Node>") &&
+		!strings.Contains(mainRS, "Box::new((*ident.borrow().as_ref().unwrap()).clone()) as Box<dyn example_com_dep::r#mod::Node>") {
 		t.Fatalf("concrete imported values should be boxed at imported interface boundaries, got:\n%s", mainRS)
 	}
 	if strings.Contains(mainRS, "node: Rc::new(RefCell::new(Some(Box::new((*node.borrow().as_ref().unwrap()).clone())") {
@@ -2348,7 +2390,8 @@ func Deliver(exporter Exporter, ev Event) {
 	}
 
 	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
-	if !strings.Contains(mainRS, "Box<dyn FnMut(Rc<RefCell<Option<Event>>>, &dyn example_com_dep::Mapper)") {
+	if !strings.Contains(mainRS, "Box<dyn FnMut(Rc<RefCell<Option<Event>>>, &dyn example_com_dep::Mapper)") &&
+		!strings.Contains(mainRS, "Box<dyn FnMut(Rc<RefCell<Option<Event>>>, &dyn example_com_dep::r#mod::Mapper)") {
 		t.Fatalf("function type alias should keep imported interface params as trait refs, got:\n%s", mainRS)
 	}
 	if !strings.Contains(mainRS, "(*__f)(ev.clone(), ev.borrow().as_ref().unwrap())") {
@@ -2966,10 +3009,12 @@ func main() {
 	}
 
 	manifestRS := mustReadFile(t, filepath.Join(tempDir, "manifest.rs"))
-	if !strings.Contains(manifestRS, "kind: Rc::new(RefCell::new(Some(Kind(") {
+	if !strings.Contains(manifestRS, "kind: Rc::new(RefCell::new(Some(Kind(") &&
+		!strings.Contains(manifestRS, "kind: Rc::new(RefCell::new(Some(crate::defs::Kind(") {
 		t.Fatalf("typed constant field should convert through Kind, got:\n%s", manifestRS)
 	}
-	if !strings.Contains(manifestRS, "version: Rc::new(RefCell::new(Some(Version(") {
+	if !strings.Contains(manifestRS, "version: Rc::new(RefCell::new(Some(Version(") &&
+		!strings.Contains(manifestRS, "version: Rc::new(RefCell::new(Some(crate::defs::Version(") {
 		t.Fatalf("untyped literal field should convert through Version, got:\n%s", manifestRS)
 	}
 }
@@ -3479,8 +3524,18 @@ func main() {}
 	}
 
 	useRS := mustReadFile(t, filepath.Join(tempDir, "use.rs"))
-	wantInitializer := "Some(objset(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::new())))))"
-	if !strings.Contains(useRS, wantInitializer) {
+	wantInitializers := []string{
+		"Some(objset(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::new())))))",
+		"Some(crate::defs::objset(Rc::new(RefCell::new(Some(BTreeMap::<String, Rc<RefCell<Option<i32>>>>::new())))))",
+	}
+	foundInitializer := false
+	for _, want := range wantInitializers {
+		if strings.Contains(useRS, want) {
+			foundInitializer = true
+			break
+		}
+	}
+	if !foundInitializer {
 		t.Fatalf("cross-file named map zero value should construct the named map wrapper, got:\n%s", useRS)
 	}
 	if !strings.Contains(useRS, "use std::collections::BTreeMap;") {
@@ -3628,7 +3683,7 @@ func main() {
 	if !strings.Contains(defsRS, "fn b(&self) -> i32") {
 		t.Fatalf("interface impl should include sibling-file method in the trait impl:\n%s", defsRS)
 	}
-	if !strings.Contains(defsRS, "self.b()") {
+	if !strings.Contains(defsRS, "self.b()") && !strings.Contains(defsRS, "item::b(self)") {
 		t.Fatalf("interface impl should delegate to the inherent sibling-file method:\n%s", defsRS)
 	}
 }
@@ -3676,7 +3731,7 @@ func main() {
 	if !strings.Contains(defsRS, "impl Node for item") {
 		t.Fatalf("interface impl should be emitted with the type declaration even when methods are in sibling files:\n%s", defsRS)
 	}
-	if !strings.Contains(defsRS, "self.a()") {
+	if !strings.Contains(defsRS, "self.a()") && !strings.Contains(defsRS, "item::a(self)") {
 		t.Fatalf("interface impl should delegate to the inherent sibling-file method:\n%s", defsRS)
 	}
 }
@@ -4275,7 +4330,8 @@ func rounded(z nat, ntz uint32) bool {
 	if strings.Contains(roundRS, "let mut lsb = Arc::new(Mutex::new(Some({") {
 		t.Fatalf("cross-file named integer shift short declaration should store Word, not the raw scalar:\n%s", roundRS)
 	}
-	if !strings.Contains(roundRS, "let mut lsb = Arc::new(Mutex::new(Some(Word(") {
+	if !strings.Contains(roundRS, "let mut lsb = Arc::new(Mutex::new(Some(Word(") &&
+		!strings.Contains(roundRS, "let mut lsb = Arc::new(Mutex::new(Some(crate::arith::Word(") {
 		t.Fatalf("cross-file named integer shift short declaration should wrap Word:\n%s", roundRS)
 	}
 }
@@ -4324,6 +4380,134 @@ func rounded(z *Float, lsb Word) Word {
 	}
 	if strings.Count(roundRS, ".mant.lock().unwrap().as_ref().unwrap()).0.clone()") != 2 {
 		t.Fatalf("named-slice field passed to []Word parameter should pass inner slice handles:\n%s", roundRS)
+	}
+}
+
+func TestCrossFileGoPtrFieldAssignmentPromotesLocal(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "types.go"), `package main
+
+import "unsafe"
+
+type node struct{}
+
+type list struct {
+	first *node
+}
+
+func raw(n *node) *node {
+	return (*node)(unsafe.Pointer(n))
+}
+
+func fill(l *list, n *node) {
+	l.first = raw(n)
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "use.go"), `package main
+
+func ordinary(n *node) *node {
+	return n
+}
+
+func use(l *list, n *node, flag bool) *node {
+	var p *node
+	p = l.first
+	if flag {
+		p = ordinary(n)
+	}
+	return p
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "use.go"),
+		filepath.Join(tempDir, "types.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	typesRS := mustReadFile(t, filepath.Join(tempDir, "types.rs"))
+	if !strings.Contains(typesRS, "pub first: GoPtr<node>") {
+		t.Fatalf("cross-file field assigned a GoPtr value should use GoPtr storage:\n%s", typesRS)
+	}
+	useRS := mustReadFile(t, filepath.Join(tempDir, "use.rs"))
+	if !strings.Contains(useRS, "let mut p: GoPtr<") || !strings.Contains(useRS, "node> = GoPtr::nil();") {
+		t.Fatalf("cross-file local assigned from a GoPtr field should use GoPtr storage:\n%s", useRS)
+	}
+	if strings.Contains(useRS, "let mut p: Rc<RefCell<Option<node>>>") ||
+		strings.Contains(useRS, "let mut p: Arc<Mutex<Option<node>>>") {
+		t.Fatalf("cross-file local assigned from a GoPtr field should not keep ordinary pointer wrapper storage:\n%s", useRS)
+	}
+	if strings.Contains(useRS, "p = GoPtr::local((*l") || strings.Contains(useRS, "p = GoPtr::local({ let __field") {
+		t.Fatalf("cross-file local assignment from a generated GoPtr field should clone the field handle, not rewrap it:\n%s", useRS)
+	}
+	if !strings.Contains(useRS, ".first.clone(); p = new_val;") && !strings.Contains(useRS, "p = (*l.lock().unwrap().as_ref().unwrap()).first.clone();") {
+		t.Fatalf("cross-file local assignment from a generated GoPtr field should use the field handle directly:\n%s", useRS)
+	}
+}
+
+func TestCrossFileGoPtrMethodReturnFactPropagatesToCaller(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "heap.go"), `package main
+
+type node struct{}
+
+type heap struct {
+	current *node
+}
+
+func initHeap(h *heap, items []node) {
+	h.current = &items[0]
+}
+
+func (h *heap) alloc() *node {
+	p := h.current
+	return p
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "use.go"), `package main
+
+func use(h *heap, items []node) *node {
+	var p *node
+	p = h.current
+	p = h.alloc()
+	return p
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "use.go"),
+		filepath.Join(tempDir, "heap.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	heapRS := mustReadFile(t, filepath.Join(tempDir, "heap.rs"))
+	if !strings.Contains(heapRS, "pub current: GoPtr<node>") {
+		t.Fatalf("field assigned a slice element pointer should use GoPtr storage:\n%s", heapRS)
+	}
+	if !strings.Contains(heapRS, "pub fn alloc(&self") || !strings.Contains(heapRS, " -> GoPtr<node>") {
+		t.Fatalf("cross-file method returning a GoPtr field local should emit a GoPtr result:\n%s", heapRS)
+	}
+	useRS := mustReadFile(t, filepath.Join(tempDir, "use.rs"))
+	if !strings.Contains(useRS, "let mut p: GoPtr<") || !strings.Contains(useRS, "node> = GoPtr::nil();") {
+		t.Fatalf("caller local assigned from a GoPtr field should use GoPtr storage:\n%s", useRS)
+	}
+	if strings.Contains(useRS, "p = (*h.alloc(") || strings.Contains(useRS, "p = GoPtr::local(h.alloc(") {
+		t.Fatalf("caller assignment from a GoPtr-returning method should not rewrap the returned handle:\n%s", useRS)
+	}
+	if !strings.Contains(useRS, ".alloc();") {
+		t.Fatalf("caller assignment should store the GoPtr-returning method handle directly:\n%s", useRS)
 	}
 }
 
@@ -5152,6 +5336,109 @@ func main() {
 	}
 }
 
+func TestSourceStdlibRuntimeMspanInitWrapsPackageConstArgument(t *testing.T) {
+	t.Setenv(sourceStdlibPackagesEnv, "go/types+deps")
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/source-stdlib-runtime
+
+go 1.24
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import (
+	"go/token"
+	"go/types"
+)
+
+func main() {
+	name := types.NewTypeName(token.NoPos, nil, "T", nil)
+	_ = types.NewTypeParam(name, nil)
+}
+`)
+
+	loader := NewPackageLoader(tempDir)
+	if err := loader.LoadWithDependencies([]string{"."}); err != nil {
+		t.Fatalf("LoadWithDependencies() error = %v", err)
+	}
+	runtimePkg := loader.allPackages["runtime"]
+	if runtimePkg == nil {
+		t.Fatalf("go/types+deps should source-load runtime; loaded packages: %v", loader.orderedAllPackagePaths())
+	}
+	typeInfo := &TypeInfo{info: runtimePkg.TypesInfo, pkg: runtimePkg.Types}
+	packageState := NewPackageState()
+	packageState.ConstantNameOverrides = assignPackageConstantNames(runtimePkg.Syntax)
+	packageState.MethodsByType = collectPackageMethods(runtimePkg.Syntax)
+	session := NewTranspileSession(typeInfo, loader.packageMapping)
+	prevContext := GetTranspileContext()
+	prevTypeInfo := GetTypeInfo()
+	prevConcurrencyDetector := globalConcurrencyDetector
+	cd := NewConcurrencyDetector()
+	cd.AnalyzeProject(runtimePkg.Syntax)
+	SetConcurrencyDetector(cd)
+	SetTranspileContext(&TranspileContext{
+		Session:                 session,
+		Package:                 packageState,
+		PackageMapping:          loader.packageMapping,
+		UsePackageExternalStubs: true,
+	})
+	SetTypeInfo(typeInfo)
+	t.Cleanup(func() {
+		SetConcurrencyDetector(prevConcurrencyDetector)
+		SetTranspileContext(prevContext)
+		SetTypeInfo(prevTypeInfo)
+	})
+
+	var targetCall *ast.CallExpr
+	for i, file := range runtimePkg.Syntax {
+		if filepath.Base(packageFileName(runtimePkg, i)) != "arena.go" {
+			continue
+		}
+		ast.Inspect(file, func(node ast.Node) bool {
+			call, ok := node.(*ast.CallExpr)
+			if !ok || len(call.Args) != 2 {
+				return true
+			}
+			sel, ok := call.Fun.(*ast.SelectorExpr)
+			if !ok || sel.Sel.Name != "init" {
+				return true
+			}
+			arg, ok := call.Args[1].(*ast.Ident)
+			if !ok || arg.Name != "userArenaChunkPages" {
+				return true
+			}
+			targetCall = call
+			return false
+		})
+		break
+	}
+	if targetCall == nil {
+		t.Fatal("could not find runtime arena.go s.init(..., userArenaChunkPages) call")
+	}
+	sel := targetCall.Fun.(*ast.SelectorExpr)
+	if IsExternalStdlibSelectorMethod(sel) {
+		t.Fatalf("source-mapped runtime method should not use external stub method handling")
+	}
+	if methodCallUsesBareArguments(sel) {
+		t.Fatalf("runtime mspan.init should use generated wrapped arguments, not bare helper arguments")
+	}
+	arg := targetCall.Args[1].(*ast.Ident)
+	if !isConstIdent(arg) {
+		t.Fatalf("userArenaChunkPages should be recognized as a package constant")
+	}
+	if expected := selectedMethodParamType(sel, 1); expected == nil || expected.String() != "uintptr" {
+		t.Fatalf("go/types should identify mspan.init npages as uintptr, got %v", expected)
+	}
+	var out strings.Builder
+	writeRegularMethodCallArgument(&out, sel, targetCall, arg, 1)
+	got := out.String()
+	if strings.Contains(got, "USER_ARENA_CHUNK_PAGES.clone()") {
+		t.Fatalf("source-mapped package const should not be cloned as a wrapped value: %s", got)
+	}
+	if !strings.Contains(got, "Arc::new(Mutex::new(Some(USER_ARENA_CHUNK_PAGES as usize)))") {
+		t.Fatalf("source-mapped package const should be wrapped for the generated method parameter: %s", got)
+	}
+}
+
 func TestMappedImportedTypeUsesDeclaringModulePath(t *testing.T) {
 	fset := token.NewFileSet()
 	mutexPkg := parsePackageForReachabilityTest(t, fset, "example.com/internal/sync", "mutex.go", `package sync
@@ -5238,7 +5525,7 @@ func main() {
 	if !strings.Contains(exprRS, "pub trait Expr") {
 		t.Fatalf("source stdlib Expr should be emitted as a local trait, got:\n%s", exprRS)
 	}
-	if !strings.Contains(exprRS, "let any_val = x.__go_as_any();") {
+	if !strings.Contains(exprRS, "let __any = __v.__go_as_any();") {
 		t.Fatalf("source stdlib interface assertion should use the generated local trait object, got:\n%s", exprRS)
 	}
 	if strings.Contains(exprRS, "typed_val) = val.downcast_ref::<") {
@@ -5934,6 +6221,50 @@ func dead() {}
 	}
 }
 
+func TestSourceStdlibPruningFiltersInterfaceAssertionCandidates(t *testing.T) {
+	prevCtx := GetTranspileContext()
+	SetTranspileContext(&TranspileContext{PackageMapping: map[string]string{"go/types": "go_types"}})
+	defer SetTranspileContext(prevCtx)
+	prevReachable := sourceStdlibReachable
+	defer SetSourceStdlibReachable(prevReachable)
+
+	fset := token.NewFileSet()
+	pkg := parsePackageForReachabilityTest(t, fset, "go/types", "api.go", `package types
+
+type LiveError struct{}
+func (LiveError) Error() string { return "live" }
+
+type DeadError struct{}
+func (DeadError) Error() string { return "dead" }
+
+func take(v any) {}
+
+func live(err error) {
+	take(err)
+}
+`)
+	typeInfo, err := NewTypeInfoWithImporter("go/types", pkg.Syntax, fset, nil)
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter(go/types) error = %v", err)
+	}
+	pkg.Types = typeInfo.pkg
+	pkg.TypesInfo = typeInfo.info
+	SetSourceStdlibReachable(map[types.Object]bool{
+		definitionByName(t, pkg, "LiveError"): true,
+		definitionByName(t, pkg, "Error"):     true,
+		definitionByName(t, pkg, "live"):      true,
+		definitionByName(t, pkg, "take"):      true,
+	})
+
+	rust, _, _ := TranspileWithMapping(pkg.Syntax[0], fset, typeInfo, map[string]string{"go/types": "go_types"})
+	if strings.Contains(rust, "downcast_ref::<DeadError>()") {
+		t.Fatalf("error-to-any lowering should not reference pruned source-mapped candidates:\n%s", rust)
+	}
+	if !strings.Contains(rust, "downcast_ref::<LiveError>()") {
+		t.Fatalf("error-to-any lowering should keep reachable source-mapped candidates:\n%s", rust)
+	}
+}
+
 // TestSourceStdlibPruningSkipsCrossFileImplForUnreachableType covers the case
 // where a pruned type's methods live in a different file from its type decl -
 // exactly token.FileSet (declared in position.go) with Read/Write methods in
@@ -6173,8 +6504,301 @@ func makeField(n abi.Name, t *abi.Type) structField {
 	if strings.Contains(mainRS, "structField {") {
 		t.Fatalf("alias struct literal must not construct the alias wrapper name:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, "example_com_mainmod_abi::StructField {") {
+	if !strings.Contains(mainRS, "example_com_mainmod_abi::StructField {") &&
+		!strings.Contains(mainRS, "example_com_mainmod_abi::r#mod::StructField {") {
 		t.Fatalf("alias struct literal should construct the aliased package struct:\n%s", mainRS)
+	}
+}
+
+func TestImportedNamedScalarAliasMapKeyUsesAliasedValueType(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "abi", "abi.go"), `package abi
+
+type TypeOff int32
+type Type struct{}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "rt", "rt.go"), `package rt
+
+import "example.com/mainmod/abi"
+
+type typeOff = abi.TypeOff
+
+type moduledata struct {
+	typemap map[typeOff]*abi.Type
+}
+
+func New() moduledata {
+	return moduledata{}
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/mainmod/rt"
+
+func main() {
+	_ = rt.New()
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	rtRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_mainmod_rt", "mod.rs"))
+	if strings.Contains(rtRS, "BTreeMap<typeOff,") {
+		t.Fatalf("map key using imported named scalar alias should not use the alias handle type:\n%s", rtRS)
+	}
+	if !strings.Contains(rtRS, "BTreeMap<example_com_mainmod_abi::TypeOff, Arc<Mutex<Option<example_com_mainmod_abi::Type>>>") &&
+		!strings.Contains(rtRS, "BTreeMap<example_com_mainmod_abi::r#mod::TypeOff, Arc<Mutex<Option<example_com_mainmod_abi::r#mod::Type>>>") &&
+		!strings.Contains(rtRS, "BTreeMap<example_com_mainmod_abi::TypeOff, Rc<RefCell<Option<example_com_mainmod_abi::Type>>>") &&
+		!strings.Contains(rtRS, "BTreeMap<example_com_mainmod_abi::r#mod::TypeOff, Rc<RefCell<Option<example_com_mainmod_abi::r#mod::Type>>>") {
+		t.Fatalf("map key using imported named scalar alias should use the unaliased value type:\n%s", rtRS)
+	}
+}
+
+func TestCrossPackageGoPtrParamFactPropagatesToCalleeSignature(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "leaf", "leaf.go"), `package leaf
+
+//go:noescape
+func Touch(p *byte)
+`)
+	writeTestFile(t, filepath.Join(tempDir, "worker", "worker.go"), `package worker
+
+import "example.com/mainmod/leaf"
+
+type holder struct {
+	value byte
+}
+
+func mid(p *byte) {
+	leaf.Touch(p)
+}
+
+func Use(buf []byte) {
+	mid(&buf[0])
+}
+
+func UseDirect(buf []byte) {
+	leaf.Touch(&buf[0])
+}
+
+func UseLocal(h *holder) {
+	leaf.Touch(&h.value)
+}
+
+func UseNil() {
+	leaf.Touch(nil)
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/mainmod/worker"
+
+func main() {
+	buf := []byte{1}
+	worker.Use(buf)
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	leafRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_mainmod_leaf", "mod.rs"))
+	if !strings.Contains(leafRS, "pub fn touch(p: GoPtr<u8>)") {
+		t.Fatalf("cross-package noescape callee should receive the propagated GoPtr param fact:\n%s", leafRS)
+	}
+	if strings.Contains(leafRS, "pub fn touch(p: Rc<RefCell<Option<u8>>>)") ||
+		strings.Contains(leafRS, "pub fn touch(p: Arc<Mutex<Option<u8>>>)") {
+		t.Fatalf("cross-package noescape callee should not keep the local pointer wrapper signature:\n%s", leafRS)
+	}
+
+	workerRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_mainmod_worker", "mod.rs"))
+	if strings.Contains(workerRS, `unimplemented!("GoPtr parameter argument requires pointer-compatible value")`) {
+		t.Fatalf("cross-package GoPtr-param calls should not fall back to an unimplemented argument path:\n%s", workerRS)
+	}
+	if strings.Contains(workerRS, "leaf::touch(__arg0.clone())") {
+		t.Fatalf("direct package selector noescape element-pointer call should not use the wrapper temp adapter:\n%s", workerRS)
+	}
+	if !strings.Contains(workerRS, "leaf::touch(example_com_mainmod_leaf::GoPtr::slice_elem(") {
+		t.Fatalf("direct package selector noescape element-pointer call should use the callee crate GoPtr constructor:\n%s", workerRS)
+	}
+	if !strings.Contains(workerRS, "leaf::touch(example_com_mainmod_leaf::GoPtr::local(") {
+		t.Fatalf("package selector call to a GoPtr-param function should wrap local pointer handles with GoPtr::local:\n%s", workerRS)
+	}
+	if !strings.Contains(workerRS, "leaf::touch(example_com_mainmod_leaf::GoPtr::nil())") {
+		t.Fatalf("package selector call to a GoPtr-param function should call the nil constructor:\n%s", workerRS)
+	}
+}
+
+func TestCrossPackageGoPtrMethodParamUsesCalleeHelperType(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "slot", "slot.go"), `package slot
+
+type Pointer[T any] struct {
+	value *T
+}
+
+func (p *Pointer[T]) Store(value *T) {
+	p.value = value
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "worker", "worker.go"), `package worker
+
+import (
+	"unsafe"
+
+	"example.com/mainmod/slot"
+)
+
+type entry[T any] struct {
+	value T
+}
+
+type node[T any] struct {
+	value T
+}
+
+func (n *node[T]) entry() *entry[T] {
+	return (*entry[T])(unsafe.Pointer(n))
+}
+
+func Use[T any](p *slot.Pointer[entry[T]], n *node[T]) {
+	var old *entry[T]
+	if n != nil {
+		old = n.entry()
+	}
+	p.Store(old)
+}
+
+func UseDirect(p *slot.Pointer[entry[int]], values []entry[int]) {
+	p.Store(&values[0])
+}
+
+func Run() {
+	var p slot.Pointer[entry[int]]
+	var n node[int]
+	Use(&p, &n)
+	values := []entry[int]{{}}
+	UseDirect(&p, values)
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/mainmod/worker"
+
+func main() {
+	worker.Run()
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	slotRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_mainmod_slot", "mod.rs"))
+	if !strings.Contains(slotRS, "pub fn store(&mut self, value: GoPtr<T>)") {
+		t.Fatalf("imported generic method should receive the propagated GoPtr param fact:\n%s", slotRS)
+	}
+	if strings.Contains(slotRS, "pub fn store(&mut self, value: Rc<RefCell<Option<T>>>)") ||
+		strings.Contains(slotRS, "pub fn store(&mut self, value: Arc<Mutex<Option<T>>>)") {
+		t.Fatalf("imported generic method should not keep the ordinary pointer wrapper signature:\n%s", slotRS)
+	}
+
+	workerRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_mainmod_worker", "mod.rs"))
+	if strings.Contains(workerRS, ".store(old.clone())") {
+		t.Fatalf("cross-package method call should not pass the caller crate GoPtr directly:\n%s", workerRS)
+	}
+	for _, want := range []string{
+		"match __go_ptr",
+		"example_com_mainmod_slot::GoPtr::nil()",
+		"example_com_mainmod_slot::GoPtr::local(",
+		"example_com_mainmod_slot::GoPtr::slice_elem(",
+	} {
+		if !strings.Contains(workerRS, want) {
+			t.Fatalf("cross-package method GoPtr argument should include %q:\n%s", want, workerRS)
+		}
+	}
+}
+
+func TestCrossPackageGoPtrFieldReturnFactPropagatesToImporterSignature(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "abi", "abi.go"), `package abi
+
+type Type struct {
+	Data *byte
+}
+
+func Set(t *Type, buf []byte) {
+	t.Data = &buf[0]
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "rt", "rt.go"), `package rt
+
+import "example.com/mainmod/abi"
+
+type _type = abi.Type
+
+func Get(t *_type) *byte {
+	return t.Data
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import (
+	"example.com/mainmod/abi"
+	"example.com/mainmod/rt"
+)
+
+func main() {
+	var t abi.Type
+	buf := []byte{1}
+	abi.Set(&t, buf)
+	_ = rt.Get(&t)
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	abiRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_mainmod_abi", "mod.rs"))
+	if !strings.Contains(abiRS, "pub data: GoPtr<u8>") {
+		t.Fatalf("defining package should emit slice-element pointer field as GoPtr:\n%s", abiRS)
+	}
+
+	rtRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_mainmod_rt", "mod.rs"))
+	if !strings.Contains(rtRS, "pub fn get(") || !strings.Contains(rtRS, " -> GoPtr<u8>") {
+		t.Fatalf("importing package returning a GoPtr field should use GoPtr result type:\n%s", rtRS)
+	}
+	if strings.Contains(rtRS, " -> Arc<Mutex<Option<u8>>>") ||
+		strings.Contains(rtRS, " -> Rc<RefCell<Option<u8>>>") {
+		t.Fatalf("importing package should not keep the old pointer wrapper result for a GoPtr field:\n%s", rtRS)
 	}
 }
 

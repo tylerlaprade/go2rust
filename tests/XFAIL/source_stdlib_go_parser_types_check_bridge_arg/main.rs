@@ -5,10 +5,18 @@ use std::error::Error as StdError;
 use std::sync::{Arc, Mutex};
 
 fn main() {
+    cmp::__go_init_all();
     go_ast::__go_init_all();
     go_parser::__go_init_all();
     go_scanner::__go_init_all();
     go_token::__go_init_all();
+    internal_bytealg::__go_init_all();
+    internal_cpu::__go_init_all();
+    internal_filepathlite::__go_init_all();
+    internal_stringslite::__go_init_all();
+    path_filepath::__go_init_all();
+    slices::__go_init_all();
+    strings::__go_init_all();
 
     let mut fset = go_token::new_file_set();
     let (mut file, mut err) = go_parser::parse_file(fset.clone(), Arc::new(Mutex::new(Some("input.go".to_string()))), Arc::new(Mutex::new(Some(Box::new("package main\nvar x int\n".to_string()) as Box<dyn Any + Send + Sync>))), Arc::new(Mutex::new(Some(go_parser::interface::Mode(Arc::new(Mutex::new(Some(0 as u64))))))));

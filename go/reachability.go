@@ -139,7 +139,7 @@ func implReceiverTypeIsPruned(typeMethods []*ast.FuncDecl) bool {
 func (pl *PackageLoader) computeSourceStdlibReachable() map[types.Object]bool {
 	anySourceMapped := false
 	for path := range pl.allPackages {
-		if shouldTranspileStdlibPackage(path) {
+		if pl.isSourceStdlibPackage(path) {
 			anySourceMapped = true
 			break
 		}
@@ -201,7 +201,7 @@ func (pl *PackageLoader) computeSourceStdlibReachable() map[types.Object]bool {
 		if info == nil {
 			continue
 		}
-		src := shouldTranspileStdlibPackage(path)
+		src := pl.isSourceStdlibPackage(path)
 		for _, file := range pkg.Syntax {
 			for _, decl := range file.Decls {
 				switch d := decl.(type) {

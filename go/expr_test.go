@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -9,6 +10,83 @@ import (
 	"strings"
 	"testing"
 )
+
+type exprTestImporter map[string]*types.Package
+
+func (imp exprTestImporter) Import(path string) (*types.Package, error) {
+	pkg, ok := imp[path]
+	if !ok {
+		return nil, fmt.Errorf("unknown import %s", path)
+	}
+	return pkg, nil
+}
+
+func eventKeyEqualityImporter() types.Importer {
+	labelPkg := types.NewPackage("golang.org/x/tools/internal/event/label", "label")
+	keyTypeName := types.NewTypeName(token.NoPos, labelPkg, "Key", nil)
+	nameMethod := types.NewFunc(token.NoPos, labelPkg, "Name", types.NewSignatureType(
+		nil,
+		nil,
+		nil,
+		nil,
+		types.NewTuple(types.NewVar(token.NoPos, nil, "", types.Typ[types.String])),
+		false,
+	))
+	keyIface := types.NewInterfaceType([]*types.Func{nameMethod}, nil)
+	keyIface.Complete()
+	types.NewNamed(keyTypeName, keyIface, nil)
+	labelPkg.Scope().Insert(keyTypeName)
+	labelPkg.MarkComplete()
+
+	keysPkg := types.NewPackage("golang.org/x/tools/internal/event/keys", "keys")
+	stringTypeName := types.NewTypeName(token.NoPos, keysPkg, "String", nil)
+	stringNamed := types.NewNamed(stringTypeName, types.NewStruct(nil, nil), nil)
+	stringPtr := types.NewPointer(stringNamed)
+	stringNamed.AddMethod(types.NewFunc(token.NoPos, keysPkg, "Name", types.NewSignatureType(
+		types.NewVar(token.NoPos, keysPkg, "k", stringPtr),
+		nil,
+		nil,
+		nil,
+		types.NewTuple(types.NewVar(token.NoPos, nil, "", types.Typ[types.String])),
+		false,
+	)))
+	keysPkg.Scope().Insert(stringTypeName)
+	keysPkg.Scope().Insert(types.NewVar(token.NoPos, keysPkg, "Msg", stringPtr))
+	keysPkg.MarkComplete()
+
+	return exprTestImporter{
+		"golang.org/x/tools/internal/event/keys":  keysPkg,
+		"golang.org/x/tools/internal/event/label": labelPkg,
+	}
+}
+
+func goTypesConfigImporter() types.Importer {
+	goTypesPkg := types.NewPackage("go/types", "types")
+	importerTypeName := types.NewTypeName(token.NoPos, goTypesPkg, "Importer", nil)
+	importMethod := types.NewFunc(token.NoPos, goTypesPkg, "Import", types.NewSignatureType(
+		nil,
+		nil,
+		nil,
+		types.NewTuple(types.NewVar(token.NoPos, nil, "path", types.Typ[types.String])),
+		nil,
+		false,
+	))
+	importerIface := types.NewInterfaceType([]*types.Func{importMethod}, nil)
+	importerIface.Complete()
+	importerNamed := types.NewNamed(importerTypeName, importerIface, nil)
+	goTypesPkg.Scope().Insert(importerTypeName)
+
+	configTypeName := types.NewTypeName(token.NoPos, goTypesPkg, "Config", nil)
+	configStruct := types.NewStruct(
+		[]*types.Var{types.NewVar(token.NoPos, goTypesPkg, "Importer", importerNamed)},
+		nil,
+	)
+	types.NewNamed(configTypeName, configStruct, nil)
+	goTypesPkg.Scope().Insert(configTypeName)
+	goTypesPkg.MarkComplete()
+
+	return exprTestImporter{"go/types": goTypesPkg}
+}
 
 func TestUnknownPositionalStructLiteralFallbackParses(t *testing.T) {
 	var out strings.Builder
@@ -292,7 +370,9 @@ func (t *Named) same(orig Type) bool {
 		t.Fatalf("interface equality against current pointer receiver should not treat self as an existing handle:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let __right_holder = Rc::new(RefCell::new(Some(self.clone())))") &&
-		!strings.Contains(rust, "let __right_holder = Arc::new(Mutex::new(Some(self.clone())))") {
+		!strings.Contains(rust, "let __right_holder = Arc::new(Mutex::new(Some(self.clone())))") &&
+		!strings.Contains(rust, "let __right_wrapper = NamedPtr(Rc::new(RefCell::new(Some(self.clone()))))") &&
+		!strings.Contains(rust, "let __right_wrapper = NamedPtr(Arc::new(Mutex::new(Some(self.clone()))))") {
 		t.Fatalf("interface equality against current pointer receiver should wrap self as a pointer handle:\n%s", rust)
 	}
 }
@@ -362,7 +442,8 @@ func declare(obj object) {
 	if !strings.Contains(rust, `panic!("interface equality for structurally adapted object as positioner")`) {
 		t.Fatalf("structural interface adapter equality should be loud when it cannot preserve Go semantics:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box::new((*obj.borrow().as_ref().unwrap()).clone()) as Box<dyn positioner") {
+	if !strings.Contains(rust, "Box::new((*obj.borrow().as_ref().unwrap()).clone()) as Box<dyn positioner") &&
+		!strings.Contains(rust, "Box::new({ let __arg_holder = obj.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn positioner") {
 		t.Fatalf("structural interface argument should box the source trait object through the adapter:\n%s", rust)
 	}
 }
@@ -468,8 +549,10 @@ func tagName(x Expr) string {
 
 	rust, _, _ := Transpile(file, fset, typeInfo)
 	if !strings.Contains(rust, "__go_as_any(any_val.as_ref()).downcast_ref::<TagExpr>()") &&
+		!strings.Contains(rust, "__go_as_any(any_val.as_ref()).downcast_ref::<TagExprPtr>()") &&
 		!strings.Contains(rust, "any_val.__go_as_any().downcast_ref::<TagExpr>()") &&
-		(!strings.Contains(rust, "let any_val = x.__go_as_any();") || !strings.Contains(rust, "any_val.downcast_ref::<TagExpr>()")) {
+		!strings.Contains(rust, "any_val.__go_as_any().downcast_ref::<TagExprPtr>()") &&
+		(!strings.Contains(rust, "let any_val = x.__go_as_any();") || (!strings.Contains(rust, "any_val.downcast_ref::<TagExpr>()") && !strings.Contains(rust, "any_val.downcast_ref::<TagExprPtr>()"))) {
 		t.Fatalf("local interface concrete assertion should downcast through __go_as_any:\n%s", rust)
 	}
 	if strings.Contains(rust, "typed_val) = val.downcast_ref::<TagExpr>()") {
@@ -604,12 +687,17 @@ func rewrite(x Expr) Expr {
 	}
 
 	rust, _, _ := Transpile(file, fset, typeInfo)
-	if !strings.Contains(rust, "x: &dyn Expr") && !strings.Contains(rust, "x: &(dyn Expr + Send + Sync)") {
-		t.Fatalf("local interface parameter should stay a trait reference in the signature:\n%s", rust)
+	if !strings.Contains(rust, "x: Rc<RefCell<Option<Box<dyn Expr>>>>") &&
+		!strings.Contains(rust, "x: Arc<Mutex<Option<Box<dyn Expr + Send + Sync>>>>") {
+		t.Fatalf("local interface parameter should use the wrapped nilable handle shape:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let mut x: Rc<RefCell<Option<Box<dyn Expr>>>> = Rc::new(RefCell::new(Some(x.__go_clone_box_expr())))") &&
-		!strings.Contains(rust, "let mut x: Arc<Mutex<Option<Box<dyn Expr + Send + Sync>>>> = Arc::new(Mutex::new(Some(x.__go_clone_box_expr())))") {
-		t.Fatalf("assigned local interface parameter should be shadowed with a wrapped value:\n%s", rust)
+	if strings.Contains(rust, "let mut x: Rc<RefCell<Option<Box<dyn Expr>>>> = x.clone()") ||
+		strings.Contains(rust, "let mut x: Arc<Mutex<Option<Box<dyn Expr + Send + Sync>>>> = x.clone()") {
+		t.Fatalf("assigned local interface parameter must not shadow by cloning the caller's handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut x: Rc<RefCell<Option<Box<dyn Expr>>>> = Rc::new(RefCell::new(x.borrow().as_ref().map(|__v| Expr::__go_clone_box_expr(__v.as_ref()))))") &&
+		!strings.Contains(rust, "let mut x: Arc<Mutex<Option<Box<dyn Expr + Send + Sync>>>> = Arc::new(Mutex::new(x.lock().unwrap().as_ref().map(|__v| Expr::__go_clone_box_expr(__v.as_ref()))))") {
+		t.Fatalf("assigned local interface parameter should be shadowed with a freshly cloned wrapped value:\n%s", rust)
 	}
 }
 
@@ -690,6 +778,32 @@ func makeError(s string, n int) Error {
 	if strings.Contains(rust, "expr: Rc::new(RefCell::new(Some(Rc::new") ||
 		strings.Contains(rust, "expr: Arc::new(Mutex::new(Some(Arc::new") {
 		t.Fatalf("string field composite value should store the inner string, not a wrapped handle:\n%s", rust)
+	}
+}
+
+func TestStructCompositeLiteralValueFieldCopiesWrappedIdent(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type span struct {
+	start int
+	end int
+}
+
+func collect() []span {
+	start := 0
+	spans := []span{}
+	spans = append(spans, span{start, 3})
+	start = 9
+	return spans
+}
+`)
+
+	if strings.Contains(rust, "span { start: start.clone()") {
+		t.Fatalf("value field composite literal should not share the source local handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "start: Rc::new(RefCell::new(Some({ let __arg_holder = start.clone();") &&
+		!strings.Contains(rust, "start: Arc::new(Mutex::new(Some({ let __arg_holder = start.clone();") {
+		t.Fatalf("value field composite literal should copy the source local's current value:\n%s", rust)
 	}
 }
 
@@ -804,10 +918,10 @@ func asVar(n *node) (*Var, bool) {
 }
 `)
 
-	if strings.Contains(rust, "any_val.__go_as_any().downcast_ref::<Var>()") {
+	if strings.Contains(rust, "any_val.__go_as_any().downcast_ref::<VarPtr>()") {
 		t.Fatalf("embedded local interface assertion should not use ambiguous __go_as_any method lookup:\n%s", rust)
 	}
-	if !strings.Contains(rust, "<dyn dependency>::__go_as_any(any_val.as_ref()).downcast_ref::<Var>()") {
+	if !strings.Contains(rust, "<dyn dependency>::__go_as_any(any_val.as_ref()).downcast_ref::<VarPtr>()") {
 		t.Fatalf("embedded local interface assertion should use trait-qualified __go_as_any:\n%s", rust)
 	}
 }
@@ -934,13 +1048,12 @@ func collect(list []Expr, x Expr) []Expr {
 	}
 
 	rust, _, _ := Transpile(file, fset, typeInfo)
-	if strings.Contains(rust, ".push((*x.borrow().as_ref().unwrap()).clone())") ||
-		strings.Contains(rust, ".push((*x.lock().unwrap().as_ref().unwrap()).clone())") {
-		t.Fatalf("append of concrete value to local interface slice should box the concrete value:\n%s", rust)
+	if strings.Contains(rust, ".push(x.clone())") {
+		t.Fatalf("append of concrete pointer assertion to local interface slice should not push the raw pointer handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box::new((*x.borrow().as_ref().unwrap()).clone()) as Box<dyn Expr>") &&
-		!strings.Contains(rust, "Box::new((*x.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Expr + Send + Sync>") {
-		t.Fatalf("append of concrete value to local interface slice did not box the concrete value:\n%s", rust)
+	if !strings.Contains(rust, "Box::new(AndExprPtr(x.clone())) as Box<dyn Expr>") &&
+		!strings.Contains(rust, "Box::new(AndExprPtr(x.clone())) as Box<dyn Expr + Send + Sync>") {
+		t.Fatalf("append of concrete pointer assertion to local interface slice should box the pointer wrapper:\n%s", rust)
 	}
 }
 
@@ -968,15 +1081,76 @@ func record(t *target) operand {
 }
 `)
 
-	if strings.Contains(rust, "typ: { let __field = (*t.borrow().as_ref().unwrap()).sig.clone(); __field }") ||
-		strings.Contains(rust, "typ: { let __field = (*t.lock().unwrap().as_ref().unwrap()).sig.clone(); __field }") {
-		t.Fatalf("local interface struct field should not clone the selector pointer handle:\n%s", rust)
+	if !strings.Contains(rust, "typ: Rc::new(RefCell::new(Some(Box::new(SignaturePtr((*t.borrow().as_ref().unwrap()).sig.clone())) as Box<dyn Type>)))") &&
+		!strings.Contains(rust, "typ: Arc::new(Mutex::new(Some(Box::new(SignaturePtr((*t.lock().unwrap().as_ref().unwrap()).sig.clone())) as Box<dyn Type + Send + Sync>)))") {
+		t.Fatalf("local interface struct field should box the selector pointer wrapper:\n%s", rust)
 	}
-	if !strings.Contains(rust, "typ: Rc::new(RefCell::new(Some(Box::new((*(*t.borrow().as_ref().unwrap()).sig.borrow().as_ref().unwrap()).clone()) as Box<dyn Type>)))") &&
-		!strings.Contains(rust, "typ: Arc::new(Mutex::new(Some(Box::new((*(*t.lock().unwrap().as_ref().unwrap()).sig.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Type + Send + Sync>)))") &&
-		!strings.Contains(rust, "typ: Rc::new(RefCell::new(Some(Box::new((*{ let __field = (*t.borrow().as_ref().unwrap()).sig.clone(); __field }.borrow().as_ref().unwrap()).clone()) as Box<dyn Type>)))") &&
-		!strings.Contains(rust, "typ: Arc::new(Mutex::new(Some(Box::new((*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).sig.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Type + Send + Sync>)))") {
-		t.Fatalf("local interface struct field should box the selector pointee:\n%s", rust)
+}
+
+func TestLocalInterfaceStructFieldSelectorClonesDropOwnerLock(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Expr interface {
+	isExpr()
+}
+
+type Holder struct {
+	first Expr
+	second Expr
+}
+
+type Pair struct {
+	first Expr
+	second Expr
+}
+
+func record(h *Holder) Pair {
+	return Pair{first: h.first, second: h.second}
+}
+`)
+
+	if strings.Contains(rust, "first: (*h.borrow().as_ref().unwrap()).first.clone()") ||
+		strings.Contains(rust, "first: (*h.lock().unwrap().as_ref().unwrap()).first.clone()") {
+		t.Fatalf("local interface selector field should not hold the owner lock in the struct literal:\n%s", rust)
+	}
+	if !strings.Contains(rust, "first: { let __field = (*h.borrow().as_ref().unwrap()).first.clone(); __field }") &&
+		!strings.Contains(rust, "first: { let __field = (*h.lock().unwrap().as_ref().unwrap()).first.clone(); __field }") {
+		t.Fatalf("local interface selector field should clone inside a guard-dropping block:\n%s", rust)
+	}
+	if !strings.Contains(rust, "second: { let __field = (*h.borrow().as_ref().unwrap()).second.clone(); __field }") &&
+		!strings.Contains(rust, "second: { let __field = (*h.lock().unwrap().as_ref().unwrap()).second.clone(); __field }") {
+		t.Fatalf("second local interface selector field should clone inside a guard-dropping block:\n%s", rust)
+	}
+}
+
+func TestLocalInterfaceSelectorNilComparisonDropsOwnerLock(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Expr interface {
+	isExpr()
+}
+
+type Spec struct {
+	Type Expr
+	Values []int
+}
+
+func hasInit(s *Spec) bool {
+	return s.Type != nil || len(s.Values) > 0
+}
+`)
+
+	if strings.Contains(rust, "(*(*s.borrow().as_ref().unwrap()).r#type.borrow()") ||
+		strings.Contains(rust, "(*(*s.lock().unwrap().as_ref().unwrap()).r#type.lock()") {
+		t.Fatalf("local interface selector nil comparison should not hold the owner lock while inspecting the field handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __iface_handle = { let __field = (*s.borrow().as_ref().unwrap()).r#type.clone(); __field };") &&
+		!strings.Contains(rust, "let __iface_handle = { let __field = (*s.lock().unwrap().as_ref().unwrap()).r#type.clone(); __field };") {
+		t.Fatalf("local interface selector nil comparison should clone the field handle before inspection:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __len_target = { let __field = (*s.borrow().as_ref().unwrap()).values.clone(); __field };") &&
+		!strings.Contains(rust, "let __len_target = { let __field = (*s.lock().unwrap().as_ref().unwrap()).values.clone(); __field };") {
+		t.Fatalf("len over selector should clone the field handle before inspection:\n%s", rust)
 	}
 }
 
@@ -1204,8 +1378,9 @@ func Nodes() []Node {
 	if strings.Contains(rust, ".push(make_item())") || strings.Contains(rust, ".push(make_item().clone())") {
 		t.Fatalf("append of concrete call result to interface slice should not store the concrete handle directly:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box::new((*make_item()") {
-		t.Fatalf("append of concrete call result to interface slice should box the concrete value:\n%s", rust)
+	if !strings.Contains(rust, "Box::new(itemPtr(make_item().clone())) as Box<dyn Node>") &&
+		!strings.Contains(rust, "Box::new(itemPtr(make_item().clone())) as Box<dyn Node + Send + Sync>") {
+		t.Fatalf("append of concrete call result to interface slice should box the pointer wrapper:\n%s", rust)
 	}
 }
 
@@ -1572,6 +1747,162 @@ func convert(cr *CaseRange, i int) int {
 	}
 }
 
+func TestNamedArrayOverNamedArrayFieldIndexUsesInnermostHandle(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type words [3]int
+type flags words
+
+type Holder struct {
+	Bits flags
+}
+
+var ch chan int
+
+func pick(h *Holder, i int) int {
+	return h.Bits[i]
+}
+`)
+
+	if strings.Contains(rust, "let __seq = __seq_guard.as_ref().unwrap(); __seq[") {
+		t.Fatalf("named array over named array field index should not index the intermediate named wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __seq_inner_holder_0 = __seq.0.clone()") {
+		t.Fatalf("named array over named array field index should peel the nested named array handle:\n%s", rust)
+	}
+}
+
+func TestNestedIndexThroughPointerArrayElementBorrowsReturnedHandle(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type arena struct {
+	mark int
+}
+
+type heap struct {
+	arenas [2]*[3]*arena
+}
+
+var h heap
+
+func pick(i, j int) *arena {
+	go func() {}()
+	return h.arenas[i][j]
+}
+`)
+
+	if strings.Contains(rust, "}[(j) as usize]") ||
+		strings.Contains(rust, "}[(j.lock().unwrap().as_ref().unwrap()) as usize]") {
+		t.Fatalf("nested index through pointer-to-array element should not index the returned handle directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __seq_holder = { let __seq =") ||
+		!strings.Contains(rust, "let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone()") {
+		t.Fatalf("nested index through pointer-to-array element should borrow the returned array handle before indexing:\n%s", rust)
+	}
+}
+
+func TestNestedIndexThroughArrayOfSlicesUsesBareInnerSlice(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type holder struct {
+	summary [2][]uint64
+}
+
+var ch chan int
+
+func pick(h *holder, i int) uint64 {
+	return h.summary[1][i]
+}
+`)
+
+	if strings.Contains(rust, "let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default()") {
+		t.Fatalf("nested index through array-of-slices should not borrow a bare inner Vec as a wrapped slice handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "}; __seq[(1) as usize].clone() }[") {
+		t.Fatalf("nested index through array-of-slices should index the bare inner Vec directly:\n%s", rust)
+	}
+}
+
+func TestNamedScalarMethodOnNestedIndexUsesGeneratedMethod(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type score uint64
+
+func (s score) max() uint64 {
+	return uint64(s)
+}
+
+type holder struct {
+	summary [2][]score
+}
+
+var ch chan int
+
+func pick(h *holder, i int) uint64 {
+	return h.summary[1][i].max()
+}
+`)
+
+	if strings.Contains(rust, "].clone().max()") {
+		t.Fatalf("named scalar method on nested index should not dispatch to Rust Ord::max:\n%s", rust)
+	}
+	if !strings.Contains(rust, "score::max(&") {
+		t.Fatalf("named scalar method on nested index should use the generated method via explicit receiver type:\n%s", rust)
+	}
+}
+
+func TestNamedScalarMethodOnWrappedReceiverUsesGeneratedMethod(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type score uint64
+
+func (s score) max() uint64 {
+	return uint64(s)
+}
+
+func pick(s score) uint64 {
+	return s.max()
+}
+`)
+
+	if strings.Contains(rust, ".as_ref().unwrap()).max()") {
+		t.Fatalf("named scalar method on wrapped receiver should not dispatch to Rust Ord::max:\n%s", rust)
+	}
+	if !strings.Contains(rust, "score::max(&") {
+		t.Fatalf("named scalar method on wrapped receiver should use the generated method via explicit receiver type:\n%s", rust)
+	}
+}
+
+func TestNamedScalarReceiverMethodCallKeepsNamedReceiver(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type headTailIndex uint64
+
+func (h headTailIndex) head() uint32 {
+	return uint32(uint64(h) >> 32)
+}
+
+func (h headTailIndex) tail() uint32 {
+	return uint32(h)
+}
+
+func (h headTailIndex) split() (uint32, uint32) {
+	return h.head(), h.tail()
+}
+`)
+
+	if strings.Contains(rust, "headTailIndex::head(&(*self.0.lock().unwrap().as_ref().unwrap()))") ||
+		strings.Contains(rust, "headTailIndex::tail(&(*self.0.lock().unwrap().as_ref().unwrap()))") ||
+		strings.Contains(rust, "headTailIndex::head(&(*self.0.borrow().as_ref().unwrap()))") ||
+		strings.Contains(rust, "headTailIndex::tail(&(*self.0.borrow().as_ref().unwrap()))") {
+		t.Fatalf("named scalar receiver method call should keep the named receiver, not unwrap to the scalar field:\n%s", rust)
+	}
+	if !strings.Contains(rust, "headTailIndex::head(self)") ||
+		!strings.Contains(rust, "headTailIndex::tail(self)") {
+		t.Fatalf("named scalar receiver method call should pass self as the generated method receiver:\n%s", rust)
+	}
+}
+
 func TestAppendLocalInterfaceHandleKeepsWrappedValue(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
@@ -1802,6 +2133,32 @@ func makeTuple() *Tuple {
 	}
 }
 
+func TestVariadicErrorArgumentsKeepHandles(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "errors"
+
+func join(errs ...error) error { return nil }
+
+func use() {
+	_ = join(errors.New("one"), nil, errors.New("two"))
+}
+`)
+
+	if strings.Contains(rust, `Box<dyn std::error::Error`) &&
+		strings.Contains(rust, `.as_ref().unwrap()).clone()`) {
+		t.Fatalf("variadic error elements should not unwrap returned error handles to boxed payloads:\n%s", rust)
+	}
+	if !strings.Contains(rust, `join(Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("one".to_string())))), Rc::new(RefCell::new(None)), Rc::new(RefCell::new(Some(Box::<dyn std::error::Error>::from("two".to_string()))))])))`) &&
+		!strings.Contains(rust, `join(Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("one".to_string())))), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("two".to_string()))))])))`) {
+		t.Fatalf("variadic error elements should keep returned error handles:\n%s", rust)
+	}
+	if !strings.Contains(rust, `Rc::new(RefCell::new(None))`) &&
+		!strings.Contains(rust, `Arc::new(Mutex::new(None))`) {
+		t.Fatalf("nil variadic error element should remain an empty error handle:\n%s", rust)
+	}
+}
+
 func TestVariadicStdlibInterfaceRangeValueClonesElement(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -1966,6 +2323,86 @@ func atom(tok string) Expr {
 	}
 }
 
+func TestIndexedStructStringFieldCallArgumentWrapsBareFieldValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type entry struct {
+	name string
+}
+
+func consume(s string) {}
+
+func use(table []entry, i int) {
+	consume(table[i].name)
+}
+`)
+
+	if strings.Contains(rust, "consume({ let __field =") {
+		t.Fatalf("indexed struct field call argument should not pass the cloned field handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "consume(Rc::new(RefCell::new(Some({ let __seq =") &&
+		!strings.Contains(rust, "consume(Rc::new(RefCell::new(Some({ let __selector_holder =") &&
+		!strings.Contains(rust, "consume(Arc::new(Mutex::new(Some({ let __seq =") &&
+		!strings.Contains(rust, "consume(Arc::new(Mutex::new(Some({ let __selector_holder =") {
+		t.Fatalf("indexed struct field call argument should wrap the bare field value:\n%s", rust)
+	}
+}
+
+func TestNamedStringConversionWrapsBareIndexedStructFieldValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type entry struct {
+	name string
+}
+
+type errorString string
+
+func use(table []entry, i int) errorString {
+	return errorString(table[i].name)
+}
+`)
+
+	if strings.Contains(rust, ".name.clone().borrow()") ||
+		strings.Contains(rust, ".name.clone().lock()") ||
+		strings.Contains(rust, ".clone().borrow().as_ref().unwrap()).clone()") ||
+		strings.Contains(rust, ".clone().lock().unwrap().as_ref().unwrap()).clone()") {
+		t.Fatalf("named string conversion should not borrow a cloned bare field value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "errorString(Rc::new(RefCell::new(Some(") &&
+		!strings.Contains(rust, "errorString(Arc::new(Mutex::new(Some(") {
+		t.Fatalf("named string conversion should wrap a string value:\n%s", rust)
+	}
+}
+
+func TestPromotedFieldSelectorOnWrappedCallResultUnwrapsBase(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type inner struct {
+	value int
+}
+
+type outer struct {
+	*inner
+}
+
+func makeOuter() outer {
+	return outer{inner: &inner{value: 3}}
+}
+
+func use() int {
+	return makeOuter().value
+}
+`)
+
+	if strings.Contains(rust, "make_outer().inner") {
+		t.Fatalf("promoted field selector on wrapped call result should not access the returned handle directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*make_outer().borrow().as_ref().unwrap()).inner") &&
+		!strings.Contains(rust, "(*make_outer().lock().unwrap().as_ref().unwrap()).inner") {
+		t.Fatalf("promoted field selector on wrapped call result should unwrap the call result before following the embedded field:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceSelectorArgumentPassesHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
@@ -2084,6 +2521,238 @@ func walk(n *FieldList) {
 	}
 	if strings.Contains(rust, "(*__selector_guard.as_ref().unwrap()).clone()") {
 		t.Fatalf("slice selector argument should not unwrap nil slices:\n%s", rust)
+	}
+}
+
+func TestSourceMappedInterfacePointerArgumentBoxesPointerWrapper(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "walk.go", `package main
+
+import "go/ast"
+
+func walk(node ast.Node) {}
+
+func use() {
+	expr := &ast.CallExpr{}
+	walk(expr)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(walk.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"go/ast": "go_ast"})
+	if strings.Contains(rust, "Box::new((*expr.borrow().as_ref().unwrap()).clone())") ||
+		strings.Contains(rust, "Box::new((*expr.lock().unwrap().as_ref().unwrap()).clone())") {
+		t.Fatalf("pointer to source-mapped interface should not box the pointee value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(go_ast::r#mod::CallExprPtr(expr.clone())) as Box<dyn go_ast::r#mod::Node") &&
+		!strings.Contains(rust, "Box::new(go_ast::CallExprPtr(expr.clone())) as Box<dyn go_ast::Node") {
+		t.Fatalf("pointer to source-mapped interface should box the generated pointer wrapper:\n%s", rust)
+	}
+}
+
+func TestLocalPointerSourceMappedInterfaceArgumentBoxesPointerWrapper(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "heap.go", `package main
+
+import "container/heap"
+
+type IntHeap []int
+
+func (h IntHeap) Len() int { return len(h) }
+func (h IntHeap) Less(i, j int) bool { return h[i] < h[j] }
+func (h IntHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
+func (h *IntHeap) Push(x any) { *h = append(*h, x.(int)) }
+func (h *IntHeap) Pop() any {
+	old := *h
+	n := len(old)
+	x := old[n-1]
+	*h = old[:n-1]
+	return x
+}
+
+func use() {
+	h := &IntHeap{3, 1, 2}
+	heap.Push(h, 0)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(heap.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{
+		"container/heap": "container_heap",
+		"sort":           "sort",
+	})
+	if strings.Contains(rust, "Box::new({ let __arg_holder = h.clone();") {
+		t.Fatalf("local pointer passed to source-mapped interface should not box a cloned pointee:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(IntHeapPtr(h.clone())) as Box<dyn container_heap::r#mod::Interface") &&
+		!strings.Contains(rust, "Box::new(IntHeapPtr(h.clone())) as Box<dyn container_heap::Interface") {
+		t.Fatalf("local pointer source-mapped interface argument should box the pointer wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl container_heap::r#mod::Interface for IntHeapPtr") &&
+		!strings.Contains(rust, "impl container_heap::Interface for IntHeapPtr") {
+		t.Fatalf("local pointer source-mapped interface wrapper should implement heap.Interface:\n%s", rust)
+	}
+	if strings.Contains(rust, "impl container_heap::r#mod::Interface for IntHeap {") ||
+		strings.Contains(rust, "impl container_heap::Interface for IntHeap {") {
+		t.Fatalf("pointer-only source-mapped interface should not emit a value impl for the pointee:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl sort::r#mod::Interface for IntHeapPtr") &&
+		!strings.Contains(rust, "impl sort::Interface for IntHeapPtr") {
+		t.Fatalf("local pointer source-mapped interface wrapper should implement embedded sort.Interface:\n%s", rust)
+	}
+	if strings.Contains(rust, "write!(f, \"{}\", __v)") {
+		t.Fatalf("pointer wrapper Display should not require the pointee to implement Display:\n%s", rust)
+	}
+	if !strings.Contains(rust, "write!(f, \"{:p}\", __v as *const _)") {
+		t.Fatalf("pointer wrapper Display should format pointer identity without opening a pointee Display bound:\n%s", rust)
+	}
+}
+
+func TestSourceMappedPackageGlobalPointerInterfaceEqualityBoxesWrapper(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "event.go", `package event
+
+import (
+	"golang.org/x/tools/internal/event/keys"
+	"golang.org/x/tools/internal/event/label"
+)
+
+func isMsg(key label.Key) bool {
+	return key == keys.Msg
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(event.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfoWithImporter("golang.org/x/tools/internal/event", []*ast.File{file}, fset, eventKeyEqualityImporter())
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter(event) error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{
+		"golang.org/x/tools/internal/event/keys":  "golang_org_x_tools_internal_event_keys",
+		"golang.org/x/tools/internal/event/label": "golang_org_x_tools_internal_event_label",
+	})
+	if strings.Contains(rust, "__right_guard.as_ref().map(|__v| __v as &(dyn golang_org_x_tools_internal_event_label") {
+		t.Fatalf("source-mapped package global pointer equality should not cast the pointee to the interface:\n%s", rust)
+	}
+	usesNamedWrapper := strings.Contains(rust, "let __right_wrapper = golang_org_x_tools_internal_event_keys::String_Ptr(") &&
+		(strings.Contains(rust, "Some(&__right_wrapper as &dyn golang_org_x_tools_internal_event_label") ||
+			strings.Contains(rust, "Some(&__right_wrapper as &(dyn golang_org_x_tools_internal_event_label"))
+	usesScopedWrapperHandle := strings.Contains(rust, "let __right_holder = { let __arg_holder = golang_org_x_tools_internal_event_keys::Msg.clone();") &&
+		strings.Contains(rust, "__right_opt: Option<&dyn golang_org_x_tools_internal_event_label::Key>")
+	if !usesNamedWrapper && !usesScopedWrapperHandle {
+		t.Fatalf("source-mapped package global pointer equality should compare through the pointer wrapper:\n%s", rust)
+	}
+}
+
+func TestCurrentPackagePointerSourceMappedInterfaceStructFieldBoxesWrapper(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "srcimporter.go", `package srcimporter
+
+import "go/types"
+
+type Importer struct{}
+
+func (p *Importer) Import(path string) {}
+
+func (p *Importer) Config() types.Config {
+	return types.Config{Importer: p}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(srcimporter.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfoWithImporter("go/internal/srcimporter", []*ast.File{file}, fset, goTypesConfigImporter())
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter(srcimporter) error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"go/types": "go_types"})
+	if strings.Contains(rust, "importer: Rc::new(RefCell::new(Some(Box::new(self.clone()) as Box<dyn go_types::Importer") ||
+		strings.Contains(rust, "importer: Arc::new(Mutex::new(Some(Box::new(self.clone()) as Box<dyn go_types::Importer") ||
+		strings.Contains(rust, "Box::new((*p.borrow().as_ref().unwrap()).clone()) as Box<dyn go_types::Importer") ||
+		strings.Contains(rust, "Box::new((*p.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn go_types::Importer") {
+		t.Fatalf("current-package pointer struct field should not box the pointee for a source-mapped interface:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(ImporterPtr(") {
+		t.Fatalf("current-package pointer struct field should box the pointer wrapper:\n%s", rust)
+	}
+}
+
+func TestTranspiledInterfaceMethodCallArgumentScopesReceiverLock(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "heap.go", `package main
+
+import "container/heap"
+
+func down(h heap.Interface, i int, n int) bool { return false }
+
+func use(h heap.Interface, i int) {
+	if !down(h, i, h.Len()) {
+		down(h, i, i)
+	}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(heap.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{
+		"container/heap": "container_heap",
+		"sort":           "sort",
+	})
+	if strings.Contains(rust, "Some((*h.borrow().as_ref().unwrap()).len())") ||
+		strings.Contains(rust, "Some((*h.lock().unwrap().as_ref().unwrap()).len())") {
+		t.Fatalf("interface method call argument should not hold the receiver lock through the callee:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some({ let __arg_value = (*h.borrow().as_ref().unwrap()).len(); __arg_value })") &&
+		!strings.Contains(rust, "Some({ let __arg_value = (*h.lock().unwrap().as_ref().unwrap()).len(); __arg_value })") {
+		t.Fatalf("interface method call argument should scope the receiver lock before wrapping:\n%s", rust)
+	}
+}
+
+func TestSourceMappedInterfaceFieldCallResultBoxesPointerWrapper(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "walk.go", `package main
+
+import "go/ast"
+
+func use() {
+	_ = ast.CallExpr{Fun: ast.NewIdent("println")}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(walk.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"go/ast": "go_ast"})
+	if strings.Contains(rust, "Box::new((*go_ast::new_ident") {
+		t.Fatalf("pointer-returning call stored in source-mapped interface field should not box the pointee value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(go_ast::IdentPtr(go_ast::new_ident(") &&
+		!strings.Contains(rust, "Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(") {
+		t.Fatalf("pointer-returning call stored in source-mapped interface field should box the generated pointer wrapper:\n%s", rust)
 	}
 }
 
@@ -2599,8 +3268,8 @@ func run(goCmd, compiler, tags, suffix, path string) {
 	if strings.Contains(rust, "exec::command(goCmd.clone(), (") {
 		t.Fatalf("long exec.Command variadic args should not emit an overlarge tuple:\n%s", rust)
 	}
-	if !strings.Contains(rust, "exec::command(goCmd.clone(), Rc::new(RefCell::new(Some(vec![") &&
-		!strings.Contains(rust, "exec::command(goCmd.clone(), Arc::new(Mutex::new(Some(vec![") {
+	if !strings.Contains(rust, ", Rc::new(RefCell::new(Some(vec![") &&
+		!strings.Contains(rust, ", Arc::new(Mutex::new(Some(vec![") {
 		t.Fatalf("long exec.Command variadic args should be packed as a wrapped string slice:\n%s", rust)
 	}
 	if strings.Contains(rust, "\"--\".to_string(), path.clone()") {
@@ -2814,8 +3483,8 @@ func main() {
 	}
 }
 
-func TestNoTypeInfoTupleAssignToErrorSliceKeepsHandle(t *testing.T) {
-	rust := transpileNoTypeInfoRegression(t, `package main
+func TestTupleAssignToErrorSliceKeepsHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
 
 import (
 	"errors"
@@ -2847,6 +3516,26 @@ func main() {
 	}
 	if !strings.Contains(rust, "format!(\"{}\", (*errs.borrow().as_ref().unwrap())[(0) as usize].clone().borrow().as_ref().unwrap())") {
 		t.Fatalf("error slice element Error method should format the element handle:\n%s", rust)
+	}
+}
+
+func TestErrorRangeVarErrorMethodFormatsHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func collect(errs []error) []string {
+	out := []string{}
+	for _, err := range errs {
+		out = append(out, err.Error())
+	}
+	return out
+}
+`)
+
+	if strings.Contains(rust, `format!("{}", err)`) {
+		t.Fatalf("error range variable Error method should not format the handle itself:\n%s", rust)
+	}
+	if !strings.Contains(rust, `format!("{}", (*err.borrow().as_ref().unwrap()))`) {
+		t.Fatalf("error range variable Error method should format the boxed error in the handle:\n%s", rust)
 	}
 }
 
@@ -3646,6 +4335,26 @@ func box() any {
 	if !strings.Contains(rust, "Box::new(P(Arc::new(StdMutex::new(None::<AnonymousStruct1>)))) as Box<dyn Any + Send + Sync>") {
 		t.Fatalf("named pointer nil conversion should construct the named pointer handle before boxing as any:\n%s", rust)
 	}
+	if !strings.Contains(rust, `go_register_any_type_with_elem::<P>("pointer", true, "struct", true)`) {
+		t.Fatalf("named pointer nil conversion boxed as any should register Go pointer metadata:\n%s", rust)
+	}
+}
+
+func TestErrorPointerNilConversionBoxedAsAnyRegistersPointerMetadata(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func box() any {
+	go func() {}()
+	return (*error)(nil)
+}
+`)
+
+	if !strings.Contains(rust, "Box::new(Arc::new(Mutex::new(None::<Option<Box<dyn StdError + Send + Sync>>>))) as Box<dyn Any + Send + Sync>") {
+		t.Fatalf("error pointer nil conversion should preserve the typed nil pointer payload:\n%s", rust)
+	}
+	if !strings.Contains(rust, `go_register_any_type_with_elem::<Arc<Mutex<Option<Option<Box<dyn StdError + Send + Sync>>>>>>("pointer", true, "interface", true)`) {
+		t.Fatalf("error pointer nil conversion boxed as any should register Go pointer metadata:\n%s", rust)
+	}
 }
 
 func TestFuncLiteralReturningAnyBoxesUnsafePointerCall(t *testing.T) {
@@ -3723,6 +4432,83 @@ func extractBits(data uint64, start, end uint) uint {
 	}
 }
 
+func TestNumericConversionCastsConstantShiftOperandsBeforeEvaluation(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func maxWork() int64 {
+	checkWork := int64(1<<63 - 1)
+	return checkWork
+}
+
+func decHead() int64 {
+	delta := int64(-(1 << 32))
+	return delta
+}
+
+func add(delta int64) int64 {
+	return delta
+}
+
+func useAdd() int64 {
+	return add(-(1 << 32))
+}
+
+type pallocSum uint64
+
+func pack(max uint) pallocSum {
+	if max == 0 {
+		return pallocSum(uint64(1 << 63))
+	}
+	return 0
+}
+`)
+
+	if strings.Contains(rust, "let __tmp_x = 1; let __tmp_y = 63; __tmp_x << __tmp_y") {
+		t.Fatalf("numeric conversion of a constant shift should not evaluate the shift before widening:\n%s", rust)
+	}
+	if !strings.Contains(rust, "1 as u64") || !strings.Contains(rust, "63 as u64") {
+		t.Fatalf("numeric conversion of a constant shift should widen operands before evaluating the shift:\n%s", rust)
+	}
+	if strings.Contains(rust, "-(1 << 32) as i64") {
+		t.Fatalf("numeric conversion of a negated constant shift should not evaluate the shift before widening:\n%s", rust)
+	}
+	if !strings.Contains(rust, "1 as i64") || !strings.Contains(rust, "32 as i64") {
+		t.Fatalf("numeric conversion of a negated constant shift should widen operands before applying unary negation:\n%s", rust)
+	}
+	if strings.Contains(rust, "Some(-((1 << 32)) as i64)") ||
+		strings.Contains(rust, "Some(-(1 << 32) as i64)") {
+		t.Fatalf("constant shift call argument should widen operands before applying unary negation:\n%s", rust)
+	}
+	if strings.Contains(rust, "((1 << 63) as u64)") {
+		t.Fatalf("nested constant conversion should widen shift operands before casting:\n%s", rust)
+	}
+}
+
+func TestFloatBinaryExpressionCastsIntegerConstantIdentifierOperand(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func fastlog2(x float64) float64 {
+	return x
+}
+
+func sample(q uint32) float64 {
+	go func() {}()
+	const randomBitCount = 26
+	qlog := fastlog2(float64(q)) - randomBitCount
+	return qlog
+}
+`)
+
+	if strings.Contains(rust, "let __tmp_y = randomBitCount; __tmp_x - __tmp_y") ||
+		strings.Contains(rust, "let __tmp_y = RANDOM_BIT_COUNT; __tmp_x - __tmp_y") {
+		t.Fatalf("float binary expression should not preserve an integer-typed constant operand without a cast:\n%s", rust)
+	}
+	if !strings.Contains(rust, "randomBitCount as f64") &&
+		!strings.Contains(rust, "RANDOM_BIT_COUNT as f64") {
+		t.Fatalf("float binary expression should cast the constant identifier operand to f64:\n%s", rust)
+	}
+}
+
 func TestUnsafePointerConversionUsesCurrentReceiver(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
@@ -3790,6 +4576,30 @@ func addr(values *[4]uint64, i int) uintptr {
 	}
 	if !strings.Contains(rust, "let __seq_holder = values.clone(); let __seq_guard = __seq_holder.borrow(); &__seq_guard.as_ref().unwrap()[") {
 		t.Fatalf("unsafe.Pointer(&(*arrayPtr)[index]) should borrow the pointer's array payload:\n%s", rust)
+	}
+}
+
+func TestUnsafePointerAddressOfNestedSequenceElementBorrowsOuterSequence(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+type holder struct {
+	summary [2][]uint64
+}
+
+func (h *holder) addr(level int) uintptr {
+	return uintptr(unsafe.Pointer(&h.summary[level][0]))
+}
+`)
+
+	if strings.Contains(rust, "let __seq_holder = { let __seq =") {
+		t.Fatalf("unsafe.Pointer(&outer[index][index]) should not clone the inner sequence value as a handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __outer_holder = self.summary.clone();") ||
+		!strings.Contains(rust, "let __inner_seq = &__outer_guard.as_ref().unwrap()[") ||
+		!strings.Contains(rust, "&__inner_seq[(0) as usize] as *const _ as usize") {
+		t.Fatalf("unsafe.Pointer(&outer[index][index]) should borrow the outer sequence and address the inner element:\n%s", rust)
 	}
 }
 
@@ -3967,6 +4777,87 @@ func load(slot unsafe.Pointer) unsafe.Pointer {
 	}
 }
 
+func TestUnsafePointerToPointerConversionWrapsUnsafePointerDerefValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+type Type struct{}
+
+func load(data [1]unsafe.Pointer) *Type {
+	return (*Type)(*(*unsafe.Pointer)(unsafe.Pointer(&data[0])))
+}
+`)
+
+	if strings.Contains(rust, "let __ptr = (*Rc::new(RefCell::new({") ||
+		strings.Contains(rust, "let __ptr = (*Arc::new(Mutex::new({") {
+		t.Fatalf("unsafe.Pointer deref source should not expose a raw usize to the outer pointer conversion:\n%s", rust)
+	}
+	if !strings.Contains(rust, " -> GoPtr<Type>") || !strings.Contains(rust, "GoPtr::raw(") {
+		t.Fatalf("unsafe.Pointer deref source returned as a pointer should preserve raw pointer identity through GoPtr:\n%s", rust)
+	}
+	if !strings.Contains(rust, "unimplemented!(\"unsafe.Pointer conversion to usize\")") {
+		t.Fatalf("unsafe.Pointer deref source should still fail loudly at the unsupported loaded-pointer boundary:\n%s", rust)
+	}
+}
+
+func TestUnsafePointerAnyAddressToInternalABIEmptyInterfaceUsesRuntimeMirror(t *testing.T) {
+	rust := transpileTypedConcurrentPackageWithMapping(t, "internal/reflectlite", `package reflectlite
+
+import (
+	"internal/abi"
+	"unsafe"
+)
+
+func typOf(i any) *abi.Type {
+	e := (*abi.EmptyInterface)(unsafe.Pointer(&i))
+	return e.Type
+}
+`, map[string]string{"internal/abi": "internal_abi"})
+
+	if strings.Contains(rust, "unsafe.Pointer conversion to internal_abi::iface::EmptyInterface") {
+		t.Fatalf("unsafe.Pointer(&any) to *internal/abi.EmptyInterface should use the runtime interface mirror:\n%s", rust)
+	}
+	if !strings.Contains(rust, "internal_abi::type_of(__iface_value.clone())") {
+		t.Fatalf("runtime interface mirror should derive Type through internal/abi.TypeOf lowering:\n%s", rust)
+	}
+	if !strings.Contains(rust, "r#type:") || !strings.Contains(rust, "data:") {
+		t.Fatalf("runtime interface mirror should initialize EmptyInterface layout fields:\n%s", rust)
+	}
+}
+
+func TestReflectliteTypeOfErrorPointerElemUsesReflectliteCall(t *testing.T) {
+	rust := transpileTypedConcurrentPackageWithMapping(t, "errors", `package errors
+
+import "internal/reflectlite"
+
+var errorType = reflectlite.TypeOf((*error)(nil)).Elem()
+`, nil)
+
+	if strings.Contains(rust, `reflectlite_Type::__go_from("error".to_string())`) {
+		t.Fatalf("reflectlite.TypeOf((*error)(nil)).Elem should not emit an opaque error type token:\n%s", rust)
+	}
+	if !strings.Contains(rust, `reflectlite::type_of`) || !strings.Contains(rust, `.elem()`) {
+		t.Fatalf("reflectlite.TypeOf((*error)(nil)).Elem should keep the generated reflectlite call:\n%s", rust)
+	}
+}
+
+func TestSourceMappedReflectliteTypeOfErrorPointerElemUsesSourceCall(t *testing.T) {
+	rust := transpileTypedConcurrentPackageWithMapping(t, "errors", `package errors
+
+import "internal/reflectlite"
+
+var errorType = reflectlite.TypeOf((*error)(nil)).Elem()
+`, map[string]string{"internal/reflectlite": "internal_reflectlite"})
+
+	if strings.Contains(rust, `reflectlite_Type::__go_from("error".to_string())`) {
+		t.Fatalf("source-mapped reflectlite should not use the external opaque type token:\n%s", rust)
+	}
+	if !strings.Contains(rust, `internal_reflectlite::type_of`) {
+		t.Fatalf("source-mapped reflectlite should keep the generated source call:\n%s", rust)
+	}
+}
+
 func TestUnsafePointerToAnonymousInterfaceDerefIsLoudUnsupported(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -4112,7 +5003,7 @@ func typeFor[T any]() {
 	if strings.Contains(rust, "type_of((*v.") {
 		t.Fatalf("generic value passed to any parameter should not be emitted as raw T:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Box::new((*v.") || !strings.Contains(rust, "as Box<dyn Any") {
+	if !strings.Contains(rust, "Box::new({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }) as Box<dyn Any") {
 		t.Fatalf("generic value passed to any parameter should be boxed as Any:\n%s", rust)
 	}
 }
@@ -4254,6 +5145,68 @@ func TestInternalABITypeOfMapTypeCallUsesTypedMapIntrinsic(t *testing.T) {
 	}
 }
 
+func TestInternalABITypeOfMapTypeGoPtrValueUsesLocalHandle(t *testing.T) {
+	prevTypeInfo := currentTypeInfo
+	prevContext := GetTranspileContext()
+	prevCD := GetConcurrencyDetector()
+	t.Cleanup(func() {
+		currentTypeInfo = prevTypeInfo
+		SetTranspileContext(prevContext)
+		SetConcurrencyDetector(prevCD)
+	})
+
+	cd := NewConcurrencyDetector()
+	cd.hasGoroutines = true
+	SetConcurrencyDetector(cd)
+
+	abiIdent := ast.NewIdent("abi")
+	mIdent := ast.NewIdent("m")
+	call := &ast.CallExpr{Fun: &ast.SelectorExpr{
+		X:   &ast.CallExpr{Fun: &ast.SelectorExpr{X: abiIdent, Sel: ast.NewIdent("TypeOf")}, Args: []ast.Expr{mIdent}},
+		Sel: ast.NewIdent("MapType"),
+	}}
+
+	abiPkg := types.NewPackage("internal/abi", "abi")
+	currentPkg := types.NewPackage("internal/sync", "sync")
+	mapType := types.NewMap(types.Typ[types.String], types.Typ[types.Int])
+	swissMapType := types.NewNamed(types.NewTypeName(token.NoPos, abiPkg, "SwissMapType", nil), types.NewStruct(nil, nil), nil)
+	currentTypeInfo = &TypeInfo{
+		info: &types.Info{
+			Uses: map[*ast.Ident]types.Object{
+				abiIdent: types.NewPkgName(token.NoPos, currentPkg, "abi", abiPkg),
+				mIdent:   types.NewVar(token.NoPos, currentPkg, "m", mapType),
+			},
+			Types: map[ast.Expr]types.TypeAndValue{
+				mIdent: {Type: mapType},
+			},
+		},
+		pkg: currentPkg,
+	}
+	SetTranspileContext(&TranspileContext{PackageMapping: map[string]string{"internal/abi": "internal_abi"}})
+
+	var out strings.Builder
+	info := goPtrResultInfo{elemRustType: "internal_abi::map_swiss::SwissMapType", elemType: swissMapType}
+	if !writeGoPtrCallArgumentWithQualifierForInfo(&out, call, info, "") {
+		t.Fatalf("internal/abi.TypeOf(map).MapType should lower as a GoPtr-compatible value")
+	}
+	got := out.String()
+
+	for _, forbidden := range []string{"match __go_ptr", "internal_abi::GoPtr::Nil", "internal_abi::GoPtr::Local"} {
+		if strings.Contains(got, forbidden) {
+			t.Fatalf("typed map intrinsic should not convert an ordinary pointer handle as a GoPtr via %q:\n%s", forbidden, got)
+		}
+	}
+	for _, want := range []string{
+		"GoPtr::local(Arc::new(Mutex::new(Some({ let mut __type = internal_abi::Type::default()",
+		"internal_abi::SwissMapType::default()",
+		"GoComparable::go_hash(__key_value, __seed_value)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %q in:\n%s", want, got)
+		}
+	}
+}
+
 func TestTypedNilChannelAnyVarInitializerBoxesTypedNilChannel(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -4360,7 +5313,8 @@ func take(values []int, h *Header) []int {
 	if strings.Contains(rust, "h.count.clone()) - 0") {
 		t.Fatalf("three-index slice capacity should unwrap selector bounds before arithmetic:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Vec::with_capacity(((") || !strings.Contains(rust, "as usize) - 0") {
+	if !strings.Contains(rust, "let __max = ") || !strings.Contains(rust, "let __max = ((*") || !strings.Contains(rust, " as usize;") ||
+		!strings.Contains(rust, "Vec::with_capacity(((__max) - 0) as usize)") {
 		t.Fatalf("three-index slice capacity should use usize bounds:\n%s", rust)
 	}
 }
@@ -4413,6 +5367,55 @@ func unsafeValues(p *byte, n int, b []byte, s string) (string, []byte, unsafe.Po
 	}
 	if strings.Contains(rust, `unimplemented!("unsafe.SliceData requires unsafe intrinsic support")`) {
 		t.Fatalf("unsafe.Pointer(unsafe.SliceData(slice)) should lower through the typed slice-data pointer path:\n%s", rust)
+	}
+}
+
+func TestUnsupportedUnsafePointerIntrinsicKeepsPointerHandleShape(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "unsafe"
+
+func sink(p *byte) {}
+
+func call(s string) {
+	go func() {}()
+	sink(unsafe.StringData(s))
+}
+`)
+
+	if strings.Contains(rust, "Some({ let __go_unsafe_result: Arc<Mutex<Option<u8>>>") {
+		t.Fatalf("unsafe.StringData pointer result should not be wrapped inside another Option slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __go_unsafe_result: Arc<Mutex<Option<u8>>> = unimplemented!(\"unsafe.StringData requires unsafe intrinsic support\")") {
+		t.Fatalf("unsafe.StringData should keep the typed pointer handle shape:\n%s", rust)
+	}
+}
+
+func TestUnsafeStringFromByteSliceAddressUsesSliceBytes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+func text(b []byte) string {
+	return unsafe.String(&b[0], len(b))
+}
+`)
+
+	if strings.Contains(rust, `unimplemented!("unsafe.String requires unsafe intrinsic support")`) {
+		t.Fatalf("unsafe.String(&bytes[0], len(bytes)) should lower through the typed byte-slice path:\n%s", rust)
+	}
+	if !strings.Contains(rust, `let __bytes_holder = b.clone()`) {
+		t.Fatalf("unsafe.String byte-slice path should borrow the slice handle:\n%s", rust)
+	}
+	if strings.Contains(rust, `let __len = ((*b.borrow()`) ||
+		strings.Contains(rust, `let __len = ((*b.lock()`) {
+		t.Fatalf("unsafe.String byte-slice path should not relock the borrowed slice for len(b):\n%s", rust)
+	}
+	if !strings.Contains(rust, `let __len = __bytes.len()`) {
+		t.Fatalf("unsafe.String byte-slice path should reuse the borrowed slice length:\n%s", rust)
+	}
+	if !strings.Contains(rust, `String::from_utf8(__bytes[__start..__end].to_vec()).unwrap()`) {
+		t.Fatalf("unsafe.String byte-slice path should build a String from the selected bytes:\n%s", rust)
 	}
 }
 
@@ -5427,6 +6430,38 @@ func initHolder() {
 	}
 }
 
+func TestSliceElemPtrPromotedLocalEmbeddedMethodUsesEmbeddedField(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type reader struct {
+	n int
+}
+
+func (r *reader) peek() int {
+	r.n++
+	return r.n
+}
+
+func run() int {
+	type state struct {
+		reader
+		next int
+	}
+	values := []state{{}}
+	s := &values[0]
+	s.next = s.peek()
+	return s.next
+}
+`)
+
+	if strings.Contains(rust, ".as_mut().unwrap()).peek()") {
+		t.Fatalf("promoted method on slice-element pointer should not call the outer struct:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".reader.clone()") || !strings.Contains(rust, "__promoted_ref.peek()") {
+		t.Fatalf("promoted method on slice-element pointer should call through the embedded field:\n%s", rust)
+	}
+}
+
 func TestSourceMappedSyncOnceDoFuncLitWrapsSourceOnceArgument(t *testing.T) {
 	rust := transpileTypedConcurrentPackageWithMapping(t, "internal/godebug", `package godebug
 
@@ -5551,6 +6586,65 @@ func initFakeLines() {
 		strings.Contains(rust, "__once.r#do(Rc::new(RefCell::new(Some(")
 	if !hasWrappedOnce || !strings.Contains(rust, "Box::new(move ||") {
 		t.Fatalf("source-mapped package-global sync.Once should wrap function literal arguments for source sync::Once:\n%s", rust)
+	}
+}
+
+func TestSourceMappedMethodCallWrapsPackageConstArgument(t *testing.T) {
+	fset := token.NewFileSet()
+	arena, err := parser.ParseFile(fset, "arena.go", `package runtime
+
+const userArenaChunkPages = 4
+
+func split(s *mspan, base uintptr) {
+	s.init(base, userArenaChunkPages)
+}
+`, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("ParseFile(arena.go) error = %v", err)
+	}
+	mheap, err := parser.ParseFile(fset, "mheap.go", `package runtime
+
+type mspan struct{}
+
+func (s *mspan) init(base, npages uintptr) {}
+`, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("ParseFile(mheap.go) error = %v", err)
+	}
+	files := []*ast.File{arena, mheap}
+	typeInfo, err := NewTypeInfoWithImporter("runtime", files, fset, nil)
+	if err != nil {
+		t.Fatalf("NewTypeInfoWithImporter() error = %v", err)
+	}
+	prevConcurrencyDetector := globalConcurrencyDetector
+	cd := NewConcurrencyDetector()
+	cd.AnalyzeProject(files)
+	SetConcurrencyDetector(cd)
+	t.Cleanup(func() {
+		SetConcurrencyDetector(prevConcurrencyDetector)
+	})
+
+	prevContext := currentContext
+	packageState := NewPackageState()
+	packageState.ConstantNameOverrides = assignPackageConstantNames(files)
+	packageState.MethodsByType = collectPackageMethods(files)
+	SetTranspileContext(&TranspileContext{
+		Session:        NewTranspileSession(typeInfo, map[string]string{"runtime": "runtime"}),
+		Package:        packageState,
+		PackageMapping: map[string]string{"runtime": "runtime"},
+	})
+	t.Cleanup(func() {
+		SetTranspileContext(prevContext)
+	})
+
+	rust, _, _ := TranspileWithMapping(arena, fset, typeInfo, map[string]string{"runtime": "runtime"})
+
+	if strings.Contains(rust, "USER_ARENA_CHUNK_PAGES.clone()") {
+		t.Fatalf("source-mapped package const should not be cloned as a wrapped value:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Arc::new(Mutex::new(Some(USER_ARENA_CHUNK_PAGES as usize)))") &&
+		!strings.Contains(rust, "Rc::new(RefCell::new(Some(USER_ARENA_CHUNK_PAGES as usize)))") {
+		t.Fatalf("source-mapped package const should be wrapped for the generated method parameter:\n%s", rust)
 	}
 }
 
@@ -5709,10 +6803,10 @@ func main() {
 		strings.Contains(rust, ".code(Rc::new(RefCell::new(Some(VAL_STRING))))") {
 		t.Fatalf("typed constants should not be passed as wrapped raw ints to interface params:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".code(&CodeVal(Rc::new(RefCell::new(Some(VAL_BOOL as i32)))))") {
+	if !strings.Contains(rust, ".code(Rc::new(RefCell::new(Some(Box::new(CodeVal(Rc::new(RefCell::new(Some(VAL_BOOL as i32))))) as Box<dyn Code>))))") {
 		t.Fatalf("typed constant should be constructed as its named value for interface params:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".code(&CodeVal(Rc::new(RefCell::new(Some(VAL_STRING as i32)))))") {
+	if !strings.Contains(rust, ".code(Rc::new(RefCell::new(Some(Box::new(CodeVal(Rc::new(RefCell::new(Some(VAL_STRING as i32))))) as Box<dyn Code>))))") {
 		t.Fatalf("implicit typed constant should reuse the previous named type for interface params:\n%s", rust)
 	}
 }
@@ -5793,7 +6887,7 @@ func digit(val uint) byte {
 }
 `)
 
-	if !strings.Contains(rust, "('0' as u32)") {
+	if !strings.Contains(rust, "('0' as u64)") {
 		t.Fatalf("rune constant in uint arithmetic should cast to the typed uint peer:\n%s", rust)
 	}
 	if strings.Contains(rust, "('0' as i32)") {
@@ -5864,7 +6958,7 @@ func use[T string | []byte](sep T) uint32 {
 	if !strings.Contains(rust, "hash::<T>(") {
 		t.Fatalf("inferred type parameter call should emit explicit Rust type arguments:\n%s", rust)
 	}
-	if !strings.Contains(rust, "Rc::new(RefCell::new(Some((*sep.borrow().as_ref().unwrap()).clone())))") {
+	if !strings.Contains(rust, "hash::<T>(sep.clone())") {
 		t.Fatalf("type parameter value argument should be passed through the wrapped value path:\n%s", rust)
 	}
 }
@@ -5886,8 +6980,27 @@ func use[T any](b *box[T], value T) {
 		t.Fatalf("type-parameter method argument should not move from a shared value borrow:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let __arg_holder = value.clone()") ||
-		!strings.Contains(rust, "(*__arg_guard.as_ref().unwrap()).clone()") {
+		!strings.Contains(rust, "(*__arg_guard.as_ref().unwrap()).go_value_clone()") {
 		t.Fatalf("type-parameter method argument should clone the inner value into a fresh handle:\n%s", rust)
+	}
+}
+
+func TestTypeParamAnyCallArgumentUsesScopedClone(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func sink(value any) {}
+
+func use[T any](value T) {
+	sink(value)
+}
+`)
+
+	if !strings.Contains(rust, "pub fn r#use<T: Any + GoValueClone + 'static>") {
+		t.Fatalf("type-parameter any argument should require GoValueClone for Go value semantics:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __arg_holder = value.clone(); let __arg_guard = __arg_holder.borrow();") ||
+		!strings.Contains(rust, "(*__arg_guard.as_ref().unwrap()).go_value_clone()") {
+		t.Fatalf("type-parameter any argument should scope a GoValueClone inner clone:\n%s", rust)
 	}
 }
 
@@ -5948,7 +7061,7 @@ func same[S1 ~[]E1, S2 ~[]E2, E1, E2 any](left S1, right S2, eq func(E1, E2) boo
 }
 `)
 
-	if strings.Contains(rust, "Some(v)") {
+	if strings.Contains(rust, "(*__f)(Rc::new(RefCell::new(Some(v)))") {
 		t.Fatalf("type-parameter range value should be passed as its existing handle:\n%s", rust)
 	}
 	if strings.Contains(rust, "Some({ let __seq") {
@@ -7140,7 +8253,7 @@ func f() {
 	}
 }
 
-func TestUnsupportedAnonInterfaceAssertionMethodCallIsWholeCallUnimplemented(t *testing.T) {
+func TestAnonymousInterfaceAssertionMethodCallUsesSynthesizedTraitObject(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
 type Pos int
@@ -7157,15 +8270,19 @@ func f(x any) Pos {
 }
 `)
 
-	want := `unimplemented!("type info required: assertion method call on anonymous interface with 2 concrete implementors needs a synthesized trait object")`
-	if !strings.Contains(rust, want) {
-		t.Fatalf("unsupported anonymous-interface assertion method call should emit one loud unimplemented expression:\n%s", rust)
+	for _, want := range []string{
+		`pub trait GoAnonymousInterface`,
+		`if let Some(typed_val) = any_val.downcast_ref::<DeclPtr>()`,
+		`Box::new(typed_val.clone()) as Box<dyn GoAnonymousInterface`,
+		`if let Some(typed_val) = any_val.downcast_ref::<OtherPtr>()`,
+		`let __result = (*__recv.borrow().as_ref().unwrap()).pos(); __result`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("anonymous-interface assertion method call should use a synthesized trait object; missing %q:\n%s", want, rust)
+		}
 	}
-	if strings.Contains(rust, `needs a synthesized trait object").pos()`) {
-		t.Fatalf("unsupported anonymous-interface assertion method call should not append a method call to unimplemented!():\n%s", rust)
-	}
-	if !strings.Contains(rust, `let __unsupported: Rc<RefCell<Option<Pos>>> = unimplemented!`) {
-		t.Fatalf("unsupported anonymous-interface assertion method call should carry the typed call result:\n%s", rust)
+	if strings.Contains(rust, `unimplemented!("type info required: assertion method call on anonymous interface`) {
+		t.Fatalf("anonymous-interface assertion method call should not stay on the old unsupported path:\n%s", rust)
 	}
 }
 
@@ -7191,7 +8308,7 @@ func echo(value string) string {
 	if strings.Contains(rust, "return value.clone();") {
 		t.Fatalf("returning a string parameter should not alias the wrapper handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "return Rc::new(RefCell::new(Some(value.borrow().as_ref().unwrap().clone())));") {
+	if !strings.Contains(rust, "{ let __owned = value.borrow().as_ref().unwrap().clone(); Rc::new(RefCell::new(Some(__owned))) }") {
 		t.Fatalf("returning a string parameter should clone the wrapped value into a new handle:\n%s", rust)
 	}
 }

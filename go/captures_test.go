@@ -702,6 +702,52 @@ func core(next *int) {
 	}
 }
 
+func TestVarBlockFuncLitCapturesEarlierVarBlockNamesAfterDeclarations(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func expand(dst []int, pcBuf []int) int {
+	var (
+		n int
+		skip = pcBuf[0]
+		add = func(ret int) bool {
+			if skip > 0 {
+				skip--
+			} else if n < len(dst) {
+				dst[n] = ret
+				n++
+			}
+			return n < len(dst)
+		}
+	)
+	_ = add
+	return n
+}
+`)
+
+	nDecl := strings.Index(rust, "let mut n:")
+	nClone := strings.Index(rust, "n_closure_clone = n.clone();")
+	if nDecl < 0 || nClone < 0 || nClone < nDecl {
+		t.Fatalf("function literal should clone var-block local n after n is declared:\n%s", rust)
+	}
+	skipDecl := strings.Index(rust, "let mut skip")
+	skipClone := strings.Index(rust, "skip_closure_clone = skip.clone();")
+	if skipDecl < 0 || skipClone < 0 || skipClone < skipDecl {
+		t.Fatalf("function literal should clone var-block local skip after skip is declared:\n%s", rust)
+	}
+	if strings.Contains(rust, "n_closure_clone = n.clone(); let mut n") ||
+		strings.Contains(rust, "skip_closure_clone = skip.clone(); let mut n") {
+		t.Fatalf("same var-block captures must not be cloned before earlier declarations:\n%s", rust)
+	}
+	if strings.Contains(rust, "let mut add = Rc::new(RefCell::new(Some(Rc::new(RefCell::new(Some({") ||
+		strings.Contains(rust, "let mut add = Arc::new(Mutex::new(Some(Arc::new(Mutex::new(Some({") {
+		t.Fatalf("inferred var-block function literal should not be wrapped around an existing closure handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut add = Rc::new(RefCell::new(Some({ let mut n_closure_clone") &&
+		!strings.Contains(rust, "let mut add = Arc::new(Mutex::new(Some({ let mut n_closure_clone") {
+		t.Fatalf("inferred var-block function literal should store the closure handle directly:\n%s", rust)
+	}
+}
+
 func TestFuncLitUsesInnerCloneForCaptureSharedWithSiblingArg(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

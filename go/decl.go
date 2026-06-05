@@ -85,25 +85,28 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 
 	// Collect all fields (including embedded)
 	type fieldEntry struct {
-		name               string
-		isEmbedded         bool
-		isSlice            bool
-		isMap              bool
-		isInterface        bool
-		isFunction         bool
-		funcSlice          bool
-		anySlice           bool
-		hasTrait           bool
-		mapOpaque          bool
-		nestedSlice        bool
-		nestedSliceWrapped bool
-		ptrSlice           bool
-		ptrToSlice         bool
-		ptrToPtrSlice      bool
-		isPointer          bool
-		goPtr              bool
-		interfaceSlice     bool
-		zeroLenArray       bool
+		name                      string
+		isEmbedded                bool
+		isSlice                   bool
+		isMap                     bool
+		isInterface               bool
+		isFunction                bool
+		funcSlice                 bool
+		anySlice                  bool
+		hasTrait                  bool
+		mapOpaque                 bool
+		nestedSlice               bool
+		nestedSliceWrapped        bool
+		nestedPointerSlice        bool
+		nestedPointerSliceWrapped bool
+		ptrSlice                  bool
+		ptrToSlice                bool
+		ptrToPtrSlice             bool
+		isPointer                 bool
+		goPtr                     bool
+		goPtrArray                bool
+		interfaceSlice            bool
+		zeroLenArray              bool
 	}
 	var fields []fieldEntry
 	for fieldIndex, field := range structType.Fields.List {
@@ -122,6 +125,8 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		mapOpaque := mapFieldNeedsOpaqueDisplay(field.Type)
 		nestedSlice := arrayFieldContainsSlice(field.Type)
 		nestedSliceWrapped := arrayFieldNestedInnerIsPointer(field.Type)
+		nestedPointerSlice := arrayFieldNestedPointerInnerIsValue(field.Type)
+		nestedPointerSliceWrapped := arrayFieldNestedPointerInnerIsPointer(field.Type)
 		ptrSlice := arrayFieldContainsPointer(field.Type)
 		ptrToSlice := pointerFieldContainsSlice(field.Type)
 		ptrToPtrSlice := pointerFieldContainsPointerSlice(field.Type)
@@ -133,52 +138,59 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		}
 		if len(field.Names) > 0 {
 			for nameIndex, name := range field.Names {
-				_, goPtrField := sliceElemPtrFieldInfoForStructNameField(structName, name.Name)
+				_, goPtrField := sliceElemPtrFieldInfoForStructField(nil, structType, structName, name.Name)
+				_, goPtrArrayField := goPtrArrayFieldInfoForStructField(nil, structType, structName, name.Name)
 				fields = append(fields, fieldEntry{
-					name:               rustStructFieldName(name, fieldIndex, nameIndex),
-					isEmbedded:         false,
-					isSlice:            isSlice,
-					isMap:              isMap,
-					isInterface:        isInterface,
-					isFunction:         isFunction,
-					funcSlice:          funcSlice,
-					anySlice:           anySlice,
-					hasTrait:           hasTrait,
-					mapOpaque:          mapOpaque,
-					nestedSlice:        nestedSlice,
-					nestedSliceWrapped: nestedSliceWrapped,
-					ptrSlice:           ptrSlice,
-					ptrToSlice:         ptrToSlice,
-					ptrToPtrSlice:      ptrToPtrSlice,
-					isPointer:          isPointer || syncAtomicPointerDisplayField(structName, field, name),
-					goPtr:              goPtrField,
-					interfaceSlice:     interfaceSlice,
-					zeroLenArray:       zeroLenArray,
+					name:                      rustStructFieldName(name, fieldIndex, nameIndex),
+					isEmbedded:                false,
+					isSlice:                   isSlice,
+					isMap:                     isMap,
+					isInterface:               isInterface,
+					isFunction:                isFunction,
+					funcSlice:                 funcSlice,
+					anySlice:                  anySlice,
+					hasTrait:                  hasTrait,
+					mapOpaque:                 mapOpaque,
+					nestedSlice:               nestedSlice,
+					nestedSliceWrapped:        nestedSliceWrapped,
+					nestedPointerSlice:        nestedPointerSlice,
+					nestedPointerSliceWrapped: nestedPointerSliceWrapped,
+					ptrSlice:                  ptrSlice,
+					ptrToSlice:                ptrToSlice,
+					ptrToPtrSlice:             ptrToPtrSlice,
+					isPointer:                 isPointer || syncAtomicPointerDisplayField(structName, field, name),
+					goPtr:                     goPtrField,
+					goPtrArray:                goPtrArrayField,
+					interfaceSlice:            interfaceSlice,
+					zeroLenArray:              zeroLenArray,
 				})
 			}
 		} else {
 			// Embedded field
 			typeName := getEmbeddedFieldName(field.Type)
 			fields = append(fields, fieldEntry{
-				name:               typeName,
-				isEmbedded:         true,
-				isSlice:            isSlice,
-				isMap:              isMap,
-				isInterface:        isInterface,
-				isFunction:         isFunction,
-				funcSlice:          funcSlice,
-				anySlice:           anySlice,
-				hasTrait:           hasTrait,
-				mapOpaque:          mapOpaque,
-				nestedSlice:        nestedSlice,
-				nestedSliceWrapped: nestedSliceWrapped,
-				ptrSlice:           ptrSlice,
-				ptrToSlice:         ptrToSlice,
-				ptrToPtrSlice:      ptrToPtrSlice,
-				isPointer:          isPointer,
-				goPtr:              false,
-				interfaceSlice:     interfaceSlice,
-				zeroLenArray:       zeroLenArray,
+				name:                      typeName,
+				isEmbedded:                true,
+				isSlice:                   isSlice,
+				isMap:                     isMap,
+				isInterface:               isInterface,
+				isFunction:                isFunction,
+				funcSlice:                 funcSlice,
+				anySlice:                  anySlice,
+				hasTrait:                  hasTrait,
+				mapOpaque:                 mapOpaque,
+				nestedSlice:               nestedSlice,
+				nestedSliceWrapped:        nestedSliceWrapped,
+				nestedPointerSlice:        nestedPointerSlice,
+				nestedPointerSliceWrapped: nestedPointerSliceWrapped,
+				ptrSlice:                  ptrSlice,
+				ptrToSlice:                ptrToSlice,
+				ptrToPtrSlice:             ptrToPtrSlice,
+				isPointer:                 isPointer,
+				goPtr:                     false,
+				goPtrArray:                false,
+				interfaceSlice:            interfaceSlice,
+				zeroLenArray:              zeroLenArray,
 			})
 		}
 	}
@@ -222,11 +234,26 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			out.WriteString("format_nested_slice_wrapped(&self.")
 			out.WriteString(ToSnakeCase(f.name))
 			out.WriteString(")")
+		} else if f.nestedPointerSlice {
+			NeedFormatNestedPointerSlice()
+			out.WriteString("format_nested_pointer_slice(&self.")
+			out.WriteString(ToSnakeCase(f.name))
+			out.WriteString(")")
+		} else if f.nestedPointerSliceWrapped {
+			NeedFormatNestedPointerSliceWrapped()
+			out.WriteString("format_nested_pointer_slice_wrapped(&self.")
+			out.WriteString(ToSnakeCase(f.name))
+			out.WriteString(")")
 		} else if f.nestedSlice {
 			NeedFormatNestedSlice()
 			out.WriteString("format_nested_slice(&self.")
 			out.WriteString(ToSnakeCase(f.name))
 			out.WriteString(")")
+		} else if f.goPtrArray {
+			out.WriteString("{ let __guard = self.")
+			out.WriteString(ToSnakeCase(f.name))
+			WriteBorrowMethod(out, false)
+			out.WriteString("; match __guard.as_ref() { Some(__v) => format!(\"[{}]\", __v.iter().map(|__p| if __p.is_nil() { \"<nil>\".to_string() } else { \"<ptr>\".to_string() }).collect::<Vec<_>>().join(\" \")), None => \"[]\".to_string() } }")
 		} else if f.ptrToPtrSlice {
 			NeedFormatSlice()
 			out.WriteString("format_slice_wrapped(&self.")
@@ -409,6 +436,7 @@ func syncAtomicPointerDisplayField(structName string, field *ast.Field, name *as
 
 func syncAtomicPointerStorageRustType(typeSpec *ast.TypeSpec) string {
 	trackWrapperImports()
+	NeedSliceElemPtr()
 	typeParam := "T"
 	if typeSpec != nil && typeSpec.TypeParams != nil && len(typeSpec.TypeParams.List) > 0 {
 		for _, name := range typeSpec.TypeParams.List[0].Names {
@@ -420,8 +448,7 @@ func syncAtomicPointerStorageRustType(typeSpec *ast.TypeSpec) string {
 	}
 	outerWrapper := GetOuterWrapperType()
 	innerWrapper := GetInnerWrapperType()
-	pointerHandle := outerWrapper + "<" + innerWrapper + "<Option<" + typeParam + ">>>"
-	return outerWrapper + "<" + innerWrapper + "<Option<" + pointerHandle + ">>>"
+	return outerWrapper + "<" + innerWrapper + "<Option<GoPtr<" + typeParam + ">>>>"
 }
 
 // arrayFieldNestedInnerIsPointer reports whether expr is a nested slice ([][]X)
@@ -447,6 +474,63 @@ func arrayFieldNestedInnerIsPointer(expr ast.Expr) bool {
 	}
 	_, isPtr := elt.(*ast.StarExpr)
 	return isPtr
+}
+
+func arrayFieldNestedPointerInnerIsPointer(expr ast.Expr) bool {
+	typ, ok := typeInfoTypeForTypeExpr(expr)
+	if !ok {
+		return false
+	}
+	outer, ok := sequenceType(typ)
+	if !ok {
+		return false
+	}
+	ptr, ok := types.Unalias(outer.Elem()).Underlying().(*types.Pointer)
+	if !ok {
+		return false
+	}
+	inner, ok := sequenceType(ptr.Elem())
+	if !ok {
+		return false
+	}
+	_, ok = types.Unalias(inner.Elem()).Underlying().(*types.Pointer)
+	return ok
+}
+
+func arrayFieldNestedPointerInnerIsValue(expr ast.Expr) bool {
+	typ, ok := typeInfoTypeForTypeExpr(expr)
+	if !ok {
+		return false
+	}
+	outer, ok := sequenceType(typ)
+	if !ok {
+		return false
+	}
+	ptr, ok := types.Unalias(outer.Elem()).Underlying().(*types.Pointer)
+	if !ok {
+		return false
+	}
+	inner, ok := sequenceType(ptr.Elem())
+	if !ok {
+		return false
+	}
+	_, innerIsPointer := types.Unalias(inner.Elem()).Underlying().(*types.Pointer)
+	return !innerIsPointer
+}
+
+type goSequenceType interface {
+	Elem() types.Type
+}
+
+func sequenceType(typ types.Type) (goSequenceType, bool) {
+	switch seq := types.Unalias(typ).Underlying().(type) {
+	case *types.Array:
+		return seq, true
+	case *types.Slice:
+		return seq, true
+	default:
+		return nil, false
+	}
 }
 
 func arrayFieldContainsFunction(expr ast.Expr) bool {
@@ -1121,7 +1205,9 @@ func generateStructDefault(out *strings.Builder, typeSpec *ast.TypeSpec, structN
 				needComma = true
 				out.WriteString(rustStructFieldName(name, fieldIndex, nameIndex))
 				out.WriteString(": ")
-				if _, ok := sliceElemPtrFieldInfoForTypeSpecField(typeSpec, name.Name); ok {
+				if fieldInfo, ok := goPtrArrayFieldInfoForStructField(typeSpec, structType, structName, name.Name); ok {
+					writeGoPtrArrayFieldDefaultValue(out, fieldInfo)
+				} else if _, ok := sliceElemPtrFieldInfoForStructField(typeSpec, structType, structName, name.Name); ok {
 					NeedSliceElemPtr()
 					out.WriteString("GoPtr::nil()")
 				} else if syncAtomicPointerStorageField(typeSpec, field, name) {
@@ -1240,7 +1326,7 @@ func generateStructJsonDecode(out *strings.Builder, structName string, structTyp
 			out.WriteString("            out.")
 			out.WriteString(ToSnakeCase(name.Name))
 			out.WriteString(" = ")
-			if _, ok := sliceElemPtrFieldInfoForStructNameField(structName, name.Name); ok {
+			if _, ok := sliceElemPtrFieldInfoForStructField(nil, structType, structName, name.Name); ok {
 				NeedSliceElemPtr()
 				out.WriteString("GoPtr::local(")
 				out.WriteString("<")
@@ -1558,15 +1644,19 @@ func writeFunctionDeclTypeParams(out *strings.Builder, fn *ast.FuncDecl) {
 }
 
 func genericFunctionBoundKind(fn *ast.FuncDecl) genericMethodBoundKind {
+	boundKind := genericMethodBoundNone
 	if ctx := GetTranspileContext(); ctx != nil && ctx.Package != nil && ctx.Package.FunctionBoundKinds != nil {
-		if boundKind, ok := ctx.Package.FunctionBoundKinds[fn]; ok {
-			return boundKind
+		if cached, ok := ctx.Package.FunctionBoundKinds[fn]; ok {
+			boundKind |= cached
 		}
 	}
 	if genericFunctionUsesDirectTypeParamValue(fn) {
-		return genericMethodBoundGoValueClone
+		boundKind |= genericMethodBoundGoValueClone
 	}
-	return genericMethodBoundNone
+	if genericSignatureUsesGoPtrDirectTypeParam(fn) {
+		boundKind |= genericMethodBoundRustClone
+	}
+	return boundKind
 }
 
 func writeFunctionTypeParamsWithParam(out *strings.Builder, fnType *ast.FuncType, paramFunc func(*ast.Ident) string) {
@@ -1629,6 +1719,9 @@ func rustTypeGenericsForTypeSpecWithParam(typeSpec *ast.TypeSpec, paramFunc func
 
 func rustTypeGenericsForStructTypeSpec(typeSpec *ast.TypeSpec, structType *ast.StructType) rustTypeGenerics {
 	generics := rustTypeGenericsForDeclarationTypeSpec(typeSpec)
+	if typeSpecIsSyncAtomicPointer(typeSpec) {
+		generics = rustTypeGenericsForTypeSpec(typeSpec)
+	}
 	generics.Phantom = rustUnusedTypeParamsForStruct(typeSpec, structType)
 	return generics
 }
@@ -1697,6 +1790,8 @@ func structDisplayFieldUsesDefaultFormatter(expr ast.Expr) bool {
 		sliceFieldContainsEmptyInterface(expr) ||
 		mapFieldNeedsOpaqueDisplay(expr) ||
 		arrayFieldNestedInnerIsPointer(expr) ||
+		arrayFieldNestedPointerInnerIsValue(expr) ||
+		arrayFieldNestedPointerInnerIsPointer(expr) ||
 		arrayFieldContainsSlice(expr) ||
 		pointerFieldContainsPointerSlice(expr) ||
 		pointerFieldContainsSlice(expr) ||
@@ -2324,9 +2419,11 @@ func writeLocalInterfaceGoValueCloneImpl(out *strings.Builder, ifaceName, traitS
 	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
 	out.WriteString(" {\n")
 	out.WriteString("    fn go_value_clone(&self) -> Self {\n")
-	out.WriteString("        self.__go_clone_box_")
+	out.WriteString("        ")
+	out.WriteString(ifaceName)
+	out.WriteString("::__go_clone_box_")
 	out.WriteString(traitSnake)
-	out.WriteString("()\n")
+	out.WriteString("(self.as_ref())\n")
 	out.WriteString("    }\n")
 	out.WriteString("}")
 }
@@ -2921,7 +3018,7 @@ func writePointerLocalInterfaceWrapper(out *strings.Builder, typeName, ifaceName
 		out.WriteString("        let __guard = self.0")
 		WriteBorrowMethod(out, false)
 		out.WriteString(";\n")
-		out.WriteString("        match __guard.as_ref() { Some(__v) => write!(f, \"{}\", __v), None => write!(f, \"<nil>\") }\n")
+		out.WriteString("        match __guard.as_ref() { Some(__v) => write!(f, \"{:p}\", __v as *const _), None => write!(f, \"<nil>\") }\n")
 		out.WriteString("    }\n")
 		out.WriteString("}\n\n")
 	}
@@ -2932,13 +3029,13 @@ func writePointerLocalInterfaceWrapper(out *strings.Builder, typeName, ifaceName
 	out.WriteString(wrapperName)
 	out.WriteString(" {\n")
 	for _, method := range explicitInterfaceMethods(ifaceType) {
-		writePointerLocalInterfaceForwardMethodFromTypes(out, method, rustTypeName)
+		writePointerLocalInterfaceForwardMethodFromTypes(out, method, rustTypeName, ifaceName)
 	}
 	writePointerLocalInterfaceSupportImpl(out, ifaceName, wrapperName, ifaceType)
 	out.WriteString("}")
 }
 
-func writePointerLocalInterfaceForwardMethodFromTypes(out *strings.Builder, method *types.Func, receiverType string) {
+func writePointerLocalInterfaceForwardMethodFromTypes(out *strings.Builder, method *types.Func, receiverType, ifaceName string) {
 	if method == nil {
 		return
 	}
@@ -2949,7 +3046,7 @@ func writePointerLocalInterfaceForwardMethodFromTypes(out *strings.Builder, meth
 	out.WriteString("    fn ")
 	out.WriteString(ToSnakeCase(method.Name()))
 	out.WriteString("(")
-	mutableReceiver := interfaceMethodRequiresMutableReceiver(method)
+	mutableReceiver := interfaceTraitMethodRequiresMutableReceiver(ifaceName, method.Name(), method)
 	if mutableReceiver {
 		out.WriteString("&mut self")
 	} else {
@@ -3092,24 +3189,34 @@ func writeAssignedInterfaceParamShadows(out *strings.Builder, fn *ast.FuncDecl, 
 		return
 	}
 	for _, field := range fn.Type.Params.List {
-		if _, ok := transpiledNamedInterfaceTypeNameFromExpr(field.Type); !ok {
+		interfaceName, ok := transpiledNamedInterfaceTypeNameFromExpr(field.Type)
+		if !ok {
 			continue
 		}
 		for _, name := range field.Names {
 			if name.Name == "_" || !blockIdentAssigned(fn.Body, name.Name) {
 				continue
 			}
-			// The param now arrives as a wrapped Arc/Rc handle, so the shadow
-			// rebind just clones the handle — interior mutability through
-			// assignment is preserved without re-boxing the trait object.
 			out.WriteString(indent)
 			out.WriteString("let mut ")
 			out.WriteString(RustLocalIdent(name.Name))
 			out.WriteString(": ")
 			out.WriteString(GoTypeToRust(field.Type))
 			out.WriteString(" = ")
-			out.WriteString(RustLocalIdent(name.Name))
-			out.WriteString(".clone();\n")
+			if NeedsConcurrentWrapper() {
+				out.WriteString("Arc::new(Mutex::new(")
+				out.WriteString(RustLocalIdent(name.Name))
+				out.WriteString(".lock().unwrap().as_ref().map(|__v| ")
+			} else {
+				out.WriteString("Rc::new(RefCell::new(")
+				out.WriteString(RustLocalIdent(name.Name))
+				out.WriteString(".borrow().as_ref().map(|__v| ")
+			}
+			out.WriteString(interfaceName)
+			out.WriteString("::__go_clone_box_")
+			out.WriteString(traitMethodSuffix(interfaceName))
+			out.WriteString("(__v.as_ref()))")
+			out.WriteString("));\n")
 		}
 	}
 }
@@ -3352,11 +3459,26 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 					if elemRustType, ok := sliceElemPtrSliceParamInfoForDeclObject(fn, paramIndex); ok {
 						rustType = "Vec<GoPtr<" + elemRustType + ">>"
 					}
+					if elemRustType, ok := goPtrParamDeclElemRustType(fn, paramIndex); ok {
+						rustType = "GoPtr<" + elemRustType + ">"
+					}
 					if functionRustType, ok := functionTypeRustNameFromTypeExpr(field.Type); ok {
 						rustType = functionRustType
 					}
 					registerTypeExprCollectionInfo(name.Name, field.Type)
-					if varInfo, ok := interfaceParamVarInfo(field.Type); ok {
+					if elemRustType, ok := goPtrParamDeclElemRustType(fn, paramIndex); ok {
+						var goType types.Type
+						if typeInfo := GetTypeInfo(); typeInfo != nil {
+							goType = typeInfo.GetType(field.Type)
+						}
+						vt.Register(name.Name, &VarInfo{
+							WrapLevel:   WrapNone,
+							RustType:    "GoPtr<" + elemRustType + ">",
+							Source:      SourceParam,
+							PointerKind: PointerGoPtr,
+							GoType:      goType,
+						})
+					} else if varInfo, ok := interfaceParamVarInfo(field.Type); ok {
 						if assignedInterfaceParams[name.Name] {
 							vt.Register(name.Name, &VarInfo{
 								WrapLevel: WrapFull,
@@ -3430,6 +3552,8 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 
 	restoreSliceElemPtrCandidates := setSliceElemPtrCandidatesForFunc(fn)
 	defer restoreSliceElemPtrCandidates()
+	restoreFuncLitGoPtrParamInfos := setFuncLitGoPtrParamInfosForFunc(fn)
+	defer restoreFuncLitGoPtrParamInfos()
 	restoreSliceElemPtrReturn := pushCurrentSliceElemPtrReturn(fn)
 	defer restoreSliceElemPtrReturn()
 	registerArrayElemPtrNamedReturnVars(fn)
@@ -3473,6 +3597,14 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 					if info, ok := arrayElemPtrCandidateForDecl(name); ok {
 						out.WriteString(arrayElemPtrOptionRustType(info))
 						out.WriteString(" = None;\n")
+						continue
+					}
+					if info, ok := goPtrCandidateForDecl(name); ok {
+						elemRustType := goPtrResultElemRustType(info)
+						registerGoPtrVar(name.Name, elemRustType, nil)
+						out.WriteString("GoPtr<")
+						out.WriteString(elemRustType)
+						out.WriteString("> = GoPtr::nil();\n")
 						continue
 					}
 					out.WriteString(GoTypeToRust(result.Type))
@@ -3655,11 +3787,48 @@ func writeRuntimeLinkedFunctionBody(out *strings.Builder, fn *ast.FuncDecl, inde
 			out.WriteString(indent)
 			out.WriteString("0\n")
 			return true
+		case "runtime_Semacquire", "runtime_SemacquireWaitGroup", "runtime_SemacquireRWMutexR", "runtime_SemacquireRWMutex":
+			writeSyncRuntimeSemacquireBody(out, fn, indent)
+			return true
+		case "runtime_Semrelease":
+			writeSyncRuntimeSemreleaseBody(out, fn, indent)
+			return true
+		case "runtime_notifyListAdd":
+			out.WriteString(indent)
+			out.WriteString("let _ = ")
+			out.WriteString(RustLocalIdent(functionParamName(fn, 0, "l")))
+			out.WriteString(";\n")
+			out.WriteString(indent)
+			out.WriteString("0\n")
+			return true
+		case "runtime_notifyListWait", "runtime_notifyListNotifyAll", "runtime_notifyListNotifyOne":
+			out.WriteString(indent)
+			out.WriteString("let _ = ")
+			out.WriteString(RustLocalIdent(functionParamName(fn, 0, "l")))
+			out.WriteString(";\n")
+			if fn.Name.Name == "runtime_notifyListWait" {
+				out.WriteString(indent)
+				out.WriteString("let _ = ")
+				out.WriteString(RustLocalIdent(functionParamName(fn, 1, "t")))
+				out.WriteString(";\n")
+			}
+			return true
 		case "runtime_notifyListCheck":
 			out.WriteString(indent)
 			out.WriteString("let _ = ")
 			out.WriteString(RustLocalIdent(functionParamName(fn, 0, "size")))
 			out.WriteString(";\n")
+			return true
+		case "throw", "fatal":
+			paramName := RustLocalIdent(functionParamName(fn, 0, "__arg0"))
+			out.WriteString(indent)
+			out.WriteString("let __message = { let __arg_holder = ")
+			out.WriteString(paramName)
+			out.WriteString(".clone(); let __arg_guard = __arg_holder")
+			WriteBorrowMethod(out, false)
+			out.WriteString("; (*__arg_guard.as_ref().unwrap()).clone() };\n")
+			out.WriteString(indent)
+			out.WriteString("panic!(\"{}\", __message);\n")
 			return true
 		}
 	case "sync/atomic":
@@ -3776,6 +3945,71 @@ func writeRuntimeLinkedFunctionBody(out *strings.Builder, fn *ast.FuncDecl, inde
 	return false
 }
 
+func writeSyncRuntimeSemacquireBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	semName := RustLocalIdent(functionParamName(fn, 0, "s"))
+	out.WriteString(indent)
+	out.WriteString("loop {\n")
+	out.WriteString(indent)
+	out.WriteString("    let __acquired = {\n")
+	out.WriteString(indent)
+	out.WriteString("        let mut __sem_guard = ")
+	out.WriteString(semName)
+	WriteBorrowMethod(out, true)
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("        let __sem = __sem_guard.as_mut().unwrap();\n")
+	out.WriteString(indent)
+	out.WriteString("        if *__sem > 0 {\n")
+	out.WriteString(indent)
+	out.WriteString("            *__sem -= 1;\n")
+	out.WriteString(indent)
+	out.WriteString("            true\n")
+	out.WriteString(indent)
+	out.WriteString("        } else {\n")
+	out.WriteString(indent)
+	out.WriteString("            false\n")
+	out.WriteString(indent)
+	out.WriteString("        }\n")
+	out.WriteString(indent)
+	out.WriteString("    };\n")
+	out.WriteString(indent)
+	out.WriteString("    if __acquired {\n")
+	out.WriteString(indent)
+	out.WriteString("        break;\n")
+	out.WriteString(indent)
+	out.WriteString("    }\n")
+	out.WriteString(indent)
+	out.WriteString("    std::thread::yield_now();\n")
+	out.WriteString(indent)
+	out.WriteString("}\n")
+}
+
+func writeSyncRuntimeSemreleaseBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	semName := RustLocalIdent(functionParamName(fn, 0, "s"))
+	out.WriteString(indent)
+	out.WriteString("{\n")
+	out.WriteString(indent)
+	out.WriteString("    let mut __sem_guard = ")
+	out.WriteString(semName)
+	WriteBorrowMethod(out, true)
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("    let __sem = __sem_guard.as_mut().unwrap();\n")
+	out.WriteString(indent)
+	out.WriteString("    *__sem = __sem.saturating_add(1);\n")
+	out.WriteString(indent)
+	out.WriteString("}\n")
+	for i, fallback := range []string{"handoff", "skipframes"} {
+		if fn.Type == nil || fn.Type.Params == nil || len(fn.Type.Params.List) <= i+1 {
+			continue
+		}
+		out.WriteString(indent)
+		out.WriteString("let _ = ")
+		out.WriteString(RustLocalIdent(functionParamName(fn, i+1, fallback)))
+		out.WriteString(";\n")
+	}
+}
+
 func writeInternalSyscallUnixARC4RandomBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
 	paramName := functionParamName(fn, 0, "p")
 	out.WriteString(indent)
@@ -3871,8 +4105,7 @@ func writeSyncAtomicPointerMethodBody(out *strings.Builder, fn *ast.FuncDecl, in
 		out.WriteString(";\n")
 		out.WriteString(indent)
 		out.WriteString("let __old = __guard.as_ref().cloned().unwrap_or_else(|| ")
-		WriteWrappedNone(out)
-		out.WriteString(");\n")
+		out.WriteString("GoPtr::nil());\n")
 		out.WriteString(indent)
 		out.WriteString("*__guard = __stored;\n")
 		out.WriteString(indent)
@@ -3894,9 +4127,7 @@ func writeSyncAtomicPointerLoadMethodBody(out *strings.Builder, indent string) {
 	WriteBorrowMethod(out, false)
 	out.WriteString(";\n")
 	out.WriteString(indent)
-	out.WriteString("__guard.as_ref().cloned().unwrap_or_else(|| ")
-	WriteWrappedNone(out)
-	out.WriteString(")\n")
+	out.WriteString("__guard.as_ref().cloned().unwrap_or_else(|| GoPtr::nil())\n")
 }
 
 func writeSyncAtomicPointerStoredOption(out *strings.Builder, paramName string, localName string, indent string) {
@@ -3905,10 +4136,9 @@ func writeSyncAtomicPointerStoredOption(out *strings.Builder, paramName string, 
 	out.WriteString(localName)
 	out.WriteString(" = if ")
 	out.WriteString(paramName)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".is_some() { Some(")
+	out.WriteString(".is_nil() { None } else { Some(")
 	out.WriteString(paramName)
-	out.WriteString(".clone()) } else { None };\n")
+	out.WriteString(".clone()) };\n")
 }
 
 func writeSyncAtomicPointerCompareAndSwapMethodBody(out *strings.Builder, oldName string, newName string, indent string) {
@@ -3916,8 +4146,7 @@ func writeSyncAtomicPointerCompareAndSwapMethodBody(out *strings.Builder, oldNam
 	out.WriteString(indent)
 	out.WriteString("let __old_is_nil = ")
 	out.WriteString(oldName)
-	WriteBorrowMethod(out, false)
-	out.WriteString(".is_none();\n")
+	out.WriteString(".is_nil();\n")
 	out.WriteString(indent)
 	out.WriteString("let mut __guard = self.v")
 	WriteBorrowMethod(out, true)
@@ -3929,15 +4158,11 @@ func writeSyncAtomicPointerCompareAndSwapMethodBody(out *strings.Builder, oldNam
 	out.WriteString(indent)
 	out.WriteString("        if __old_is_nil {\n")
 	out.WriteString(indent)
-	out.WriteString("            __current")
-	WriteBorrowMethod(out, false)
-	out.WriteString(".is_none()\n")
+	out.WriteString("            __current.is_nil()\n")
 	out.WriteString(indent)
 	out.WriteString("        } else {\n")
 	out.WriteString(indent)
-	out.WriteString("            ")
-	out.WriteString(GetOuterWrapperType())
-	out.WriteString("::ptr_eq(__current, &")
+	out.WriteString("            GoPtr::ptr_eq(__current, &")
 	out.WriteString(oldName)
 	out.WriteString(")\n")
 	out.WriteString(indent)
@@ -4164,6 +4389,8 @@ func writeFuncPCIntrinsicBody(out *strings.Builder, fn *ast.FuncDecl, indent str
 }
 
 func writeInternalABITypeOfIntrinsicBody(out *strings.Builder, fn *ast.FuncDecl, indent string) {
+	NeedGoAnyTypeMetadata()
+	NeedEmbeddedOwnerRegistry()
 	paramName := "a"
 	if fn != nil && fn.Type != nil && fn.Type.Params != nil && len(fn.Type.Params.List) > 0 {
 		firstParam := fn.Type.Params.List[0]
@@ -4173,8 +4400,14 @@ func writeInternalABITypeOfIntrinsicBody(out *strings.Builder, fn *ast.FuncDecl,
 	}
 
 	sliceHandleType := "Rc<RefCell<Option<Vec<u8>>>>"
+	anyBoxType := rustAnyTraitObject()
+	anyHandleType := "Rc<RefCell<Option<" + anyBoxType + ">>>"
+	anySliceType := "Vec<" + anyBoxType + ">"
+	anySliceHandleType := "Rc<RefCell<Option<" + anySliceType + ">>>"
 	if NeedsConcurrentWrapper() {
 		sliceHandleType = "Arc<Mutex<Option<Vec<u8>>>>"
+		anyHandleType = "Arc<Mutex<Option<" + anyBoxType + ">>>"
+		anySliceHandleType = "Arc<Mutex<Option<" + anySliceType + ">>>"
 	}
 
 	out.WriteString(indent)
@@ -4184,14 +4417,26 @@ func writeInternalABITypeOfIntrinsicBody(out *strings.Builder, fn *ast.FuncDecl,
 	out.WriteString(";\n")
 	out.WriteString(indent)
 	out.WriteString("let __value = match __guard.as_ref() { Some(__value) => __value.as_ref(), None => return ")
-	WriteWrappedNone(out)
+	if !writeGoPtrNilReturnValueForFunc(out, fn, 0) {
+		WriteWrappedNone(out)
+	}
 	out.WriteString(" };\n")
 	out.WriteString(indent)
 	out.WriteString("let mut __typ = Type::default();\n")
 	out.WriteString(indent)
-	out.WriteString("let __kind: u8 = if <dyn std::any::Any>::is::<bool>(__value) { BOOL } else if <dyn std::any::Any>::is::<i32>(__value) { INT } else if <dyn std::any::Any>::is::<i8>(__value) { INT8 } else if <dyn std::any::Any>::is::<i16>(__value) { INT16 } else if <dyn std::any::Any>::is::<i64>(__value) { INT64 } else if <dyn std::any::Any>::is::<u8>(__value) { UINT8 } else if <dyn std::any::Any>::is::<u16>(__value) { UINT16 } else if <dyn std::any::Any>::is::<u32>(__value) { UINT32 } else if <dyn std::any::Any>::is::<u64>(__value) { UINT64 } else if <dyn std::any::Any>::is::<usize>(__value) { UINTPTR } else if <dyn std::any::Any>::is::<f32>(__value) { FLOAT32 } else if <dyn std::any::Any>::is::<f64>(__value) { FLOAT64 } else if <dyn std::any::Any>::is::<String>(__value) { STRING } else if <dyn std::any::Any>::is::<")
+	out.WriteString("let __go_any_metadata = go_any_type_metadata(__value);\n")
+	out.WriteString(indent)
+	out.WriteString("let __kind: u8 = if let Some(__go_meta) = __go_any_metadata { match __go_meta.kind { \"struct\" => STRUCT, \"pointer\" => POINTER, \"slice\" => SLICE, \"map\" => MAP, \"interface\" => INTERFACE, \"chan\" => CHAN, \"func\" => FUNC, \"array\" => ARRAY, \"basic\" => INVALID, _ => panic!(\"internal/abi.TypeOf unsupported Go metadata kind: {}\", __go_meta.kind) } } else if <dyn std::any::Any>::is::<bool>(__value) { BOOL } else if <dyn std::any::Any>::is::<i32>(__value) { INT } else if <dyn std::any::Any>::is::<isize>(__value) { INT } else if <dyn std::any::Any>::is::<i8>(__value) { INT8 } else if <dyn std::any::Any>::is::<i16>(__value) { INT16 } else if <dyn std::any::Any>::is::<i64>(__value) { INT64 } else if <dyn std::any::Any>::is::<u8>(__value) { UINT8 } else if <dyn std::any::Any>::is::<u16>(__value) { UINT16 } else if <dyn std::any::Any>::is::<u32>(__value) { UINT32 } else if <dyn std::any::Any>::is::<u64>(__value) { UINT64 } else if <dyn std::any::Any>::is::<usize>(__value) { UINTPTR } else if <dyn std::any::Any>::is::<f32>(__value) { FLOAT32 } else if <dyn std::any::Any>::is::<f64>(__value) { FLOAT64 } else if <dyn std::any::Any>::is::<String>(__value) { STRING } else if <dyn std::any::Any>::is::<&'static str>(__value) { STRING } else if <dyn std::any::Any>::is::<char>(__value) { INT32 } else if <dyn std::any::Any>::is::<Vec<u8>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Vec<i32>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Vec<i64>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Vec<f64>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Vec<String>>(__value) { SLICE } else if <dyn std::any::Any>::is::<Vec<bool>>(__value) { SLICE } else if <dyn std::any::Any>::is::<")
 	out.WriteString(sliceHandleType)
-	out.WriteString(">(__value) { SLICE } else { panic!(\"internal/abi.TypeOf unsupported Rust Any payload\") };\n")
+	out.WriteString(">(__value) { SLICE } else if <dyn std::any::Any>::is::<")
+	out.WriteString(anySliceType)
+	out.WriteString(">(__value) { SLICE } else if <dyn std::any::Any>::is::<")
+	out.WriteString(anySliceHandleType)
+	out.WriteString(">(__value) { SLICE } else if <dyn std::any::Any>::is::<")
+	out.WriteString(anyBoxType)
+	out.WriteString(">(__value) { INTERFACE } else if <dyn std::any::Any>::is::<")
+	out.WriteString(anyHandleType)
+	out.WriteString(">(__value) { INTERFACE } else { panic!(\"internal/abi.TypeOf unsupported Rust Any payload: {}\", std::any::type_name_of_val(__value)) };\n")
 	out.WriteString(indent)
 	out.WriteString("*__typ.kind_")
 	WriteBorrowMethod(out, true)
@@ -4205,10 +4450,74 @@ func writeInternalABITypeOfIntrinsicBody(out *strings.Builder, fn *ast.FuncDecl,
 	WriteBorrowMethod(out, true)
 	out.WriteString(" = Some(std::mem::size_of_val(__value));\n")
 	out.WriteString(indent)
+	out.WriteString("if let Some(__go_meta) = __go_any_metadata { if __go_meta.comparable { *__typ.equal")
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(Box::new(|_, _| false) as ")
+	writeInternalABIEqualFunctionType(out)
+	out.WriteString("); } }\n")
+	out.WriteString(indent)
+	out.WriteString("if let Some(__go_meta) = __go_any_metadata { if __go_meta.kind == \"pointer\" { let mut __ptr_type = PtrType::default(); *__ptr_type.r#type")
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(__typ); if let Some(__go_elem_kind) = __go_meta.elem_kind { let mut __elem_type = Type::default(); let __elem_kind: u8 = ")
+	out.WriteString(internalABIKindMetadataMatch("__go_elem_kind"))
+	out.WriteString("; *__elem_type.kind_")
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(Kind(")
 	WriteWrapperPrefix(out)
-	out.WriteString("__typ")
+	out.WriteString("__elem_kind")
 	WriteWrapperSuffix(out)
+	out.WriteString(")); if __go_meta.elem_comparable { *__elem_type.equal")
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(Box::new(|_, _| false) as ")
+	writeInternalABIEqualFunctionType(out)
+	out.WriteString("); } *__ptr_type.elem")
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(__elem_type); } let __owner = ")
+	WriteWrapperPrefix(out)
+	out.WriteString("__ptr_type")
+	WriteWrapperSuffix(out)
+	out.WriteString("; let __embedded = { let __owner_guard = __owner")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __owner_guard.as_ref().unwrap().r#type.clone() }; let __embedded_key = { let __embedded_guard = __embedded")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); return ")
+	if !writeGoPtrLocalReturnValueForFunc(out, fn, 0, func() {
+		out.WriteString("__embedded")
+	}) {
+		out.WriteString("__embedded")
+	}
+	out.WriteString("; } }\n")
+	out.WriteString(indent)
+	if !writeGoPtrLocalReturnValueForFunc(out, fn, 0, func() {
+		WriteWrapperPrefix(out)
+		out.WriteString("__typ")
+		WriteWrapperSuffix(out)
+	}) {
+		WriteWrapperPrefix(out)
+		out.WriteString("__typ")
+		WriteWrapperSuffix(out)
+	}
 	out.WriteString("\n")
+}
+
+func internalABIKindMetadataMatch(valueExpr string) string {
+	return "match " + valueExpr + " { \"struct\" => STRUCT, \"pointer\" => POINTER, \"slice\" => SLICE, \"map\" => MAP, \"interface\" => INTERFACE, \"chan\" => CHAN, \"func\" => FUNC, \"array\" => ARRAY, \"basic\" => INVALID, _ => panic!(\"internal/abi.TypeOf unsupported Go metadata kind: {}\", " + valueExpr + ") }"
+}
+
+func writeInternalABIEqualFunctionType(out *strings.Builder) {
+	out.WriteString("Box<dyn FnMut(")
+	out.WriteString(GetOuterWrapperType())
+	out.WriteString("<")
+	out.WriteString(GetInnerWrapperType())
+	out.WriteString("<Option<usize>>>, ")
+	out.WriteString(GetOuterWrapperType())
+	out.WriteString("<")
+	out.WriteString(GetInnerWrapperType())
+	out.WriteString("<Option<usize>>>) -> bool")
+	if NeedsConcurrentWrapper() {
+		out.WriteString(" + Send + Sync")
+	}
+	out.WriteString(">")
 }
 
 func writeInternalBytealgCountIntrinsicBody(out *strings.Builder, fn *ast.FuncDecl, indent string, stringInput bool) {
@@ -4606,6 +4915,13 @@ func writeFuncDeclParam(out *strings.Builder, fn *ast.FuncDecl, paramIndex int, 
 		out.WriteString(sliceElemPtrSliceRustType(elemRustType))
 		return
 	}
+	if elemRustType, ok := goPtrParamDeclElemRustType(fn, paramIndex); ok {
+		NeedSliceElemPtr()
+		out.WriteString("GoPtr<")
+		out.WriteString(elemRustType)
+		out.WriteString(">")
+		return
+	}
 	out.WriteString(GoTypeToRustParam(typ))
 }
 
@@ -4745,10 +5061,13 @@ func emitStructTypeDeclBody(out *strings.Builder, typeSpec *ast.TypeSpec, t *ast
 				out.WriteString("    pub ")
 				out.WriteString(rustStructFieldName(name, fieldIndex, nameIndex))
 				out.WriteString(": ")
-				if fieldInfo, ok := sliceElemPtrFieldInfoForTypeSpecField(typeSpec, name.Name); ok {
+				if fieldInfo, ok := goPtrArrayFieldInfoForStructField(typeSpec, t, structName, name.Name); ok {
+					out.WriteString(goPtrArrayFieldRustType(fieldInfo))
+				} else if fieldInfo, ok := sliceElemPtrFieldInfoForStructField(typeSpec, t, structName, name.Name); ok {
+					recordGeneratedGoPtrFieldForStructField(typeSpec, t, structName, name.Name)
 					NeedSliceElemPtr()
 					out.WriteString("GoPtr<")
-					out.WriteString(fieldInfo.elemRustType)
+					out.WriteString(sliceElemPtrFieldElemRustType(fieldInfo))
 					out.WriteString(">")
 				} else if syncAtomicPointerStorageField(typeSpec, field, name) {
 					out.WriteString(syncAtomicPointerStorageRustType(typeSpec))
@@ -4888,9 +5207,11 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 		out.WriteString(rustLocalInterfaceTraitObject(rustTypeName))
 		out.WriteString(" {\n")
 		out.WriteString("    fn clone(&self) -> Self {\n")
-		out.WriteString("        self.__go_clone_box_")
+		out.WriteString("        ")
+		out.WriteString(rustTypeName)
+		out.WriteString("::__go_clone_box_")
 		out.WriteString(traitSnake)
-		out.WriteString("()\n")
+		out.WriteString("(self.as_ref())\n")
 		out.WriteString("    }\n")
 		out.WriteString("}")
 		if localInterfaceNeedsGoValueCloneImpl(rustTypeName) {
@@ -5015,16 +5336,49 @@ func TranspileTypeDecl(out *strings.Builder, typeSpec *ast.TypeSpec, genDecl *as
 				if !canDeriveDebug {
 					generateStructDebug(out, typeSpec.Name.Name, rustTypeGenerics{})
 				}
-			} else if array, ok := t.(*ast.ArrayType); ok && arrayTypeDefinitionElemDisplayable(array) {
+			} else if _, ok := typeDefinitionUnderlyingNamedArray(typeSpec); ok {
 				TrackImport("Display")
 				TrackImport("Formatter")
-				NeedFormatSlice()
 
 				out.WriteString("\nimpl Display for ")
 				out.WriteString(rustTypeName)
 				out.WriteString(" {\n")
 				out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
-				out.WriteString("        write!(f, \"{}\", format_slice(&self.0))\n")
+				out.WriteString("        let __inner_guard = self.0")
+				WriteBorrowMethod(out, false)
+				out.WriteString(";\n")
+				out.WriteString("        write!(f, \"{}\", __inner_guard.as_ref().unwrap())\n")
+				out.WriteString("    }\n")
+				out.WriteString("}\n")
+			} else if typeDefinitionUnderlyingNamedDisplayable(typeSpec) {
+				TrackImport("Display")
+				TrackImport("Formatter")
+
+				out.WriteString("\nimpl Display for ")
+				out.WriteString(rustTypeName)
+				out.WriteString(" {\n")
+				out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
+				out.WriteString("        write!(f, \"{}\", self.0")
+				WriteBorrowMethod(out, false)
+				out.WriteString(".as_ref().unwrap())\n")
+				out.WriteString("    }\n")
+				out.WriteString("}\n")
+			} else if arrayFormatter, ok := typeDefinitionArrayDisplayFormatter(typeSpec); ok {
+				TrackImport("Display")
+				TrackImport("Formatter")
+				if arrayFormatter == "format_slice_wrapped_stringer" {
+					NeedFormatSliceWrappedStringer()
+				} else {
+					NeedFormatSlice()
+				}
+
+				out.WriteString("\nimpl Display for ")
+				out.WriteString(rustTypeName)
+				out.WriteString(" {\n")
+				out.WriteString("    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {\n")
+				out.WriteString("        write!(f, \"{}\", ")
+				out.WriteString(arrayFormatter)
+				out.WriteString("(&self.0))\n")
 				out.WriteString("    }\n")
 				out.WriteString("}\n")
 			} else if typeDefinitionMapUnderlyingDisplayable(typeSpec) {
@@ -5107,13 +5461,6 @@ func writeOrderedPrimitiveInterfaceImpls(out *strings.Builder, rustTypeName stri
 	}
 }
 
-func arrayTypeDefinitionElemDisplayable(array *ast.ArrayType) bool {
-	if array == nil {
-		return false
-	}
-	return isDisplayableDefinedUnderlying(typeDefinitionUnderlyingName(array.Elt))
-}
-
 func typeDefinitionScalarUnderlyingDisplayable(typeSpec *ast.TypeSpec) bool {
 	if typeSpec == nil || typeSpec.Name == nil {
 		return false
@@ -5129,6 +5476,131 @@ func typeDefinitionScalarUnderlyingDisplayable(typeSpec *ast.TypeSpec) bool {
 		}
 	}
 	return false
+}
+
+func typeDefinitionUnderlyingNamedDisplayable(typeSpec *ast.TypeSpec) bool {
+	named, ok := typeDefinitionUnderlyingNamedType(typeSpec)
+	if !ok {
+		return false
+	}
+	if typeSpec.TypeParams != nil {
+		return false
+	}
+	if typeArgs := named.TypeArgs(); typeArgs != nil && typeArgs.Len() > 0 {
+		return false
+	}
+	if !namedTypeHasGeneratedDisplay(named) {
+		return false
+	}
+	if _, ok := types.Unalias(named.Underlying()).(*types.Array); ok {
+		return false
+	}
+	return true
+}
+
+func typeDefinitionUnderlyingNamedType(typeSpec *ast.TypeSpec) (*types.Named, bool) {
+	if typeSpec == nil || typeSpec.Name == nil {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil, false
+	}
+	typ := typeInfo.GetType(typeSpec.Type)
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil {
+		return nil, false
+	}
+	return named, true
+}
+
+func namedTypeHasGeneratedDisplay(named *types.Named) bool {
+	if named == nil || named.Obj() == nil {
+		return false
+	}
+	if !namedTypeRustDisplayImplAvailable(named) {
+		return false
+	}
+	if typeHasGoStringMethod(named) || typeHasGoStringMethod(types.NewPointer(named)) {
+		return true
+	}
+	switch underlying := types.Unalias(named.Underlying()).(type) {
+	case *types.Basic:
+		return goTypeBasicDisplayable(underlying)
+	case *types.Struct:
+		return true
+	case *types.Slice:
+		_, ok := sequenceDisplayFormatter(underlying.Elem())
+		return ok
+	case *types.Array:
+		_, ok := sequenceDisplayFormatter(underlying.Elem())
+		return ok
+	case *types.Map:
+		return mapKeyTypeDisplayable(underlying.Key()) && mapValueTypeDisplayable(underlying.Elem())
+	default:
+		return false
+	}
+}
+
+func namedTypeRustDisplayImplAvailable(named *types.Named) bool {
+	if named == nil || named.Obj() == nil {
+		return false
+	}
+	obj := named.Obj()
+	if obj.Pkg() == nil {
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.pkg != nil && obj.Pkg() == typeInfo.pkg {
+		return true
+	}
+	pkgPath := obj.Pkg().Path()
+	return isStdlibPackage(pkgPath) || isSourceMappedPackagePath(pkgPath)
+}
+
+func typeDefinitionUnderlyingNamedArray(typeSpec *ast.TypeSpec) (*types.Named, bool) {
+	if typeSpec == nil || typeSpec.Name == nil {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil, false
+	}
+	typ := typeInfo.GetType(typeSpec.Type)
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil {
+		return nil, false
+	}
+	if _, ok := types.Unalias(named.Underlying()).(*types.Array); !ok {
+		return nil, false
+	}
+	return named, true
+}
+
+func typeDefinitionArrayDisplayFormatter(typeSpec *ast.TypeSpec) (string, bool) {
+	if typeSpec == nil || typeSpec.Name == nil {
+		return "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return "", false
+	}
+	obj, ok := typeInfo.info.Defs[typeSpec.Name].(*types.TypeName)
+	if !ok {
+		return "", false
+	}
+	named, ok := types.Unalias(obj.Type()).(*types.Named)
+	if !ok {
+		return "", false
+	}
+	switch seq := types.Unalias(named.Underlying()).(type) {
+	case *types.Slice:
+		return sequenceDisplayFormatter(seq.Elem())
+	case *types.Array:
+		return sequenceDisplayFormatter(seq.Elem())
+	default:
+		return "", false
+	}
 }
 
 func typeDefinitionCustomDefaultValue(typeSpec *ast.TypeSpec) (string, bool) {
@@ -5151,6 +5623,29 @@ func typeDefinitionCustomDefaultValue(typeSpec *ast.TypeSpec) (string, bool) {
 		return "", false
 	}
 	return zeroValueForTypesType(named), true
+}
+
+func sequenceDisplayFormatter(elem types.Type) (string, bool) {
+	if elem == nil {
+		return "", false
+	}
+	elem = types.Unalias(elem)
+	if ptr, ok := elem.Underlying().(*types.Pointer); ok {
+		if typeHasGoStringMethod(ptr.Elem()) || typeHasGoStringMethod(types.NewPointer(ptr.Elem())) {
+			return "format_slice_wrapped", true
+		}
+		return "", false
+	}
+	if intf, ok := elem.Underlying().(*types.Interface); ok {
+		if intf.NumMethods() > 0 {
+			return "format_slice_wrapped_stringer", true
+		}
+		return "", false
+	}
+	if goTypeBasicDisplayable(elem) || typeHasGoStringMethod(elem) || typeHasGoStringMethod(types.NewPointer(elem)) {
+		return "format_slice", true
+	}
+	return "", false
 }
 
 func typeDefinitionMapUnderlyingDisplayable(typeSpec *ast.TypeSpec) bool {
@@ -5736,12 +6231,15 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 				var constName string
 				var constType string
 				var constTypeName string
+				declaredConstType := false
 				if valueSpec.Type != nil {
 					constType = rustConstTypeForTypeExpr(valueSpec.Type)
 					constTypeName, _ = constDeclaredNamedType(valueSpec.Type)
+					declaredConstType = true
 				} else if len(valueSpec.Values) == 0 && lastType != nil {
 					constType = rustConstTypeForTypeExpr(lastType)
 					constTypeName, _ = constDeclaredNamedType(lastType)
+					declaredConstType = true
 				} else if inferredType, ok := rustConstTypeForConstObject(name, constExpr); ok {
 					constType = inferredType
 				} else if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
@@ -5776,17 +6274,17 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 				if len(valueSpec.Values) > i && valueSpec.Values[i] != nil {
 					// Replace iota with actual value
 					if !writeExternalNamedIntegerConstValue(out, name) {
-						writeConstExprForRustType(out, valueSpec.Values[i], iotaValue, constType)
+						writeConstExprForRustType(out, valueSpec.Values[i], iotaValue, constType, declaredConstType)
 					}
 				} else if len(lastExpressions) > i && lastExpressions[i] != nil {
 					// Use the corresponding expression from lastExpressions for this position
 					if !writeExternalNamedIntegerConstValue(out, name) {
-						writeConstExprForRustType(out, lastExpressions[i], iotaValue, constType)
+						writeConstExprForRustType(out, lastExpressions[i], iotaValue, constType, declaredConstType)
 					}
 				} else if len(lastExpressions) > 0 && lastExpressions[0] != nil {
 					// If we don't have an expression for this position, use the first one
 					if !writeExternalNamedIntegerConstValue(out, name) {
-						writeConstExprForRustType(out, lastExpressions[0], iotaValue, constType)
+						writeConstExprForRustType(out, lastExpressions[0], iotaValue, constType, declaredConstType)
 					}
 				} else {
 					// No previous expression pattern, just use iota value
@@ -5799,7 +6297,7 @@ func transpileConstDeclWithCase(out *strings.Builder, genDecl *ast.GenDecl, toUp
 	}
 }
 
-func writeConstExprForRustType(out *strings.Builder, expr ast.Expr, iotaValue int, rustType string) {
+func writeConstExprForRustType(out *strings.Builder, expr ast.Expr, iotaValue int, rustType string, declaredConstType bool) {
 	if rustType == "&'static [u8]" && writeConstByteSliceLiteralValue(out, expr) {
 		return
 	}
@@ -5818,7 +6316,42 @@ func writeConstExprForRustType(out *strings.Builder, expr ast.Expr, iotaValue in
 	if writeConstSelectorForIntegerRustType(out, expr, iotaValue, rustType) {
 		return
 	}
+	if declaredConstType && writeConstBinaryExprForDeclaredIntegerRustType(out, expr, rustType) {
+		return
+	}
 	TranspileConstExpr(out, expr, iotaValue)
+}
+
+func writeConstBinaryExprForDeclaredIntegerRustType(out *strings.Builder, expr ast.Expr, rustType string) bool {
+	if _, ok := rustIntegerCastTypeFromRustType(rustType); !ok || !isConstantExpression(expr) {
+		return false
+	}
+	if constExprContainsIota(expr) {
+		return false
+	}
+	if _, ok := unwrapParens(expr).(*ast.BinaryExpr); !ok {
+		return false
+	}
+	if !writeDeclaredConstExpressionWithRustIntegerOperands(out, expr, rustType) {
+		return false
+	}
+	return true
+}
+
+func constExprContainsIota(expr ast.Expr) bool {
+	found := false
+	ast.Inspect(expr, func(node ast.Node) bool {
+		if found {
+			return false
+		}
+		ident, ok := node.(*ast.Ident)
+		if ok && ident.Name == "iota" {
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
 }
 
 func writeOutOfRangeGoIntConstExprForRustType(out *strings.Builder, expr ast.Expr, iotaValue int, rustType string) bool {
@@ -6597,7 +7130,9 @@ func writeConstTypeConversion(out *strings.Builder, call *ast.CallExpr, iotaValu
 		return false
 	}
 	out.WriteString("(")
-	if constTypeConversionArgNeedsParens(call.Args[0]) {
+	if writeConstNumericConversionValueForRustType(out, call.Args[0], rustType) {
+		// Constant operands were emitted in a Rust integer type wide enough for the conversion.
+	} else if constTypeConversionArgNeedsParens(call.Args[0]) {
 		out.WriteString("(")
 		TranspileConstExpr(out, call.Args[0], iotaValue)
 		out.WriteString(")")
@@ -6755,6 +7290,15 @@ func writeNamedReturnDeclarations(out *strings.Builder, fnType *ast.FuncType) {
 				wrote = true
 				continue
 			}
+			if info, ok := goPtrCandidateForDecl(name); ok {
+				elemRustType := goPtrResultElemRustType(info)
+				registerGoPtrVar(name.Name, elemRustType, nil)
+				out.WriteString("GoPtr<")
+				out.WriteString(elemRustType)
+				out.WriteString("> = GoPtr::nil();\n")
+				wrote = true
+				continue
+			}
 			out.WriteString(GoTypeToRust(result.Type))
 			out.WriteString(" = ")
 
@@ -6858,7 +7402,10 @@ func writeNamedReturnValues(out *strings.Builder, fnType *ast.FuncType) {
 					writeNamedReturnZeroValue(out, result.Type)
 				}
 			} else {
-				if resultTypeExprIsBareScalar(result.Type) {
+				if _, ok := goPtrCandidateForDecl(name); ok {
+					out.WriteString(RustLocalIdent(name.Name))
+					out.WriteString(".clone()")
+				} else if resultTypeExprIsBareScalar(result.Type) {
 					out.WriteString("(*")
 					out.WriteString(RustLocalIdent(name.Name))
 					WriteBorrowMethod(out, false)
@@ -7587,15 +8134,26 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 	}
 	prevCurrentReceiverRustAlias := currentReceiverRustAlias
 	prevCurrentReceiverRustAliasIsPointerHandle := currentReceiverRustAliasIsPointerHandle
+	prevCurrentReceiverRustAliasIsGoPtr := currentReceiverRustAliasIsGoPtr
+	prevCurrentReceiverRustAliasGoPtrInfo := currentReceiverRustAliasGoPtrInfo
 	currentReceiverRustAlias = ""
 	currentReceiverRustAliasIsPointerHandle = false
+	currentReceiverRustAliasIsGoPtr = false
+	currentReceiverRustAliasGoPtrInfo = goPtrResultInfo{}
 	if methodReassignsReceiver(fn) {
 		currentReceiverRustAlias = "__self"
 		currentReceiverRustAliasIsPointerHandle = methodNeedsPointerReceiverHandleAlias(fn)
+		if info, ok := methodNeedsGoPtrReceiverAlias(fn); ok {
+			currentReceiverRustAliasIsGoPtr = true
+			currentReceiverRustAliasGoPtrInfo = info
+			currentReceiverRustAliasIsPointerHandle = false
+		}
 	}
 	defer func() {
 		currentReceiverRustAlias = prevCurrentReceiverRustAlias
 		currentReceiverRustAliasIsPointerHandle = prevCurrentReceiverRustAliasIsPointerHandle
+		currentReceiverRustAliasIsGoPtr = prevCurrentReceiverRustAliasIsGoPtr
+		currentReceiverRustAliasGoPtrInfo = prevCurrentReceiverRustAliasGoPtrInfo
 	}()
 
 	// Output doc comments if present (with indentation for methods)
@@ -7674,14 +8232,33 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		vt.PushScope()
 		defer vt.PopScope()
 		if fn.Type.Params != nil {
+			paramIndex := 0
 			for _, field := range fn.Type.Params.List {
 				for _, name := range field.Names {
 					rustType := goTypeToRustBase(field.Type)
+					if elemRustType, ok := sliceElemPtrSliceParamInfoForDeclObject(fn, paramIndex); ok {
+						rustType = "Vec<GoPtr<" + elemRustType + ">>"
+					}
+					if elemRustType, ok := goPtrParamDeclElemRustType(fn, paramIndex); ok {
+						rustType = "GoPtr<" + elemRustType + ">"
+					}
 					if functionRustType, ok := functionTypeRustNameFromTypeExpr(field.Type); ok {
 						rustType = functionRustType
 					}
 					registerTypeExprCollectionInfo(name.Name, field.Type)
-					if varInfo, ok := interfaceParamVarInfo(field.Type); ok {
+					if elemRustType, ok := goPtrParamDeclElemRustType(fn, paramIndex); ok {
+						var goType types.Type
+						if typeInfo := GetTypeInfo(); typeInfo != nil {
+							goType = typeInfo.GetType(field.Type)
+						}
+						vt.Register(name.Name, &VarInfo{
+							WrapLevel:   WrapNone,
+							RustType:    "GoPtr<" + elemRustType + ">",
+							Source:      SourceParam,
+							PointerKind: PointerGoPtr,
+							GoType:      goType,
+						})
+					} else if varInfo, ok := interfaceParamVarInfo(field.Type); ok {
 						if assignedInterfaceParams[name.Name] {
 							vt.Register(name.Name, &VarInfo{
 								WrapLevel: WrapFull,
@@ -7725,6 +8302,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 							Source:    SourceParam,
 						})
 					}
+					paramIndex++
 				}
 			}
 		}
@@ -7751,7 +8329,13 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 		out.WriteString("        let mut ")
 		out.WriteString(currentReceiverRustAlias)
 		out.WriteString(" = ")
-		if currentReceiverRustAliasIsPointerHandle {
+		if currentReceiverRustAliasIsGoPtr {
+			out.WriteString("GoPtr::local(")
+			WriteWrapperOptionPrefix(out)
+			out.WriteString("Some(self.clone())")
+			WriteWrapperOptionSuffix(out)
+			out.WriteString(")")
+		} else if currentReceiverRustAliasIsPointerHandle {
 			WriteWrapperOptionPrefix(out)
 			out.WriteString("Some(self.clone())")
 			WriteWrapperOptionSuffix(out)

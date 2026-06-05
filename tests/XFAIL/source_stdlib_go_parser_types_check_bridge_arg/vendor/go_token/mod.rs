@@ -5,6 +5,7 @@ use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoAtomicPointer, 
 use crate::position::*;
 use crate::serialize::*;
 
+use std::any::Any;
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
@@ -546,7 +547,7 @@ impl Token {
             return 5;
         }
     }
-        LOWEST_PREC
+        0
     }
 
     /// IsLiteral returns true for tokens corresponding to identifiers
@@ -565,6 +566,22 @@ impl Token {
     /// it returns false otherwise.
     pub fn is_keyword(&self) -> bool {
         return { let __tmp_x = Token(Arc::new(Mutex::new(Some(KEYWORD_BEG as i32)))); let __tmp_y = (*self.0.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x < __tmp_y } && { let __tmp_x = (*self.0.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Token(Arc::new(Mutex::new(Some(KEYWORD_END as i32)))); __tmp_x < __tmp_y };
+    }
+}
+
+impl cmp::r#mod::Ordered for Token {
+    fn __go_clone_box_ordered(&self) -> Box<dyn cmp::r#mod::Ordered + Send + Sync> {
+        Box::new(self.clone()) as Box<dyn cmp::r#mod::Ordered + Send + Sync>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_ordered(&self, other: &(dyn cmp::r#mod::Ordered + Send + Sync)) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<Token>() {
+            self == __other
+        } else {
+            false
+        }
     }
 }
 
@@ -590,7 +607,7 @@ pub fn lookup(ident: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Token>>> {
 
 /// IsExported reports whether name starts with an upper-case letter.
 pub fn is_exported(name: Arc<Mutex<Option<String>>>) -> bool {
-    let (mut ch, _) = utf8::decode_rune_in_string({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
+    let (mut ch, _) = utf8::decode_rune_in_string(name.clone());
     unicode::is_upper(ch)
 }
 

@@ -2366,6 +2366,10 @@ run_xfail_test() {
     run_test "tests/sort_slice"
 }
 
+@test "source_stdlib_go_ast_walk_call_expr" {
+    run_test "tests/source_stdlib_go_ast_walk_call_expr"
+}
+
 @test "source_stdlib_go_token_lookup" {
     run_test "tests/source_stdlib_go_token_lookup"
 }

@@ -58,7 +58,7 @@ impl std::fmt::Debug for WaitGroup {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Group {
     pub wg: WaitGroup,
 }
@@ -112,7 +112,7 @@ fn main() {
     let mut i = Rc::new(RefCell::new(Some(1)));
     while (*i.borrow().as_ref().unwrap()) <= 3 {
         wg.add(1);
-        worker(Rc::new(RefCell::new(Some((*i.borrow().as_ref().unwrap()).clone()))), wg.clone());
+        worker(Rc::new(RefCell::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.borrow(); (*__arg_guard.as_ref().unwrap()).clone() }))), wg.clone());
         { let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     wg.wait();

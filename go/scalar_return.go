@@ -242,6 +242,9 @@ func writeFuncDeclResultTypes(out *strings.Builder, fn *ast.FuncDecl) {
 	if writeArrayElemPtrFuncDeclResultTypes(out, fn) {
 		return
 	}
+	if writeGoPtrFuncDeclResultTypes(out, fn) {
+		return
+	}
 	if sig, ok := funcDeclSignatureFromTypeInfo(fn); ok && writeSignatureResultTypes(out, sig) {
 		return
 	}
@@ -523,8 +526,13 @@ func writeBareScalarReturnValue(out *strings.Builder, expr ast.Expr, expectedTyp
 		return
 	case *ast.Ident:
 		if expectedType != nil {
-			if expected, ok := resultTypeExprType(expectedType); ok && writeRangeIndexForExpectedType(out, e, expected) {
-				return
+			if expected, ok := resultTypeExprType(expectedType); ok {
+				if writeRangeIndexForExpectedType(out, e, expected) {
+					return
+				}
+				if writeConstExpressionForExpectedGoType(out, e, expected) {
+					return
+				}
 			}
 		}
 		// RValue context unwraps wrapped locals to a bare value. Constants
@@ -532,6 +540,11 @@ func writeBareScalarReturnValue(out *strings.Builder, expr ast.Expr, expectedTyp
 		TranspileExpressionContext(out, e, RValue)
 		return
 	case *ast.BinaryExpr:
+		if expectedType != nil {
+			if expected, ok := resultTypeExprType(expectedType); ok && writeConstExpressionForExpectedGoType(out, e, expected) {
+				return
+			}
+		}
 		// Binary expressions on scalar operands compose bare operands into a
 		// bare result via the existing RValue lowering.
 		TranspileExpression(out, e)

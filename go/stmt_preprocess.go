@@ -3,6 +3,7 @@ package main
 import (
 	"go/ast"
 	"go/token"
+	"go/types"
 	"sort"
 	"strings"
 )
@@ -82,6 +83,9 @@ func (sp *StatementPreprocessor) PreprocessStatement(stmt ast.Stmt, fnType *ast.
 			}
 		}
 	}
+	for varName := range capturedVarsDeclaredBySameVarDecl(stmt, closures) {
+		delete(allCaptured, varName)
+	}
 
 	// Generate clone names for all captured variables
 	for varName := range allCaptured {
@@ -97,6 +101,56 @@ func (sp *StatementPreprocessor) PreprocessStatement(stmt ast.Stmt, fnType *ast.
 
 	sp.captures[stmt] = info
 	return info
+}
+
+func capturedVarsDeclaredBySameVarDecl(stmt ast.Stmt, closures []*ast.FuncLit) map[string]bool {
+	declStmt, ok := stmt.(*ast.DeclStmt)
+	if !ok {
+		return nil
+	}
+	genDecl, ok := declStmt.Decl.(*ast.GenDecl)
+	if !ok || genDecl.Tok != token.VAR {
+		return nil
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil
+	}
+	declared := make(map[types.Object]bool)
+	for _, spec := range genDecl.Specs {
+		valueSpec, ok := spec.(*ast.ValueSpec)
+		if !ok {
+			continue
+		}
+		for _, name := range valueSpec.Names {
+			if name == nil {
+				continue
+			}
+			if obj := typeInfo.info.Defs[name]; obj != nil {
+				declared[obj] = true
+			}
+		}
+	}
+	if len(declared) == 0 {
+		return nil
+	}
+	result := make(map[string]bool)
+	for _, closure := range closures {
+		if closure == nil || closure.Body == nil {
+			continue
+		}
+		ast.Inspect(closure.Body, func(n ast.Node) bool {
+			ident, ok := n.(*ast.Ident)
+			if !ok {
+				return true
+			}
+			if obj, ok := typeInfo.info.Uses[ident].(*types.Var); ok && declared[obj] {
+				result[ident.Name] = true
+			}
+			return true
+		})
+	}
+	return result
 }
 
 // findClosuresInStatement finds all function literals in a statement
