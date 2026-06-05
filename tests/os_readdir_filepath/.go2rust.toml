@@ -1,1 +1,0 @@
-source_stdlib_packages = "path/filepath,internal/filepathlite,internal/stringslite"

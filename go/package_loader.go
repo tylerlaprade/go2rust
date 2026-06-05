@@ -40,6 +40,12 @@ type PackageLoader struct {
 const sharedStdlibStubCrateName = "go2rust_stdlib_stubs"
 const sourceStdlibPackagesEnv = "GO2RUST_SOURCE_STDLIB_PACKAGES"
 
+var defaultSourceStdlibPackages = map[string]bool{
+	"path/filepath":         true,
+	"internal/filepathlite": true,
+	"internal/stringslite":  true,
+}
+
 // NewPackageLoader creates a new package loader
 func NewPackageLoader(workDir string) *PackageLoader {
 	return &PackageLoader{
@@ -359,6 +365,9 @@ func shouldTranspileStdlibPackage(importPath string) bool {
 	}
 	if !isSourceTranspilableStdlibPackage(importPath) {
 		return false
+	}
+	if defaultSourceStdlibPackages[importPath] {
+		return true
 	}
 	return sourceStdlibPackagePatternMatches(importPath, os.Getenv(sourceStdlibPackagesEnv))
 }

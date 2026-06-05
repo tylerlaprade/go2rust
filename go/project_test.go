@@ -5177,6 +5177,26 @@ func TestSourceStdlibPackagePatterns(t *testing.T) {
 	}
 }
 
+func TestRetiredFilepathBridgeSourceMapsByDefault(t *testing.T) {
+	t.Setenv(sourceStdlibPackagesEnv, "")
+
+	for _, path := range []string{
+		"path/filepath",
+		"internal/filepathlite",
+		"internal/stringslite",
+	} {
+		if !shouldTranspileStdlibPackage(path) {
+			t.Fatalf("%s should source-map by default after its pure bridge shims retire", path)
+		}
+		if sourceStdlibPackagePatternExpandsDeps(path, "") {
+			t.Fatalf("%s should not expand all transitive stdlib deps by default", path)
+		}
+	}
+	if shouldTranspileStdlibPackage("os") {
+		t.Fatalf("OS-tied filepath dependencies should not be source-mapped by the filepath default")
+	}
+}
+
 func TestPackageLoaderSourceStdlibDepsPatternIncludesTransitiveStdlibImports(t *testing.T) {
 	t.Setenv(sourceStdlibPackagesEnv, "go/types+deps")
 	tokenPkg := &packages.Package{Name: "token", PkgPath: "go/token", Imports: make(map[string]*packages.Package)}
