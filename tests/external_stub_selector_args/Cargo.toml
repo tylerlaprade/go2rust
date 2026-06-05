@@ -1,3 +1,38 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/cmp",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/go_ast",
+    "vendor/go_constant",
+    "vendor/go_token",
+    "vendor/go_types",
+    "vendor/go_version",
+    "vendor/internal_abi",
+    "vendor/internal_buildcfg",
+    "vendor/internal_filepathlite",
+    "vendor/internal_goarch",
+    "vendor/internal_godebug",
+    "vendor/internal_godebugs",
+    "vendor/internal_goexperiment",
+    "vendor/internal_gover",
+    "vendor/internal_goversion",
+    "vendor/internal_race",
+    "vendor/internal_stringslite",
+    "vendor/internal_sync",
+    "vendor/internal_types_errors",
+    "vendor/math",
+    "vendor/math_big",
+    "vendor/math_bits",
+    "vendor/path_filepath",
+    "vendor/slices",
+    "vendor/sync",
+    "vendor/sync_atomic",
+    "vendor/unicode",
+    "vendor/unicode_utf8",
+]
+
 [package]
 name = "external_stub_selector_args"
 version = "0.1.0"
@@ -6,3 +41,35 @@ edition = "2021"
 [[bin]]
 name = "external_stub_selector_args"
 path = "main.rs"
+
+[dependencies]
+serde_json = "1"
+cmp = { path = "vendor/cmp" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+go_ast = { path = "vendor/go_ast" }
+go_constant = { path = "vendor/go_constant" }
+go_token = { path = "vendor/go_token" }
+go_types = { path = "vendor/go_types" }
+go_version = { path = "vendor/go_version" }
+internal_abi = { path = "vendor/internal_abi" }
+internal_buildcfg = { path = "vendor/internal_buildcfg" }
+internal_filepathlite = { path = "vendor/internal_filepathlite" }
+internal_goarch = { path = "vendor/internal_goarch" }
+internal_godebug = { path = "vendor/internal_godebug" }
+internal_godebugs = { path = "vendor/internal_godebugs" }
+internal_goexperiment = { path = "vendor/internal_goexperiment" }
+internal_gover = { path = "vendor/internal_gover" }
+internal_goversion = { path = "vendor/internal_goversion" }
+internal_race = { path = "vendor/internal_race" }
+internal_stringslite = { path = "vendor/internal_stringslite" }
+internal_sync = { path = "vendor/internal_sync" }
+internal_types_errors = { path = "vendor/internal_types_errors" }
+math = { path = "vendor/math" }
+math_big = { path = "vendor/math_big" }
+math_bits = { path = "vendor/math_bits" }
+path_filepath = { path = "vendor/path_filepath" }
+slices = { path = "vendor/slices" }
+sync = { path = "vendor/sync" }
+sync_atomic = { path = "vendor/sync_atomic" }
+unicode = { path = "vendor/unicode" }
+unicode_utf8 = { path = "vendor/unicode_utf8" }

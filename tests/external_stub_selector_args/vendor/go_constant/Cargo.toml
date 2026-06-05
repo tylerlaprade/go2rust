@@ -1,0 +1,18 @@
+[package]
+name = "go_constant"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "go_constant"
+path = "lib.rs"
+
+[dependencies]
+serde_json = "1"
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
+go_token = { path = "../go_token" }
+math = { path = "../math" }
+math_big = { path = "../math_big" }
+math_bits = { path = "../math_bits" }
+sync = { path = "../sync" }
+unicode_utf8 = { path = "../unicode_utf8" }
