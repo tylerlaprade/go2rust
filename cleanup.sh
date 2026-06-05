@@ -149,6 +149,45 @@ format_pages_kib() {
     format_kib "$((pages * page_size / 1024))"
 }
 
+process_snapshot_from_aux() {
+    local snapshot
+    snapshot=$(ps auxww 2>/dev/null || true)
+    [ -n "$snapshot" ] || return 0
+    printf '%s\n' "$snapshot" | awk '
+        NR == 1 {
+            printf "%5s %5s %5s %5s %6s %s\n", "PID", "PPID", "%CPU", "%MEM", "RSS", "COMMAND"
+            next
+        }
+        {
+            command = ""
+            for (i = 11; i <= NF; i++) {
+                command = command " " $i
+            }
+            printf "%5s %5s %5s %5s %6s%s\n", $2, 0, $3, $4, $6, command
+        }
+    '
+}
+
+process_snapshot_by_cpu() {
+    local snapshot
+    snapshot=$(ps -axo pid,ppid,%cpu,%mem,rss,command -r 2>/dev/null || true)
+    if [ -n "$snapshot" ]; then
+        printf '%s\n' "$snapshot"
+        return
+    fi
+    process_snapshot_from_aux || true
+}
+
+process_snapshot_by_memory() {
+    local snapshot
+    snapshot=$(ps -axo pid,ppid,%mem,%cpu,rss,command -m 2>/dev/null || true)
+    if [ -n "$snapshot" ]; then
+        printf '%s\n' "$snapshot"
+        return
+    fi
+    process_snapshot_from_aux || true
+}
+
 remove_path() {
     local path="$1"
     local size=""
@@ -218,10 +257,10 @@ print_pressure_report() {
     fi
 
     local process_cpu_snapshot
-    process_cpu_snapshot=$(ps -axo pid,ppid,%cpu,%mem,rss,command -r 2>/dev/null || true)
+    process_cpu_snapshot=$(process_snapshot_by_cpu)
 
     local process_mem_snapshot
-    process_mem_snapshot=$(ps -axo pid,ppid,%mem,%cpu,rss,command -m 2>/dev/null || true)
+    process_mem_snapshot=$(process_snapshot_by_memory)
 
     echo
     echo "Process group summary:"
