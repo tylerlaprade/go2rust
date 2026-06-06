@@ -186,13 +186,13 @@ impl crate::check::Checker {
     }
         let mut typ = Arc::new(Mutex::new(Some(TypeParam { check: Arc::new(Mutex::new(Some(self.clone()))), id: Arc::new(Mutex::new(Some(id))), obj: obj.clone(), index: Arc::new(Mutex::new(Some(-1))), bound: constraint.clone(), ..Default::default() })));
         if { let __iface_handle = { let __field = (*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
-        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(TypeParamPtr(typ.clone())) as Box<dyn Type + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(TypeParamPtr(typ.clone())) as Box<dyn Type + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = __iface_value; };
     }
                 // iface may mutate typ.bound, so we must ensure that iface() is called
                 // at least once before the resulting TypeParam escapes.
         if true {
         self.needs_cleanup(Arc::new(Mutex::new(Some(Box::new(TypeParamPtr(typ.clone())) as Box<dyn cleaner + Send + Sync>))));
-    } else if (*constraint.lock().unwrap()).is_some() {
+    } else if { let __nil_result = (*constraint.lock().unwrap()).is_some(); __nil_result } {
         { let __recv = typ.clone(); let __recv_ptr: *mut TypeParam = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut TypeParam }; let __result = unsafe { &mut *__recv_ptr }.iface(); __result };
     }
         return typ.clone();
@@ -223,10 +223,10 @@ impl TypeParam {
     /// form other types. Once SetConstraint returns the receiver, t is safe for
     /// concurrent use.
     pub fn set_constraint(&mut self, bound: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) {
-        if (*bound.lock().unwrap()).is_none() {
+        if { let __nil_result = (*bound.lock().unwrap()).is_none(); __nil_result } {
         std::panic::panic_any(Box::new("nil constraint".to_string()) as Box<dyn Any + Send + Sync>);
     }
-        { let __iface_handle = bound.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *self.bound.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = bound.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *self.bound.lock().unwrap() = __iface_value; };
                 // iface may mutate t.bound (if bound is not an interface), so ensure that
                 // this is done before returning.
         self.iface();
@@ -284,10 +284,10 @@ impl TypeParam {
                 // error is reported elsewhere
                 // error is reported in Checker.collectTypeParams
                 // If we don't have an interface, wrap constraint into an implicit interface.
-        if (*ityp.lock().unwrap()).is_none() {
+        if { let __nil_result = (*ityp.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = new_interface_type(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(vec![bound.clone()])))).clone(); ityp = new_val; };
         { let new_val = true; *(*ityp.lock().unwrap().as_ref().unwrap()).implicit.lock().unwrap() = Some(new_val); };
-        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(crate::interface::InterfacePtr(ityp.clone())) as Box<dyn Type + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *self.bound.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(crate::interface::InterfacePtr(ityp.clone())) as Box<dyn Type + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *self.bound.lock().unwrap() = __iface_value; };
     }
                 // update t.bound for next time (optimization)
                 // compute type set if necessary
@@ -297,7 +297,7 @@ impl TypeParam {
                 // use the (original or possibly instantiated) type bound position if we have one
         {
         let mut n = as_named(bound.clone());;
-        if (*n.lock().unwrap()).is_some() {
+        if { let __nil_result = (*n.lock().unwrap()).is_some(); __nil_result } {
             { let new_val = go_token::position::Pos(Arc::new(Mutex::new(Some((*(*(*(*n.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().pos.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *pos.lock().unwrap() = Some(new_val); };;
         }
     }
@@ -441,20 +441,20 @@ pub fn new_type_param(obj: Arc<Mutex<Option<TypeName>>>, constraint: Arc<Mutex<O
 pub fn __go_nil_recv_crate__check___checker_new_type_param(check: Arc<Mutex<Option<Checker>>>, obj: Arc<Mutex<Option<TypeName>>>, constraint: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc<Mutex<Option<TypeParam>>> {
         // Always increment lastID, even if it is not used.
     let mut id = next_i_d();
-    if (*check.lock().unwrap()).is_some() {
+    if { let __nil_result = (*check.lock().unwrap()).is_some(); __nil_result } {
         { let __target = (*check.lock().unwrap().as_ref().unwrap()).next_i_d.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         { let new_val = (*{ let __field = (*check.lock().unwrap().as_ref().unwrap()).next_i_d.clone(); __field }.lock().unwrap().as_ref().unwrap()); id = new_val; };
     }
     let mut typ = Arc::new(Mutex::new(Some(TypeParam { check: check.clone(), id: Arc::new(Mutex::new(Some(id))), obj: obj.clone(), index: Arc::new(Mutex::new(Some(-1))), bound: constraint.clone(), ..Default::default() })));
     if { let __iface_handle = { let __field = (*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
-        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(TypeParamPtr(typ.clone())) as Box<dyn Type + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(TypeParamPtr(typ.clone())) as Box<dyn Type + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = __iface_value; };
     }
 
         // iface may mutate typ.bound, so we must ensure that iface() is called
         // at least once before the resulting TypeParam escapes.
-    if (*check.lock().unwrap()).is_some() {
+    if { let __nil_result = (*check.lock().unwrap()).is_some(); __nil_result } {
         { let __recv = check.clone(); let __recv_ptr: *mut crate::check::Checker = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::check::Checker }; let __result = unsafe { &mut *__recv_ptr }.needs_cleanup(Arc::new(Mutex::new(Some(Box::new(TypeParamPtr(typ.clone())) as Box<dyn cleaner + Send + Sync>)))); __result };
-    } else if (*constraint.lock().unwrap()).is_some() {
+    } else if { let __nil_result = (*constraint.lock().unwrap()).is_some(); __nil_result } {
         { let __recv = typ.clone(); let __recv_ptr: *mut TypeParam = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut TypeParam }; let __result = unsafe { &mut *__recv_ptr }.iface(); __result };
     }
     return typ.clone();

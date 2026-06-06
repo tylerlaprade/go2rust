@@ -3163,11 +3163,10 @@ func writeExternalInterfaceStub(out *strings.Builder, name string, methods map[s
 	}
 	slices.Sort(methodNames)
 	for _, methodName := range methodNames {
-		if name == "types_Type" && methodName == "string" {
-			writeTypesTypeStringMethod(out)
-		} else if name == "types_Type" && methodName == "underlying" {
-			writeTypesTypeUnderlyingMethod(out)
-		} else if externalInterfaceCarriesSourcePos(name) && methodName == "pos" {
+		if name == "types_Type" && (methodName == "string" || methodName == "underlying") {
+			continue
+		}
+		if externalInterfaceCarriesSourcePos(name) && methodName == "pos" {
 			writeExternalInterfacePosMethod(out)
 		} else if name == "io_ReadCloser" && methodName == "close" {
 			writeIoReadCloserCloseMethod(out, methods[methodName])
@@ -3266,39 +3265,6 @@ func writeIoReadCloserCloseMethod(out *strings.Builder, method externalTypeStubM
 	out.WriteString("    }\n")
 }
 
-// TEMPORARY: hand-written Rust bridge for go/types.Type. The long-term fix is
-// to transpile the relevant `go/types` source rather than maintain a Rust
-// shim — see AGENTS.md "Strategy: Transpile stdlib, don't
-// bridge it". Until then, every unsupported kind MUST panic so gaps are
-// visible in CI. Returning `String::new()` or `types_Type::default()` here
-// would silently synthesize type facts and re-enact the 2026 fallback incident.
-func writeTypesTypeStringMethod(out *strings.Builder) {
-	out.WriteString("    pub fn string(&self) -> ")
-	out.WriteString(wrappedExternalStubType("String"))
-	out.WriteString(" {\n")
-	out.WriteString("        if let Some(value) = self.downcast_ref::<types_Basic>() {\n")
-	out.WriteString("            return ")
-	out.WriteString(wrappedExternalStubExpr("String", "value.__go_name.clone()"))
-	out.WriteString(";\n")
-	out.WriteString("        }\n")
-	out.WriteString("        panic!(\"types.Type.String() bridge: unsupported types.Type kind; transpile go/types instead of extending the bridge — see AGENTS.md\")\n")
-	out.WriteString("    }\n")
-}
-
-// TEMPORARY: see writeTypesTypeStringMethod. Same rule applies.
-func writeTypesTypeUnderlyingMethod(out *strings.Builder) {
-	out.WriteString("    pub fn underlying(&self) -> ")
-	out.WriteString(wrappedExternalStubType("types_Type"))
-	out.WriteString(" {\n")
-	out.WriteString("        if self.downcast_ref::<types_Basic>().is_some() {\n")
-	out.WriteString("            return ")
-	out.WriteString(wrappedExternalStubExpr("types_Type", "self.clone()"))
-	out.WriteString(";\n")
-	out.WriteString("        }\n")
-	out.WriteString("        panic!(\"types.Type.Underlying() bridge: unsupported types.Type kind; transpile go/types instead of extending the bridge — see AGENTS.md\")\n")
-	out.WriteString("    }\n")
-}
-
 // MACHINERY: framework for emitting From/Into impls between external stub types.
 func writeExternalTypeStubConversions(out *strings.Builder, conversions map[string]map[string]bool, interfaceTypes map[string]bool) {
 	if len(conversions) == 0 {
@@ -3380,10 +3346,9 @@ func writeExternalTypeStubDowncastMethod(out *strings.Builder) {
 // MUST panic instead of returning a default value. A bridge method that
 // silently returns Default::default() synthesizes type facts and re-enacts
 // the 2026 fallback incident one layer deeper. Methods that need real
-// behavior get a custom emitter (see writeTypesTypeStringMethod, etc.).
-// Methods routed through this generic emitter exist for type-system
-// completeness only — calling them at runtime is a bug to be fixed at the
-// call site, either by adding a custom emitter or by removing the call.
+// behavior get a custom emitter. Generic methods exist for type-system
+// completeness only — calling them at runtime is a bug to be fixed by
+// source-transpiling the Go package that defines the method.
 func writeExternalTypeStubMethod(out *strings.Builder, typeName string, methodName string, method externalTypeStubMethod) {
 	out.WriteString("    pub fn ")
 	out.WriteString(methodName)

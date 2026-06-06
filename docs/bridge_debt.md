@@ -160,34 +160,6 @@ in the first place.
 - Removal trigger: transpiler can lower `go/token` enum definitions.
 - Added: 2026-05-27 (backfill)
 
-### types-type-string-method
-
-- Location: `go/external_type_stubs.go:3308`
-- Go symbol: `go/types.Type.String`
-- Transpiler gap: source-mapped `go/types.Type` trait dispatch now works for
-  a local concrete type stored in a `[]types.Type` return path, but
-  non-source-mapped callers still use the hand-written bridge method.
-- Fixture: `tests/local_concrete_stdlib_interface_return/` now source-maps
-  `go/types` and verifies a local `localType.String` implementation through
-  the source-transpiled `types.Type` interface.
-- Removal trigger: all remaining `types.Type.String` callers use
-  source-transpiled `go/types` instead of the external bridge surface.
-- Added: 2026-05-27 (backfill; expanded 2026-06-05)
-
-### types-type-underlying-method
-
-- Location: `go/external_type_stubs.go:3322`
-- Go symbol: `go/types.Type.Underlying`
-- Transpiler gap: source-mapped `go/types.Type` trait dispatch now works for
-  a local concrete type whose `Underlying` returns another `types.Type`, but
-  non-source-mapped callers still use the hand-written bridge method.
-- Fixture: `tests/local_concrete_stdlib_interface_return/` now source-maps
-  `go/types` and verifies a local `localType.Underlying` implementation through
-  the source-transpiled `types.Type` interface.
-- Removal trigger: all remaining `types.Type.Underlying` callers use
-  source-transpiled `go/types` instead of the external bridge surface.
-- Added: 2026-05-27 (backfill; expanded 2026-06-05)
-
 ### types-concrete-type-stubs
 
 - Location: `go/external_type_stubs.go:3467` (`writeTypesBasicStub`);
