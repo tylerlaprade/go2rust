@@ -1156,6 +1156,41 @@ func TestTypesBasicBehaviorShimIsRetired(t *testing.T) {
 	}
 }
 
+func TestTokenTokenBehaviorShimIsRetired(t *testing.T) {
+	got := generateExternalStubs(
+		map[string]bool{"token_Token": true},
+		nil,
+		map[string]string{"token_Token": "i32"},
+		nil, nil,
+		map[string]map[string]externalTypeStubMethod{
+			"token_Token": {
+				"string": {
+					ReturnTypes: []string{"Arc<Mutex<Option<String>>>"},
+				},
+			},
+		},
+		nil, nil,
+	)
+	for _, unwanted := range []string{
+		"token_string_value",
+		`"func"`,
+		`"ILLEGAL"`,
+	} {
+		if strings.Contains(got, unwanted) {
+			t.Fatalf("go/token.Token external behavior shim must be retired; found %q:\n%s", unwanted, got)
+		}
+	}
+	for _, want := range []string{
+		"pub struct token_Token(pub i32);",
+		`write!(f, "<token_Token>")`,
+		"token_Token.string bridge: generic stub method body has no implementation",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("retiring Token behavior must keep loud placeholder %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestTypesNewPointerBridgeIsRetired(t *testing.T) {
 	got := generateExternalStubs(
 		map[string]bool{"types_Pointer": true},

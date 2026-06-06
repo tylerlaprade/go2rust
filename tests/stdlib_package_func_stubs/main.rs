@@ -1427,92 +1427,14 @@ impl std::ops::BitOr for token_Token {
 
 impl std::fmt::Display for token_Token {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", token_string_value(*self))
+        write!(f, "<token_Token>")
     }
 }
 
-fn token_string_value(tok: token_Token) -> &'static str {
-    match tok.0 {
-        4 => "IDENT",
-        5 => "INT",
-        6 => "FLOAT",
-        7 => "IMAG",
-        8 => "CHAR",
-        9 => "STRING",
-        12 => "+",
-        13 => "-",
-        14 => "*",
-        15 => "/",
-        16 => "%",
-        17 => "&",
-        18 => "|",
-        19 => "^",
-        20 => "<<",
-        21 => ">>",
-        22 => "&^",
-        23 => "+=",
-        24 => "-=",
-        25 => "*=",
-        26 => "/=",
-        27 => "%=",
-        28 => "&=",
-        29 => "|=",
-        30 => "^=",
-        31 => "<<=",
-        32 => ">>=",
-        33 => "&^=",
-        34 => "&&",
-        35 => "||",
-        36 => "<-",
-        37 => "++",
-        38 => "--",
-        39 => "==",
-        40 => "<",
-        41 => ">",
-        42 => "=",
-        43 => "!",
-        44 => "!=",
-        45 => "<=",
-        46 => ">=",
-        47 => ":=",
-        48 => "...",
-        61 => "break",
-        62 => "case",
-        63 => "chan",
-        64 => "const",
-        65 => "continue",
-        66 => "default",
-        67 => "defer",
-        68 => "else",
-        69 => "fallthrough",
-        70 => "for",
-        71 => "func",
-        72 => "go",
-        73 => "goto",
-        74 => "if",
-        75 => "import",
-        76 => "interface",
-        77 => "map",
-        78 => "package",
-        79 => "range",
-        80 => "return",
-        81 => "select",
-        82 => "struct",
-        83 => "switch",
-        84 => "type",
-        85 => "var",
-        88 => "~",
-        _ => "ILLEGAL",
-    }
-}
 
 impl token_Token {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
-    }
-
-    pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        Arc::new(Mutex::new(Some::<String>(token_string_value(*self).to_string())))
     }
 }
 
