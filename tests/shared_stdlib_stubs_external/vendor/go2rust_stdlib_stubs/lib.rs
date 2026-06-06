@@ -239,10 +239,8 @@ where
 
 
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct types_Tuple {
-    pub __go_len: usize,
-}
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct types_Tuple;
 
 impl std::fmt::Display for types_Tuple {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -250,12 +248,13 @@ impl std::fmt::Display for types_Tuple {
     }
 }
 
+
 impl types_Tuple {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
     }
     pub fn len(&self) -> i32 {
-        self.__go_len as i32
+        panic!("types_Tuple.len bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 

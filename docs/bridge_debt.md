@@ -168,12 +168,13 @@ in the first place.
   stub conversion), and `go/external_type_stubs.go:7432` (generic external
   package function stub body)
 - Go symbol: `go/types.Basic`, `go/types.Named`, `go/types.Pointer`,
-  `go/types.Package`, `go/types.Qualifier`, `go/types.Error`, and
-  `go/types.Unsafe`
+  `go/types.Package`, `go/types.Qualifier`, `go/types.Error`,
+  `go/types.Unsafe`, and `go/types.Tuple`
 - Transpiler gap: `go/types.Basic` still has a direct hand-written shim, and
   source-mapped concrete `go/types` values now pass through `NewPointer`,
-  `NewPackage`, `NewChecker`, `error`, and package-variable paths, but
-  non-source-mapped callers still route through generic external stubs.
+  `NewPackage`, `NewChecker`, `NewTuple`, `error`, and package-variable
+  paths, but non-source-mapped callers still route through generic external
+  stubs.
 - Fixture: `tests/stdlib_interface_slice_conversions/` now source-maps
   `go/types`, `go/token`, and `sync/atomic`, and verifies `types.NewPointer`
   plus `*types.Named` and `*types.Pointer` values stored through the
@@ -192,29 +193,16 @@ in the first place.
   `tests/source_stdlib_go_types_checker_files/` and
   `tests/external_stub_selector_args/` source-map `go/types` and verify
   direct `NewPackage` and `NewChecker` construction through source-generated
-  `go_types::new_package` and `go_types::new_checker`.
+  `go_types::new_package` and `go_types::new_checker`;
+  `tests/stdlib_interface_ident_argument/` and
+  `tests/stdlib_interface_call_argument/` source-map `go/types` and verify
+  `NewTuple` values through source-generated `go_types::new_tuple`, allowing
+  the custom `types_Tuple` length/underlying shim to retire.
 - Removal trigger: transpiler can lower `go/types.Basic`, `go/types.Named`,
   `go/types.Pointer`, `go/types.Package`, `go/types.Qualifier`,
-  `go/types.Error`, and `go/types.Unsafe` from source for all callers still
-  routed through the direct or generic external stubs.
+  `go/types.Error`, `go/types.Unsafe`, and `go/types.Tuple` from source for
+  all callers still routed through the direct or generic external stubs.
 - Added: 2026-05-27 (backfill; expanded 2026-06-05)
-
-### types-tuple
-
-- Location: `go/external_type_stubs.go:3452` (`writeTypesTupleStub`)
-- Go symbol: `go/types.Tuple`
-- Transpiler gap: the source-mapped `go/types.NewTuple` path now passes for a
-  `*types.Tuple` stored through the generated `types.Type` interface, but
-  non-source-mapped callers still hit the bridge.
-- Fixture: `tests/stdlib_interface_ident_argument/` now source-maps
-  `go/types`, `go/token`, and `sync/atomic`, and verifies `types.NewTuple`
-  with `*types.Tuple` passed through the source-mapped `types.Type` interface;
-  `tests/stdlib_interface_call_argument/` now source-maps the same packages and
-  verifies source-transpiled `types.NewTuple` passed directly to both function
-  and method parameters typed as `types.Type`.
-- Removal trigger: transpiler can lower `go/types.Tuple` from source for all
-  callers still routed through the bridge.
-- Added: 2026-06-03
 
 ### types-type-name-param
 

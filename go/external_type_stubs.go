@@ -1936,10 +1936,6 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 			writeTypesBasicStub(&out, methodsByType[name])
 			continue
 		}
-		if name == "types_Tuple" {
-			writeTypesTupleStub(&out, methodsByType[name])
-			continue
-		}
 		if name == "types_TypeName" {
 			writeTypesTypeNameStub(&out, methodsByType[name])
 			continue
@@ -3439,50 +3435,6 @@ impl types_Basic {
 			out.WriteString("\n    }\n")
 		default:
 			writeExternalTypeStubMethod(out, "types_Basic", methodName, methods[methodName])
-		}
-	}
-	out.WriteString("}\n")
-}
-
-// TEMPORARY: hand-written Rust shim for go/types.Tuple.
-// Long-term fix: transpile go/types source. Var inspection remains unsupported
-// and loud.
-func writeTypesTupleStub(out *strings.Builder, methods map[string]externalTypeStubMethod) {
-	out.WriteString("#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]\n")
-	out.WriteString("pub struct types_Tuple {\n")
-	out.WriteString("    pub __go_len: usize,\n")
-	out.WriteString("}\n\n")
-	out.WriteString("impl std::fmt::Display for types_Tuple {\n")
-	out.WriteString("    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")
-	out.WriteString("        write!(f, \"<types_Tuple>\")\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n\n")
-	out.WriteString("impl types_Tuple {\n")
-	out.WriteString("    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {\n")
-	out.WriteString("        None\n")
-	out.WriteString("    }\n")
-	methodNames := make([]string, 0, len(methods))
-	for methodName := range methods {
-		methodNames = append(methodNames, methodName)
-	}
-	slices.Sort(methodNames)
-	for _, methodName := range methodNames {
-		method := methods[methodName]
-		switch methodName {
-		case "len":
-			out.WriteString("    pub fn len(&self) -> ")
-			writeExternalStubReturnType(out, method.ReturnTypes)
-			out.WriteString(" {\n        ")
-			writeExternalStubReturnValue(out, singleExternalReturnType(method.ReturnTypes), "i32", "self.__go_len as i32")
-			out.WriteString("\n    }\n")
-		case "underlying":
-			out.WriteString("    pub fn underlying(&self) -> ")
-			writeExternalStubReturnType(out, method.ReturnTypes)
-			out.WriteString(" {\n        ")
-			writeExternalStubReturnValue(out, singleExternalReturnType(method.ReturnTypes), "types_Type", "types_Type::__go_from(self.clone())")
-			out.WriteString("\n    }\n")
-		default:
-			writeExternalTypeStubMethod(out, "types_Tuple", methodName, method)
 		}
 	}
 	out.WriteString("}\n")
