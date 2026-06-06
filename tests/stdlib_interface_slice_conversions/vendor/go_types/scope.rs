@@ -265,7 +265,7 @@ impl Scope {
         let mut name = (*obj.lock().unwrap().as_ref().unwrap()).name();
         {
         let mut alt = self.lookup(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
-        if (*alt.lock().unwrap()).is_some() {
+        if { let __nil_result = (*alt.lock().unwrap()).is_some(); __nil_result } {
             return alt.clone();;
         }
     }
@@ -275,7 +275,7 @@ impl Scope {
                 // If we can, than we may not need environment.lookupScope
                 // which is only there so that we get the correct scope for
                 // marking "used" dot-imported packages.
-        if (*(*obj.lock().unwrap().as_ref().unwrap()).parent().lock().unwrap()).is_none() {
+        if { let __nil_result = (*(*obj.lock().unwrap().as_ref().unwrap()).parent().lock().unwrap()).is_none(); __nil_result } {
         (*obj.lock().unwrap().as_mut().unwrap()).set_parent(Arc::new(Mutex::new(Some(self.clone()))));
     }
         return Arc::new(Mutex::new(None));
@@ -289,7 +289,7 @@ impl Scope {
     /// records the binding and returns true. The object's parent scope
     /// will be set to s after resolve is called.
     pub fn __insert_lazy(&mut self, name: Arc<Mutex<Option<String>>>, resolve: Arc<Mutex<Option<Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>> + Send + Sync>>>>) -> bool {
-        if (*{ let __map = { let __map_holder = self.elems.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*name.lock().unwrap().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap()).is_some() {
+        if { let __nil_result = (*{ let __map = { let __map_holder = self.elems.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*name.lock().unwrap().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap()).is_some(); __nil_result } {
         return false;
     }
         { let __method_arg0 = Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))); let __method_arg1 = Arc::new(Mutex::new(Some(Box::new(lazyObjectPtr(Arc::new(Mutex::new(Some(lazyObject { parent: Arc::new(Mutex::new(Some(self.clone()))), resolve: resolve.clone(), ..Default::default() }))).clone())) as Box<dyn Object + Send + Sync>))); self.insert_1(__method_arg0, __method_arg1) };
@@ -679,7 +679,7 @@ pub fn new_scope(parent: Arc<Mutex<Option<Scope>>>, pos: Arc<Mutex<Option<go_tok
     let mut s = Arc::new(Mutex::new(Some(Scope { parent: parent.clone(), children: Arc::new(Mutex::new(None)), number: Arc::new(Mutex::new(Some(0))), elems: Arc::new(Mutex::new(None)), pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), end: Arc::new(Mutex::new(Some({ let __arg_holder = end.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), comment: Arc::new(Mutex::new(Some({ let __arg_holder = comment.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), is_func: Arc::new(Mutex::new(Some(false))), ..Default::default() })));
 
         // don't add children to Universe scope!
-    if (*parent.lock().unwrap()).is_some() && { let __left = parent.clone(); let __right = (*Universe.lock().unwrap().as_ref().unwrap()).clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
+    if { let __nil_result = (*parent.lock().unwrap()).is_some(); __nil_result } && { let __left = parent.clone(); let __right = (*Universe.lock().unwrap().as_ref().unwrap()).clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
         { let new_val = { let __append_target = (*parent.lock().unwrap().as_ref().unwrap()).children.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(s.clone()); __append_target.clone() }; (*parent.lock().unwrap().as_mut().unwrap()).children = new_val; };
         { let new_val = ({ let __len_target = { let __field = (*parent.lock().unwrap().as_ref().unwrap()).children.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32; *(*s.lock().unwrap().as_ref().unwrap()).number.lock().unwrap() = Some(new_val); };
     }
@@ -728,12 +728,12 @@ pub fn resolve(name: Arc<Mutex<Option<String>>>, mut obj: Arc<Mutex<Option<Box<d
         if { let __tmp_x = (*(*obj.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*name.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } {
         std::panic::panic_any(Box::new("lazy object has unexpected name".to_string()) as Box<dyn Any + Send + Sync>);
     }
-        if (*(*obj.lock().unwrap().as_ref().unwrap()).parent().lock().unwrap()).is_none() {
+        if { let __nil_result = (*(*obj.lock().unwrap().as_ref().unwrap()).parent().lock().unwrap()).is_none(); __nil_result } {
         (*obj.lock().unwrap().as_mut().unwrap()).set_parent({ let __field = (*lazy.lock().unwrap().as_ref().unwrap()).parent.clone(); __field });
     }
-        { let __iface_handle = obj.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*lazy.lock().unwrap().as_mut().unwrap()).obj.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = obj.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*lazy.lock().unwrap().as_mut().unwrap()).obj.lock().unwrap() = __iface_value; };
     }); };;
-            { let __iface_handle = { let __field = (*lazy.lock().unwrap().as_ref().unwrap()).obj.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *obj.lock().unwrap() = (*__iface_guard).clone(); };;
+            { let __iface_handle = { let __field = (*lazy.lock().unwrap().as_ref().unwrap()).obj.clone(); __field }; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *obj.lock().unwrap() = __iface_value; };;
         }
     }
     return obj.clone();

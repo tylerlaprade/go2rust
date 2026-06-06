@@ -672,6 +672,9 @@ func RegisterExternalPackageStubFunction(pkgName string, funcName string, sig *t
 		RegisterExternalTypeStubFieldByRustType("build_Package", "import_path", goTypesTypeToRustWrapped(types.Typ[types.String]))
 		RegisterExternalTypeStubFieldByRustType("build_Package", "pkg_obj", goTypesTypeToRustWrapped(types.Typ[types.String]))
 	}
+	if pkgName == "types" && funcName == "new_pointer" {
+		return
+	}
 	fn := externalPackageStubFunction{
 		ParamCount: sig.Params().Len(),
 	}
@@ -3772,7 +3775,7 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 			if i > 0 {
 				out.WriteString("\n")
 			}
-			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName], stubs)
+			writeExternalPackageStubFunction(out, pkgName, funcName, pkg.Functions[funcName], stubs)
 		}
 		out.WriteString("}\n")
 	}
@@ -3995,7 +3998,7 @@ func writeAstPackageStub(out *strings.Builder, pkg *externalPackageStub, integer
 		} else if funcName == "new_ident" {
 			writeAstNewIdentFunction(out, pkg.Functions[funcName])
 		} else {
-			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName], nil)
+			writeExternalPackageStubFunction(out, "ast", funcName, pkg.Functions[funcName], nil)
 		}
 	}
 	out.WriteString("}\n")
@@ -4424,7 +4427,7 @@ func writeParserPackageStub(out *strings.Builder, pkg *externalPackageStub, inte
 		if funcName == "parse_file" {
 			writeParserParseFileFunction(out, pkg.Functions[funcName])
 		} else {
-			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName], nil)
+			writeExternalPackageStubFunction(out, "parser", funcName, pkg.Functions[funcName], nil)
 		}
 	}
 	out.WriteString("}\n")
@@ -4487,7 +4490,7 @@ func writeTokenPackageStub(out *strings.Builder, pkg *externalPackageStub, integ
 		if i > 0 || len(varNames) > 0 {
 			out.WriteString("\n")
 		}
-		writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName], nil)
+		writeExternalPackageStubFunction(out, "token", funcName, pkg.Functions[funcName], nil)
 	}
 	out.WriteString("}\n")
 }
@@ -5417,7 +5420,7 @@ func writeStrconvPackageStub(out *strings.Builder, pkg *externalPackageStub, int
 		if funcName == "unquote" {
 			writeStrconvUnquoteFunction(out, pkg.Functions[funcName])
 		} else {
-			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName], stubs)
+			writeExternalPackageStubFunction(out, "strconv", funcName, pkg.Functions[funcName], stubs)
 		}
 	}
 	out.WriteString("}\n")
@@ -5607,7 +5610,7 @@ func writeBuildPackageStub(out *strings.Builder, pkg *externalPackageStub, integ
 		} else if funcName == "is_local_import" {
 			writeBuildIsLocalImportFunction(out)
 		} else {
-			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName], nil)
+			writeExternalPackageStubFunction(out, "build", funcName, pkg.Functions[funcName], nil)
 		}
 	}
 	out.WriteString("}\n")
@@ -5909,7 +5912,7 @@ func writeJsonPackageStub(out *strings.Builder, pkg *externalPackageStub) {
 			out.WriteString("        }\n")
 			out.WriteString("    }\n")
 		default:
-			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName], nil)
+			writeExternalPackageStubFunction(out, "json", funcName, pkg.Functions[funcName], nil)
 		}
 	}
 	out.WriteString("}\n")
@@ -5989,7 +5992,7 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 		} else if funcName == "write_file" {
 			writeOsWriteFileFunction(out, pkg.Functions[funcName])
 		} else {
-			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName], nil)
+			writeExternalPackageStubFunction(out, "os", funcName, pkg.Functions[funcName], nil)
 		}
 	}
 	out.WriteString("}\n")
@@ -6302,7 +6305,7 @@ func writeFilepathPackageStub(out *strings.Builder, pkg *externalPackageStub, in
 		} else if funcName == "eval_symlinks" {
 			writeFilepathEvalSymlinksFunction(out, pkg.Functions[funcName])
 		} else {
-			writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName], nil)
+			writeExternalPackageStubFunction(out, "filepath", funcName, pkg.Functions[funcName], nil)
 		}
 	}
 	out.WriteString("}\n")
@@ -6521,7 +6524,7 @@ func writeExecPackageStub(out *strings.Builder, pkg *externalPackageStub, intege
 		if i > 0 {
 			out.WriteString("\n")
 		}
-		writeExternalPackageStubFunction(out, funcName, pkg.Functions[funcName], nil)
+		writeExternalPackageStubFunction(out, "exec", funcName, pkg.Functions[funcName], nil)
 	}
 	out.WriteString("}\n")
 }
@@ -6534,7 +6537,7 @@ func writeExecPackageStub(out *strings.Builder, pkg *externalPackageStub, intege
 // have custom emitters dispatched above. Anything routing through the
 // generic body has no implementation — calling it at runtime is a bug
 // to be fixed at the call site or by adding a custom emitter.
-func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn externalPackageStubFunction, stubs map[string]bool) {
+func writeExternalPackageStubFunction(out *strings.Builder, pkgName string, funcName string, fn externalPackageStubFunction, stubs map[string]bool) {
 	if funcName == "command" && len(fn.ReturnTypes) == 1 {
 		writeExecCommandStub(out, fn, false)
 		return
@@ -6564,6 +6567,9 @@ func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn 
 		return
 	}
 	if funcName == "new_tuple" || funcName == "new_type_name" || funcName == "new_type_param" {
+		return
+	}
+	if pkgName == "types" && funcName == "new_pointer" {
 		return
 	}
 	if funcName == "new_term" {

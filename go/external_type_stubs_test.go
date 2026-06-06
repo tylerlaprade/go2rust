@@ -1098,6 +1098,30 @@ func TestTypesTupleNameParamConstructorBridgesAreRetired(t *testing.T) {
 	}
 }
 
+func TestTypesNewPointerBridgeIsRetired(t *testing.T) {
+	got := generateExternalStubs(
+		map[string]bool{"types_Pointer": true},
+		nil, nil, nil, nil,
+		nil, nil,
+		map[string]*externalPackageStub{
+			"types": {
+				Functions: map[string]externalPackageStubFunction{
+					"new_pointer": {
+						ParamCount:  1,
+						ReturnTypes: []string{"Arc<Mutex<Option<types_Pointer>>>"},
+					},
+				},
+			},
+		},
+	)
+	if strings.Contains(got, "pub fn new_pointer") {
+		t.Fatalf("go/types.NewPointer external package-function bridge must be retired:\n%s", got)
+	}
+	if !strings.Contains(got, "pub struct types_Pointer") {
+		t.Fatalf("retiring NewPointer must not remove external pointer type identity:\n%s", got)
+	}
+}
+
 func TestTypesCheckerFilesStubIsRetired(t *testing.T) {
 	got := generateExternalStubs(
 		map[string]bool{"types_Checker": true},

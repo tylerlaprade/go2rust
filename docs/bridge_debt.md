@@ -169,17 +169,16 @@ in the first place.
   package function stub body)
 - Go symbol: `go/types.Basic`, `go/types.Named`, `go/types.Pointer`,
   `go/types.Package`, `go/types.Qualifier`, `go/types.Error`, and
-  `go/types.Unsafe`, and `go/types.NewPointer`
+  `go/types.Unsafe`
 - Transpiler gap: `go/types.Basic` still has a direct hand-written shim, and
-  source-mapped `go/types.NewPointer` now passes when a `*types.Named` and
-  `*types.Pointer` are stored through `[]types.Type`, and source-mapped
-  `go/types.Error` now passes when stored through `error`, and source-mapped
-  `go/types.Unsafe` now passes when compared as a package variable, but
-  non-source-mapped callers still route through generic external stubs.
+  source-mapped concrete `go/types` values now pass through `NewPointer`,
+  `error`, and package-variable paths, but non-source-mapped callers still
+  route through generic external stubs.
 - Fixture: `tests/stdlib_interface_slice_conversions/` now source-maps
   `go/types`, `go/token`, and `sync/atomic`, and verifies `types.NewPointer`
   plus `*types.Named` and `*types.Pointer` values stored through the
-  source-mapped `types.Type` interface in a slice literal/range path;
+  source-mapped `types.Type` interface in a slice literal/range path and a
+  named `types.Type` return with defer lowering;
   `tests/stdlib_function_type_alias/` now source-maps `go/types` and verifies
   `types.Qualifier` using source-transpiled `go_types::package::Package`
   instead of the external `types_Package` stub;
@@ -192,8 +191,8 @@ in the first place.
   `go_types::Unsafe` instead of the external `types_Package` stub.
 - Removal trigger: transpiler can lower `go/types.Basic`, `go/types.Named`,
   `go/types.Pointer`, `go/types.Package`, `go/types.Qualifier`,
-  `go/types.Error`, `go/types.Unsafe`, and `go/types.NewPointer` from source
-  for all callers still routed through the direct or generic external stubs.
+  `go/types.Error`, and `go/types.Unsafe` from source for all callers still
+  routed through the direct or generic external stubs.
 - Added: 2026-05-27 (backfill; expanded 2026-06-05)
 
 ### types-tuple
