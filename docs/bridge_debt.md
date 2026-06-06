@@ -202,38 +202,6 @@ in the first place.
 - Removal trigger: transpiler can lower `go/build.Context` import paths.
 - Added: 2026-05-27 (backfill)
 
-### ast-package
-
-- Location: `go/external_type_stubs.go:3952`
-- Go symbol: `go/ast` package
-- Transpiler gap: source package fixture covers constructing AST nodes and
-  walking them, and an existing type-signature fixture now carries `*ast.File`
-  through the source-generated package; remaining work is shrinking external
-  `go/ast` callers off the package bridge.
-- Fixture: `tests/source_stdlib_go_ast_walk_call_expr/`;
-  `tests/stdlib_type_signatures/` source-maps `go/ast` and emits
-  `go_ast::r#mod::File` instead of the external `ast_File` stub;
-  `tests/stdlib_interface_downcast/` source-maps `go/ast` and asserts an
-  `ast.Expr` back to `*ast.Ident` through the source-generated `IdentPtr`;
-  `tests/stdlib_interface_index_assertion/` and
-  `tests/stdlib_interface_range_value_short_decl/` cover indexed and ranged
-  source-generated interface values asserted back to AST pointer wrappers;
-  `tests/concurrent_stdlib_selector_string_compare/`,
-  `tests/stdlib_interface_slice_append_nil/`,
-  `tests/stdlib_interface_slice_literal_range_value/`, and
-  `tests/stdlib_pointer_field_stub/` cover concurrent interface method calls,
-  nil appends, literal ranges, and pointer-field access through source
-  `go/ast`;
-  `tests/stdlib_struct_field_map/` covers source `go/ast` values crossing the
-  existing `go/types.Info` bridge through map fields keyed by AST pointers and
-  interfaces;
-  `tests/stdlib_interface_slice_nil_compare/`, `tests/stdlib_interface_return/`,
-  and `tests/range_stdlib_interface_slice_call/` cover source-generated
-  interface slices, nil checks, returns, appends, ranges, type switches, and
-  pointer assertions.
-- Removal trigger: transpiler can lower `go/ast` source.
-- Added: 2026-05-27 (backfill)
-
 ### strconv-package
 
 - Location: `go/external_type_stubs.go:5390`

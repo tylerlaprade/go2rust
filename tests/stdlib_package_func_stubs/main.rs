@@ -123,35 +123,6 @@ impl token_FileSet {
 
 pub mod ast {
     use super::*;
-
-    pub trait GoStringArg {
-        fn into_go_string(self) -> String;
-    }
-
-    impl GoStringArg for String {
-        fn into_go_string(self) -> String {
-            self
-        }
-    }
-
-    impl<'a> GoStringArg for &'a str {
-        fn into_go_string(self) -> String {
-            self.to_string()
-        }
-    }
-
-    impl<'a> GoStringArg for &'a String {
-        fn into_go_string(self) -> String {
-            self.clone()
-        }
-    }
-
-    impl GoStringArg for Arc<Mutex<Option<String>>> {
-        fn into_go_string(self) -> String {
-            self.lock().unwrap().as_ref().cloned().unwrap_or_default()
-        }
-    }
-
     pub const R_E_C_V: ast_ChanDir = ast_ChanDir(2);
     pub const S_E_N_D: ast_ChanDir = ast_ChanDir(1);
 }

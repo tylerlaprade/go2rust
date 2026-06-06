@@ -80,6 +80,54 @@ func TestTokenPackageConstantsRegisterTokenIntegerStub(t *testing.T) {
 	}
 }
 
+func TestAstPackageConstantsUseGenericConstStub(t *testing.T) {
+	prevContext := currentContext
+	ctx := &TranspileContext{
+		Package: NewPackageState(),
+		File:    NewFileState(NewImportTracker(), &HelperTracker{}, nil),
+	}
+	SetTranspileContext(ctx)
+	defer SetTranspileContext(prevContext)
+
+	astPkg := gotypes.NewPackage("go/ast", "ast")
+	chanDirName := gotypes.NewTypeName(gotoken.NoPos, astPkg, "ChanDir", nil)
+	chanDirType := gotypes.NewNamed(chanDirName, gotypes.Typ[gotypes.Int], nil)
+	RegisterExternalPackageStubConstantValue("ast", rustConstName("SEND"), chanDirType, goconstant.MakeInt64(1))
+	RegisterExternalPackageStubConstantValue("ast", rustConstName("RECV"), chanDirType, goconstant.MakeInt64(2))
+
+	if got := ctx.File.ExternalTypeStubIntegerTypes["ast_ChanDir"]; got != "i32" {
+		t.Fatalf("ast package constants should register ast_ChanDir as i32, got %q", got)
+	}
+
+	got := generateExternalStubs(
+		ctx.File.ExternalTypeStubs,
+		ctx.File.ExternalTypeStubInterfaces,
+		ctx.File.ExternalTypeStubIntegerTypes,
+		ctx.File.ExternalTypeStubTupleTypes,
+		ctx.File.ExternalTypeStubFields,
+		ctx.File.ExternalTypeStubMethods,
+		ctx.File.ExternalTypeStubConversions,
+		ctx.File.ExternalPackageStubs,
+	)
+	for _, want := range []string{
+		"pub struct ast_ChanDir(pub i32);",
+		"pub const R_E_C_V: ast_ChanDir = ast_ChanDir(2);",
+		"pub const S_E_N_D: ast_ChanDir = ast_ChanDir(1);",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("ast package constants should use generic typed const stub %q:\n%s", want, got)
+		}
+	}
+	for _, unwanted := range []string{
+		"pub trait GoStringArg",
+		"ast_ChanDir(0)",
+	} {
+		if strings.Contains(got, unwanted) {
+			t.Fatalf("ast package constants should not use AST package writer surface %q:\n%s", unwanted, got)
+		}
+	}
+}
+
 func TestSourceMappedStdlibPackageIsNotStubBacked(t *testing.T) {
 	prevContext := currentContext
 	ctx := &TranspileContext{

@@ -639,9 +639,6 @@ func RegisterExternalPackageStubFunction(pkgName string, funcName string, sig *t
 		return
 	}
 	trackWrapperImports()
-	if pkgName == "ast" && funcName == "new_ident" {
-		RegisterExternalTypeStubFieldByRustType("ast_Ident", "name", goTypesTypeToRustWrapped(types.Typ[types.String]))
-	}
 	if pkgName == "build" {
 		RegisterExternalTypeStubFieldByRustType("build_Context", "g_o_r_o_o_t", goTypesTypeToRustWrapped(types.Typ[types.String]))
 		RegisterExternalTypeStubFieldByRustType("build_Package", "dir", goTypesTypeToRustWrapped(types.Typ[types.String]))
@@ -701,9 +698,6 @@ func RegisterExternalPackageStubConstantValue(pkgName string, constName string, 
 	}
 	if pkgName == "token" {
 		RegisterExternalIntegerTypeStub("token_Token", "i32")
-	}
-	if pkgName == "ast" && goTypesConstTypeToRust(constType) == "ast_ChanDir" {
-		RegisterExternalTypeStub("ast_ChanDir")
 	}
 	pkg := ensureExternalPackageStub(pkgName)
 	pkg.Constants[constName] = goTypesConstTypeToRust(constType)
@@ -1692,14 +1686,6 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 	if methodsByType["io_ReadCloser"] != nil {
 		if _, ok := methodsByType["io_ReadCloser"]["close"]; ok {
 			stubs["os_File"] = true
-		}
-	}
-	if packageStubs["ast"] != nil {
-		for _, typ := range packageStubs["ast"].Constants {
-			if typ == "ast_ChanDir" {
-				stubs["ast_ChanDir"] = true
-				break
-			}
 		}
 	}
 	needsJsonSupport := usePackageExternalStubs() || externalStubsNeedJsonSupport(stubs, packageStubs)
@@ -3125,10 +3111,6 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 			out.WriteString("\n\n")
 		}
 		needsSeparator = true
-		if pkgName == "ast" {
-			writeAstPackageStub(out, pkg, integerTypes)
-			continue
-		}
 		if pkgName == "build" {
 			writeBuildPackageStub(out, pkg, integerTypes)
 			continue
@@ -3363,63 +3345,6 @@ impl %s {
 	slices.Sort(methodNames)
 	for _, methodName := range methodNames {
 		writeExternalTypeStubMethod(out, name, methodName, methods[methodName])
-	}
-	out.WriteString("}\n")
-}
-
-// TEMPORARY: hand-written Rust shim for go/ast package.
-// Long-term fix: transpile go/ast source (pure Go).
-func writeAstPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string) {
-	out.WriteString("pub mod ast {\n")
-	out.WriteString("    use super::*;\n\n")
-	writeGoStringArgTrait(out)
-
-	constNames := make([]string, 0, len(pkg.Constants))
-	for constName := range pkg.Constants {
-		constNames = append(constNames, constName)
-	}
-	slices.Sort(constNames)
-	for _, constName := range constNames {
-		out.WriteString("    pub const ")
-		out.WriteString(constName)
-		out.WriteString(": ")
-		out.WriteString(pkg.Constants[constName])
-		out.WriteString(" = ")
-		if !writeExternalPackageStubConstLiteral(out, pkg, constName, integerTypes) {
-			if pkg.Constants[constName] == "ast_ChanDir" && constName == "S_E_N_D" {
-				out.WriteString("ast_ChanDir(1)")
-			} else if pkg.Constants[constName] == "ast_ChanDir" && constName == "R_E_C_V" {
-				out.WriteString("ast_ChanDir(2)")
-			} else {
-				writeExternalStubConstDefaultValue(out, pkg.Constants[constName], integerTypes)
-			}
-		}
-		out.WriteString(";\n")
-	}
-	if len(constNames) > 0 && (len(pkg.Variables) > 0 || len(pkg.Functions) > 0) {
-		out.WriteString("\n")
-	}
-
-	varNames := make([]string, 0, len(pkg.Variables))
-	for varName := range pkg.Variables {
-		varNames = append(varNames, varName)
-	}
-	slices.Sort(varNames)
-	for _, varName := range varNames {
-		writeExternalPackageStubVariable(out, varName, pkg.Variables[varName])
-		out.WriteString("\n")
-	}
-
-	funcNames := make([]string, 0, len(pkg.Functions))
-	for funcName := range pkg.Functions {
-		funcNames = append(funcNames, funcName)
-	}
-	slices.Sort(funcNames)
-	for i, funcName := range funcNames {
-		if i > 0 || len(varNames) > 0 {
-			out.WriteString("\n")
-		}
-		writeExternalPackageStubFunction(out, "ast", funcName, pkg.Functions[funcName], nil)
 	}
 	out.WriteString("}\n")
 }
