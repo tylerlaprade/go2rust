@@ -83,19 +83,19 @@ pub fn compare(x: Arc<Mutex<Option<String>>>, y: Arc<Mutex<Option<String>>>) -> 
     let mut vy = parse(Arc::new(Mutex::new(Some({ let __arg_holder = y.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
 
     {
-        let mut c = cmp_int({ let __field = (*vx.lock().unwrap().as_ref().unwrap()).major.clone(); __field }, { let __field = (*vy.lock().unwrap().as_ref().unwrap()).major.clone(); __field });;
+        let mut c = cmp_int(Arc::new(Mutex::new(Some({ let __selector_holder = (*vx.lock().unwrap().as_ref().unwrap()).major.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*vy.lock().unwrap().as_ref().unwrap()).major.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));;
         if { let __tmp_x = c; let __tmp_y = 0; __tmp_x != __tmp_y } {
             return c;;
         }
     }
     {
-        let mut c = cmp_int({ let __field = (*vx.lock().unwrap().as_ref().unwrap()).minor.clone(); __field }, { let __field = (*vy.lock().unwrap().as_ref().unwrap()).minor.clone(); __field });;
+        let mut c = cmp_int(Arc::new(Mutex::new(Some({ let __selector_holder = (*vx.lock().unwrap().as_ref().unwrap()).minor.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*vy.lock().unwrap().as_ref().unwrap()).minor.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));;
         if { let __tmp_x = c; let __tmp_y = 0; __tmp_x != __tmp_y } {
             return c;;
         }
     }
     {
-        let mut c = cmp_int({ let __field = (*vx.lock().unwrap().as_ref().unwrap()).patch.clone(); __field }, { let __field = (*vy.lock().unwrap().as_ref().unwrap()).patch.clone(); __field });;
+        let mut c = cmp_int(Arc::new(Mutex::new(Some({ let __selector_holder = (*vx.lock().unwrap().as_ref().unwrap()).patch.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*vy.lock().unwrap().as_ref().unwrap()).patch.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));;
         if { let __tmp_x = c; let __tmp_y = 0; __tmp_x != __tmp_y } {
             return c;;
         }
@@ -107,7 +107,7 @@ pub fn compare(x: Arc<Mutex<Option<String>>>, y: Arc<Mutex<Option<String>>>) -> 
         }
     }
     {
-        let mut c = cmp_int({ let __field = (*vx.lock().unwrap().as_ref().unwrap()).pre.clone(); __field }, { let __field = (*vy.lock().unwrap().as_ref().unwrap()).pre.clone(); __field });;
+        let mut c = cmp_int(Arc::new(Mutex::new(Some({ let __selector_holder = (*vx.lock().unwrap().as_ref().unwrap()).pre.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*vy.lock().unwrap().as_ref().unwrap()).pre.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));;
         if { let __tmp_x = c; let __tmp_y = 0; __tmp_x != __tmp_y } {
             return c;;
         }
@@ -156,7 +156,7 @@ pub fn parse(mut x: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Version>>> {
     if { let __tmp_x = (*x.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
                 // Patch missing is same as "0" for older versions.
                 // Starting in Go 1.21, patch missing is different from explicit .0.
-        if { let __tmp_x = cmp_int({ let __field = (*v.lock().unwrap().as_ref().unwrap()).minor.clone(); __field }, Arc::new(Mutex::new(Some("21".to_string())))); let __tmp_y = 0; __tmp_x < __tmp_y } {
+        if { let __tmp_x = cmp_int(Arc::new(Mutex::new(Some({ let __selector_holder = (*v.lock().unwrap().as_ref().unwrap()).minor.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some("21".to_string())))); let __tmp_y = 0; __tmp_x < __tmp_y } {
         { let new_val = "0".to_string(); *(*v.lock().unwrap().as_ref().unwrap()).patch.lock().unwrap() = Some(new_val); };
     }
         return { let __owned = v.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };

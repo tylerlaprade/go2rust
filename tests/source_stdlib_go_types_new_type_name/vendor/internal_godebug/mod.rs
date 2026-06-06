@@ -79,7 +79,7 @@ impl std::fmt::Debug for GoMutex {
         write!(f, "Mutex")
     }
 }
-	
+
 #[derive(Clone, Debug)]
 struct GoOnce {
     done: std::sync::Arc<std::sync::Mutex<bool>>,
@@ -760,7 +760,7 @@ impl Setting {
 
     pub fn register(&self) {
         if { let __nil_target = (*self.setting.lock().unwrap().as_ref().unwrap()).info.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } || (*(*(*self.setting.lock().unwrap().as_ref().unwrap()).info.lock().unwrap().as_ref().unwrap()).opaque.lock().unwrap().as_ref().unwrap()) {
-        panic!("{}", format!("{}{}", "godebug: unexpected IncNonDefault of ".to_string(), (*self.name.clone().lock().unwrap().as_ref().unwrap())));
+        std::panic::panic_any(Box::new(format!("{}{}", "godebug: unexpected IncNonDefault of ".to_string(), (*self.name.clone().lock().unwrap().as_ref().unwrap()))) as Box<dyn Any + Send + Sync>);
     }
         register_metric(Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "/godebug/non-default-behavior/".to_string())); __s.push_str(&format!("{}", (*self.name().lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", ":events".to_string())); __s }))), Arc::new(Mutex::new(Some({ let __recv = (*self.setting.lock().unwrap().as_ref().unwrap()).non_default.clone(); Box::new(move || -> u64 { (*__recv.lock().unwrap().as_mut().unwrap()).load() }) as Box<dyn FnMut() -> u64 + Send + Sync> }))));
     }
@@ -776,7 +776,7 @@ impl Setting {
         { let __once = self.once.clone(); __once.r#do(|| {
         { let new_val = lookup(self.name()).clone(); self.setting = new_val; };
         if { let __nil_target = (*self.setting.lock().unwrap().as_ref().unwrap()).info.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } && !self.undocumented() {
-        panic!("{}", format!("{}{}", "godebug: Value of name not listed in godebugs.All: ".to_string(), (*self.name.clone().lock().unwrap().as_ref().unwrap())));
+        std::panic::panic_any(Box::new(format!("{}{}", "godebug: Value of name not listed in godebugs.All: ".to_string(), (*self.name.clone().lock().unwrap().as_ref().unwrap()))) as Box<dyn Any + Send + Sync>);
     }
     }); };
         let mut v = Arc::new(Mutex::new(Some({ let __ptr_handle = (*(*self.setting.lock().unwrap().as_ref().unwrap()).value.lock().unwrap().as_mut().unwrap()).load(); let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() })));
@@ -823,7 +823,7 @@ pub fn lookup(name: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<setting>>> {
         let val = v.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            Arc::new(Mutex::new(Some(any_val.downcast_ref::<setting>().expect("type assertion failed").clone())))
+            any_val.downcast_ref::<Arc<Mutex<Option<setting>>>>().expect("type assertion failed").clone()
         } else {
             panic!("type assertion on nil interface")
         }
@@ -840,7 +840,7 @@ pub fn lookup(name: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<setting>>> {
         let val = v.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            Arc::new(Mutex::new(Some(any_val.downcast_ref::<setting>().expect("type assertion failed").clone())))
+            any_val.downcast_ref::<Arc<Mutex<Option<setting>>>>().expect("type assertion failed").clone()
         } else {
             panic!("type assertion on nil interface")
         }
@@ -938,7 +938,7 @@ pub fn update(def: Arc<Mutex<Option<String>>>, env: Arc<Mutex<Option<String>>>) 
         let val = s.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            Arc::new(Mutex::new(Some(any_val.downcast_ref::<setting>().expect("type assertion failed").clone())))
+            any_val.downcast_ref::<Arc<Mutex<Option<setting>>>>().expect("type assertion failed").clone()
         } else {
             panic!("type assertion on nil interface")
         }

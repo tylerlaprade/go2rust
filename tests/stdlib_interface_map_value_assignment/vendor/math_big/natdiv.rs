@@ -311,7 +311,7 @@ impl crate::nat::nat {
         self.div_recursive_step(u.clone(), v.clone(), Arc::new(Mutex::new(Some(0))), tmp.clone(), temps.clone());
                 // Free temporaries.
         { let __range_holder = temps.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for n in __range_values.iter() {
-        if (*n.lock().unwrap()).is_some() {
+        if { let __nil_result = (*n.lock().unwrap()).is_some(); __nil_result } {
         put_nat((*n).clone());
     }
     } }
@@ -352,7 +352,7 @@ impl crate::nat::nat {
                 // TODO(rsc): Look into whether using ⌈n/2⌉ is better than ⌊n/2⌋.
         let mut B = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x / __tmp_y })));
                 // Allocate a nat for qhat below.
-        if (*{ let __seq = { let __seq_holder = temps.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*depth.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.lock().unwrap()).is_none() {
+        if { let __nil_result = (*{ let __seq = { let __seq_holder = temps.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*depth.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.lock().unwrap()).is_none(); __nil_result } {
         (*temps.lock().unwrap().as_mut().unwrap())[({ let __v = (*depth.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = get_nat(Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     } else {
         { let new_val = (*{ let __recv = { let __seq = { let __seq_holder = temps.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*depth.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).make(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*B.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y })))); __result }.lock().unwrap().as_ref().unwrap()).clone(); *{ let __seq = { let __seq_holder = temps.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*depth.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.lock().unwrap() = Some(new_val); };

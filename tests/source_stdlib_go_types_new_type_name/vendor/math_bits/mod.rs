@@ -3,6 +3,7 @@ use go2rust_stdlib_stubs::*;
 use crate::bits_errors::*;
 use crate::bits_tables::*;
 
+use std::any::Any;
 use std::sync::{Arc, Mutex};
 
 pub(crate) const UINT_SIZE_1: i32 = 32 << (!(0 as u64) >> 63);
@@ -334,7 +335,7 @@ pub fn div32(hi: Arc<Mutex<Option<u32>>>, lo: Arc<Mutex<Option<u32>>>, y: Arc<Mu
     let mut rem: Arc<Mutex<Option<u32>>> = Arc::new(Mutex::new(Some(0)));
 
     if { let __tmp_x = { let __v = (*y.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u32; __tmp_x != __tmp_y } && { let __tmp_x = { let __v = (*y.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*hi.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y } {
-        panic!("{}", (*overflowError.lock().unwrap().as_ref().unwrap()));
+        std::panic::panic_any({ let __err_holder = overflowError.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => panic!("type info required: error-to-any has no visible dynamic error implementors") } });
     }
     let mut z = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*hi.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 32; __tmp_x << __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some((*lo.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x | __tmp_y })));
     { let __tmp_0 = Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*z.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*y.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y }) as u32))); let __tmp_1 = Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*z.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*y.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }) as u32))); *quo.lock().unwrap() = __tmp_0.lock().unwrap().take(); *rem.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
@@ -350,10 +351,10 @@ pub fn div64(hi: Arc<Mutex<Option<u64>>>, lo: Arc<Mutex<Option<u64>>>, mut y: Ar
     let mut rem: Arc<Mutex<Option<u64>>> = Arc::new(Mutex::new(Some(0)));
 
     if { let __tmp_x = { let __v = (*y.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u64; __tmp_x == __tmp_y } {
-        panic!("{}", (*divideError.lock().unwrap().as_ref().unwrap()));
+        std::panic::panic_any({ let __err_holder = divideError.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => panic!("type info required: error-to-any has no visible dynamic error implementors") } });
     }
     if { let __tmp_x = { let __v = (*y.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*hi.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y } {
-        panic!("{}", (*overflowError.lock().unwrap().as_ref().unwrap()));
+        std::panic::panic_any({ let __err_holder = overflowError.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => panic!("type info required: error-to-any has no visible dynamic error implementors") } });
     }
 
         // If high part is zero, we can directly return the results.

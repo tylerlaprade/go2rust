@@ -152,7 +152,7 @@ pub fn sprintf(fset: Arc<Mutex<Option<go_token::position::FileSet>>>, qf: crate:
         { let new_val = Box::new((*operand_string(a.clone(), qf.clone()).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>; arg = new_val; };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_token::position::Pos>()).is_some() {
         let a = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<go_token::position::Pos>()).unwrap().clone())));
-        if (*fset.lock().unwrap()).is_some() {
+        if { let __nil_result = (*fset.lock().unwrap()).is_some(); __nil_result } {
         { let new_val = Box::new((*{ let __recv = { let __recv = fset.clone(); let __recv_ptr: *const go_token::position::FileSet = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_token::position::FileSet }; let __result = unsafe { &*__recv_ptr }.position(Arc::new(Mutex::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>; arg = new_val; };
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Box<dyn go_ast::r#mod::Expr + Send + Sync>>()).is_some() {

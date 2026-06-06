@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_any_clone, go_strconv_format_float, go_strconv_format_int};
 
 use crate::accuracy_string::*;
 use crate::arith::*;
@@ -22,6 +22,7 @@ use crate::ratmarsh::*;
 use crate::roundingmode_string::*;
 use crate::sqrt::*;
 
+use std::any::Any;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
@@ -89,7 +90,7 @@ impl crate::int::Int {
                 // The comment does avoid saying "the" Baillie-PSW test
                 // because of this general ambiguity.
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x < __tmp_y } {
-        panic!("negative n for ProbablyPrime");
+        std::panic::panic_any(Box::new("negative n for ProbablyPrime".to_string()) as Box<dyn Any + Send + Sync>);
     }
         if (*self.neg.clone().lock().unwrap().as_ref().unwrap()) || { let __tmp_x = ({ let __slice_holder = { let __named_slice = (*self.abs.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
         return false;
@@ -119,7 +120,7 @@ impl crate::int::Int {
             { let new_val = Arc::new(Mutex::new(Some((((*{ let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) % primesA as u64)) as u32))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *rA.lock().unwrap() = __moved_val; };
             { let new_val = Arc::new(Mutex::new(Some((((*{ let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) % primesB as u64)) as u32))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *rB.lock().unwrap() = __moved_val; };
         } else {
-            panic!("math/big: invalid word size");
+            std::panic::panic_any(Box::new("math/big: invalid word size".to_string()) as Box<dyn Any + Send + Sync>);
         }
     }
         if { let __tmp_x = { let __tmp_x = { let __v = (*rA.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3 as u32; __tmp_x % __tmp_y }; let __tmp_y = 0 as u32; __tmp_x == __tmp_y } || { let __tmp_x = { let __tmp_x = { let __v = (*rA.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 5 as u32; __tmp_x % __tmp_y }; let __tmp_y = 0 as u32; __tmp_x == __tmp_y } || { let __tmp_x = { let __tmp_x = { let __v = (*rA.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 7 as u32; __tmp_x % __tmp_y }; let __tmp_y = 0 as u32; __tmp_x == __tmp_y } || { let __tmp_x = { let __tmp_x = { let __v = (*rA.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 11 as u32; __tmp_x % __tmp_y }; let __tmp_y = 0 as u32; __tmp_x == __tmp_y } || { let __tmp_x = { let __tmp_x = { let __v = (*rA.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 13 as u32; __tmp_x % __tmp_y }; let __tmp_y = 0 as u32; __tmp_x == __tmp_y } || { let __tmp_x = { let __tmp_x = { let __v = (*rA.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 17 as u32; __tmp_x % __tmp_y }; let __tmp_y = 0 as u32; __tmp_x == __tmp_y } || { let __tmp_x = { let __tmp_x = { let __v = (*rA.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 19 as u32; __tmp_x % __tmp_y }; let __tmp_y = 0 as u32; __tmp_x == __tmp_y } || { let __tmp_x = { let __tmp_x = { let __v = (*rA.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 23 as u32; __tmp_x % __tmp_y }; let __tmp_y = 0 as u32; __tmp_x == __tmp_y } || { let __tmp_x = { let __tmp_x = { let __v = (*rA.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 37 as u32; __tmp_x % __tmp_y }; let __tmp_y = 0 as u32; __tmp_x == __tmp_y } || { let __tmp_x = { let __tmp_x = { let __v = (*rB.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 29 as u32; __tmp_x % __tmp_y }; let __tmp_y = 0 as u32; __tmp_x == __tmp_y } || { let __tmp_x = { let __tmp_x = { let __v = (*rB.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 31 as u32; __tmp_x % __tmp_y }; let __tmp_y = 0 as u32; __tmp_x == __tmp_y } || { let __tmp_x = { let __tmp_x = { let __v = (*rB.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 41 as u32; __tmp_x % __tmp_y }; let __tmp_y = 0 as u32; __tmp_x == __tmp_y } || { let __tmp_x = { let __tmp_x = { let __v = (*rB.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 43 as u32; __tmp_x % __tmp_y }; let __tmp_y = 0 as u32; __tmp_x == __tmp_y } || { let __tmp_x = { let __tmp_x = { let __v = (*rB.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 47 as u32; __tmp_x % __tmp_y }; let __tmp_y = 0 as u32; __tmp_x == __tmp_y } || { let __tmp_x = { let __tmp_x = { let __v = (*rB.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 53 as u32; __tmp_x % __tmp_y }; let __tmp_y = 0 as u32; __tmp_x == __tmp_y } {
@@ -224,7 +225,7 @@ impl crate::nat::nat {
         if { let __tmp_x = (*p.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::arith::Word(Arc::new(Mutex::new(Some(10000 as u64)))); __tmp_x > __tmp_y } {
                 // This is widely believed to be impossible.
                 // If we get a report, we'll want the exact number n.
-        panic!("{}", format!("{}{}", "math/big: internal error: cannot find (D/n) = -1 for ".to_string(), (*{ let __recv = intN.clone(); let __recv_ptr: *const crate::int::Int = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::int::Int }; let __result = unsafe { &*__recv_ptr }.string(); __result }.lock().unwrap().as_ref().unwrap())));
+        std::panic::panic_any(Box::new(format!("{}{}", "math/big: internal error: cannot find (D/n) = -1 for ".to_string(), (*{ let __recv = intN.clone(); let __recv_ptr: *const crate::int::Int = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::int::Int }; let __result = unsafe { &*__recv_ptr }.string(); __result }.lock().unwrap().as_ref().unwrap()))) as Box<dyn Any + Send + Sync>);
     }
                 // This is widely believed to be impossible.
                 // If we get a report, we'll want the exact number n.

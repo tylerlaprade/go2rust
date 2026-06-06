@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_register_embedded_owner, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
 
 use crate::alias::*;
 use crate::api::*;
@@ -105,6 +105,56 @@ impl GoComparable for Box<dyn Type + Send + Sync> {
     fn go_hash(&self, _seed: usize) -> usize {
         panic!("interface hash with uncomparable dynamic type")
     }
+}
+
+#[derive(Clone)]
+pub struct GoTypeInterfaceKey(pub Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>);
+
+impl GoTypeInterfaceKey {
+    pub fn new(value: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Self { GoTypeInterfaceKey(value) }
+    pub fn value(&self) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> { self.0.clone() }
+    fn addr(&self) -> usize { Arc::as_ptr(&self.0) as usize }
+    fn identity(&self) -> (u64, String) {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() {
+            None => (0, String::new()),
+            Some(__v) => {
+                let mut __hasher = std::collections::hash_map::DefaultHasher::new();
+                std::hash::Hash::hash(&__v.as_ref().__go_as_any().type_id(), &mut __hasher);
+                (std::hash::Hasher::finish(&__hasher), format!("{}", __v))
+            }
+        }
+    }
+}
+impl PartialEq for GoTypeInterfaceKey {
+    fn eq(&self, other: &Self) -> bool {
+        let __left_guard = self.0.lock().unwrap();
+        let __right_guard = other.0.lock().unwrap();
+        match (__left_guard.as_ref(), __right_guard.as_ref()) {
+            (None, None) => true,
+            (Some(__left), Some(__right)) => __left.as_ref().__go_eq_type_(__right.as_ref()),
+            _ => false,
+        }
+    }
+}
+impl Eq for GoTypeInterfaceKey {}
+impl PartialOrd for GoTypeInterfaceKey {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }
+}
+impl Ord for GoTypeInterfaceKey {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        if self == other { return std::cmp::Ordering::Equal; }
+        match self.identity().cmp(&other.identity()) {
+            std::cmp::Ordering::Equal => self.addr().cmp(&other.addr()),
+            ordering => ordering,
+        }
+    }
+}
+impl std::fmt::Debug for GoTypeInterfaceKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "{}", self.identity().1) }
+}
+impl std::fmt::Display for GoTypeInterfaceKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "{}", self.identity().1) }
 }
 
 #[derive(Clone)]

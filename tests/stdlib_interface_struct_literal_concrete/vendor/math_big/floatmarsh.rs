@@ -151,7 +151,7 @@ impl crate::float::Float {
     pub fn unmarshal_text(&mut self, text: Arc<Mutex<Option<Vec<u8>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
                 // TODO(gri): get rid of the []byte/string conversion
         let (_, _, mut err) = self.parse(Arc::new(Mutex::new(Some(String::from_utf8((*text.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))), Arc::new(Mutex::new(Some(0))));
-        if (*err.lock().unwrap()).is_some() {
+        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         { let __rhs_holder = Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(format!("math/big: cannot unmarshal {:?} into a *big.Float ({})", format_slice(&text), format!("{}", (*err.lock().unwrap().as_ref().unwrap()))))))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
     }
         return err.clone();

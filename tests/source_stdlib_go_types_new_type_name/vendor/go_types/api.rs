@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_register_embedded_owner, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
 
 use crate::alias::*;
 use crate::api_predicates::*;
@@ -143,7 +143,7 @@ pub trait Importer: std::fmt::Display + Any {
     fn __go_clone_box_importer(&self) -> Box<dyn Importer + Send + Sync>;
     fn __go_as_any(&self) -> &dyn Any;
     fn __go_eq_importer(&self, other: &(dyn Importer + Send + Sync)) -> bool;
-    fn import(&self, path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Package>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>);
+    fn import(&self, path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<crate::package::Package>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>);
 }
 
 impl Clone for Box<dyn Importer + Send + Sync> {
@@ -541,7 +541,7 @@ impl Ord for ImportMode {
 pub trait ImporterFrom: Importer + std::fmt::Display + Any {
     fn __go_clone_box_importer_from(&self) -> Box<dyn ImporterFrom + Send + Sync>;
     fn __go_eq_importer_from(&self, other: &(dyn ImporterFrom + Send + Sync)) -> bool;
-    fn import_from(&self, path: Arc<Mutex<Option<String>>>, dir: Arc<Mutex<Option<String>>>, mode: Arc<Mutex<Option<ImportMode>>>) -> (Arc<Mutex<Option<Package>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>);
+    fn import_from(&self, path: Arc<Mutex<Option<String>>>, dir: Arc<Mutex<Option<String>>>, mode: Arc<Mutex<Option<ImportMode>>>) -> (Arc<Mutex<Option<crate::package::Package>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>);
 }
 
 impl Clone for Box<dyn ImporterFrom + Send + Sync> {
@@ -763,7 +763,7 @@ impl Error {
     /// Error returns an error string formatted as follows:
     /// filename:line:column: message
     pub fn error(&self) -> Arc<Mutex<Option<String>>> {
-        Arc::new(Mutex::new(Some(format!("{}: {}", (*(*self.fset.lock().unwrap().as_ref().unwrap()).position({ let __field = self.pos.clone(); __field }).lock().unwrap().as_ref().unwrap()), (*self.msg.lock().unwrap().as_ref().unwrap())))))
+        Arc::new(Mutex::new(Some(format!("{}: {}", (*(*self.fset.lock().unwrap().as_ref().unwrap()).position(Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap()), (*self.msg.lock().unwrap().as_ref().unwrap())))))
     }
 }
 
@@ -781,7 +781,7 @@ impl Info {
         {
         let (mut t, mut ok) = { let __map = { let __map_holder = self.types.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(e.clone()))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Arc::new(Mutex::new(Some(Default::default()))), false) } };;
         if ok {
-            return (*t.lock().unwrap().as_ref().unwrap()).r#type.clone();;
+            return { let __field = (*t.lock().unwrap().as_ref().unwrap()).r#type.clone(); __field };;
         }
     }
         {
@@ -798,10 +798,10 @@ impl Info {
             (Arc::new(Mutex::new(None::<go_ast::r#mod::Ident>)), false)
         }
     });;
-        if (*id.lock().unwrap()).is_some() {
+        if { let __nil_result = (*id.lock().unwrap()).is_some(); __nil_result } {
             {
         let mut obj = self.object_of(id.clone());;
-        if (*obj.lock().unwrap()).is_some() {
+        if { let __nil_result = (*obj.lock().unwrap()).is_some(); __nil_result } {
             return (*obj.lock().unwrap().as_ref().unwrap()).r#type().clone();;
         }
     };
@@ -820,7 +820,7 @@ impl Info {
     pub fn object_of(&self, id: Arc<Mutex<Option<go_ast::r#mod::Ident>>>) -> Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>> {
         {
         let mut obj = { let __map = { let __map_holder = self.defs.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(id.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };;
-        if (*obj.lock().unwrap()).is_some() {
+        if { let __nil_result = (*obj.lock().unwrap()).is_some(); __nil_result } {
             return obj.clone();;
         }
     }
@@ -836,9 +836,9 @@ impl Info {
     pub fn pkg_name_of(&self, imp: Arc<Mutex<Option<go_ast::r#mod::ImportSpec>>>) -> Arc<Mutex<Option<crate::object::PkgName>>> {
         let mut obj: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>> = Arc::new(Mutex::new(None));
         if { let __nil_target = (*imp.lock().unwrap().as_ref().unwrap()).name.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
-        { let __iface_handle = { let __map = { let __map_holder = self.defs.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new((*imp.lock().unwrap().as_ref().unwrap()).name.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *obj.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __map = { let __map_holder = self.defs.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new((*imp.lock().unwrap().as_ref().unwrap()).name.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *obj.lock().unwrap() = __iface_value; };
     } else {
-        { let __iface_handle = { let __map = { let __map_holder = self.implicits.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ImportSpecPtr(imp.clone())) as Box<dyn go_ast::r#mod::Node + Send + Sync>)))))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *obj.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __map = { let __map_holder = self.implicits.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ImportSpecPtr(imp.clone())) as Box<dyn go_ast::r#mod::Node + Send + Sync>)))))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *obj.lock().unwrap() = __iface_value; };
     }
         let (mut pkgname, _) = ({
         let val = obj.clone();
@@ -922,7 +922,7 @@ impl Initializer {
         (*buf.lock().unwrap().as_mut().unwrap()).write_string({ let __recv = lhs.clone(); let __recv_ptr: *const crate::object::Var = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::Var }; let __result = unsafe { &*__recv_ptr }.name(); __result });
     } }
         (*buf.lock().unwrap().as_mut().unwrap()).write_string(" = ".to_string());
-        write_expr(buf.clone(), self.rhs.clone());
+        write_expr(buf.clone(), { let __field = self.rhs.clone(); __field });
         return (*buf.lock().unwrap().as_mut().unwrap()).string();
     }
 }

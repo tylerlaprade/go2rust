@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_any_clone, go_strconv_format_float, go_strconv_format_int};
 
 use crate::accuracy_string::*;
 use crate::arith::*;
@@ -22,6 +22,7 @@ use crate::ratmarsh::*;
 use crate::roundingmode_string::*;
 use crate::sqrt::*;
 
+use std::any::Any;
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
@@ -168,7 +169,7 @@ impl crate::nat::nat {
                 // reject invalid bases
         let mut baseOk = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } || !{ let __v = (*fracOk.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = 2; let __tmp_y = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y } && { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 62; __tmp_x <= __tmp_y } || { let __v = (*fracOk.lock().unwrap().as_ref().unwrap()).clone(); __v } && ({ let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x == __tmp_y } || { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8; __tmp_x == __tmp_y } || { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x == __tmp_y } || { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 16; __tmp_x == __tmp_y }))));
         if !{ let __v = (*baseOk.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        panic!("invalid number base {}", { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v });
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("invalid number base {}", { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v })))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     }
                 // prev encodes the previously seen char: it is one
                 // of '_', '0' (a digit), or '.' (anything else). A
@@ -183,11 +184,11 @@ impl crate::nat::nat {
         if { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
                 // actual base is 10 unless there's a base prefix
         { let new_val = 10; *b.lock().unwrap() = Some(new_val); };
-        if (*err.lock().unwrap()).is_none() && { let __tmp_x = ch; let __tmp_y = ('0' as i32) as u8; __tmp_x == __tmp_y } {
+        if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } && { let __tmp_x = ch; let __tmp_y = ('0' as i32) as u8; __tmp_x == __tmp_y } {
         { let new_val = ('0' as i32); *prev.lock().unwrap() = Some(new_val); };
         { let new_val = 1; *count.lock().unwrap() = Some(new_val); };
         { let (__tmp_0, __tmp_1) = (*r.lock().unwrap().as_ref().unwrap()).read_byte(); ch = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
-        if (*err.lock().unwrap()).is_none() {
+        if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } {
                 // possibly one of 0b, 0B, 0o, 0O, 0x, 0X
         { let _switch_val = ch;
     if _switch_val == (('b' as i32) as u8) || _switch_val == (('B' as i32) as u8) {
@@ -224,7 +225,7 @@ impl crate::nat::nat {
         let mut di = Arc::new(Mutex::new(Some(crate::arith::Word(Arc::new(Mutex::new(Some(0 as u64)))))));
         let mut i = Arc::new(Mutex::new(Some(0)));
         let mut dp = Arc::new(Mutex::new(Some(-(1))));
-        while (*err.lock().unwrap()).is_none() {
+        while { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } {
         if { let __tmp_x = ch; let __tmp_y = ('.' as i32) as u8; __tmp_x == __tmp_y } && { let __v = (*fracOk.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         { let new_val = false; *fracOk.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = { let __v = (*prev.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('_' as i32); __tmp_x == __tmp_y } {
@@ -281,7 +282,7 @@ impl crate::nat::nat {
         *err.lock().unwrap() = None;
     }
                 // other errors take precedence over invalid separators
-        if (*err.lock().unwrap()).is_none() && ({ let __v = (*invalSep.lock().unwrap().as_ref().unwrap()).clone(); __v } || { let __tmp_x = { let __v = (*prev.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('_' as i32); __tmp_x == __tmp_y }) {
+        if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } && ({ let __v = (*invalSep.lock().unwrap().as_ref().unwrap()).clone(); __v } || { let __tmp_x = { let __v = (*prev.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('_' as i32); __tmp_x == __tmp_y }) {
         { let __rhs_holder = errInvalSep.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
     }
         if { let __tmp_x = { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
@@ -310,7 +311,7 @@ impl crate::nat::nat {
         { let new_val = { let __tmp_x = { let __v = (*dp.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }; *count.lock().unwrap() = Some(new_val); };
     }
                 // 0 <= dp <= count
-        return (res, (*b.lock().unwrap().as_ref().unwrap()), (*count.lock().unwrap().as_ref().unwrap()), err);
+        return (res.clone(), (*b.lock().unwrap().as_ref().unwrap()), (*count.lock().unwrap().as_ref().unwrap()), err.clone());
     }
 
     /// utoa converts x to an ASCII representation in the given base;
@@ -322,7 +323,7 @@ impl crate::nat::nat {
     /// itoa is like utoa but it prepends a '-' if neg && x != 0.
     pub fn itoa(&self, neg: Arc<Mutex<Option<bool>>>, base: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Vec<u8>>>> {
         if { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x < __tmp_y } || { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 62; __tmp_x > __tmp_y } {
-        panic!("invalid base");
+        std::panic::panic_any(Box::new("invalid base".to_string()) as Box<dyn Any + Send + Sync>);
     }
                 // x == 0
         if { let __tmp_x = ({ let __slice_holder = self.0.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
@@ -423,7 +424,7 @@ impl crate::nat::nat {
     pub fn convert_words(&self, mut s: Arc<Mutex<Option<Vec<u8>>>>, b: Arc<Mutex<Option<Word>>>, ndigits: Arc<Mutex<Option<i32>>>, bb: Arc<Mutex<Option<Word>>>, table: Arc<Mutex<Option<Vec<divisor>>>>) {
         let mut __self = self.clone();
                 // split larger blocks recursively
-        if (*table.lock().unwrap()).is_some() {
+        if { let __nil_result = (*table.lock().unwrap()).is_some(); __nil_result } {
                 // len(q) > leafSize > 0
         let mut r: Arc<Mutex<Option<nat>>> = Arc::new(Mutex::new(Some(Default::default())));
         let mut index = Arc::new(Mutex::new(Some({ let __tmp_x = ((*table.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y })));
@@ -438,7 +439,7 @@ impl crate::nat::nat {
         if { let __tmp_x = (*{ let __seq = { let __seq_holder = table.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*index.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.nbits.lock().unwrap().as_ref().unwrap()); let __tmp_y = maxLength; __tmp_x >= __tmp_y } && { let __tmp_x = (*{ let __seq = { let __seq_holder = table.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*index.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.bbb.lock().unwrap().as_ref().unwrap()).cmp(Arc::new(Mutex::new(Some(__self.clone())))); let __tmp_y = 0; __tmp_x >= __tmp_y } {
         { let mut guard = index.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
         if { let __tmp_x = { let __v = (*index.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x < __tmp_y } {
-        panic!("internal inconsistency");
+        std::panic::panic_any(Box::new("internal inconsistency".to_string()) as Box<dyn Any + Send + Sync>);
     }
     }
 
@@ -530,7 +531,7 @@ pub fn max_pow(b: Arc<Mutex<Option<Word>>>) -> (Arc<Mutex<Option<crate::arith::W
 
         // p == b**n && p <= max
         // p == b**n && p <= _M
-    return (p, (*n.lock().unwrap().as_ref().unwrap()));
+    return (p.clone(), (*n.lock().unwrap().as_ref().unwrap()));
 }
 
 /// pow returns x**n for n > 0, and 1 otherwise.
@@ -548,7 +549,7 @@ pub fn pow(mut x: Arc<Mutex<Option<Word>>>, mut n: Arc<Mutex<Option<i32>>>) -> A
         { let __rhs = (*({ let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }).0.lock().unwrap().as_ref().unwrap()).clone(); let mut guard = x.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() * __rhs); };
         { let __rhs = 1; let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() >> __rhs); };
     }
-    p
+    p.clone()
 }
 
 /// construct table of powers of bb*leafSize to use in subdivisions.

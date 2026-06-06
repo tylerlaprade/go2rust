@@ -60,7 +60,7 @@ fn __go_init_globals() {
     *FramePointerEnabled.lock().unwrap() = Some(false);
     *Experiment.lock().unwrap() = Some((*{ let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<ExperimentFlags>>> {
         let (mut flags, mut err) = parse_g_o_e_x_p_e_r_i_m_e_n_t(Arc::new(Mutex::new(Some({ let __arg_holder = GOOS.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = GOARCH.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), env_or(Arc::new(Mutex::new(Some("GOEXPERIMENT".to_string()))), Arc::new(Mutex::new(Some(DEFAULT_G_O_E_X_P_E_R_I_M_E_N_T_1.to_string())))));
-        if (*err.lock().unwrap()).is_some() {
+        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         { let __rhs_holder = err.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *Error.lock().unwrap() = new_val; };
         return Arc::new(Mutex::new(Some(ExperimentFlags { flags: Arc::new(Mutex::new(Some(Default::default()))), baseline: Arc::new(Mutex::new(Some(Default::default()))) })));
     }
@@ -79,7 +79,7 @@ pub(crate) fn __go_zero_globals() {
 pub(crate) fn __go_init_order_15() {
     *Experiment.lock().unwrap() = Some((*{ let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<ExperimentFlags>>> {
         let (mut flags, mut err) = parse_g_o_e_x_p_e_r_i_m_e_n_t(Arc::new(Mutex::new(Some({ let __arg_holder = GOOS.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = GOARCH.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), env_or(Arc::new(Mutex::new(Some("GOEXPERIMENT".to_string()))), Arc::new(Mutex::new(Some(DEFAULT_G_O_E_X_P_E_R_I_M_E_N_T_1.to_string())))));
-        if (*err.lock().unwrap()).is_some() {
+        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         { let __rhs_holder = err.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *Error.lock().unwrap() = new_val; };
         return Arc::new(Mutex::new(Some(ExperimentFlags { flags: Arc::new(Mutex::new(Some(Default::default()))), baseline: Arc::new(Mutex::new(Some(Default::default()))) })));
     }

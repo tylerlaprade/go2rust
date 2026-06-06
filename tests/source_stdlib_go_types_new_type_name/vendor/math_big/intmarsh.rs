@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_any_clone, go_strconv_format_float, go_strconv_format_int};
 
 use crate::accuracy_string::*;
 use crate::arith::*;
@@ -94,7 +94,7 @@ impl crate::int::Int {
         if false {
         return (Arc::new(Mutex::new(Some(("null".to_string()).as_bytes().to_vec()))), Arc::new(Mutex::new(None)));
     }
-        ((*self.abs.lock().unwrap().as_ref().unwrap()).itoa({ let __field = self.neg.clone(); __field }, Arc::new(Mutex::new(Some(10)))), Arc::new(Mutex::new(None)))
+        ((*self.abs.lock().unwrap().as_ref().unwrap()).itoa(Arc::new(Mutex::new(Some({ let __selector_holder = self.neg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(10)))), Arc::new(Mutex::new(None)))
     }
 
     /// UnmarshalJSON implements the [encoding/json.Unmarshaler] interface.

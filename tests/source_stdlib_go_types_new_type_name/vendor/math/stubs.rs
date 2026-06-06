@@ -53,6 +53,7 @@ use crate::tanh::*;
 use crate::trig_reduce::*;
 use crate::r#unsafe::*;
 
+use std::any::Any;
 use std::sync::{Arc, Mutex};
 
 pub(crate) const HAVE_ARCH_ACOS: bool = false;
@@ -131,17 +132,17 @@ pub(crate) const HAVE_ARCH_TANH: bool = false;
 
 
 pub fn arch_frexp(x: Arc<Mutex<Option<f64>>>) -> (f64, i32) {
-    panic!("not implemented");
+    std::panic::panic_any(Box::new("not implemented".to_string()) as Box<dyn Any + Send + Sync>);
 }
 
 pub fn arch_ldexp(frac: Arc<Mutex<Option<f64>>>, exp: Arc<Mutex<Option<i32>>>) -> f64 {
-    panic!("not implemented");
+    std::panic::panic_any(Box::new("not implemented".to_string()) as Box<dyn Any + Send + Sync>);
 }
 
 pub fn arch_log2(x: Arc<Mutex<Option<f64>>>) -> f64 {
-    panic!("not implemented");
+    std::panic::panic_any(Box::new("not implemented".to_string()) as Box<dyn Any + Send + Sync>);
 }
 
 pub fn arch_pow(x: Arc<Mutex<Option<f64>>>, y: Arc<Mutex<Option<f64>>>) -> f64 {
-    panic!("not implemented");
+    std::panic::panic_any(Box::new("not implemented".to_string()) as Box<dyn Any + Send + Sync>);
 }

@@ -646,7 +646,7 @@ impl Selection {
         }
     }).lock().unwrap().as_ref().unwrap()).clone(); __v })));
             let mut recv = Arc::new(Mutex::new(Some({ let __v = (*(*sig.lock().unwrap().as_ref().unwrap()).recv.lock().unwrap().as_ref().unwrap()).clone(); __v })));
-            { let __iface_handle = { let __field = self.recv.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *(*(*recv.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = { let __field = self.recv.clone(); __field }; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*(*recv.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = __iface_value; };
             { let new_val = recv.clone().clone(); (*sig.lock().unwrap().as_mut().unwrap()).recv = new_val; };
             return Arc::new(Mutex::new(Some(Box::new(crate::signature::SignaturePtr(sig.clone().clone())) as Box<dyn Type + Send + Sync>)));
         } else if _switch_val == (SelectionKind(Arc::new(Mutex::new(Some(METHOD_EXPR as i32))))) {
@@ -681,7 +681,7 @@ impl Selection {
     }).lock().unwrap().as_ref().unwrap()).clone(); __v })));
             let mut arg0 = Arc::new(Mutex::new(Some({ let __v = (*(*sig.lock().unwrap().as_ref().unwrap()).recv.lock().unwrap().as_ref().unwrap()).clone(); __v })));
             *(*sig.lock().unwrap().as_ref().unwrap()).recv.lock().unwrap() = None;
-            { let __iface_handle = { let __field = self.recv.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *(*(*arg0.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = { let __field = self.recv.clone(); __field }; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*(*arg0.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = __iface_value; };
             let mut params: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Var>>>>>>> = Arc::new(Mutex::new(None));
             if { let __nil_target = (*sig.lock().unwrap().as_ref().unwrap()).params.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
         { let new_val = (*(*sig.lock().unwrap().as_ref().unwrap()).params.lock().unwrap().as_ref().unwrap()).vars.clone(); params = new_val; };

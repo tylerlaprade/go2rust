@@ -1,11 +1,12 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoAtomicPointer, GoMutex, GoPtr, GoRWMutex, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoAtomicPointer, GoMutex, GoPtr, GoRWMutex, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_any_clone, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::serialize::*;
 use crate::r#mod::*;
 
 use std::any::Any;
+use std::cell::{RefCell};
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
@@ -729,12 +730,12 @@ impl File {
     /// MergeLine will panic if given an invalid line number.
     pub fn merge_line(&mut self, line: Arc<Mutex<Option<i32>>>) {
         if { let __tmp_x = { let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x < __tmp_y } {
-        panic!("invalid line number {} (should be >= 1)", { let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v });
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("invalid line number {} (should be >= 1)", { let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v })))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     }
         let __mutex_guard_source_5201 = self.mutex.clone(); let __mutex_guard_5201 = __mutex_guard_source_5201.guard();
         // mu.Unlock() handled by RAII guard
         if { let __tmp_x = ({ let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = (({ let __len_target = { let __field = self.lines.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); __tmp_x >= __tmp_y } {
-        panic!("invalid line number {} (should be < {})", { let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v }, ({ let __len_target = { let __field = self.lines.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }));
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("invalid line number {} (should be < {})", { let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v }, ({ let __len_target = { let __field = self.lines.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     }
                 // To merge the line numbered <line> with the line numbered <line+1>,
                 // we need to remove the entry in lines corresponding to the line
@@ -802,12 +803,12 @@ impl File {
     /// LineStart panics if the 1-based line number is invalid.
     pub fn line_start(&self, line: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Pos>>> {
         if { let __tmp_x = { let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x < __tmp_y } {
-        panic!("invalid line number {} (should be >= 1)", { let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v });
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("invalid line number {} (should be >= 1)", { let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v })))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     }
         let __mutex_guard_source_7535 = self.mutex.clone(); let __mutex_guard_7535 = __mutex_guard_source_7535.guard();
         // mu.Unlock() handled by RAII guard
         if { let __tmp_x = ({ let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = (({ let __len_target = { let __field = self.lines.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); __tmp_x > __tmp_y } {
-        panic!("invalid line number {} (should be < {})", { let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v }, ({ let __len_target = { let __field = self.lines.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }));
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("invalid line number {} (should be < {})", { let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v }, ({ let __len_target = { let __field = self.lines.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     }
         Arc::new(Mutex::new(Some(Pos(Arc::new(Mutex::new(Some({ let __tmp_x = (*self.base.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __seq = { let __seq_holder = self.lines.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; __tmp_x + __tmp_y } as i32)))))))
     }
@@ -852,7 +853,7 @@ impl File {
         }
                 // only generate this code if needed
         if DEBUG {
-        panic!("offset {} out of bounds [{}, {}] (position {} out of bounds [{}, {}])", 0, { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }, (*self.size.lock().unwrap().as_ref().unwrap()), { let __tmp_x = (*self.base.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }, (*self.base.lock().unwrap().as_ref().unwrap()), { let __tmp_x = (*self.base.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.size.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y });
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("offset {} out of bounds [{}, {}] (position {} out of bounds [{}, {}])", 0, { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }, (*self.size.lock().unwrap().as_ref().unwrap()), { let __tmp_x = (*self.base.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }, (*self.base.lock().unwrap().as_ref().unwrap()), { let __tmp_x = (*self.base.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.size.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     }
                 /* for symmetry */
         0
@@ -914,7 +915,7 @@ impl File {
             let mut alt: Option<GoSliceElemPtr<lineInfo>> = Some(GoSliceElemPtr::new(self.infos.clone(), (i) as usize));;
             { let new_val = { let __selector_holder = (*alt.as_ref().unwrap().borrow().as_ref().unwrap()).filename.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *filename.lock().unwrap() = Some(new_val); };;
             {
-        let mut i = search_ints({ let __field = self.lines.clone(); __field }, { let __field = (*alt.as_ref().unwrap().borrow().as_ref().unwrap()).offset.clone(); __field });;
+        let mut i = search_ints({ let __field = self.lines.clone(); __field }, Arc::new(Mutex::new(Some({ let __selector_holder = (*alt.as_ref().unwrap().borrow().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));;
         if { let __tmp_x = i; let __tmp_y = 0; __tmp_x >= __tmp_y } {
             let mut d = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*line.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = i; let __tmp_y = 1; __tmp_x + __tmp_y }); __tmp_x - __tmp_y })));;
             { let new_val = { let __tmp_x = (*{ let __field = (*alt.as_ref().unwrap().borrow().as_ref().unwrap()).line.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; *line.lock().unwrap() = Some(new_val); };;
@@ -940,7 +941,7 @@ impl File {
                 // TODO(mvdan): move Unlock back under Lock with a defer statement once
                 // https://go.dev/issue/38471 is fixed to remove the performance penalty.
         drop(__mutex_guard_11187);
-        return (filename, (*line.lock().unwrap().as_ref().unwrap()), (*column.lock().unwrap().as_ref().unwrap()));
+        return (filename.clone(), (*line.lock().unwrap().as_ref().unwrap()), (*column.lock().unwrap().as_ref().unwrap()));
     }
 
     pub fn position_1(&self, p: Arc<Mutex<Option<Pos>>>, adjusted: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<Position>>> {
@@ -949,7 +950,7 @@ impl File {
         let mut offset = { let __method_arg0 = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*{ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.base.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }))); self.fix_offset(__method_arg0) };
         { let new_val = offset; *(*pos.lock().unwrap().as_ref().unwrap()).offset.lock().unwrap() = Some(new_val); };
         { let (__tmp_0, __tmp_1, __tmp_2) = self.unpack(Arc::new(Mutex::new(Some(offset))), Arc::new(Mutex::new(Some({ let __arg_holder = adjusted.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *(*pos.lock().unwrap().as_ref().unwrap()).filename.lock().unwrap() = __moved_tmp_0; *(*pos.lock().unwrap().as_ref().unwrap()).line.lock().unwrap() = Some(__tmp_1); *(*pos.lock().unwrap().as_ref().unwrap()).column.lock().unwrap() = Some(__tmp_2); };
-        pos
+        pos.clone()
     }
 
     /// PositionFor returns the Position value for the given file position p.
@@ -963,7 +964,7 @@ impl File {
         if { let __tmp_x = (*p.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Pos(Arc::new(Mutex::new(Some(NO_POS as i32)))); __tmp_x != __tmp_y } {
         { let new_val = self.position_1(Arc::new(Mutex::new(Some({ let __arg_holder = p.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = adjusted.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *pos.lock().unwrap() = __moved_val; };
     }
-        pos
+        pos.clone()
     }
 
     /// Position returns the Position value for the given file position p.
@@ -1004,38 +1005,54 @@ impl FileSet {
     pub fn add_file(&mut self, filename: Arc<Mutex<Option<String>>>, mut base: Arc<Mutex<Option<i32>>>, size: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<File>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-                // Allocate f outside the critical section.
-        let mut f = Arc::new(Mutex::new(Some(File { name: Arc::new(Mutex::new(Some({ let __arg_holder = filename.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), size: Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), lines: Arc::new(Mutex::new(Some(vec![0]))), ..Default::default() })));
-        self.mutex.lock();
-        let mut s_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        // Allocate f outside the critical section.
+            let mut f = Arc::new(Mutex::new(Some(File { name: Arc::new(Mutex::new(Some({ let __arg_holder = filename.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), size: Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), lines: Arc::new(Mutex::new(Some(vec![0]))), ..Default::default() })));
+            self.mutex.lock();
+            let mut s_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         s_defer_captured.mutex.unlock();
     }));
-        if { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x < __tmp_y } {
+            if { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x < __tmp_y } {
         { let new_val = { let __selector_holder = self.base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *base.lock().unwrap() = Some(new_val); };
     }
-        if { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.base.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
-        panic!("invalid base {} (should be >= {})", { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }, (*self.base.lock().unwrap().as_ref().unwrap()));
+            if { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.base.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("invalid base {} (should be >= {})", { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }, (*self.base.lock().unwrap().as_ref().unwrap()))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     }
-        { let new_val = base.lock().unwrap().as_ref().unwrap().clone(); *(*f.lock().unwrap().as_ref().unwrap()).base.lock().unwrap() = Some(new_val); };
-        if { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x < __tmp_y } {
-        panic!("invalid size {} (should be >= 0)", { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            { let new_val = base.lock().unwrap().as_ref().unwrap().clone(); *(*f.lock().unwrap().as_ref().unwrap()).base.lock().unwrap() = Some(new_val); };
+            if { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x < __tmp_y } {
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("invalid size {} (should be >= 0)", { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v })))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     }
-                // base >= s.base && size >= 0
-        { let __rhs = { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }; let mut guard = base.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-        if { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x < __tmp_y } {
-        panic!("token.Pos offset overflow (> 2G of source code in file set)");
+                        // base >= s.base && size >= 0
+            { let __rhs = { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }; let mut guard = base.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+            if { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x < __tmp_y } {
+        std::panic::panic_any(Box::new("token.Pos offset overflow (> 2G of source code in file set)".to_string()) as Box<dyn Any + Send + Sync>);
     }
-                // add the file to the file set
-        { let new_val = base.lock().unwrap().as_ref().unwrap().clone(); *self.base.lock().unwrap() = Some(new_val); };
-        { let new_val = { let __append_target = self.files.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(f.clone()); __append_target.clone() }; self.files = new_val; };
-        (*self.last.lock().unwrap().as_mut().unwrap()).store(GoPtr::local(f.clone()));
-        {
+                        // add the file to the file set
+            { let new_val = base.lock().unwrap().as_ref().unwrap().clone(); *self.base.lock().unwrap() = Some(new_val); };
+            { let new_val = { let __append_target = self.files.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(f.clone()); __append_target.clone() }; self.files = new_val; };
+            (*self.last.lock().unwrap().as_mut().unwrap()).store(GoPtr::local(f.clone()));
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return f.clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     /// RemoveFile removes a file from the [FileSet] so that subsequent
@@ -1047,13 +1064,16 @@ impl FileSet {
     pub fn remove_file(&mut self, file: Arc<Mutex<Option<File>>>) {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        (*self.last.lock().unwrap().as_mut().unwrap()).compare_and_swap(GoPtr::local(file.clone()), GoPtr::nil());
-        self.mutex.lock();
-        let mut s_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            (*self.last.lock().unwrap().as_mut().unwrap()).compare_and_swap(GoPtr::local(file.clone()), GoPtr::nil());
+            self.mutex.lock();
+            let mut s_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         s_defer_captured.mutex.unlock();
     }));
-        {
-        let mut i = search_files({ let __field = self.files.clone(); __field }, { let __field = (*file.lock().unwrap().as_ref().unwrap()).base.clone(); __field });;
+            {
+        let mut i = search_files({ let __field = self.files.clone(); __field }, Arc::new(Mutex::new(Some({ let __selector_holder = (*file.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));;
         if { let __tmp_x = i; let __tmp_y = 0; __tmp_x >= __tmp_y } && { let __left = { let __seq = { let __seq_holder = self.files.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }; let __right = file.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
             let mut last: Option<GoSliceElemPtr<Arc<Mutex<Option<File>>>>> = Some(GoSliceElemPtr::new(self.files.clone(), ({ let __tmp_x = (({ let __len_target = { let __field = self.files.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize));;
             { let new_val = slices::delete::<Vec<Arc<Mutex<Option<File>>>>, File>({ let __field = self.files.clone(); __field }, Arc::new(Mutex::new(Some(i))), Arc::new(Mutex::new(Some({ let __tmp_x = i; let __tmp_y = 1; __tmp_x + __tmp_y })))); self.files = new_val; };;
@@ -1061,9 +1081,22 @@ impl FileSet {
         }
     }
 
-        // Execute deferred functions
-        while let Some(f) = __defer_stack.pop() {
-            f();
+            // Execute deferred functions
+            while let Some(f) = __defer_stack.pop() {
+                f();
+            }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                ()
+            }
         }
     }
 
@@ -1078,7 +1111,7 @@ impl FileSet {
         { let new_val = { let __seq = { let __seq_holder = self.files.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.clone(); file = new_val; };
     }
         self.mutex.r_unlock();
-        if (*file.lock().unwrap()).is_none() || !{ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<File>>>) -> bool + Send + Sync> = { let mut __f_guard = f.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<File>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(file.clone()) } {
+        if { let __nil_result = (*file.lock().unwrap()).is_none(); __nil_result } || !{ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<File>>>) -> bool + Send + Sync> = { let mut __f_guard = f.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<File>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(file.clone()) } {
         break
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -1088,8 +1121,11 @@ impl FileSet {
     pub fn file_1(&self, p: Arc<Mutex<Option<Pos>>>) -> GoPtr<File> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-                // common case: p is in last file.
-        {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        // common case: p is in last file.
+            {
         let mut f: GoPtr<File> = (*self.last.lock().unwrap().as_mut().unwrap()).load();;
         if !f.is_nil() && { let __tmp_x = (*{ let __ptr_value = f.borrow(); __ptr_value.as_ref().unwrap().base.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x <= __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some((*{ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = (*{ let __ptr_value = f.borrow(); __ptr_value.as_ref().unwrap().base.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = f.borrow(); __ptr_value.as_ref().unwrap().size.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; __tmp_x <= __tmp_y } {
             {
@@ -1101,12 +1137,12 @@ impl FileSet {
     };
         }
     }
-        self.mutex.r_lock();
-        let mut s_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
+            self.mutex.r_lock();
+            let mut s_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         s_defer_captured.mutex.r_unlock();
     }));
-                // p is not in last file - search all files
-        {
+                        // p is not in last file - search all files
+            {
         let mut i = search_files({ let __field = self.files.clone(); __field }, Arc::new(Mutex::new(Some((*{ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))));;
         if { let __tmp_x = i; let __tmp_y = 0; __tmp_x >= __tmp_y } {
             let mut f = { let __seq = { let __seq_holder = self.files.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.clone();;
@@ -1122,16 +1158,29 @@ impl FileSet {
     };
         }
     }
-                // f.base <= int(p) by definition of searchFiles
-                // Update cache of last file. A race is ok,
-                // but an exclusive lock causes heavy contention.
-        {
+                        // f.base <= int(p) by definition of searchFiles
+                        // Update cache of last file. A race is ok,
+                        // but an exclusive lock causes heavy contention.
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return GoPtr::nil();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                GoPtr::nil()
+            }
+        }
     }
 
     /// File returns the file that contains the position p.
@@ -1161,7 +1210,7 @@ impl FileSet {
         }
     }
     }
-        pos
+        pos.clone()
     }
 
     /// Position converts a [Pos] p in the fileset into a Position value.

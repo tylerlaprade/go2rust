@@ -153,7 +153,7 @@ impl Context {
     /// does not assume this. The result is guaranteed to not contain blanks.
     pub fn instance_hash(&mut self, orig: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, targs: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>>>>>) -> Arc<Mutex<Option<String>>> {
         assert(Arc::new(Mutex::new(Some(true))));
-        assert(Arc::new(Mutex::new(Some((*orig.lock().unwrap()).is_some()))));
+        assert(Arc::new(Mutex::new(Some({ let __nil_result = (*orig.lock().unwrap()).is_some(); __nil_result }))));
         let mut buf: Arc<Mutex<Option<bytes_Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
         let mut h = new_type_hasher(buf.clone(), Arc::new(Mutex::new(Some(self.clone()))));
         { let __recv = h.clone(); let __recv_ptr: *const crate::typestring::typeWriter = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::typestring::typeWriter }; let __result = unsafe { &*__recv_ptr }.string(Arc::new(Mutex::new(Some((self.get_i_d(orig.clone())).to_string())))); __result };
@@ -194,11 +194,11 @@ impl Context {
     /// type is returned. Otherwise, inst is returned, and recorded in the Context
     /// for the hash h.
     pub fn update(&mut self, h: Arc<Mutex<Option<String>>>, orig: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, targs: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>>>>>, inst: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {
-        assert(Arc::new(Mutex::new(Some((*inst.lock().unwrap()).is_some()))));
+        assert(Arc::new(Mutex::new(Some({ let __nil_result = (*inst.lock().unwrap()).is_some(); __nil_result }))));
         let __mutex_guard_source_3847 = self.mu.clone(); let __mutex_guard_3847 = __mutex_guard_source_3847.guard();
         // mu.Unlock() handled by RAII guard
         { let __range_holder = { let __map = { let __map_holder = self.type_map.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*h.lock().unwrap().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for e in __range_values.iter() {
-        if (*inst.lock().unwrap()).is_none() || identical(inst.clone(), { let __field = e.instance.clone(); __field }) {
+        if { let __nil_result = (*inst.lock().unwrap()).is_none(); __nil_result } || identical(inst.clone(), { let __field = e.instance.clone(); __field }) {
         return { let __field = e.instance.clone(); __field };
     }
         if DEBUG {
