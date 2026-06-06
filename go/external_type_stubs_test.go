@@ -11,21 +11,6 @@ import (
 	"testing"
 )
 
-func TestParserStubSurfaceRegistersEmptyStmt(t *testing.T) {
-	prevContext := currentContext
-	ctx := &TranspileContext{
-		Package: NewPackageState(),
-		File:    NewFileState(NewImportTracker(), &HelperTracker{}, nil),
-	}
-	SetTranspileContext(ctx)
-	defer SetTranspileContext(prevContext)
-
-	registerParserParseFileStubSurface()
-	if !ctx.File.ExternalTypeStubs["ast_EmptyStmt"] {
-		t.Fatalf("parser.ParseFile stub surface should register ast_EmptyStmt")
-	}
-}
-
 func TestSourcePackageTypesDoNotRegisterExternalStubs(t *testing.T) {
 	prevContext := currentContext
 	ctx := &TranspileContext{
@@ -51,6 +36,47 @@ func TestSourcePackageTypesDoNotRegisterExternalStubs(t *testing.T) {
 	}
 	if len(ctx.File.ExternalTypeStubFields) != 0 {
 		t.Fatalf("source-package Rust paths must not get stub fields: %#v", ctx.File.ExternalTypeStubFields)
+	}
+}
+
+func TestTokenPackageConstantsRegisterTokenIntegerStub(t *testing.T) {
+	prevContext := currentContext
+	ctx := &TranspileContext{
+		Package: NewPackageState(),
+		File:    NewFileState(NewImportTracker(), &HelperTracker{}, nil),
+	}
+	SetTranspileContext(ctx)
+	defer SetTranspileContext(prevContext)
+
+	tokenPkg := gotypes.NewPackage("go/token", "token")
+	tokenName := gotypes.NewTypeName(gotoken.NoPos, tokenPkg, "Token", nil)
+	tokenType := gotypes.NewNamed(tokenName, gotypes.Typ[gotypes.Int], nil)
+	RegisterExternalPackageStubConstantValue("token", "ADD", tokenType, goconstant.MakeInt64(12))
+
+	if got := ctx.File.ExternalTypeStubIntegerTypes["token_Token"]; got != "i32" {
+		t.Fatalf("token package constants should register token_Token as i32, got %q", got)
+	}
+
+	got := generateExternalStubs(
+		map[string]bool{"token_FileSet": true},
+		nil, nil, nil, nil, nil, nil,
+		map[string]*externalPackageStub{
+			"token": {
+				Functions: map[string]externalPackageStubFunction{
+					"new_file_set": {
+						ReturnTypes: []string{"Arc<Mutex<Option<token_FileSet>>>"},
+					},
+				},
+			},
+		},
+	)
+	for _, want := range []string{
+		"pub struct token_Token(pub i32);",
+		"pub const A_D_D: token_Token = token_Token(12);",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("token package constants should use token_Token integer stub %q:\n%s", want, got)
+		}
 	}
 }
 
@@ -527,44 +553,6 @@ func TestAtomicUint64StubSupportsStoreAndCompareAndSwap(t *testing.T) {
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("atomic.Uint64 helper should include %q:\n%s", want, got)
-		}
-	}
-}
-
-func TestParserStubUsesGoAstShapesForCalls(t *testing.T) {
-	var out strings.Builder
-	writeParserParseFileFunction(&out, externalPackageStubFunction{
-		ReturnTypes: []string{"Arc<Mutex<Option<ast_File>>>", "Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>"},
-	})
-	got := out.String()
-	if !strings.Contains(got, "ellipsis: call.dots.map(go_parser_pos).unwrap_or_else(go_parser_no_pos)") {
-		t.Fatalf("parser stub should store absent call ellipsis as token.Pos zero:\n%s", got)
-	}
-	if !strings.Contains(got, "None if token == token::M_U_L => ast_Expr::__go_from_with_pos(ast_StarExpr") {
-		t.Fatalf("parser stub should lower unary star to ast_StarExpr:\n%s", got)
-	}
-	if !strings.Contains(got, "gosyn::ast::Statement::Empty(_) => ast_Stmt::__go_from(ast_EmptyStmt)") {
-		t.Fatalf("parser stub should preserve empty statements as ast.EmptyStmt:\n%s", got)
-	}
-}
-
-func TestParserStubPreservesFileAndNodeMetadataForTypeInfoBridge(t *testing.T) {
-	var out strings.Builder
-	writeParserParseFileFunction(&out, externalPackageStubFunction{
-		ReturnTypes: []string{"Arc<Mutex<Option<ast_File>>>", "Arc<Mutex<Option<Box<dyn std::error::Error + Send + Sync>>>>"},
-	})
-	got := out.String()
-	for _, want := range []string{
-		"__go_filename: go_parser_some(filename.to_string())",
-		"__go_source: go_parser_some(source.to_string())",
-		"pos as i32 + 1",
-		"assign: if spec.alias { go_parser_pos(1) } else { go_parser_no_pos() }",
-		"ast_Ident { __go_pos: go_parser_pos_value(id.pos)",
-		"ast_Expr::__go_from_with_pos(go_parser_ident_struct(id), go_parser_pos_value(pos))",
-		"ast_Expr::__go_from_with_pos(ast_BasicLit",
-	} {
-		if !strings.Contains(got, want) {
-			t.Fatalf("parser stub should preserve metadata %q for the type-info bridge:\n%s", want, got)
 		}
 	}
 }
@@ -1241,6 +1229,51 @@ func TestAstInspectBehaviorShimIsRetired(t *testing.T) {
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("retiring ast.Inspect behavior must keep loud placeholder %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestParserPackageBehaviorShimsAreRetired(t *testing.T) {
+	got := generateExternalStubs(
+		map[string]bool{"ast_File": true},
+		nil,
+		map[string]string{"parser_Mode": "i32"},
+		nil, nil, nil, nil,
+		map[string]*externalPackageStub{
+			"parser": {
+				Constants: map[string]string{
+					"S_K_I_P_OBJECT_RESOLUTION": "parser_Mode",
+				},
+				Functions: map[string]externalPackageStubFunction{
+					"parse_file": {
+						ParamCount: 4,
+						ReturnTypes: []string{
+							"Arc<Mutex<Option<ast_File>>>",
+							"Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>",
+						},
+					},
+				},
+			},
+		},
+	)
+	for _, unwanted := range []string{
+		"GoParserFilenameArg",
+		"GoParserSourceArg",
+		"go_parser_",
+		"gosyn::",
+		"ast_EmptyStmt",
+	} {
+		if strings.Contains(got, unwanted) {
+			t.Fatalf("parser external behavior shims must be retired; found %q:\n%s", unwanted, got)
+		}
+	}
+	for _, want := range []string{
+		"pub const S_K_I_P_OBJECT_RESOLUTION: parser_Mode",
+		"pub fn parse_file<T0, T1, T2, T3>(_arg0: T0, _arg1: T1, _arg2: T2, _arg3: T3) -> (Arc<Mutex<Option<ast_File>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>)",
+		"parse_file bridge: generic stub function body has no implementation",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("retiring parser behavior must keep generic placeholder %q:\n%s", want, got)
 		}
 	}
 }

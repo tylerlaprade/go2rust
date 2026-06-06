@@ -6,6 +6,3 @@ edition = "2021"
 [[bin]]
 name = "stdlib_package_func_stubs"
 path = "main.rs"
-
-[dependencies]
-gosyn = "0.2.9"

@@ -157,15 +157,6 @@ before committing.** A row whose gap and fixture are both still `TODO:` after
 its shim is edited indicates the same drift pattern that produced the bridge
 in the first place.
 
-### parser-parsefile-surface
-
-- Location: `go/external_type_stubs.go:671`
-- Go symbol: `go/parser.ParseFile` (registration surface)
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
-- Removal trigger: transpiler can lower `go/parser` source; drop bridge surface registration.
-- Added: 2026-05-27 (backfill)
-
 ### json-marshal-helpers
 
 - Location: `go/external_type_stubs.go:1421`
@@ -243,23 +234,6 @@ in the first place.
 - Removal trigger: transpiler can lower `go/ast` source.
 - Added: 2026-05-27 (backfill)
 
-### parser-package
-
-- Location: `go/external_type_stubs.go:4389`
-- Go symbol: `go/parser` package
-- Transpiler gap: `go/parser` source now lowers enough for
-  `parser.ParseFile` import-list behavior when its source dependencies are
-  source-mapped with it; remaining mixed `go/types` callers are blocked by the
-  existing `go/types` bridge expecting external `ast_*` types.
-- Fixture: `tests/parser_parse_file_package_imports/` source-maps
-  `go/parser`, `go/scanner`, `go/ast`, `go/token`, `strings`, `slices`, `cmp`,
-  `path/filepath`, `internal/filepathlite`, `internal/stringslite`,
-  `internal/bytealg`, and `internal/cpu`; `tests/parser_mode_const_expression/`
-  uses the same source package set for parser mode constants and `[]byte`
-  source input.
-- Removal trigger: transpiler can lower `go/parser` source.
-- Added: 2026-05-27 (backfill)
-
 ### token-package
 
 - Location: `go/external_type_stubs.go:4442`
@@ -274,29 +248,6 @@ in the first place.
   `tests/source_stdlib_go_token_fileset/`;
   `tests/source_stdlib_go_token_types_bridge_arg/`
 - Removal trigger: transpiler can lower `go/token` source.
-- Added: 2026-05-27 (backfill)
-
-### parser-argument-traits
-
-- Location: `go/external_type_stubs.go:4595`
-- Go symbol: `go/parser` argument traits
-- Transpiler gap: same source `go/parser` progress as `parser-package`; callers
-  that use source `go/parser.ParseFile` no longer need the bridge argument
-  traits.
-- Fixture: `tests/parser_parse_file_package_imports/`;
-  `tests/parser_mode_const_expression/`
-- Removal trigger: transpiler can lower `go/parser` argument-passing source.
-- Added: 2026-05-27 (backfill)
-
-### parser-parsefile-impl
-
-- Location: `go/external_type_stubs.go:4682`
-- Go symbol: `go/parser.ParseFile` (implementation)
-- Transpiler gap: source `go/parser.ParseFile` now compiles and preserves the
-  existing import-list behavior fixture when its dependency set is source-mapped.
-- Fixture: `tests/parser_parse_file_package_imports/`;
-  `tests/parser_mode_const_expression/`
-- Removal trigger: transpiler can lower `go/parser.ParseFile` source.
 - Added: 2026-05-27 (backfill)
 
 ### strconv-package
