@@ -988,6 +988,44 @@ func TestTokenPosIsValidStubIsRetired(t *testing.T) {
 	}
 }
 
+func TestTypesTermBridgeIsRetired(t *testing.T) {
+	got := generateExternalStubs(
+		map[string]bool{"types_Term": true},
+		nil, nil, nil, nil,
+		map[string]map[string]externalTypeStubMethod{
+			"types_Term": {
+				"r#type": {
+					ReturnTypes: []string{"Arc<Mutex<Option<types_Type>>>"},
+				},
+				"tilde": {
+					ReturnTypes: []string{"Arc<Mutex<Option<bool>>>"},
+				},
+			},
+		},
+		nil,
+		map[string]*externalPackageStub{
+			"types": {
+				Functions: map[string]externalPackageStubFunction{
+					"new_term": {
+						ParamCount:  2,
+						ReturnTypes: []string{"Arc<Mutex<Option<types_Term>>>"},
+					},
+				},
+			},
+		},
+	)
+	for _, unwanted := range []string{
+		"types_Term",
+		"GoTypesTypeArg",
+		"__go_into_types_type_arg",
+		"pub fn new_term",
+	} {
+		if strings.Contains(got, unwanted) {
+			t.Fatalf("go/types.Term external bridge must be retired; found %q:\n%s", unwanted, got)
+		}
+	}
+}
+
 func TestTypesCheckerFilesStubIsRetired(t *testing.T) {
 	got := generateExternalStubs(
 		map[string]bool{"types_Checker": true},
