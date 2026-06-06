@@ -118,7 +118,7 @@ const inaccessible: i32 = 4;
                 // determine case
         let mut e = Arc::new(Mutex::new(Some(missing)));
         let mut alt: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
-        if (*obj.lock().unwrap()).is_some() {
+        if { let __nil_result = (*obj.lock().unwrap()).is_some(); __nil_result } {
         { let new_val = (*obj.lock().unwrap().as_ref().unwrap()).name(); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *alt.lock().unwrap() = __moved_val; };
         if { let __left = (*obj.lock().unwrap().as_ref().unwrap()).pkg(); let __right = self.pkg.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
         assert(Arc::new(Mutex::new(Some({ let __tmp_x = (*alt.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*sel.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y }))));

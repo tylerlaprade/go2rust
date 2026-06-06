@@ -220,7 +220,7 @@ pub fn isddd_array(atyp: Arc<Mutex<Option<go_ast::r#mod::ArrayType>>>) -> bool {
             (Arc::new(Mutex::new(None::<go_ast::r#mod::Ellipsis>)), false)
         }
     });;
-        if (*ddd.lock().unwrap()).is_some() && { let __iface_handle = { let __field = (*ddd.lock().unwrap().as_ref().unwrap()).elt.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
+        if { let __nil_result = (*ddd.lock().unwrap()).is_some(); __nil_result } && { let __iface_handle = { let __field = (*ddd.lock().unwrap().as_ref().unwrap()).elt.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
             return true;;
         }
     }

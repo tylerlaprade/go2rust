@@ -296,7 +296,7 @@ pub fn write_field_list(buf: Arc<Mutex<Option<bytes_Buffer>>>, list: Arc<Mutex<O
             (Arc::new(Mutex::new(None::<go_ast::r#mod::FuncType>)), false)
         }
     });;
-        if (*sig.lock().unwrap()).is_some() && { let __v = (*iface.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+        if { let __nil_result = (*sig.lock().unwrap()).is_some(); __nil_result } && { let __v = (*iface.lock().unwrap().as_ref().unwrap()).clone(); __v } {
             write_sig_expr(buf.clone(), sig.clone());;
             continue;
         }

@@ -69,7 +69,7 @@ fn main() {
     done.recv().unwrap_or_default();
     let mut inputs = Arc::new(Mutex::new(Some(checkerInputs { fset: go_token::new_file_set().clone(), pkg: go_types::new_package(Arc::new(Mutex::new(Some("example.com/p".to_string()))), Arc::new(Mutex::new(Some("p".to_string())))).clone(), info: Arc::new(Mutex::new(Some(go_types::api::Info { ..Default::default() }))).clone(), ..Default::default() })));
     let mut checker = go_types::new_checker(Arc::new(Mutex::new(None)), { let __field = (*inputs.lock().unwrap().as_ref().unwrap()).fset.clone(); __field }, { let __field = (*inputs.lock().unwrap().as_ref().unwrap()).pkg.clone(); __field }, { let __field = (*inputs.lock().unwrap().as_ref().unwrap()).info.clone(); __field });
-    println!("{}", format!("{}", (*checker.lock().unwrap()).is_some()));
+    println!("{}", format!("{}", { let __nil_result = (*checker.lock().unwrap()).is_some(); __nil_result }));
 }
 
 impl GoValueClone for checkerInputs {

@@ -1428,7 +1428,7 @@ impl Float {
         if { let __tmp_x = { let __selector_holder = self.form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x == __tmp_y } {
         { let new_val = Arc::new(Mutex::new(Some({ let __selector_holder = self.exp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *exp.lock().unwrap() = __moved_val; };
     }
-        if (*mant.lock().unwrap()).is_some() {
+        if { let __nil_result = (*mant.lock().unwrap()).is_some(); __nil_result } {
         { let __recv = mant.clone(); let __recv_ptr: *mut Float = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Float }; let __result = unsafe { &mut *__recv_ptr }.copy(Arc::new(Mutex::new(Some(self.clone())))); __result };
         if { let __tmp_x = { let __selector_holder = (*mant.lock().unwrap().as_ref().unwrap()).form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x == __tmp_y } {
         { let new_val = 0 as i32; *(*mant.lock().unwrap().as_ref().unwrap()).exp.lock().unwrap() = Some(new_val); };
@@ -2332,7 +2332,7 @@ const emax: i32 = bias;
         if DEBUG_FLOAT {
         self.validate();
     }
-        if (*z.lock().unwrap()).is_none() && { let __tmp_x = { let __selector_holder = self.form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x <= __tmp_y } {
+        if { let __nil_result = (*z.lock().unwrap()).is_none(); __nil_result } && { let __tmp_x = { let __selector_holder = self.form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x <= __tmp_y } {
         { let new_val = Arc::new(Mutex::new(Some(Int::default()))).clone(); z = new_val; };
     }
         { let _switch_val = { let __selector_holder = self.form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
@@ -2353,7 +2353,7 @@ const emax: i32 = bias;
         { let new_val = Accuracy(Arc::new(Mutex::new(Some(EXACT as i8)))); *acc.lock().unwrap() = Some(new_val); };
     }
                         // shift mantissa as needed
-            if (*z.lock().unwrap()).is_none() {
+            if { let __nil_result = (*z.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = Arc::new(Mutex::new(Some(Int::default()))).clone(); z = new_val; };
     }
             { let new_val = { let __selector_holder = self.neg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *(*z.lock().unwrap().as_ref().unwrap()).neg.lock().unwrap() = Some(new_val); };
@@ -2389,7 +2389,7 @@ const emax: i32 = bias;
         if DEBUG_FLOAT {
         self.validate();
     }
-        if (*z.lock().unwrap()).is_none() && { let __tmp_x = { let __selector_holder = self.form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x <= __tmp_y } {
+        if { let __nil_result = (*z.lock().unwrap()).is_none(); __nil_result } && { let __tmp_x = { let __selector_holder = self.form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x <= __tmp_y } {
         { let new_val = Arc::new(Mutex::new(Some(Rat::default()))).clone(); z = new_val; };
     }
         { let _switch_val = { let __selector_holder = self.form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
