@@ -941,27 +941,6 @@ func TestAstInterfacesCarrySourcePositions(t *testing.T) {
 	}
 }
 
-func TestAstInspectStubTraversesSyntaxTree(t *testing.T) {
-	var out strings.Builder
-	writeAstInspectFunction(&out)
-	got := out.String()
-	if !strings.Contains(got, "pub fn inspect<T0: InspectRoot>") {
-		t.Fatalf("ast inspect stub should expose the generated inspect function:\n%s", got)
-	}
-	if !strings.Contains(got, "impl InspectRoot for ast_Expr") {
-		t.Fatalf("ast inspect stub should accept bare ast.Expr values:\n%s", got)
-	}
-	if !strings.Contains(got, "visit_decl_list(callback, &value.decls);") {
-		t.Fatalf("ast inspect stub should walk file declarations:\n%s", got)
-	}
-	if !strings.Contains(got, "visit_opt_expr(callback, &value.x);") {
-		t.Fatalf("ast inspect stub should walk expression children:\n%s", got)
-	}
-	if !strings.Contains(got, "visit_opt_block(callback, &value.body);") {
-		t.Fatalf("ast inspect stub should walk statement bodies:\n%s", got)
-	}
-}
-
 func TestTokenPosIsValidStubIsRetired(t *testing.T) {
 	got := generateExternalStubs(
 		map[string]bool{"token_Pos": true},
@@ -1228,6 +1207,40 @@ func TestAstNewIdentBehaviorShimIsRetired(t *testing.T) {
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("retiring ast.NewIdent behavior must keep loud placeholder %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestAstInspectBehaviorShimIsRetired(t *testing.T) {
+	got := generateExternalStubs(
+		map[string]bool{"ast_Node": true},
+		map[string]bool{"ast_Node": true},
+		nil, nil, nil, nil, nil,
+		map[string]*externalPackageStub{
+			"ast": {
+				Functions: map[string]externalPackageStubFunction{
+					"inspect": {
+						ParamCount: 2,
+					},
+				},
+			},
+		},
+	)
+	for _, unwanted := range []string{
+		"InspectRoot",
+		"visit_node",
+		"call_inspect_callback",
+	} {
+		if strings.Contains(got, unwanted) {
+			t.Fatalf("ast.Inspect external behavior shim must be retired; found %q:\n%s", unwanted, got)
+		}
+	}
+	for _, want := range []string{
+		"pub fn inspect<T0, T1>(_arg0: T0, _arg1: T1)",
+		"inspect bridge: generic stub function body has no implementation",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("retiring ast.Inspect behavior must keep loud placeholder %q:\n%s", want, got)
 		}
 	}
 }

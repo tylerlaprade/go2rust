@@ -243,17 +243,6 @@ in the first place.
 - Removal trigger: transpiler can lower `go/ast` source.
 - Added: 2026-05-27 (backfill)
 
-### ast-inspect-walk
-
-- Location: `go/external_type_stubs.go:4013`
-- Go symbol: `ast.Inspect` / `ast.Walk`
-- Transpiler gap: source package fixture covers `ast.Inspect` and `ast.Walk`;
-  remaining work is removing external callers that still depend on the bridged
-  ast package.
-- Fixture: `tests/source_stdlib_go_ast_walk_call_expr/`
-- Removal trigger: transpiler can lower `ast.Inspect`/`ast.Walk` source.
-- Added: 2026-05-27 (backfill)
-
 ### parser-package
 
 - Location: `go/external_type_stubs.go:4389`
