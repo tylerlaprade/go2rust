@@ -288,23 +288,6 @@ in the first place.
 - Removal trigger: retired together with `types-tuple` and `types-type-name-param`.
 - Added: 2026-06-03
 
-### token-pos-isvalid
-
-- Location: `go/external_type_stubs.go:3713`
-- Go symbol: `go/token.Pos.IsValid`
-- Transpiler gap: `go/token` source now lowers enough to exercise `Pos.IsValid`;
-  the remaining removal check is proving callers no longer need the external
-  `token_Pos` stub method.
-- Fixture: `tests/source_stdlib_go_token_lookup/`;
-  `tests/source_stdlib_go_token_fileset/` now source-maps `go/token` plus
-  its `cmp`, `slices`, `sync`, `sync/atomic`, and `internal/race`
-  dependencies to exercise `token.NewFileSet`, `FileSet.AddFile`, and
-  `FileSet.Position`;
-  `tests/external_named_integer_conversion/` now source-maps `go/token` and
-  emits `go_token::position::Pos` instead of the external `token_Pos` stub.
-- Removal trigger: transpiler can lower `go/token.Pos.IsValid` source.
-- Added: 2026-05-27 (backfill)
-
 ### build-context-import-methods
 
 - Location: `go/external_type_stubs.go:3721`

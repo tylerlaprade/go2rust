@@ -965,12 +965,26 @@ func TestAstInspectStubTraversesSyntaxTree(t *testing.T) {
 	}
 }
 
-func TestTokenPosIsValidStubUsesPositionValue(t *testing.T) {
-	var out strings.Builder
-	writeTokenPosIsValidMethod(&out)
-	got := out.String()
-	if !strings.Contains(got, "Some(self.0 != 0)") {
-		t.Fatalf("token.Pos IsValid stub should reflect the stored position:\n%s", got)
+func TestTokenPosIsValidStubIsRetired(t *testing.T) {
+	got := generateExternalStubs(
+		map[string]bool{"token_Pos": true},
+		nil, nil, nil, nil,
+		map[string]map[string]externalTypeStubMethod{
+			"token_Pos": {
+				"is_valid": {
+					ReturnTypes: []string{"Arc<Mutex<Option<bool>>>"},
+				},
+			},
+		},
+		nil, nil,
+	)
+	for _, unwanted := range []string{
+		"pub fn is_valid",
+		"Some(self.0 != 0)",
+	} {
+		if strings.Contains(got, unwanted) {
+			t.Fatalf("token.Pos.IsValid external stub must be retired; found %q:\n%s", unwanted, got)
+		}
 	}
 }
 

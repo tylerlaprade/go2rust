@@ -2049,10 +2049,11 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 			if name == "types_Config" && methodName == "check" {
 				continue
 			}
+			if name == "token_Pos" && methodName == "is_valid" {
+				continue
+			}
 			if name == "build_Context" && methodName == "import" {
 				writeBuildContextImportMethod(&out, methodName, method)
-			} else if name == "token_Pos" && methodName == "is_valid" {
-				writeTokenPosIsValidMethod(&out)
 			} else if name == "fs_FileMode" && methodName == "is_dir" {
 				writeFsFileModeIsDirMethod(&out)
 			} else {
@@ -3886,14 +3887,6 @@ func writeTypesTermStub(out *strings.Builder, methods map[string]externalTypeStu
 		}
 	}
 	out.WriteString("}\n")
-}
-
-// TEMPORARY: hand-written Rust shim for go/token.Pos.IsValid.
-// Long-term fix: transpile go/token source.
-func writeTokenPosIsValidMethod(out *strings.Builder) {
-	out.WriteString("    pub fn is_valid(&self) -> Arc<Mutex<Option<bool>>> {\n")
-	out.WriteString("        Arc::new(Mutex::new(Some(self.0 != 0)))\n")
-	out.WriteString("    }\n")
 }
 
 // TEMPORARY: hand-written Rust shim for go/build.Context import methods.
