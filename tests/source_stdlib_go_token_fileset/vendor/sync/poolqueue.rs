@@ -237,7 +237,7 @@ impl poolDequeue {
         let mut slot: Option<GoSliceElemPtr<eface>> = Some(GoSliceElemPtr::new(self.vals.clone(), ({ let __tmp_x = head; let __tmp_y = (*Arc::new(StdMutex::new(Some(({ let __tmp_x = (({ let __len_target = { let __field = self.vals.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x & __tmp_y }) as usize));
                 // Check if the head slot has been released by popTail.
         let mut typ = sync_atomic::load_pointer((*slot.as_ref().unwrap().borrow().as_ref().unwrap()).typ.clone());
-        if (*typ.lock().unwrap()).is_some() {
+        if { let __nil_result = (*typ.lock().unwrap()).is_some(); __nil_result } {
                 // Another goroutine is still cleaning up the tail, so
                 // the queue is actually still full.
         return false;
@@ -245,7 +245,7 @@ impl poolDequeue {
                 // Another goroutine is still cleaning up the tail, so
                 // the queue is actually still full.
                 // The head slot is free, so we own it.
-        if (*val.lock().unwrap()).is_none() {
+        if { let __nil_result = (*val.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = { let __boxed = Box::new(dequeueNil(Arc::new(StdMutex::new(None::<AnonymousStruct1>)))) as Box<dyn Any + Send + Sync>; go_register_any_type_with_elem::<dequeueNil>("pointer", true, "struct", true); __boxed }; *val.lock().unwrap() = Some(new_val); };
     }
         { unimplemented!("unsafe.Pointer dereference assignment"); };
@@ -345,7 +345,7 @@ impl poolDequeue {
 impl poolChain {
     pub fn push_head(&mut self, val: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>) {
         let mut d = self.head.clone();
-        if (*d.lock().unwrap()).is_none() {
+        if { let __nil_result = (*d.lock().unwrap()).is_none(); __nil_result } {
                 // Initialize the chain.
         const initSize: i32 = 8;
 

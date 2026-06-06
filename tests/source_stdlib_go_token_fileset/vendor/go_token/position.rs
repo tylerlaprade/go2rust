@@ -1162,7 +1162,7 @@ impl FileSet {
         { let new_val = { let __seq = { let __seq_holder = self.files.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.clone(); file = new_val; };
     }
         self.mutex.r_unlock();
-        if (*file.lock().unwrap()).is_none() || !{ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<File>>>) -> bool + Send + Sync> = { let mut __f_guard = f.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<File>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(file.clone()) } {
+        if { let __nil_result = (*file.lock().unwrap()).is_none(); __nil_result } || !{ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<File>>>) -> bool + Send + Sync> = { let mut __f_guard = f.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<File>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(file.clone()) } {
         break
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
