@@ -169,12 +169,13 @@ in the first place.
   package function stub body)
 - Go symbol: `go/types.Basic`, `go/types.Named`, `go/types.Pointer`,
   `go/types.Package`, `go/types.Qualifier`, `go/types.Error`,
-  `go/types.Unsafe`, and `go/types.Tuple`
+  `go/types.Unsafe`, `go/types.Tuple`, `go/types.TypeName`, and
+  `go/types.TypeParam`
 - Transpiler gap: `go/types.Basic` still has a direct hand-written shim, and
   source-mapped concrete `go/types` values now pass through `NewPointer`,
-  `NewPackage`, `NewChecker`, `NewTuple`, `error`, and package-variable
-  paths, but non-source-mapped callers still route through generic external
-  stubs.
+  `NewPackage`, `NewChecker`, `NewTuple`, `NewTypeName`, `NewTypeParam`,
+  `error`, and package-variable paths, but non-source-mapped callers still
+  route through generic external stubs.
 - Fixture: `tests/stdlib_interface_slice_conversions/` now source-maps
   `go/types`, `go/token`, and `sync/atomic`, and verifies `types.NewPointer`
   plus `*types.Named` and `*types.Pointer` values stored through the
@@ -197,33 +198,21 @@ in the first place.
   `tests/stdlib_interface_ident_argument/` and
   `tests/stdlib_interface_call_argument/` source-map `go/types` and verify
   `NewTuple` values through source-generated `go_types::new_tuple`, allowing
-  the custom `types_Tuple` length/underlying shim to retire.
+  the custom `types_Tuple` length/underlying shim to retire;
+  `tests/stdlib_interface_map_value_assignment/`,
+  `tests/stdlib_interface_struct_literal_concrete/`,
+  `tests/source_stdlib_go_types_new_type_name/`, and
+  `tests/source_stdlib_go_token_types_bridge_arg/` source-map `go/types` and
+  verify `NewTypeName` and `NewTypeParam` values through source-generated
+  `go_types::new_type_name` and `go_types::new_type_param`, allowing the
+  custom `types_TypeName`/`types_TypeParam` object/type/constraint shim to
+  retire.
 - Removal trigger: transpiler can lower `go/types.Basic`, `go/types.Named`,
   `go/types.Pointer`, `go/types.Package`, `go/types.Qualifier`,
-  `go/types.Error`, `go/types.Unsafe`, and `go/types.Tuple` from source for
-  all callers still routed through the direct or generic external stubs.
+  `go/types.Error`, `go/types.Unsafe`, `go/types.Tuple`,
+  `go/types.TypeName`, and `go/types.TypeParam` from source for all callers
+  still routed through the direct or generic external stubs.
 - Added: 2026-05-27 (backfill; expanded 2026-06-05)
-
-### types-type-name-param
-
-- Location: `go/external_type_stubs.go:3520` (`writeTypesTypeNameStub`, `writeTypesTypeParamStub`)
-- Go symbol: `go/types.TypeName` and `go/types.TypeParam`
-- Transpiler gap: the source-mapped `go/types.NewTypeName` and
-  `go/types.NewTypeParam` constructor paths now pass, but non-source-mapped
-  callers still hit the bridge.
-- Fixture: `tests/stdlib_interface_map_value_assignment/` now source-maps
-  `go/types`, `go/token`, and `sync/atomic`, and verifies `TypeParam` values
-  stored through the source-mapped `types.Type` interface in map assignment and
-  map literal paths;
-  `tests/stdlib_interface_struct_literal_concrete/` now source-maps
-  `go/types`, `go/token`, and `sync/atomic`, and verifies `TypeParam` values
-  stored through the source-mapped `types.Type` interface in struct literals;
-  `tests/source_stdlib_go_types_new_type_name/` source-maps `go/types` and
-  verifies the direct `NewTypeName` path from source;
-  `tests/source_stdlib_go_token_types_bridge_arg/` source-maps `go/token` and
-  `go/types` together and verifies the direct `NewTypeParam` constructor path.
-- Removal trigger: transpiler can lower `go/types.TypeName`, `go/types.TypeParam`, and their object/type relationships from source.
-- Added: 2026-06-03
 
 ### build-context-import-methods
 

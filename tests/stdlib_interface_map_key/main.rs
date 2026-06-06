@@ -10,6 +10,49 @@ fn __go_next_external_interface_id() -> usize {
 
 
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct token_Pos(pub i32);
+
+impl PartialEq<i32> for token_Pos {
+    fn eq(&self, other: &i32) -> bool {
+        self.0 == *other
+    }
+}
+
+impl PartialEq<token_Pos> for i32 {
+    fn eq(&self, other: &token_Pos) -> bool {
+        *self == other.0
+    }
+}
+
+impl std::ops::BitAnd for token_Pos {
+    type Output = token_Pos;
+    fn bitand(self, other: Self) -> token_Pos {
+        token_Pos(self.0 & other.0)
+    }
+}
+
+impl std::ops::BitOr for token_Pos {
+    type Output = token_Pos;
+    fn bitor(self, other: Self) -> token_Pos {
+        token_Pos(self.0 | other.0)
+    }
+}
+
+impl std::fmt::Display for token_Pos {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<token_Pos>")
+    }
+}
+
+
+impl token_Pos {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+}
+
+
 #[derive(Clone)]
 pub struct types_Object {
     pub __go_id: usize,
@@ -84,6 +127,60 @@ impl types_Package {
 }
 
 
+#[derive(Clone)]
+pub struct types_Type {
+    pub __go_id: usize,
+    pub __go_value: Rc<dyn std::any::Any>,
+}
+
+impl types_Type {
+    pub fn __go_from<T: 'static>(value: T) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_value: Rc::new(value) }
+    }
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.__go_value.as_ref().downcast_ref::<T>()
+    }
+}
+
+impl Default for types_Type {
+    fn default() -> Self {
+        Self { __go_id: 0, __go_value: Rc::new(()) }
+    }
+}
+
+impl std::fmt::Debug for types_Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<types_Type>")
+    }
+}
+
+impl std::fmt::Display for types_Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<types_Type>")
+    }
+}
+
+impl PartialEq for types_Type {
+    fn eq(&self, other: &Self) -> bool {
+        self.__go_id == other.__go_id
+    }
+}
+
+impl Eq for types_Type {}
+
+impl PartialOrd for types_Type {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for types_Type {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.__go_id.cmp(&other.__go_id)
+    }
+}
+
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct types_TypeName;
 
@@ -108,7 +205,7 @@ impl From<types_TypeName> for types_Object {
 }
 
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct entry {
     pub obj: Rc<RefCell<Option<types_Object>>>,
 }
@@ -128,7 +225,7 @@ impl std::fmt::Display for entry {
 
 pub fn remember(names: Rc<RefCell<Option<BTreeMap<types_Object, Rc<RefCell<Option<String>>>>>>>, obj: Rc<RefCell<Option<types_TypeName>>>) {
     { let __map_key = { let __arg = obj.clone(); let __converted = { let __arg_guard = __arg.borrow(); let __converted: types_Object = __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(types_Object::default); __converted }; __converted }; let __map_value = Rc::new(RefCell::new(Some("name".to_string()))); (*names.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-    let _ = (*names.borrow().as_ref().unwrap()).get(&{ let __arg = obj.clone(); let __converted = { let __arg_guard = __arg.borrow(); let __converted: types_Object = __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(types_Object::default); __converted }; __converted }).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new());
+    let _ = { let __map_holder = names.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&{ let __arg = obj.clone(); let __converted = { let __arg_guard = __arg.borrow(); let __converted: types_Object = __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(types_Object::default); __converted }; __converted })).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) };
     let mut entries: Rc<RefCell<Option<Vec<entry>>>> = Rc::new(RefCell::new(None));
     for (__range_key, _) in { let __range_holder = names.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         let key = Rc::new(RefCell::new(Some(__range_key.clone())));
@@ -140,7 +237,7 @@ pub fn remember(names: Rc<RefCell<Option<BTreeMap<types_Object, Rc<RefCell<Optio
     for (__range_key, name) in { let __range_holder = names.clone(); let __range_guard = __range_holder.borrow(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
         let key = Rc::new(RefCell::new(Some(__range_key.clone())));
         { let __map_key = (*key.borrow().as_ref().unwrap()).clone(); let __map_value = Rc::new(RefCell::new(Some((*name.borrow().as_ref().unwrap()).clone()))); (*copied.borrow_mut().as_mut().unwrap()).insert(__map_key, __map_value); };
-        let _ = (*copied.borrow().as_ref().unwrap()).get(&(*key.borrow().as_ref().unwrap()).clone()).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new());
+        let _ = { let __map_holder = copied.clone(); let __map_guard = __map_holder.borrow(); __map_guard.as_ref().and_then(|__map| __map.get(&(*key.borrow().as_ref().unwrap()).clone())).map(|__v| __v.borrow().as_ref().unwrap().clone()).unwrap_or_else(|| String::new()) };
     }
 }
 
