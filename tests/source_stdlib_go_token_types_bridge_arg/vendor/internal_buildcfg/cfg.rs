@@ -483,7 +483,7 @@ const hardFloatOpt: &'static str = ",hardfloat";
     if !{ let __v = (*floatSpecified.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = (*{ let __field = (*g.lock().unwrap().as_ref().unwrap()).version.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 5; __tmp_x == __tmp_y } {
         { let new_val = true; *(*g.lock().unwrap().as_ref().unwrap()).soft_float.lock().unwrap() = Some(new_val); };
     }
-    g
+    g.clone()
 }
 
 pub fn parse_goarm64(mut v: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Goarm64Features>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
@@ -528,14 +528,14 @@ const cryptoOpt: &'static str = ",crypto";
     }
 
         // LSE extension is mandatory starting from 8.1
-    (g, e)
+    (g.clone(), e.clone())
 }
 
 pub fn goarm64() -> Arc<Mutex<Option<Goarm64Features>>> {
     let mut g: Arc<Mutex<Option<Goarm64Features>>> = Arc::new(Mutex::new(Some(Default::default())));
 
     { let (__tmp_0, __tmp_1) = parse_goarm64(env_or(Arc::new(Mutex::new(Some("GOARM64".to_string()))), Arc::new(Mutex::new(Some(DEFAULT_G_O_A_R_M64.to_string()))))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *g.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *Error.lock().unwrap() = __moved_tmp_1; };
-    g
+    g.clone()
 }
 
 pub fn gomips() -> Arc<Mutex<Option<String>>> {
@@ -609,7 +609,7 @@ pub fn gowasm() -> Arc<Mutex<Option<gowasmFeatures>>> {
     }
     } }
         // ignore
-    f
+    f.clone()
 }
 
 pub fn tool_tags() -> Arc<Mutex<Option<Vec<String>>>> {

@@ -234,32 +234,6 @@ in the first place.
 - Removal trigger: transpiler can lower `go/types.TypeName`, `go/types.TypeParam`, and their object/type relationships from source.
 - Added: 2026-06-03
 
-### types-tuple-name-param-constructors
-
-- Location: `go/external_type_stubs.go:7501` (`writeTypesNewTupleFunction`, `writeTypesNewTypeNameFunction`, `writeTypesNewTypeParamFunction`)
-- Go symbol: `go/types.NewTuple`, `go/types.NewTypeName`, and `go/types.NewTypeParam`
-- Transpiler gap: `NewTuple`, `NewTypeName`, and `NewTypeParam` pass when
-  `go/types` is source-mapped; non-source-mapped constructor callers still hit
-  the bridge.
-- Fixture: `tests/stdlib_interface_ident_argument/` source-maps `go/types` and
-  verifies source-transpiled `NewTuple` with `*Tuple` passed through
-  `types.Type`;
-  `tests/stdlib_interface_call_argument/` source-maps `go/types` and verifies
-  source-transpiled `NewTuple` at function and method call argument sites;
-  `tests/stdlib_interface_map_value_assignment/` source-maps `go/types` and
-  verifies source-transpiled `NewTypeName`/`NewTypeParam` with `TypeParam`
-  stored through `types.Type` map values;
-  `tests/stdlib_interface_struct_literal_concrete/` source-maps `go/types` and
-  verifies source-transpiled `NewTypeName`/`NewTypeParam` with `TypeParam`
-  stored through `types.Type` struct fields;
-  `tests/source_stdlib_go_token_types_bridge_arg/` verifies the source-mapped
-  `go/token.Pos` to source-mapped `types.NewTypeName` boundary plus direct
-  `NewTypeParam`;
-  `tests/source_stdlib_go_types_new_type_name/` verifies the direct
-  source-transpiled `go/types.NewTypeName` path.
-- Removal trigger: retired together with `types-tuple` and `types-type-name-param`.
-- Added: 2026-06-03
-
 ### build-context-import-methods
 
 - Location: `go/external_type_stubs.go:3721`

@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_any_clone, go_strconv_format_float, go_strconv_format_int};
 
 use crate::accuracy_string::*;
 use crate::arith::*;
@@ -22,6 +22,7 @@ use crate::ratmarsh::*;
 use crate::roundingmode_string::*;
 use crate::sqrt::*;
 
+use std::any::Any;
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
@@ -1330,7 +1331,7 @@ impl Float {
         { let new_val = 0 as u32; *self.prec.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = { let __selector_holder = self.form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x == __tmp_y } {
                 // truncate z to 0
-        { let new_val = make_acc({ let __field = self.neg.clone(); __field }); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *self.acc.lock().unwrap() = __moved_val; };
+        { let new_val = make_acc(Arc::new(Mutex::new(Some({ let __selector_holder = self.neg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *self.acc.lock().unwrap() = __moved_val; };
         { let new_val = form(Arc::new(Mutex::new(Some(ZERO as u8)))); *self.form.lock().unwrap() = Some(new_val); };
     }
                 // truncate z to 0
@@ -1427,7 +1428,7 @@ impl Float {
         if { let __tmp_x = { let __selector_holder = self.form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x == __tmp_y } {
         { let new_val = Arc::new(Mutex::new(Some({ let __selector_holder = self.exp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *exp.lock().unwrap() = __moved_val; };
     }
-        if (*mant.lock().unwrap()).is_some() {
+        if { let __nil_result = (*mant.lock().unwrap()).is_some(); __nil_result } {
         { let __recv = mant.clone(); let __recv_ptr: *mut Float = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Float }; let __result = unsafe { &mut *__recv_ptr }.copy(Arc::new(Mutex::new(Some(self.clone())))); __result };
         if { let __tmp_x = { let __selector_holder = (*mant.lock().unwrap().as_ref().unwrap()).form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x == __tmp_y } {
         { let new_val = 0 as i32; *(*mant.lock().unwrap().as_ref().unwrap()).exp.lock().unwrap() = Some(new_val); };
@@ -1439,7 +1440,7 @@ impl Float {
     pub fn set_exp_and_round(&mut self, exp: Arc<Mutex<Option<i64>>>, sbit: Arc<Mutex<Option<u64>>>) {
         if { let __tmp_x = { let __v = (*exp.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MIN_EXP as i64; __tmp_x < __tmp_y } {
                 // underflow
-        { let new_val = make_acc({ let __field = self.neg.clone(); __field }); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *self.acc.lock().unwrap() = __moved_val; };
+        { let new_val = make_acc(Arc::new(Mutex::new(Some({ let __selector_holder = self.neg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *self.acc.lock().unwrap() = __moved_val; };
         { let new_val = form(Arc::new(Mutex::new(Some(ZERO as u8)))); *self.form.lock().unwrap() = Some(new_val); };
         return;
     }
@@ -1519,13 +1520,13 @@ impl Float {
     pub fn validate(&mut self) {
         if !DEBUG_FLOAT {
                 // avoid performance bugs
-        panic!("validate called but debugFloat is not set");
+        std::panic::panic_any(Box::new("validate called but debugFloat is not set".to_string()) as Box<dyn Any + Send + Sync>);
     }
                 // avoid performance bugs
         {
         let mut msg = self.validate0();;
         if { let __tmp_x = (*msg.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
-            panic!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v });;
+            std::panic::panic_any(Box::new({ let __arg_holder = msg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>);;
         }
     }
     }
@@ -1626,7 +1627,7 @@ impl Float {
         } else if _switch_val == (RoundingMode(Arc::new(Mutex::new(Some(TO_POSITIVE_INF as u8))))) {
             { let new_val = !((*self.neg.clone().lock().unwrap().as_ref().unwrap())); *inc.lock().unwrap() = Some(new_val); };
         } else {
-            panic!("unreachable");
+            std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
         }
     }
                 // nothing to do
@@ -1722,7 +1723,7 @@ impl Float {
         { let new_val = 53 as u32; *self.prec.lock().unwrap() = Some(new_val); };
     }
         if math::is_na_n(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
-        panic!("{}", ErrNaN { msg: Arc::new(Mutex::new(Some("Float.SetFloat64(NaN)".to_string()))), ..Default::default() });
+        std::panic::panic_any(Box::new(ErrNaN { msg: Arc::new(Mutex::new(Some("Float.SetFloat64(NaN)".to_string()))), ..Default::default() }) as Box<dyn Any + Send + Sync>);
     }
         { let new_val = Accuracy(Arc::new(Mutex::new(Some(EXACT as i8)))); *self.acc.lock().unwrap() = Some(new_val); };
         { let new_val = math::signbit(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); *self.neg.lock().unwrap() = Some(new_val); };
@@ -1780,7 +1781,7 @@ impl Float {
         (*a.lock().unwrap().as_mut().unwrap()).set_int({ let __recv = x.clone(); let __recv_ptr: *const crate::rat::Rat = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::rat::Rat }; let __result = unsafe { &*__recv_ptr }.num(); __result });
         (*b.lock().unwrap().as_mut().unwrap()).set_int({ let __recv = x.clone(); let __recv_ptr: *const crate::rat::Rat = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::rat::Rat }; let __result = unsafe { &*__recv_ptr }.denom(); __result });
         if { let __tmp_x = (*self.prec.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x == __tmp_y } {
-        { let new_val = umax32({ let __field = (*a.lock().unwrap().as_ref().unwrap()).prec.clone(); __field }, { let __field = (*b.lock().unwrap().as_ref().unwrap()).prec.clone(); __field }); *self.prec.lock().unwrap() = Some(new_val); };
+        { let new_val = umax32(Arc::new(Mutex::new(Some({ let __selector_holder = (*a.lock().unwrap().as_ref().unwrap()).prec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*b.lock().unwrap().as_ref().unwrap()).prec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); *self.prec.lock().unwrap() = Some(new_val); };
     }
         return self.quo(a.clone(), b.clone());
     }
@@ -1891,7 +1892,7 @@ impl Float {
                 // u = trunc(x) fits into a uint64
                 // x truncated
                 // x too large
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     /// Int64 returns the integer resulting from truncating x towards zero.
@@ -1906,7 +1907,7 @@ impl Float {
         { let _switch_val = { let __selector_holder = self.form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (form(Arc::new(Mutex::new(Some(FINITE as u8))))) {
                         // 0 < |x| < +Inf
-            let mut acc = make_acc({ let __field = self.neg.clone(); __field });
+            let mut acc = make_acc(Arc::new(Mutex::new(Some({ let __selector_holder = self.neg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
             if { let __tmp_x = (*self.exp.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x <= __tmp_y } {
                 // 0 < |x| < 1
         return (0, { let __owned = acc.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) });
@@ -1954,7 +1955,7 @@ impl Float {
                 // x truncated
                 // check for special case x == math.MinInt64 (i.e., x == -(0.5 << 64))
                 // x too large
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     /// Float32 returns the float32 value nearest to x. If x is too small to be
@@ -2136,7 +2137,7 @@ const emax: i32 = bias;
                 // bexp == 0 for denormals
                 // normal number: emin <= e <= emax
                 // cut off msb (implicit 1 bit)
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     /// Float64 returns the float64 value nearest to x. If x is too small to be
@@ -2318,7 +2319,7 @@ const emax: i32 = bias;
                 // bexp == 0 for denormals
                 // normal number: emin <= e <= emax
                 // cut off msb (implicit 1 bit)
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     /// Int returns the result of truncating x towards zero;
@@ -2331,13 +2332,13 @@ const emax: i32 = bias;
         if DEBUG_FLOAT {
         self.validate();
     }
-        if (*z.lock().unwrap()).is_none() && { let __tmp_x = { let __selector_holder = self.form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x <= __tmp_y } {
+        if { let __nil_result = (*z.lock().unwrap()).is_none(); __nil_result } && { let __tmp_x = { let __selector_holder = self.form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x <= __tmp_y } {
         { let new_val = Arc::new(Mutex::new(Some(Int::default()))).clone(); z = new_val; };
     }
         { let _switch_val = { let __selector_holder = self.form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (form(Arc::new(Mutex::new(Some(FINITE as u8))))) {
                         // 0 < |x| < +Inf
-            let mut acc = make_acc({ let __field = self.neg.clone(); __field });
+            let mut acc = make_acc(Arc::new(Mutex::new(Some({ let __selector_holder = self.neg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
             if { let __tmp_x = (*self.exp.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x <= __tmp_y } {
                 // 0 < |x| < 1
         return ({ let __recv = z.clone(); let __recv_ptr: *mut crate::int::Int = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::int::Int }; let __result = unsafe { &mut *__recv_ptr }.set_int64(Arc::new(Mutex::new(Some(0 as i64)))); __result }, { let __owned = acc.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) });
@@ -2352,7 +2353,7 @@ const emax: i32 = bias;
         { let new_val = Accuracy(Arc::new(Mutex::new(Some(EXACT as i8)))); *acc.lock().unwrap() = Some(new_val); };
     }
                         // shift mantissa as needed
-            if (*z.lock().unwrap()).is_none() {
+            if { let __nil_result = (*z.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = Arc::new(Mutex::new(Some(Int::default()))).clone(); z = new_val; };
     }
             { let new_val = { let __selector_holder = self.neg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *(*z.lock().unwrap().as_ref().unwrap()).neg.lock().unwrap() = Some(new_val); };
@@ -2367,7 +2368,7 @@ const emax: i32 = bias;
         } else if _switch_val == (form(Arc::new(Mutex::new(Some(ZERO as u8))))) {
             return ({ let __recv = z.clone(); let __recv_ptr: *mut crate::int::Int = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::int::Int }; let __result = unsafe { &mut *__recv_ptr }.set_int64(Arc::new(Mutex::new(Some(0 as i64)))); __result }, Arc::new(Mutex::new(Some(Accuracy(Arc::new(Mutex::new(Some(EXACT as i8))))))));
         } else if _switch_val == (form(Arc::new(Mutex::new(Some(INF as u8))))) {
-            return (Arc::new(Mutex::new(None)), make_acc({ let __field = self.neg.clone(); __field }));
+            return (Arc::new(Mutex::new(None)), make_acc(Arc::new(Mutex::new(Some({ let __selector_holder = self.neg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))));
         }
     }
                 // 0 < |x| < +Inf
@@ -2376,7 +2377,7 @@ const emax: i32 = bias;
                 // 1 <= |x| < +Inf
                 // determine minimum required precision for x
                 // shift mantissa as needed
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     /// Rat returns the rational number corresponding to x;
@@ -2388,7 +2389,7 @@ const emax: i32 = bias;
         if DEBUG_FLOAT {
         self.validate();
     }
-        if (*z.lock().unwrap()).is_none() && { let __tmp_x = { let __selector_holder = self.form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x <= __tmp_y } {
+        if { let __nil_result = (*z.lock().unwrap()).is_none(); __nil_result } && { let __tmp_x = { let __selector_holder = self.form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x <= __tmp_y } {
         { let new_val = Arc::new(Mutex::new(Some(Rat::default()))).clone(); z = new_val; };
     }
         { let _switch_val = { let __selector_holder = self.form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
@@ -2417,7 +2418,7 @@ const emax: i32 = bias;
         } else if _switch_val == (form(Arc::new(Mutex::new(Some(ZERO as u8))))) {
             return ({ let __recv = z.clone(); let __recv_ptr: *mut crate::rat::Rat = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::rat::Rat }; let __result = unsafe { &mut *__recv_ptr }.set_int64(Arc::new(Mutex::new(Some(0 as i64)))); __result }, Arc::new(Mutex::new(Some(Accuracy(Arc::new(Mutex::new(Some(EXACT as i8))))))));
         } else if _switch_val == (form(Arc::new(Mutex::new(Some(INF as u8))))) {
-            return (Arc::new(Mutex::new(None)), make_acc({ let __field = self.neg.clone(); __field }));
+            return (Arc::new(Mutex::new(None)), make_acc(Arc::new(Mutex::new(Some({ let __selector_holder = self.neg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))));
         }
     }
                 // 0 < |x| < +Inf
@@ -2426,7 +2427,7 @@ const emax: i32 = bias;
                 // z already in normal form
                 // == 1 (see Rat)
                 // z already in normal form
-        panic!("unreachable");
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     /// Abs sets z to the (possibly rounded) value |x| (the absolute value of x)
@@ -2651,7 +2652,7 @@ const emax: i32 = bias;
         { let __recv = y.clone(); let __recv_ptr: *mut Float = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Float }; let __result = unsafe { &mut *__recv_ptr }.validate(); __result };
     }
         if { let __tmp_x = (*self.prec.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x == __tmp_y } {
-        { let new_val = umax32({ let __field = (*x.lock().unwrap().as_ref().unwrap()).prec.clone(); __field }, { let __field = (*y.lock().unwrap().as_ref().unwrap()).prec.clone(); __field }); *self.prec.lock().unwrap() = Some(new_val); };
+        { let new_val = umax32(Arc::new(Mutex::new(Some({ let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).prec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*y.lock().unwrap().as_ref().unwrap()).prec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); *self.prec.lock().unwrap() = Some(new_val); };
     }
         if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x == __tmp_y } && { let __tmp_x = { let __selector_holder = (*y.lock().unwrap().as_ref().unwrap()).form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x == __tmp_y } {
                 // x + y (common case)
@@ -2702,7 +2703,7 @@ const emax: i32 = bias;
         { let new_val = Accuracy(Arc::new(Mutex::new(Some(EXACT as i8)))); *self.acc.lock().unwrap() = Some(new_val); };
         { let new_val = form(Arc::new(Mutex::new(Some(ZERO as u8)))); *self.form.lock().unwrap() = Some(new_val); };
         { let new_val = false; *self.neg.lock().unwrap() = Some(new_val); };
-        panic!("{}", ErrNaN { msg: Arc::new(Mutex::new(Some("addition of infinities with opposite signs".to_string()))), ..Default::default() });
+        std::panic::panic_any(Box::new(ErrNaN { msg: Arc::new(Mutex::new(Some("addition of infinities with opposite signs".to_string()))), ..Default::default() }) as Box<dyn Any + Send + Sync>);
     }
                 // +Inf + -Inf
                 // -Inf + +Inf
@@ -2738,7 +2739,7 @@ const emax: i32 = bias;
         { let __recv = y.clone(); let __recv_ptr: *mut Float = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Float }; let __result = unsafe { &mut *__recv_ptr }.validate(); __result };
     }
         if { let __tmp_x = (*self.prec.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x == __tmp_y } {
-        { let new_val = umax32({ let __field = (*x.lock().unwrap().as_ref().unwrap()).prec.clone(); __field }, { let __field = (*y.lock().unwrap().as_ref().unwrap()).prec.clone(); __field }); *self.prec.lock().unwrap() = Some(new_val); };
+        { let new_val = umax32(Arc::new(Mutex::new(Some({ let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).prec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*y.lock().unwrap().as_ref().unwrap()).prec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); *self.prec.lock().unwrap() = Some(new_val); };
     }
         if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x == __tmp_y } && { let __tmp_x = { let __selector_holder = (*y.lock().unwrap().as_ref().unwrap()).form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x == __tmp_y } {
                 // x - y (common case)
@@ -2779,7 +2780,7 @@ const emax: i32 = bias;
         { let new_val = Accuracy(Arc::new(Mutex::new(Some(EXACT as i8)))); *self.acc.lock().unwrap() = Some(new_val); };
         { let new_val = form(Arc::new(Mutex::new(Some(ZERO as u8)))); *self.form.lock().unwrap() = Some(new_val); };
         { let new_val = false; *self.neg.lock().unwrap() = Some(new_val); };
-        panic!("{}", ErrNaN { msg: Arc::new(Mutex::new(Some("subtraction of infinities with equal signs".to_string()))), ..Default::default() });
+        std::panic::panic_any(Box::new(ErrNaN { msg: Arc::new(Mutex::new(Some("subtraction of infinities with equal signs".to_string()))), ..Default::default() }) as Box<dyn Any + Send + Sync>);
     }
                 // +Inf - +Inf
                 // -Inf - -Inf
@@ -2815,7 +2816,7 @@ const emax: i32 = bias;
         { let __recv = y.clone(); let __recv_ptr: *mut Float = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Float }; let __result = unsafe { &mut *__recv_ptr }.validate(); __result };
     }
         if { let __tmp_x = (*self.prec.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x == __tmp_y } {
-        { let new_val = umax32({ let __field = (*x.lock().unwrap().as_ref().unwrap()).prec.clone(); __field }, { let __field = (*y.lock().unwrap().as_ref().unwrap()).prec.clone(); __field }); *self.prec.lock().unwrap() = Some(new_val); };
+        { let new_val = umax32(Arc::new(Mutex::new(Some({ let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).prec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*y.lock().unwrap().as_ref().unwrap()).prec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); *self.prec.lock().unwrap() = Some(new_val); };
     }
         { let new_val = { let __tmp_x = (*{ let __field = (*x.lock().unwrap().as_ref().unwrap()).neg.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*y.lock().unwrap().as_ref().unwrap()).neg.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x != __tmp_y }; *self.neg.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x == __tmp_y } && { let __tmp_x = { let __selector_holder = (*y.lock().unwrap().as_ref().unwrap()).form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x == __tmp_y } {
@@ -2831,7 +2832,7 @@ const emax: i32 = bias;
                 // value of z is undefined but make sure it's valid
         { let new_val = form(Arc::new(Mutex::new(Some(ZERO as u8)))); *self.form.lock().unwrap() = Some(new_val); };
         { let new_val = false; *self.neg.lock().unwrap() = Some(new_val); };
-        panic!("{}", ErrNaN { msg: Arc::new(Mutex::new(Some("multiplication of zero with infinity".to_string()))), ..Default::default() });
+        std::panic::panic_any(Box::new(ErrNaN { msg: Arc::new(Mutex::new(Some("multiplication of zero with infinity".to_string()))), ..Default::default() }) as Box<dyn Any + Send + Sync>);
     }
                 // ±0 * ±Inf
                 // ±Inf * ±0
@@ -2860,7 +2861,7 @@ const emax: i32 = bias;
         { let __recv = y.clone(); let __recv_ptr: *mut Float = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Float }; let __result = unsafe { &mut *__recv_ptr }.validate(); __result };
     }
         if { let __tmp_x = (*self.prec.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x == __tmp_y } {
-        { let new_val = umax32({ let __field = (*x.lock().unwrap().as_ref().unwrap()).prec.clone(); __field }, { let __field = (*y.lock().unwrap().as_ref().unwrap()).prec.clone(); __field }); *self.prec.lock().unwrap() = Some(new_val); };
+        { let new_val = umax32(Arc::new(Mutex::new(Some({ let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).prec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*y.lock().unwrap().as_ref().unwrap()).prec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); *self.prec.lock().unwrap() = Some(new_val); };
     }
         { let new_val = { let __tmp_x = (*{ let __field = (*x.lock().unwrap().as_ref().unwrap()).neg.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*y.lock().unwrap().as_ref().unwrap()).neg.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x != __tmp_y }; *self.neg.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x == __tmp_y } && { let __tmp_x = { let __selector_holder = (*y.lock().unwrap().as_ref().unwrap()).form.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = form(Arc::new(Mutex::new(Some(FINITE as u8)))); __tmp_x == __tmp_y } {
@@ -2876,7 +2877,7 @@ const emax: i32 = bias;
                 // value of z is undefined but make sure it's valid
         { let new_val = form(Arc::new(Mutex::new(Some(ZERO as u8)))); *self.form.lock().unwrap() = Some(new_val); };
         { let new_val = false; *self.neg.lock().unwrap() = Some(new_val); };
-        panic!("{}", ErrNaN { msg: Arc::new(Mutex::new(Some("division of zero by zero or infinity by infinity".to_string()))), ..Default::default() });
+        std::panic::panic_any(Box::new(ErrNaN { msg: Arc::new(Mutex::new(Some("division of zero by zero or infinity by infinity".to_string()))), ..Default::default() }) as Box<dyn Any + Send + Sync>);
     }
                 // ±0 / ±0
                 // ±Inf / ±Inf
@@ -2953,7 +2954,7 @@ const emax: i32 = bias;
 /// NewFloat panics with [ErrNaN] if x is a NaN.
 pub fn new_float(x: Arc<Mutex<Option<f64>>>) -> Arc<Mutex<Option<Float>>> {
     if math::is_na_n(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
-        panic!("{}", ErrNaN { msg: Arc::new(Mutex::new(Some("NewFloat(NaN)".to_string()))), ..Default::default() });
+        std::panic::panic_any(Box::new(ErrNaN { msg: Arc::new(Mutex::new(Some("NewFloat(NaN)".to_string()))), ..Default::default() }) as Box<dyn Any + Send + Sync>);
     }
     { let __recv = Arc::new(Mutex::new(Some(Float::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).set_float64(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result }
 }
@@ -2970,13 +2971,13 @@ pub fn make_acc(above: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<Accuracy>>>
 /// It returns the shift amount. It assumes that len(m) != 0.
 pub fn fnorm(m: Arc<Mutex<Option<nat>>>) -> i64 {
     if DEBUG_FLOAT && ({ let __tmp_x = ({ let __slice_holder = { let __named_slice = (*m.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 0; __tmp_x == __tmp_y } || { let __tmp_x = { let __seq_holder = { let __named_slice = (*m.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __tmp_x = ({ let __slice_holder = { let __named_slice = (*m.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __tmp_y = crate::arith::Word(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x == __tmp_y }) {
-        panic!("msw of mantissa is 0");
+        std::panic::panic_any(Box::new("msw of mantissa is 0".to_string()) as Box<dyn Any + Send + Sync>);
     }
     let mut s = nlz(Arc::new(Mutex::new(Some(crate::arith::Word(Arc::new(Mutex::new(Some((*{ let __seq_holder = { let __named_slice = (*m.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __tmp_x = ({ let __slice_holder = { let __named_slice = (*m.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }.0.lock().unwrap().as_ref().unwrap())))))))));
     if { let __tmp_x = s; let __tmp_y = 0 as u64; __tmp_x > __tmp_y } {
         let mut c = shl_v_u({ let __named_slice = (*m.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }, { let __named_slice = (*m.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }, Arc::new(Mutex::new(Some(s))));
         if DEBUG_FLOAT && { let __tmp_x = (*c.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::arith::Word(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x != __tmp_y } {
-        panic!("nlz or shlVU incorrect");
+        std::panic::panic_any(Box::new("nlz or shlVU incorrect".to_string()) as Box<dyn Any + Send + Sync>);
     }
     }
     (*Arc::new(Mutex::new(Some(s as i64))).lock().unwrap().as_ref().unwrap())
@@ -2989,7 +2990,7 @@ pub fn msb32(x: Arc<Mutex<Option<nat>>>) -> u32 {
         return 0;
     }
     if DEBUG_FLOAT && { let __tmp_x = crate::arith::Word(Arc::new(Mutex::new(Some(((*{ let __seq_holder = { let __named_slice = (*x.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.0.lock().unwrap().as_ref().unwrap()) & ((1 << ({ let __tmp_x = __W; let __tmp_y = 1; __tmp_x - __tmp_y })))))))); let __tmp_y = crate::arith::Word(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x == __tmp_y } {
-        panic!("x not normalized");
+        std::panic::panic_any(Box::new("x not normalized".to_string()) as Box<dyn Any + Send + Sync>);
     }
     { let _switch_val = __W;
     if _switch_val == (32) {
@@ -2998,7 +2999,7 @@ pub fn msb32(x: Arc<Mutex<Option<nat>>>) -> u32 {
             return (*Arc::new(Mutex::new(Some((((*{ let __seq_holder = { let __named_slice = (*x.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.0.lock().unwrap().as_ref().unwrap()) >> 32i32)) as u32))).lock().unwrap().as_ref().unwrap());
         }
     }
-    panic!("unreachable");
+    std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
 }
 
 /// msb64 returns the 64 most significant bits of x.
@@ -3008,7 +3009,7 @@ pub fn msb64(x: Arc<Mutex<Option<nat>>>) -> u64 {
         return 0;
     }
     if DEBUG_FLOAT && { let __tmp_x = crate::arith::Word(Arc::new(Mutex::new(Some(((*{ let __seq_holder = { let __named_slice = (*x.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.0.lock().unwrap().as_ref().unwrap()) & ((1 << ({ let __tmp_x = __W; let __tmp_y = 1; __tmp_x - __tmp_y })))))))); let __tmp_y = crate::arith::Word(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x == __tmp_y } {
-        panic!("x not normalized");
+        std::panic::panic_any(Box::new("x not normalized".to_string()) as Box<dyn Any + Send + Sync>);
     }
     { let _switch_val = __W;
     if _switch_val == (32) {
@@ -3021,20 +3022,20 @@ pub fn msb64(x: Arc<Mutex<Option<nat>>>) -> u64 {
             return (*Arc::new(Mutex::new(Some((*{ let __seq_holder = { let __named_slice = (*x.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.0.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap());
         }
     }
-    panic!("unreachable");
+    std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
 }
 
 pub fn validate_binary_operands(x: Arc<Mutex<Option<Float>>>, y: Arc<Mutex<Option<Float>>>) {
     if !DEBUG_FLOAT {
                 // avoid performance bugs
-        panic!("validateBinaryOperands called but debugFloat is not set");
+        std::panic::panic_any(Box::new("validateBinaryOperands called but debugFloat is not set".to_string()) as Box<dyn Any + Send + Sync>);
     }
         // avoid performance bugs
     if { let __tmp_x = ({ let __slice_holder = { let __named_slice = (*(*x.lock().unwrap().as_ref().unwrap()).mant.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
-        panic!("empty mantissa for x");
+        std::panic::panic_any(Box::new("empty mantissa for x".to_string()) as Box<dyn Any + Send + Sync>);
     }
     if { let __tmp_x = ({ let __slice_holder = { let __named_slice = (*(*y.lock().unwrap().as_ref().unwrap()).mant.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
-        panic!("empty mantissa for y");
+        std::panic::panic_any(Box::new("empty mantissa for y".to_string()) as Box<dyn Any + Send + Sync>);
     }
 }
 

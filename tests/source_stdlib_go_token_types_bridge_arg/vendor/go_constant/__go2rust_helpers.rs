@@ -71,7 +71,7 @@ impl std::fmt::Debug for GoMutex {
         write!(f, "Mutex")
     }
 }
-	
+
 fn go_strconv_format_int(value: i64, base: i32) -> String {
     if base == 10 {
         return value.to_string();

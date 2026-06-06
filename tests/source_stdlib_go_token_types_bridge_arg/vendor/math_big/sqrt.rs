@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_any_clone, go_strconv_format_float, go_strconv_format_int};
 
 use crate::accuracy_string::*;
 use crate::arith::*;
@@ -22,6 +22,7 @@ use crate::ratconv::*;
 use crate::ratmarsh::*;
 use crate::roundingmode_string::*;
 
+use std::any::Any;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
@@ -93,7 +94,7 @@ impl crate::float::Float {
     }
         if { let __tmp_x = { let __recv = x.clone(); let __recv_ptr: *mut crate::float::Float = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::float::Float }; let __result = unsafe { &mut *__recv_ptr }.sign(); __result }; let __tmp_y = -1; __tmp_x == __tmp_y } {
                 // following IEEE754-2008 (section 7.2)
-        panic!("{}", ErrNaN { msg: Arc::new(Mutex::new(Some("square root of negative operand".to_string()))), ..Default::default() });
+        std::panic::panic_any(Box::new(ErrNaN { msg: Arc::new(Mutex::new(Some("square root of negative operand".to_string()))), ..Default::default() }) as Box<dyn Any + Send + Sync>);
     }
                 // following IEEE754-2008 (section 7.2)
                 // handle ±0 and +∞
@@ -143,8 +144,8 @@ impl crate::float::Float {
                 //   g(t) = f(t)/f'(t) = -½t(1 - xt²)
                 // and the next guess is given by
                 //   t2 = t - g(t) = ½t(3 - xt²)
-        let mut u = new_float_1({ let __field = self.prec.clone(); __field });
-        let mut v = new_float_1({ let __field = self.prec.clone(); __field });
+        let mut u = new_float_1(Arc::new(Mutex::new(Some({ let __selector_holder = self.prec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+        let mut v = new_float_1(Arc::new(Mutex::new(Some({ let __selector_holder = self.prec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
         let mut three = three();
         let three_closure_clone = three.clone(); let u_closure_clone = u.clone(); let v_closure_clone = v.clone(); let x_closure_clone = x.clone(); let mut ng = Arc::new(Mutex::new(Some(Box::new(move |t: Arc<Mutex<Option<Float>>>| -> Arc<Mutex<Option<Float>>> {
         { let new_val = { let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).prec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *(*u_closure_clone.lock().unwrap().as_ref().unwrap()).prec.lock().unwrap() = Some(new_val); };
@@ -162,7 +163,7 @@ impl crate::float::Float {
                 // u = t(3 - xt²)
                 //   = ½t(3 - xt²)
         let (mut xf, _) = { let __recv = x.clone(); let __recv_ptr: *mut crate::float::Float = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::float::Float }; let __result = unsafe { &mut *__recv_ptr }.float64(); __result };
-        let mut sqi = new_float_1({ let __field = self.prec.clone(); __field });
+        let mut sqi = new_float_1(Arc::new(Mutex::new(Some({ let __selector_holder = self.prec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
         { let __recv = sqi.clone(); let __recv_ptr: *mut crate::float::Float = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::float::Float }; let __result = unsafe { &mut *__recv_ptr }.set_float64(Arc::new(Mutex::new(Some({ let __tmp_x = 1.0; let __tmp_y = math::sqrt(Arc::new(Mutex::new(Some(xf)))); __tmp_x / __tmp_y })))); __result };
         let mut prec = Arc::new(Mutex::new(Some({ let __tmp_x = (*self.prec.lock().unwrap().as_ref().unwrap()); let __tmp_y = 32 as u32; __tmp_x + __tmp_y })));
     while { let __tmp_x = (*{ let __field = (*sqi.lock().unwrap().as_ref().unwrap()).prec.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*prec.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {

@@ -21,6 +21,7 @@ internal_godebug = { path = "../internal_godebug" }
 internal_goversion = { path = "../internal_goversion" }
 internal_types_errors = { path = "../internal_types_errors" }
 math = { path = "../math" }
+path_filepath = { path = "../path_filepath" }
 slices = { path = "../slices" }
 sync_atomic = { path = "../sync_atomic" }
 unicode = { path = "../unicode" }

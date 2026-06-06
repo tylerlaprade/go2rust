@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_register_embedded_owner, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
 
 use crate::alias::*;
 use crate::api::*;
@@ -604,13 +604,13 @@ impl Selection {
 
     /// Recv returns the type of x in x.f.
     pub fn recv(&self) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {
-        return self.recv.clone();
+        return { let __field = self.recv.clone(); __field };
     }
 
     /// Obj returns the object denoted by x.f; a *Var for
     /// a field selection, and a *Func in all other cases.
     pub fn obj(&self) -> Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>> {
-        return self.obj.clone();
+        return { let __field = self.obj.clone(); __field };
     }
 
     /// Type returns the type of x.f, which may be different from the type of f.
@@ -646,7 +646,7 @@ impl Selection {
         }
     }).lock().unwrap().as_ref().unwrap()).clone(); __v })));
             let mut recv = Arc::new(Mutex::new(Some({ let __v = (*(*sig.lock().unwrap().as_ref().unwrap()).recv.lock().unwrap().as_ref().unwrap()).clone(); __v })));
-            { let __iface_handle = self.recv.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*(*recv.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = { let __field = self.recv.clone(); __field }; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*(*recv.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = __iface_value; };
             { let new_val = recv.clone().clone(); (*sig.lock().unwrap().as_mut().unwrap()).recv = new_val; };
             return Arc::new(Mutex::new(Some(Box::new(crate::signature::SignaturePtr(sig.clone().clone())) as Box<dyn Type + Send + Sync>)));
         } else if _switch_val == (SelectionKind(Arc::new(Mutex::new(Some(METHOD_EXPR as i32))))) {
@@ -681,7 +681,7 @@ impl Selection {
     }).lock().unwrap().as_ref().unwrap()).clone(); __v })));
             let mut arg0 = Arc::new(Mutex::new(Some({ let __v = (*(*sig.lock().unwrap().as_ref().unwrap()).recv.lock().unwrap().as_ref().unwrap()).clone(); __v })));
             *(*sig.lock().unwrap().as_ref().unwrap()).recv.lock().unwrap() = None;
-            { let __iface_handle = self.recv.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*(*arg0.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = { let __field = self.recv.clone(); __field }; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*(*arg0.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = __iface_value; };
             let mut params: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Var>>>>>>> = Arc::new(Mutex::new(None));
             if { let __nil_target = (*sig.lock().unwrap().as_ref().unwrap()).params.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
         { let new_val = (*(*sig.lock().unwrap().as_ref().unwrap()).params.lock().unwrap().as_ref().unwrap()).vars.clone(); params = new_val; };
@@ -768,7 +768,7 @@ pub fn selection_string(s: Arc<Mutex<Option<Selection>>>, qf: crate::typestring:
         } else if _switch_val == (SelectionKind(Arc::new(Mutex::new(Some(METHOD_EXPR as i32))))) {
             { let new_val = "method expr ".to_string(); *k.lock().unwrap() = Some(new_val); };
         } else {
-            panic!("unreachable");
+            std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
         }
     }
     let mut buf: Arc<Mutex<Option<bytes_Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));

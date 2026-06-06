@@ -127,7 +127,7 @@ impl crate::scope::Scope {
         while { let __self_guard = __self.lock().unwrap(); __self_guard.is_some() } {
         {
         let mut obj = (*__self.lock().unwrap().as_ref().unwrap()).lookup(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
-        if (*obj.lock().unwrap()).is_some() && (!go_token::position::Pos::is_valid(&(*pos.lock().unwrap().as_ref().unwrap())) || { let __tmp_x = cmp_pos((*obj.lock().unwrap().as_ref().unwrap()).scope_pos(), Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __tmp_y = 0; __tmp_x <= __tmp_y }) {
+        if { let __nil_result = (*obj.lock().unwrap()).is_some(); __nil_result } && (!go_token::position::Pos::is_valid(&(*pos.lock().unwrap().as_ref().unwrap())) || { let __tmp_x = cmp_pos((*obj.lock().unwrap().as_ref().unwrap()).scope_pos(), Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __tmp_y = 0; __tmp_x <= __tmp_y }) {
             return (__self.clone(), obj.clone());;
         }
     }
@@ -167,7 +167,7 @@ impl crate::scope::Scope {
         { let __range_holder = self.children.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for s in __range_values.iter() {
         {
         let mut inner = { let __recv = s.clone(); let __recv_ptr: *const crate::scope::Scope = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::scope::Scope }; let __result = unsafe { &*__recv_ptr }.innermost(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result };;
-        if (*inner.lock().unwrap()).is_some() {
+        if { let __nil_result = (*inner.lock().unwrap()).is_some(); __nil_result } {
             return inner.clone();;
         }
     }

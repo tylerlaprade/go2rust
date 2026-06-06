@@ -3451,33 +3451,9 @@ impl types_Basic {
 }
 
 // TEMPORARY: hand-written Rust shim for go/types.Tuple.
-// Long-term fix: transpile go/types source. The shim preserves tuple length
-// and Type-interface boxing; Var inspection remains unsupported and loud.
+// Long-term fix: transpile go/types source. Var inspection remains unsupported
+// and loud.
 func writeTypesTupleStub(out *strings.Builder, methods map[string]externalTypeStubMethod) {
-	out.WriteString("pub trait GoTypesTupleArgs {\n")
-	out.WriteString("    fn __go_tuple_len(self) -> usize;\n")
-	out.WriteString("}\n\n")
-	out.WriteString("impl GoTypesTupleArgs for () {\n")
-	out.WriteString("    fn __go_tuple_len(self) -> usize { 0 }\n")
-	out.WriteString("}\n\n")
-	for n := 1; n <= 12; n++ {
-		typeNames := make([]string, 0, n)
-		for i := 0; i < n; i++ {
-			typeNames = append(typeNames, "T"+strconv.Itoa(i))
-		}
-		out.WriteString("impl<")
-		out.WriteString(strings.Join(typeNames, ", "))
-		out.WriteString("> GoTypesTupleArgs for (")
-		for _, typeName := range typeNames {
-			out.WriteString(typeName)
-			out.WriteString(", ")
-		}
-		out.WriteString(") {\n")
-		out.WriteString("    fn __go_tuple_len(self) -> usize { ")
-		out.WriteString(strconv.Itoa(n))
-		out.WriteString(" }\n")
-		out.WriteString("}\n\n")
-	}
 	out.WriteString("#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]\n")
 	out.WriteString("pub struct types_Tuple {\n")
 	out.WriteString("    pub __go_len: usize,\n")
@@ -3522,113 +3498,8 @@ func writeTypesTupleStub(out *strings.Builder, methods map[string]externalTypeSt
 // Long-term fix: transpile go/types source. The shim preserves the object/type
 // relationship created by NewTypeParam and keeps unsupported paths loud.
 func writeTypesTypeNameStub(out *strings.Builder, methods map[string]externalTypeStubMethod) {
-	posWrapped := wrappedExternalStubType("token_Pos")
 	pkgWrapped := wrappedExternalStubType("types_Package")
 	typeWrapped := wrappedExternalStubType("types_Type")
-	stringWrapped := wrappedExternalStubType("String")
-	posBorrow := externalStubBorrowExpr("self")
-	stringBorrow := externalStubBorrowExpr("self")
-
-	out.WriteString("pub trait GoTypesTokenPosArg {\n")
-	out.WriteString("    fn __go_into_token_pos_arg(self) -> token_Pos;\n")
-	out.WriteString("}\n\n")
-	out.WriteString("impl GoTypesTokenPosArg for token_Pos {\n")
-	out.WriteString("    fn __go_into_token_pos_arg(self) -> token_Pos { self }\n")
-	out.WriteString("}\n\n")
-	out.WriteString("impl GoTypesTokenPosArg for i32 {\n")
-	out.WriteString("    fn __go_into_token_pos_arg(self) -> token_Pos { token_Pos(self) }\n")
-	out.WriteString("}\n\n")
-	out.WriteString("impl GoTypesTokenPosArg for ")
-	out.WriteString(posWrapped)
-	out.WriteString(" {\n")
-	out.WriteString("    fn __go_into_token_pos_arg(self) -> token_Pos {\n")
-	out.WriteString("        ")
-	out.WriteString(posBorrow)
-	out.WriteString(".as_ref().copied().unwrap_or_default()\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n\n")
-
-	out.WriteString("pub trait GoTypesPackageArg {\n")
-	out.WriteString("    fn __go_into_types_package_arg(self) -> ")
-	out.WriteString(pkgWrapped)
-	out.WriteString(";\n")
-	out.WriteString("}\n\n")
-	out.WriteString("impl GoTypesPackageArg for () {\n")
-	out.WriteString("    fn __go_into_types_package_arg(self) -> ")
-	out.WriteString(pkgWrapped)
-	out.WriteString(" {\n        ")
-	out.WriteString(wrappedExternalStubNoneExpr("types_Package"))
-	out.WriteString("\n    }\n")
-	out.WriteString("}\n\n")
-	out.WriteString("impl GoTypesPackageArg for ")
-	out.WriteString(pkgWrapped)
-	out.WriteString(" {\n")
-	out.WriteString("    fn __go_into_types_package_arg(self) -> ")
-	out.WriteString(pkgWrapped)
-	out.WriteString(" { self }\n")
-	out.WriteString("}\n\n")
-
-	out.WriteString("pub trait GoTypesOptionalTypeArg {\n")
-	out.WriteString("    fn __go_into_optional_types_type_arg(self) -> ")
-	out.WriteString(typeWrapped)
-	out.WriteString(";\n")
-	out.WriteString("}\n\n")
-	out.WriteString("impl GoTypesOptionalTypeArg for () {\n")
-	out.WriteString("    fn __go_into_optional_types_type_arg(self) -> ")
-	out.WriteString(typeWrapped)
-	out.WriteString(" {\n        ")
-	out.WriteString(wrappedExternalStubNoneExpr("types_Type"))
-	out.WriteString("\n    }\n")
-	out.WriteString("}\n\n")
-	out.WriteString("impl GoTypesOptionalTypeArg for ")
-	out.WriteString(typeWrapped)
-	out.WriteString(" {\n")
-	out.WriteString("    fn __go_into_optional_types_type_arg(self) -> ")
-	out.WriteString(typeWrapped)
-	out.WriteString(" { self }\n")
-	out.WriteString("}\n\n")
-
-	out.WriteString("pub trait GoTypesStringArg {\n")
-	out.WriteString("    fn __go_into_string_arg(self) -> String;\n")
-	out.WriteString("}\n\n")
-	out.WriteString("impl GoTypesStringArg for String {\n")
-	out.WriteString("    fn __go_into_string_arg(self) -> String { self }\n")
-	out.WriteString("}\n\n")
-	out.WriteString("impl<'a> GoTypesStringArg for &'a str {\n")
-	out.WriteString("    fn __go_into_string_arg(self) -> String { self.to_string() }\n")
-	out.WriteString("}\n\n")
-	out.WriteString("impl<'a> GoTypesStringArg for &'a String {\n")
-	out.WriteString("    fn __go_into_string_arg(self) -> String { self.clone() }\n")
-	out.WriteString("}\n\n")
-	out.WriteString("impl GoTypesStringArg for ")
-	out.WriteString(stringWrapped)
-	out.WriteString(" {\n")
-	out.WriteString("    fn __go_into_string_arg(self) -> String {\n")
-	out.WriteString("        ")
-	out.WriteString(stringBorrow)
-	out.WriteString(".as_ref().cloned().unwrap_or_default()\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n\n")
-
-	out.WriteString("pub trait GoTypesTypeNameArg {\n")
-	out.WriteString("    fn __go_into_type_name_arg(self) -> ")
-	out.WriteString(wrappedExternalStubType("types_TypeName"))
-	out.WriteString(";\n")
-	out.WriteString("}\n\n")
-	out.WriteString("impl GoTypesTypeNameArg for () {\n")
-	out.WriteString("    fn __go_into_type_name_arg(self) -> ")
-	out.WriteString(wrappedExternalStubType("types_TypeName"))
-	out.WriteString(" {\n        ")
-	out.WriteString(wrappedExternalStubNoneExpr("types_TypeName"))
-	out.WriteString("\n    }\n")
-	out.WriteString("}\n\n")
-	out.WriteString("impl GoTypesTypeNameArg for ")
-	out.WriteString(wrappedExternalStubType("types_TypeName"))
-	out.WriteString(" {\n")
-	out.WriteString("    fn __go_into_type_name_arg(self) -> ")
-	out.WriteString(wrappedExternalStubType("types_TypeName"))
-	out.WriteString(" { self }\n")
-	out.WriteString("}\n\n")
 
 	out.WriteString("#[derive(Debug, Clone, Default)]\n")
 	out.WriteString("pub struct types_TypeName {\n")
@@ -6692,16 +6563,7 @@ func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn 
 		writeRuntimeGOROOTStub(out, fn)
 		return
 	}
-	if funcName == "new_tuple" && len(fn.ReturnTypes) == 1 {
-		writeTypesNewTupleFunction(out, fn)
-		return
-	}
-	if funcName == "new_type_name" && len(fn.ReturnTypes) == 1 {
-		writeTypesNewTypeNameFunction(out, fn)
-		return
-	}
-	if funcName == "new_type_param" && len(fn.ReturnTypes) == 1 {
-		writeTypesNewTypeParamFunction(out, fn)
+	if funcName == "new_tuple" || funcName == "new_type_name" || funcName == "new_type_param" {
 		return
 	}
 	if funcName == "new_term" {
@@ -6753,56 +6615,6 @@ func writeExternalPackageStubFunction(out *strings.Builder, funcName string, fn 
 	out.WriteString("        panic!(\"")
 	out.WriteString(funcName)
 	out.WriteString(" bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md\")\n")
-	out.WriteString("    }\n")
-}
-
-// TEMPORARY: hand-written Rust shim for go/types Tuple/TypeName/TypeParam constructors.
-// Long-term fix: transpile go/types source and route these calls to that package.
-func writeTypesNewTupleFunction(out *strings.Builder, fn externalPackageStubFunction) {
-	out.WriteString("    pub fn new_tuple<T0: GoTypesTupleArgs>(_arg0: T0) -> ")
-	writeExternalStubReturnType(out, fn.ReturnTypes)
-	out.WriteString(" {\n        ")
-	writeExternalStubReturnValue(out, fn.ReturnTypes[0], "types_Tuple", "types_Tuple { __go_len: _arg0.__go_tuple_len() }")
-	out.WriteString("\n    }\n")
-}
-
-func writeTypesNewTypeNameFunction(out *strings.Builder, fn externalPackageStubFunction) {
-	out.WriteString("    pub fn new_type_name<T0: GoTypesTokenPosArg, T1: GoTypesPackageArg, T2: GoTypesStringArg, T3: GoTypesOptionalTypeArg>(_arg0: T0, _arg1: T1, _arg2: T2, _arg3: T3) -> ")
-	writeExternalStubReturnType(out, fn.ReturnTypes)
-	out.WriteString(" {\n")
-	out.WriteString("        let value = types_TypeName { __go_pos: _arg0.__go_into_token_pos_arg(), __go_pkg: _arg1.__go_into_types_package_arg(), __go_name: _arg2.__go_into_string_arg(), __go_type: _arg3.__go_into_optional_types_type_arg() };\n")
-	out.WriteString("        ")
-	writeExternalStubReturnValue(out, fn.ReturnTypes[0], "types_TypeName", "value")
-	out.WriteString("\n")
-	out.WriteString("    }\n")
-}
-
-func writeTypesNewTypeParamFunction(out *strings.Builder, fn externalPackageStubFunction) {
-	mutBorrow := ".borrow_mut()"
-	if NeedsConcurrentWrapper() {
-		mutBorrow = ".lock().unwrap()"
-	}
-
-	out.WriteString("    pub fn new_type_param<T0: GoTypesTypeNameArg, T1: GoTypesOptionalTypeArg>(_arg0: T0, _arg1: T1) -> ")
-	writeExternalStubReturnType(out, fn.ReturnTypes)
-	out.WriteString(" {\n")
-	out.WriteString("        let obj = _arg0.__go_into_type_name_arg();\n")
-	out.WriteString("        let param = types_TypeParam { __go_obj: obj.clone(), __go_constraint: _arg1.__go_into_optional_types_type_arg(), __go_index: -1 };\n")
-	out.WriteString("        {\n")
-	out.WriteString("            let mut obj_guard = obj")
-	out.WriteString(mutBorrow)
-	out.WriteString(";\n")
-	out.WriteString("            if let Some(obj_value) = obj_guard.as_mut() {\n")
-	out.WriteString("                obj_value.__go_type = ")
-	out.WriteString(wrappedExternalStubExpr("types_Type", "types_Type::__go_from(param.clone())"))
-	out.WriteString(";\n")
-	out.WriteString("            } else {\n")
-	out.WriteString("                panic!(\"types.NewTypeParam bridge: nil TypeName object\")\n")
-	out.WriteString("            }\n")
-	out.WriteString("        }\n")
-	out.WriteString("        ")
-	writeExternalStubReturnValue(out, fn.ReturnTypes[0], "types_TypeParam", "param")
-	out.WriteString("\n")
 	out.WriteString("    }\n")
 }
 

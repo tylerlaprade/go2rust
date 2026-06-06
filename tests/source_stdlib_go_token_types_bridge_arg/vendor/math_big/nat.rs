@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_any_clone, go_strconv_format_float, go_strconv_format_int};
 
 use crate::accuracy_string::*;
 use crate::arith::*;
@@ -223,7 +223,7 @@ impl nat {
         let mut m = Arc::new(Mutex::new(Some({ let __slice_holder = { let __named_slice = (*x.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32)));
         let mut n = Arc::new(Mutex::new(Some({ let __slice_holder = { let __named_slice = (*y.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32)));
         if { let __tmp_x = { let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
-            panic!("underflow");
+            std::panic::panic_any(Box::new("underflow".to_string()) as Box<dyn Any + Send + Sync>);
         } else if { let __tmp_x = { let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
                         // n == 0 because m >= n; result is 0
             return Arc::new(Mutex::new(Some(nat(Arc::new(Mutex::new(Some({ let __slice_holder = __self.0.clone(); let __slice_guard = __slice_holder.lock().unwrap(); let __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); __seq[..(0) as usize].to_vec() })))))));
@@ -240,7 +240,7 @@ impl nat {
         { let new_val = sub_v_w({ let __named_slice = nat(Arc::new(Mutex::new(Some({ let __slice_holder = __self.0.clone(); let __slice_guard = __slice_holder.lock().unwrap(); let __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); __seq[({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..].to_vec() })))); __named_slice.0.clone() }, { let __named_slice = nat(Arc::new(Mutex::new(Some({ let __slice_holder = { let __named_slice = (*x.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); let __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); __seq[({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..].to_vec() })))); __named_slice.0.clone() }, Arc::new(Mutex::new(Some({ let __arg_holder = c.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *c.lock().unwrap() = __moved_val; };
     }
         if { let __tmp_x = (*c.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::arith::Word(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x != __tmp_y } {
-        panic!("underflow");
+        std::panic::panic_any(Box::new("underflow".to_string()) as Box<dyn Any + Send + Sync>);
     }
         __self.norm()
     }
@@ -299,7 +299,7 @@ impl nat {
                 // It also assumes that x, y are already reduced mod m,
                 // or else the result will not be properly reduced.
         if { let __tmp_x = ({ let __slice_holder = { let __named_slice = (*x.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); __tmp_x != __tmp_y } || { let __tmp_x = ({ let __slice_holder = { let __named_slice = (*y.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); __tmp_x != __tmp_y } || { let __tmp_x = ({ let __slice_holder = { let __named_slice = (*m.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); __tmp_x != __tmp_y } {
-        panic!("math/big: mismatched montgomery number lengths");
+        std::panic::panic_any(Box::new("math/big: mismatched montgomery number lengths".to_string()) as Box<dyn Any + Send + Sync>);
     }
         { let new_val = __self.make(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x * __tmp_y })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
         { let __clear_holder = __self.0.clone(); let mut __clear_guard = __clear_holder.lock().unwrap(); if let Some(__clear_seq) = __clear_guard.as_mut() { for __clear_elem in __clear_seq.iter_mut() { *__clear_elem = crate::arith::Word(Arc::new(Mutex::new(Some(0)))); } } };
@@ -610,7 +610,7 @@ impl nat {
     }
                 // no need to grow
                 // no need to normalize
-        panic!("set bit is not 0 or 1");
+        std::panic::panic_any(Box::new("set bit is not 0 or 1".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     /// bit returns the value of the i'th bit, with lsb == bit 0.
@@ -760,7 +760,7 @@ impl nat {
         (*__self.0.clone().lock().unwrap().as_mut().unwrap())[(i) as usize] = crate::arith::Word(Arc::new(Mutex::new(Some(({ let __recv = rand.clone(); let __recv_ptr: *mut rand_Rand = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut rand_Rand }; let __result = unsafe { &mut *__recv_ptr }.uint32(); __result } as u64 | (({ let __recv = rand.clone(); let __recv_ptr: *mut rand_Rand = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut rand_Rand }; let __result = unsafe { &mut *__recv_ptr }.uint32(); __result } as u64) << 32i32))))));
     }
         } else {
-            panic!("unknown word size");
+            std::panic::panic_any(Box::new("unknown word size".to_string()) as Box<dyn Any + Send + Sync>);
         }
     }
         { let __idx = { let __tmp_x = ({ let __slice_holder = { let __named_slice = (*limit.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 1; __tmp_x - __tmp_y } as usize; let __rhs = (*({ let __v = (*mask.lock().unwrap().as_ref().unwrap()).clone(); __v }).0.lock().unwrap().as_ref().unwrap()).clone(); let __seq_holder = __self.0.clone(); let mut __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx].clone() & __rhs; };
@@ -943,7 +943,7 @@ impl nat {
     pub fn exp_n_n_windowed(&self, x: Arc<Mutex<Option<nat>>>, y: Arc<Mutex<Option<nat>>>, logM: Arc<Mutex<Option<u64>>>) -> Arc<Mutex<Option<nat>>> {
         let mut __self = self.clone();
         if { let __tmp_x = ({ let __slice_holder = { let __named_slice = (*y.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 1; __tmp_x <= __tmp_y } {
-        panic!("big: misuse of expNNWindowed");
+        std::panic::panic_any(Box::new("big: misuse of expNNWindowed".to_string()) as Box<dyn Any + Send + Sync>);
     }
         if { let __tmp_x = crate::arith::Word(Arc::new(Mutex::new(Some(((*{ let __seq_holder = { let __named_slice = (*x.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[(0) as usize].clone() }.0.lock().unwrap().as_ref().unwrap()) & 1))))); let __tmp_y = crate::arith::Word(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x == __tmp_y } {
                 // len(y) > 1, so y  > logM.
@@ -1168,7 +1168,7 @@ impl nat {
         if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } {
         (*buf.lock().unwrap().as_mut().unwrap())[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = (*Arc::new(Mutex::new(Some((*d.0.lock().unwrap().as_ref().unwrap()) as u8))).lock().unwrap().as_ref().unwrap()).clone();
     } else if { let __tmp_x = (*Arc::new(Mutex::new(Some((*d.0.lock().unwrap().as_ref().unwrap()) as u8))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u8; __tmp_x != __tmp_y } {
-        panic!("math/big: buffer too small to fit value");
+        std::panic::panic_any(Box::new("math/big: buffer too small to fit value".to_string()) as Box<dyn Any + Send + Sync>);
     }
         { let __rhs = crate::arith::Word(Arc::new(Mutex::new(Some(8 as u64)))); d = d >> __rhs; };
         { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -1527,19 +1527,19 @@ pub fn get_nat(n: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<nat>>> {
     let mut z: Arc<Mutex<Option<nat>>> = Arc::new(Mutex::new(None));
     {
         let mut v = (*natPool.lock().unwrap().as_mut().unwrap()).get();;
-        if (*v.lock().unwrap()).is_some() {
+        if { let __nil_result = (*v.lock().unwrap()).is_some(); __nil_result } {
             { let new_val = ({
         let val = v.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            Arc::new(Mutex::new(Some(any_val.downcast_ref::<nat>().expect("type assertion failed").clone())))
+            any_val.downcast_ref::<Arc<Mutex<Option<nat>>>>().expect("type assertion failed").clone()
         } else {
             panic!("type assertion on nil interface")
         }
     }).clone(); z = new_val; };;
         }
     }
-    if (*z.lock().unwrap()).is_none() {
+    if { let __nil_result = (*z.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = Arc::new(Mutex::new(Some(nat::default()))).clone(); z = new_val; };
     }
     { let new_val = (*{ let __recv = z.clone(); let __recv_ptr: *const nat = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const nat }; let __result = unsafe { &*__recv_ptr }.make(Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result }.lock().unwrap().as_ref().unwrap()).clone(); *z.lock().unwrap() = Some(new_val); };

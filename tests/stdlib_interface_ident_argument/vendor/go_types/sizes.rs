@@ -685,7 +685,7 @@ impl crate::api::Config {
         if { let __tmp_x = { let __v = (*offs.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x < __tmp_y } {
         return -(1);
     }
-        { let __iface_handle = { let __field = (*{ let __seq = { let __seq_holder = (*s.lock().unwrap().as_ref().unwrap()).fields.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *T.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __field = (*{ let __seq = { let __seq_holder = (*s.lock().unwrap().as_ref().unwrap()).fields.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().typ.clone(); __field }; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *T.lock().unwrap() = __iface_value; };
     } }
         return { let __v = (*offs.lock().unwrap().as_ref().unwrap()).clone(); __v };
     }
@@ -703,11 +703,11 @@ impl crate::api::Config {
 
 pub fn __is_sync_atomic_align64(T: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> bool {
     let mut named = as_named(T.clone());
-    if (*named.lock().unwrap()).is_none() {
+    if { let __nil_result = (*named.lock().unwrap()).is_none(); __nil_result } {
         return false;
     }
     let mut obj = { let __recv = named.clone(); let __recv_ptr: *const crate::named::Named = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::named::Named }; let __result = unsafe { &*__recv_ptr }.obj(); __result };
-    return { let __tmp_x = (*{ let __recv = obj.clone(); let __recv_ptr: *const crate::object::TypeName = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::TypeName }; let __result = unsafe { &*__recv_ptr }.name(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "align64".to_string(); __tmp_x == __tmp_y } && (*{ let __recv = obj.clone(); let __recv_ptr: *const crate::object::TypeName = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::TypeName }; let __result = unsafe { &*__recv_ptr }.pkg(); __result }.lock().unwrap()).is_some() && ({ let __tmp_x = (*{ let __recv = { let __recv = obj.clone(); let __recv_ptr: *const crate::object::TypeName = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::TypeName }; let __result = unsafe { &*__recv_ptr }.pkg(); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).path(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "sync/atomic".to_string(); __tmp_x == __tmp_y } || { let __tmp_x = (*{ let __recv = { let __recv = obj.clone(); let __recv_ptr: *const crate::object::TypeName = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::TypeName }; let __result = unsafe { &*__recv_ptr }.pkg(); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).path(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "internal/runtime/atomic".to_string(); __tmp_x == __tmp_y });
+    return { let __tmp_x = (*{ let __recv = obj.clone(); let __recv_ptr: *const crate::object::TypeName = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::TypeName }; let __result = unsafe { &*__recv_ptr }.name(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "align64".to_string(); __tmp_x == __tmp_y } && { let __nil_result = (*{ let __recv = obj.clone(); let __recv_ptr: *const crate::object::TypeName = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::TypeName }; let __result = unsafe { &*__recv_ptr }.pkg(); __result }.lock().unwrap()).is_some(); __nil_result } && ({ let __tmp_x = (*{ let __recv = { let __recv = obj.clone(); let __recv_ptr: *const crate::object::TypeName = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::TypeName }; let __result = unsafe { &*__recv_ptr }.pkg(); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).path(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "sync/atomic".to_string(); __tmp_x == __tmp_y } || { let __tmp_x = (*{ let __recv = { let __recv = obj.clone(); let __recv_ptr: *const crate::object::TypeName = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::TypeName }; let __result = unsafe { &*__recv_ptr }.pkg(); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).path(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "internal/runtime/atomic".to_string(); __tmp_x == __tmp_y });
 }
 
 /// SizesFor returns the Sizes used by a compiler for an architecture.
@@ -721,7 +721,7 @@ pub fn sizes_for(compiler: Arc<Mutex<Option<String>>>, arch: Arc<Mutex<Option<St
     if _switch_val == ("gc".to_string()) {
             {
         let mut s = gc_sizes_for(Arc::new(Mutex::new(Some({ let __arg_holder = compiler.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = arch.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
-        if (*s.lock().unwrap()).is_some() {
+        if { let __nil_result = (*s.lock().unwrap()).is_some(); __nil_result } {
             return Arc::new(Mutex::new(Some(Box::new(crate::gcsizes::gcSizesPtr(s.clone())) as Box<dyn Sizes + Send + Sync>))).clone();;
         }
     }

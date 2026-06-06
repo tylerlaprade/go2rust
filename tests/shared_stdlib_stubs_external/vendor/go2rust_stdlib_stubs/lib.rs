@@ -33,6 +33,11 @@ impl<T> std::fmt::Display for GoPtrKey<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
 }
 
+fn __go_next_external_interface_id() -> usize {
+    static NEXT_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(1);
+    NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+}
+
 pub use serde_json;
 
 pub trait GoJsonInputArg {
@@ -234,8 +239,10 @@ where
 
 
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct types_Tuple;
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct types_Tuple {
+    pub __go_len: usize,
+}
 
 impl std::fmt::Display for types_Tuple {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -243,12 +250,65 @@ impl std::fmt::Display for types_Tuple {
     }
 }
 
-
 impl types_Tuple {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
     }
     pub fn len(&self) -> i32 {
-        panic!("types_Tuple.len bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+        self.__go_len as i32
+    }
+}
+
+
+#[derive(Clone)]
+pub struct types_Type {
+    pub __go_id: usize,
+    pub __go_value: Rc<dyn std::any::Any>,
+}
+
+impl types_Type {
+    pub fn __go_from<T: 'static>(value: T) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_value: Rc::new(value) }
+    }
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.__go_value.as_ref().downcast_ref::<T>()
+    }
+}
+
+impl Default for types_Type {
+    fn default() -> Self {
+        Self { __go_id: 0, __go_value: Rc::new(()) }
+    }
+}
+
+impl std::fmt::Debug for types_Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<types_Type>")
+    }
+}
+
+impl std::fmt::Display for types_Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<types_Type>")
+    }
+}
+
+impl PartialEq for types_Type {
+    fn eq(&self, other: &Self) -> bool {
+        self.__go_id == other.__go_id
+    }
+}
+
+impl Eq for types_Type {}
+
+impl PartialOrd for types_Type {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for types_Type {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.__go_id.cmp(&other.__go_id)
     }
 }

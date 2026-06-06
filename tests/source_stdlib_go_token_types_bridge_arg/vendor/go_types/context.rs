@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_register_embedded_owner, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
 
 use crate::alias::*;
 use crate::api::*;
@@ -72,6 +72,7 @@ use crate::util::*;
 use crate::validtype::*;
 use crate::version::*;
 
+use std::any::Any;
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
@@ -87,7 +88,7 @@ pub struct Context {
     pub mu: GoMutex,
     pub type_map: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<Vec<ctxtEntry>>>>>>>>,
     pub next_i_d: Arc<Mutex<Option<i32>>>,
-    pub origin_i_ds: Arc<Mutex<Option<BTreeMap<GoLocalPtrKey<Box<dyn Type + Send + Sync>>, Arc<Mutex<Option<i32>>>>>>>,
+    pub origin_i_ds: Arc<Mutex<Option<BTreeMap<GoTypeInterfaceKey, Arc<Mutex<Option<i32>>>>>>>,
 }
 
 impl Context {
@@ -152,7 +153,7 @@ impl Context {
     /// does not assume this. The result is guaranteed to not contain blanks.
     pub fn instance_hash(&mut self, orig: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, targs: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>>>>>) -> Arc<Mutex<Option<String>>> {
         assert(Arc::new(Mutex::new(Some(true))));
-        assert(Arc::new(Mutex::new(Some((*orig.lock().unwrap()).is_some()))));
+        assert(Arc::new(Mutex::new(Some({ let __nil_result = (*orig.lock().unwrap()).is_some(); __nil_result }))));
         let mut buf: Arc<Mutex<Option<bytes_Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
         let mut h = new_type_hasher(buf.clone(), Arc::new(Mutex::new(Some(self.clone()))));
         { let __recv = h.clone(); let __recv_ptr: *const crate::typestring::typeWriter = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::typestring::typeWriter }; let __result = unsafe { &*__recv_ptr }.string(Arc::new(Mutex::new(Some((self.get_i_d(orig.clone())).to_string())))); __result };
@@ -176,12 +177,12 @@ impl Context {
         let __mutex_guard_source_3125 = self.mu.clone(); let __mutex_guard_3125 = __mutex_guard_source_3125.guard();
         // mu.Unlock() handled by RAII guard
         { let __range_holder = { let __map = { let __map_holder = self.type_map.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*h.lock().unwrap().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for e in __range_values.iter() {
-        if identical_instance(orig.clone(), targs.clone(), e.orig.clone(), { let __field = e.targs.clone(); __field }) {
-        return e.instance.clone();
+        if identical_instance(orig.clone(), targs.clone(), { let __field = e.orig.clone(); __field }, { let __field = e.targs.clone(); __field }) {
+        return { let __field = e.instance.clone(); __field };
     }
         if DEBUG {
                 // Panic during development to surface any imperfections in our hash.
-        panic!("non-identical instances: (orig: {}, targs: {}) and {}", format!("{}", (*orig.lock().unwrap().as_ref().unwrap())), format_slice_wrapped_stringer(&targs), format!("{}", (*e.instance.lock().unwrap().as_ref().unwrap())));
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("non-identical instances: (orig: {}, targs: {}) and {}", format!("{}", (*orig.lock().unwrap().as_ref().unwrap())), format_slice_wrapped_stringer(&targs), format!("{}", (*e.instance.lock().unwrap().as_ref().unwrap())))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     }
     } }
                 // Panic during development to surface any imperfections in our hash.
@@ -193,16 +194,16 @@ impl Context {
     /// type is returned. Otherwise, inst is returned, and recorded in the Context
     /// for the hash h.
     pub fn update(&mut self, h: Arc<Mutex<Option<String>>>, orig: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, targs: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>>>>>, inst: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> {
-        assert(Arc::new(Mutex::new(Some((*inst.lock().unwrap()).is_some()))));
+        assert(Arc::new(Mutex::new(Some({ let __nil_result = (*inst.lock().unwrap()).is_some(); __nil_result }))));
         let __mutex_guard_source_3847 = self.mu.clone(); let __mutex_guard_3847 = __mutex_guard_source_3847.guard();
         // mu.Unlock() handled by RAII guard
         { let __range_holder = { let __map = { let __map_holder = self.type_map.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*h.lock().unwrap().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for e in __range_values.iter() {
-        if (*inst.lock().unwrap()).is_none() || identical(inst.clone(), e.instance.clone()) {
-        return e.instance.clone();
+        if { let __nil_result = (*inst.lock().unwrap()).is_none(); __nil_result } || identical(inst.clone(), { let __field = e.instance.clone(); __field }) {
+        return { let __field = e.instance.clone(); __field };
     }
         if DEBUG {
                 // Panic during development to surface any imperfections in our hash.
-        panic!("{} and {} are not identical", format!("{}", (*inst.lock().unwrap().as_ref().unwrap())), format!("{}", (*e.instance.lock().unwrap().as_ref().unwrap())));
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("{} and {} are not identical", format!("{}", (*inst.lock().unwrap().as_ref().unwrap())), format!("{}", (*e.instance.lock().unwrap().as_ref().unwrap())))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     }
     } }
                 // Panic during development to surface any imperfections in our hash.
@@ -214,10 +215,10 @@ impl Context {
     pub fn get_i_d(&mut self, t: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> i32 {
         let __mutex_guard_source_4381 = self.mu.clone(); let __mutex_guard_4381 = __mutex_guard_source_4381.guard();
         // mu.Unlock() handled by RAII guard
-        let (mut id, mut ok) = { let __map = { let __map_holder = self.origin_i_ds.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&GoLocalPtrKey::new(t.clone()))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Arc::new(Mutex::new(Some(0))), false) } };
+        let (mut id, mut ok) = { let __map = { let __map_holder = self.origin_i_ds.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&GoTypeInterfaceKey::new(t.clone()))) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Arc::new(Mutex::new(Some(0))), false) } };
         if !ok {
         { let new_val = { let __selector_holder = self.next_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *id.lock().unwrap() = Some(new_val); };
-        { let __map_key = GoLocalPtrKey::new(t.clone()); let __map_value = Arc::new(Mutex::new(Some((*id.lock().unwrap().as_ref().unwrap()).clone()))); (*self.origin_i_ds.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+        { let __map_key = GoTypeInterfaceKey::new(t.clone()); let __map_value = Arc::new(Mutex::new(Some((*id.lock().unwrap().as_ref().unwrap()).clone()))); (*self.origin_i_ds.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
         { let __target = self.next_i_d.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         return { let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v };
@@ -226,7 +227,7 @@ impl Context {
 
 /// NewContext creates a new Context.
 pub fn new_context() -> Arc<Mutex<Option<Context>>> {
-    Arc::new(Mutex::new(Some(Context { type_map: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Vec<ctxtEntry>>>>>::new()))), origin_i_ds: Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<Box<dyn Type + Send + Sync>>, Arc<Mutex<Option<i32>>>>::new()))), ..Default::default() })))
+    Arc::new(Mutex::new(Some(Context { type_map: Arc::new(Mutex::new(Some(BTreeMap::<String, Arc<Mutex<Option<Vec<ctxtEntry>>>>>::new()))), origin_i_ds: Arc::new(Mutex::new(Some(BTreeMap::<GoTypeInterfaceKey, Arc<Mutex<Option<i32>>>>::new()))), ..Default::default() })))
 }
 
 impl GoValueClone for Context {

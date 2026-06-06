@@ -1026,6 +1026,78 @@ func TestTypesTermBridgeIsRetired(t *testing.T) {
 	}
 }
 
+func TestTypesTupleNameParamConstructorBridgesAreRetired(t *testing.T) {
+	got := generateExternalStubs(
+		map[string]bool{
+			"types_Tuple":     true,
+			"types_TypeName":  true,
+			"types_TypeParam": true,
+		},
+		nil, nil, nil, nil,
+		map[string]map[string]externalTypeStubMethod{
+			"types_Tuple": {
+				"len": {
+					ReturnTypes: []string{"Arc<Mutex<Option<i32>>>"},
+				},
+			},
+			"types_TypeName": {
+				"name": {
+					ReturnTypes: []string{"Arc<Mutex<Option<String>>>"},
+				},
+			},
+			"types_TypeParam": {
+				"obj": {
+					ReturnTypes: []string{"Arc<Mutex<Option<types_TypeName>>>"},
+				},
+			},
+		},
+		nil,
+		map[string]*externalPackageStub{
+			"types": {
+				Functions: map[string]externalPackageStubFunction{
+					"new_tuple": {
+						ParamCount:  1,
+						ReturnTypes: []string{"Arc<Mutex<Option<types_Tuple>>>"},
+					},
+					"new_type_name": {
+						ParamCount:  4,
+						ReturnTypes: []string{"Arc<Mutex<Option<types_TypeName>>>"},
+					},
+					"new_type_param": {
+						ParamCount:  2,
+						ReturnTypes: []string{"Arc<Mutex<Option<types_TypeParam>>>"},
+					},
+				},
+			},
+		},
+	)
+	for _, unwanted := range []string{
+		"pub fn new_tuple",
+		"pub fn new_type_name",
+		"pub fn new_type_param",
+		"GoTypesTupleArgs",
+		"GoTypesTokenPosArg",
+		"GoTypesPackageArg",
+		"GoTypesOptionalTypeArg",
+		"GoTypesStringArg",
+		"GoTypesTypeNameArg",
+		"types.NewTypeParam bridge",
+	} {
+		if strings.Contains(got, unwanted) {
+			t.Fatalf("go/types constructor external bridge must be retired; found %q:\n%s", unwanted, got)
+		}
+	}
+	for _, want := range []string{
+		"pub struct types_Tuple",
+		"pub struct types_TypeName",
+		"pub struct types_TypeParam",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("retiring constructors must not remove external type identity %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestTypesCheckerFilesStubIsRetired(t *testing.T) {
 	got := generateExternalStubs(
 		map[string]bool{"types_Checker": true},

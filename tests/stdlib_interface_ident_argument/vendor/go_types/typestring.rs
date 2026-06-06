@@ -247,7 +247,7 @@ impl typeWriter {
             (Arc::new(Mutex::new(None::<crate::object::TypeName>)), false)
         }
     });;
-        if (*obj.lock().unwrap()).is_some() {
+        if { let __nil_result = (*obj.lock().unwrap()).is_some(); __nil_result } {
             self.type_name(obj.clone());;
             break '__go_switch_1;
         }
@@ -401,7 +401,7 @@ impl typeWriter {
             (Arc::new(Mutex::new(None::<crate::chan::Chan>)), false)
         }
     });;
-        if (*c.lock().unwrap()).is_some() && { let __tmp_x = { let __selector_holder = (*c.lock().unwrap().as_ref().unwrap()).dir.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::chan::ChanDir(Arc::new(Mutex::new(Some(RECV_ONLY as i32)))); __tmp_x == __tmp_y } {
+        if { let __nil_result = (*c.lock().unwrap()).is_some(); __nil_result } && { let __tmp_x = { let __selector_holder = (*c.lock().unwrap().as_ref().unwrap()).dir.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::chan::ChanDir(Arc::new(Mutex::new(Some(RECV_ONLY as i32)))); __tmp_x == __tmp_y } {
             { let new_val = true; *parens.lock().unwrap() = Some(new_val); };;
         }
     }
@@ -447,7 +447,7 @@ impl typeWriter {
             if (*self.tp_subscripts.clone().lock().unwrap().as_ref().unwrap()) || { let __nil_target = self.ctxt.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
         self.string(subscript(Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).id.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))));
     };
-            if { let __nil_target = self.ctxt.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } && (*{ let __recv_holder = (*Universe.lock().unwrap().as_ref().unwrap()).clone(); let __recv_value = (*__recv_holder.lock().unwrap().as_ref().unwrap()).clone(); let __result = __recv_value.lookup(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*t.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); __result }.lock().unwrap()).is_some() {
+            if { let __nil_target = self.ctxt.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } && { let __nil_result = (*{ let __recv_holder = (*Universe.lock().unwrap().as_ref().unwrap()).clone(); let __recv_value = (*__recv_holder.lock().unwrap().as_ref().unwrap()).clone(); let __result = __recv_value.lookup(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*t.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); __result }.lock().unwrap()).is_some(); __nil_result } {
         if IS_TYPES2 {
         self.string(Arc::new(Mutex::new(Some(format!(" /* with {} declared at {} */", (*(*(*t.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().name.lock().unwrap().as_ref().unwrap()).clone(), (*(*(*t.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).pos().lock().unwrap().as_ref().unwrap()))))));
     } else {
@@ -562,7 +562,7 @@ impl typeWriter {
                 // Determine the type parameter and its constraint.
                 // list is expected to hold type parameter names,
                 // but don't crash if that's not the case.
-        if (*tpar.lock().unwrap()).is_none() {
+        if { let __nil_result = (*tpar.lock().unwrap()).is_none(); __nil_result } {
         self.error(Arc::new(Mutex::new(Some("nil type parameter".to_string()))));
         continue
     }
@@ -576,14 +576,14 @@ impl typeWriter {
         self.byte(Arc::new(Mutex::new(Some((',' as i32) as u8))));
     }
                 // bound changed - write previous one before advancing
-        { let __iface_handle = { let __field = (*tpar.lock().unwrap().as_ref().unwrap()).bound.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *prev.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __field = (*tpar.lock().unwrap().as_ref().unwrap()).bound.clone(); __field }; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *prev.lock().unwrap() = __iface_value; };
         self.typ(Arc::new(Mutex::new(Some(Box::new(crate::typeparam::TypeParamPtr(tpar.clone())) as Box<dyn Type + Send + Sync>))));
     } }
                 // Determine the type parameter and its constraint.
                 // list is expected to hold type parameter names,
                 // but don't crash if that's not the case.
                 // bound changed - write previous one before advancing
-        if (*prev.lock().unwrap()).is_some() {
+        if { let __nil_result = (*prev.lock().unwrap()).is_some(); __nil_result } {
         self.byte(Arc::new(Mutex::new(Some((' ' as i32) as u8))));
         self.typ(prev.clone());
     }
@@ -597,7 +597,7 @@ impl typeWriter {
 
     pub fn tuple(&mut self, tup: Arc<Mutex<Option<Tuple>>>, variadic: Arc<Mutex<Option<bool>>>) {
         self.byte(Arc::new(Mutex::new(Some(('(' as i32) as u8))));
-        if (*tup.lock().unwrap()).is_some() {
+        if { let __nil_result = (*tup.lock().unwrap()).is_some(); __nil_result } {
         { let __range_holder = (*tup.lock().unwrap().as_ref().unwrap()).vars.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, v) in __range_values.iter().enumerate() {
         if { let __tmp_x = i as i32; let __tmp_y = 0; __tmp_x > __tmp_y } {
         self.byte(Arc::new(Mutex::new(Some((',' as i32) as u8))));
@@ -625,7 +625,7 @@ impl typeWriter {
     });;
         if ok {
             self.string(Arc::new(Mutex::new(Some("...".to_string()))));;
-            { let __iface_handle = { let __field = (*s.lock().unwrap().as_ref().unwrap()).elem.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };;
+            { let __iface_handle = { let __field = (*s.lock().unwrap().as_ref().unwrap()).elem.clone(); __field }; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };;
         } else {
             {
         let (mut t, _) = ({
@@ -641,7 +641,7 @@ impl typeWriter {
             (Arc::new(Mutex::new(None::<crate::basic::Basic>)), false)
         }
     });;
-        if (*t.lock().unwrap()).is_none() || { let __tmp_x = { let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).kind.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::basic::BasicKind(Arc::new(Mutex::new(Some(STRING as i32)))); __tmp_x != __tmp_y } {
+        if { let __nil_result = (*t.lock().unwrap()).is_none(); __nil_result } || { let __tmp_x = { let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).kind.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::basic::BasicKind(Arc::new(Mutex::new(Some(STRING as i32)))); __tmp_x != __tmp_y } {
             self.error(Arc::new(Mutex::new(Some("expected string type".to_string()))));;
             continue;
         }
@@ -733,7 +733,7 @@ impl typeWriter {
 /// RelativeTo returns a [Qualifier] that fully qualifies members of
 /// all packages other than pkg.
 pub fn relative_to(pkg: Arc<Mutex<Option<Package>>>) -> Qualifier {
-    if (*pkg.lock().unwrap()).is_none() {
+    if { let __nil_result = (*pkg.lock().unwrap()).is_none(); __nil_result } {
         return Arc::new(Mutex::new(None));
     }
     let pkg_closure_clone = pkg.clone(); return Arc::new(Mutex::new(Some(Box::new(move |other: Arc<Mutex<Option<Package>>>| -> Arc<Mutex<Option<String>>> {
@@ -772,7 +772,7 @@ pub fn new_type_writer(buf: Arc<Mutex<Option<bytes_Buffer>>>, qf: Qualifier) -> 
 }
 
 pub fn new_type_hasher(buf: Arc<Mutex<Option<bytes_Buffer>>>, ctxt: Arc<Mutex<Option<Context>>>) -> Arc<Mutex<Option<typeWriter>>> {
-    assert(Arc::new(Mutex::new(Some((*ctxt.lock().unwrap()).is_some()))));
+    assert(Arc::new(Mutex::new(Some({ let __nil_result = (*ctxt.lock().unwrap()).is_some(); __nil_result }))));
     Arc::new(Mutex::new(Some(typeWriter { buf: buf.clone(), seen: Arc::new(Mutex::new(Some(BTreeMap::<GoTypeInterfaceKey, Arc<Mutex<Option<bool>>>>::new()))), qf: Default::default(), ctxt: ctxt.clone(), tparams: Default::default(), param_names: Arc::new(Mutex::new(Some(false))), tp_subscripts: Arc::new(Mutex::new(Some(false))), pkg_info: Arc::new(Mutex::new(Some(false))), ..Default::default() })))
 }
 

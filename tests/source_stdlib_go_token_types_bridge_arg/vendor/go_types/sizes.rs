@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_register_embedded_owner, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
 
 use crate::alias::*;
 use crate::api::*;
@@ -73,6 +73,7 @@ use crate::validtype::*;
 use crate::version::*;
 
 use std::any::Any;
+use std::cell::{RefCell};
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
@@ -268,23 +269,26 @@ impl StdSizes {
 
     let mut result: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
 
-        let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let result_defer_captured = result.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
         assert(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*result_defer_captured.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as i64; __tmp_x >= __tmp_y }))));
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
-                // For arrays and structs, alignment is defined in terms
-                // of alignment of the elements and fields, respectively.
-        {
+                        // For arrays and structs, alignment is defined in terms
+                        // of alignment of the elements and fields, respectively.
+            {
     let _ts_subject = under(T.clone()).clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
     let _ts_owned = _ts_guard.as_ref().cloned();
     drop(_ts_guard);
     let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {
-        let __any = __v.__go_as_any();
+        let __any = __v.as_ref().__go_as_any();
         if let Some(__boxed) = __any.downcast_ref::<Box<dyn Type + Send + Sync>>() {
-            __boxed.__go_as_any()
+            __boxed.as_ref().__go_as_any()
         } else {
             __any
         }
@@ -292,7 +296,7 @@ impl StdSizes {
     if _ts_val.and_then(|__v| __v.downcast_ref::<crate::array::ArrayPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<crate::array::ArrayPtr>()).unwrap().0.clone();
         {
-        { let new_val = self.alignof((*t.lock().unwrap().as_ref().unwrap()).elem.clone()); *result.lock().unwrap() = Some(new_val); };;
+        { let new_val = self.alignof({ let __field = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); __field }); *result.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
@@ -314,7 +318,7 @@ impl StdSizes {
         let mut max = Arc::new(Mutex::new(Some(1 as i64)));;
         { let __range_holder = (*t.lock().unwrap().as_ref().unwrap()).fields.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter() {
         {
-        let mut a = self.alignof((*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone());;
+        let mut a = self.alignof({ let __field = (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field });;
         if { let __tmp_x = a; let __tmp_y = { let __v = (*max.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y } {
             { let new_val = a; *max.lock().unwrap() = Some(new_val); };;
         }
@@ -329,7 +333,7 @@ impl StdSizes {
         return (*result.lock().unwrap().as_ref().unwrap());
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::slice::SlicePtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<crate::interface::InterfacePtr>()).is_some() {
-        let t = under(T.clone()).clone();
+        let t = _ts_subject.clone();
         assert(Arc::new(Mutex::new(Some(!is_type_param(T.clone())))));;
         {
         { let new_val = { let __selector_holder = self.word_size.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *result.lock().unwrap() = Some(new_val); };;
@@ -352,30 +356,30 @@ impl StdSizes {
     }
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::typeparam::TypeParamPtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<crate::union::UnionPtr>()).is_some() {
-        let t = under(T.clone()).clone();
-        panic!("unreachable");;
+        let t = _ts_subject.clone();
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);;
     }
     }
-                // spec: "For a variable x of array type: unsafe.Alignof(x)
-                // is the same as unsafe.Alignof(x[0]), but at least 1."
-                // Special case: sync/atomic.align64 is an
-                // empty struct we recognize as a signal that
-                // the struct it contains must be
-                // 64-bit-aligned.
-                //
-                // This logic is equivalent to the logic in
-                // cmd/compile/internal/types/size.go:calcStructOffset
-                // spec: "For a variable x of struct type: unsafe.Alignof(x)
-                // is the largest of the values unsafe.Alignof(x.f) for each
-                // field f of x, but at least 1."
-                // Multiword data structures are effectively structs
-                // in which each element has size WordSize.
-                // Type parameters lead to variable sizes/alignments;
-                // StdSizes.Alignof won't be called for them.
-                // Strings are like slices and interfaces.
-        let mut a = self.sizeof(T.clone());
-                // spec: "For a variable x of any type: unsafe.Alignof(x) is at least 1."
-        if { let __tmp_x = a; let __tmp_y = 1 as i64; __tmp_x < __tmp_y } {
+                        // spec: "For a variable x of array type: unsafe.Alignof(x)
+                        // is the same as unsafe.Alignof(x[0]), but at least 1."
+                        // Special case: sync/atomic.align64 is an
+                        // empty struct we recognize as a signal that
+                        // the struct it contains must be
+                        // 64-bit-aligned.
+                        //
+                        // This logic is equivalent to the logic in
+                        // cmd/compile/internal/types/size.go:calcStructOffset
+                        // spec: "For a variable x of struct type: unsafe.Alignof(x)
+                        // is the largest of the values unsafe.Alignof(x.f) for each
+                        // field f of x, but at least 1."
+                        // Multiword data structures are effectively structs
+                        // in which each element has size WordSize.
+                        // Type parameters lead to variable sizes/alignments;
+                        // StdSizes.Alignof won't be called for them.
+                        // Strings are like slices and interfaces.
+            let mut a = self.sizeof(T.clone());
+                        // spec: "For a variable x of any type: unsafe.Alignof(x) is at least 1."
+            if { let __tmp_x = a; let __tmp_y = 1 as i64; __tmp_x < __tmp_y } {
         {
         { let new_val = 1 as i64; *result.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
@@ -385,11 +389,11 @@ impl StdSizes {
         return (*result.lock().unwrap().as_ref().unwrap());
     }
     }
-                // complex{64,128} are aligned like [2]float{32,64}.
-        if is_complex(T.clone()) {
+                        // complex{64,128} are aligned like [2]float{32,64}.
+            if is_complex(T.clone()) {
         { let __rhs = 2 as i64; a = a / __rhs; };
     }
-        if { let __tmp_x = a; let __tmp_y = (*self.max_align.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
+            if { let __tmp_x = a; let __tmp_y = (*self.max_align.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
         {
         { let new_val = { let __selector_holder = self.max_align.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *result.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
@@ -399,7 +403,7 @@ impl StdSizes {
         return (*result.lock().unwrap().as_ref().unwrap());
     }
     }
-        {
+            {
         { let new_val = a; *result.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -407,6 +411,19 @@ impl StdSizes {
         }
         return (*result.lock().unwrap().as_ref().unwrap());
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                (*result.lock().unwrap().as_ref().unwrap())
+            }
+        }
     }
 
     pub fn offsetsof(&mut self, fields: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Var>>>>>>>) -> Arc<Mutex<Option<Vec<i64>>>> {
@@ -420,11 +437,11 @@ impl StdSizes {
     }
                 // all remaining offsets are too large
                 // offs >= 0
-        let mut a = self.alignof((*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone());
+        let mut a = self.alignof({ let __field = (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field });
         { let new_val = align(Arc::new(Mutex::new(Some({ let __arg_holder = offs.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(a)))); *offs.lock().unwrap() = Some(new_val); };
         (*offsets.lock().unwrap().as_mut().unwrap())[(i) as usize] = { let __v = (*offs.lock().unwrap().as_ref().unwrap()).clone(); __v };
         {
-        let mut d = self.sizeof((*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone());;
+        let mut d = self.sizeof({ let __field = (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field });;
         if { let __tmp_x = d; let __tmp_y = 0 as i64; __tmp_x >= __tmp_y } && { let __tmp_x = { let __v = (*offs.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x >= __tmp_y } {
             { let __rhs = d; let mut guard = offs.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };;
         } else {
@@ -448,9 +465,9 @@ impl StdSizes {
     let _ts_owned = _ts_guard.as_ref().cloned();
     drop(_ts_guard);
     let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {
-        let __any = __v.__go_as_any();
+        let __any = __v.as_ref().__go_as_any();
         if let Some(__boxed) = __any.downcast_ref::<Box<dyn Type + Send + Sync>>() {
-            __boxed.__go_as_any()
+            __boxed.as_ref().__go_as_any()
         } else {
             __any
         }
@@ -476,14 +493,14 @@ impl StdSizes {
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x <= __tmp_y } {
         return 0;
     };
-        let mut esize = self.sizeof((*t.lock().unwrap().as_ref().unwrap()).elem.clone());;
+        let mut esize = self.sizeof({ let __field = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); __field });;
         if { let __tmp_x = esize; let __tmp_y = 0 as i64; __tmp_x < __tmp_y } {
         return -(1);
     };
         if { let __tmp_x = esize; let __tmp_y = 0 as i64; __tmp_x == __tmp_y } {
         return 0;
     };
-        let mut a = self.alignof((*t.lock().unwrap().as_ref().unwrap()).elem.clone());;
+        let mut a = self.alignof({ let __field = (*t.lock().unwrap().as_ref().unwrap()).elem.clone(); __field });;
         let mut ea = align(Arc::new(Mutex::new(Some(esize))), Arc::new(Mutex::new(Some(a))));;
         if { let __tmp_x = ea; let __tmp_y = 0 as i64; __tmp_x < __tmp_y } {
         return -(1);
@@ -506,7 +523,7 @@ impl StdSizes {
     };
         let mut offsets = self.offsetsof({ let __field = (*t.lock().unwrap().as_ref().unwrap()).fields.clone(); __field });;
         let mut offs = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = offsets.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = n; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })));;
-        let mut size = self.sizeof((*{ let __seq = { let __seq_holder = (*t.lock().unwrap().as_ref().unwrap()).fields.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = n; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().typ.clone());;
+        let mut size = self.sizeof({ let __field = (*{ let __seq = { let __seq_holder = (*t.lock().unwrap().as_ref().unwrap()).fields.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = n; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().typ.clone(); __field });;
         if { let __tmp_x = { let __v = (*offs.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x < __tmp_y } || { let __tmp_x = size; let __tmp_y = 0 as i64; __tmp_x < __tmp_y } {
         return -(1);
     };
@@ -516,8 +533,8 @@ impl StdSizes {
         assert(Arc::new(Mutex::new(Some(!is_type_param(T.clone())))));;
         return { let __tmp_x = (*self.word_size.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as i64; __tmp_x * __tmp_y };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::typeparam::TypeParamPtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<crate::union::UnionPtr>()).is_some() {
-        let t = under(T.clone()).clone();
-        panic!("unreachable");;
+        let t = _ts_subject.clone();
+        std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);;
     }
     }
                 // n > 0
@@ -616,7 +633,7 @@ impl crate::api::Config {
             return a;;
         }
     }
-        panic!("implementation of alignof returned an alignment < 1");
+        std::panic::panic_any(Box::new("implementation of alignof returned an alignment < 1".to_string()) as Box<dyn Any + Send + Sync>);
     }
 
     pub fn offsetsof(&self, T: Arc<Mutex<Option<Struct>>>) -> Arc<Mutex<Option<Vec<i64>>>> {
@@ -630,7 +647,7 @@ impl crate::api::Config {
         { let new_val = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<Arc<Mutex<Option<crate::object::Var>>>>>>>) -> Arc<Mutex<Option<Vec<i64>>>> + Send + Sync> = { let mut __f_guard = f.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Vec<Arc<Mutex<Option<crate::object::Var>>>>>>>) -> Arc<Mutex<Option<Vec<i64>>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)({ let __field = (*T.lock().unwrap().as_ref().unwrap()).fields.clone(); __field }) }; offsets = new_val; };
                 // sanity checks
         if { let __tmp_x = ((*offsets.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = ({ let __recv = T.clone(); let __recv_ptr: *const crate::r#struct::Struct = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::r#struct::Struct }; let __result = unsafe { &*__recv_ptr }.num_fields(); __result } as i32); __tmp_x != __tmp_y } {
-        panic!("implementation of offsetsof returned the wrong number of offsets");
+        std::panic::panic_any(Box::new("implementation of offsetsof returned the wrong number of offsets".to_string()) as Box<dyn Any + Send + Sync>);
     }
     }
                 // compute offsets on demand
@@ -668,7 +685,7 @@ impl crate::api::Config {
         if { let __tmp_x = { let __v = (*offs.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x < __tmp_y } {
         return -(1);
     }
-        { let __iface_handle = (*{ let __seq = { let __seq_holder = (*s.lock().unwrap().as_ref().unwrap()).fields.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().typ.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *T.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __field = (*{ let __seq = { let __seq_holder = (*s.lock().unwrap().as_ref().unwrap()).fields.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().typ.clone(); __field }; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *T.lock().unwrap() = __iface_value; };
     } }
         return { let __v = (*offs.lock().unwrap().as_ref().unwrap()).clone(); __v };
     }
@@ -686,11 +703,11 @@ impl crate::api::Config {
 
 pub fn __is_sync_atomic_align64(T: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> bool {
     let mut named = as_named(T.clone());
-    if (*named.lock().unwrap()).is_none() {
+    if { let __nil_result = (*named.lock().unwrap()).is_none(); __nil_result } {
         return false;
     }
     let mut obj = { let __recv = named.clone(); let __recv_ptr: *const crate::named::Named = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::named::Named }; let __result = unsafe { &*__recv_ptr }.obj(); __result };
-    return { let __tmp_x = (*{ let __recv = obj.clone(); let __recv_ptr: *const crate::object::TypeName = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::TypeName }; let __result = unsafe { &*__recv_ptr }.name(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "align64".to_string(); __tmp_x == __tmp_y } && (*{ let __recv = obj.clone(); let __recv_ptr: *const crate::object::TypeName = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::TypeName }; let __result = unsafe { &*__recv_ptr }.pkg(); __result }.lock().unwrap()).is_some() && ({ let __tmp_x = (*{ let __recv = { let __recv = obj.clone(); let __recv_ptr: *const crate::object::TypeName = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::TypeName }; let __result = unsafe { &*__recv_ptr }.pkg(); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).path(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "sync/atomic".to_string(); __tmp_x == __tmp_y } || { let __tmp_x = (*{ let __recv = { let __recv = obj.clone(); let __recv_ptr: *const crate::object::TypeName = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::TypeName }; let __result = unsafe { &*__recv_ptr }.pkg(); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).path(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "internal/runtime/atomic".to_string(); __tmp_x == __tmp_y });
+    return { let __tmp_x = (*{ let __recv = obj.clone(); let __recv_ptr: *const crate::object::TypeName = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::TypeName }; let __result = unsafe { &*__recv_ptr }.name(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "align64".to_string(); __tmp_x == __tmp_y } && { let __nil_result = (*{ let __recv = obj.clone(); let __recv_ptr: *const crate::object::TypeName = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::TypeName }; let __result = unsafe { &*__recv_ptr }.pkg(); __result }.lock().unwrap()).is_some(); __nil_result } && ({ let __tmp_x = (*{ let __recv = { let __recv = obj.clone(); let __recv_ptr: *const crate::object::TypeName = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::TypeName }; let __result = unsafe { &*__recv_ptr }.pkg(); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).path(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "sync/atomic".to_string(); __tmp_x == __tmp_y } || { let __tmp_x = (*{ let __recv = { let __recv = obj.clone(); let __recv_ptr: *const crate::object::TypeName = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::TypeName }; let __result = unsafe { &*__recv_ptr }.pkg(); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).path(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "internal/runtime/atomic".to_string(); __tmp_x == __tmp_y });
 }
 
 /// SizesFor returns the Sizes used by a compiler for an architecture.
@@ -704,7 +721,7 @@ pub fn sizes_for(compiler: Arc<Mutex<Option<String>>>, arch: Arc<Mutex<Option<St
     if _switch_val == ("gc".to_string()) {
             {
         let mut s = gc_sizes_for(Arc::new(Mutex::new(Some({ let __arg_holder = compiler.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = arch.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
-        if (*s.lock().unwrap()).is_some() {
+        if { let __nil_result = (*s.lock().unwrap()).is_some(); __nil_result } {
             return Arc::new(Mutex::new(Some(Box::new(crate::gcsizes::gcSizesPtr(s.clone())) as Box<dyn Sizes + Send + Sync>))).clone();;
         }
     }
