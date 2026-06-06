@@ -635,19 +635,7 @@ func RegisterExternalPackageFunctionFallback(sel *ast.SelectorExpr, argCount int
 		RegisterExternalTypeStub("token_FileSet")
 		fn.ReturnTypes = []string{wrappedExternalStubType("token_FileSet")}
 	case "go/types":
-		switch sel.Sel.Name {
-		case "NewPackage":
-			RegisterExternalTypeStub("types_Package")
-			fn.ReturnTypes = []string{wrappedExternalStubType("types_Package")}
-		case "NewChecker":
-			RegisterExternalTypeStub("token_FileSet")
-			RegisterExternalTypeStub("types_Info")
-			RegisterExternalTypeStub("types_Package")
-			RegisterExternalTypeStub("types_Checker")
-			fn.ReturnTypes = []string{wrappedExternalStubType("types_Checker")}
-		default:
-			return
-		}
+		return
 	default:
 		return
 	}
@@ -673,6 +661,9 @@ func RegisterExternalPackageStubFunction(pkgName string, funcName string, sig *t
 		RegisterExternalTypeStubFieldByRustType("build_Package", "pkg_obj", goTypesTypeToRustWrapped(types.Typ[types.String]))
 	}
 	if pkgName == "types" && funcName == "new_pointer" {
+		return
+	}
+	if pkgName == "types" && (funcName == "new_package" || funcName == "new_checker") {
 		return
 	}
 	fn := externalPackageStubFunction{
@@ -6570,6 +6561,9 @@ func writeExternalPackageStubFunction(out *strings.Builder, pkgName string, func
 		return
 	}
 	if pkgName == "types" && funcName == "new_pointer" {
+		return
+	}
+	if pkgName == "types" && (funcName == "new_package" || funcName == "new_checker") {
 		return
 	}
 	if funcName == "new_term" {

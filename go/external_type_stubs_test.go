@@ -1122,6 +1122,51 @@ func TestTypesNewPointerBridgeIsRetired(t *testing.T) {
 	}
 }
 
+func TestTypesNewPackageCheckerBridgesAreRetired(t *testing.T) {
+	got := generateExternalStubs(
+		map[string]bool{
+			"types_Checker": true,
+			"types_Info":    true,
+			"types_Package": true,
+		},
+		nil, nil, nil, nil,
+		nil, nil,
+		map[string]*externalPackageStub{
+			"types": {
+				Functions: map[string]externalPackageStubFunction{
+					"new_package": {
+						ParamCount:  2,
+						ReturnTypes: []string{"Arc<Mutex<Option<types_Package>>>"},
+					},
+					"new_checker": {
+						ParamCount:  4,
+						ReturnTypes: []string{"Arc<Mutex<Option<types_Checker>>>"},
+					},
+				},
+			},
+		},
+	)
+	for _, unwanted := range []string{
+		"pub fn new_package",
+		"pub fn new_checker",
+		"new_package bridge",
+		"new_checker bridge",
+	} {
+		if strings.Contains(got, unwanted) {
+			t.Fatalf("go/types NewPackage/NewChecker external package-function bridges must be retired; found %q:\n%s", unwanted, got)
+		}
+	}
+	for _, want := range []string{
+		"pub struct types_Checker",
+		"pub struct types_Info",
+		"pub struct types_Package",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("retiring NewPackage/NewChecker must not remove external type identity %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestTypesCheckerFilesStubIsRetired(t *testing.T) {
 	got := generateExternalStubs(
 		map[string]bool{"types_Checker": true},
