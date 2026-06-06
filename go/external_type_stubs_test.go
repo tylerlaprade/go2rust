@@ -1191,6 +1191,47 @@ func TestTokenTokenBehaviorShimIsRetired(t *testing.T) {
 	}
 }
 
+func TestAstNewIdentBehaviorShimIsRetired(t *testing.T) {
+	got := generateExternalStubs(
+		map[string]bool{"ast_Ident": true},
+		nil, nil, nil,
+		map[string]map[string]string{
+			"ast_Ident": {
+				"name": "Arc<Mutex<Option<String>>>",
+			},
+		},
+		nil, nil,
+		map[string]*externalPackageStub{
+			"ast": {
+				Functions: map[string]externalPackageStubFunction{
+					"new_ident": {
+						ParamCount:  1,
+						ReturnTypes: []string{"Arc<Mutex<Option<ast_Ident>>>"},
+					},
+				},
+			},
+		},
+	)
+	for _, unwanted := range []string{
+		"GoStringArg>(_arg0",
+		"ast_Ident { name:",
+		"_arg0.into_go_string()",
+	} {
+		if strings.Contains(got, unwanted) {
+			t.Fatalf("ast.NewIdent external behavior shim must be retired; found %q:\n%s", unwanted, got)
+		}
+	}
+	for _, want := range []string{
+		"pub struct ast_Ident",
+		"pub fn new_ident<T0>(_arg0: T0) -> Arc<Mutex<Option<ast_Ident>>>",
+		"new_ident bridge: generic stub function body has no implementation",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("retiring ast.NewIdent behavior must keep loud placeholder %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestTypesNewPointerBridgeIsRetired(t *testing.T) {
 	got := generateExternalStubs(
 		map[string]bool{"types_Pointer": true},

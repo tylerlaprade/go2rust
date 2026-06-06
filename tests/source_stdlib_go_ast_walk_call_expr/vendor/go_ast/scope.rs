@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{format_any, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values};
+use crate::{__go_type_name, format_any, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values};
 
 use crate::r#mod::*;
 use crate::commentmap::*;
@@ -536,25 +536,25 @@ impl Scope {
 
         {
         { let new_val = { let __map = { let __map_holder = self.objects.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&{ let __selector_holder = (*obj.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); alt = new_val; };;
-        if (*alt.lock().unwrap()).is_none() {
+        if { let __nil_result = (*alt.lock().unwrap()).is_none(); __nil_result } {
             { let __map_key = { let __selector_holder = (*obj.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __map_value = obj.clone(); (*self.objects.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };;
         }
     }
-        alt
+        alt.clone()
     }
 
     /// Debugging support
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        let mut buf: Arc<Mutex<Option<strings::builder::Builder>>> = Arc::new(Mutex::new(Some(Default::default())));
-        (*buf.clone().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("scope {:p} {{", self)))));
+        let mut buf: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(Default::default())));
+        (*buf.clone().lock().unwrap().as_mut().unwrap()).push_str(&format!("scope {:p} {{", self));
         if true && { let __tmp_x = (({ let __len_target = { let __field = self.objects.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
-        (*buf.clone().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("\n")))));
+        (*buf.clone().lock().unwrap().as_mut().unwrap()).push_str(&format!("\n"));
         for (_, obj) in { let __range_holder = self.objects.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
-        (*buf.clone().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("\t{} {}\n", (*{ let __field = (*obj.lock().unwrap().as_ref().unwrap()).kind.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone(), (*{ let __field = (*obj.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())))));
+        (*buf.clone().lock().unwrap().as_mut().unwrap()).push_str(&format!("\t{} {}\n", (*{ let __field = (*obj.lock().unwrap().as_ref().unwrap()).kind.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone(), (*{ let __field = (*obj.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()));
     }
     }
-        (*buf.clone().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("}}\n")))));
-        return (*buf.lock().unwrap().as_ref().unwrap()).string();
+        (*buf.clone().lock().unwrap().as_mut().unwrap()).push_str(&format!("}}\n"));
+        return Arc::new(Mutex::new(Some({ let __builder = buf.clone(); let __guard = __builder.lock().unwrap(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value })));
     }
 }
 
@@ -568,7 +568,13 @@ impl Object {
     let _ts_subject = self.decl.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
-    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.as_ref() as &dyn Any);
+    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
+        let mut __any = __v.as_ref() as &dyn Any;
+        while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any + Send + Sync>>() {
+            __any = __boxed.as_ref() as &dyn Any;
+        }
+        __any
+    });
     if _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::Field>()).is_some() {
         let d = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::Field>()).unwrap().clone())));
         drop(_ts_guard);

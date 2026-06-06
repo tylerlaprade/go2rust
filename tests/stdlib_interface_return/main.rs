@@ -20,7 +20,7 @@ pub fn make_var_expr() -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + 
 
 pub fn make_assigned_selector_expr() -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
     let mut expr: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("x".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)));
-    { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::SelectorExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::SelectorExpr { x: Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("pkg".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), sel: go_ast::new_ident(Arc::new(Mutex::new(Some("Name".to_string())))).clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *expr.lock().unwrap() = (*__iface_guard).clone(); };
+    { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::SelectorExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::SelectorExpr { x: Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("pkg".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), sel: go_ast::new_ident(Arc::new(Mutex::new(Some("Name".to_string())))).clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *expr.lock().unwrap() = __iface_value; };
     return expr.clone();
 }
 
@@ -34,7 +34,7 @@ pub fn make_expr_slice_len() -> i32 {
 
 pub fn asserted_field_element() -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
     let mut field = Arc::new(Mutex::new(Some(go_ast::r#mod::Field { r#type: Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ArrayTypePtr(Arc::new(Mutex::new(Some(go_ast::r#mod::ArrayType { elt: Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("int".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), ..Default::default() })));
-    return (*({
+    return { let __field = (*({
         let val = (*field.lock().unwrap().as_ref().unwrap()).r#type.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
@@ -46,21 +46,20 @@ pub fn asserted_field_element() -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr 
         } else {
             panic!("type assertion on nil interface")
         }
-    }).lock().unwrap().as_ref().unwrap()).elt.clone();
+    }).lock().unwrap().as_ref().unwrap()).elt.clone(); __field };
 }
 
 fn main() {
     go_ast::__go_init_all();
     go_token::__go_init_all();
-    strings::__go_init_all();
 
     if false {
-        println!("{}", format!("{}", (*asserted_field_element().lock().unwrap()).is_some()));
+        println!("{}", format!("{}", { let __nil_result = (*asserted_field_element().lock().unwrap()).is_some(); __nil_result }));
     }
-    println!("{}", format!("{}", (*make_expr().lock().unwrap()).is_some()));
-    println!("{}", format!("{}", (*make_ident_expr().lock().unwrap()).is_some()));
-    println!("{}", format!("{}", (*make_unary_expr().lock().unwrap()).is_some()));
-    println!("{}", format!("{}", (*make_var_expr().lock().unwrap()).is_some()));
-    println!("{}", format!("{}", (*make_assigned_selector_expr().lock().unwrap()).is_some()));
+    println!("{}", format!("{}", { let __nil_result = (*make_expr().lock().unwrap()).is_some(); __nil_result }));
+    println!("{}", format!("{}", { let __nil_result = (*make_ident_expr().lock().unwrap()).is_some(); __nil_result }));
+    println!("{}", format!("{}", { let __nil_result = (*make_unary_expr().lock().unwrap()).is_some(); __nil_result }));
+    println!("{}", format!("{}", { let __nil_result = (*make_var_expr().lock().unwrap()).is_some(); __nil_result }));
+    println!("{}", format!("{}", { let __nil_result = (*make_assigned_selector_expr().lock().unwrap()).is_some(); __nil_result }));
     println!("{}", format!("{}", make_expr_slice_len()));
 }

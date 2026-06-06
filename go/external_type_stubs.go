@@ -3584,8 +3584,6 @@ func writeAstPackageStub(out *strings.Builder, pkg *externalPackageStub, integer
 		}
 		if funcName == "inspect" {
 			writeAstInspectFunction(out)
-		} else if funcName == "new_ident" {
-			writeAstNewIdentFunction(out, pkg.Functions[funcName])
 		} else {
 			writeExternalPackageStubFunction(out, "ast", funcName, pkg.Functions[funcName], nil)
 		}
@@ -3955,18 +3953,6 @@ func writeAstInspectFunction(out *strings.Builder) {
         }
     }
 `)
-}
-
-// TEMPORARY: hand-written Rust shim for ast.NewIdent.
-// Long-term fix: transpile go/ast source.
-func writeAstNewIdentFunction(out *strings.Builder, fn externalPackageStubFunction) {
-	out.WriteString("    pub fn new_ident<T0: GoStringArg>(_arg0: T0) -> ")
-	writeExternalStubReturnType(out, fn.ReturnTypes)
-	out.WriteString(" {\n")
-	out.WriteString("        ")
-	out.WriteString(wrappedExternalStubExpr("ast_Ident", "ast_Ident { name: "+wrappedExternalStubExpr("String", "_arg0.into_go_string()")+", ..Default::default() }"))
-	out.WriteString("\n")
-	out.WriteString("    }\n")
 }
 
 // TEMPORARY: hand-written Rust shim for go/parser package.

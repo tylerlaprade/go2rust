@@ -4,7 +4,6 @@ use std::sync::{Arc, Mutex};
 fn main() {
     go_ast::__go_init_all();
     go_token::__go_init_all();
-    strings::__go_init_all();
 
     let mut expr: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("x".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)));
     let (mut ident, mut ok) = ({

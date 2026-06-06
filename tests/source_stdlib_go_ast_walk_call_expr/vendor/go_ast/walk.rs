@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{format_any, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values};
+use crate::{__go_type_name, format_any, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values};
 
 use crate::r#mod::*;
 use crate::commentmap::*;
@@ -84,8 +84,8 @@ pub fn walk_list<N: crate::r#mod::Node + Clone + Send + Sync + 'static>(v: Arc<M
 pub fn walk(mut v: Arc<Mutex<Option<Box<dyn Visitor + Send + Sync>>>>, node: Arc<Mutex<Option<Box<dyn Node + Send + Sync>>>>) {
     let mut v: Arc<Mutex<Option<Box<dyn Visitor + Send + Sync>>>> = Arc::new(Mutex::new(v.lock().unwrap().as_ref().map(|__v| Visitor::__go_clone_box_visitor(__v.as_ref()))));
     {
-        { let __iface_handle = { let __recv = v.clone(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).visit(node.clone()).clone(); __result }; let __iface_guard = __iface_handle.lock().unwrap(); *v.lock().unwrap() = (*__iface_guard).clone(); };;
-        if (*v.lock().unwrap()).is_none() {
+        { let __iface_handle = { let __recv = v.clone(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).visit(node.clone()).clone(); __result }; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *v.lock().unwrap() = __iface_value; };;
+        if { let __nil_result = (*v.lock().unwrap()).is_none(); __nil_result } {
             return;;
         }
     }
@@ -100,9 +100,9 @@ pub fn walk(mut v: Arc<Mutex<Option<Box<dyn Visitor + Send + Sync>>>>, node: Arc
     let _ts_owned = _ts_guard.as_ref().cloned();
     drop(_ts_guard);
     let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {
-        let __any = __v.__go_as_any();
+        let __any = __v.as_ref().__go_as_any();
         if let Some(__boxed) = __any.downcast_ref::<Box<dyn Node + Send + Sync>>() {
-            __boxed.__go_as_any()
+            __boxed.as_ref().__go_as_any()
         } else {
             __any
         }
@@ -131,7 +131,7 @@ pub fn walk(mut v: Arc<Mutex<Option<Box<dyn Visitor + Send + Sync>>>>, node: Arc
         let n = _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::FieldListPtr>()).unwrap().0.clone();
         walk_list::<crate::r#mod::Field>(v.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = (*n.lock().unwrap().as_ref().unwrap()).list.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = __selector_guard.as_ref().cloned().unwrap_or_default(); drop(__selector_guard); __cloned }))));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::BadExprPtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::IdentPtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::BasicLitPtr>()).is_some() {
-        let n = node.clone();
+        let n = _ts_subject.clone();
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::EllipsisPtr>()).is_some() {
         let n = _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::EllipsisPtr>()).unwrap().0.clone();
         if { let __iface_handle = { let __field = (*n.lock().unwrap().as_ref().unwrap()).elt.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
@@ -403,8 +403,8 @@ pub fn walk(mut v: Arc<Mutex<Option<Box<dyn Visitor + Send + Sync>>>>, node: Arc
         walk(v.clone(), Arc::new(Mutex::new(Some(Box::new(crate::r#mod::FilePtr(f.clone())) as Box<dyn Node + Send + Sync>))));
     };
     } else {
-        let n = node.clone();
-        panic!("ast.Walk: unexpected node type {}", format!("{}", (*n.lock().unwrap().as_ref().unwrap())));;
+        let n = _ts_subject.clone();
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("ast.Walk: unexpected node type {}", __go_type_name(n.lock().unwrap().as_ref().unwrap()))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);;
     }
     }
 

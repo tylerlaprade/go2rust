@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{format_any, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values};
+use crate::{__go_type_name, format_any, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values};
 
 use crate::commentmap::*;
 use crate::filter::*;
@@ -32,6 +32,56 @@ impl Clone for Box<dyn Node + Send + Sync> {
     fn clone(&self) -> Self {
         Node::__go_clone_box_node(self.as_ref())
     }
+}
+
+#[derive(Clone)]
+pub struct GoNodeInterfaceKey(pub Arc<Mutex<Option<Box<dyn Node + Send + Sync>>>>);
+
+impl GoNodeInterfaceKey {
+    pub fn new(value: Arc<Mutex<Option<Box<dyn Node + Send + Sync>>>>) -> Self { GoNodeInterfaceKey(value) }
+    pub fn value(&self) -> Arc<Mutex<Option<Box<dyn Node + Send + Sync>>>> { self.0.clone() }
+    fn addr(&self) -> usize { Arc::as_ptr(&self.0) as usize }
+    fn identity(&self) -> (u64, String) {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() {
+            None => (0, String::new()),
+            Some(__v) => {
+                let mut __hasher = std::collections::hash_map::DefaultHasher::new();
+                std::hash::Hash::hash(&__v.as_ref().__go_as_any().type_id(), &mut __hasher);
+                (std::hash::Hasher::finish(&__hasher), format!("{}", __v))
+            }
+        }
+    }
+}
+impl PartialEq for GoNodeInterfaceKey {
+    fn eq(&self, other: &Self) -> bool {
+        let __left_guard = self.0.lock().unwrap();
+        let __right_guard = other.0.lock().unwrap();
+        match (__left_guard.as_ref(), __right_guard.as_ref()) {
+            (None, None) => true,
+            (Some(__left), Some(__right)) => __left.as_ref().__go_eq_node(__right.as_ref()),
+            _ => false,
+        }
+    }
+}
+impl Eq for GoNodeInterfaceKey {}
+impl PartialOrd for GoNodeInterfaceKey {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }
+}
+impl Ord for GoNodeInterfaceKey {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        if self == other { return std::cmp::Ordering::Equal; }
+        match self.identity().cmp(&other.identity()) {
+            std::cmp::Ordering::Equal => self.addr().cmp(&other.addr()),
+            ordering => ordering,
+        }
+    }
+}
+impl std::fmt::Debug for GoNodeInterfaceKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "{}", self.identity().1) }
+}
+impl std::fmt::Display for GoNodeInterfaceKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "{}", self.identity().1) }
 }
 
 /// All expression nodes implement the Expr interface.
@@ -2848,7 +2898,7 @@ impl CommentGroup {
                 // Ignore //go:noinline, //line, and so on.
                 /*-style comment */
                 // Split on newlines.
-        let mut cl = strings::split(Arc::new(Mutex::new(Some(c.clone()))), Arc::new(Mutex::new(Some("\n".to_string()))));
+        let mut cl = Arc::new(Mutex::new(Some({ let __s = c.clone(); let __sep = "\n".to_string(); __s.split(&__sep).map(|__part| __part.to_string()).collect::<Vec<String>>() })));
                 // Walk lines, stripping trailing white space and adding to list.
         { let __range_holder = cl.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for l in __range_values.iter() {
         { let new_val = { let __append_target = lines.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*strip_trailing_whitespace(Arc::new(Mutex::new(Some((*l).clone())))).lock().unwrap().as_ref().unwrap()).clone()); __append_target.clone() }; lines = new_val; };
@@ -2877,7 +2927,7 @@ impl CommentGroup {
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } && { let __tmp_x = { let __seq = { let __seq_holder = lines.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
         { let new_val = { let __append_target = lines.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push("".to_string()); __append_target.clone() }; lines = new_val; };
     }
-        return strings::join(lines.clone(), Arc::new(Mutex::new(Some("\n".to_string()))));
+        return Arc::new(Mutex::new(Some({ let __parts = (*lines.lock().unwrap()).as_ref().cloned().unwrap_or_default(); let __sep = "\n".to_string(); __parts.join(&__sep) })));
     }
 }
 
@@ -3245,7 +3295,7 @@ impl Ident {
 
     /// IsExported reports whether id starts with an upper-case letter.
     pub fn is_exported(&self) -> bool {
-        go_token::is_exported({ let __field = self.name.clone(); __field })
+        go_token::is_exported(Arc::new(Mutex::new(Some({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))))
     }
 
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
@@ -8632,19 +8682,19 @@ pub fn is_directive(c: Arc<Mutex<Option<String>>>) -> bool {
         // "//extern " is for gccgo.
         // "//export " is for cgo.
         // (The // has been removed.)
-    if strings::has_prefix(Arc::new(Mutex::new(Some({ let __arg_holder = c.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("line ".to_string())))) || strings::has_prefix(Arc::new(Mutex::new(Some({ let __arg_holder = c.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("extern ".to_string())))) || strings::has_prefix(Arc::new(Mutex::new(Some({ let __arg_holder = c.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("export ".to_string())))) {
+    if (*Arc::new(Mutex::new(Some({ let __s = (*c.lock().unwrap().as_ref().unwrap()).clone(); let __arg = "line ".to_string(); __s.starts_with(&__arg) }))).lock().unwrap().as_ref().unwrap()) || (*Arc::new(Mutex::new(Some({ let __s = (*c.lock().unwrap().as_ref().unwrap()).clone(); let __arg = "extern ".to_string(); __s.starts_with(&__arg) }))).lock().unwrap().as_ref().unwrap()) || (*Arc::new(Mutex::new(Some({ let __s = (*c.lock().unwrap().as_ref().unwrap()).clone(); let __arg = "export ".to_string(); __s.starts_with(&__arg) }))).lock().unwrap().as_ref().unwrap()) {
         return true;
     }
 
         // "//[a-z0-9]+:[a-z0-9]"
         // (The // has been removed.)
-    let mut colon = strings::index(Arc::new(Mutex::new(Some({ let __arg_holder = c.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(":".to_string()))));
-    if { let __tmp_x = colon; let __tmp_y = 0; __tmp_x <= __tmp_y } || { let __tmp_x = ({ let __tmp_x = colon; let __tmp_y = 1; __tmp_x + __tmp_y } as i32); let __tmp_y = ((*c.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x >= __tmp_y } {
+    let mut colon = Arc::new(Mutex::new(Some({ let __s = (*c.lock().unwrap().as_ref().unwrap()).clone(); let __substr = ":".to_string(); __s.find(&__substr).map(|__i| __i as i32).unwrap_or(-1) })));
+    if { let __tmp_x = { let __v = (*colon.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x <= __tmp_y } || { let __tmp_x = ({ let __tmp_x = { let __v = (*colon.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y } as i32); let __tmp_y = ((*c.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x >= __tmp_y } {
         return false;
     }
     let mut i = Arc::new(Mutex::new(Some(0)));
-    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = colon; let __tmp_y = 1; __tmp_x + __tmp_y }; __tmp_x <= __tmp_y } {
-        if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = colon; __tmp_x == __tmp_y } {
+    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = { let __v = (*colon.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }; __tmp_x <= __tmp_y } {
+        if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*colon.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }; continue
     }
         let mut b = Arc::new(Mutex::new(Some({ let __s = &((*c.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] })));

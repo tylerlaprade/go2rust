@@ -254,19 +254,6 @@ in the first place.
 - Removal trigger: transpiler can lower `ast.Inspect`/`ast.Walk` source.
 - Added: 2026-05-27 (backfill)
 
-### ast-newident
-
-- Location: `go/external_type_stubs.go:4377`
-- Go symbol: `ast.NewIdent`
-- Transpiler gap: source package fixture covers `ast.NewIdent`; remaining work
-  is removing external callers that still depend on the bridged ast package.
-- Fixture: `tests/source_stdlib_go_ast_walk_call_expr/`;
-  `tests/stdlib_interface_downcast/`; `tests/stdlib_interface_return/`;
-  `tests/range_stdlib_interface_slice_call/`;
-  `tests/stdlib_interface_slice_nil_compare/`.
-- Removal trigger: transpiler can lower `ast.NewIdent` source.
-- Added: 2026-05-27 (backfill)
-
 ### parser-package
 
 - Location: `go/external_type_stubs.go:4389`
