@@ -51,24 +51,21 @@ func TestTokenPackageConstantsRegisterTokenIntegerStub(t *testing.T) {
 	tokenPkg := gotypes.NewPackage("go/token", "token")
 	tokenName := gotypes.NewTypeName(gotoken.NoPos, tokenPkg, "Token", nil)
 	tokenType := gotypes.NewNamed(tokenName, gotypes.Typ[gotypes.Int], nil)
-	RegisterExternalPackageStubConstantValue("token", "ADD", tokenType, goconstant.MakeInt64(12))
+	RegisterExternalPackageStubConstantValue("token", rustConstName("ADD"), tokenType, goconstant.MakeInt64(12))
 
 	if got := ctx.File.ExternalTypeStubIntegerTypes["token_Token"]; got != "i32" {
 		t.Fatalf("token package constants should register token_Token as i32, got %q", got)
 	}
 
 	got := generateExternalStubs(
-		map[string]bool{"token_FileSet": true},
-		nil, nil, nil, nil, nil, nil,
-		map[string]*externalPackageStub{
-			"token": {
-				Functions: map[string]externalPackageStubFunction{
-					"new_file_set": {
-						ReturnTypes: []string{"Arc<Mutex<Option<token_FileSet>>>"},
-					},
-				},
-			},
-		},
+		ctx.File.ExternalTypeStubs,
+		ctx.File.ExternalTypeStubInterfaces,
+		ctx.File.ExternalTypeStubIntegerTypes,
+		ctx.File.ExternalTypeStubTupleTypes,
+		ctx.File.ExternalTypeStubFields,
+		ctx.File.ExternalTypeStubMethods,
+		ctx.File.ExternalTypeStubConversions,
+		ctx.File.ExternalPackageStubs,
 	)
 	for _, want := range []string{
 		"pub struct token_Token(pub i32);",
@@ -77,6 +74,9 @@ func TestTokenPackageConstantsRegisterTokenIntegerStub(t *testing.T) {
 		if !strings.Contains(got, want) {
 			t.Fatalf("token package constants should use token_Token integer stub %q:\n%s", want, got)
 		}
+	}
+	if strings.Contains(got, "pub const S_U_B: token_Token") {
+		t.Fatalf("token package constants should not synthesize unreferenced token values:\n%s", got)
 	}
 }
 

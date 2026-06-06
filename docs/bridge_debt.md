@@ -234,22 +234,6 @@ in the first place.
 - Removal trigger: transpiler can lower `go/ast` source.
 - Added: 2026-05-27 (backfill)
 
-### token-package
-
-- Location: `go/external_type_stubs.go:4442`
-- Go symbol: `go/token` package
-- Transpiler gap: source package fixtures cover `Lookup`, `Token.String`,
-  `Token.IsKeyword`, `Pos.IsValid`, and FileSet position lookup through
-  source-mapped `cmp`, `slices`, `sync`, `sync/atomic`, and `internal/race`;
-  source-mapped `go/token.Pos` now reaches source-mapped `go/types.NewTypeName`.
-  Remaining work is shrinking non-source-mapped external `go/token` callers off
-  the package bridge.
-- Fixture: `tests/source_stdlib_go_token_lookup/`;
-  `tests/source_stdlib_go_token_fileset/`;
-  `tests/source_stdlib_go_token_types_bridge_arg/`
-- Removal trigger: transpiler can lower `go/token` source.
-- Added: 2026-05-27 (backfill)
-
 ### strconv-package
 
 - Location: `go/external_type_stubs.go:5390`

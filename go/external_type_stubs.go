@@ -1684,16 +1684,6 @@ impl json_Decoder {
 }
 
 func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool, integerTypes map[string]string, tupleTypes map[string]string, fieldsByType map[string]map[string]string, methodsByType map[string]map[string]externalTypeStubMethod, conversions map[string]map[string]bool, packageStubs map[string]*externalPackageStub) string {
-	if packageStubs["token"] != nil {
-		if stubs == nil {
-			stubs = make(map[string]bool)
-		}
-		if integerTypes == nil {
-			integerTypes = make(map[string]string)
-		}
-		stubs["token_Token"] = true
-		integerTypes["token_Token"] = "i32"
-	}
 	if methodsByType["exec_Cmd"] != nil {
 		if _, ok := methodsByType["exec_Cmd"]["stderr_pipe"]; ok {
 			stubs["os_File"] = true
@@ -3163,10 +3153,6 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 			writeStrconvPackageStub(out, pkg, integerTypes, stubs)
 			continue
 		}
-		if pkgName == "token" {
-			writeTokenPackageStub(out, pkg, integerTypes)
-			continue
-		}
 		if pkgName == "filepath" {
 			writeFilepathPackageStub(out, pkg, integerTypes)
 			continue
@@ -3436,161 +3422,6 @@ func writeAstPackageStub(out *strings.Builder, pkg *externalPackageStub, integer
 		writeExternalPackageStubFunction(out, "ast", funcName, pkg.Functions[funcName], nil)
 	}
 	out.WriteString("}\n")
-}
-
-// TEMPORARY: hand-written Rust shim for go/token package.
-// Long-term fix: transpile go/token source.
-func writeTokenPackageStub(out *strings.Builder, pkg *externalPackageStub, integerTypes map[string]string) {
-	out.WriteString("pub mod token {\n")
-	out.WriteString("    use super::*;\n\n")
-	constTypes := make(map[string]string, len(pkg.Constants)+len(tokenConstValues()))
-	for constName, constType := range pkg.Constants {
-		constTypes[constName] = constType
-	}
-	for constName := range tokenConstValues() {
-		if constTypes[constName] == "" {
-			constTypes[constName] = "token_Token"
-		}
-	}
-	constNames := make([]string, 0, len(pkg.Constants))
-	for constName := range constTypes {
-		constNames = append(constNames, constName)
-	}
-	slices.Sort(constNames)
-	for _, constName := range constNames {
-		out.WriteString("    pub const ")
-		out.WriteString(constName)
-		out.WriteString(": ")
-		out.WriteString(constTypes[constName])
-		out.WriteString(" = ")
-		if value, ok := tokenConstValue(constName); ok {
-			out.WriteString("token_Token(")
-			out.WriteString(strconv.Itoa(value))
-			out.WriteString(")")
-		} else {
-			if !writeExternalPackageStubConstLiteral(out, pkg, constName, integerTypes) {
-				writeExternalStubConstDefaultValue(out, constTypes[constName], integerTypes)
-			}
-		}
-		out.WriteString(";\n")
-	}
-	if len(constNames) > 0 && (len(pkg.Variables) > 0 || len(pkg.Functions) > 0) {
-		out.WriteString("\n")
-	}
-	varNames := make([]string, 0, len(pkg.Variables))
-	for varName := range pkg.Variables {
-		varNames = append(varNames, varName)
-	}
-	slices.Sort(varNames)
-	for _, varName := range varNames {
-		writeExternalPackageStubVariable(out, varName, pkg.Variables[varName])
-		out.WriteString("\n")
-	}
-	funcNames := make([]string, 0, len(pkg.Functions))
-	for funcName := range pkg.Functions {
-		funcNames = append(funcNames, funcName)
-	}
-	slices.Sort(funcNames)
-	for i, funcName := range funcNames {
-		if i > 0 || len(varNames) > 0 {
-			out.WriteString("\n")
-		}
-		writeExternalPackageStubFunction(out, "token", funcName, pkg.Functions[funcName], nil)
-	}
-	out.WriteString("}\n")
-}
-
-func tokenConstValue(name string) (int, bool) {
-	values := tokenConstValues()
-	value, ok := values[name]
-	return value, ok
-}
-
-func tokenConstValues() map[string]int {
-	return map[string]int{
-		"I_L_L_E_G_A_L":             0,
-		"E_O_F":                     1,
-		"C_O_M_M_E_N_T":             2,
-		"I_D_E_N_T":                 4,
-		"I_N_T":                     5,
-		"F_L_O_A_T":                 6,
-		"I_M_A_G":                   7,
-		"C_H_A_R":                   8,
-		"S_T_R_I_N_G":               9,
-		"A_D_D":                     12,
-		"S_U_B":                     13,
-		"M_U_L":                     14,
-		"Q_U_O":                     15,
-		"R_E_M":                     16,
-		"A_N_D":                     17,
-		"O_R":                       18,
-		"X_O_R":                     19,
-		"S_H_L":                     20,
-		"S_H_R":                     21,
-		"A_N_D__N_O_T":              22,
-		"A_D_D__A_S_S_I_G_N":        23,
-		"S_U_B__A_S_S_I_G_N":        24,
-		"M_U_L__A_S_S_I_G_N":        25,
-		"Q_U_O__A_S_S_I_G_N":        26,
-		"R_E_M__A_S_S_I_G_N":        27,
-		"A_N_D__A_S_S_I_G_N":        28,
-		"O_R__A_S_S_I_G_N":          29,
-		"X_O_R__A_S_S_I_G_N":        30,
-		"S_H_L__A_S_S_I_G_N":        31,
-		"S_H_R__A_S_S_I_G_N":        32,
-		"A_N_D__N_O_T__A_S_S_I_G_N": 33,
-		"L_A_N_D":                   34,
-		"L_O_R":                     35,
-		"A_R_R_O_W":                 36,
-		"I_N_C":                     37,
-		"D_E_C":                     38,
-		"E_Q_L":                     39,
-		"L_S_S":                     40,
-		"G_T_R":                     41,
-		"A_S_S_I_G_N":               42,
-		"N_O_T":                     43,
-		"N_E_Q":                     44,
-		"L_E_Q":                     45,
-		"G_E_Q":                     46,
-		"D_E_F_I_N_E":               47,
-		"E_L_L_I_P_S_I_S":           48,
-		"L_P_A_R_E_N":               49,
-		"L_B_R_A_C_K":               50,
-		"L_B_R_A_C_E":               51,
-		"C_O_M_M_A":                 52,
-		"P_E_R_I_O_D":               53,
-		"R_P_A_R_E_N":               54,
-		"R_B_R_A_C_K":               55,
-		"R_B_R_A_C_E":               56,
-		"S_E_M_I_C_O_L_O_N":         57,
-		"C_O_L_O_N":                 58,
-		"B_R_E_A_K":                 61,
-		"C_A_S_E":                   62,
-		"C_H_A_N":                   63,
-		"C_O_N_S_T":                 64,
-		"C_O_N_T_I_N_U_E":           65,
-		"D_E_F_A_U_L_T":             66,
-		"D_E_F_E_R":                 67,
-		"E_L_S_E":                   68,
-		"F_A_L_L_T_H_R_O_U_G_H":     69,
-		"F_O_R":                     70,
-		"F_U_N_C":                   71,
-		"G_O":                       72,
-		"G_O_T_O":                   73,
-		"I_F":                       74,
-		"I_M_P_O_R_T":               75,
-		"I_N_T_E_R_F_A_C_E":         76,
-		"M_A_P":                     77,
-		"P_A_C_K_A_G_E":             78,
-		"R_A_N_G_E":                 79,
-		"R_E_T_U_R_N":               80,
-		"S_E_L_E_C_T":               81,
-		"S_T_R_U_C_T":               82,
-		"S_W_I_T_C_H":               83,
-		"T_Y_P_E":                   84,
-		"V_A_R":                     85,
-		"T_I_L_D_E":                 88,
-	}
 }
 
 // TEMPORARY: hand-written Rust shim for strconv package.
