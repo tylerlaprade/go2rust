@@ -61,14 +61,6 @@ func RegisterExternalTypeStub(name string) {
 		return
 	}
 	currentExternalTypeStubs()[name] = true
-	// The types_Basic stub written by writeTypesBasicStub references the
-	// types_BasicKind and types_BasicInfo integer stubs by name. Keep the
-	// bridge internally consistent: any path that registers types_Basic
-	// must also register the integer types its fields refer to.
-	if name == "types_Basic" {
-		RegisterExternalIntegerTypeStub("types_BasicKind", "i32")
-		RegisterExternalIntegerTypeStub("types_BasicInfo", "i32")
-	}
 	if name == "types_Tuple" {
 		RegisterExternalTypeStubInterface("types_Type")
 	}
@@ -1932,10 +1924,6 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 			writeFsDirEntryStub(&out, name, methodsByType[name])
 			continue
 		}
-		if name == "types_Basic" {
-			writeTypesBasicStub(&out, methodsByType[name])
-			continue
-		}
 		if interfaceTypes[name] {
 			writeExternalInterfaceStub(&out, name, methodsByType[name])
 			continue
@@ -3375,61 +3363,6 @@ func writeExternalTypeStubMethod(out *strings.Builder, typeName string, methodNa
 	out.WriteString(methodName)
 	out.WriteString(" bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md\")\n")
 	out.WriteString("    }\n")
-}
-
-// TEMPORARY: hand-written Rust shim for go/types.Basic.
-// Long-term fix: transpile go/types source. Do not grow surface for *types.Named,
-// *types.Pointer, *types.Map, etc. — see AGENTS.md "Strategy: Transpile stdlib, don't bridge it".
-func writeTypesBasicStub(out *strings.Builder, methods map[string]externalTypeStubMethod) {
-	out.WriteString(`#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct types_Basic {
-    pub __go_kind: types_BasicKind,
-    pub __go_info: types_BasicInfo,
-    pub __go_name: String,
-}
-
-impl std::fmt::Display for types_Basic {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.__go_name)
-    }
-}
-
-
-impl types_Basic {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
-    }
-`)
-	methodNames := make([]string, 0, len(methods))
-	for methodName := range methods {
-		methodNames = append(methodNames, methodName)
-	}
-	slices.Sort(methodNames)
-	for _, methodName := range methodNames {
-		switch methodName {
-		case "info":
-			out.WriteString("    pub fn info(&self) -> ")
-			out.WriteString(wrappedExternalStubType("types_BasicInfo"))
-			out.WriteString(" {\n        ")
-			out.WriteString(wrappedExternalStubExpr("types_BasicInfo", "self.__go_info"))
-			out.WriteString("\n    }\n")
-		case "kind":
-			out.WriteString("    pub fn kind(&self) -> ")
-			out.WriteString(wrappedExternalStubType("types_BasicKind"))
-			out.WriteString(" {\n        ")
-			out.WriteString(wrappedExternalStubExpr("types_BasicKind", "self.__go_kind"))
-			out.WriteString("\n    }\n")
-		case "name":
-			out.WriteString("    pub fn name(&self) -> ")
-			out.WriteString(wrappedExternalStubType("String"))
-			out.WriteString(" {\n        ")
-			out.WriteString(wrappedExternalStubExpr("String", "self.__go_name.clone()"))
-			out.WriteString("\n    }\n")
-		default:
-			writeExternalTypeStubMethod(out, "types_Basic", methodName, methods[methodName])
-		}
-	}
-	out.WriteString("}\n")
 }
 
 // TEMPORARY: hand-written Rust shim for go/build.Context import methods.

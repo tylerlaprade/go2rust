@@ -458,10 +458,7 @@ func testExternalTypesBasicStruct() (*gotypes.Named, *gotypes.Struct) {
 	return named, structType
 }
 
-// writeTypesBasicStub emits a struct whose field types are types_BasicKind and
-// types_BasicInfo. Registering types_Basic without also registering those
-// integer stubs leaves the generated Rust referring to undefined types.
-func TestRegisterTypesBasicAlsoRegistersFieldTypes(t *testing.T) {
+func TestRegisterTypesBasicDoesNotRegisterRetiredFieldTypes(t *testing.T) {
 	prevContext := currentContext
 	ctx := &TranspileContext{
 		Package: NewPackageState(),
@@ -471,17 +468,17 @@ func TestRegisterTypesBasicAlsoRegistersFieldTypes(t *testing.T) {
 	defer SetTranspileContext(prevContext)
 
 	RegisterExternalTypeStub("types_Basic")
-	if !ctx.File.ExternalTypeStubs["types_BasicKind"] {
-		t.Fatalf("registering types_Basic must also register types_BasicKind: %#v", ctx.File.ExternalTypeStubs)
+	if ctx.File.ExternalTypeStubs["types_BasicKind"] {
+		t.Fatalf("registering types_Basic must not pull in retired types_BasicKind fields: %#v", ctx.File.ExternalTypeStubs)
 	}
-	if !ctx.File.ExternalTypeStubs["types_BasicInfo"] {
-		t.Fatalf("registering types_Basic must also register types_BasicInfo: %#v", ctx.File.ExternalTypeStubs)
+	if ctx.File.ExternalTypeStubs["types_BasicInfo"] {
+		t.Fatalf("registering types_Basic must not pull in retired types_BasicInfo fields: %#v", ctx.File.ExternalTypeStubs)
 	}
-	if ctx.File.ExternalTypeStubIntegerTypes["types_BasicKind"] != "i32" {
-		t.Fatalf("types_BasicKind must register as i32 integer stub: %#v", ctx.File.ExternalTypeStubIntegerTypes)
+	if ctx.File.ExternalTypeStubIntegerTypes["types_BasicKind"] != "" {
+		t.Fatalf("types_BasicKind integer stub should be registered only by real uses: %#v", ctx.File.ExternalTypeStubIntegerTypes)
 	}
-	if ctx.File.ExternalTypeStubIntegerTypes["types_BasicInfo"] != "i32" {
-		t.Fatalf("types_BasicInfo must register as i32 integer stub: %#v", ctx.File.ExternalTypeStubIntegerTypes)
+	if ctx.File.ExternalTypeStubIntegerTypes["types_BasicInfo"] != "" {
+		t.Fatalf("types_BasicInfo integer stub should be registered only by real uses: %#v", ctx.File.ExternalTypeStubIntegerTypes)
 	}
 }
 
@@ -1102,6 +1099,59 @@ func TestTypesTupleNameParamConstructorBridgesAreRetired(t *testing.T) {
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("retiring constructors must not remove external type identity %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestTypesBasicBehaviorShimIsRetired(t *testing.T) {
+	got := generateExternalStubs(
+		map[string]bool{
+			"types_Basic":     true,
+			"types_BasicInfo": true,
+			"types_BasicKind": true,
+		},
+		nil,
+		map[string]string{
+			"types_BasicInfo": "i32",
+			"types_BasicKind": "i32",
+		},
+		nil, nil,
+		map[string]map[string]externalTypeStubMethod{
+			"types_Basic": {
+				"info": {
+					ReturnTypes: []string{"Arc<Mutex<Option<types_BasicInfo>>>"},
+				},
+				"kind": {
+					ReturnTypes: []string{"Arc<Mutex<Option<types_BasicKind>>>"},
+				},
+				"name": {
+					ReturnTypes: []string{"Arc<Mutex<Option<String>>>"},
+				},
+			},
+		},
+		nil, nil,
+	)
+	for _, unwanted := range []string{
+		"pub struct types_Basic {",
+		"__go_kind",
+		"__go_info",
+		"__go_name",
+		"self.__go_kind",
+		"self.__go_info",
+		"self.__go_name",
+	} {
+		if strings.Contains(got, unwanted) {
+			t.Fatalf("go/types.Basic external behavior shim must be retired; found %q:\n%s", unwanted, got)
+		}
+	}
+	for _, want := range []string{
+		"pub struct types_Basic;",
+		"types_Basic.kind bridge: generic stub method body has no implementation",
+		"types_Basic.info bridge: generic stub method body has no implementation",
+		"types_Basic.name bridge: generic stub method body has no implementation",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("retiring Basic behavior must keep loud placeholder %q:\n%s", want, got)
 		}
 	}
 }

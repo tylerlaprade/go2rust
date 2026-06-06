@@ -8,5 +8,6 @@ import (
 
 func main() {
 	obj := types.NewTypeName(token.NoPos, nil, "T", nil)
-	fmt.Println(obj.Name())
+	basic := types.Typ[types.Int]
+	fmt.Println(obj.Name(), basic.Name(), basic.Kind() == types.Int, basic.Info()&types.IsInteger != 0)
 }

@@ -8,107 +8,17 @@ fn __go_next_external_interface_id() -> usize {
 
 
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct types_Basic {
-    pub __go_kind: types_BasicKind,
-    pub __go_info: types_BasicInfo,
-    pub __go_name: String,
-}
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct types_Basic;
 
 impl std::fmt::Display for types_Basic {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.__go_name)
+        write!(f, "<types_Basic>")
     }
 }
 
 
 impl types_Basic {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
-    }
-}
-
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct types_BasicInfo(pub i32);
-
-impl PartialEq<i32> for types_BasicInfo {
-    fn eq(&self, other: &i32) -> bool {
-        self.0 == *other
-    }
-}
-
-impl PartialEq<types_BasicInfo> for i32 {
-    fn eq(&self, other: &types_BasicInfo) -> bool {
-        *self == other.0
-    }
-}
-
-impl std::ops::BitAnd for types_BasicInfo {
-    type Output = types_BasicInfo;
-    fn bitand(self, other: Self) -> types_BasicInfo {
-        types_BasicInfo(self.0 & other.0)
-    }
-}
-
-impl std::ops::BitOr for types_BasicInfo {
-    type Output = types_BasicInfo;
-    fn bitor(self, other: Self) -> types_BasicInfo {
-        types_BasicInfo(self.0 | other.0)
-    }
-}
-
-impl std::fmt::Display for types_BasicInfo {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<types_BasicInfo>")
-    }
-}
-
-
-impl types_BasicInfo {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
-    }
-}
-
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct types_BasicKind(pub i32);
-
-impl PartialEq<i32> for types_BasicKind {
-    fn eq(&self, other: &i32) -> bool {
-        self.0 == *other
-    }
-}
-
-impl PartialEq<types_BasicKind> for i32 {
-    fn eq(&self, other: &types_BasicKind) -> bool {
-        *self == other.0
-    }
-}
-
-impl std::ops::BitAnd for types_BasicKind {
-    type Output = types_BasicKind;
-    fn bitand(self, other: Self) -> types_BasicKind {
-        types_BasicKind(self.0 & other.0)
-    }
-}
-
-impl std::ops::BitOr for types_BasicKind {
-    type Output = types_BasicKind;
-    fn bitor(self, other: Self) -> types_BasicKind {
-        types_BasicKind(self.0 | other.0)
-    }
-}
-
-impl std::fmt::Display for types_BasicKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<types_BasicKind>")
-    }
-}
-
-
-impl types_BasicKind {
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         None
     }
@@ -193,7 +103,7 @@ pub fn classify(t: Rc<RefCell<Option<types_Type>>>) -> Rc<RefCell<Option<String>
     let _ts_is_nil = _ts_guard.as_ref().is_none();
     let _ts_val = _ts_guard.as_ref();
     if _ts_is_nil || _ts_val.and_then(|__v| __v.downcast_ref::<types_Basic>()).is_some() {
-        let x = t.clone();
+        let x = _ts_subject.clone();
         drop(_ts_guard);
         return Rc::new(RefCell::new(Some("nil-or-basic".to_string())));;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<types_Named>()).is_some() {
@@ -202,7 +112,7 @@ pub fn classify(t: Rc<RefCell<Option<types_Type>>>) -> Rc<RefCell<Option<String>
         let _ = (*x.borrow().as_ref().unwrap());;
         return Rc::new(RefCell::new(Some("named".to_string())));;
     } else {
-        let x = t.clone();
+        let x = _ts_subject.clone();
         drop(_ts_guard);
         return Rc::new(RefCell::new(Some("other".to_string())));;
     }
