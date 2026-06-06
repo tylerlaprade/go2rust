@@ -223,7 +223,7 @@ These are real transpiler gaps (wrapped-type arithmetic, generics handling, type
 - Do not stack single-job self-transpile on top of a parallel fixture run unless explicitly asked for maximum throughput.
 - If fixture tests feel slow, verify the startup line or process state before changing commands. Fixture runs should say `Running tests in parallel with N jobs`.
 - If `./test.sh` reports `Passing: 0/0`, inspect the filter, dependencies such as GNU parallel, and raw script output.
-- When the machine feels slow or disk usage looks wrong, measure cache/log/workspace sizes before guessing. In this repo, start with `./cleanup.sh --summary --age-minutes 0 --keep-repo-artifacts`.
+- When the machine feels slow or disk usage looks wrong, measure cache/log/workspace sizes before guessing. In this repo, start with `./cleanup.sh --pressure --keep-repo-artifacts`; with no arguments, `./cleanup.sh` prints the same diagnostic report and does not remove anything.
 
 ### Collaborating With the Continuous Loop
 

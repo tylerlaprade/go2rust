@@ -532,9 +532,14 @@ func TestCleanupScriptDefaultsToPressureSummary(t *testing.T) {
 
 func TestCleanupScriptNoArgsPrintsDiagnosticReport(t *testing.T) {
 	cmd := exec.Command("../cleanup.sh")
-	cmd.Env = []string{"GO2RUST_CLEANUP_TOP_TEMP_COUNT=0"}
+	cmd.Env = []string{
+		"GO2RUST_CLEANUP_TOP_TEMP_COUNT=0",
+		"GO2RUST_CLEANUP_TOP_CODE_COUNT=0",
+	}
 	for _, entry := range os.Environ() {
-		if strings.HasPrefix(entry, "TMPDIR=") || strings.HasPrefix(entry, "GO2RUST_CLEANUP_TOP_TEMP_COUNT=") {
+		if strings.HasPrefix(entry, "TMPDIR=") ||
+			strings.HasPrefix(entry, "GO2RUST_CLEANUP_TOP_TEMP_COUNT=") ||
+			strings.HasPrefix(entry, "GO2RUST_CLEANUP_TOP_CODE_COUNT=") {
 			continue
 		}
 		cmd.Env = append(cmd.Env, entry)
@@ -566,10 +571,14 @@ func TestCleanupPressureReportShowsProcessAndDiskPressure(t *testing.T) {
 	for _, want := range []string{
 		`--pressure`,
 		`--top-temp`,
+		`--top-code`,
 		`GO2RUST_CLEANUP_TOP_TEMP_COUNT`,
+		`GO2RUST_CLEANUP_TOP_CODE_COUNT`,
 		`print_pressure_report()`,
 		`print_disk_hotspots()`,
+		`print_top_code_paths()`,
 		`print_top_temp_paths()`,
+		`print_size_rows_from_paths()`,
 		`process_listing_error_suffix()`,
 		`echo "Cleanup script: $repo_root/cleanup.sh"`,
 		`echo "Filesystem:"`,
@@ -581,6 +590,8 @@ func TestCleanupPressureReportShowsProcessAndDiskPressure(t *testing.T) {
 		`echo "Top memory processes:"`,
 		`echo "Active go2rust validation processes:"`,
 		`echo "Disk usage quick scan:"`,
+		`echo "Largest Code workspaces:"`,
+		`echo "Largest Code build artifacts:"`,
 		`echo "Largest temp paths:"`,
 		`Cleanup candidates:`,
 		`Active skipped: $(format_kib "$active_kib") across $active_count path(s)`,

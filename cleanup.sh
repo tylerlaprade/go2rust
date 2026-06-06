@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
     cat <<'EOF'
-Usage: ./cleanup.sh [--dry-run] [--sizes] [--summary] [--pressure] [--show-active] [--age-minutes N] [--top-temp N] [--keep-repo-artifacts]
+Usage: ./cleanup.sh [--dry-run] [--sizes] [--summary] [--pressure] [--show-active] [--age-minutes N] [--top-temp N] [--top-code N] [--keep-repo-artifacts]
 
 Remove stale go2rust temporary roots and ignored local build artifacts.
 With no arguments, print pressure diagnostics and cleanup candidates without
@@ -23,6 +23,8 @@ Options:
   --age-minutes N       Only remove temp paths older than N minutes (default: 60).
   --top-temp N          With --pressure, print the N largest top-level temp
                         paths from TMPDIR, /tmp, and /private/tmp (default: 8).
+  --top-code N          With --pressure, print the N largest ~/Code workspaces
+                        and nested build artifact dirs (default: 8).
   --keep-repo-artifacts Keep ignored root build artifacts such as ./go2rust.
   -h, --help            Show this help.
 EOF
@@ -43,6 +45,7 @@ active_count=0
 active_kib=0
 invoked_without_args=false
 top_temp_count="${GO2RUST_CLEANUP_TOP_TEMP_COUNT:-8}"
+top_code_count="${GO2RUST_CLEANUP_TOP_CODE_COUNT:-8}"
 
 if [ "$#" -eq 0 ]; then
     invoked_without_args=true
@@ -94,6 +97,14 @@ while [ "$#" -gt 0 ]; do
             top_temp_count="$2"
             shift 2
             ;;
+        --top-code)
+            if [ "$#" -lt 2 ]; then
+                echo "error: --top-code requires a value" >&2
+                exit 2
+            fi
+            top_code_count="$2"
+            shift 2
+            ;;
         --keep-repo-artifacts)
             remove_repo_artifacts=false
             shift
@@ -120,6 +131,13 @@ esac
 case "$top_temp_count" in
     ''|*[!0-9]*)
         echo "error: --top-temp must be a non-negative integer" >&2
+        exit 2
+        ;;
+esac
+
+case "$top_code_count" in
+    ''|*[!0-9]*)
+        echo "error: --top-code must be a non-negative integer" >&2
         exit 2
         ;;
 esac
@@ -247,9 +265,65 @@ print_disk_hotspots() {
     print_size_row "repo" "$repo_root"
     print_size_row "TMPDIR" "${TMPDIR:-/tmp}"
     print_size_row "/private/tmp" "/private/tmp"
+    print_size_row "~/Code" "${HOME:-}/Code"
     print_size_row "~/Library/Caches" "${HOME:-}/Library/Caches"
     print_size_row "~/Library/Developer" "${HOME:-}/Library/Developer"
+    print_size_row "~/Library/Application Support" "${HOME:-}/Library/Application Support"
+    print_size_row "~/Pictures" "${HOME:-}/Pictures"
     print_size_row "~/.cargo" "${HOME:-}/.cargo"
+}
+
+print_size_rows_from_paths() {
+    local rows="$1"
+    if [ -z "$rows" ]; then
+        echo "none found"
+        return
+    fi
+
+    while IFS=$'\t' read -r size_kib path; do
+        printf "%8s  %s\n" "$(format_kib "$size_kib")" "$path"
+    done <<< "$rows"
+}
+
+print_top_code_paths() {
+    [ "$top_code_count" -gt 0 ] || return 0
+
+    local code_root="${HOME:-}/Code"
+    [ -d "$code_root" ] || return 0
+
+    echo
+    echo "Largest Code workspaces:"
+
+    local rows
+    rows=$(
+        while IFS= read -r path; do
+            local size_kib
+            size_kib=$(path_size_kib "$path")
+            [ -n "$size_kib" ] || continue
+            printf '%s\t%s\n' "$size_kib" "$path"
+        done < <(find "$code_root" -mindepth 1 -maxdepth 1 -type d -print 2>/dev/null) |
+            sort -nr | awk -v limit="$top_code_count" 'NR <= limit'
+    )
+    print_size_rows_from_paths "$rows"
+
+    echo
+    echo "Largest Code build artifacts:"
+    rows=$(
+        while IFS= read -r path; do
+            local size_kib
+            size_kib=$(path_size_kib "$path")
+            [ -n "$size_kib" ] || continue
+            printf '%s\t%s\n' "$size_kib" "$path"
+        done < <(find "$code_root" -mindepth 2 -maxdepth 4 -type d \( \
+            -name target -o \
+            -name .cargo-target -o \
+            -name node_modules -o \
+            -name .next -o \
+            -name dist \
+        \) -prune -print 2>/dev/null) |
+            sort -nr | awk -v limit="$top_code_count" 'NR <= limit'
+    )
+    print_size_rows_from_paths "$rows"
 }
 
 print_top_temp_paths() {
@@ -278,14 +352,7 @@ print_top_temp_paths() {
         done | sort -nr | awk -v limit="$top_temp_count" 'NR <= limit'
     )
 
-    if [ -z "$rows" ]; then
-        echo "none found"
-        return
-    fi
-
-    while IFS=$'\t' read -r size_kib path; do
-        printf "%8s  %s\n" "$(format_kib "$size_kib")" "$path"
-    done <<< "$rows"
+    print_size_rows_from_paths "$rows"
 }
 
 remove_path() {
@@ -472,6 +539,7 @@ print_pressure_report() {
     fi
 
     print_disk_hotspots
+    print_top_code_paths
     print_top_temp_paths
 
     echo
