@@ -2987,6 +2987,103 @@ func (p *Parser) mark() {
 	}
 }
 
+func TestNamedScalarSelectorCallArgumentCopiesInnerValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type sysMemStat float64
+
+type controller struct {
+	errIntegral sysMemStat
+}
+
+func isBad(f sysMemStat) bool {
+	return f != f
+}
+
+func (c *controller) next() bool {
+	return isBad(c.errIntegral)
+}
+`)
+
+	if !strings.Contains(rust, "let __selector_holder = self.err_integral.clone()") {
+		t.Fatalf("named scalar selector call argument should copy the inner field value:\n%s", rust)
+	}
+	if strings.Contains(rust, "Some(self.err_integral.clone())") {
+		t.Fatalf("named scalar selector call argument should not wrap the field handle:\n%s", rust)
+	}
+}
+
+func TestScalarSelectorCallArgumentCopiesInnerValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type controller struct {
+	errIntegral float64
+}
+
+func isBad(f float64) bool {
+	return f != f
+}
+
+func (c *controller) next() bool {
+	return isBad(c.errIntegral)
+}
+`)
+
+	if !strings.Contains(rust, "let __selector_holder = self.err_integral.clone()") {
+		t.Fatalf("scalar selector call argument should copy the inner field value:\n%s", rust)
+	}
+	if strings.Contains(rust, "Some(self.err_integral.clone())") {
+		t.Fatalf("scalar selector call argument should not wrap the field handle:\n%s", rust)
+	}
+}
+
+func TestScalarSelectorCallArgumentHelperUsesFieldObjectType(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type controller struct {
+	errIntegral float64
+}
+
+func isBad(f float64) bool {
+	return f != f
+}
+
+func (c *controller) next() bool {
+	return isBad(c.errIntegral)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+	var sel *ast.SelectorExpr
+	ast.Inspect(file, func(n ast.Node) bool {
+		if found, ok := n.(*ast.SelectorExpr); ok && found.Sel.Name == "errIntegral" {
+			sel = found
+			return false
+		}
+		return true
+	})
+	if sel == nil {
+		t.Fatal("selector errIntegral not found")
+	}
+
+	prevTypeInfo := GetTypeInfo()
+	SetTypeInfo(typeInfo)
+	defer SetTypeInfo(prevTypeInfo)
+
+	if selectorFieldCallArgumentCopiesInnerValue(sel) {
+		return
+	}
+	selection, hasSelection := typeInfo.info.Selections[sel]
+	obj := typeInfo.GetObject(sel.Sel)
+	t.Fatalf("selector helper rejected scalar field: selectorType=%v hasSelection=%v selection=%v object=%T %v", typeInfo.GetType(sel), hasSelection, selection, obj, obj)
+}
+
 func TestLocalConstNameDoesNotShadowPointerSelectorAssignment(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

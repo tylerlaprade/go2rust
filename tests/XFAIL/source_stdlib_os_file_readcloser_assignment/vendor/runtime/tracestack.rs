@@ -1803,7 +1803,7 @@ pub fn trace_stack(skip: Arc<Mutex<Option<i32>>>, mut gp: Arc<Mutex<Option<g>>>,
                 // correctly in goStatusToTraceGoStatus.
         '__go_switch_1: loop {
         {
-        let _switch_val = { let __v = go_status_to_trace_go_status(Arc::new(Mutex::new(Some(status))), Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some((*(*(*gp.lock().unwrap().as_ref().unwrap()).waitreason.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
+        let _switch_val = { let __v = go_status_to_trace_go_status(Arc::new(Mutex::new(Some(status))), Arc::new(Mutex::new(Some({ let __selector_holder = (*gp.lock().unwrap().as_ref().unwrap()).waitreason.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
         let mut _fallthrough = false;
         let mut _matched = false;
         if !_matched && (_switch_val == crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8)))) || _switch_val == crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_SYSCALL as u8))))) || _fallthrough {

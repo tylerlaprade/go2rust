@@ -7217,22 +7217,59 @@ func writeOwnedExpressionValue(out *strings.Builder, expr ast.Expr) bool {
 
 func writeCopySelectorFieldArgumentValue(out *strings.Builder, arg ast.Expr) bool {
 	sel, ok := arg.(*ast.SelectorExpr)
-	if !ok || !isCopyTypeExpression(sel) {
+	if !ok || !selectorFieldCallArgumentCopiesInnerValue(sel) {
 		return false
 	}
+	writeClonedWrappedExpression(out, sel, "__selector_holder", "__selector_guard")
+	return true
+}
+
+func selectorFieldCallArgumentCopiesInnerValue(sel *ast.SelectorExpr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || typeInfo.info == nil {
-		return false
-	}
-	selection, ok := typeInfo.info.Selections[sel]
-	if !ok || selection.Kind() != types.FieldVal {
 		return false
 	}
 	if isExpressionResultBare(sel) {
 		return false
 	}
-	writeClonedWrappedExpression(out, sel, "__selector_holder", "__selector_guard")
-	return true
+	var fieldType types.Type
+	selection, ok := typeInfo.info.Selections[sel]
+	if ok {
+		if selection.Kind() != types.FieldVal {
+			return false
+		}
+		if obj := selection.Obj(); obj != nil {
+			fieldType = obj.Type()
+		}
+	} else {
+		obj, ok := typeInfo.GetObject(sel.Sel).(*types.Var)
+		if !ok || !obj.IsField() {
+			return false
+		}
+		fieldType = obj.Type()
+	}
+	typ := typeInfo.GetType(sel)
+	if typ == nil {
+		typ = fieldType
+	}
+	return callArgumentFieldValueNeedsSnapshot(typ)
+}
+
+func callArgumentFieldValueNeedsSnapshot(typ types.Type) bool {
+	if selectorFieldValueKeepsHandle(typ) {
+		return false
+	}
+	unaliased := types.Unalias(typ)
+	if named, ok := unaliased.(*types.Named); ok && named.Obj() != nil {
+		_, ok := named.Underlying().(*types.Basic)
+		return ok
+	}
+	switch unaliased.Underlying().(type) {
+	case *types.Basic, *types.Struct, *types.Array:
+		return true
+	default:
+		return false
+	}
 }
 
 func selectorSyntaxValueNeedsClone(sel *ast.SelectorExpr) bool {
@@ -20797,7 +20834,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 						}
 					}
 				}
-				if isFloatParam {
+				if writeCopySelectorFieldArgumentValue(out, arg) {
+					// Field selectors passed by value copy the field contents, not the wrapper handle.
+				} else if isFloatParam {
 					// Capture expression to check if float suffix is needed
 					var argBuf strings.Builder
 					TranspileExpression(&argBuf, arg)

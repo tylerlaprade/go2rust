@@ -2482,7 +2482,7 @@ pub fn gc_mark_termination(stw: Arc<Mutex<Option<worldStop>>>) {
         end_checkmarks();
     }
         set_g_c_phase(Arc::new(Mutex::new(Some(__G_COFF as u32))));
-        { let new_val = gc_sweep(Arc::new(Mutex::new(Some(gcMode(Arc::new(Mutex::new(Some((*(*(*work.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))))))); *stwSwept_closure_clone.lock().unwrap() = Some(new_val); };
+        { let new_val = gc_sweep(Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); *stwSwept_closure_clone.lock().unwrap() = Some(new_val); };
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
 
         // Run a full non-parallel, stop-the-world
