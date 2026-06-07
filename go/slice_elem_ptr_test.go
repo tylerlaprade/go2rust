@@ -2273,6 +2273,64 @@ func pick(h *holder) (int, *node, bool) {
 	}
 }
 
+func TestGoPtrParameterInLaterReturnSlotUsesGoPtrResult(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type item struct {
+	value int
+}
+
+type node struct {
+	next *node
+	items [2]item
+}
+
+type state struct {
+	head *node
+	root *item
+}
+
+func initState(s *state, nodes []node) {
+	s.head = &nodes[0]
+}
+
+func walk(x *node, i int, n int) (root *item, rest *node, out int) {
+	if n == 0 {
+		return nil, x, i
+	}
+	var left *item
+	left, x, i = walk(x, i, n-1)
+	_ = left
+	root = &x.items[i]
+	if i == len(x.items) {
+		x = x.next
+		i = 0
+	}
+	return root, x, i
+}
+
+func build(s *state) {
+	s.root, _, _ = walk(s.head, 0, 1)
+}
+`)
+
+	if !strings.Contains(rust, "pub head: GoPtr<node>") ||
+		!strings.Contains(rust, "pub fn walk(mut x: GoPtr<node>") {
+		t.Fatalf("test setup should promote the pointer parameter through the GoPtr field call site:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn walk(") ||
+		!strings.Contains(rust, " -> (Option<GoArrayElemPtr<item, 2>>, GoPtr<node>, i32)") {
+		t.Fatalf("pointer parameter returned in a later tuple slot should promote that result type:\n%s", rust)
+	}
+	if strings.Contains(rust, " -> (Option<GoArrayElemPtr<item, 2>>, Rc<RefCell<Option<node>>>, i32)") ||
+		strings.Contains(rust, " -> (Option<GoArrayElemPtr<item, 2>>, Arc<Mutex<Option<node>>>, i32)") {
+		t.Fatalf("pointer parameter returned in a later tuple slot should not keep the ordinary pointer wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "x = __tmp_1.clone();") {
+		t.Fatalf("recursive tuple reassignment should preserve the GoPtr handle from the result slot:\n%s", rust)
+	}
+}
+
 func TestGoPtrImportedGenericCallResultInLaterReturnSlotUsesInstantiatedType(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

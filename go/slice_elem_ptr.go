@@ -3747,6 +3747,32 @@ func arrayElemPtrResultCandidateSeeds(fn *ast.FuncDecl) map[types.Object]*arrayE
 	return seeds
 }
 
+func funcDeclParamObjectAt(fn *ast.FuncDecl, paramIndex int, typeInfo *TypeInfo) types.Object {
+	if fn == nil || fn.Type == nil || fn.Type.Params == nil || typeInfo == nil || paramIndex < 0 {
+		return nil
+	}
+	seen := 0
+	for _, field := range fn.Type.Params.List {
+		if field == nil {
+			continue
+		}
+		count := len(field.Names)
+		if count == 0 {
+			count = 1
+		}
+		for i := 0; i < count; i++ {
+			if seen == paramIndex {
+				if i < len(field.Names) {
+					return typeInfo.GetObject(field.Names[i])
+				}
+				return nil
+			}
+			seen++
+		}
+	}
+	return nil
+}
+
 func collectGoPtrCandidatesForFunc(fn *ast.FuncDecl) map[types.Object]goPtrResultInfo {
 	typeInfo := GetTypeInfo()
 	if fn == nil || fn.Body == nil || typeInfo == nil || typeInfo.info == nil {
@@ -3786,7 +3812,11 @@ func collectGoPtrCandidatesForFunc(fn *ast.FuncDecl) map[types.Object]goPtrResul
 					if !ok {
 						info = goPtrResultInfo{elemRustType: elemRustType}
 					}
-					candidates[param] = &goPtrCandidate{info: info, valid: true, sawGoPtr: true}
+					state := &goPtrCandidate{info: info, valid: true, sawGoPtr: true}
+					candidates[param] = state
+					if astParam := funcDeclParamObjectAt(fn, index, typeInfo); astParam != nil {
+						candidates[astParam] = state
+					}
 				}
 			}
 		}
@@ -4010,6 +4040,12 @@ func goPtrAssignmentPointerCompatibleForStmt(stmt *ast.AssignStmt, lhsIndex int,
 	if stmt == nil {
 		return false
 	}
+	if len(stmt.Rhs) == 1 && len(stmt.Lhs) > 1 && lhsIndex >= 0 && typeInfo != nil {
+		typ := typeInfo.GetType(stmt.Rhs[0])
+		if tuple, ok := types.Unalias(typ).(*types.Tuple); ok && lhsIndex < tuple.Len() {
+			return goPtrPointerTypeAssignable(tuple.At(lhsIndex).Type(), target)
+		}
+	}
 	return goPtrAssignmentPointerCompatible(assignmentRHSForLHS(stmt, lhsIndex), target, typeInfo)
 }
 
@@ -4017,11 +4053,15 @@ func goPtrAssignmentPointerCompatible(expr ast.Expr, target types.Type, typeInfo
 	if expr == nil || target == nil || typeInfo == nil {
 		return false
 	}
-	if _, ok := types.Unalias(target).Underlying().(*types.Pointer); !ok {
+	actual := typeInfo.GetType(expr)
+	return goPtrPointerTypeAssignable(actual, target)
+}
+
+func goPtrPointerTypeAssignable(actual types.Type, target types.Type) bool {
+	if actual == nil || target == nil {
 		return false
 	}
-	actual := typeInfo.GetType(expr)
-	if actual == nil {
+	if _, ok := types.Unalias(target).Underlying().(*types.Pointer); !ok {
 		return false
 	}
 	return types.AssignableTo(actual, target)

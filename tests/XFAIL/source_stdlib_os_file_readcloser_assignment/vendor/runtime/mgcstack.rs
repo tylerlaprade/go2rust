@@ -1131,7 +1131,7 @@ fn __go_init_0() {
 /// Returns the root of that tree, and the buf+idx of the nth object after x.obj[idx].
 /// (The first object that was not included in the binary search tree.)
 /// If n == 0, returns nil, x.
-pub fn binary_search_tree(mut x: GoPtr<stackObjectBuf>, mut idx: Arc<Mutex<Option<i32>>>, n: Arc<Mutex<Option<i32>>>) -> (Option<GoArrayElemPtr<stackObject, 63>>, Arc<Mutex<Option<stackObjectBuf>>>, i32) {
+pub fn binary_search_tree(mut x: GoPtr<stackObjectBuf>, mut idx: Arc<Mutex<Option<i32>>>, n: Arc<Mutex<Option<i32>>>) -> (Option<GoArrayElemPtr<stackObject, 63>>, GoPtr<stackObjectBuf>, i32) {
     let mut root: Option<GoArrayElemPtr<stackObject, 63>> = None;
     let mut restBuf: Arc<Mutex<Option<stackObjectBuf>>> = Arc::new(Mutex::new(None));
     let mut restIdx: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
