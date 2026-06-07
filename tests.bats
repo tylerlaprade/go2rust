@@ -3055,6 +3055,10 @@ run_xfail_test() {
     run_xfail_test "tests/XFAIL/parallel_assign_receiver_value_field_swap"
 }
 
+@test "XFAIL: source_stdlib_flag_parsing" {
+    run_xfail_test "tests/XFAIL/source_stdlib_flag_parsing"
+}
+
 @test "XFAIL: stateful_goroutines" {
     run_xfail_test "tests/XFAIL/stateful_goroutines"
 }

@@ -3010,7 +3010,6 @@ func functionTypeInterfaceImplResultRust(typ types.Type) string {
 
 func writeFunctionTypeInterfaceImpl(out *strings.Builder, funcTypeName, ifaceName string, iface *types.Interface) {
 	wrapperName := functionTypeInterfaceWrapperName(funcTypeName, ifaceName)
-	traitSnake := traitMethodSuffix(ifaceName)
 	out.WriteString("\n#[derive(Clone)]\n")
 	out.WriteString("pub struct ")
 	out.WriteString(wrapperName)
@@ -3026,13 +3025,62 @@ func writeFunctionTypeInterfaceImpl(out *strings.Builder, funcTypeName, ifaceNam
 	out.WriteString(">\")\n")
 	out.WriteString("    }\n")
 	out.WriteString("}\n\n")
+	seen := map[string]bool{ifaceName: true}
+	writeFunctionTypeEmbeddedInterfaceImpls(out, funcTypeName, wrapperName, iface, seen)
+	writeFunctionTypeInterfaceTraitImpl(out, funcTypeName, wrapperName, ifaceName, iface)
+}
+
+type namedInterfaceImpl struct {
+	name  string
+	iface *types.Interface
+}
+
+func functionTypeEmbeddedInterfaces(iface *types.Interface) []namedInterfaceImpl {
+	if iface == nil {
+		return nil
+	}
+	var embedded []namedInterfaceImpl
+	for i := 0; i < iface.NumEmbeddeds(); i++ {
+		embeddedType := iface.EmbeddedType(i)
+		if name, ok := transpiledNamedInterfaceTypeNameFromTypes(embeddedType); ok {
+			if named, ok := types.Unalias(embeddedType).(*types.Named); ok {
+				if embeddedIface, ok := named.Underlying().(*types.Interface); ok {
+					embedded = append(embedded, namedInterfaceImpl{name: name, iface: embeddedIface})
+				}
+			}
+			continue
+		}
+		if name, embeddedIface, ok := importedTranspiledInterfaceFromType(embeddedType); ok {
+			embedded = append(embedded, namedInterfaceImpl{name: name, iface: embeddedIface})
+		}
+	}
+	return embedded
+}
+
+func writeFunctionTypeEmbeddedInterfaceImpls(out *strings.Builder, funcTypeName, wrapperName string, iface *types.Interface, seen map[string]bool) {
+	for _, embedded := range functionTypeEmbeddedInterfaces(iface) {
+		if seen[embedded.name] {
+			continue
+		}
+		seen[embedded.name] = true
+		writeFunctionTypeEmbeddedInterfaceImpls(out, funcTypeName, wrapperName, embedded.iface, seen)
+		writeFunctionTypeInterfaceTraitImpl(out, funcTypeName, wrapperName, embedded.name, embedded.iface)
+	}
+}
+
+func writeFunctionTypeInterfaceTraitImpl(out *strings.Builder, funcTypeName, wrapperName, ifaceName string, iface *types.Interface) {
+	traitSnake := traitMethodSuffix(ifaceName)
 	out.WriteString("impl ")
 	out.WriteString(ifaceName)
 	out.WriteString(" for ")
 	out.WriteString(wrapperName)
 	out.WriteString(" {\n")
-	for i := 0; i < iface.NumMethods(); i++ {
-		method := iface.Method(i)
+	explicitMethodCount := 0
+	if iface != nil {
+		explicitMethodCount = iface.NumExplicitMethods()
+	}
+	for i := 0; i < explicitMethodCount; i++ {
+		method := iface.ExplicitMethod(i)
 		sig, ok := method.Type().(*types.Signature)
 		if !ok {
 			continue
@@ -3073,13 +3121,13 @@ func writeFunctionTypeInterfaceImpl(out *strings.Builder, funcTypeName, ifaceNam
 			}
 		}
 		out.WriteString(" {\n")
-		out.WriteString("        self.0.")
+		out.WriteString("        ")
+		out.WriteString(funcTypeName)
+		out.WriteString("Methods::")
 		out.WriteString(ToSnakeCase(method.Name()))
-		out.WriteString("(")
+		out.WriteString("(&self.0")
 		for j := 0; j < sig.Params().Len(); j++ {
-			if j > 0 {
-				out.WriteString(", ")
-			}
+			out.WriteString(", ")
 			paramName := sig.Params().At(j).Name()
 			if paramName == "" {
 				paramName = fmt.Sprintf("__arg%d", j)
@@ -3097,9 +3145,11 @@ func writeFunctionTypeInterfaceImpl(out *strings.Builder, funcTypeName, ifaceNam
 	out.WriteString(" {\n")
 	out.WriteString("        Box::new(self.clone())\n")
 	out.WriteString("    }\n")
-	out.WriteString("    fn __go_as_any(&self) -> &dyn std::any::Any {\n")
-	out.WriteString("        self\n")
-	out.WriteString("    }\n")
+	if len(functionTypeEmbeddedInterfaces(iface)) == 0 {
+		out.WriteString("    fn __go_as_any(&self) -> &dyn std::any::Any {\n")
+		out.WriteString("        &self.0\n")
+		out.WriteString("    }\n")
+	}
 	out.WriteString("    fn __go_eq_")
 	out.WriteString(traitSnake)
 	out.WriteString("(&self, _other: ")

@@ -16053,6 +16053,11 @@ func writeNumericConversionValue(out *strings.Builder, arg ast.Expr) {
 		argType = typeInfo.GetType(arg)
 	}
 
+	if named, ok := namedNumericType(argType); ok && writeNamedScalarCurrentReceiverDerefUnderlyingValue(out, arg, named) {
+		writeExternalIntegerTupleField(out, argType)
+		return
+	}
+
 	if writeNamedIntegerPrimitiveExpression(out, arg) {
 		return
 	}
@@ -16181,6 +16186,21 @@ func constNumericConversionNeedsExpressionRewrite(arg ast.Expr) bool {
 	default:
 		return false
 	}
+}
+
+func namedNumericType(typ types.Type) (*types.Named, bool) {
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok {
+		return nil, false
+	}
+	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
+	if !ok {
+		return nil, false
+	}
+	if _, ok := rustCastTypeForDefinedUnderlying(basic.Name()); !ok {
+		return nil, false
+	}
+	return named, true
 }
 
 func writeConstNumericConversionOperand(out *strings.Builder, arg ast.Expr, rustType string) {
@@ -16399,6 +16419,9 @@ func writeNamedBoolUnderlyingValue(out *strings.Builder, arg ast.Expr) bool {
 	if !ok || basic.Kind() != types.Bool {
 		return false
 	}
+	if writeNamedBoolCurrentReceiverDerefUnderlyingValue(out, arg, named) {
+		return true
+	}
 	out.WriteString("(*")
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
 		if isCurrentReceiverIdent(ident) {
@@ -16422,6 +16445,35 @@ func writeNamedBoolUnderlyingValue(out *strings.Builder, arg ast.Expr) bool {
 		WriteBorrowMethod(out, false)
 		out.WriteString(".as_ref().unwrap()).0")
 	}
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap())")
+	return true
+}
+
+func writeNamedBoolCurrentReceiverDerefUnderlyingValue(out *strings.Builder, arg ast.Expr, named *types.Named) bool {
+	return writeNamedScalarCurrentReceiverDerefUnderlyingValue(out, arg, named)
+}
+
+func writeNamedScalarCurrentReceiverDerefUnderlyingValue(out *strings.Builder, arg ast.Expr, named *types.Named) bool {
+	unary, ok := arg.(*ast.StarExpr)
+	if !ok || named == nil {
+		return false
+	}
+	ident, ok := unary.X.(*ast.Ident)
+	if !ok || !isCurrentReceiverIdent(ident) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	ptr, ok := types.Unalias(typeInfo.GetType(unary.X)).(*types.Pointer)
+	if !ok || !types.Identical(types.Unalias(ptr.Elem()), named) {
+		return false
+	}
+	out.WriteString("(*")
+	out.WriteString(currentReceiverRustName())
+	out.WriteString(".0")
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap())")
 	return true
@@ -17456,6 +17508,37 @@ func writeLocalInterfaceAssertionWrappedSuccess(out *strings.Builder, ifaceName 
 	WriteWrapperSuffix(out)
 }
 
+func writeLocalInterfaceAssertionWrappedCandidateSuccess(out *strings.Builder, ifaceName string, candidate localInterfaceAssertionCandidate) {
+	WriteWrapperPrefix(out)
+	if adapterValue, ok := functionTypeInterfaceAssertionAdapterValue(ifaceName, candidate); ok {
+		out.WriteString("Box::new(")
+		out.WriteString(adapterValue)
+		out.WriteString(") as ")
+		out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+	} else {
+		out.WriteString("Box::new(typed_val.clone()) as ")
+		out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+	}
+	WriteWrapperSuffix(out)
+}
+
+func functionTypeInterfaceAssertionAdapterValue(ifaceName string, candidate localInterfaceAssertionCandidate) (string, bool) {
+	if ifaceName == "" {
+		return "", false
+	}
+	named, ok := types.Unalias(candidate.typ).(*types.Named)
+	if !ok || named.Obj() == nil {
+		return "", false
+	}
+	if _, ok := types.Unalias(named.Underlying()).(*types.Signature); !ok {
+		return "", false
+	}
+	if strings.Contains(candidate.rustType, "::") {
+		return "", false
+	}
+	return functionTypeInterfaceWrapperName(candidate.rustType, ifaceName) + "(typed_val.clone())", true
+}
+
 func writeLocalInterfaceAssertionWrappedNone(out *strings.Builder, ifaceName string) {
 	writeTypedWrappedNone(out, rustLocalInterfaceTraitObject(ifaceName))
 }
@@ -17660,7 +17743,7 @@ func writeLocalInterfaceAssertionCommaOk(out *strings.Builder, e *ast.TypeAssert
 			writeLocalInterfaceAssertionDowncast(out, sourceTrait, candidate.rustType)
 			out.WriteString(" {\n")
 			out.WriteString("                (")
-			writeLocalInterfaceAssertionWrappedSuccess(out, ifaceName)
+			writeLocalInterfaceAssertionWrappedCandidateSuccess(out, ifaceName, candidate)
 			out.WriteString(", ")
 			out.WriteString("true")
 			out.WriteString(")\n")

@@ -2543,6 +2543,103 @@ func Inspect(node Node, f func(Node) bool) {
 	}
 }
 
+func TestFunctionTypeWrapperForEmbeddedInterfaceImplementsSupertrait(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Value interface {
+	Set(string) error
+	String() string
+}
+
+type BoolFlag interface {
+	Value
+	IsBoolFlag() bool
+}
+
+type boolFunc func(string) error
+
+func (f boolFunc) Set(s string) error { return f(s) }
+func (f boolFunc) String() string { return "" }
+func (f boolFunc) IsBoolFlag() bool { return true }
+
+func bind(v BoolFlag) {}
+
+func use(f func(string) error) {
+	bind(boolFunc(f))
+}
+`)
+
+	if !strings.Contains(rust, "impl Value for boolFuncAsBoolFlag") {
+		t.Fatalf("function-type wrapper for embedded interface should implement the supertrait on the same wrapper:\n%s", rust)
+	}
+
+	implHeader := "impl BoolFlag for boolFuncAsBoolFlag {"
+	start := strings.Index(rust, implHeader)
+	if start < 0 {
+		t.Fatalf("missing BoolFlag impl for function-type wrapper:\n%s", rust)
+	}
+	boolFlagImpl := rust[start:]
+	if next := strings.Index(boolFlagImpl[len(implHeader):], "\nimpl "); next >= 0 {
+		boolFlagImpl = boolFlagImpl[:len(implHeader)+next]
+	}
+
+	if strings.Contains(boolFlagImpl, "fn set(") || strings.Contains(boolFlagImpl, "fn string(") {
+		t.Fatalf("embedded Value methods should live in the Value impl, not BoolFlag impl:\n%s", boolFlagImpl)
+	}
+	if strings.Contains(boolFlagImpl, "fn __go_as_any(") {
+		t.Fatalf("embedded interface support method should be inherited from the supertrait impl:\n%s", boolFlagImpl)
+	}
+	if !strings.Contains(boolFlagImpl, "fn is_bool_flag(") {
+		t.Fatalf("BoolFlag impl should still emit its direct method:\n%s", boolFlagImpl)
+	}
+}
+
+func TestFunctionTypeInterfaceWrapperQualifiesSameSignatureMethodTrait(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Value interface {
+	Set(string) error
+	String() string
+}
+
+type BoolFlag interface {
+	Value
+	IsBoolFlag() bool
+}
+
+type funcValue func(string) error
+
+func (f funcValue) Set(s string) error { return f(s) }
+func (f funcValue) String() string { return "" }
+
+type boolFuncValue func(string) error
+
+func (f boolFuncValue) Set(s string) error { return f(s) }
+func (f boolFuncValue) String() string { return "" }
+func (f boolFuncValue) IsBoolFlag() bool { return true }
+
+func bindValue(v Value) {}
+func bindBool(v BoolFlag) {}
+
+func use(f func(string) error) {
+	bindValue(funcValue(f))
+	bindBool(boolFuncValue(f))
+}
+`)
+
+	for _, want := range []string{
+		"funcValueMethods::set(&self.0",
+		"funcValueMethods::string(&self.0",
+		"boolFuncValueMethods::set(&self.0",
+		"boolFuncValueMethods::string(&self.0",
+		"boolFuncValueMethods::is_bool_flag(&self.0",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("function-type interface wrapper should qualify same-signature method trait %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestEmbeddedInterfaceTraitObjectAdapterUsesMutableReceiver(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

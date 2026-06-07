@@ -3782,6 +3782,43 @@ func (x boolVal) truth() bool {
 	}
 }
 
+func TestNamedBoolPointerReceiverDerefConversionUsesSelfInnerValue(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type boolVal bool
+
+func (x *boolVal) truth() bool {
+	return bool(*x)
+}
+`)
+
+	if strings.Contains(rust, "as_mut().unwrap()).lock") ||
+		strings.Contains(rust, "as_mut().unwrap()).borrow") {
+		t.Fatalf("named bool pointer receiver deref conversion should not treat the scalar pointee as another handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "self.0") {
+		t.Fatalf("named bool pointer receiver deref conversion should read the receiver newtype field:\n%s", rust)
+	}
+}
+
+func TestNamedFloatPointerReceiverDerefConversionUsesSelfInnerValue(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type floatVal float64
+
+func (x *floatVal) value() float64 {
+	return float64(*x)
+}
+`)
+
+	if strings.Contains(rust, "(*self).clone() as f64") {
+		t.Fatalf("named float pointer receiver deref conversion should not cast the receiver wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "self.0") {
+		t.Fatalf("named float pointer receiver deref conversion should read the receiver newtype field:\n%s", rust)
+	}
+}
+
 func TestNamedBoolLogicalOpsBoxInterfaceReturns(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
@@ -8015,6 +8052,54 @@ func useReturn(orig Type) genericType {
 	if strings.Contains(rust, "return Rc::new(RefCell::new(Some(({") ||
 		strings.Contains(rust, "return Arc::new(Mutex::new(Some(({") {
 		t.Fatalf("interface assertion return should not wrap an existing interface handle again:\n%s", rust)
+	}
+}
+
+func TestFunctionTypeInterfaceAssertionBoxesAdapterWrapper(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type value interface {
+	Set(string)
+	String() string
+}
+
+type boolFlag interface {
+	value
+	IsBoolFlag() bool
+}
+
+type boolFuncValue func(string)
+
+func (f boolFuncValue) Set(s string) {
+	f(s)
+}
+
+func (f boolFuncValue) String() string {
+	return ""
+}
+
+func (f boolFuncValue) IsBoolFlag() bool {
+	return true
+}
+
+type flag struct {
+	value value
+}
+
+func use(f flag) bool {
+	v, ok := f.value.(boolFlag)
+	return ok && v.IsBoolFlag()
+}
+`)
+
+	if strings.Contains(rust, "Box::new(typed_val.clone()) as Box<dyn boolFlag") {
+		t.Fatalf("function type assertion should not box the raw function handle as the target interface:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(boolFuncValueAsboolFlag(typed_val.clone())) as Box<dyn boolFlag") {
+		t.Fatalf("function type assertion should box the generated target-interface adapter:\n%s", rust)
+	}
+	if !strings.Contains(rust, "fn __go_as_any(&self) -> &dyn std::any::Any {\n        &self.0\n    }") {
+		t.Fatalf("function type interface adapter should expose the original function value as the Go dynamic type:\n%s", rust)
 	}
 }
 

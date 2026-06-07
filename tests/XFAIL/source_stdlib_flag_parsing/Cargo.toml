@@ -1,0 +1,20 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/flag",
+    "vendor/go2rust_stdlib_stubs",
+]
+
+[package]
+name = "source_stdlib_flag_parsing"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "source_stdlib_flag_parsing"
+path = "main.rs"
+
+[dependencies]
+flag = { path = "vendor/flag" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
