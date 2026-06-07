@@ -8095,6 +8095,10 @@ func useAny(x any) string {
 	v := x.(value)
 	return v.String()
 }
+
+func useAnyDirect(x any) string {
+	return x.(value).String()
+}
 `)
 
 	if strings.Contains(rust, "Box::new(typed_val.clone()) as Box<dyn boolFlag") {
@@ -8108,6 +8112,12 @@ func useAny(x any) string {
 	}
 	if !strings.Contains(rust, "Box::new(boolFuncValueAsvalue(typed_val.clone())) as Box<dyn value") {
 		t.Fatalf("function type assertion should box the generated base-interface adapter:\n%s", rust)
+	}
+	if strings.Contains(rust, "}).string()") {
+		t.Fatalf("method call on named-interface assertion should not dispatch on the wrapper handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __recv = ({") || !strings.Contains(rust, "let __result = (*__recv.borrow().as_ref().unwrap()).string(); __result }") {
+		t.Fatalf("method call on named-interface assertion should unwrap the asserted trait object receiver:\n%s", rust)
 	}
 	if !strings.Contains(rust, "fn __go_as_any(&self) -> &dyn std::any::Any {\n        &self.0\n    }") {
 		t.Fatalf("function type interface adapter should expose the original function value as the Go dynamic type:\n%s", rust)

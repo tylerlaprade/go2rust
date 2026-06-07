@@ -1379,6 +1379,9 @@ func methodReceiverExpressionNeedsUnwrap(expr ast.Expr) bool {
 		if _, _, _, ok := anonInterfaceAssertionTarget(e); ok {
 			return true
 		}
+		if typeAssertionTargetIsInterface(e) {
+			return true
+		}
 		return typeInfo.IsPointer(e)
 	case *ast.UnaryExpr:
 		typeInfo := GetTypeInfo()

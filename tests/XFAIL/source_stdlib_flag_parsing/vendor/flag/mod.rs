@@ -4220,7 +4220,7 @@ pub fn is_zero_value(flag: Arc<Mutex<Option<Flag>>>, value: Arc<Mutex<Option<Str
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
         {
-        { let new_val = { let __tmp_x = (*value.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*({
+        { let new_val = { let __tmp_x = (*value.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*{ let __recv = ({
         let val = (*z.lock().unwrap().as_ref().unwrap()).interface().clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
@@ -4252,7 +4252,7 @@ pub fn is_zero_value(flag: Arc<Mutex<Option<Flag>>>, value: Arc<Mutex<Option<Str
         } else {
             panic!("type assertion on nil interface")
         }
-    }).string().lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y }; *ok.lock().unwrap() = Some(new_val); };;
+    }); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y }; *ok.lock().unwrap() = Some(new_val); };;
         *err.lock().unwrap() = None;;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
