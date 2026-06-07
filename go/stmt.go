@@ -3922,8 +3922,8 @@ func writeFunctionTypedIdentFieldAssignment(out *strings.Builder, lhs ast.Expr, 
 	out.WriteString("{ let new_val = ")
 	out.WriteString(rhsName)
 	out.WriteString(".clone(); ")
-	TranspileExpressionContext(out, lhs, LValue)
-	out.WriteString(" = new_val; }")
+	writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
+	out.WriteString(" }")
 	return true
 }
 

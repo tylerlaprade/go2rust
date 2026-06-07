@@ -4915,6 +4915,27 @@ func alloc() *func() {
 	}
 }
 
+func TestFunctionTypedFieldAssignmentUsesMutableStructTarget(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type group struct {
+	wait func(int) bool
+}
+
+func install(gp *group, fn func(int) bool) {
+	gp.wait = fn
+}
+`)
+
+	if strings.Contains(rust, ".as_ref().unwrap()).wait = new_val") {
+		t.Fatalf("function-typed field assignment through a wrapped pointer should not use an immutable struct borrow:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*gp.borrow_mut().as_mut().unwrap()).wait = new_val;") &&
+		!strings.Contains(rust, "(*gp.lock().unwrap().as_mut().unwrap()).wait = new_val;") {
+		t.Fatalf("function-typed field assignment through a wrapped pointer should mutate the struct field handle:\n%s", rust)
+	}
+}
+
 func TestPointerFunctionAssignmentFromCallMovesReturnedSlot(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

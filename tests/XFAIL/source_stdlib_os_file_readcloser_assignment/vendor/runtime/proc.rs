@@ -2314,7 +2314,7 @@ pub fn gopark(unlockf: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<g>>>, Arc
         throw(Arc::new(Mutex::new(Some("gopark: bad g status".to_string()))));
     }
     { let new_val = lock.lock().unwrap().as_ref().unwrap().clone(); *(*mp.lock().unwrap().as_ref().unwrap()).waitlock.lock().unwrap() = Some(new_val); };
-    { let new_val = unlockf.clone(); (*mp.lock().unwrap().as_ref().unwrap()).waitunlockf = new_val; };
+    { let new_val = unlockf.clone(); (*mp.lock().unwrap().as_mut().unwrap()).waitunlockf = new_val; };
     { let new_val = reason.lock().unwrap().as_ref().unwrap().clone(); *{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.waitreason.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
     { let new_val = traceReason.lock().unwrap().as_ref().unwrap().clone(); *(*mp.lock().unwrap().as_ref().unwrap()).wait_trace_block_reason.lock().unwrap() = Some(new_val); };
     { let new_val = traceskip.lock().unwrap().as_ref().unwrap().clone(); *(*mp.lock().unwrap().as_ref().unwrap()).wait_trace_skip.lock().unwrap() = Some(new_val); };
@@ -3368,7 +3368,7 @@ pub fn for_each_p_internal(r#fn: Arc<Mutex<Option<Box<dyn FnMut(GoPtr<crate::run
         throw(Arc::new(Mutex::new(Some("forEachP: sched.safePointWait != 0".to_string()))));
     }
     { let new_val = { let __tmp_x = (*gomaxprocs.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as i32; __tmp_x - __tmp_y }; *(*sched.lock().unwrap().as_ref().unwrap()).safe_point_wait.lock().unwrap() = Some(new_val); };
-    { let new_val = r#fn.clone(); (*sched.lock().unwrap().as_ref().unwrap()).safe_point_fn = new_val; };
+    { let new_val = r#fn.clone(); (*sched.lock().unwrap().as_mut().unwrap()).safe_point_fn = new_val; };
 
         // Ask all Ps to run the safe point function.
     { let __range_holder = allp.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for p2 in __range_values.iter() {
@@ -3572,7 +3572,7 @@ pub fn allocm(pp: GoPtr<crate::runtime2::p>, r#fn: Arc<Mutex<Option<Box<dyn FnMu
         // reachable off the system stack transitively from
         // startm.
     let mut mp = Arc::new(Mutex::new(Some(m::default())));
-    { let new_val = r#fn.clone(); (*mp.lock().unwrap().as_ref().unwrap()).mstartfn = new_val; };
+    { let new_val = r#fn.clone(); (*mp.lock().unwrap().as_mut().unwrap()).mstartfn = new_val; };
     mcommoninit(mp.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = id.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
 
         // In case of cgo or Solaris or illumos or Darwin, pthread_create will make us a stack.
