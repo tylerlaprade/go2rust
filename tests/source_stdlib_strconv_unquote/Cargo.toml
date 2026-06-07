@@ -1,0 +1,26 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/internal_bytealg",
+    "vendor/internal_cpu",
+    "vendor/internal_stringslite",
+    "vendor/strconv",
+]
+
+[package]
+name = "source_stdlib_strconv_unquote"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "source_stdlib_strconv_unquote"
+path = "main.rs"
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+internal_bytealg = { path = "vendor/internal_bytealg" }
+internal_cpu = { path = "vendor/internal_cpu" }
+internal_stringslite = { path = "vendor/internal_stringslite" }
+strconv = { path = "vendor/strconv" }

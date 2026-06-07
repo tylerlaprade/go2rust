@@ -1,0 +1,2 @@
+source_stdlib_packages = "strconv,internal/bytealg,internal/cpu"
+test_timeout = "120s"

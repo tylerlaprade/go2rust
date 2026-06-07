@@ -2479,6 +2479,10 @@ run_xfail_test() {
     run_test "tests/source_stdlib_path_filepath_isabs"
 }
 
+@test "source_stdlib_strconv_unquote" {
+    run_test "tests/source_stdlib_strconv_unquote"
+}
+
 @test "source_stdlib_sync_map_load" {
     run_test "tests/source_stdlib_sync_map_load"
 }
