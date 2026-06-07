@@ -206,6 +206,23 @@ in the first place.
   behavior; then delete `writeIoWriterStub`.
 - Added: 2026-05-27 (backfill)
 
+### io-readcloser-close-dispatch
+
+- Location: `go/external_type_stubs.go:2639`
+- Go symbol: `io.ReadCloser.Close` dispatch for `*os.File`
+- Transpiler gap: fully source-mapped `io`/`os` lowering can already box
+  `*os.File` into `io.ReadCloser` with `os::FilePtr(...)`, but the passing
+  non-source-mapped runtime fixture still uses the external `io_ReadCloser`
+  stub and its hand-written `os_File.close()` dispatch.
+- Fixture: `tests/os_file_readcloser_assignment/`,
+  `go/stmt_test.go:TestMultiResultCallReturnConvertsFullySourceMappedStdlibInterfaceSlot`,
+  `go/stmt_test.go:TestSourceMappedReadCloserAssignmentBoxesOsFilePointer`
+- Removal trigger: the `os.File` to `io.ReadCloser` runtime fixture is
+  source-mapped for `io` and `os` and passes without `io_ReadCloser`; then
+  delete `writeIoReadCloserCloseMethod` and the external `io_ReadCloser`
+  conversion path.
+- Added: 2026-06-07 (backfill)
+
 ### json-package
 
 - Location: `go/external_type_stubs.go:5885`

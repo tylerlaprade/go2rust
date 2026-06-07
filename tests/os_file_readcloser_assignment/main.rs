@@ -36,7 +36,7 @@ impl io_ReadCloser {
         if let Some(file) = self.downcast_ref::<os_File>() {
             return file.close();
         }
-        panic!("io_ReadCloser.close bridge: unsupported concrete receiver; transpile io/os source or add a specific dispatch - see AGENTS.md")
+        panic!("io_ReadCloser.close bridge: unsupported concrete receiver; transpile io/os source instead - see AGENTS.md and docs/bridge_debt.md#io-readcloser-close-dispatch")
     }
 }
 

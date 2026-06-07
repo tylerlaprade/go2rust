@@ -2636,6 +2636,9 @@ func writeExternalInterfacePosMethod(out *strings.Builder) {
 	out.WriteString("    }\n")
 }
 
+// TEMPORARY: hand-written Rust shim for io.ReadCloser close dispatch.
+// Long-term fix: source-map io/os and delete the external io_ReadCloser bridge.
+// Registry row: docs/bridge_debt.md#io-readcloser-close-dispatch.
 // Interface dispatch bridge for io.ReadCloser backed by os.File.
 // Unsupported concrete receivers panic loudly instead of synthesizing success.
 func writeIoReadCloserCloseMethod(out *strings.Builder, method externalTypeStubMethod) {
@@ -2645,7 +2648,7 @@ func writeIoReadCloserCloseMethod(out *strings.Builder, method externalTypeStubM
 	out.WriteString("        if let Some(file) = self.downcast_ref::<os_File>() {\n")
 	out.WriteString("            return file.close();\n")
 	out.WriteString("        }\n")
-	out.WriteString("        panic!(\"io_ReadCloser.close bridge: unsupported concrete receiver; transpile io/os source or add a specific dispatch - see AGENTS.md\")\n")
+	out.WriteString("        panic!(\"io_ReadCloser.close bridge: unsupported concrete receiver; transpile io/os source instead - see AGENTS.md and docs/bridge_debt.md#io-readcloser-close-dispatch\")\n")
 	out.WriteString("    }\n")
 }
 
