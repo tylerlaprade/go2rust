@@ -6236,7 +6236,7 @@ func writeSliceElemPtrFieldValueWithInfo(out *strings.Builder, rhs ast.Expr, fie
 			if helperPrefix != "" {
 				writeQualifiedGoPtrVarConversion(out, ident, goPtrHelperQualifierForOwnerPackage(fieldInfo.ownerPkgPath))
 			} else {
-				out.WriteString(RustIdentForUse(ident))
+				out.WriteString(rustIdentForUseWithCapture(ident))
 				out.WriteString(".clone()")
 			}
 			return true

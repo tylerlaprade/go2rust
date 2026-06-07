@@ -2444,6 +2444,48 @@ func use(buf []byte) {
 	}
 }
 
+func TestGoPtrCompositeLiteralFieldFromCapturedGoPtrLocalUsesClosureClone(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct{}
+
+type cursor struct {
+	ptr *node
+	n int
+}
+
+func raw(addr uintptr) *node {
+	return (*node)(unsafe.Pointer(addr))
+}
+
+func use(c cursor) {}
+
+func run(fn func()) {
+	fn()
+}
+
+func build(addr uintptr) *node {
+	p := raw(addr)
+	run(func() {
+		use(cursor{ptr: p, n: 1})
+	})
+	return p
+}
+`)
+
+	if !strings.Contains(rust, "let p_closure_clone = p.clone();") {
+		t.Fatalf("closure should clone the captured GoPtr local:\n%s", rust)
+	}
+	if strings.Contains(rust, "ptr: p.clone()") {
+		t.Fatalf("GoPtr composite field inside closure should not move the outer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "ptr: p_closure_clone.clone()") {
+		t.Fatalf("GoPtr composite field inside closure should use the closure clone:\n%s", rust)
+	}
+}
+
 func TestGoPtrCandidateArgPromotesMethodPointerParam(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
