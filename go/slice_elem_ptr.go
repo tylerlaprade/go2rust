@@ -6364,7 +6364,10 @@ func goPtrSlotDerefResultInfo(expr ast.Expr) (goPtrResultInfo, bool) {
 	if !ok {
 		return goPtrResultInfo{}, false
 	}
-	_, info, ok := goPtrSlotDerefInfo(star)
+	if _, info, ok := goPtrSlotDerefInfo(star); ok {
+		return info, true
+	}
+	_, info, ok := goPtrPointerSlotDerefInfo(star)
 	return info, ok
 }
 
@@ -6393,15 +6396,45 @@ func goPtrSlotDerefInfo(star *ast.StarExpr) (*ast.Ident, goPtrResultInfo, bool) 
 	return ident, slotInfo, true
 }
 
+func goPtrPointerSlotDerefInfo(star *ast.StarExpr) (*ast.Ident, goPtrResultInfo, bool) {
+	if star == nil {
+		return nil, goPtrResultInfo{}, false
+	}
+	ident, ok := unwrapParens(star.X).(*ast.Ident)
+	if !ok || !isGoPtrVar(ident.Name) {
+		return nil, goPtrResultInfo{}, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, goPtrResultInfo{}, false
+	}
+	slotInfo, ok := goPtrSlotInfoForPointerToPointerType(typeInfo.GetType(star.X))
+	if !ok {
+		return nil, goPtrResultInfo{}, false
+	}
+	if expectedInfo, ok := goPtrInfoForPointerType(typeInfo.GetType(star)); ok && !goPtrResultElemCompatible(expectedInfo, slotInfo) {
+		return nil, goPtrResultInfo{}, false
+	}
+	return ident, slotInfo, true
+}
+
 func writeGoPtrSlotDerefRead(out *strings.Builder, star *ast.StarExpr) bool {
 	ident, _, ok := goPtrSlotDerefInfo(star)
+	if ok {
+		out.WriteString("{ let __ptr_slot = ")
+		out.WriteString(rustIdentForUseWithCapture(ident))
+		WriteBorrowMethod(out, false)
+		out.WriteString("; __ptr_slot.as_ref().unwrap().clone() }")
+		return true
+	}
+	ident, _, ok = goPtrPointerSlotDerefInfo(star)
 	if !ok {
 		return false
 	}
+	NeedSliceElemPtr()
 	out.WriteString("{ let __ptr_slot = ")
 	out.WriteString(rustIdentForUseWithCapture(ident))
-	WriteBorrowMethod(out, false)
-	out.WriteString("; __ptr_slot.as_ref().unwrap().clone() }")
+	out.WriteString(".borrow(); GoPtr::local(__ptr_slot.as_ref().unwrap().clone()) }")
 	return true
 }
 

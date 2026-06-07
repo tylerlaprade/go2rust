@@ -1762,8 +1762,8 @@ impl itabTableType {
         let mut i = Arc::new(Mutex::new(Some(1 as usize)));
     loop {
         let mut p: GoPtr<Arc<Mutex<Option<internal_abi::iface::ITab>>>> = GoPtr::raw({ let __ptr = add(Arc::new(Mutex::new(Some(Arc::as_ptr(&self.entries.clone()) as usize))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y })))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
-        let mut m2 = unimplemented!("GoPtr dereference assignment should be lowered by statement assignment").clone();
-        if { let __left_addr = { let __ptr = GoPtr::local(m2.clone()); __ptr.addr() }; let __right_addr = m.addr(); let __eq = __left_addr == __right_addr; __eq } {
+        let mut m2: GoPtr<internal_abi::iface::ITab> = { let __ptr_slot = p.borrow(); GoPtr::local(__ptr_slot.as_ref().unwrap().clone()) };
+        if { let __left_addr = m2.addr(); let __right_addr = m.addr(); let __eq = __left_addr == __right_addr; __eq } {
                 // A given itab may be used in more than one module
                 // and thanks to the way global symbol resolution works, the
                 // pointed-to itab may already have been inserted into the
@@ -1774,7 +1774,7 @@ impl itabTableType {
                 // and thanks to the way global symbol resolution works, the
                 // pointed-to itab may already have been inserted into the
                 // global 'hash'.
-        if { let __nil_result = (*m2.lock().unwrap()).is_none(); __nil_result } {
+        if m2.is_nil() {
                 // Use atomic write here so if a reader sees m, it also
                 // sees the correctly initialized fields of m.
                 // NoWB is ok because m is not in heap memory.

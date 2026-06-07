@@ -1679,6 +1679,38 @@ func call(dst *box, src *box) {
 	}
 }
 
+func TestGoPtrPointerSlotDerefShortDeclUsesGoPtrHandle(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct{}
+
+func rawSlot(addr uintptr) **node {
+	return (**node)(unsafe.Pointer(addr))
+}
+
+func load(addr uintptr) *node {
+	p := rawSlot(addr)
+	n := *p
+	return n
+}
+`)
+
+	if !strings.Contains(rust, "let mut p: GoPtr<") {
+		t.Fatalf("pointer-to-pointer unsafe conversion should use a GoPtr slot handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut n: GoPtr<node>") {
+		t.Fatalf("dereferencing a GoPtr pointer slot should initialize a GoPtr pointee handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoPtr::local(__ptr_slot.as_ref().unwrap().clone())") {
+		t.Fatalf("dereferencing a GoPtr pointer slot should preserve the stored pointer handle:\n%s", rust)
+	}
+	if strings.Contains(rust, `unimplemented!("GoPtr dereference assignment should be lowered by statement assignment")`) {
+		t.Fatalf("pointer slot dereference short declaration should not fall back to unimplemented lowering:\n%s", rust)
+	}
+}
+
 func TestGenericUnsafePointerLoadKeepsTypeParamPointerWrapper(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
