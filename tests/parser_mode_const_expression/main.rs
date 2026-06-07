@@ -14,6 +14,7 @@ fn main() {
     internal_stringslite::__go_init_all();
     path_filepath::__go_init_all();
     slices::__go_init_all();
+    strconv::__go_init_all();
     strings::__go_init_all();
 
     const mode: u64 = go_parser::ALL_ERRORS as u64 | go_parser::PARSE_COMMENTS as u64;

@@ -481,18 +481,18 @@ impl Scanner {
         { let new_val = { let __selector_holder = self.rd_offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *self.offset.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = (*self.ch.lock().unwrap().as_ref().unwrap()); let __tmp_y = ('\n' as i32); __tmp_x == __tmp_y } {
         { let new_val = { let __selector_holder = self.offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *self.line_offset.lock().unwrap() = Some(new_val); };
-        (*self.file.lock().unwrap().as_mut().unwrap()).add_line({ let __field = self.offset.clone(); __field });
+        (*self.file.lock().unwrap().as_mut().unwrap()).add_line(Arc::new(Mutex::new(Some({ let __selector_holder = self.offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
     }
         let (mut r, mut w) = (Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.src.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(*self.rd_offset.clone().lock().unwrap().as_ref().unwrap()) as usize].clone() } as i32))), Arc::new(Mutex::new(Some(1))));
         if { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i32; __tmp_x == __tmp_y } {
-            { let __method_arg0 = { let __field = self.offset.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("illegal character NUL".to_string()))); self.error(__method_arg0, __method_arg1) };
+            { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("illegal character NUL".to_string()))); self.error(__method_arg0, __method_arg1) };
         } else if { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = utf8::RUNE_SELF as i32; __tmp_x >= __tmp_y } {
                         // not ASCII
             { let (__tmp_0, __tmp_1) = utf8::decode_rune(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.src.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; let __low = (*self.rd_offset.clone().lock().unwrap().as_ref().unwrap()) as usize; __seq[__low..].to_vec() })))); *r.lock().unwrap() = Some(__tmp_0); *w.lock().unwrap() = Some(__tmp_1); };
             if { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = utf8::RUNE_ERROR as i32; __tmp_x == __tmp_y } && { let __tmp_x = { let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x == __tmp_y } {
-        { let __method_arg0 = { let __field = self.offset.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("illegal UTF-8 encoding".to_string()))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("illegal UTF-8 encoding".to_string()))); self.error(__method_arg0, __method_arg1) };
     } else if { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = BOM as i32; __tmp_x == __tmp_y } && { let __tmp_x = (*self.offset.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x > __tmp_y } {
-        { let __method_arg0 = { let __field = self.offset.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("illegal byte order mark".to_string()))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("illegal byte order mark".to_string()))); self.error(__method_arg0, __method_arg1) };
     }
         }
                 // not ASCII
@@ -502,7 +502,7 @@ impl Scanner {
         { let new_val = ({ let __len_target = { let __field = self.src.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32; *self.offset.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = (*self.ch.lock().unwrap().as_ref().unwrap()); let __tmp_y = ('\n' as i32); __tmp_x == __tmp_y } {
         { let new_val = { let __selector_holder = self.offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *self.line_offset.lock().unwrap() = Some(new_val); };
-        (*self.file.lock().unwrap().as_mut().unwrap()).add_line({ let __field = self.offset.clone(); __field });
+        (*self.file.lock().unwrap().as_mut().unwrap()).add_line(Arc::new(Mutex::new(Some({ let __selector_holder = self.offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
     }
         { let new_val = EOF as i32; *self.ch.lock().unwrap() = Some(new_val); };
     }
@@ -534,7 +534,7 @@ impl Scanner {
     pub fn init(&mut self, file: Arc<Mutex<Option<go_token::position::File>>>, src: Arc<Mutex<Option<Vec<u8>>>>, err: ErrorHandler, mode: Arc<Mutex<Option<Mode>>>) {
                 // Explicitly initialize all fields since a scanner may be reused.
         if { let __tmp_x = ({ let __recv = file.clone(); let __recv_ptr: *const go_token::position::File = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_token::position::File }; let __result = unsafe { &*__recv_ptr }.size(); __result } as i32); let __tmp_y = ((*src.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x != __tmp_y } {
-        panic!("file size ({}) does not match src len ({})", { let __recv = file.clone(); let __recv_ptr: *const go_token::position::File = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_token::position::File }; let __result = unsafe { &*__recv_ptr }.size(); __result }, (*src.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0));
+        std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("file size ({}) does not match src len ({})", { let __recv = file.clone(); let __recv_ptr: *const go_token::position::File = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_token::position::File }; let __result = unsafe { &*__recv_ptr }.size(); __result }, (*src.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0))))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     }
         { let new_val = file.clone(); self.file = new_val; };
         { let (__tmp_0, __tmp_1) = path_filepath::split({ let __recv = file.clone(); let __recv_ptr: *const go_token::position::File = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_token::position::File }; let __result = unsafe { &*__recv_ptr }.name(); __result }); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *self.dir.lock().unwrap() = __moved_tmp_0; };
@@ -754,7 +754,7 @@ impl Scanner {
                 // scanIdentifier is only called when s.ch is a letter, so calling s.next()
                 // at s.rdOffset resets the scanner state.
         self.next();
-        while is_letter({ let __field = self.ch.clone(); __field }) || is_digit({ let __field = self.ch.clone(); __field }) {
+        while is_letter(Arc::new(Mutex::new(Some({ let __selector_holder = self.ch.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) || is_digit(Arc::new(Mutex::new(Some({ let __selector_holder = self.ch.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) {
         self.next();
     }
         break 'exit;
@@ -789,7 +789,7 @@ impl Scanner {
 
         if { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x <= __tmp_y } {
         let mut max = Arc::new(Mutex::new(Some(({ let __tmp_x = ('0' as i32); let __tmp_y = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as i32)));
-        while is_decimal({ let __field = self.ch.clone(); __field }) || { let __tmp_x = (*self.ch.lock().unwrap().as_ref().unwrap()); let __tmp_y = ('_' as i32); __tmp_x == __tmp_y } {
+        while is_decimal(Arc::new(Mutex::new(Some({ let __selector_holder = self.ch.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) || { let __tmp_x = (*self.ch.lock().unwrap().as_ref().unwrap()); let __tmp_y = ('_' as i32); __tmp_x == __tmp_y } {
         let mut ds = Arc::new(Mutex::new(Some(1)));
         if { let __tmp_x = (*self.ch.lock().unwrap().as_ref().unwrap()); let __tmp_y = ('_' as i32); __tmp_x == __tmp_y } {
         { let new_val = 2; *ds.lock().unwrap() = Some(new_val); };
@@ -801,7 +801,7 @@ impl Scanner {
         self.next();
     }
     } else {
-        while is_hex({ let __field = self.ch.clone(); __field }) || { let __tmp_x = (*self.ch.lock().unwrap().as_ref().unwrap()); let __tmp_y = ('_' as i32); __tmp_x == __tmp_y } {
+        while is_hex(Arc::new(Mutex::new(Some({ let __selector_holder = self.ch.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) || { let __tmp_x = (*self.ch.lock().unwrap().as_ref().unwrap()); let __tmp_y = ('_' as i32); __tmp_x == __tmp_y } {
         let mut ds = Arc::new(Mutex::new(Some(1)));
         if { let __tmp_x = (*self.ch.lock().unwrap().as_ref().unwrap()); let __tmp_y = ('_' as i32); __tmp_x == __tmp_y } {
         { let new_val = 2; *ds.lock().unwrap() = Some(new_val); };
@@ -826,7 +826,7 @@ impl Scanner {
         { let new_val = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_N_T as i32)))); *tok.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = (*self.ch.lock().unwrap().as_ref().unwrap()); let __tmp_y = ('0' as i32); __tmp_x == __tmp_y } {
         self.next();
-        { let _switch_val = lower({ let __field = self.ch.clone(); __field });
+        { let _switch_val = lower(Arc::new(Mutex::new(Some({ let __selector_holder = self.ch.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
     if _switch_val == (('x' as i32)) {
             self.next();
             { let __tmp_0 = 16; let __tmp_1 = ('x' as i32); *base.lock().unwrap() = Some(__tmp_0); *prefix_local.lock().unwrap() = Some(__tmp_1); };
@@ -850,22 +850,22 @@ impl Scanner {
         if { let __tmp_x = (*self.ch.lock().unwrap().as_ref().unwrap()); let __tmp_y = ('.' as i32); __tmp_x == __tmp_y } {
         { let new_val = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::F_L_O_A_T as i32)))); *tok.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = { let __v = (*prefix_local.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('o' as i32); __tmp_x == __tmp_y } || { let __tmp_x = { let __v = (*prefix_local.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('b' as i32); __tmp_x == __tmp_y } {
-        { let __method_arg0 = { let __field = self.offset.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some(format!("{}{}", "invalid radix point in ".to_string(), (*litname(Arc::new(Mutex::new(Some({ let __arg_holder = prefix_local.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()))))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some(format!("{}{}", "invalid radix point in ".to_string(), (*litname(Arc::new(Mutex::new(Some({ let __arg_holder = prefix_local.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()))))); self.error(__method_arg0, __method_arg1) };
     }
         self.next();
         { let __rhs = self.digits(Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), invalid.clone()); let mut guard = digsep.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
     }
         if { let __tmp_x = { let __tmp_x = { let __v = (*digsep.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x & __tmp_y }; let __tmp_y = 0; __tmp_x == __tmp_y } {
-        { let __method_arg0 = { let __field = self.offset.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some(format!("{}{}", (*litname(Arc::new(Mutex::new(Some({ let __arg_holder = prefix_local.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()), " has no digits".to_string())))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some(format!("{}{}", (*litname(Arc::new(Mutex::new(Some({ let __arg_holder = prefix_local.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()), " has no digits".to_string())))); self.error(__method_arg0, __method_arg1) };
     }
                 // exponent
         {
-        let mut e = lower({ let __field = self.ch.clone(); __field });;
+        let mut e = lower(Arc::new(Mutex::new(Some({ let __selector_holder = self.ch.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));;
         if { let __tmp_x = e; let __tmp_y = ('e' as i32); __tmp_x == __tmp_y } || { let __tmp_x = e; let __tmp_y = ('p' as i32); __tmp_x == __tmp_y } {
             if { let __tmp_x = e; let __tmp_y = ('e' as i32); __tmp_x == __tmp_y } && { let __tmp_x = { let __v = (*prefix_local.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i32; __tmp_x != __tmp_y } && { let __tmp_x = { let __v = (*prefix_local.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('0' as i32); __tmp_x != __tmp_y } {
-            { let __method_arg0 = { let __field = self.offset.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("%q exponent requires decimal mantissa".to_string()))); self.errorf(__method_arg0, __method_arg1, Arc::new(Mutex::new(Some(vec![Box::new({ let __selector_holder = self.ch.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>])))) };
+            { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("%q exponent requires decimal mantissa".to_string()))); self.errorf(__method_arg0, __method_arg1, Arc::new(Mutex::new(Some(vec![Box::new({ let __selector_holder = self.ch.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>])))) };
         } else if { let __tmp_x = e; let __tmp_y = ('p' as i32); __tmp_x == __tmp_y } && { let __tmp_x = { let __v = (*prefix_local.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('x' as i32); __tmp_x != __tmp_y } {
-            { let __method_arg0 = { let __field = self.offset.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("%q exponent requires hexadecimal mantissa".to_string()))); self.errorf(__method_arg0, __method_arg1, Arc::new(Mutex::new(Some(vec![Box::new({ let __selector_holder = self.ch.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>])))) };
+            { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("%q exponent requires hexadecimal mantissa".to_string()))); self.errorf(__method_arg0, __method_arg1, Arc::new(Mutex::new(Some(vec![Box::new({ let __selector_holder = self.ch.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>])))) };
         };
             self.next();;
             { let new_val = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::F_L_O_A_T as i32)))); *tok.lock().unwrap() = Some(new_val); };;
@@ -875,10 +875,10 @@ impl Scanner {
             let mut ds = self.digits(Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(None)));;
             { let __rhs = ds; let mut guard = digsep.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };;
             if { let __tmp_x = { let __tmp_x = ds; let __tmp_y = 1; __tmp_x & __tmp_y }; let __tmp_y = 0; __tmp_x == __tmp_y } {
-        { let __method_arg0 = { let __field = self.offset.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("exponent has no digits".to_string()))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("exponent has no digits".to_string()))); self.error(__method_arg0, __method_arg1) };
     };
         } else if { let __tmp_x = { let __v = (*prefix_local.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('x' as i32); __tmp_x == __tmp_y } && { let __tmp_x = (*tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::F_L_O_A_T as i32)))); __tmp_x == __tmp_y } {
-        { let __method_arg0 = { let __field = self.offset.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("hexadecimal mantissa requires a 'p' exponent".to_string()))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("hexadecimal mantissa requires a 'p' exponent".to_string()))); self.error(__method_arg0, __method_arg1) };
     }
     }
                 // suffix 'i'
@@ -935,13 +935,13 @@ impl Scanner {
     }
         let mut x: Arc<Mutex<Option<u32>>> = Arc::new(Mutex::new(Some(0)));
         while { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
-        let mut d = Arc::new(Mutex::new(Some(digit_val({ let __field = self.ch.clone(); __field }) as u32)));
+        let mut d = Arc::new(Mutex::new(Some(digit_val(Arc::new(Mutex::new(Some({ let __selector_holder = self.ch.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) as u32)));
         if { let __tmp_x = { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x >= __tmp_y } {
         let mut msg = Arc::new(Mutex::new(Some(format!("illegal character U+{:04X} in escape sequence", (*self.ch.lock().unwrap().as_ref().unwrap()) as u32))));
         if { let __tmp_x = (*self.ch.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x < __tmp_y } {
         { let new_val = "escape sequence not terminated".to_string(); *msg.lock().unwrap() = Some(new_val); };
     }
-        { let __method_arg0 = { let __field = self.offset.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some({ let __arg_holder = msg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some({ let __arg_holder = msg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))); self.error(__method_arg0, __method_arg1) };
         return false;
     }
         { let new_val = { let __tmp_x = { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }; let __tmp_y = { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; *x.lock().unwrap() = Some(new_val); };
@@ -1118,7 +1118,7 @@ impl Scanner {
                 // containing newline, at position of first newline.
         { let __tmp_0 = { let __selector_holder = self.nl_pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_1 = go_token::S_E_M_I_C_O_L_O_N; let __tmp_2 = "\n".to_string(); *pos.lock().unwrap() = Some(__tmp_0); *tok.lock().unwrap() = Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(__tmp_1 as i32))))); *lit.lock().unwrap() = Some(__tmp_2); };
         { let new_val = go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i32)))); *self.nl_pos.lock().unwrap() = Some(new_val); };
-        return (pos, tok, lit);
+        return (pos.clone(), tok.clone(), lit.clone());
     }
 
                         // Return artificial ';' token after /*...*/ comment
@@ -1126,7 +1126,7 @@ impl Scanner {
             self.skip_whitespace();
 
                         // current token start
-            { let new_val = (*self.file.lock().unwrap().as_ref().unwrap()).pos({ let __field = self.offset.clone(); __field }); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *pos.lock().unwrap() = __moved_val; };
+            { let new_val = (*self.file.lock().unwrap().as_ref().unwrap()).pos(Arc::new(Mutex::new(Some({ let __selector_holder = self.offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *pos.lock().unwrap() = __moved_val; };
 
                         // determine token value
             let mut insertSemi = Arc::new(Mutex::new(Some(false)));
@@ -1314,7 +1314,7 @@ impl Scanner {
         { let new_val = insertSemi.lock().unwrap().as_ref().unwrap().clone(); *self.insert_semi.lock().unwrap() = Some(new_val); };
     }
 
-            return (pos, tok, lit);
+            return (pos.clone(), tok.clone(), lit.clone());
         };
         unreachable!()
     }
@@ -1328,8 +1328,8 @@ pub fn trailing_digits(text: Arc<Mutex<Option<Vec<u8>>>>) -> (i32, i32, bool) {
 
         // no ":"
         // i >= 0
-    let (mut n, mut err) = strconv::parse_uint(Arc::new(Mutex::new(Some(String::from_utf8((*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = text.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; let __low = ({ let __tmp_x = i; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __seq[__low..].to_vec() }))).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))), 10, 0);
-    return ({ let __tmp_x = i; let __tmp_y = 1; __tmp_x + __tmp_y }, (*Arc::new(Mutex::new(Some(n as i32))).lock().unwrap().as_ref().unwrap()), (*err.lock().unwrap()).is_none());
+    let (mut n, mut err) = strconv::parse_uint(Arc::new(Mutex::new(Some(String::from_utf8((*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = text.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; let __low = ({ let __tmp_x = i; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __seq[__low..].to_vec() }))).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))), Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(0))));
+    return ({ let __tmp_x = i; let __tmp_y = 1; __tmp_x + __tmp_y }, (*Arc::new(Mutex::new(Some(n as i32))).lock().unwrap().as_ref().unwrap()), { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result });
 }
 
 pub fn is_letter(ch: Arc<Mutex<Option<i32>>>) -> bool {
