@@ -18815,6 +18815,25 @@ func isSourceMappedBytesBufferReceiverType(typ types.Type) bool {
 	return ok && isSourceMappedPackagePath(named.Obj().Pkg().Path())
 }
 
+func isSourceMappedIoWriterReceiverType(typ types.Type) bool {
+	named, ok := ioWriterReceiverNamedType(typ)
+	return ok && isSourceMappedPackagePath(named.Obj().Pkg().Path())
+}
+
+func ioWriterReceiverNamedType(typ types.Type) (*types.Named, bool) {
+	if typ == nil {
+		return nil, false
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return nil, false
+	}
+	if named.Obj().Pkg().Path() != "io" || named.Obj().Name() != "Writer" {
+		return nil, false
+	}
+	return named, true
+}
+
 func bytesBufferReceiverNamedType(typ types.Type) (*types.Named, bool) {
 	if typ == nil {
 		return nil, false

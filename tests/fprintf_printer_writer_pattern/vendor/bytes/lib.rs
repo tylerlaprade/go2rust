@@ -15,8 +15,9 @@ static __GO_INIT_ONCE: std::sync::Once = std::sync::Once::new();
 
 pub fn __go_init_all() {
     __GO_INIT_ONCE.call_once(|| {
-        internal_bytealg::__go_init_all();
-        unicode_utf8::__go_init_all();
+        ::internal_bytealg::__go_init_all();
+        ::io::__go_init_all();
+        ::unicode_utf8::__go_init_all();
         buffer::__go_zero_globals();
         r#mod::__go_zero_globals();
         buffer::__go_init_order_0();

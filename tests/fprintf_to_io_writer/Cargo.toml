@@ -4,8 +4,14 @@ members = [
     ".",
     "vendor/bytes",
     "vendor/go2rust_stdlib_stubs",
+    "vendor/internal_abi",
     "vendor/internal_bytealg",
     "vendor/internal_cpu",
+    "vendor/internal_race",
+    "vendor/internal_sync",
+    "vendor/io",
+    "vendor/sync",
+    "vendor/sync_atomic",
     "vendor/unicode_utf8",
 ]
 
@@ -22,6 +28,12 @@ path = "main.rs"
 serde_json = "1"
 bytes = { path = "vendor/bytes" }
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+internal_abi = { path = "vendor/internal_abi" }
 internal_bytealg = { path = "vendor/internal_bytealg" }
 internal_cpu = { path = "vendor/internal_cpu" }
+internal_race = { path = "vendor/internal_race" }
+internal_sync = { path = "vendor/internal_sync" }
+io = { path = "vendor/io" }
+sync = { path = "vendor/sync" }
+sync_atomic = { path = "vendor/sync_atomic" }
 unicode_utf8 = { path = "vendor/unicode_utf8" }

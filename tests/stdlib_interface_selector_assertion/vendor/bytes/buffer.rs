@@ -672,7 +672,7 @@ impl Buffer {
     /// the buffer as needed. The return value n is the number of bytes read. Any
     /// error except io.EOF encountered during the read is also returned. If the
     /// buffer becomes too large, ReadFrom will panic with [ErrTooLarge].
-    pub fn read_from(&mut self, r: Arc<Mutex<Option<io_Reader>>>) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn read_from(&mut self, r: Arc<Mutex<Option<Box<dyn io::r#mod::Reader + Send + Sync>>>>) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
     let mut n: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
     let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
@@ -680,14 +680,14 @@ impl Buffer {
         loop {
         let mut i = self.grow_1(Arc::new(Mutex::new(Some(512))));
         { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = self.buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = (i) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); self.buf = new_val; };
-        let (mut m, mut e) = (*r.lock().unwrap().as_ref().unwrap()).read(Arc::new(Mutex::new(Some({ let __seq_holder = self.buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (i) as usize; let __high = (({ let __cap_target = { let __field = self.buf.clone(); __field }; let __cap_guard = __cap_target.lock().unwrap(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) })) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))));
+        let (mut m, mut e) = (*r.lock().unwrap().as_mut().unwrap()).read(Arc::new(Mutex::new(Some({ let __seq_holder = self.buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (i) as usize; let __high = (({ let __cap_target = { let __field = self.buf.clone(); __field }; let __cap_guard = __cap_target.lock().unwrap(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) })) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))));
         if { let __tmp_x = m; let __tmp_y = 0; __tmp_x < __tmp_y } {
         std::panic::panic_any({ let __err_holder = errNegativeRead.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<errors_errorString>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<errors_joinError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else { panic!("type info required: error-to-any for unknown dynamic error type") } } });
     }
 
         { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = self.buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ({ let __tmp_x = i; let __tmp_y = m; __tmp_x + __tmp_y }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); self.buf = new_val; };
         { let __rhs = (*Arc::new(Mutex::new(Some(m as i64))).lock().unwrap().as_ref().unwrap()); let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-        if { let __left = e.clone(); let __right = io::EOF().clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); if __left_guard.is_none() || __right_guard.is_none() { __left_guard.is_none() == __right_guard.is_none() } else { false } }; __eq } {
+        if { let __left = e.clone(); let __right = io::EOF.clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); if __left_guard.is_none() || __right_guard.is_none() { __left_guard.is_none() == __right_guard.is_none() } else { false } }; __eq } {
         return ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }, Arc::new(Mutex::new(None)));
     }
                 // e is EOF, so return nil explicitly
@@ -701,7 +701,7 @@ impl Buffer {
     /// The return value n is the number of bytes written; it always fits into an
     /// int, but it is int64 to match the [io.WriterTo] interface. Any error
     /// encountered during the write is also returned.
-    pub fn write_to(&mut self, w: Arc<Mutex<Option<io_Writer>>>) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn write_to(&mut self, w: Arc<Mutex<Option<Box<dyn io::r#mod::Writer + Send + Sync>>>>) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
     let mut n: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
     let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
@@ -709,7 +709,7 @@ impl Buffer {
         {
         let mut nBytes = self.len();;
         if { let __tmp_x = nBytes; let __tmp_y = 0; __tmp_x > __tmp_y } {
-            let (mut m, mut e) = (*w.lock().unwrap().as_ref().unwrap()).write(Arc::new(Mutex::new(Some({ let __seq_holder = self.buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (*self.off.clone().lock().unwrap().as_ref().unwrap()) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))));;
+            let (mut m, mut e) = (*w.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some({ let __seq_holder = self.buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (*self.off.clone().lock().unwrap().as_ref().unwrap()) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))));;
             if { let __tmp_x = m; let __tmp_y = nBytes; __tmp_x > __tmp_y } {
         std::panic::panic_any(Box::new("bytes.Buffer.WriteTo: invalid Write count".to_string()) as Box<dyn Any + Send + Sync>);
     };
@@ -719,7 +719,7 @@ impl Buffer {
         return ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }, e.clone());
     };
             if { let __tmp_x = m; let __tmp_y = nBytes; __tmp_x != __tmp_y } {
-        return ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __return_value_1 = io::ErrShortWrite().clone(); __return_value_1 });
+        return ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }, { let __return_value_1 = io::ErrShortWrite.clone(); __return_value_1 });
     };
         }
     }
@@ -781,7 +781,7 @@ impl Buffer {
         if { let __tmp_x = ((*p.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
         return (0, Arc::new(Mutex::new(None)));
     }
-        return (0, { let __return_value_1 = io::EOF().clone(); __return_value_1 });
+        return (0, { let __return_value_1 = io::EOF.clone(); __return_value_1 });
     }
                 // Buffer is empty, reset to recover space.
         { let new_val = { let _src = (*Arc::new(Mutex::new(Some({ let __seq_holder = self.buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (*self.off.clone().lock().unwrap().as_ref().unwrap()) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone(); let _n = std::cmp::min((*p.lock().unwrap().as_ref().unwrap()).len(), _src.len()); for _i in 0.._n { (*p.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) }; let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *n.lock().unwrap() = __moved_val; };
@@ -816,7 +816,7 @@ impl Buffer {
         if self.empty() {
                 // Buffer is empty, reset to recover space.
         self.reset();
-        return (0, { let __return_value_1 = io::EOF().clone(); __return_value_1 });
+        return (0, { let __return_value_1 = io::EOF.clone(); __return_value_1 });
     }
                 // Buffer is empty, reset to recover space.
         let mut c = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(*self.off.clone().lock().unwrap().as_ref().unwrap()) as usize].clone() })));
@@ -838,7 +838,7 @@ impl Buffer {
         if self.empty() {
                 // Buffer is empty, reset to recover space.
         self.reset();
-        return (0, 0, { let __return_value_2 = io::EOF().clone(); __return_value_2 });
+        return (0, 0, { let __return_value_2 = io::EOF.clone(); __return_value_2 });
     }
                 // Buffer is empty, reset to recover space.
         let mut c = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(*self.off.clone().lock().unwrap().as_ref().unwrap()) as usize].clone() })));
@@ -910,7 +910,7 @@ impl Buffer {
         let mut end = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (*self.off.lock().unwrap().as_ref().unwrap()); let __tmp_y = i; __tmp_x + __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y })));
         if { let __tmp_x = i; let __tmp_y = 0; __tmp_x < __tmp_y } {
         { let new_val = ({ let __len_target = { let __field = self.buf.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32; *end.lock().unwrap() = Some(new_val); };
-        { let __rhs_holder = io::EOF().clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
+        { let __rhs_holder = io::EOF.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
     }
         { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = self.buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (*self.off.clone().lock().unwrap().as_ref().unwrap()) as usize; let __high = ({ let __v = (*end.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); line = new_val; };
         { let new_val = end.lock().unwrap().as_ref().unwrap().clone(); *self.off.lock().unwrap() = Some(new_val); };
@@ -930,6 +930,121 @@ impl Buffer {
 
         let (mut slice, __tmp_1) = self.read_slice(Arc::new(Mutex::new(Some({ let __arg_holder = delim.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
         return (Arc::new(Mutex::new(Some(String::from_utf8((*slice.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))), err.clone());
+    }
+}
+
+#[derive(Clone)]
+pub struct BufferPtr(pub Arc<Mutex<Option<Buffer>>>);
+
+impl std::fmt::Display for BufferPtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+    }
+}
+
+impl io::r#mod::Reader for BufferPtr {
+    fn read(&mut self, p: Arc<Mutex<Option<Vec<u8>>>>) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        let mut __recv_guard = self.0.lock().unwrap();
+        let __recv = __recv_guard.as_mut().unwrap();
+        Buffer::read(__recv, p)
+    }
+    fn __go_clone_box_reader(&self) -> Box<dyn io::r#mod::Reader + Send + Sync> {
+        Box::new(self.clone()) as Box<dyn io::r#mod::Reader + Send + Sync>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_reader(&self, other: &(dyn io::r#mod::Reader + Send + Sync)) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<BufferPtr>() {
+            Arc::ptr_eq(&self.0, &__other.0)
+        } else {
+            false
+        }
+    }
+}
+
+impl io::r#mod::ReaderFrom for BufferPtr {
+    fn read_from(&mut self, r: Arc<Mutex<Option<Box<dyn io::r#mod::Reader + Send + Sync>>>>) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        let mut __recv_guard = self.0.lock().unwrap();
+        let __recv = __recv_guard.as_mut().unwrap();
+        Buffer::read_from(__recv, r)
+    }
+    fn __go_clone_box_reader_from(&self) -> Box<dyn io::r#mod::ReaderFrom + Send + Sync> {
+        Box::new(self.clone()) as Box<dyn io::r#mod::ReaderFrom + Send + Sync>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_reader_from(&self, other: &(dyn io::r#mod::ReaderFrom + Send + Sync)) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<BufferPtr>() {
+            Arc::ptr_eq(&self.0, &__other.0)
+        } else {
+            false
+        }
+    }
+}
+
+impl io::r#mod::StringWriter for BufferPtr {
+    fn write_string(&mut self, s: Arc<Mutex<Option<String>>>) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        let mut __recv_guard = self.0.lock().unwrap();
+        let __recv = __recv_guard.as_mut().unwrap();
+        Buffer::write_string(__recv, s)
+    }
+    fn __go_clone_box_string_writer(&self) -> Box<dyn io::r#mod::StringWriter + Send + Sync> {
+        Box::new(self.clone()) as Box<dyn io::r#mod::StringWriter + Send + Sync>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_string_writer(&self, other: &(dyn io::r#mod::StringWriter + Send + Sync)) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<BufferPtr>() {
+            Arc::ptr_eq(&self.0, &__other.0)
+        } else {
+            false
+        }
+    }
+}
+
+impl io::r#mod::Writer for BufferPtr {
+    fn write(&mut self, p: Arc<Mutex<Option<Vec<u8>>>>) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        let mut __recv_guard = self.0.lock().unwrap();
+        let __recv = __recv_guard.as_mut().unwrap();
+        Buffer::write(__recv, p)
+    }
+    fn __go_clone_box_writer(&self) -> Box<dyn io::r#mod::Writer + Send + Sync> {
+        Box::new(self.clone()) as Box<dyn io::r#mod::Writer + Send + Sync>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_writer(&self, other: &(dyn io::r#mod::Writer + Send + Sync)) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<BufferPtr>() {
+            Arc::ptr_eq(&self.0, &__other.0)
+        } else {
+            false
+        }
+    }
+}
+
+impl io::r#mod::WriterTo for BufferPtr {
+    fn write_to(&mut self, w: Arc<Mutex<Option<Box<dyn io::r#mod::Writer + Send + Sync>>>>) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        let mut __recv_guard = self.0.lock().unwrap();
+        let __recv = __recv_guard.as_mut().unwrap();
+        Buffer::write_to(__recv, w)
+    }
+    fn __go_clone_box_writer_to(&self) -> Box<dyn io::r#mod::WriterTo + Send + Sync> {
+        Box::new(self.clone()) as Box<dyn io::r#mod::WriterTo + Send + Sync>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_writer_to(&self, other: &(dyn io::r#mod::WriterTo + Send + Sync)) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<BufferPtr>() {
+            Arc::ptr_eq(&self.0, &__other.0)
+        } else {
+            false
+        }
     }
 }
 

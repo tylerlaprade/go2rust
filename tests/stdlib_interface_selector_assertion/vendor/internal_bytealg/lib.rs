@@ -24,7 +24,7 @@ static __GO_INIT_ONCE: std::sync::Once = std::sync::Once::new();
 
 pub fn __go_init_all() {
     __GO_INIT_ONCE.call_once(|| {
-        internal_cpu::__go_init_all();
+        ::internal_cpu::__go_init_all();
         r#mod::__go_zero_globals();
         index_arm64::__go_init_functions();
     });

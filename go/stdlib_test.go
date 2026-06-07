@@ -649,7 +649,7 @@ func build(s string) string {
 	}
 }
 
-func TestSourceMappedBytesBufferAsIoWriterUsesWriteCallback(t *testing.T) {
+func TestSourceMappedBytesBufferAsSourceMappedIoWriterBoxesPointerWrapper(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
 
@@ -678,13 +678,63 @@ func build(s string) string {
 		t.Fatalf("NewTypeInfo() error = %v", err)
 	}
 
-	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"bytes": "bytes"})
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{
+		"bytes": "bytes",
+		"io":    "io",
+	})
 
-	if !strings.Contains(rust, "io_Writer::__go_from_with_write") {
-		t.Fatalf("source-mapped bytes.Buffer assigned to io.Writer should carry a write callback:\n%s", rust)
+	if strings.Contains(rust, "io_Writer") {
+		t.Fatalf("source-mapped io.Writer should not use the external io_Writer bridge:\n%s", rust)
 	}
-	if strings.Contains(rust, "bytes_Buffer") {
-		t.Fatalf("source-mapped bytes.Buffer io.Writer conversion should not route through bytes_Buffer:\n%s", rust)
+	if strings.Contains(rust, "__go_write_bytes") {
+		t.Fatalf("source-mapped io.Writer should call the generated Write method, not bridge __go_write_bytes:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".write(") {
+		t.Fatalf("source-mapped io.Writer fmt.Fprintf lowering should call write:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(bytes::BufferPtr(buf.clone().clone())) as Box<dyn io::Writer") &&
+		!strings.Contains(rust, "Box::new(bytes::buffer::BufferPtr(buf.clone().clone())) as Box<dyn io::r#mod::Writer") {
+		t.Fatalf("source-mapped bytes.Buffer assigned to io.Writer should box the pointer wrapper:\n%s", rust)
+	}
+}
+
+func TestSourceMappedIoWriterUsesImportedInterfacePointerWrapper(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import (
+	"bytes"
+	"io"
+)
+
+type printer struct {
+	output io.Writer
+}
+
+func build() printer {
+	var buf bytes.Buffer
+	return printer{output: &buf}
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{
+		"bytes": "bytes",
+		"io":    "io",
+	})
+
+	if strings.Contains(rust, "io_Writer") {
+		t.Fatalf("source-mapped io.Writer should not use the external io_Writer bridge:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(bytes::BufferPtr(buf.clone().clone())) as Box<dyn io::Writer") &&
+		!strings.Contains(rust, "Box::new(bytes::buffer::BufferPtr(buf.clone().clone())) as Box<dyn io::r#mod::Writer") {
+		t.Fatalf("source-mapped io.Writer should box the bytes.Buffer pointer wrapper:\n%s", rust)
 	}
 }
 

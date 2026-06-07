@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 
 #[derive(Clone, Default)]
 pub struct holder {
-    pub w: Arc<Mutex<Option<io_Writer>>>,
+    pub w: Arc<Mutex<Option<Box<dyn io::r#mod::Writer + Send + Sync>>>>,
 }
 
 impl holder {
@@ -31,12 +31,18 @@ impl GoJsonDecode for holder {
 
 
 fn main() {
-    bytes::__go_init_all();
-    internal_bytealg::__go_init_all();
-    internal_cpu::__go_init_all();
-    unicode_utf8::__go_init_all();
+    ::bytes::__go_init_all();
+    ::internal_abi::__go_init_all();
+    ::internal_bytealg::__go_init_all();
+    ::internal_cpu::__go_init_all();
+    ::internal_race::__go_init_all();
+    ::internal_sync::__go_init_all();
+    ::io::__go_init_all();
+    ::sync::__go_init_all();
+    ::sync_atomic::__go_init_all();
+    ::unicode_utf8::__go_init_all();
 
-    let mut h = Arc::new(Mutex::new(Some(holder { w: Arc::new(Mutex::new(Some({ let __writer = bytes::new_buffer(Arc::new(Mutex::new(None))); io_Writer::__go_from_with_write(__writer.clone(), move |__data| { let mut __guard = __writer.lock().unwrap(); if let Some(__target) = __guard.as_mut() { let _ = __target.write(Arc::new(Mutex::new(Some(__data.to_vec())))); } }) }))), ..Default::default() })));
+    let mut h = Arc::new(Mutex::new(Some(holder { w: Arc::new(Mutex::new(Some(Box::new(bytes::buffer::BufferPtr(bytes::new_buffer(Arc::new(Mutex::new(None))).clone())) as Box<dyn io::r#mod::Writer + Send + Sync>))), ..Default::default() })));
     let mut err = Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(format!("{}", format!("{}", (*(*h.lock().unwrap().as_ref().unwrap()).w.lock().unwrap().as_ref().unwrap())))))));
     println!("{}", format!("{}", { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result }));
 }

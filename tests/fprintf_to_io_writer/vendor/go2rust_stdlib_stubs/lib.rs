@@ -46,6 +46,87 @@ impl GoValueClone for Box<dyn Any + Send + Sync> {
     fn go_value_clone(&self) -> Self { go_any_clone(self.as_ref()) }
 }
 
+pub trait GoComparable {
+    fn go_eq(&self, other: &Self) -> bool;
+    fn go_hash(&self, seed: usize) -> usize;
+}
+
+fn go_hash_value<T: std::hash::Hash>(value: &T, seed: usize) -> usize {
+    let mut __hasher = std::collections::hash_map::DefaultHasher::new();
+    std::hash::Hash::hash(&seed, &mut __hasher);
+    std::hash::Hash::hash(value, &mut __hasher);
+    std::hash::Hasher::finish(&__hasher) as usize
+}
+
+macro_rules! impl_go_comparable_hash {
+    ($($t:ty),* $(,)?) => {
+        $(impl GoComparable for $t {
+            fn go_eq(&self, other: &Self) -> bool { self == other }
+            fn go_hash(&self, seed: usize) -> usize { go_hash_value(self, seed) }
+        })*
+    };
+}
+
+impl_go_comparable_hash!(bool, char, i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, String, &'static str);
+
+impl GoComparable for f32 {
+    fn go_eq(&self, other: &Self) -> bool { self == other }
+    fn go_hash(&self, seed: usize) -> usize { go_hash_value(&self.to_bits(), seed) }
+}
+
+impl GoComparable for f64 {
+    fn go_eq(&self, other: &Self) -> bool { self == other }
+    fn go_hash(&self, seed: usize) -> usize { go_hash_value(&self.to_bits(), seed) }
+}
+
+fn go_any_comparable_eq(left: &(dyn Any + Send + Sync), right: &(dyn Any + Send + Sync)) -> bool {
+    if left.type_id() != right.type_id() {
+        return false;
+    }
+    if let Some(v) = left.downcast_ref::<i32>() { return right.downcast_ref::<i32>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<i64>() { return right.downcast_ref::<i64>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<i8>() { return right.downcast_ref::<i8>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<i16>() { return right.downcast_ref::<i16>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<u32>() { return right.downcast_ref::<u32>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<u64>() { return right.downcast_ref::<u64>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<u8>() { return right.downcast_ref::<u8>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<u16>() { return right.downcast_ref::<u16>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<usize>() { return right.downcast_ref::<usize>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<isize>() { return right.downcast_ref::<isize>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<f64>() { return right.downcast_ref::<f64>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<f32>() { return right.downcast_ref::<f32>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<String>() { return right.downcast_ref::<String>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<&str>() { return right.downcast_ref::<&str>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<bool>() { return right.downcast_ref::<bool>().map_or(false, |r| v == r); }
+    if let Some(v) = left.downcast_ref::<char>() { return right.downcast_ref::<char>().map_or(false, |r| v == r); }
+    panic!("interface comparison with uncomparable dynamic type")
+}
+
+fn go_any_comparable_hash(value: &(dyn Any + Send + Sync), seed: usize) -> usize {
+    if let Some(v) = value.downcast_ref::<i32>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    if let Some(v) = value.downcast_ref::<i64>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    if let Some(v) = value.downcast_ref::<i8>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    if let Some(v) = value.downcast_ref::<i16>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    if let Some(v) = value.downcast_ref::<u32>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    if let Some(v) = value.downcast_ref::<u64>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    if let Some(v) = value.downcast_ref::<u8>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    if let Some(v) = value.downcast_ref::<u16>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    if let Some(v) = value.downcast_ref::<usize>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    if let Some(v) = value.downcast_ref::<isize>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    if let Some(v) = value.downcast_ref::<f64>() { return go_hash_value(&(value.type_id(), v.to_bits()), seed); }
+    if let Some(v) = value.downcast_ref::<f32>() { return go_hash_value(&(value.type_id(), v.to_bits()), seed); }
+    if let Some(v) = value.downcast_ref::<String>() { return go_hash_value(&(value.type_id(), v), seed); }
+    if let Some(v) = value.downcast_ref::<&str>() { return go_hash_value(&(value.type_id(), v), seed); }
+    if let Some(v) = value.downcast_ref::<bool>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    if let Some(v) = value.downcast_ref::<char>() { return go_hash_value(&(value.type_id(), *v), seed); }
+    panic!("interface hash with uncomparable dynamic type")
+}
+
+impl GoComparable for Box<dyn Any + Send + Sync> {
+    fn go_eq(&self, other: &Self) -> bool { go_any_comparable_eq(self.as_ref(), other.as_ref()) }
+    fn go_hash(&self, seed: usize) -> usize { go_any_comparable_hash(self.as_ref(), seed) }
+}
+
 #[derive(Clone, Copy)]
 pub struct GoAnyTypeMetadata {
     pub kind: &'static str,
@@ -98,6 +179,24 @@ pub fn go_any_type_metadata(value: &(dyn Any + Send + Sync)) -> Option<GoAnyType
         .or_else(|| go_any_type_metadata_registry().lock().unwrap().get(&value.type_id()).copied())
 }
 
+fn go_embedded_owner_registry() -> &'static std::sync::Mutex<std::collections::HashMap<usize, Box<dyn Any + Send + Sync>>> {
+    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, Box<dyn Any + Send + Sync>>>> = std::sync::OnceLock::new();
+    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+pub fn go_register_embedded_owner<T: Send + Sync + 'static>(embedded_key: usize, owner: Arc<Mutex<Option<T>>>) {
+    go_embedded_owner_registry().lock().unwrap().insert(embedded_key, Box::new(owner));
+}
+
+pub fn go_lookup_embedded_owner<T: Send + Sync + 'static>(embedded_key: usize, target: &str) -> Arc<Mutex<Option<T>>> {
+    let registry = go_embedded_owner_registry().lock().unwrap();
+    let owner = registry.get(&embedded_key).unwrap_or_else(|| panic!("embedded owner registry missing {}", target));
+    owner
+        .downcast_ref::<Arc<Mutex<Option<T>>>>()
+        .unwrap_or_else(|| panic!("embedded owner registry type mismatch for {}", target))
+        .clone()
+}
+
 
 pub struct GoPtrKey<T>(pub Arc<Mutex<Option<T>>>);
 
@@ -126,11 +225,6 @@ impl<T> std::fmt::Debug for GoPtrKey<T> {
 }
 impl<T> std::fmt::Display for GoPtrKey<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "0x{:x}", self.addr()) }
-}
-
-fn __go_next_external_interface_id() -> usize {
-    static NEXT_ID: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(1);
-    NEXT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
 }
 
 pub use serde_json;
@@ -378,154 +472,15 @@ impl errors_joinError {
 }
 
 
-#[derive(Clone)]
-pub struct io_Reader {
-    pub __go_id: usize,
-    pub __go_value: Arc<dyn std::any::Any + Send + Sync>,
-}
-
-impl io_Reader {
-    pub fn __go_from<T: 'static + Send + Sync>(value: T) -> Self {
-        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value) }
-    }
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        self.__go_value.as_ref().downcast_ref::<T>()
-    }
-    pub fn read<T0>(&self, _arg0: T0) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        panic!("io_Reader.read bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
-
-impl Default for io_Reader {
-    fn default() -> Self {
-        Self { __go_id: 0, __go_value: Arc::new(()) }
-    }
-}
-
-impl std::fmt::Debug for io_Reader {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<io_Reader>")
-    }
-}
-
-impl std::fmt::Display for io_Reader {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<io_Reader>")
-    }
-}
-
-impl PartialEq for io_Reader {
-    fn eq(&self, other: &Self) -> bool {
-        self.__go_id == other.__go_id
-    }
-}
-
-impl Eq for io_Reader {}
-
-impl PartialOrd for io_Reader {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for io_Reader {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.__go_id.cmp(&other.__go_id)
-    }
-}
-
-
-#[derive(Clone)]
-pub struct io_Writer {
-    pub __go_id: usize,
-    pub __go_value: Arc<dyn std::any::Any + Send + Sync>,
-    pub __go_write: Option<Arc<dyn Fn(&[u8]) + Send + Sync>>,
-}
-
-impl io_Writer {
-    pub fn __go_from<T: 'static + Send + Sync>(value: T) -> Self {
-        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value), __go_write: None }
-    }
-
-    pub fn __go_from_with_write<T: 'static + Send + Sync, F: 'static + Fn(&[u8]) + Send + Sync>(value: T, write_fn: F) -> Self {
-        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value), __go_write: Some(Arc::new(write_fn)) }
-    }
-
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        self.__go_value.as_ref().downcast_ref::<T>()
-    }
-
-    pub fn __go_write_bytes(&self, data: &[u8]) {
-        if let Some(write_fn) = &self.__go_write {
-            write_fn(data);
-            return;
-        }
-        if let Some(builder) = self.downcast_ref::<Arc<Mutex<Option<String>>>>() {
-            let mut guard = builder.lock().unwrap();
-            guard.get_or_insert_with(String::new).push_str(&String::from_utf8_lossy(data));
-        }
-    }
-
-    pub fn write<T0: 'static>(&self, arg0: T0) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
-            v.clone()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
-            v.lock().unwrap().as_ref().cloned().unwrap_or_default()
-        } else {
-            Vec::new()
-        };
-        let n = bytes.len() as i32;
-        self.__go_write_bytes(&bytes);
-        (n, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
-    }
-}
-
-impl Default for io_Writer {
-    fn default() -> Self {
-        Self { __go_id: 0, __go_value: Arc::new(()), __go_write: None }
-    }
-}
-
-impl std::fmt::Debug for io_Writer {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<io_Writer>")
-    }
-}
-
-impl std::fmt::Display for io_Writer {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<io_Writer>")
-    }
-}
-
-impl PartialEq for io_Writer {
-    fn eq(&self, other: &Self) -> bool {
-        self.__go_id == other.__go_id
-    }
-}
-
-impl Eq for io_Writer {}
-
-impl PartialOrd for io_Writer {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for io_Writer {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.__go_id.cmp(&other.__go_id)
-    }
-}
-
-
-pub mod io {
+pub mod goarch {
     use super::*;
-    pub fn EOF() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
-    }
+    pub const PTR_SIZE: i32 = 8;
+}
 
-    pub fn ErrShortWrite() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+
+pub mod runtime {
+    use super::*;
+    pub fn g_o_m_a_x_p_r_o_c_s<T0>(_arg0: T0) -> i32 {
+        std::thread::available_parallelism().map(|n| n.get() as i32).unwrap_or(1).max(1)
     }
 }

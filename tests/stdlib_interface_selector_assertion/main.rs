@@ -5,8 +5,8 @@ use std::sync::{Arc, Mutex};
 
 #[derive(Clone, Default)]
 pub struct holder {
-    pub out: Arc<Mutex<Option<io_Writer>>>,
-    pub err: Arc<Mutex<Option<io_Writer>>>,
+    pub out: Arc<Mutex<Option<Box<dyn io::r#mod::Writer + Send + Sync>>>>,
+    pub err: Arc<Mutex<Option<Box<dyn io::r#mod::Writer + Send + Sync>>>>,
 }
 
 impl holder {
@@ -31,10 +31,16 @@ impl GoJsonDecode for holder {
 
 
 fn main() {
-    bytes::__go_init_all();
-    internal_bytealg::__go_init_all();
-    internal_cpu::__go_init_all();
-    unicode_utf8::__go_init_all();
+    ::bytes::__go_init_all();
+    ::internal_abi::__go_init_all();
+    ::internal_bytealg::__go_init_all();
+    ::internal_cpu::__go_init_all();
+    ::internal_race::__go_init_all();
+    ::internal_sync::__go_init_all();
+    ::io::__go_init_all();
+    ::sync::__go_init_all();
+    ::sync_atomic::__go_init_all();
+    ::unicode_utf8::__go_init_all();
 
     let mut h: Arc<Mutex<Option<holder>>> = Arc::new(Mutex::new(Some(Default::default())));
     {
@@ -42,7 +48,7 @@ fn main() {
         let val = (*h.lock().unwrap().as_ref().unwrap()).out.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<os_File>>>>() {
+            if let Some(typed_val) = <dyn io::r#mod::Writer + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<Arc<Mutex<Option<os_File>>>>() {
                 (typed_val.clone(), true)
             } else {
                 (Arc::new(Mutex::new(None::<os_File>)), false)
@@ -62,8 +68,8 @@ fn main() {
         let val = (*h.lock().unwrap().as_ref().unwrap()).err.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<bytes::buffer::Buffer>>>>() {
-                (typed_val.clone(), true)
+            if let Some(typed_val) = <dyn io::r#mod::Writer + Send + Sync>::__go_as_any(any_val.as_ref()).downcast_ref::<bytes::buffer::BufferPtr>() {
+                (typed_val.0.clone(), true)
             } else {
                 (Arc::new(Mutex::new(None::<bytes::buffer::Buffer>)), false)
             }

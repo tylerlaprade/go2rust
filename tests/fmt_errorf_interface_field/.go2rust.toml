@@ -1,1 +1,1 @@
-source_stdlib_packages = "bytes,internal/bytealg,internal/cpu,unicode/utf8"
+source_stdlib_packages = "io,sync,internal/sync,sync/atomic,internal/abi,internal/race,bytes,internal/bytealg,internal/cpu,unicode/utf8"
