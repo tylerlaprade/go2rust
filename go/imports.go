@@ -205,6 +205,7 @@ func (ht *HelperTracker) withoutSharedStdlibHelpers() *HelperTracker {
 	helperCopy.needsGoValueClone = false
 	helperCopy.needsGoComparable = false
 	helperCopy.needsGoAnyTypeMetadata = false
+	helperCopy.needsEmbeddedOwnerRegistry = false
 	helperCopy.needsGoAnyPtrKey = false
 	return &helperCopy
 }
@@ -232,6 +233,9 @@ func (ht *HelperTracker) sharedStdlibHelpersOnly() *HelperTracker {
 	}
 	if ht.needsGoAnyTypeMetadata {
 		helperCopy.needsGoAnyTypeMetadata = true
+	}
+	if ht.needsEmbeddedOwnerRegistry {
+		helperCopy.needsEmbeddedOwnerRegistry = true
 	}
 	if ht.needsGoRWMutex {
 		helperCopy.needsGoRWMutex = true
@@ -1529,20 +1533,24 @@ impl GoComparable for ` + boxType + ` {
 
 func generateEmbeddedOwnerRegistry(out *strings.Builder) {
 	TrackImport("Any")
+	visibility := ""
+	if generatingPublicHelpers {
+		visibility = "pub "
+	}
 	if NeedsConcurrentWrapper() {
 		TrackImport("Arc")
 		TrackImport("Mutex")
-		out.WriteString(`
+		fmt.Fprintf(out, `
 fn go_embedded_owner_registry() -> &'static std::sync::Mutex<std::collections::HashMap<usize, Box<dyn Any + Send + Sync>>> {
     static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, Box<dyn Any + Send + Sync>>>> = std::sync::OnceLock::new();
     REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
 }
 
-fn go_register_embedded_owner<T: Send + Sync + 'static>(embedded_key: usize, owner: Arc<Mutex<Option<T>>>) {
+%[1]sfn go_register_embedded_owner<T: Send + Sync + 'static>(embedded_key: usize, owner: Arc<Mutex<Option<T>>>) {
     go_embedded_owner_registry().lock().unwrap().insert(embedded_key, Box::new(owner));
 }
 
-fn go_lookup_embedded_owner<T: Send + Sync + 'static>(embedded_key: usize, target: &str) -> Arc<Mutex<Option<T>>> {
+%[1]sfn go_lookup_embedded_owner<T: Send + Sync + 'static>(embedded_key: usize, target: &str) -> Arc<Mutex<Option<T>>> {
     let registry = go_embedded_owner_registry().lock().unwrap();
     let owner = registry.get(&embedded_key).unwrap_or_else(|| panic!("embedded owner registry missing {}", target));
     owner
@@ -1550,23 +1558,23 @@ fn go_lookup_embedded_owner<T: Send + Sync + 'static>(embedded_key: usize, targe
         .unwrap_or_else(|| panic!("embedded owner registry type mismatch for {}", target))
         .clone()
 }
-`)
+`, visibility)
 		return
 	}
 	TrackImport("Rc")
 	TrackImport("RefCell")
-	out.WriteString(`
+	fmt.Fprintf(out, `
 thread_local! {
     static GO_EMBEDDED_OWNER_REGISTRY: RefCell<std::collections::HashMap<usize, Box<dyn Any>>> = RefCell::new(std::collections::HashMap::new());
 }
 
-fn go_register_embedded_owner<T: 'static>(embedded_key: usize, owner: Rc<RefCell<Option<T>>>) {
+%[1]sfn go_register_embedded_owner<T: 'static>(embedded_key: usize, owner: Rc<RefCell<Option<T>>>) {
     GO_EMBEDDED_OWNER_REGISTRY.with(|registry| {
         registry.borrow_mut().insert(embedded_key, Box::new(owner));
     });
 }
 
-fn go_lookup_embedded_owner<T: 'static>(embedded_key: usize, target: &str) -> Rc<RefCell<Option<T>>> {
+%[1]sfn go_lookup_embedded_owner<T: 'static>(embedded_key: usize, target: &str) -> Rc<RefCell<Option<T>>> {
     GO_EMBEDDED_OWNER_REGISTRY.with(|registry| {
         let registry = registry.borrow();
         let owner = registry.get(&embedded_key).unwrap_or_else(|| panic!("embedded owner registry missing {}", target));
@@ -1576,7 +1584,7 @@ fn go_lookup_embedded_owner<T: 'static>(embedded_key: usize, target: &str) -> Rc
             .clone()
     })
 }
-`)
+`, visibility)
 }
 
 func generateGoByteSequence(out *strings.Builder) {

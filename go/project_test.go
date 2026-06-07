@@ -6931,6 +6931,69 @@ func main() {
 	}
 }
 
+func TestCrossPackageGoPtrUnsafeReceiverIdentityMethodCallUsesOriginalPointee(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "abi", "abi.go"), `package abi
+
+import "unsafe"
+
+type Node struct {
+	IsEntry bool
+}
+
+type Entry struct {
+	Node
+	Value int
+}
+
+func Pick(addr uintptr) (*Node, int) {
+	return (*Node)(unsafe.Pointer(addr)), 0
+}
+
+func (n *Node) ValueOrZero() int {
+	if !n.IsEntry {
+		return 0
+	}
+	return (*Entry)(unsafe.Pointer(n)).Value
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "worker", "worker.go"), `package worker
+
+import "example.com/mainmod/abi"
+
+func Use(addr uintptr) int {
+	n, _ := abi.Pick(addr)
+	return n.ValueOrZero()
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/mainmod/worker"
+
+func main() {
+	_ = worker.Use(0)
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	workerRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_mainmod_worker", "mod.rs"))
+	if strings.Contains(workerRS, "let __recv_value = n.borrow(); let __result = (*__recv_value.as_ref().unwrap()).value_or_zero(") {
+		t.Fatalf("cross-package unsafe receiver-identity method call should not call through a cloned pointee:\n%s", workerRS)
+	}
+	if !strings.Contains(workerRS, "n.with_mut(|__recv_value| __recv_value.value_or_zero(") {
+		t.Fatalf("cross-package unsafe receiver-identity method call should use the original pointee:\n%s", workerRS)
+	}
+}
+
 func TestCrossPackageGoPtrFieldReturnFactPropagatesToImporterSignature(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

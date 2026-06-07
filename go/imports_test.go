@@ -34,6 +34,41 @@ func TestGoRWMutexHelperExportsLockMethods(t *testing.T) {
 	}
 }
 
+func TestEmbeddedOwnerRegistryLivesInSharedStdlibHelpers(t *testing.T) {
+	ht := &HelperTracker{needsEmbeddedOwnerRegistry: true}
+
+	local := ht.GenerateHelperModuleOmittingSharedStdlibHelpers()
+	if strings.Contains(local, "go_embedded_owner_registry") ||
+		strings.Contains(local, "go_register_embedded_owner") ||
+		strings.Contains(local, "go_lookup_embedded_owner") {
+		t.Fatalf("package-local helper module should omit shared embedded-owner registry:\n%s", local)
+	}
+
+	shared := ht.GenerateSharedStdlibHelperModule()
+	for _, want := range []string{
+		"GO_EMBEDDED_OWNER_REGISTRY",
+		"pub fn go_register_embedded_owner",
+		"pub fn go_lookup_embedded_owner",
+	} {
+		if !strings.Contains(shared, want) {
+			t.Fatalf("shared stdlib helper module missing %q:\n%s", want, shared)
+		}
+	}
+
+	names := ht.ImportNamesOmittingSharedStdlibHelpers()
+	for _, name := range names {
+		if name == "go_register_embedded_owner" || name == "go_lookup_embedded_owner" {
+			t.Fatalf("package-local helper imports should omit shared embedded-owner registry names: %v", names)
+		}
+	}
+
+	merged := &HelperTracker{}
+	mergeHelperTracker(merged, ht)
+	if !strings.Contains(merged.GenerateSharedStdlibHelperModule(), "pub fn go_lookup_embedded_owner") {
+		t.Fatalf("merged shared helper state should retain embedded-owner registry need")
+	}
+}
+
 func TestGoPtrKeyHelperModuleImportsWrapperTypes(t *testing.T) {
 	prevConcurrencyDetector := GetConcurrencyDetector()
 	t.Cleanup(func() {

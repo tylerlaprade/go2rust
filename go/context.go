@@ -865,6 +865,9 @@ func NeedEmbeddedOwnerRegistry() {
 		TrackImport("Any")
 		trackWrapperImports()
 	}
+	markSharedStdlibHelper(func(helpers *HelperTracker) {
+		helpers.needsEmbeddedOwnerRegistry = true
+	})
 }
 
 func RegisterAnyCloneType(typ types.Type) {

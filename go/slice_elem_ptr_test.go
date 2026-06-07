@@ -4284,6 +4284,45 @@ func use(addr uintptr) *entry {
 	}
 }
 
+func TestGoPtrLocalUnsafeReceiverIdentityMethodCallUsesOriginalPointee(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct {
+	isEntry bool
+}
+
+type entry struct {
+	node
+	value int
+}
+
+func pick(addr uintptr) (*node, int) {
+	return (*node)(unsafe.Pointer(addr)), 0
+}
+
+func (n *node) value() int {
+	if !n.isEntry {
+		return 0
+	}
+	return (*entry)(unsafe.Pointer(n)).value
+}
+
+func use(addr uintptr) int {
+	n, _ := pick(addr)
+	return n.value()
+}
+`)
+
+	if strings.Contains(rust, "let __recv_value = n.borrow(); let __result = (*__recv_value.as_ref().unwrap()).value(") {
+		t.Fatalf("GoPtr local unsafe receiver-identity method call should not call through a cloned pointee:\n%s", rust)
+	}
+	if !strings.Contains(rust, "n.with_mut(|__recv_value| __recv_value.value(") {
+		t.Fatalf("GoPtr local unsafe receiver-identity method call should use the original pointee:\n%s", rust)
+	}
+}
+
 func TestGoPtrLocalFieldHandleUsesOriginalPointee(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

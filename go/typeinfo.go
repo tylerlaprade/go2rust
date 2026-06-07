@@ -11,9 +11,10 @@ import (
 
 // TypeInfo holds type checking results
 type TypeInfo struct {
-	info                     *types.Info
-	pkg                      *types.Package
-	methodMutableReceiverMap map[string]bool
+	info                      *types.Info
+	pkg                       *types.Package
+	methodMutableReceiverMap  map[string]bool
+	methodOriginalReceiverMap map[string]bool
 }
 
 // NewTypeInfo creates type information for the given files using the default
@@ -82,6 +83,7 @@ func NewTypeInfoWithImporter(path string, files []*ast.File, fset *token.FileSet
 		pkg:  pkg,
 	}
 	typeInfo.methodMutableReceiverMap = collectMethodReceiverMutability(files, typeInfo)
+	typeInfo.methodOriginalReceiverMap = collectMethodReceiverOriginalReceiver(files, typeInfo)
 
 	if len(checkErrors) > 0 {
 		return typeInfo, fmt.Errorf("type check for %s produced %d error(s): %w", label, len(checkErrors), errors.Join(checkErrors...))
@@ -203,6 +205,28 @@ func (ti *TypeInfo) SelectorRequiresMutableReceiver(sel *ast.SelectorExpr) (bool
 	}
 	mutable, ok := ti.methodMutableReceiverMap[key]
 	return mutable, ok
+}
+
+// SelectorRequiresOriginalReceiver reports whether the selected method must be
+// called through the original pointer handle, even when it does not mutate.
+func (ti *TypeInfo) SelectorRequiresOriginalReceiver(sel *ast.SelectorExpr) (bool, bool) {
+	if ti == nil || ti.info == nil || sel == nil {
+		return false, false
+	}
+	selection, ok := ti.info.Selections[sel]
+	if !ok {
+		return false, false
+	}
+	fn, ok := selection.Obj().(*types.Func)
+	if !ok {
+		return false, false
+	}
+	key := methodOverrideKey(fn)
+	if key == "" {
+		return false, false
+	}
+	original, ok := ti.methodOriginalReceiverMap[key]
+	return original, ok
 }
 
 // IsMap returns true if the expression is a map type

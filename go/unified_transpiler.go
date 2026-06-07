@@ -303,6 +303,7 @@ func (ut *UnifiedTranspiler) transpileAll() error {
 
 	resetPackageMethodReceiverMutability()
 	registerPackageMethodReceiverMutability(ut.mainPackage.ImportPath, ut.mainPackage.ASTFiles)
+	registerPackageMethodReceiverOriginalReceiver(ut.mainPackage.ImportPath, ut.mainPackage.ASTFiles, ut.globalTypeInfo)
 	pkgPaths := make([]string, 0, len(ut.vendorPackages))
 	for pkgPath := range ut.vendorPackages {
 		pkgPaths = append(pkgPaths, pkgPath)
@@ -311,6 +312,7 @@ func (ut *UnifiedTranspiler) transpileAll() error {
 	for _, pkgPath := range pkgPaths {
 		pkg := ut.vendorPackages[pkgPath]
 		registerPackageMethodReceiverMutability(pkg.ImportPath, pkg.ASTFiles)
+		registerPackageMethodReceiverOriginalReceiver(pkg.ImportPath, pkg.ASTFiles, ut.globalTypeInfo)
 	}
 	if ut.globalTypeInfo != nil && ut.globalTypeInfo.pkg != nil {
 		registerInterfaceMethodMutableReceivers([]*types.Package{ut.globalTypeInfo.pkg})

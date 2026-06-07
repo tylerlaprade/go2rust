@@ -276,6 +276,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 			resetPackageMethodReceiverMutability()
 		}
 		registerPackageMethodReceiverMutability("main", astFiles)
+		registerPackageMethodReceiverOriginalReceiver("main", astFiles, pg.typeInfo)
 		if pg.typeInfo != nil && pg.typeInfo.pkg != nil {
 			registerInterfaceMethodMutableReceivers([]*types.Package{pg.typeInfo.pkg})
 		}

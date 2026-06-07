@@ -7777,6 +7777,8 @@ func exprReferencesReceiver(expr ast.Expr, receiverName string) bool {
 		return exprReferencesReceiver(e.X, receiverName)
 	case *ast.StarExpr:
 		return exprReferencesReceiver(e.X, receiverName)
+	case *ast.UnaryExpr:
+		return exprReferencesReceiver(e.X, receiverName)
 	case *ast.ParenExpr:
 		return exprReferencesReceiver(e.X, receiverName)
 	default:
@@ -7926,10 +7928,50 @@ func collectMethodReceiverMutability(files []*ast.File, typeInfo *TypeInfo) map[
 	return mutableByMethod
 }
 
+func collectMethodReceiverOriginalReceiver(files []*ast.File, typeInfo *TypeInfo) map[string]bool {
+	originalByMethod := make(map[string]bool)
+	if typeInfo == nil || typeInfo.info == nil {
+		return originalByMethod
+	}
+	methodsByReceiver := make(map[string][]*ast.FuncDecl)
+	for _, file := range files {
+		if file == nil {
+			continue
+		}
+		for _, decl := range file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Recv == nil || len(fn.Recv.List) == 0 {
+				continue
+			}
+			receiverKey := methodReceiverGroupKey(fn, typeInfo)
+			if receiverKey == "" {
+				continue
+			}
+			methodsByReceiver[receiverKey] = append(methodsByReceiver[receiverKey], fn)
+		}
+	}
+	for _, methods := range methodsByReceiver {
+		for _, fn := range methods {
+			obj := methodFuncForDecl(fn, typeInfo)
+			if obj == nil {
+				continue
+			}
+			key := methodOverrideKey(obj)
+			if key == "" {
+				continue
+			}
+			originalByMethod[key] = methodRequiresOriginalReceiverFromMap(fn, methodsByReceiver, typeInfo)
+		}
+	}
+	return originalByMethod
+}
+
 var packageMethodReceiverMutability = make(map[string]bool)
+var packageMethodReceiverOriginalReceiver = make(map[string]bool)
 
 func resetPackageMethodReceiverMutability() {
 	packageMethodReceiverMutability = make(map[string]bool)
+	packageMethodReceiverOriginalReceiver = make(map[string]bool)
 }
 
 func registerPackageMethodReceiverMutability(pkgPath string, files []*ast.File) {
@@ -7944,6 +7986,22 @@ func registerPackageMethodReceiverMutability(pkgPath string, files []*ast.File) 
 			}
 			key := packageMethodReceiverMutabilityKey(pkgPath, receiverType, fn.Name.Name)
 			packageMethodReceiverMutability[key] = methodRequiresMutableReceiverFromMap(fn, methodsByReceiver, nil)
+		}
+	}
+}
+
+func registerPackageMethodReceiverOriginalReceiver(pkgPath string, files []*ast.File, typeInfo *TypeInfo) {
+	if pkgPath == "" {
+		pkgPath = "main"
+	}
+	methodsByReceiver := collectPackageMethods(files)
+	for receiverType, methods := range methodsByReceiver {
+		for _, fn := range methods {
+			if fn == nil || fn.Name == nil {
+				continue
+			}
+			key := packageMethodReceiverMutabilityKey(pkgPath, receiverType, fn.Name.Name)
+			packageMethodReceiverOriginalReceiver[key] = methodRequiresOriginalReceiverFromMap(fn, methodsByReceiver, typeInfo)
 		}
 	}
 }
@@ -7992,6 +8050,39 @@ func packageMethodReceiverMutabilityForSelector(sel *ast.SelectorExpr) (bool, bo
 	}
 	mutable, ok := packageMethodReceiverMutability[key]
 	return mutable, ok
+}
+
+func packageMethodReceiverOriginalReceiverForSelector(sel *ast.SelectorExpr) (bool, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || sel == nil {
+		return false, false
+	}
+	selection, ok := typeInfo.info.Selections[sel]
+	if !ok {
+		return false, false
+	}
+	fn, ok := selection.Obj().(*types.Func)
+	if !ok || fn == nil {
+		return false, false
+	}
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok || sig.Recv() == nil {
+		return false, false
+	}
+	recv := types.Unalias(sig.Recv().Type())
+	if ptr, ok := recv.(*types.Pointer); ok {
+		recv = types.Unalias(ptr.Elem())
+	}
+	named, ok := recv.(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return false, false
+	}
+	key := packageMethodReceiverMutabilityKey(named.Obj().Pkg().Path(), named.Obj().Name(), fn.Name())
+	if key == "" {
+		return false, false
+	}
+	original, ok := packageMethodReceiverOriginalReceiver[key]
+	return original, ok
 }
 
 // interfaceMethodMutableReceiver records whether any concrete implementor's
@@ -8229,6 +8320,16 @@ func methodRequiresMutableReceiverFromMap(fn *ast.FuncDecl, methodsByReceiver ma
 	return methodMutatesReceiverWithMethodMap(fn, receiverNameForMethod(fn), methodReceiverGroupKey(fn, typeInfo), methodsByReceiver, typeInfo, make(map[*ast.FuncDecl]bool))
 }
 
+func methodRequiresOriginalReceiverFromMap(fn *ast.FuncDecl, methodsByReceiver map[string][]*ast.FuncDecl, typeInfo *TypeInfo) bool {
+	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 {
+		return false
+	}
+	if _, isPointer := fn.Recv.List[0].Type.(*ast.StarExpr); !isPointer {
+		return false
+	}
+	return methodNeedsOriginalReceiverWithMethodMap(fn, receiverNameForMethod(fn), methodReceiverGroupKey(fn, typeInfo), methodsByReceiver, typeInfo, make(map[*ast.FuncDecl]bool))
+}
+
 func getMethodReceiverType(fn *ast.FuncDecl) string {
 	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 {
 		return ""
@@ -8243,6 +8344,60 @@ func methodsForReceiverType(receiverType string) []*ast.FuncDecl {
 		}
 	}
 	return currentTypeMethods
+}
+
+func unsafePointerCallArgFromTypeInfo(expr ast.Expr, typeInfo *TypeInfo) (ast.Expr, bool) {
+	call, ok := unwrapParens(expr).(*ast.CallExpr)
+	if !ok || len(call.Args) != 1 || typeInfo == nil || typeInfo.info == nil {
+		return nil, false
+	}
+	sel, ok := unwrapParens(call.Fun).(*ast.SelectorExpr)
+	if !ok || sel.Sel == nil {
+		return nil, false
+	}
+	obj, ok := typeInfo.GetObject(sel.Sel).(*types.TypeName)
+	if !ok || obj.Pkg() == nil || obj.Pkg().Path() != "unsafe" || obj.Name() != "Pointer" {
+		return nil, false
+	}
+	return call.Args[0], true
+}
+
+func methodNeedsOriginalReceiverWithMethodMap(fn *ast.FuncDecl, receiverName string, receiverKey string, methodsByReceiver map[string][]*ast.FuncDecl, typeInfo *TypeInfo, seen map[*ast.FuncDecl]bool) bool {
+	if fn == nil || fn.Body == nil || receiverName == "" {
+		return false
+	}
+	if seen[fn] {
+		return false
+	}
+	seen[fn] = true
+	needsOriginal := false
+	ast.Inspect(fn.Body, func(n ast.Node) bool {
+		if needsOriginal {
+			return false
+		}
+		call, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		if source, ok := unsafePointerCallArgFromTypeInfo(call, typeInfo); ok && exprReferencesReceiver(source, receiverName) {
+			needsOriginal = true
+			return false
+		}
+		sel, ok := call.Fun.(*ast.SelectorExpr)
+		if !ok || !exprReferencesReceiver(sel.X, receiverName) {
+			return true
+		}
+		called := methodDeclByName(methodsByReceiver[receiverKey], sel.Sel.Name)
+		if called == nil {
+			return true
+		}
+		if methodNeedsOriginalReceiverWithMethodMap(called, receiverNameForMethod(called), methodReceiverGroupKey(called, typeInfo), methodsByReceiver, typeInfo, seen) {
+			needsOriginal = true
+			return false
+		}
+		return true
+	})
+	return needsOriginal
 }
 
 func methodMutatesReceiverWithMethodMap(fn *ast.FuncDecl, receiverName string, receiverKey string, methodsByReceiver map[string][]*ast.FuncDecl, typeInfo *TypeInfo, seen map[*ast.FuncDecl]bool) bool {

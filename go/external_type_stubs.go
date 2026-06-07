@@ -1206,6 +1206,7 @@ func mergeHelperTracker(dst *HelperTracker, src *HelperTracker) {
 	dst.needsGoValueClone = dst.needsGoValueClone || src.needsGoValueClone
 	dst.needsGoComparable = dst.needsGoComparable || src.needsGoComparable
 	dst.needsGoAnyTypeMetadata = dst.needsGoAnyTypeMetadata || src.needsGoAnyTypeMetadata
+	dst.needsEmbeddedOwnerRegistry = dst.needsEmbeddedOwnerRegistry || src.needsEmbeddedOwnerRegistry
 	if len(src.anyCloneTypes) > 0 {
 		if dst.anyCloneTypes == nil {
 			dst.anyCloneTypes = make(map[string]bool)

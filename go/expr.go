@@ -10758,6 +10758,12 @@ func goPtrMethodCallNeedsOriginalReceiver(call *ast.CallExpr, sel *ast.SelectorE
 	if typeInfo == nil || !typeInfo.HasPointerReceiver(sel) {
 		return false
 	}
+	if original, ok := typeInfo.SelectorRequiresOriginalReceiver(sel); ok && original {
+		return true
+	}
+	if original, ok := packageMethodReceiverOriginalReceiverForSelector(sel); ok && original {
+		return true
+	}
 	_, ok := goPtrResultInfoForCall(call, 0)
 	return ok
 }
