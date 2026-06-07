@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoMutex, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoMutex};
 
 use crate::kind_string::*;
 
@@ -1209,7 +1209,7 @@ impl stringVal {
     pub fn string(&mut self) -> Arc<Mutex<Option<String>>> {
         const maxLen: i32 = 72;
 
-        let mut s = Arc::new(Mutex::new(Some(format!("{:?}", (*self.string_1().lock().unwrap().as_ref().unwrap()).clone()))));
+        let mut s = strconv::quote(self.string_1());
         if { let __tmp_x = unicode_utf8::rune_count_in_string(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __tmp_y = 72; __tmp_x > __tmp_y } {
                 // The string without the enclosing quotes is greater than maxLen-2 runes
                 // long. Remove the last 3 runes (including the closing '"') by keeping
@@ -1274,7 +1274,7 @@ impl stringVal {
     }
 
     pub fn exact_string(&mut self) -> Arc<Mutex<Option<String>>> {
-        Arc::new(Mutex::new(Some(format!("{:?}", (*self.string_1().lock().unwrap().as_ref().unwrap()).clone()))))
+        strconv::quote(self.string_1())
     }
 
     pub fn implements_value(&self) {
@@ -1361,7 +1361,7 @@ impl int64Val {
     }
 
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        Arc::new(Mutex::new(Some(go_strconv_format_int((*Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap()) as i64, 10 as i32))))
+        strconv::format_int(Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()) as i64))), Arc::new(Mutex::new(Some(10))))
     }
 
     pub fn exact_string(&self) -> Arc<Mutex<Option<String>>> {
@@ -2059,8 +2059,8 @@ pub fn make_from_literal(lit: Arc<Mutex<Option<String>>>, tok: Arc<Mutex<Option<
     { let _switch_val = (*tok.lock().unwrap().as_ref().unwrap()).clone();
     if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_N_T as i32))))) {
             {
-        let (mut x, mut err) = strconv::parse_int({ let __arg_holder = lit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }, 0, 64);;
-        if (*err.lock().unwrap()).is_none() {
+        let (mut x, mut err) = strconv::parse_int(Arc::new(Mutex::new(Some({ let __arg_holder = lit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(64))));;
+        if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } {
             return Arc::new(Mutex::new(Some(Box::new(int64Val(Arc::new(Mutex::new(Some(x as i64))))) as Box<dyn Value + Send + Sync>)));;
         }
     }
@@ -2073,7 +2073,7 @@ pub fn make_from_literal(lit: Arc<Mutex<Option<String>>>, tok: Arc<Mutex<Option<
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::F_L_O_A_T as i32))))) {
             {
         let mut x = make_float_from_literal(Arc::new(Mutex::new(Some({ let __arg_holder = lit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
-        if (*x.lock().unwrap()).is_some() {
+        if { let __nil_result = (*x.lock().unwrap()).is_some(); __nil_result } {
             return x.clone();;
         }
     }
@@ -2083,7 +2083,7 @@ pub fn make_from_literal(lit: Arc<Mutex<Option<String>>>, tok: Arc<Mutex<Option<
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } && { let __tmp_x = { let __s = &((*lit.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize] }; let __tmp_y = ('i' as i32) as u8; __tmp_x == __tmp_y } {
             {
         let mut im = make_float_from_literal(Arc::new(Mutex::new(Some({ let __s = &((*lit.lock().unwrap().as_ref().unwrap()).clone()); let __high = ({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; __s[..__high].to_string() }))));;
-        if (*im.lock().unwrap()).is_some() {
+        if { let __nil_result = (*im.lock().unwrap()).is_some(); __nil_result } {
             return make_complex(Arc::new(Mutex::new(Some(Box::new(int64Val(Arc::new(Mutex::new(Some(0 as i64 as i64))))) as Box<dyn Value + Send + Sync>))), im.clone()).clone();;
         }
     };
@@ -2094,8 +2094,8 @@ pub fn make_from_literal(lit: Arc<Mutex<Option<String>>>, tok: Arc<Mutex<Option<
         let mut n = Arc::new(Mutex::new(Some((*lit.lock().unwrap().as_ref().unwrap()).len() as i32)));;
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x >= __tmp_y } {
             {
-        let (mut code, _, _, mut err) = strconv::unquote_char(Arc::new(Mutex::new(Some({ let __s = &((*lit.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = ({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; __s[__low..__high].to_string() }))), ('\'' as i32) as u8);;
-        if (*err.lock().unwrap()).is_none() {
+        let (mut code, _, _, mut err) = strconv::unquote_char(Arc::new(Mutex::new(Some({ let __s = &((*lit.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = ({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; __s[__low..__high].to_string() }))), Arc::new(Mutex::new(Some(('\'' as i32) as u8))));;
+        if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } {
             return make_int64(Arc::new(Mutex::new(Some(code as i64)))).clone();;
         }
     };
@@ -2103,8 +2103,8 @@ pub fn make_from_literal(lit: Arc<Mutex<Option<String>>>, tok: Arc<Mutex<Option<
     }
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_T_R_I_N_G as i32))))) {
             {
-        let (mut s, mut err) = strconv::unquote({ let __arg_holder = lit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });;
-        if (*err.lock().unwrap()).is_none() {
+        let (mut s, mut err) = strconv::unquote(Arc::new(Mutex::new(Some({ let __arg_holder = lit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
+        if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } {
             return make_string(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone();;
         }
     }
@@ -3221,18 +3221,18 @@ pub fn binary_op(x_: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>, op: Arc<M
         let mut re: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>> = Arc::new(Mutex::new(None));let mut im: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>> = Arc::new(Mutex::new(None));;
         { let _switch_val = (*op.lock().unwrap().as_ref().unwrap()).clone();
     if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_D_D as i32))))) {
-            { let __iface_handle = add(a.clone(), c.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *re.lock().unwrap() = (*__iface_guard).clone(); };
-            { let __iface_handle = add(b.clone(), d.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *im.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = add(a.clone(), c.clone()).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *re.lock().unwrap() = __iface_value; };
+            { let __iface_handle = add(b.clone(), d.clone()).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *im.lock().unwrap() = __iface_value; };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_U_B as i32))))) {
-            { let __iface_handle = sub(a.clone(), c.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *re.lock().unwrap() = (*__iface_guard).clone(); };
-            { let __iface_handle = sub(b.clone(), d.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *im.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = sub(a.clone(), c.clone()).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *re.lock().unwrap() = __iface_value; };
+            { let __iface_handle = sub(b.clone(), d.clone()).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *im.lock().unwrap() = __iface_value; };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::M_U_L as i32))))) {
             let mut ac = mul(a.clone(), c.clone());
             let mut bd = mul(b.clone(), d.clone());
             let mut bc = mul(b.clone(), c.clone());
             let mut ad = mul(a.clone(), d.clone());
-            { let __iface_handle = sub(ac.clone(), bd.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *re.lock().unwrap() = (*__iface_guard).clone(); };
-            { let __iface_handle = add(bc.clone(), ad.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *im.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = sub(ac.clone(), bd.clone()).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *re.lock().unwrap() = __iface_value; };
+            { let __iface_handle = add(bc.clone(), ad.clone()).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *im.lock().unwrap() = __iface_value; };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::Q_U_O as i32))))) {
             let mut ac = mul(a.clone(), c.clone());
             let mut bd = mul(b.clone(), d.clone());
@@ -3241,10 +3241,10 @@ pub fn binary_op(x_: Arc<Mutex<Option<Box<dyn Value + Send + Sync>>>>, op: Arc<M
             let mut cc = mul(c.clone(), c.clone());
             let mut dd = mul(d.clone(), d.clone());
             let mut s = add(cc.clone(), dd.clone());
-            { let __iface_handle = add(ac.clone(), bd.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *re.lock().unwrap() = (*__iface_guard).clone(); };
-            { let __iface_handle = quo(re.clone(), s.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *re.lock().unwrap() = (*__iface_guard).clone(); };
-            { let __iface_handle = sub(bc.clone(), ad.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *im.lock().unwrap() = (*__iface_guard).clone(); };
-            { let __iface_handle = quo(im.clone(), s.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *im.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = add(ac.clone(), bd.clone()).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *re.lock().unwrap() = __iface_value; };
+            { let __iface_handle = quo(re.clone(), s.clone()).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *re.lock().unwrap() = __iface_value; };
+            { let __iface_handle = sub(bc.clone(), ad.clone()).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *im.lock().unwrap() = __iface_value; };
+            { let __iface_handle = quo(im.clone(), s.clone()).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *im.lock().unwrap() = __iface_value; };
         } else {
             break 'error;
         }

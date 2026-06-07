@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_any_clone, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_any_clone};
 
 use crate::accuracy_string::*;
 use crate::arith::*;
@@ -1527,7 +1527,7 @@ pub fn get_nat(n: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<nat>>> {
     let mut z: Arc<Mutex<Option<nat>>> = Arc::new(Mutex::new(None));
     {
         let mut v = (*natPool.lock().unwrap().as_mut().unwrap()).get();;
-        if (*v.lock().unwrap()).is_some() {
+        if { let __nil_result = (*v.lock().unwrap()).is_some(); __nil_result } {
             { let new_val = ({
         let val = v.clone();
         let guard = val.lock().unwrap();
@@ -1539,7 +1539,7 @@ pub fn get_nat(n: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<nat>>> {
     }).clone(); z = new_val; };;
         }
     }
-    if (*z.lock().unwrap()).is_none() {
+    if { let __nil_result = (*z.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = Arc::new(Mutex::new(Some(nat::default()))).clone(); z = new_val; };
     }
     { let new_val = (*{ let __recv = z.clone(); let __recv_ptr: *const nat = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const nat }; let __result = unsafe { &*__recv_ptr }.make(Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result }.lock().unwrap().as_ref().unwrap()).clone(); *z.lock().unwrap() = Some(new_val); };

@@ -215,7 +215,8 @@ in the first place.
   `tests/source_stdlib_go_types_check_manual_ast_decl/`,
   `tests/source_stdlib_go_parser_types_check_bridge_arg/`,
   `tests/types_config_check_bridge/`, and
-  `tests/stdlib_function_type_alias/` also source-map `strconv` for
+  `tests/stdlib_function_type_alias/`, and
+  `tests/stdlib_concrete_error_variable/` also source-map `strconv` for
   `go/types`/`go/constant` callers after error-interface assertions to pointer
   concrete errors learned to rebuild the pointer handle from the concrete error
   payload. `tests/parser_mode_const_expression/`,
@@ -234,6 +235,7 @@ in the first place.
   `tests/source_stdlib_go_parser_types_check_bridge_arg/`,
   `tests/types_config_check_bridge/`,
   `tests/stdlib_function_type_alias/`,
+  `tests/stdlib_concrete_error_variable/`,
   `tests/parser_mode_const_expression/`,
   `tests/parser_parse_file_package_imports/`,
   `tests/source_stdlib_parser_decl_cross_package/`
@@ -255,7 +257,8 @@ in the first place.
   `tests/source_stdlib_go_types_check_manual_ast_decl/`,
   `tests/source_stdlib_go_parser_types_check_bridge_arg/`,
   `tests/types_config_check_bridge/`, and
-  `tests/stdlib_function_type_alias/` now exercise source
+  `tests/stdlib_function_type_alias/`, and
+  `tests/stdlib_concrete_error_variable/` now exercise source
   `strconv::unquote`/`unquote_char` through `go/constant`, but
   non-source-mapped callers still route through the helper bridge.
 - Fixture: `tests/source_stdlib_strconv_unquote/`,
@@ -265,7 +268,8 @@ in the first place.
   `tests/source_stdlib_go_types_check_manual_ast_decl/`,
   `tests/source_stdlib_go_parser_types_check_bridge_arg/`,
   `tests/types_config_check_bridge/`,
-  `tests/stdlib_function_type_alias/`
+  `tests/stdlib_function_type_alias/`,
+  `tests/stdlib_concrete_error_variable/`
 - Removal trigger: generated source-stdlib snapshots no longer call the
   external `strconv::unquote`/`strconv::unquote_char` helper module.
 - Added: 2026-05-27 (backfill)
@@ -281,7 +285,8 @@ in the first place.
   `tests/source_stdlib_go_types_check_manual_ast_decl/`,
   `tests/source_stdlib_go_parser_types_check_bridge_arg/`,
   `tests/types_config_check_bridge/`, and
-  `tests/stdlib_function_type_alias/` now exercise source
+  `tests/stdlib_function_type_alias/`, and
+  `tests/stdlib_concrete_error_variable/` now exercise source
   `strconv::unquote`/`unquote_char` through `go/constant`, but other committed
   `go/types`/`go/constant` source-stdlib fixtures still depend on the external
   `strconv::unquote` bridge until their source package lists include
@@ -294,7 +299,8 @@ in the first place.
   `tests/source_stdlib_go_types_check_manual_ast_decl/`,
   `tests/source_stdlib_go_parser_types_check_bridge_arg/`,
   `tests/types_config_check_bridge/`,
-  `tests/stdlib_function_type_alias/`
+  `tests/stdlib_function_type_alias/`,
+  `tests/stdlib_concrete_error_variable/`
 - Removal trigger: reroute the remaining source-stdlib fixtures that emit
   `strconv::unquote` or `strconv::unquote_char` to source-transpiled
   `strconv`, then delete `writeStrconvUnquoteFunction` and this row.
