@@ -5334,8 +5334,11 @@ func isStdlibIoWriterType(typ types.Type) bool {
 		named.Obj().Pkg().Path() == "io" && named.Obj().Name() == "Writer"
 }
 
-func writeSourceMappedBytesBufferIoWriterConversionValue(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
+func sourceMappedBytesBufferToExternalIoWriter(arg ast.Expr, expectedType types.Type) bool {
 	if !isStdlibIoWriterType(expectedType) {
+		return false
+	}
+	if isSourceMappedPackagePath("io") {
 		return false
 	}
 	typeInfo := GetTypeInfo()
@@ -5350,34 +5353,30 @@ func writeSourceMappedBytesBufferIoWriterConversionValue(out *strings.Builder, a
 	if !types.Implements(typeInfo.GetType(arg), targetInterface) {
 		return false
 	}
-	out.WriteString("{ let __writer = ")
-	writeStdlibInterfaceSourceHandle(out, arg, expectedType)
-	out.WriteString("; io_Writer::__go_from_with_write(__writer.clone(), move |__data| { let mut __guard = __writer")
-	WriteBorrowMethod(out, true)
-	out.WriteString("; if let Some(__target) = __guard.as_mut() { let _ = __target.write(")
-	WriteWrapperPrefix(out)
-	out.WriteString("__data.to_vec()")
-	WriteWrapperSuffix(out)
-	out.WriteString("); } }) }")
 	return true
 }
 
-func writeSourceMappedBytesBufferIoWriterCallArgument(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
-	if !isStdlibIoWriterType(expectedType) {
+func writeSourceMappedBytesBufferExternalIoWriterUnsupportedValue(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
+	if !sourceMappedBytesBufferToExternalIoWriter(arg, expectedType) {
 		return false
 	}
-	var converted strings.Builder
-	if !writeSourceMappedBytesBufferIoWriterConversionValue(&converted, arg, expectedType) {
+	out.WriteString("unimplemented!(\"source-mapped bytes.Buffer to external io.Writer requires source-mapped io; transpile io instead\")")
+	return true
+}
+
+func writeSourceMappedBytesBufferExternalIoWriterUnsupportedCallArgument(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
+	var unsupported strings.Builder
+	if !writeSourceMappedBytesBufferExternalIoWriterUnsupportedValue(&unsupported, arg, expectedType) {
 		return false
 	}
 	WriteWrapperPrefix(out)
-	out.WriteString(converted.String())
+	out.WriteString(unsupported.String())
 	WriteWrapperSuffix(out)
 	return true
 }
 
 func writeStdlibInterfaceCallArgumentConversion(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
-	if writeSourceMappedBytesBufferIoWriterCallArgument(out, arg, expectedType) {
+	if writeSourceMappedBytesBufferExternalIoWriterUnsupportedCallArgument(out, arg, expectedType) {
 		return true
 	}
 	targetRust, _, ok := stdlibInterfaceArgumentConversion(arg, expectedType)
@@ -5415,7 +5414,7 @@ func writeStdlibInterfaceCallArgumentConversion(out *strings.Builder, arg ast.Ex
 }
 
 func writeStdlibInterfaceBareConversion(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
-	if writeSourceMappedBytesBufferIoWriterConversionValue(out, arg, expectedType) {
+	if writeSourceMappedBytesBufferExternalIoWriterUnsupportedValue(out, arg, expectedType) {
 		return true
 	}
 	if _, _, ok := stdlibInterfaceArgumentConversion(arg, expectedType); !ok {
@@ -5486,7 +5485,7 @@ func selectorFieldCanProvideStdlibInterfaceHandle(sel *ast.SelectorExpr, expecte
 }
 
 func writeStdlibInterfaceComparableConversion(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
-	if writeSourceMappedBytesBufferIoWriterConversionValue(out, arg, expectedType) {
+	if writeSourceMappedBytesBufferExternalIoWriterUnsupportedValue(out, arg, expectedType) {
 		return true
 	}
 	targetRust, _, ok := stdlibInterfaceArgumentConversion(arg, expectedType)

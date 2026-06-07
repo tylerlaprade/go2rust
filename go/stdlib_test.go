@@ -649,6 +649,41 @@ func build(s string) string {
 	}
 }
 
+func TestSourceMappedBytesBufferToExternalIoWriterIsLoud(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import (
+	"bytes"
+	"io"
+)
+
+func writeTo(w io.Writer) {}
+
+func build() {
+	var buf bytes.Buffer
+	writeTo(&buf)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"bytes": "bytes"})
+
+	if strings.Contains(rust, "__go_from_with_write") {
+		t.Fatalf("source-mapped bytes.Buffer to external io.Writer should not synthesize a write callback bridge:\n%s", rust)
+	}
+	if !strings.Contains(rust, "unimplemented!") ||
+		!strings.Contains(rust, "source-mapped bytes.Buffer to external io.Writer requires source-mapped io") {
+		t.Fatalf("source-mapped bytes.Buffer to external io.Writer should be loud:\n%s", rust)
+	}
+}
+
 func TestSourceMappedBytesBufferAsSourceMappedIoWriterBoxesPointerWrapper(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

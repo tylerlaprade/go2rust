@@ -1909,13 +1909,6 @@ pub struct io_Writer {
     pub __go_value: `)
 	out.WriteString(holderType)
 	out.WriteString(`,
-    pub __go_write: Option<`)
-	if NeedsConcurrentWrapper() {
-		out.WriteString("Arc<dyn Fn(&[u8]) + Send + Sync>")
-	} else {
-		out.WriteString("Rc<dyn Fn(&[u8])>")
-	}
-	out.WriteString(`>,
 }
 
 impl io_Writer {
@@ -1924,38 +1917,14 @@ impl io_Writer {
 	out.WriteString(`>(value: T) -> Self {
         Self { __go_id: __go_next_external_interface_id(), __go_value: `)
 	out.WriteString(newValue)
-	out.WriteString(`, __go_write: None }
+	out.WriteString(` }
     }
 
-    pub fn __go_from_with_write<`)
-	out.WriteString(fromBound)
-	if NeedsConcurrentWrapper() {
-		out.WriteString(`, F: 'static + Fn(&[u8]) + Send + Sync`)
-	} else {
-		out.WriteString(`, F: 'static + Fn(&[u8])`)
-	}
-	out.WriteString(`>(value: T, write_fn: F) -> Self {
-        Self { __go_id: __go_next_external_interface_id(), __go_value: `)
-	out.WriteString(newValue)
-	if NeedsConcurrentWrapper() {
-		out.WriteString(`, __go_write: Some(Arc::new(write_fn)) }
-    }
-`)
-	} else {
-		out.WriteString(`, __go_write: Some(Rc::new(write_fn)) }
-    }
-`)
-	}
-	out.WriteString(`
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         self.__go_value.as_ref().downcast_ref::<T>()
     }
 
     pub fn __go_write_bytes(&self, data: &[u8]) {
-        if let Some(write_fn) = &self.__go_write {
-            write_fn(data);
-            return;
-        }
 `)
 	if hasOsFile {
 		out.WriteString(`        if let Some(file) = self.downcast_ref::<os_File>() {
@@ -1996,7 +1965,7 @@ impl Default for io_Writer {
     fn default() -> Self {
         Self { __go_id: 0, __go_value: `, intType, errorType, vecType, vecBorrow, "n", noneError)
 	out.WriteString(defaultValue)
-	out.WriteString(`, __go_write: None }
+	out.WriteString(` }
     }
 }
 

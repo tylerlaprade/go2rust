@@ -182,7 +182,9 @@ in the first place.
 - Transpiler gap: Source-transpiled `io` now handles `io.Discard`,
   `io.MultiWriter`, direct `Writer.Write`, promoted `bytes.Buffer`
   method signatures, and `strings.Builder` call arguments in focused fixtures.
-  No runtime fixture snapshot requires `io_Writer`, and no-type-info
+  Source-mapped `bytes.Buffer` to external `io.Writer` now emits a loud
+  source-mapping boundary instead of synthesizing a write callback bridge. No
+  runtime fixture snapshot requires `io_Writer`, and no-type-info
   `io.MultiWriter` now emits a loud type-info boundary instead of registering a
   bridge. No-type-info `io.Discard` does the same. The remaining debt is typed
   non-source-mapped interface conversions that still emit `io_Writer`.
@@ -191,6 +193,7 @@ in the first place.
   `tests/embedded_external_method_promotion/`,
   `go/expr_test.go:TestNoTypeInfoIoMultiWriterRequiresTypeInfo`,
   `go/expr_test.go:TestNoTypeInfoIoDiscardRequiresTypeInfo`,
+  `go/stdlib_test.go:TestSourceMappedBytesBufferToExternalIoWriterIsLoud`,
   `go/stmt_test.go:TestAddressOfStringsBuilderPassedToStdlibWriterMethod`,
   `go/stdlib_test.go:TestSourceMappedStringsBuilderAsSourceMappedIoWriterBoxesPointerWrapper`
 - Removal trigger: typed non-source-mapped `io.Writer` conversions either
