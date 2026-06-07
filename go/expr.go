@@ -5305,7 +5305,12 @@ func stdlibInterfaceConversionForTypes(sourceType types.Type, expectedType types
 		return "", "", false
 	}
 	if isKnownStdlibHelperType(sourceNamed.Obj().Pkg().Path(), sourceNamed.Obj().Name()) &&
-		!stdlibHelperTypeAllowsInterfaceConversion(sourceNamed.Obj().Pkg().Path(), sourceNamed.Obj().Name()) {
+		!stdlibHelperTypeAllowsInterfaceConversion(
+			sourceNamed.Obj().Pkg().Path(),
+			sourceNamed.Obj().Name(),
+			targetNamed.Obj().Pkg().Path(),
+			targetNamed.Obj().Name(),
+		) {
 		return "", "", false
 	}
 	targetInterface.Complete()
@@ -5332,6 +5337,57 @@ func isStdlibIoWriterType(typ types.Type) bool {
 	named, ok := types.Unalias(typ).(*types.Named)
 	return ok && named.Obj() != nil && named.Obj().Pkg() != nil &&
 		named.Obj().Pkg().Path() == "io" && named.Obj().Name() == "Writer"
+}
+
+func osFileToExternalIoWriter(arg ast.Expr, expectedType types.Type) bool {
+	if !isStdlibIoWriterType(expectedType) {
+		return false
+	}
+	if isSourceMappedPackagePath("io") {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || arg == nil {
+		return false
+	}
+	sourceType := typeInfo.GetType(arg)
+	if sourceType == nil {
+		return false
+	}
+	sourceNamedType := sourceType
+	if ptr, ok := types.Unalias(sourceType).(*types.Pointer); ok {
+		sourceNamedType = ptr.Elem()
+	}
+	sourceNamed, ok := types.Unalias(sourceNamedType).(*types.Named)
+	if !ok || sourceNamed.Obj() == nil || sourceNamed.Obj().Pkg() == nil ||
+		sourceNamed.Obj().Pkg().Path() != "os" || sourceNamed.Obj().Name() != "File" {
+		return false
+	}
+	targetInterface, ok := types.Unalias(expectedType).Underlying().(*types.Interface)
+	if !ok {
+		return false
+	}
+	targetInterface.Complete()
+	return types.Implements(sourceType, targetInterface)
+}
+
+func writeOsFileExternalIoWriterUnsupportedValue(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
+	if !osFileToExternalIoWriter(arg, expectedType) {
+		return false
+	}
+	out.WriteString("unimplemented!(\"os.File to external io.Writer requires source-mapped io; transpile io instead\")")
+	return true
+}
+
+func writeOsFileExternalIoWriterUnsupportedCallArgument(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
+	var unsupported strings.Builder
+	if !writeOsFileExternalIoWriterUnsupportedValue(&unsupported, arg, expectedType) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString(unsupported.String())
+	WriteWrapperSuffix(out)
+	return true
 }
 
 func sourceMappedBytesBufferToExternalIoWriter(arg ast.Expr, expectedType types.Type) bool {
@@ -5376,6 +5432,9 @@ func writeSourceMappedBytesBufferExternalIoWriterUnsupportedCallArgument(out *st
 }
 
 func writeStdlibInterfaceCallArgumentConversion(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
+	if writeOsFileExternalIoWriterUnsupportedCallArgument(out, arg, expectedType) {
+		return true
+	}
 	if writeSourceMappedBytesBufferExternalIoWriterUnsupportedCallArgument(out, arg, expectedType) {
 		return true
 	}
@@ -5414,6 +5473,9 @@ func writeStdlibInterfaceCallArgumentConversion(out *strings.Builder, arg ast.Ex
 }
 
 func writeStdlibInterfaceBareConversion(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
+	if writeOsFileExternalIoWriterUnsupportedValue(out, arg, expectedType) {
+		return true
+	}
 	if writeSourceMappedBytesBufferExternalIoWriterUnsupportedValue(out, arg, expectedType) {
 		return true
 	}
@@ -5485,6 +5547,9 @@ func selectorFieldCanProvideStdlibInterfaceHandle(sel *ast.SelectorExpr, expecte
 }
 
 func writeStdlibInterfaceComparableConversion(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
+	if writeOsFileExternalIoWriterUnsupportedValue(out, arg, expectedType) {
+		return true
+	}
 	if writeSourceMappedBytesBufferExternalIoWriterUnsupportedValue(out, arg, expectedType) {
 		return true
 	}

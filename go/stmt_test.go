@@ -929,7 +929,7 @@ func (s *Scope) String() string {
 	}
 }
 
-func TestPackageGlobalSelectorReturnedAsStdlibInterfaceConverts(t *testing.T) {
+func TestPackageGlobalSelectorReturnedAsExternalIoWriterIsLoud(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
 import (
@@ -945,10 +945,13 @@ func output() io.Writer {
 	if strings.Contains(rust, "return os::Stderr().clone();") {
 		t.Fatalf("package-global selector returned as stdlib interface should not return the concrete handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __arg = os::Stderr()") ||
-		!strings.Contains(rust, "let __converted: Option<io_Writer>") ||
-		!strings.Contains(rust, "(*__v).clone().into()") {
-		t.Fatalf("package-global selector returned as stdlib interface should convert through the target interface:\n%s", rust)
+	if strings.Contains(rust, "let __converted: Option<io_Writer>") ||
+		strings.Contains(rust, "impl From<os_File> for io_Writer") {
+		t.Fatalf("package-global os.File returned as external io.Writer should not synthesize an io_Writer bridge:\n%s", rust)
+	}
+	if !strings.Contains(rust, "unimplemented!") ||
+		!strings.Contains(rust, "os.File to external io.Writer requires source-mapped io") {
+		t.Fatalf("package-global os.File returned as external io.Writer should be loud:\n%s", rust)
 	}
 }
 

@@ -184,21 +184,26 @@ in the first place.
   method signatures, and `strings.Builder` call arguments in focused fixtures.
   Source-mapped `bytes.Buffer` to external `io.Writer` now emits a loud
   source-mapping boundary instead of synthesizing a write callback bridge. No
-  runtime fixture snapshot requires `io_Writer`, and no-type-info
-  `io.MultiWriter` now emits a loud type-info boundary instead of registering a
-  bridge. No-type-info `io.Discard` does the same. The remaining debt is typed
-  non-source-mapped interface conversions that still emit `io_Writer`.
+  runtime fixture snapshot requires `io_Writer`; `os.File` to external
+  `io.Writer` now emits a loud source-mapping boundary instead of registering
+  `From<os_File> for io_Writer`; and `io_Writer.__go_write_bytes` now panics
+  loudly instead of dispatching by hand to `os.File` or `strings.Builder`.
+  No-type-info `io.MultiWriter` now emits a loud type-info boundary instead of
+  registering a bridge. No-type-info `io.Discard` does the same. The remaining
+  debt is the external `io_Writer` type stub still emitted for non-source-mapped
+  `io.Writer` signatures.
 - Fixture: `tests/external_stdlib_variadic/`,
   `tests/external_stub_closure_capture/`,
   `tests/embedded_external_method_promotion/`,
   `go/expr_test.go:TestNoTypeInfoIoMultiWriterRequiresTypeInfo`,
   `go/expr_test.go:TestNoTypeInfoIoDiscardRequiresTypeInfo`,
   `go/stdlib_test.go:TestSourceMappedBytesBufferToExternalIoWriterIsLoud`,
+  `go/stmt_test.go:TestPackageGlobalSelectorReturnedAsExternalIoWriterIsLoud`,
   `go/stmt_test.go:TestAddressOfStringsBuilderPassedToStdlibWriterMethod`,
   `go/stdlib_test.go:TestSourceMappedStringsBuilderAsSourceMappedIoWriterBoxesPointerWrapper`
-- Removal trigger: typed non-source-mapped `io.Writer` conversions either
-  source-map the stdlib path or emit loud unsupported paths without
-  hand-written writer behavior; then delete `writeIoWriterStub`.
+- Removal trigger: non-source-mapped `io.Writer` signatures either source-map
+  the stdlib path or emit loud unsupported paths without hand-written writer
+  behavior; then delete `writeIoWriterStub`.
 - Added: 2026-05-27 (backfill)
 
 ### json-package

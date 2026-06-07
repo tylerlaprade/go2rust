@@ -889,8 +889,11 @@ func isKnownStdlibHelperType(pkgPath string, name string) bool {
 	}
 }
 
-func stdlibHelperTypeAllowsInterfaceConversion(pkgPath string, name string) bool {
-	return pkgPath == "os" && name == "File"
+func stdlibHelperTypeAllowsInterfaceConversion(pkgPath string, name string, targetPkgPath string, targetName string) bool {
+	if pkgPath == "os" && name == "File" {
+		return targetPkgPath != "io" || targetName != "Writer"
+	}
+	return false
 }
 
 func currentExternalTypeStubs() map[string]bool {
@@ -1701,7 +1704,7 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 			continue
 		}
 		if name == "io_Writer" {
-			writeIoWriterStub(&out, stubs["os_File"])
+			writeIoWriterStub(&out)
 			continue
 		}
 		if name == "os_File" {
@@ -1884,7 +1887,7 @@ func externalStubErrorInnerType() string {
 
 // TEMPORARY: hand-written Rust shim for io.Writer trait bridging.
 // Long-term fix: transpile io package interfaces (pure Go).
-func writeIoWriterStub(out *strings.Builder, hasOsFile bool) {
+func writeIoWriterStub(out *strings.Builder) {
 	holderType := "Rc<dyn std::any::Any>"
 	fromBound := "T: 'static"
 	newValue := "Rc::new(value)"
@@ -1917,7 +1920,7 @@ impl io_Writer {
 	out.WriteString(`>(value: T) -> Self {
         Self { __go_id: __go_next_external_interface_id(), __go_value: `)
 	out.WriteString(newValue)
-	out.WriteString(` }
+	fmt.Fprintf(out, ` }
     }
 
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
@@ -1925,27 +1928,9 @@ impl io_Writer {
     }
 
     pub fn __go_write_bytes(&self, data: &[u8]) {
-`)
-	if hasOsFile {
-		out.WriteString(`        if let Some(file) = self.downcast_ref::<os_File>() {
-            file.__go_write_bytes(data);
-        }
-`)
-	}
-	if NeedsConcurrentWrapper() {
-		out.WriteString(`        if let Some(builder) = self.downcast_ref::<Arc<Mutex<Option<String>>>>() {
-            let mut guard = builder.lock().unwrap();
-            guard.get_or_insert_with(String::new).push_str(&String::from_utf8_lossy(data));
-        }
-`)
-	} else {
-		out.WriteString(`        if let Some(builder) = self.downcast_ref::<Rc<RefCell<Option<String>>>>() {
-            let mut guard = builder.borrow_mut();
-            guard.get_or_insert_with(String::new).push_str(&String::from_utf8_lossy(data));
-        }
-`)
-	}
-	fmt.Fprintf(out, `    }
+        let _ = data;
+        panic!("io_Writer.__go_write_bytes bridge: unsupported concrete receiver; transpile io source instead - see AGENTS.md")
+    }
 
     pub fn write<T0: 'static>(&self, arg0: T0) -> (%s, %s) {
         let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {

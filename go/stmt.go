@@ -5581,7 +5581,12 @@ func stdlibInterfaceReturnConversion(result ast.Expr, expected ast.Expr) bool {
 		return false
 	}
 	if isKnownStdlibHelperType(sourceNamed.Obj().Pkg().Path(), sourceNamed.Obj().Name()) &&
-		!stdlibHelperTypeAllowsInterfaceConversion(sourceNamed.Obj().Pkg().Path(), sourceNamed.Obj().Name()) {
+		!stdlibHelperTypeAllowsInterfaceConversion(
+			sourceNamed.Obj().Pkg().Path(),
+			sourceNamed.Obj().Name(),
+			targetNamed.Obj().Pkg().Path(),
+			targetNamed.Obj().Name(),
+		) {
 		return false
 	}
 	targetInterface.Complete()
