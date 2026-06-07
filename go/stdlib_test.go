@@ -1218,6 +1218,34 @@ func forceConcurrent(ch chan bool) {
 	}
 }
 
+func TestBuiltinPrintAddressOfGoPtrPointerFormatsLocalSlotAddress(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct{}
+
+func raw(addr uintptr) *node {
+	return (*node)(unsafe.Pointer(addr))
+}
+
+func warn(addr uintptr) {
+	n := raw(addr)
+	print(" slot=", &n)
+}
+`)
+
+	if !strings.Contains(rust, "let mut n: GoPtr<node>") {
+		t.Fatalf("test setup should promote n to GoPtr storage:\n%s", rust)
+	}
+	if strings.Contains(rust, "Arc::as_ptr(&n)") || strings.Contains(rust, "Rc::as_ptr(&n)") {
+		t.Fatalf("printing address of GoPtr pointer variable should not call wrapper as_ptr on GoPtr:\n%s", rust)
+	}
+	if !strings.Contains(rust, `format!("{}", format!("0x{:x}", &n as *const _ as usize))`) {
+		t.Fatalf("printing address of GoPtr pointer variable should format the local GoPtr slot address:\n%s", rust)
+	}
+}
+
 func TestConcurrentFmtPrintlnVariadicAnyUsesVariadicFormatter(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

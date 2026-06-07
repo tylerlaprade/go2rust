@@ -1711,7 +1711,7 @@ impl traceTypeTable {
         return 0;
     }
                 // Insert the pointer to the type itself.
-        let (mut id, _) = (*self.tab.lock().unwrap().as_ref().unwrap()).put(noescape(Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(typ.clone())))) as usize)))), Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))));
+        let (mut id, _) = (*self.tab.lock().unwrap().as_ref().unwrap()).put(noescape(Arc::new(Mutex::new(Some(&typ as *const _ as usize)))), Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))));
         id
     }
 

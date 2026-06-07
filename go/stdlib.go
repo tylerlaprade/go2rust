@@ -698,6 +698,12 @@ func writePointerAddressPrintArg(out *strings.Builder, arg ast.Expr, argType typ
 	if !ok || ident.Name == "_" || ident.Name == "nil" {
 		return false
 	}
+	if isGoPtrVar(ident.Name) {
+		out.WriteString("format!(\"0x{:x}\", &")
+		out.WriteString(rustIdentForUseWithCapture(ident))
+		out.WriteString(" as *const _ as usize)")
+		return true
+	}
 	trackWrapperImports()
 	out.WriteString("format!(\"0x{:x}\", ")
 	out.WriteString(GetOuterWrapperType())

@@ -4673,6 +4673,31 @@ func use(buf []byte) uintptr {
 	}
 }
 
+func TestGoPtrAddressUnsafePointerToUintptrUsesLocalSlotAddress(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+func addr(p *byte) uintptr {
+	return uintptr(unsafe.Pointer(&p))
+}
+
+func use(buf []byte) uintptr {
+	return addr(&buf[0])
+}
+`)
+
+	if !strings.Contains(rust, "fn addr(p: GoPtr<u8>)") {
+		t.Fatalf("unsafe pointer address helper should receive slice element address as GoPtr:\n%s", rust)
+	}
+	if strings.Contains(rust, "Arc::as_ptr(&p)") || strings.Contains(rust, "Rc::as_ptr(&p)") {
+		t.Fatalf("unsafe.Pointer conversion from &GoPtr should not call wrapper as_ptr on GoPtr:\n%s", rust)
+	}
+	if !strings.Contains(rust, "&p as *const _ as usize") {
+		t.Fatalf("unsafe.Pointer conversion from &GoPtr should use the local GoPtr slot address:\n%s", rust)
+	}
+}
+
 func TestGoPtrUnsafePointerToUintptrUsesCallResultAddress(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

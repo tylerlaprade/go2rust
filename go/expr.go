@@ -17130,6 +17130,12 @@ func writeUnsafePointerAddressOfBareLocal(out *strings.Builder, arg ast.Expr) bo
 		return false
 	}
 	if _, ok := types.Unalias(operandType).Underlying().(*types.Pointer); ok {
+		if isGoPtrVar(ident.Name) {
+			out.WriteString("&")
+			out.WriteString(RustIdentForUse(ident))
+			out.WriteString(" as *const _ as usize")
+			return true
+		}
 		return false
 	}
 	out.WriteString("&")
