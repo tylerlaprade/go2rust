@@ -2272,7 +2272,7 @@ pub fn trace_reader_available() -> Arc<Mutex<Option<crate::runtime2::g>>> {
 pub fn new_wakeable_sleep() -> Arc<Mutex<Option<wakeableSleep>>> {
     let mut s = Arc::new(Mutex::new(Some(wakeableSleep::default())));
     lock_init(GoPtr::local((*s.lock().unwrap().as_ref().unwrap()).lock.clone()), Arc::new(Mutex::new(Some(crate::lockrank::lockRank(Arc::new(Mutex::new(Some(LOCK_RANK_WAKEABLE_SLEEP as i32))))))));
-    (*s.lock().unwrap().as_ref().unwrap()).wakeup = GoChannel::<AnonymousStruct12>::new_buffered(1 as usize);
+    (*s.lock().unwrap().as_mut().unwrap()).wakeup = GoChannel::<AnonymousStruct12>::new_buffered(1 as usize);
     { let new_val = Arc::new(Mutex::new(Some(timer::default()))).clone(); (*s.lock().unwrap().as_mut().unwrap()).timer = new_val; };
     let mut f = Arc::new(Mutex::new(Some(Box::new(move |s: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, _: Arc<Mutex<Option<usize>>>, _: Arc<Mutex<Option<i64>>>| {
         { let __recv = ({

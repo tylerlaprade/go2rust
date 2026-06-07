@@ -1692,7 +1692,7 @@ pub fn trace_stop_read_c_p_u() {
     (*trace.lock().unwrap().as_ref().unwrap()).cpu_log_done.recv().unwrap_or_default();
 
         // Clear state for the next trace.
-    (*trace.lock().unwrap().as_ref().unwrap()).cpu_log_done = Default::default();
+    (*trace.lock().unwrap().as_mut().unwrap()).cpu_log_done = Default::default();
     (*(*trace.lock().unwrap().as_ref().unwrap()).cpu_log_read.lock().unwrap().as_mut().unwrap())[(0) as usize] = Default::default();
     (*(*trace.lock().unwrap().as_ref().unwrap()).cpu_log_read.lock().unwrap().as_mut().unwrap())[(1) as usize] = Default::default();
     (*(*trace.lock().unwrap().as_ref().unwrap()).cpu_sleep.lock().unwrap().as_mut().unwrap()).close();

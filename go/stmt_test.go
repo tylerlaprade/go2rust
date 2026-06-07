@@ -7201,6 +7201,31 @@ func (h *holder) assign() {
 	}
 }
 
+func TestChannelFieldAssignmentUsesMutableStructTarget(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type sleeper struct {
+	wake chan struct{}
+}
+
+func install(s *sleeper) {
+	s.wake = make(chan struct{}, 1)
+	s.wake = nil
+}
+`)
+
+	if strings.Contains(rust, ".as_ref().unwrap()).wake =") {
+		t.Fatalf("channel field assignment through a wrapped pointer should not use an immutable struct borrow:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*s.borrow_mut().as_mut().unwrap()).wake = GoChannel") &&
+		!strings.Contains(rust, "(*s.lock().unwrap().as_mut().unwrap()).wake = GoChannel") {
+		t.Fatalf("channel field assignment through a wrapped pointer should mutate the struct field:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".wake = Default::default()") {
+		t.Fatalf("nil channel field assignment should still lower to the channel default value:\n%s", rust)
+	}
+}
+
 func TestSelectWithReturningCasesEmitsUnreachableTail(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

@@ -10322,7 +10322,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 				out.WriteString(".as_mut().unwrap()).insert(__map_key, __map_value); }")
 			}
 		} else if isChannelAssignment(s) {
-			TranspileExpressionContext(out, s.Lhs[0], LValue)
+			writeChannelAssignmentTarget(out, s.Lhs[0])
 			out.WriteString(" = ")
 			writeChannelAssignmentValue(out, s.Rhs[0])
 		} else if s.Tok == token.ADD_ASSIGN || s.Tok == token.SUB_ASSIGN ||
@@ -14753,6 +14753,13 @@ func isChannelAssignment(s *ast.AssignStmt) bool {
 	}
 	typeInfo := GetTypeInfo()
 	return typeInfo != nil && typeInfo.IsChannel(s.Lhs[0])
+}
+
+func writeChannelAssignmentTarget(out *strings.Builder, lhs ast.Expr) {
+	if sel, ok := unwrapParens(lhs).(*ast.SelectorExpr); ok && writePointerHandleSelectorTarget(out, sel) {
+		return
+	}
+	TranspileExpressionContext(out, lhs, LValue)
 }
 
 func writeChannelAssignmentValue(out *strings.Builder, rhs ast.Expr) {
