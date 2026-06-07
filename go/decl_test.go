@@ -2313,6 +2313,42 @@ func assign(c *liveUserArenaChunk, addr uintptr) {
 	}
 }
 
+func TestGoPtrStructFieldCustomPartialEqUsesGoPtrIdentity(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type item struct {
+	n int
+}
+
+type bitvector struct {
+	n        int
+	bytedata *item
+}
+
+func start() {
+	go func() {}()
+}
+
+func used(items []item) bool {
+	v := bitvector{n: 1, bytedata: &items[0]}
+	return v != bitvector{}
+}
+`)
+
+	if !strings.Contains(rust, "pub bytedata: GoPtr<item>") {
+		t.Fatalf("test setup should promote pointer field to GoPtr storage:\n%s", rust)
+	}
+	if strings.Contains(rust, "self.bytedata.lock()") ||
+		strings.Contains(rust, "other.bytedata.lock()") ||
+		strings.Contains(rust, "Arc::ptr_eq(&self.bytedata") ||
+		strings.Contains(rust, "Rc::ptr_eq(&self.bytedata") {
+		t.Fatalf("custom PartialEq should not treat generated GoPtr fields as old pointer wrappers:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoPtr::ptr_eq(&self.bytedata, &other.bytedata)") {
+		t.Fatalf("custom PartialEq should compare generated GoPtr field handles by identity:\n%s", rust)
+	}
+}
+
 func TestNamedMapWithInterfaceValueDefinitionUsesFormatMapDisplay(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

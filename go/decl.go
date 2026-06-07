@@ -816,8 +816,9 @@ func structNeedsCustomOrd(structName string, structType *ast.StructType) bool {
 }
 
 type structComparableField struct {
-	name string
-	expr ast.Expr
+	name   string
+	goName string
+	expr   ast.Expr
 }
 
 func structComparableFields(structType *ast.StructType) []structComparableField {
@@ -832,15 +833,18 @@ func structComparableFields(structType *ast.StructType) []structComparableField 
 					continue
 				}
 				fields = append(fields, structComparableField{
-					name: rustStructFieldName(name, fieldIndex, nameIndex),
-					expr: field.Type,
+					name:   rustStructFieldName(name, fieldIndex, nameIndex),
+					goName: name.Name,
+					expr:   field.Type,
 				})
 			}
 			continue
 		}
+		goName := getEmbeddedFieldName(field.Type)
 		fields = append(fields, structComparableField{
-			name: ToSnakeCase(getEmbeddedFieldName(field.Type)),
-			expr: field.Type,
+			name:   ToSnakeCase(goName),
+			goName: goName,
+			expr:   field.Type,
 		})
 	}
 	return fields
@@ -885,6 +889,14 @@ func writeStructComparablePointerFieldEq(out *strings.Builder, field structCompa
 	out.WriteString(")) }")
 }
 
+func writeStructComparableGoPtrFieldEq(out *strings.Builder, field structComparableField) {
+	out.WriteString("GoPtr::ptr_eq(&self.")
+	out.WriteString(field.name)
+	out.WriteString(", &other.")
+	out.WriteString(field.name)
+	out.WriteString(")")
+}
+
 func writeStructComparablePointerFieldOrd(out *strings.Builder, field structComparableField) {
 	outerWrapper := GetOuterWrapperType()
 	out.WriteString("            let __left_some = self.")
@@ -913,13 +925,32 @@ func writeStructComparablePointerFieldOrd(out *strings.Builder, field structComp
 	out.WriteString("            }\n")
 }
 
-func writeStructComparableFieldEq(out *strings.Builder, field structComparableField) {
+func writeStructComparableGoPtrFieldOrd(out *strings.Builder, field structComparableField) {
+	out.WriteString("            match self.")
+	out.WriteString(field.name)
+	out.WriteString(".addr().cmp(&other.")
+	out.WriteString(field.name)
+	out.WriteString(".addr()) {\n")
+	out.WriteString("                std::cmp::Ordering::Equal => {}\n")
+	out.WriteString("                __ord => return __ord,\n")
+	out.WriteString("            }\n")
+}
+
+func structComparableFieldIsGeneratedGoPtr(structName string, field structComparableField) bool {
+	return field.goName != "" && generatedGoPtrFieldForStructNameField(structName, field.goName)
+}
+
+func writeStructComparableFieldEq(out *strings.Builder, structName string, field structComparableField) {
 	typ, ok := structComparableFieldType(field)
 	if !ok {
 		writeStructComparableFieldTypeInfoRequired(out, "compare", field)
 		return
 	}
 	if isPointerType(typ) {
+		if structComparableFieldIsGeneratedGoPtr(structName, field) {
+			writeStructComparableGoPtrFieldEq(out, field)
+			return
+		}
 		writeStructComparablePointerFieldEq(out, field)
 		return
 	}
@@ -940,7 +971,7 @@ func writeStructComparableFieldEq(out *strings.Builder, field structComparableFi
 	out.WriteString(".lock().unwrap(); __left.as_ref() == __right.as_ref() }")
 }
 
-func writeStructComparableFieldOrd(out *strings.Builder, field structComparableField) {
+func writeStructComparableFieldOrd(out *strings.Builder, structName string, field structComparableField) {
 	out.WriteString("        {\n")
 	typ, ok := structComparableFieldType(field)
 	if !ok {
@@ -951,7 +982,11 @@ func writeStructComparableFieldOrd(out *strings.Builder, field structComparableF
 		return
 	}
 	if isPointerType(typ) {
-		writeStructComparablePointerFieldOrd(out, field)
+		if structComparableFieldIsGeneratedGoPtr(structName, field) {
+			writeStructComparableGoPtrFieldOrd(out, field)
+		} else {
+			writeStructComparablePointerFieldOrd(out, field)
+		}
 		out.WriteString("        }\n")
 		return
 	}
@@ -1008,7 +1043,7 @@ func generateStructPartialEq(out *strings.Builder, structName string, structType
 			} else {
 				out.WriteString("            ")
 			}
-			writeStructComparableFieldEq(out, field)
+			writeStructComparableFieldEq(out, structName, field)
 		}
 		out.WriteString("\n        )\n")
 	}
@@ -1069,7 +1104,7 @@ func generateStructOrd(out *strings.Builder, structName string, structType *ast.
 
 	fields := structComparableFields(structType)
 	for _, field := range fields {
-		writeStructComparableFieldOrd(out, field)
+		writeStructComparableFieldOrd(out, structName, field)
 	}
 	out.WriteString("        std::cmp::Ordering::Equal\n")
 	out.WriteString("    }\n")

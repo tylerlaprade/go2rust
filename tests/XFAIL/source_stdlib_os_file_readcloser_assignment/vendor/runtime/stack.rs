@@ -300,7 +300,7 @@ impl PartialEq for bitvector {
     fn eq(&self, other: &Self) -> bool {
         (
             { let __left = self.n.lock().unwrap(); let __right = other.n.lock().unwrap(); __left.as_ref() == __right.as_ref() }
-                && { let __left_some = self.bytedata.lock().unwrap().is_some(); let __right_some = other.bytedata.lock().unwrap().is_some(); (!__left_some && !__right_some) || (__left_some && __right_some && Arc::ptr_eq(&self.bytedata, &other.bytedata)) }
+                && GoPtr::ptr_eq(&self.bytedata, &other.bytedata)
         )
     }
 }
