@@ -1,7 +1,5 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{go_strconv_format_float, go_strconv_format_int};
-
 use crate::value::*;
 
 use std::sync::{Arc, Mutex};
@@ -31,7 +29,7 @@ pub(crate) fn __go_init_order_0() {
 impl crate::value::Kind {
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
         if { let __tmp_x = (*self.0.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::value::Kind(Arc::new(Mutex::new(Some(0 as i32)))); __tmp_x < __tmp_y } || { let __tmp_x = (*self.0.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::value::Kind(Arc::new(Mutex::new(Some({ let __tmp_x = 7; let __tmp_y = 1; __tmp_x - __tmp_y } as i32)))); __tmp_x >= __tmp_y } {
-        return Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "Kind(".to_string())); __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some(go_strconv_format_int((*Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap()) as i64, 10 as i32)))).lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", ")".to_string())); __s })));
+        return Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "Kind(".to_string())); __s.push_str(&format!("{}", (*strconv::format_int(Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()) as i64))), Arc::new(Mutex::new(Some(10)))).lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", ")".to_string())); __s })));
     }
         Arc::new(Mutex::new(Some({ let __s = &(__KIND_NAME); let __low = ({ let __seq = { let __seq_holder = _Kind_index.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*self.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }) as usize; let __high = ({ let __seq = { let __seq_holder = _Kind_index.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[((*self.0.lock().unwrap().as_ref().unwrap()) + 1) as usize].clone() }) as usize; __s[__low..__high].to_string() })))
     }
