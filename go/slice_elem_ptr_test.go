@@ -4515,6 +4515,91 @@ func load(raw unsafe.Pointer) byte {
 	}
 }
 
+func TestGoPtrPointerToNamedArrayIndexBorrowsInnerHandle(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type words [4]int
+
+func pick(raw unsafe.Pointer, i int) int {
+	bh := (*words)(raw)
+	return bh[i]
+}
+`)
+
+	if !strings.Contains(rust, "let mut bh: GoPtr<[i32; 4]>") {
+		t.Fatalf("unsafe pointer conversion to named array pointer should use GoPtr:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __named_array = bh; __named_array.0.clone()") {
+		t.Fatalf("GoPtr pointer-to-named-array index should not read .0 from the GoPtr handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __seq = bh.borrow(); __seq.as_ref().unwrap()[") {
+		t.Fatalf("GoPtr pointer-to-named-array index with raw array payload should borrow the pointed-to array:\n%s", rust)
+	}
+}
+
+func TestGoPtrPointerToNamedArrayIndexBorrowsNamedPayloadInnerHandle(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type words [4]int
+
+func pick(bh *words, i int) int {
+	return bh[i]
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	var index *ast.IndexExpr
+	var bhIdent *ast.Ident
+	ast.Inspect(file, func(n ast.Node) bool {
+		if found, ok := n.(*ast.IndexExpr); ok {
+			if ident, ok := found.X.(*ast.Ident); ok && ident.Name == "bh" {
+				index = found
+				bhIdent = ident
+				return false
+			}
+		}
+		return true
+	})
+	if index == nil || bhIdent == nil {
+		t.Fatal("bh[i] index expression not found")
+	}
+
+	prevTypeInfo := GetTypeInfo()
+	prevVarTable := GetVarTable()
+	SetTypeInfo(typeInfo)
+	vt := NewVarTable()
+	vt.Register("bh", &VarInfo{
+		WrapLevel:   WrapNone,
+		RustType:    "GoPtr<words>",
+		Source:      SourceLocal,
+		PointerKind: PointerGoPtr,
+		GoType:      typeInfo.GetType(bhIdent),
+	})
+	SetVarTable(vt)
+	defer func() {
+		SetTypeInfo(prevTypeInfo)
+		SetVarTable(prevVarTable)
+	}()
+
+	var out strings.Builder
+	if !writeGoPtrPointedNamedArrayIndexValue(&out, index.X, index.Index) {
+		t.Fatal("GoPtr named-array payload index helper rejected bh[i]")
+	}
+	got := out.String()
+	if !strings.Contains(got, "let __named_array = bh.borrow(); let __seq_holder = __named_array.as_ref().unwrap().0.clone()") {
+		t.Fatalf("GoPtr named-array payload index should borrow the named payload before using its inner handle:\n%s", got)
+	}
+}
+
 func TestGoPtrPointerToArrayIndexAssignmentMutatesPointee(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

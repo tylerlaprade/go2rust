@@ -5084,6 +5084,31 @@ func writeGoPtrPointedArrayIndexValue(out *strings.Builder, expr ast.Expr, index
 	return true
 }
 
+func writeGoPtrPointedNamedArrayIndexValue(out *strings.Builder, expr ast.Expr, index ast.Expr) bool {
+	ident, ok := unwrapParens(expr).(*ast.Ident)
+	if !ok || !isGoPtrVar(ident.Name) {
+		return false
+	}
+	named, _, ok := namedArrayTypeForExpr(expr)
+	if !ok {
+		return false
+	}
+	elemRustType, ok := goPtrVarElemRustType(ident.Name)
+	if !ok || strings.HasPrefix(elemRustType, "[") {
+		return false
+	}
+	out.WriteString("{ let __named_array = ")
+	out.WriteString(rustIdentForUseWithCapture(ident))
+	out.WriteString(".borrow(); let __seq_holder = __named_array.as_ref().unwrap().0.clone(); let __seq_guard = __seq_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __seq = __seq_guard.as_ref().unwrap(); ")
+	writeNamedArrayNestedInnerPeels(out, named)
+	out.WriteString("__seq[")
+	writeExpressionAsUsize(out, index)
+	out.WriteString("].clone() }")
+	return true
+}
+
 func writeGoPtrPointedArraySliceExpression(out *strings.Builder, slice *ast.SliceExpr) bool {
 	ident, ok := unwrapParens(slice.X).(*ast.Ident)
 	if !ok {
