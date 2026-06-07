@@ -236,6 +236,60 @@ func use(c *cache, items []node) *node {
 	}
 }
 
+func TestUnsafePointerFromGoPtrArrayPointerFieldElementUsesAddress(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct {
+	value int
+}
+
+type cache struct {
+	buf [2]*node
+	len int
+}
+
+func raw(addr uintptr) *cache {
+	return (*cache)(unsafe.Pointer(addr))
+}
+
+func fill(c *cache, items []node) {
+	c.buf[0] = &items[0]
+	c.len = 1
+}
+
+func addr(c *cache, i int) uintptr {
+	return uintptr(unsafe.Pointer(c.buf[i]))
+}
+
+func use(rawAddr uintptr, items []node) uintptr {
+	c := raw(rawAddr)
+	fill(c, items)
+	return addr(c, 0)
+}
+`)
+
+	if !strings.Contains(rust, "pub buf: Rc<RefCell<Option<[GoPtr<node>; 2]>>>") &&
+		!strings.Contains(rust, "pub buf: Arc<Mutex<Option<[GoPtr<node>; 2]>>>") {
+		t.Fatalf("test setup should store pointer array field elements as GoPtr slots:\n%s", rust)
+	}
+	addrStart := strings.Index(rust, "pub fn addr(c:")
+	if addrStart < 0 {
+		t.Fatalf("generated Rust did not contain addr function:\n%s", rust)
+	}
+	addrRust := rust[addrStart:]
+	if useStart := strings.Index(addrRust, "pub fn r#use"); useStart >= 0 {
+		addrRust = addrRust[:useStart]
+	}
+	if strings.Contains(addrRust, "Arc::as_ptr(&") || strings.Contains(addrRust, "Rc::as_ptr(&") {
+		t.Fatalf("unsafe.Pointer from GoPtr array field element should not call wrapper as_ptr on GoPtr:\n%s", rust)
+	}
+	if !strings.Contains(addrRust, ".buf.clone()") || !strings.Contains(addrRust, ".addr()") {
+		t.Fatalf("unsafe.Pointer from GoPtr array field element should use the selected GoPtr address:\n%s", rust)
+	}
+}
+
 func TestGoPtrArrayPointerAnonymousStructFieldSlotsPreserveHandle(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

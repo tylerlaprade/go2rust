@@ -17099,6 +17099,12 @@ func writeUnsafePointerConversion(out *strings.Builder, arg ast.Expr) {
 				return
 			}
 		}
+		if indexExpr, ok := unwrapParens(arg).(*ast.IndexExpr); ok {
+			if writeGoPtrUnsafePointerIndexedElementValue(out, indexExpr) {
+				WriteWrapperSuffix(out)
+				return
+			}
+		}
 		if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
 			if isCurrentReceiverIdent(ident) {
 				out.WriteString("self as *const _ as usize")

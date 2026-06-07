@@ -2029,7 +2029,7 @@ impl crate::runtime2::p {
         let mut pp_closure_clone = (*self).clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
         let mut i = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*(*pp_closure_clone.mspancache.lock().unwrap().as_ref().unwrap()).len.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
-        (*(*mheap_.lock().unwrap().as_ref().unwrap()).spanalloc.lock().unwrap().as_mut().unwrap()).free(Arc::new(Mutex::new(Some(Arc::as_ptr(&{ let __seq = { let __seq_holder = (*pp_closure_clone.mspancache.lock().unwrap().as_ref().unwrap()).buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }) as usize))));
+        (*(*mheap_.lock().unwrap().as_ref().unwrap()).spanalloc.lock().unwrap().as_mut().unwrap()).free(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*pp_closure_clone.mspancache.lock().unwrap().as_ref().unwrap()).buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.addr()))));
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         { let new_val = 0; *(*pp_closure_clone.mspancache.lock().unwrap().as_ref().unwrap()).len.lock().unwrap() = Some(new_val); };

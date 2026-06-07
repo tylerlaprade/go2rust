@@ -5142,6 +5142,15 @@ func writeGoPtrUnsafePointerIndexedElementAddress(out *strings.Builder, indexExp
 	return true
 }
 
+func writeGoPtrUnsafePointerIndexedElementValue(out *strings.Builder, indexExpr *ast.IndexExpr) bool {
+	if _, ok := goPtrArrayFieldInfoForIndexExpr(indexExpr); !ok {
+		return false
+	}
+	TranspileExpression(out, indexExpr)
+	out.WriteString(".addr()")
+	return true
+}
+
 func arrayElemPtrAddressElemRustType(expr ast.Expr) (string, bool) {
 	info, ok := arrayElemPtrAddressInfo(expr)
 	if !ok {
