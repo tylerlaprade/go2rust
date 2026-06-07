@@ -536,7 +536,7 @@ impl Scope {
 
         {
         { let new_val = { let __map = { let __map_holder = self.objects.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&{ let __selector_holder = (*obj.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); alt = new_val; };;
-        if (*alt.lock().unwrap()).is_none() {
+        if { let __nil_result = (*alt.lock().unwrap()).is_none(); __nil_result } {
             { let __map_key = { let __selector_holder = (*obj.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __map_value = obj.clone(); (*self.objects.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };;
         }
     }
@@ -568,7 +568,13 @@ impl Object {
     let _ts_subject = self.decl.clone();
     let _ts_guard = _ts_subject.lock().unwrap();
     let _ts_is_nil = _ts_guard.as_ref().is_none();
-    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| __v.as_ref() as &dyn Any);
+    let _ts_val: Option<&dyn Any> = _ts_guard.as_ref().map(|__v| {
+        let mut __any = __v.as_ref() as &dyn Any;
+        while let Some(__boxed) = __any.downcast_ref::<Box<dyn Any + Send + Sync>>() {
+            __any = __boxed.as_ref() as &dyn Any;
+        }
+        __any
+    });
     if _ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::Field>()).is_some() {
         let d = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<crate::r#mod::Field>()).unwrap().clone())));
         drop(_ts_guard);

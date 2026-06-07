@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_any_clone, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::position::*;
 use crate::r#mod::*;
@@ -102,7 +102,7 @@ impl crate::position::FileSet {
         let mut ss: Arc<Mutex<Option<serializedFileSet>>> = Arc::new(Mutex::new(Some(Default::default())));
         {
         let mut err = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> = { let mut __f_guard = decode.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(Box::new(ss.clone().clone()) as Box<dyn Any + Send + Sync>)))) };;
-        if (*err.lock().unwrap()).is_some() {
+        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
             return err.clone();;
         }
     }

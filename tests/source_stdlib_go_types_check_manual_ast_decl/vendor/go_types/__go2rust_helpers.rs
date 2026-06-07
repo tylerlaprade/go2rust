@@ -139,6 +139,37 @@ fn format_any_variadic(slice: &Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>
     format_any_slice_values(slice)
 }
 
+fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
+    if let Some(v) = value.downcast_ref::<i32>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<i64>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<i8>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<i16>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<u32>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<u64>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<u8>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<u16>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<usize>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<isize>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<f64>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<f32>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<String>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<&'static str>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<crate::check::bailout>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<crate::object::color>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<crate::termlist::termlist>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<crate::unify::unifyMode>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<crate::version::goVersion>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<go_ast::r#mod::ChanDir>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<go_token::position::Pos>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<go_token::position::Position>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<go_token::r#mod::Token>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<internal_types_errors::codes::Code>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
+
+    panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
+}
+
 thread_local! {
     static __GO_RECOVER_PAYLOAD: RefCell<Option<Box<dyn Any + Send + Sync>>> = RefCell::new(None);
 }
@@ -150,8 +181,18 @@ fn go_recover() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
 fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
     let payload = match payload.downcast::<Box<dyn Any + Send + Sync>>() {
         Ok(boxed) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(*boxed));
-            return;
+            let mut payload = *boxed;
+            loop {
+                match payload.downcast::<Box<dyn Any + Send + Sync>>() {
+                    Ok(boxed) => {
+                        payload = *boxed;
+                    }
+                    Err(payload) => {
+                        __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(payload));
+                        return;
+                    }
+                }
+            }
         }
         Err(payload) => payload,
     };
@@ -236,54 +277,6 @@ fn __go_type_name(val: &dyn Any) -> &'static str {
     if val.is::<Vec<String>>() { return "[]string" }
     if val.is::<Vec<bool>>() { return "[]bool" }
     std::any::type_name_of_val(val)
-}
-
-fn go_strconv_format_int(value: i64, base: i32) -> String {
-    if base == 10 {
-        return value.to_string();
-    }
-    if !(2..=36).contains(&base) {
-        return value.to_string();
-    }
-
-    let negative = value < 0;
-    let mut n = if negative {
-        value.wrapping_neg() as u64
-    } else {
-        value as u64
-    };
-    let base = base as u64;
-    let digits = b"0123456789abcdefghijklmnopqrstuvwxyz";
-    let mut out = Vec::new();
-    if n == 0 {
-        out.push(b'0');
-    }
-    while n > 0 {
-        out.push(digits[(n % base) as usize]);
-        n /= base;
-    }
-    if negative {
-        out.push(b'-');
-    }
-    out.reverse();
-    String::from_utf8(out).unwrap()
-}
-
-fn go_strconv_format_float(value: f64, fmt: char, precision: i32) -> String {
-    let precision = if precision < 0 { 6 } else { precision as usize };
-    match fmt {
-        'e' => format!("{:.*e}", precision, value),
-        'E' => format!("{:.*E}", precision, value),
-        'f' => format!("{:.*}", precision, value),
-        'g' | 'G' => {
-            if precision == 0 {
-                format!("{:.0}", value)
-            } else {
-                format!("{:.*}", precision, value)
-            }
-        }
-        _ => value.to_string(),
-    }
 }
 
 #[derive(Clone)]

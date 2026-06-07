@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_any_clone, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::serialize::*;
 use crate::r#mod::*;
@@ -651,7 +651,7 @@ impl Position {
         if { let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
         { (*s.lock().unwrap().as_mut().unwrap()).push_str(&":".to_string()); };
     }
-        { (*s.lock().unwrap().as_mut().unwrap()).push_str(&{ let __s = Arc::new(Mutex::new(Some(({ let __selector_holder = self.line.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }).to_string()))); let __value = (*__s.lock().unwrap().as_ref().unwrap()).clone(); __value }); };
+        { (*s.lock().unwrap().as_mut().unwrap()).push_str(&{ let __s = strconv::itoa(Arc::new(Mutex::new(Some({ let __selector_holder = self.line.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __value = (*__s.lock().unwrap().as_ref().unwrap()).clone(); __value }); };
         if { let __tmp_x = (*self.column.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x != __tmp_y } {
         { (*s.lock().unwrap().as_mut().unwrap()).push_str(&{ let __s = Arc::new(Mutex::new(Some(format!(":{}", (*self.column.lock().unwrap().as_ref().unwrap()))))); let __value = (*__s.lock().unwrap().as_ref().unwrap()).clone(); __value }); };
     }
@@ -1162,7 +1162,7 @@ impl FileSet {
         { let new_val = { let __seq = { let __seq_holder = self.files.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.clone(); file = new_val; };
     }
         self.mutex.r_unlock();
-        if (*file.lock().unwrap()).is_none() || !{ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<File>>>) -> bool + Send + Sync> = { let mut __f_guard = f.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<File>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(file.clone()) } {
+        if { let __nil_result = (*file.lock().unwrap()).is_none(); __nil_result } || !{ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<File>>>) -> bool + Send + Sync> = { let mut __f_guard = f.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<File>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(file.clone()) } {
         break
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }

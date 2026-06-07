@@ -14,6 +14,7 @@ members = [
     "vendor/internal_buildcfg",
     "vendor/internal_bytealg",
     "vendor/internal_cpu",
+    "vendor/internal_filepathlite",
     "vendor/internal_godebug",
     "vendor/internal_godebugs",
     "vendor/internal_goexperiment",
@@ -25,8 +26,10 @@ members = [
     "vendor/math",
     "vendor/math_big",
     "vendor/math_bits",
+    "vendor/path_filepath",
     "vendor/slices",
     "vendor/sort",
+    "vendor/strconv",
     "vendor/strings",
     "vendor/sync",
     "vendor/sync_atomic",
@@ -56,6 +59,7 @@ internal_abi = { path = "vendor/internal_abi" }
 internal_buildcfg = { path = "vendor/internal_buildcfg" }
 internal_bytealg = { path = "vendor/internal_bytealg" }
 internal_cpu = { path = "vendor/internal_cpu" }
+internal_filepathlite = { path = "vendor/internal_filepathlite" }
 internal_godebug = { path = "vendor/internal_godebug" }
 internal_godebugs = { path = "vendor/internal_godebugs" }
 internal_goexperiment = { path = "vendor/internal_goexperiment" }
@@ -67,8 +71,10 @@ internal_types_errors = { path = "vendor/internal_types_errors" }
 math = { path = "vendor/math" }
 math_big = { path = "vendor/math_big" }
 math_bits = { path = "vendor/math_bits" }
+path_filepath = { path = "vendor/path_filepath" }
 slices = { path = "vendor/slices" }
 sort = { path = "vendor/sort" }
+strconv = { path = "vendor/strconv" }
 strings = { path = "vendor/strings" }
 sync = { path = "vendor/sync" }
 sync_atomic = { path = "vendor/sync_atomic" }

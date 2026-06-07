@@ -109,8 +109,18 @@ fn go_recover() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
 fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
     let payload = match payload.downcast::<Box<dyn Any + Send + Sync>>() {
         Ok(boxed) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(*boxed));
-            return;
+            let mut payload = *boxed;
+            loop {
+                match payload.downcast::<Box<dyn Any + Send + Sync>>() {
+                    Ok(boxed) => {
+                        payload = *boxed;
+                    }
+                    Err(payload) => {
+                        __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(payload));
+                        return;
+                    }
+                }
+            }
         }
         Err(payload) => payload,
     };

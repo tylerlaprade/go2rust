@@ -13,4 +13,5 @@ cmp = { path = "../cmp" }
 go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
 go_token = { path = "../go_token" }
 slices = { path = "../slices" }
+strconv = { path = "../strconv" }
 strings = { path = "../strings" }

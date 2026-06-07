@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_any_clone};
 
 use crate::accuracy_string::*;
 use crate::arith::*;
@@ -184,11 +184,11 @@ impl crate::nat::nat {
         if { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
                 // actual base is 10 unless there's a base prefix
         { let new_val = 10; *b.lock().unwrap() = Some(new_val); };
-        if (*err.lock().unwrap()).is_none() && { let __tmp_x = ch; let __tmp_y = ('0' as i32) as u8; __tmp_x == __tmp_y } {
+        if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } && { let __tmp_x = ch; let __tmp_y = ('0' as i32) as u8; __tmp_x == __tmp_y } {
         { let new_val = ('0' as i32); *prev.lock().unwrap() = Some(new_val); };
         { let new_val = 1; *count.lock().unwrap() = Some(new_val); };
         { let (__tmp_0, __tmp_1) = (*r.lock().unwrap().as_ref().unwrap()).read_byte(); ch = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
-        if (*err.lock().unwrap()).is_none() {
+        if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } {
                 // possibly one of 0b, 0B, 0o, 0O, 0x, 0X
         { let _switch_val = ch;
     if _switch_val == (('b' as i32) as u8) || _switch_val == (('B' as i32) as u8) {
@@ -225,7 +225,7 @@ impl crate::nat::nat {
         let mut di = Arc::new(Mutex::new(Some(crate::arith::Word(Arc::new(Mutex::new(Some(0 as u64)))))));
         let mut i = Arc::new(Mutex::new(Some(0)));
         let mut dp = Arc::new(Mutex::new(Some(-(1))));
-        while (*err.lock().unwrap()).is_none() {
+        while { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } {
         if { let __tmp_x = ch; let __tmp_y = ('.' as i32) as u8; __tmp_x == __tmp_y } && { let __v = (*fracOk.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         { let new_val = false; *fracOk.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = { let __v = (*prev.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('_' as i32); __tmp_x == __tmp_y } {
@@ -282,7 +282,7 @@ impl crate::nat::nat {
         *err.lock().unwrap() = None;
     }
                 // other errors take precedence over invalid separators
-        if (*err.lock().unwrap()).is_none() && ({ let __v = (*invalSep.lock().unwrap().as_ref().unwrap()).clone(); __v } || { let __tmp_x = { let __v = (*prev.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('_' as i32); __tmp_x == __tmp_y }) {
+        if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } && ({ let __v = (*invalSep.lock().unwrap().as_ref().unwrap()).clone(); __v } || { let __tmp_x = { let __v = (*prev.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('_' as i32); __tmp_x == __tmp_y }) {
         { let __rhs_holder = errInvalSep.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
     }
         if { let __tmp_x = { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
@@ -424,7 +424,7 @@ impl crate::nat::nat {
     pub fn convert_words(&self, mut s: Arc<Mutex<Option<Vec<u8>>>>, b: Arc<Mutex<Option<Word>>>, ndigits: Arc<Mutex<Option<i32>>>, bb: Arc<Mutex<Option<Word>>>, table: Arc<Mutex<Option<Vec<divisor>>>>) {
         let mut __self = self.clone();
                 // split larger blocks recursively
-        if (*table.lock().unwrap()).is_some() {
+        if { let __nil_result = (*table.lock().unwrap()).is_some(); __nil_result } {
                 // len(q) > leafSize > 0
         let mut r: Arc<Mutex<Option<nat>>> = Arc::new(Mutex::new(Some(Default::default())));
         let mut index = Arc::new(Mutex::new(Some({ let __tmp_x = ((*table.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y })));

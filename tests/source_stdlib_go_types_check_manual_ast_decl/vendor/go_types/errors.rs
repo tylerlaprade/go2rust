@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::alias::*;
 use crate::api::*;
@@ -244,7 +244,7 @@ impl crate::check::Checker {
                 // refer to the position (pos) in the original expression.
         if { let __iface_handle = { let __field = (*self.environment.lock().unwrap().as_ref().unwrap()).errpos.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } && go_token::position::Pos::is_valid(&(*(*(*self.environment.lock().unwrap().as_ref().unwrap()).errpos.lock().unwrap().as_ref().unwrap()).pos().lock().unwrap().as_ref().unwrap())) {
         assert(Arc::new(Mutex::new(Some({ let __iface_handle = { let __field = (*self.environment.lock().unwrap().as_ref().unwrap()).iota.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() }))));
-        { let __iface_handle = { let __field = (*self.environment.lock().unwrap().as_ref().unwrap()).errpos.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *posn.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __field = (*self.environment.lock().unwrap().as_ref().unwrap()).errpos.clone(); __field }; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *posn.lock().unwrap() = __iface_value; };
     }
                 // Report invalid syntax trees explicitly.
         if { let __tmp_x = (*code.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_types_errors::codes::Code(Arc::new(Mutex::new(Some(INVALID_SYNTAX_TREE as i32)))); __tmp_x == __tmp_y } {
@@ -297,7 +297,7 @@ impl crate::check::Checker {
         { let new_val = Box::new((*e.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>; *self.first_err.lock().unwrap() = Some(new_val); };
     }
         let mut f = (*self.conf.lock().unwrap().as_ref().unwrap()).error.clone();
-        if (*f.lock().unwrap()).is_none() {
+        if { let __nil_result = (*f.lock().unwrap()).is_none(); __nil_result } {
         std::panic::panic_any(Box::new(bailout {  }) as Box<dyn Any + Send + Sync>);
     }
                 // record first error and exit

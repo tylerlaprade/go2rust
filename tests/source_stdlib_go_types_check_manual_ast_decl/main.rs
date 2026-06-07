@@ -36,8 +36,18 @@ fn go_recover() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
 fn go_store_panic_payload(payload: Box<dyn Any + Send>) {
     let payload = match payload.downcast::<Box<dyn Any + Send + Sync>>() {
         Ok(boxed) => {
-            __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(*boxed));
-            return;
+            let mut payload = *boxed;
+            loop {
+                match payload.downcast::<Box<dyn Any + Send + Sync>>() {
+                    Ok(boxed) => {
+                        payload = *boxed;
+                    }
+                    Err(payload) => {
+                        __GO_RECOVER_PAYLOAD.with(|slot| *slot.borrow_mut() = Some(payload));
+                        return;
+                    }
+                }
+            }
         }
         Err(payload) => payload,
     };
@@ -97,6 +107,7 @@ fn main() {
     internal_buildcfg::__go_init_all();
     internal_bytealg::__go_init_all();
     internal_cpu::__go_init_all();
+    internal_filepathlite::__go_init_all();
     internal_godebug::__go_init_all();
     internal_godebugs::__go_init_all();
     internal_goexperiment::__go_init_all();
@@ -108,8 +119,10 @@ fn main() {
     math::__go_init_all();
     math_big::__go_init_all();
     math_bits::__go_init_all();
+    path_filepath::__go_init_all();
     slices::__go_init_all();
     sort::__go_init_all();
+    strconv::__go_init_all();
     strings::__go_init_all();
     sync::__go_init_all();
     sync_atomic::__go_init_all();
@@ -125,7 +138,7 @@ fn main() {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
         {
         let mut p = go_recover();;
-        if (*p.lock().unwrap()).is_some() {
+        if { let __nil_result = (*p.lock().unwrap()).is_some(); __nil_result } {
             println!("{} {}", format!("{}", "panic:".to_string()), format!("{}", format_any(p.lock().unwrap().as_ref().unwrap().as_ref())));;
         }
     }
@@ -134,10 +147,10 @@ fn main() {
         let mut fset = go_token::new_file_set();
         let mut file = Arc::new(Mutex::new(Some(go_ast::r#mod::File { name: go_ast::new_ident(Arc::new(Mutex::new(Some("main".to_string())))).clone(), decls: Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::GenDeclPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::GenDecl { tok: Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::V_A_R as i32))))))), specs: Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ValueSpecPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::ValueSpec { names: Arc::new(Mutex::new(Some(vec![go_ast::new_ident(Arc::new(Mutex::new(Some("x".to_string()))))]))), r#type: Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("int".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Spec + Send + Sync>)))]))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Decl + Send + Sync>)))]))), ..Default::default() })));
         let (mut pkg, mut err) = { let __recv = Arc::new(Mutex::new(Some(go_types::api::Config::default()))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).check(Arc::new(Mutex::new(Some("main".to_string()))), fset.clone(), Arc::new(Mutex::new(Some(vec![file.clone()]))), Arc::new(Mutex::new(None))); __result };
-        if (*err.lock().unwrap()).is_some() {
+        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         println!("{}", format!("{}", format!("{}", (*err.lock().unwrap().as_ref().unwrap()))));
     }
-        println!("{} {}", format!("{}", (*err.lock().unwrap()).is_none()), format!("{}", (*{ let __recv = pkg.clone(); let __recv_ptr: *const go_types::package::Package = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_types::package::Package }; let __result = unsafe { &*__recv_ptr }.name(); __result }.lock().unwrap().as_ref().unwrap())));
+        println!("{} {}", format!("{}", { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result }), format!("{}", (*{ let __recv = pkg.clone(); let __recv_ptr: *const go_types::package::Package = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_types::package::Package }; let __result = unsafe { &*__recv_ptr }.name(); __result }.lock().unwrap().as_ref().unwrap())));
 
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {

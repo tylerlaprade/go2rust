@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::fmt::{Display};
 use std::sync::{Arc, Mutex};
 
@@ -43,52 +44,26 @@ where
     }
 }
 
-fn go_strconv_format_int(value: i64, base: i32) -> String {
-    if base == 10 {
-        return value.to_string();
-    }
-    if !(2..=36).contains(&base) {
-        return value.to_string();
-    }
+fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
+    if let Some(v) = value.downcast_ref::<i32>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<i64>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<i8>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<i16>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<u32>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<u64>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<u8>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<u16>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<usize>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<isize>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<f64>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<f32>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<String>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<&'static str>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<crate::float::ErrNaN>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
 
-    let negative = value < 0;
-    let mut n = if negative {
-        value.wrapping_neg() as u64
-    } else {
-        value as u64
-    };
-    let base = base as u64;
-    let digits = b"0123456789abcdefghijklmnopqrstuvwxyz";
-    let mut out = Vec::new();
-    if n == 0 {
-        out.push(b'0');
-    }
-    while n > 0 {
-        out.push(digits[(n % base) as usize]);
-        n /= base;
-    }
-    if negative {
-        out.push(b'-');
-    }
-    out.reverse();
-    String::from_utf8(out).unwrap()
-}
-
-fn go_strconv_format_float(value: f64, fmt: char, precision: i32) -> String {
-    let precision = if precision < 0 { 6 } else { precision as usize };
-    match fmt {
-        'e' => format!("{:.*e}", precision, value),
-        'E' => format!("{:.*E}", precision, value),
-        'f' => format!("{:.*}", precision, value),
-        'g' | 'G' => {
-            if precision == 0 {
-                format!("{:.0}", value)
-            } else {
-                format!("{:.*}", precision, value)
-            }
-        }
-        _ => value.to_string(),
-    }
+    panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
 }
 
 #[derive(Clone)]

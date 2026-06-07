@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::alias::*;
 use crate::api::*;
@@ -746,12 +746,12 @@ fn __go_init_0() {
     def_predeclared_nil();
     def_predeclared_funcs();
 
-    { let __iface_handle = { let __recv_holder = (*Universe.lock().unwrap().as_ref().unwrap()).clone(); let __recv_value = (*__recv_holder.lock().unwrap().as_ref().unwrap()).clone(); let __result = __recv_value.lookup(Arc::new(Mutex::new(Some("iota".to_string())))); __result }.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *universeIota.lock().unwrap() = (*__iface_guard).clone(); };
-    { let __iface_handle = { let __recv = { let __recv_holder = (*Universe.lock().unwrap().as_ref().unwrap()).clone(); let __recv_value = (*__recv_holder.lock().unwrap().as_ref().unwrap()).clone(); let __result = __recv_value.lookup(Arc::new(Mutex::new(Some("bool".to_string())))); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).r#type(); __result }.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *universeBool.lock().unwrap() = (*__iface_guard).clone(); };
-    { let __iface_handle = { let __recv = { let __recv_holder = (*Universe.lock().unwrap().as_ref().unwrap()).clone(); let __recv_value = (*__recv_holder.lock().unwrap().as_ref().unwrap()).clone(); let __result = __recv_value.lookup(Arc::new(Mutex::new(Some("byte".to_string())))); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).r#type(); __result }.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *universeByte.lock().unwrap() = (*__iface_guard).clone(); };
-    { let __iface_handle = { let __recv = { let __recv_holder = (*Universe.lock().unwrap().as_ref().unwrap()).clone(); let __recv_value = (*__recv_holder.lock().unwrap().as_ref().unwrap()).clone(); let __result = __recv_value.lookup(Arc::new(Mutex::new(Some("rune".to_string())))); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).r#type(); __result }.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *universeRune.lock().unwrap() = (*__iface_guard).clone(); };
-    { let __iface_handle = { let __recv = { let __recv_holder = (*Universe.lock().unwrap().as_ref().unwrap()).clone(); let __recv_value = (*__recv_holder.lock().unwrap().as_ref().unwrap()).clone(); let __result = __recv_value.lookup(Arc::new(Mutex::new(Some("error".to_string())))); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).r#type(); __result }.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *universeError.lock().unwrap() = (*__iface_guard).clone(); };
-    { let __iface_handle = { let __recv_holder = (*Universe.lock().unwrap().as_ref().unwrap()).clone(); let __recv_value = (*__recv_holder.lock().unwrap().as_ref().unwrap()).clone(); let __result = __recv_value.lookup(Arc::new(Mutex::new(Some("comparable".to_string())))); __result }.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *universeComparable.lock().unwrap() = (*__iface_guard).clone(); };
+    { let __iface_handle = { let __recv_holder = (*Universe.lock().unwrap().as_ref().unwrap()).clone(); let __recv_value = (*__recv_holder.lock().unwrap().as_ref().unwrap()).clone(); let __result = __recv_value.lookup(Arc::new(Mutex::new(Some("iota".to_string())))); __result }.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *universeIota.lock().unwrap() = __iface_value; };
+    { let __iface_handle = { let __recv = { let __recv_holder = (*Universe.lock().unwrap().as_ref().unwrap()).clone(); let __recv_value = (*__recv_holder.lock().unwrap().as_ref().unwrap()).clone(); let __result = __recv_value.lookup(Arc::new(Mutex::new(Some("bool".to_string())))); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).r#type(); __result }.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *universeBool.lock().unwrap() = __iface_value; };
+    { let __iface_handle = { let __recv = { let __recv_holder = (*Universe.lock().unwrap().as_ref().unwrap()).clone(); let __recv_value = (*__recv_holder.lock().unwrap().as_ref().unwrap()).clone(); let __result = __recv_value.lookup(Arc::new(Mutex::new(Some("byte".to_string())))); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).r#type(); __result }.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *universeByte.lock().unwrap() = __iface_value; };
+    { let __iface_handle = { let __recv = { let __recv_holder = (*Universe.lock().unwrap().as_ref().unwrap()).clone(); let __recv_value = (*__recv_holder.lock().unwrap().as_ref().unwrap()).clone(); let __result = __recv_value.lookup(Arc::new(Mutex::new(Some("rune".to_string())))); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).r#type(); __result }.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *universeRune.lock().unwrap() = __iface_value; };
+    { let __iface_handle = { let __recv = { let __recv_holder = (*Universe.lock().unwrap().as_ref().unwrap()).clone(); let __recv_value = (*__recv_holder.lock().unwrap().as_ref().unwrap()).clone(); let __result = __recv_value.lookup(Arc::new(Mutex::new(Some("error".to_string())))); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).r#type(); __result }.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *universeError.lock().unwrap() = __iface_value; };
+    { let __iface_handle = { let __recv_holder = (*Universe.lock().unwrap().as_ref().unwrap()).clone(); let __recv_value = (*__recv_holder.lock().unwrap().as_ref().unwrap()).clone(); let __result = __recv_value.lookup(Arc::new(Mutex::new(Some("comparable".to_string())))); __result }.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *universeComparable.lock().unwrap() = __iface_value; };
 }
 
 /// Objects with names containing blanks are internal and not entered into
@@ -769,7 +769,7 @@ pub fn def(mut obj: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>) {
         // fix Obj link for named types
     {
         let mut typ = as_named((*obj.lock().unwrap().as_ref().unwrap()).r#type().clone());;
-        if (*typ.lock().unwrap()).is_some() {
+        if { let __nil_result = (*typ.lock().unwrap()).is_some(); __nil_result } {
             { let new_val = ({
         let val = obj.clone();
         let guard = val.lock().unwrap();
@@ -818,7 +818,7 @@ pub fn def(mut obj: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>) {
     }
     }
         // set Pkg field
-    if (*{ let __recv = scope.clone(); let __recv_ptr: *mut crate::scope::Scope = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::scope::Scope }; let __result = unsafe { &mut *__recv_ptr }.insert(obj.clone()); __result }.lock().unwrap()).is_some() {
+    if { let __nil_result = (*{ let __recv = scope.clone(); let __recv_ptr: *mut crate::scope::Scope = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::scope::Scope }; let __result = unsafe { &mut *__recv_ptr }.insert(obj.clone()); __result }.lock().unwrap()).is_some(); __nil_result } {
         std::panic::panic_any(Box::new("double declaration of predeclared identifier".to_string()) as Box<dyn Any + Send + Sync>);
     }
 }

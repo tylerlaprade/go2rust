@@ -298,6 +298,72 @@ pub fn rune_start(b: Arc<Mutex<Option<u8>>>) -> bool {
     return { let __tmp_x = { let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0xC0 as u8; __tmp_x & __tmp_y }; let __tmp_y = 0x80 as u8; __tmp_x != __tmp_y };
 }
 
+/// ValidString reports whether s consists entirely of valid UTF-8-encoded runes.
+pub fn valid_string(mut s: Arc<Mutex<Option<String>>>) -> bool {
+        // Fast path. Check for and skip 8 bytes of ASCII characters per iteration.
+    while { let __tmp_x = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 8; __tmp_x >= __tmp_y } {
+                // Combining two 32 bit loads allows the same code to be used
+                // for 32 and 64 bit platforms.
+                // The compiler can generate a 32bit load for first32 and second32
+                // on many platforms. See test/codegen/memcombine.go.
+        let mut first32 = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] } as u32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] } as u32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 8; __tmp_x << __tmp_y }; __tmp_x | __tmp_y }; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(2) as usize] } as u32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 16; __tmp_x << __tmp_y }; __tmp_x | __tmp_y }; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(3) as usize] } as u32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 24; __tmp_x << __tmp_y }; __tmp_x | __tmp_y })));
+        let mut second32 = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(4) as usize] } as u32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(5) as usize] } as u32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 8; __tmp_x << __tmp_y }; __tmp_x | __tmp_y }; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(6) as usize] } as u32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 16; __tmp_x << __tmp_y }; __tmp_x | __tmp_y }; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(7) as usize] } as u32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 24; __tmp_x << __tmp_y }; __tmp_x | __tmp_y })));
+        if { let __tmp_x = { let __tmp_x = ({ let __tmp_x = { let __v = (*first32.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*second32.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x | __tmp_y }); let __tmp_y = 0x80808080 as u32; __tmp_x & __tmp_y }; let __tmp_y = 0 as u32; __tmp_x != __tmp_y } {
+                // Found a non ASCII byte (>= RuneSelf).
+        break
+    }
+                // Found a non ASCII byte (>= RuneSelf).
+        { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (8) as usize; __s[__low..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_val; };
+    }
+        // Combining two 32 bit loads allows the same code to be used
+        // for 32 and 64 bit platforms.
+        // The compiler can generate a 32bit load for first32 and second32
+        // on many platforms. See test/codegen/memcombine.go.
+        // Found a non ASCII byte (>= RuneSelf).
+    let mut n = Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).len() as i32)));
+    let mut i = Arc::new(Mutex::new(Some(0)));
+    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
+        let mut si = Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] })));
+        if { let __tmp_x = { let __v = (*si.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = RUNE_SELF as u8; __tmp_x < __tmp_y } {
+        { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+        continue
+    }
+        let mut x = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = first.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*si.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })));
+        if { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = XX as u8; __tmp_x == __tmp_y } {
+        return false;
+    }
+                // Illegal starter byte.
+        let mut size = Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 7 as u8; __tmp_x & __tmp_y }) as i32)));
+        if { let __tmp_x = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y } {
+        return false;
+    }
+                // Short or invalid.
+        let mut accept = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = acceptRanges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x >> __tmp_y }) as usize].clone() })));
+        {
+        let mut c = Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] })));;
+        if { let __tmp_x = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*accept.lock().unwrap().as_ref().unwrap()).lo.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } || { let __tmp_x = (*{ let __field = (*accept.lock().unwrap().as_ref().unwrap()).hi.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
+            return false;;
+        } else if { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x == __tmp_y } {
+    } else {
+        let mut c = Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y }) as usize] })));;
+        if { let __tmp_x = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = LOCB as u8; __tmp_x < __tmp_y } || { let __tmp_x = HICB as u8; let __tmp_y = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
+            return false;;
+        } else if { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x == __tmp_y } {
+    } else {
+        let mut c = Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3; __tmp_x + __tmp_y }) as usize] })));;
+        if { let __tmp_x = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = LOCB as u8; __tmp_x < __tmp_y } || { let __tmp_x = HICB as u8; let __tmp_y = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
+            return false;;
+        }
+    }
+    }
+    }
+        { let __rhs = (*size.lock().unwrap().as_ref().unwrap()); let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+    }
+        // Illegal starter byte.
+        // Short or invalid.
+    true
+}
+
 /// ValidRune reports whether r can be legally encoded as UTF-8.
 /// Code points that are out of range or a surrogate half are illegal.
 pub fn valid_rune(r: Arc<Mutex<Option<i32>>>) -> bool {
