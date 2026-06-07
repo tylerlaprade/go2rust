@@ -309,7 +309,7 @@ pub(crate) fn __go_init_order_16() {
 
 impl GoarmFeatures {
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        let mut armStr = Arc::new(Mutex::new(Some(({ let __selector_holder = self.version.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }).to_string())));
+        let mut armStr = strconv::itoa(Arc::new(Mutex::new(Some({ let __selector_holder = self.version.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
         if (*self.soft_float.clone().lock().unwrap().as_ref().unwrap()) {
         { (*armStr.lock().unwrap().as_mut().unwrap()).push_str(&",softfloat".to_string()); };
     } else {
@@ -589,7 +589,7 @@ pub fn goriscv64() -> i32 {
     let mut i = strings::index_func({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }, Arc::new(Mutex::new(Some(Box::new(move |r: Arc<Mutex<Option<i32>>>| -> bool {
         return { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('0' as i32); __tmp_x < __tmp_y } || { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('9' as i32); __tmp_x > __tmp_y };
     }) as Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> bool + Send + Sync>))));
-    let (mut year, _) = { let __atoi_input = (*Arc::new(Mutex::new(Some({ let __s = &((*v.lock().unwrap().as_ref().unwrap()).clone()); let __high = (i) as usize; __s[..__high].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); match __atoi_input.parse::<i32>() { Ok(n) => (n, Arc::new(Mutex::new(None))), Err(_) => (0 as i32, Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(format!("strconv.Atoi: parsing \"{}\": invalid syntax", __atoi_input)))))) } };
+    let (mut year, _) = strconv::atoi(Arc::new(Mutex::new(Some({ let __s = &((*v.lock().unwrap().as_ref().unwrap()).clone()); let __high = (i) as usize; __s[..__high].to_string() }))));
     year
 }
 
