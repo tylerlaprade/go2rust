@@ -7786,6 +7786,55 @@ func assign(frame unsafe.Pointer, regs *RegArgs) (unsafe.Pointer, *RegArgs) {
 	}
 }
 
+func TestUnsafePointerShadowShortDeclUsesOuterHandle(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+func add(p unsafe.Pointer, x uintptr) unsafe.Pointer {
+	return unsafe.Pointer(uintptr(p) + x)
+}
+
+func store(base uintptr, offset uintptr, wide bool) {
+	dst := unsafe.Pointer(base)
+	if wide {
+		dst0 := (*uintptr)(add(dst, offset))
+		*dst0 = 1
+	} else {
+		dst := (*uintptr)(add(dst, offset))
+		*dst = 2
+	}
+}
+`)
+
+	if strings.Contains(rust, "Some(dst)") {
+		t.Fatalf("shadowing unsafe pointer short declaration should not wrap the new local as the RHS argument:\n%s", rust)
+	}
+	if strings.Count(rust, "let __arg_holder = dst.clone();") < 2 {
+		t.Fatalf("shadowing unsafe pointer short declaration should read the outer pointer handle on the RHS:\n%s", rust)
+	}
+}
+
+func TestScalarConversionShadowShortDeclUsesOuterValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func div(sec int64) uint64 {
+	if sec > 0 {
+		sec := uint64(sec)
+		return sec
+	}
+	return 0
+}
+`)
+
+	if strings.Contains(rust, "Some(sec as u64)") {
+		t.Fatalf("shadowing scalar conversion short declaration should unwrap the outer value before casting:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*sec.borrow().as_ref().unwrap()) as u64") {
+		t.Fatalf("shadowing scalar conversion short declaration should cast the outer wrapped value:\n%s", rust)
+	}
+}
+
 func TestFuncLitSelectorAssignmentClonesCapturedTarget(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

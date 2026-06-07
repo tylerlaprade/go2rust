@@ -5756,7 +5756,7 @@ pub fn div(t: Arc<Mutex<Option<Time>>>, d: Arc<Mutex<Option<Duration>>>) -> (i32
             { let new_val = { let __tmp_x = { let __tmp_x = std::time::Duration::from_nanos({ let __tmp_x = sec; let __tmp_y = { let __v = (*d1.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x % __tmp_y } as u64); let __tmp_y = Duration(Arc::new(Mutex::new(Some(SECOND as i64)))); __tmp_x * __tmp_y }; let __tmp_y = std::time::Duration::from_nanos(nsec as u64); __tmp_x + __tmp_y }; *r.lock().unwrap() = Some(new_val); };
         } else {
                         // Compute nanoseconds as 128-bit number.
-            let mut sec = Arc::new(Mutex::new(Some(sec as u64)));
+            let mut sec = Arc::new(Mutex::new(Some((*sec.lock().unwrap().as_ref().unwrap()) as u64)));
             let mut tmp = Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = sec; let __tmp_y = 32; __tmp_x >> __tmp_y }); let __tmp_y = 1e9 as u64; __tmp_x * __tmp_y })));
             let mut u1 = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*tmp.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 32; __tmp_x >> __tmp_y })));
             let mut u0 = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*tmp.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 32; __tmp_x << __tmp_y })));

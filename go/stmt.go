@@ -316,6 +316,84 @@ func registerDefaultShortDeclBindings(lhs []ast.Expr) {
 	}
 }
 
+func shortDeclOuterRhsBindingNames(lhs []ast.Expr, rhs ast.Expr) []string {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.info == nil || rhs == nil {
+		return nil
+	}
+	lhsDefs := make(map[string]types.Object)
+	for _, expr := range lhs {
+		ident, ok := expr.(*ast.Ident)
+		if !ok || ident.Name == "_" {
+			continue
+		}
+		obj := typeInfo.info.Defs[ident]
+		if obj == nil {
+			continue
+		}
+		lhsDefs[ident.Name] = obj
+	}
+	if len(lhsDefs) == 0 {
+		return nil
+	}
+	names := make([]string, 0, len(lhsDefs))
+	seen := make(map[string]bool)
+	ast.Inspect(rhs, func(node ast.Node) bool {
+		ident, ok := node.(*ast.Ident)
+		if !ok {
+			return true
+		}
+		lhsObj, ok := lhsDefs[ident.Name]
+		if !ok {
+			return true
+		}
+		rhsObj := typeInfo.info.Uses[ident]
+		if rhsObj == nil || rhsObj == lhsObj || seen[ident.Name] {
+			return true
+		}
+		seen[ident.Name] = true
+		names = append(names, ident.Name)
+		return true
+	})
+	return names
+}
+
+func hideShortDeclOuterRhsPrebindings(lhs []ast.Expr, rhs ast.Expr) func() {
+	names := shortDeclOuterRhsBindingNames(lhs, rhs)
+	vt := GetVarTable()
+	if len(names) == 0 || vt == nil || len(vt.scopes) == 0 {
+		return func() {}
+	}
+	scopeIndex := len(vt.scopes) - 1
+	saved := make(map[string]*VarInfo)
+	present := make(map[string]bool)
+	for _, name := range names {
+		if info, ok := vt.scopes[scopeIndex].vars[name]; ok {
+			saved[name] = info
+			present[name] = true
+			delete(vt.scopes[scopeIndex].vars, name)
+		}
+	}
+	return func() {
+		if scopeIndex >= len(vt.scopes) {
+			return
+		}
+		for _, name := range names {
+			if present[name] {
+				vt.scopes[scopeIndex].vars[name] = saved[name]
+			} else {
+				delete(vt.scopes[scopeIndex].vars, name)
+			}
+		}
+	}
+}
+
+func withShortDeclOuterRhsBindings(lhs []ast.Expr, rhs ast.Expr, emit func()) {
+	restore := hideShortDeclOuterRhsPrebindings(lhs, rhs)
+	defer restore()
+	emit()
+}
+
 func writeBareScalarAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
 	ident, ok := lhs.(*ast.Ident)
 	if !ok || ident.Name == "_" || !isVarBare(ident.Name) {
@@ -11203,7 +11281,11 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									if s.Tok == token.DEFINE {
 										// Check if RHS is nil
 										if isGoPtrShortDecl && i == 0 {
-											if !writeGoPtrCallArgumentForInfo(out, rhs, goPtrShortDeclInfo) {
+											wroteGoPtrInitializer := false
+											withShortDeclOuterRhsBindings(s.Lhs, rhs, func() {
+												wroteGoPtrInitializer = writeGoPtrCallArgumentForInfo(out, rhs, goPtrShortDeclInfo)
+											})
+											if !wroteGoPtrInitializer {
 												out.WriteString(`unimplemented!("GoPtr initializer requires compatible pointer value")`)
 											}
 										} else if ident, ok := rhs.(*ast.Ident); ok && ident.Name == "nil" {
@@ -11287,7 +11369,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												}
 											}
 											// Function calls already return wrapped values, don't wrap again
-											writeCallExpressionForInitializer(out, callExpr)
+											withShortDeclOuterRhsBindings(s.Lhs, rhs, func() {
+												writeCallExpressionForInitializer(out, callExpr)
+											})
 										} else if funcLit, isFuncLit := rhs.(*ast.FuncLit); isFuncLit {
 											if i < len(s.Lhs) {
 												if lhsIdent, ok := s.Lhs[i].(*ast.Ident); ok {
