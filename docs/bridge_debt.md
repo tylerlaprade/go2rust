@@ -238,15 +238,6 @@ in the first place.
 - Removal trigger: transpiler can lower `go/build.IsLocalImport` source.
 - Added: 2026-05-27 (backfill)
 
-### flag-package
-
-- Location: `go/external_type_stubs.go:5753`
-- Go symbol: `flag` package
-- Transpiler gap: source `flag` compiles down to dependency-shape gaps: `time.Duration` is still lowered through Rust `std::time::Duration` instead of source Go duration semantics, and reflect `Type`/`Value` method lowering is incomplete.
-- Fixture: `tests/XFAIL/source_stdlib_flag_parsing/`
-- Removal trigger: transpiler can lower `flag` package source.
-- Added: 2026-05-27 (backfill)
-
 ### json-package
 
 - Location: `go/external_type_stubs.go:5885`

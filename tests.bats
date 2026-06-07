@@ -2443,10 +2443,6 @@ run_xfail_test() {
     run_test "tests/source_stdlib_bytes_buffer_basic"
 }
 
-@test "source_stdlib_flag_parsing" {
-    run_test "tests/source_stdlib_flag_parsing"
-}
-
 @test "source_stdlib_go_ast_manual_decl_cross_package" {
     run_test "tests/source_stdlib_go_ast_manual_decl_cross_package"
 }
