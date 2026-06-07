@@ -3942,8 +3942,8 @@ func writeMapHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) 
 		out.WriteString("{ let new_val = ")
 		WriteWrappedNone(out)
 		out.WriteString("; ")
-		writePointerHandleAssignmentTarget(out, lhs)
-		out.WriteString(" = new_val; }")
+		writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
+		out.WriteString(" }")
 		return true
 	}
 	if ident, ok := lhs.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && currentReceiverRustAlias != "" {
@@ -3961,8 +3961,8 @@ func writeMapHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) 
 		TranspileExpression(out, rhs)
 	}
 	out.WriteString("; ")
-	writePointerHandleAssignmentTarget(out, lhs)
-	out.WriteString(" = new_val; }")
+	writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
+	out.WriteString(" }")
 	return true
 }
 
@@ -4128,8 +4128,8 @@ func writeSliceHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr
 		}
 	}
 	out.WriteString("; ")
-	writePointerHandleAssignmentTarget(out, lhs)
-	out.WriteString(" = new_val; }")
+	writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
+	out.WriteString(" }")
 	return true
 }
 
@@ -4247,8 +4247,8 @@ func writeConcreteSliceAssignmentFromSourceTypeParamSliceCall(out *strings.Build
 		return false
 	}
 	out.WriteString("; ")
-	writePointerHandleAssignmentTarget(out, lhs)
-	out.WriteString(" = new_val; }")
+	writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
+	out.WriteString(" }")
 	return true
 }
 
@@ -4323,8 +4323,8 @@ func writeFunctionSelectorHandleAssignment(out *strings.Builder, lhs ast.Expr, r
 		out.WriteString(".clone()")
 	}
 	out.WriteString("; ")
-	writePointerHandleAssignmentTarget(out, lhs)
-	out.WriteString(" = new_val; }")
+	writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
+	out.WriteString(" }")
 	return true
 }
 
@@ -6441,8 +6441,8 @@ func writePointerHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Ex
 			out.WriteString("{ let new_val = ")
 			out.WriteString(unsupported.String())
 			out.WriteString("; ")
-			writePointerHandleAssignmentTarget(out, lhs)
-			out.WriteString(" = new_val; }")
+			writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
+			out.WriteString(" }")
 			return true
 		}
 	}
@@ -6458,8 +6458,8 @@ func writePointerHandleAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Ex
 	out.WriteString("{ let new_val = ")
 	writePointerHandleValueClone(out, rhs)
 	out.WriteString("; ")
-	writePointerHandleAssignmentTarget(out, lhs)
-	out.WriteString(" = new_val; }")
+	writePointerHandleAssignmentTargetFromValueName(out, lhs, "new_val")
+	out.WriteString(" }")
 	return true
 }
 
@@ -6553,6 +6553,18 @@ func writePointerHandleAssignmentTarget(out *strings.Builder, lhs ast.Expr) {
 		return
 	}
 	TranspileExpressionContext(out, lhs, LValue)
+}
+
+func writePointerHandleAssignmentTargetFromValueName(out *strings.Builder, lhs ast.Expr, valueName string) {
+	if sel, ok := unwrapParens(lhs).(*ast.SelectorExpr); ok {
+		if writeGoPtrLocalSelectorHandleReplacement(out, sel, valueName) {
+			return
+		}
+	}
+	writePointerHandleAssignmentTarget(out, lhs)
+	out.WriteString(" = ")
+	out.WriteString(valueName)
+	out.WriteString(";")
 }
 
 func selectorFieldAccessInfo(sel *ast.SelectorExpr) FieldAccessInfo {
@@ -7866,6 +7878,12 @@ func writeParallelPointerHandleAssignmentTarget(out *strings.Builder, lhs ast.Ex
 }
 
 func writePointerHandleAssignmentTempTarget(out *strings.Builder, lhs ast.Expr, tmpName string) {
+	if sel, ok := unwrapParens(lhs).(*ast.SelectorExpr); ok {
+		valueName := tmpName + ".clone()"
+		if writeGoPtrLocalSelectorHandleReplacement(out, sel, valueName) {
+			return
+		}
+	}
 	if ident, ok := packageGlobalPointerIdent(lhs); ok {
 		out.WriteString("*")
 		out.WriteString(rustPackageGlobalName(ident.Name))

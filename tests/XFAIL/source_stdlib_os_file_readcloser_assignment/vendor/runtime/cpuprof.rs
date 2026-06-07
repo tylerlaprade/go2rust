@@ -1,0 +1,379 @@
+use go2rust_stdlib_stubs::*;
+
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+
+use crate::alg::*;
+use crate::arena::*;
+use crate::asan0::*;
+use crate::atomic_pointer::*;
+use crate::badlinkname::*;
+use crate::cgo::*;
+use crate::cgocall::*;
+use crate::cgocallback::*;
+use crate::cgocheck::*;
+use crate::chan::*;
+use crate::checkptr::*;
+use crate::compiler::*;
+use crate::complex::*;
+use crate::coro::*;
+use crate::covercounter::*;
+use crate::covermeta::*;
+use crate::cpuflags::*;
+use crate::cpuflags_arm64::*;
+use crate::create_file_unix::*;
+use crate::debug::*;
+use crate::debugcall::*;
+use crate::debuglog::*;
+use crate::debuglog_off::*;
+use crate::defs_darwin_arm64::*;
+use crate::env_posix::*;
+use crate::error::*;
+use crate::r#extern::*;
+use crate::fastlog2::*;
+use crate::fastlog2table::*;
+use crate::fds_unix::*;
+use crate::float::*;
+use crate::hash64::*;
+use crate::heapdump::*;
+use crate::histogram::*;
+use crate::iface::*;
+use crate::lfstack::*;
+use crate::linkname::*;
+use crate::linkname_swiss::*;
+use crate::linkname_unix::*;
+use crate::lock_sema::*;
+use crate::lock_spinbit::*;
+use crate::lockrank::*;
+use crate::lockrank_off::*;
+use crate::malloc::*;
+use crate::map_fast32_swiss::*;
+use crate::map_fast64_swiss::*;
+use crate::map_faststr_swiss::*;
+use crate::map_swiss::*;
+use crate::mbarrier::*;
+use crate::mbitmap::*;
+use crate::mcache::*;
+use crate::mcentral::*;
+use crate::mcheckmark::*;
+use crate::mcleanup::*;
+use crate::mem::*;
+use crate::mem_darwin::*;
+use crate::mem_nonsbrk::*;
+use crate::metrics::*;
+use crate::mfinal::*;
+use crate::mfixalloc::*;
+use crate::mgc::*;
+use crate::mgclimit::*;
+use crate::mgcmark::*;
+use crate::mgcpacer::*;
+use crate::mgcscavenge::*;
+use crate::mgcstack::*;
+use crate::mgcsweep::*;
+use crate::mgcwork::*;
+use crate::mheap::*;
+use crate::minmax::*;
+use crate::mpagealloc::*;
+use crate::mpagealloc_64bit::*;
+use crate::mpagecache::*;
+use crate::mpallocbits::*;
+use crate::mprof::*;
+use crate::mranges::*;
+use crate::msan0::*;
+use crate::msize::*;
+use crate::mspanset::*;
+use crate::mstats::*;
+use crate::mwbbuf::*;
+use crate::nbpipe_pipe::*;
+use crate::netpoll::*;
+use crate::netpoll_kqueue::*;
+use crate::netpoll_kqueue_event::*;
+use crate::nonwindows_stub::*;
+use crate::note_other::*;
+use crate::os_darwin::*;
+use crate::os_darwin_arm64::*;
+use crate::os_nonopenbsd::*;
+use crate::os_unix::*;
+use crate::os_unix_nonlinux::*;
+use crate::panic::*;
+use crate::pinner::*;
+use crate::plugin::*;
+use crate::preempt::*;
+use crate::preempt_nonwindows::*;
+use crate::print::*;
+use crate::proc::*;
+use crate::profbuf::*;
+use crate::proflabel::*;
+use crate::race0::*;
+use crate::rand::*;
+use crate::rdebug::*;
+use crate::retry::*;
+use crate::r#mod::*;
+use crate::runtime1::*;
+use crate::runtime2::*;
+use crate::runtime_boring::*;
+use crate::rwmutex::*;
+use crate::security_issetugid::*;
+use crate::security_unix::*;
+use crate::select::*;
+use crate::sema::*;
+use crate::signal_arm64::*;
+use crate::signal_darwin::*;
+use crate::signal_darwin_arm64::*;
+use crate::signal_unix::*;
+use crate::sigqueue::*;
+use crate::sizeclasses::*;
+use crate::slice::*;
+use crate::softfloat64::*;
+use crate::stack::*;
+use crate::stkframe::*;
+use crate::string::*;
+use crate::stubs::*;
+use crate::stubs_arm64::*;
+use crate::stubs_nonlinux::*;
+use crate::stubs_nonwasm::*;
+use crate::symtab::*;
+use crate::symtabinl::*;
+use crate::synctest::*;
+use crate::sys_arm64::*;
+use crate::sys_darwin::*;
+use crate::sys_darwin_arm64::*;
+use crate::sys_libc::*;
+use crate::sys_nonppc64x::*;
+use crate::tagptr::*;
+use crate::tagptr_64bit::*;
+use crate::test_stubs::*;
+use crate::time::*;
+use crate::time_nofake::*;
+use crate::timestub::*;
+use crate::tls_stub::*;
+use crate::trace::*;
+use crate::traceallocfree::*;
+use crate::traceback::*;
+use crate::tracebuf::*;
+use crate::tracecpu::*;
+use crate::traceevent::*;
+use crate::traceexp::*;
+use crate::tracemap::*;
+use crate::traceregion::*;
+use crate::traceruntime::*;
+use crate::tracestack::*;
+use crate::tracestatus::*;
+use crate::tracestring::*;
+use crate::tracetime::*;
+use crate::tracetype::*;
+use crate::r#type::*;
+use crate::typekind::*;
+use crate::r#unsafe::*;
+use crate::utf8::*;
+use crate::vdso_in_none::*;
+use crate::vgetrandom_unsupported::*;
+use crate::write_err::*;
+
+use std::any::Any;
+use std::fmt::{Display, Formatter};
+use std::sync::{Arc, Mutex};
+
+pub(crate) const MAX_C_P_U_PROF_STACK: i32 = 64;
+pub(crate) const PROF_BUF_WORD_COUNT: i32 = 1 << 17;
+pub(crate) const PROF_BUF_TAG_COUNT: i32 = 1 << 14;
+
+
+#[derive(Clone)]
+pub struct cpuProfile {
+    pub lock: Arc<Mutex<Option<mutex>>>,
+    pub on: Arc<Mutex<Option<bool>>>,
+    pub log: Arc<Mutex<Option<profBuf>>>,
+    pub extra: Arc<Mutex<Option<[usize; 1000]>>>,
+    pub num_extra: Arc<Mutex<Option<i32>>>,
+    pub lost_extra: Arc<Mutex<Option<u64>>>,
+    pub lost_atomic: Arc<Mutex<Option<u64>>>,
+}
+
+impl cpuProfile {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, on: { let __guard = self.on.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, log: self.log.clone(), extra: { let __guard = self.extra.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, num_extra: { let __guard = self.num_extra.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, lost_extra: { let __guard = self.lost_extra.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, lost_atomic: { let __guard = self.lost_atomic.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for cpuProfile {
+    fn default() -> Self {
+        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), on: Arc::new(Mutex::new(Some(false))), log: Arc::new(Mutex::new(None)), extra: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), num_extra: Arc::new(Mutex::new(Some(0))), lost_extra: Arc::new(Mutex::new(Some(0))), lost_atomic: Arc::new(Mutex::new(Some(0))) }
+    }
+}
+
+impl std::fmt::Display for cpuProfile {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {} {} {} {} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), (*self.on.lock().unwrap().as_ref().unwrap()), { let __guard = self.log.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, format_slice(&self.extra), (*self.num_extra.lock().unwrap().as_ref().unwrap()), (*self.lost_extra.lock().unwrap().as_ref().unwrap()), (*self.lost_atomic.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for cpuProfile {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct AnonymousStruct1 {
+    pub lock: Arc<Mutex<Option<mutex>>>,
+    pub reuse: Arc<Mutex<Option<Vec<liveUserArenaChunk>>>>,
+    pub fault: Arc<Mutex<Option<Vec<liveUserArenaChunk>>>>,
+}
+impl AnonymousStruct1 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, reuse: self.reuse.clone(), fault: self.fault.clone() }
+    }
+}
+
+
+impl Default for AnonymousStruct1 {
+    fn default() -> Self {
+        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), reuse: Arc::new(Mutex::new(None)), fault: Arc::new(Mutex::new(None)) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct1 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), format_slice(&self.reuse), format_slice(&self.fault))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct1 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+pub(crate) type userArenaState = AnonymousStruct1;
+
+
+pub(crate) static cpuprof: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<cpuProfile>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+
+
+fn __go_init_globals() {
+    *cpuprof.lock().unwrap() = Some(Default::default());
+}
+
+
+pub(crate) fn __go_zero_globals() {
+    *cpuprof.lock().unwrap() = Some(Default::default());
+}
+
+
+impl cpuProfile {
+    /// add adds the stack trace to the profile.
+    /// It is called from signal handlers and other limited environments
+    /// and cannot allocate memory or acquire locks that might be
+    /// held at the time of the signal, nor can it use substantial amounts
+    /// of stack.
+    ///
+    ///go:nowritebarrierrec
+    pub fn add(&mut self, tagPtr: Arc<Mutex<Option<usize>>>, stk: Arc<Mutex<Option<Vec<usize>>>>) {
+                // Simple cas-lock to coordinate with setcpuprofilerate.
+        while !(*(*prof.lock().unwrap().as_ref().unwrap()).signal_lock.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some(0 as u32))), Arc::new(Mutex::new(Some(1 as u32)))) {
+                // TODO: Is it safe to osyield here? https://go.dev/issue/52672
+        osyield();
+    }
+                // TODO: Is it safe to osyield here? https://go.dev/issue/52672
+        if { let __tmp_x = (*(*prof.lock().unwrap().as_ref().unwrap()).hz.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 0 as i32; __tmp_x != __tmp_y } {
+        if { let __tmp_x = (*self.num_extra.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x > __tmp_y } || { let __tmp_x = (*self.lost_extra.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u64; __tmp_x > __tmp_y } || { let __tmp_x = (*self.lost_atomic.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u64; __tmp_x > __tmp_y } {
+        self.add_extra();
+    }
+        let mut hdr = Arc::new(Mutex::new(Some([1 as u64])));
+                // Note: write "knows" that the argument is &gp.labels,
+                // because otherwise its write barrier behavior may not
+                // be correct. See the long comment there before
+                // changing the argument here.
+        (*(*cpuprof.lock().unwrap().as_ref().unwrap()).log.lock().unwrap().as_mut().unwrap()).write(tagPtr.clone(), Arc::new(Mutex::new(Some(nanotime()))), Arc::new(Mutex::new(Some({ let __seq_holder = hdr.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), stk.clone());
+    }
+                // Note: write "knows" that the argument is &gp.labels,
+                // because otherwise its write barrier behavior may not
+                // be correct. See the long comment there before
+                // changing the argument here.
+        (*(*prof.lock().unwrap().as_ref().unwrap()).signal_lock.lock().unwrap().as_mut().unwrap()).store(Arc::new(Mutex::new(Some(0 as u32))));
+    }
+
+    /// addNonGo adds the non-Go stack trace to the profile.
+    /// It is called from a non-Go thread, so we cannot use much stack at all,
+    /// nor do anything that needs a g or an m.
+    /// In particular, we can't call cpuprof.log.write.
+    /// Instead, we copy the stack into cpuprof.extra,
+    /// which will be drained the next time a Go thread
+    /// gets the signal handling event.
+    ///
+    ///go:nosplit
+    ///go:nowritebarrierrec
+    pub fn add_non_go(&self, stk: Arc<Mutex<Option<Vec<usize>>>>) {
+                // Simple cas-lock to coordinate with SetCPUProfileRate.
+                // (Other calls to add or addNonGo should be blocked out
+                // by the fact that only one SIGPROF can be handled by the
+                // process at a time. If not, this lock will serialize those too.
+                // The use of timer_create(2) on Linux to request process-targeted
+                // signals may have changed this.)
+        while !(*(*prof.lock().unwrap().as_ref().unwrap()).signal_lock.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some(0 as u32))), Arc::new(Mutex::new(Some(1 as u32)))) {
+                // TODO: Is it safe to osyield here? https://go.dev/issue/52672
+        osyield();
+    }
+                // TODO: Is it safe to osyield here? https://go.dev/issue/52672
+        if { let __tmp_x = ({ let __tmp_x = ({ let __tmp_x = (*{ let __field = (*cpuprof.lock().unwrap().as_ref().unwrap()).num_extra.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x + __tmp_y } as i32); let __tmp_y = ((*stk.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x + __tmp_y } as i32); let __tmp_y = 1000; __tmp_x < __tmp_y } {
+        let mut i = Arc::new(Mutex::new(Some({ let __selector_holder = (*cpuprof.lock().unwrap().as_ref().unwrap()).num_extra.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+        (*(*cpuprof.lock().unwrap().as_ref().unwrap()).extra.lock().unwrap().as_mut().unwrap())[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = (*Arc::new(Mutex::new(Some(({ let __tmp_x = 1; let __tmp_y = ((*stk.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x + __tmp_y }) as usize))).lock().unwrap().as_ref().unwrap()).clone();
+        { let _dst_start = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; let _dst_len = (*(*cpuprof.lock().unwrap().as_ref().unwrap()).extra.lock().unwrap().as_ref().unwrap()).len() - _dst_start; let _src = { let __copy_src_holder = stk.clone(); let __copy_src_guard = __copy_src_holder.lock().unwrap(); __copy_src_guard.as_ref().cloned().unwrap_or_default() }; let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*(*cpuprof.lock().unwrap().as_ref().unwrap()).extra.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+        { let __target = (*cpuprof.lock().unwrap().as_ref().unwrap()).num_extra.clone(); let __rhs = { let __tmp_x = 1; let __tmp_y = ((*stk.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x + __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+    } else {
+        { let __target = (*cpuprof.lock().unwrap().as_ref().unwrap()).lost_extra.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+        (*(*prof.lock().unwrap().as_ref().unwrap()).signal_lock.lock().unwrap().as_mut().unwrap()).store(Arc::new(Mutex::new(Some(0 as u32))));
+    }
+
+    /// addExtra adds the "extra" profiling events,
+    /// queued by addNonGo, to the profile log.
+    /// addExtra is called either from a signal handler on a Go thread
+    /// or from an ordinary goroutine; either way it can use stack
+    /// and has a g. The world may be stopped, though.
+    pub fn add_extra(&mut self) {
+                // Copy accumulated non-Go profile events.
+        let mut hdr = Arc::new(Mutex::new(Some([1 as u64])));
+        let mut i = Arc::new(Mutex::new(Some(0)));
+    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.num_extra.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+        (*self.log.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(0 as i64))), Arc::new(Mutex::new(Some({ let __seq_holder = hdr.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(Some({ let __seq_holder = self.extra.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.extra.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() } as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))));
+        { let __rhs = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.extra.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() } as i32))).lock().unwrap().as_ref().unwrap()); let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+    }
+        { let new_val = 0; *self.num_extra.lock().unwrap() = Some(new_val); };
+                // Report any lost events.
+        if { let __tmp_x = (*self.lost_extra.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u64; __tmp_x > __tmp_y } {
+        let mut hdr = Arc::new(Mutex::new(Some([{ let __selector_holder = self.lost_extra.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }])));
+        let mut lostStk = Arc::new(Mutex::new(Some([{ let __tmp_x = internal_abi::func_p_c_a_b_i_internal(Arc::new(Mutex::new(Some(Box::new(__lost_external_code.clone()) as Box<dyn Any + Send + Sync>)))); let __tmp_y = internal_runtime_sys::P_C_QUANTUM as usize; __tmp_x + __tmp_y }, { let __tmp_x = internal_abi::func_p_c_a_b_i_internal(Arc::new(Mutex::new(Some(Box::new(__external_code.clone()) as Box<dyn Any + Send + Sync>)))); let __tmp_y = internal_runtime_sys::P_C_QUANTUM as usize; __tmp_x + __tmp_y }])));
+        (*self.log.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(0 as i64))), Arc::new(Mutex::new(Some({ let __seq_holder = hdr.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(Some({ let __seq_holder = lostStk.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))));
+        { let new_val = 0 as u64; *self.lost_extra.lock().unwrap() = Some(new_val); };
+    }
+        if { let __tmp_x = (*self.lost_atomic.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u64; __tmp_x > __tmp_y } {
+        let mut hdr = Arc::new(Mutex::new(Some([{ let __selector_holder = self.lost_atomic.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }])));
+        let mut lostStk = Arc::new(Mutex::new(Some([{ let __tmp_x = internal_abi::func_p_c_a_b_i_internal(Arc::new(Mutex::new(Some(Box::new(__lost_s_i_g_p_r_o_f_during_atomic64.clone()) as Box<dyn Any + Send + Sync>)))); let __tmp_y = internal_runtime_sys::P_C_QUANTUM as usize; __tmp_x + __tmp_y }, { let __tmp_x = internal_abi::func_p_c_a_b_i_internal(Arc::new(Mutex::new(Some(Box::new(__system.clone()) as Box<dyn Any + Send + Sync>)))); let __tmp_y = internal_runtime_sys::P_C_QUANTUM as usize; __tmp_x + __tmp_y }])));
+        (*self.log.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(0 as i64))), Arc::new(Mutex::new(Some({ let __seq_holder = hdr.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(Some({ let __seq_holder = lostStk.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))));
+        { let new_val = 0 as u64; *self.lost_atomic.lock().unwrap() = Some(new_val); };
+    }
+    }
+}
+
+pub(crate) fn __go_init_functions() {
+}
+
+
+pub(crate) fn __go_init_all() {
+    self::__go_init_globals();
+}
+
+
+impl GoValueClone for cpuProfile {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}

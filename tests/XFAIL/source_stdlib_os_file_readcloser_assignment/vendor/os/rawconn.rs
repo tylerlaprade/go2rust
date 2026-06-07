@@ -1,0 +1,218 @@
+use go2rust_stdlib_stubs::*;
+
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef};
+
+use crate::dir::*;
+use crate::dir_darwin::*;
+use crate::eloop_other::*;
+use crate::env::*;
+use crate::error::*;
+use crate::error_errno::*;
+use crate::exec::*;
+use crate::exec_nohandle::*;
+use crate::exec_posix::*;
+use crate::exec_unix::*;
+use crate::executable::*;
+use crate::executable_darwin::*;
+use crate::file::*;
+use crate::file_open_unix::*;
+use crate::file_posix::*;
+use crate::file_unix::*;
+use crate::getwd::*;
+use crate::path::*;
+use crate::path_unix::*;
+use crate::pidfd_other::*;
+use crate::pipe_unix::*;
+use crate::proc::*;
+use crate::removeall_at::*;
+use crate::root::*;
+use crate::root_nonwindows::*;
+use crate::root_openat::*;
+use crate::root_unix::*;
+use crate::stat::*;
+use crate::stat_darwin::*;
+use crate::stat_unix::*;
+use crate::sticky_bsd::*;
+use crate::sys::*;
+use crate::sys_bsd::*;
+use crate::sys_unix::*;
+use crate::tempfile::*;
+use crate::types::*;
+use crate::types_unix::*;
+use crate::wait_unimp::*;
+use crate::zero_copy_posix::*;
+use crate::zero_copy_stub::*;
+
+use std::any::Any;
+use std::error::Error as StdError;
+use std::fmt::{Display, Formatter};
+use std::sync::{Arc, Mutex};
+
+/// rawConn implements syscall.RawConn.
+#[derive(Clone, Default)]
+pub struct rawConn {
+    pub file: Arc<Mutex<Option<File>>>,
+}
+
+impl rawConn {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { file: self.file.clone() }
+    }
+}
+
+impl std::fmt::Display for rawConn {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", { let __guard = self.file.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+    }
+}
+
+impl GoJsonDecode for rawConn {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct AnonymousStruct1 {
+    pub mutex: sync::mutex::Mutex,
+    pub dir: Arc<Mutex<Option<String>>>,
+}
+impl AnonymousStruct1 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { mutex: self.mutex.clone(), dir: { let __guard = self.dir.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+impl AnonymousStruct1 {
+    pub fn lock(&mut self) {
+        let embedded_ref = &mut self.mutex;
+        embedded_ref.lock()
+    }
+
+    pub fn try_lock(&mut self) -> bool {
+        let embedded_ref = &mut self.mutex;
+        embedded_ref.try_lock()
+    }
+
+    pub fn unlock(&mut self) {
+        let embedded_ref = &mut self.mutex;
+        embedded_ref.unlock()
+    }
+}
+
+
+impl Default for AnonymousStruct1 {
+    fn default() -> Self {
+        Self { mutex: Default::default(), dir: Arc::new(Mutex::new(Some(String::new()))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct1 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{}}}", (*self.dir.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct1 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+pub(crate) type getwdCache = AnonymousStruct1;
+
+
+impl rawConn {
+    pub fn control(&self, f: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> () + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+        {
+        let mut err = (*self.file.lock().unwrap().as_ref().unwrap()).check_valid(Arc::new(Mutex::new(Some("SyscallConn.Control".to_string()))));;
+        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
+            return err.clone();;
+        }
+    }
+        let mut err = (*(*self.file.lock().unwrap().as_ref().unwrap()).file.lock().unwrap().as_ref().unwrap().pfd.lock().unwrap().as_mut().unwrap()).raw_control(f.clone());
+        runtime::keep_alive(Arc::new(Mutex::new(Some(Box::new(self.file.clone()) as Box<dyn Any + Send + Sync>))));
+        return err.clone();
+    }
+
+    pub fn read(&self, f: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> bool + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+        {
+        let mut err = (*self.file.lock().unwrap().as_ref().unwrap()).check_valid(Arc::new(Mutex::new(Some("SyscallConn.Read".to_string()))));;
+        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
+            return err.clone();;
+        }
+    }
+        let mut err = (*(*self.file.lock().unwrap().as_ref().unwrap()).file.lock().unwrap().as_ref().unwrap().pfd.lock().unwrap().as_mut().unwrap()).raw_read(f.clone());
+        runtime::keep_alive(Arc::new(Mutex::new(Some(Box::new(self.file.clone()) as Box<dyn Any + Send + Sync>))));
+        return err.clone();
+    }
+
+    pub fn write(&self, f: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> bool + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+        {
+        let mut err = (*self.file.lock().unwrap().as_ref().unwrap()).check_valid(Arc::new(Mutex::new(Some("SyscallConn.Write".to_string()))));;
+        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
+            return err.clone();;
+        }
+    }
+        let mut err = (*(*self.file.lock().unwrap().as_ref().unwrap()).file.lock().unwrap().as_ref().unwrap().pfd.lock().unwrap().as_mut().unwrap()).raw_write(f.clone());
+        runtime::keep_alive(Arc::new(Mutex::new(Some(Box::new(self.file.clone()) as Box<dyn Any + Send + Sync>))));
+        return err.clone();
+    }
+}
+
+#[derive(Clone)]
+pub struct rawConnPtr(pub Arc<Mutex<Option<rawConn>>>);
+
+impl std::fmt::Display for rawConnPtr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() { Some(__v) => write!(f, "{:p}", __v as *const _), None => write!(f, "<nil>") }
+    }
+}
+
+impl syscall::net::RawConn for rawConnPtr {
+    fn control(&self, f: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> () + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+        let __recv_guard = self.0.lock().unwrap();
+        let __recv = __recv_guard.as_ref().unwrap();
+        rawConn::control(__recv, f)
+    }
+    fn read(&self, f: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> bool + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+        let __recv_guard = self.0.lock().unwrap();
+        let __recv = __recv_guard.as_ref().unwrap();
+        rawConn::read(__recv, f)
+    }
+    fn write(&self, f: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<usize>>>) -> bool + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+        let __recv_guard = self.0.lock().unwrap();
+        let __recv = __recv_guard.as_ref().unwrap();
+        rawConn::write(__recv, f)
+    }
+    fn __go_clone_box_raw_conn(&self) -> Box<dyn syscall::net::RawConn + Send + Sync> {
+        Box::new(self.clone()) as Box<dyn syscall::net::RawConn + Send + Sync>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_raw_conn(&self, other: &(dyn syscall::net::RawConn + Send + Sync)) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<rawConnPtr>() {
+            Arc::ptr_eq(&self.0, &__other.0)
+        } else {
+            false
+        }
+    }
+}
+
+pub fn new_raw_conn(file: Arc<Mutex<Option<File>>>) -> (Arc<Mutex<Option<rawConn>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    (Arc::new(Mutex::new(Some(rawConn { file: file.clone(), ..Default::default() }))), Arc::new(Mutex::new(None)))
+}
+
+impl GoValueClone for rawConn {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
+}

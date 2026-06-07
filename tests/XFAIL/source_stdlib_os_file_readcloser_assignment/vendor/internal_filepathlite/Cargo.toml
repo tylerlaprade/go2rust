@@ -1,0 +1,16 @@
+[package]
+name = "internal_filepathlite"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "internal_filepathlite"
+path = "lib.rs"
+
+[dependencies]
+errors = { path = "../errors" }
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
+internal_bytealg = { path = "../internal_bytealg" }
+internal_stringslite = { path = "../internal_stringslite" }
+io_fs = { path = "../io_fs" }
+slices = { path = "../slices" }

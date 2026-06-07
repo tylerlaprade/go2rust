@@ -1,0 +1,20 @@
+[package]
+name = "time"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "time"
+path = "lib.rs"
+
+[dependencies]
+serde_json = "1"
+errors = { path = "../errors" }
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
+internal_bytealg = { path = "../internal_bytealg" }
+internal_godebug = { path = "../internal_godebug" }
+internal_stringslite = { path = "../internal_stringslite" }
+math_bits = { path = "../math_bits" }
+runtime = { path = "../runtime" }
+sync = { path = "../sync" }
+syscall = { path = "../syscall" }

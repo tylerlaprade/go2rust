@@ -1,0 +1,112 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/cmp",
+    "vendor/errors",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/internal_abi",
+    "vendor/internal_asan",
+    "vendor/internal_bisect",
+    "vendor/internal_bytealg",
+    "vendor/internal_byteorder",
+    "vendor/internal_chacha8rand",
+    "vendor/internal_coverage_rtcov",
+    "vendor/internal_cpu",
+    "vendor/internal_filepathlite",
+    "vendor/internal_goarch",
+    "vendor/internal_godebug",
+    "vendor/internal_godebugs",
+    "vendor/internal_goexperiment",
+    "vendor/internal_goos",
+    "vendor/internal_itoa",
+    "vendor/internal_msan",
+    "vendor/internal_oserror",
+    "vendor/internal_poll",
+    "vendor/internal_profilerecord",
+    "vendor/internal_race",
+    "vendor/internal_reflectlite",
+    "vendor/internal_runtime_atomic",
+    "vendor/internal_runtime_exithook",
+    "vendor/internal_runtime_maps",
+    "vendor/internal_runtime_math",
+    "vendor/internal_runtime_sys",
+    "vendor/internal_stringslite",
+    "vendor/internal_sync",
+    "vendor/internal_syscall_execenv",
+    "vendor/internal_syscall_unix",
+    "vendor/internal_testlog",
+    "vendor/internal_unsafeheader",
+    "vendor/io",
+    "vendor/io_fs",
+    "vendor/iter",
+    "vendor/math_bits",
+    "vendor/os",
+    "vendor/path",
+    "vendor/runtime",
+    "vendor/slices",
+    "vendor/sync",
+    "vendor/sync_atomic",
+    "vendor/syscall",
+    "vendor/time",
+    "vendor/unicode_utf8",
+]
+
+[package]
+name = "source_stdlib_os_file_readcloser_assignment"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "source_stdlib_os_file_readcloser_assignment"
+path = "main.rs"
+
+[dependencies]
+cmp = { path = "vendor/cmp" }
+errors = { path = "vendor/errors" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+internal_abi = { path = "vendor/internal_abi" }
+internal_asan = { path = "vendor/internal_asan" }
+internal_bisect = { path = "vendor/internal_bisect" }
+internal_bytealg = { path = "vendor/internal_bytealg" }
+internal_byteorder = { path = "vendor/internal_byteorder" }
+internal_chacha8rand = { path = "vendor/internal_chacha8rand" }
+internal_coverage_rtcov = { path = "vendor/internal_coverage_rtcov" }
+internal_cpu = { path = "vendor/internal_cpu" }
+internal_filepathlite = { path = "vendor/internal_filepathlite" }
+internal_goarch = { path = "vendor/internal_goarch" }
+internal_godebug = { path = "vendor/internal_godebug" }
+internal_godebugs = { path = "vendor/internal_godebugs" }
+internal_goexperiment = { path = "vendor/internal_goexperiment" }
+internal_goos = { path = "vendor/internal_goos" }
+internal_itoa = { path = "vendor/internal_itoa" }
+internal_msan = { path = "vendor/internal_msan" }
+internal_oserror = { path = "vendor/internal_oserror" }
+internal_poll = { path = "vendor/internal_poll" }
+internal_profilerecord = { path = "vendor/internal_profilerecord" }
+internal_race = { path = "vendor/internal_race" }
+internal_reflectlite = { path = "vendor/internal_reflectlite" }
+internal_runtime_atomic = { path = "vendor/internal_runtime_atomic" }
+internal_runtime_exithook = { path = "vendor/internal_runtime_exithook" }
+internal_runtime_maps = { path = "vendor/internal_runtime_maps" }
+internal_runtime_math = { path = "vendor/internal_runtime_math" }
+internal_runtime_sys = { path = "vendor/internal_runtime_sys" }
+internal_stringslite = { path = "vendor/internal_stringslite" }
+internal_sync = { path = "vendor/internal_sync" }
+internal_syscall_execenv = { path = "vendor/internal_syscall_execenv" }
+internal_syscall_unix = { path = "vendor/internal_syscall_unix" }
+internal_testlog = { path = "vendor/internal_testlog" }
+internal_unsafeheader = { path = "vendor/internal_unsafeheader" }
+io = { path = "vendor/io" }
+io_fs = { path = "vendor/io_fs" }
+iter = { path = "vendor/iter" }
+math_bits = { path = "vendor/math_bits" }
+os = { path = "vendor/os" }
+path = { path = "vendor/path" }
+runtime = { path = "vendor/runtime" }
+slices = { path = "vendor/slices" }
+sync = { path = "vendor/sync" }
+sync_atomic = { path = "vendor/sync_atomic" }
+syscall = { path = "vendor/syscall" }
+time = { path = "vendor/time" }
+unicode_utf8 = { path = "vendor/unicode_utf8" }

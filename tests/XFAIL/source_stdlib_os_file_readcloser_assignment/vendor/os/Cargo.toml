@@ -1,0 +1,29 @@
+[package]
+name = "os"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "os"
+path = "lib.rs"
+
+[dependencies]
+serde_json = "1"
+errors = { path = "../errors" }
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
+internal_bytealg = { path = "../internal_bytealg" }
+internal_filepathlite = { path = "../internal_filepathlite" }
+internal_itoa = { path = "../internal_itoa" }
+internal_poll = { path = "../internal_poll" }
+internal_stringslite = { path = "../internal_stringslite" }
+internal_syscall_execenv = { path = "../internal_syscall_execenv" }
+internal_syscall_unix = { path = "../internal_syscall_unix" }
+internal_testlog = { path = "../internal_testlog" }
+io = { path = "../io" }
+io_fs = { path = "../io_fs" }
+runtime = { path = "../runtime" }
+slices = { path = "../slices" }
+sync = { path = "../sync" }
+sync_atomic = { path = "../sync_atomic" }
+syscall = { path = "../syscall" }
+time = { path = "../time" }

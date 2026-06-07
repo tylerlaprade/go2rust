@@ -1,0 +1,433 @@
+use go2rust_stdlib_stubs::*;
+
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+
+use crate::badlinkname_unix::*;
+use crate::bpf_bsd::*;
+use crate::dirent::*;
+use crate::env_unix::*;
+use crate::exec_libc2::*;
+use crate::exec_unix::*;
+use crate::flock_bsd::*;
+use crate::forkpipe::*;
+use crate::linkname_bsd::*;
+use crate::linkname_darwin::*;
+use crate::linkname_libc::*;
+use crate::linkname_unix::*;
+use crate::net::*;
+use crate::rlimit::*;
+use crate::rlimit_darwin::*;
+use crate::route_bsd::*;
+use crate::route_darwin::*;
+use crate::sockcmsg_unix::*;
+use crate::sockcmsg_unix_other::*;
+use crate::r#mod::*;
+use crate::syscall_bsd::*;
+use crate::syscall_darwin::*;
+use crate::syscall_darwin_arm64::*;
+use crate::syscall_unix::*;
+use crate::time_nofake::*;
+use crate::timestruct::*;
+use crate::zerrors_darwin_arm64::*;
+use crate::zsyscall_darwin_arm64::*;
+use crate::ztypes_darwin_arm64::*;
+
+use std::fmt::{Display, Formatter};
+use std::sync::{Arc, Mutex};
+
+pub const S_Y_S__S_Y_S_C_A_L_L: i32 = 0;
+pub const S_Y_S__E_X_I_T: i32 = 1;
+pub const S_Y_S__F_O_R_K: i32 = 2;
+pub const S_Y_S__R_E_A_D: i32 = 3;
+pub const S_Y_S__W_R_I_T_E: i32 = 4;
+pub const S_Y_S__O_P_E_N: i32 = 5;
+pub const S_Y_S__C_L_O_S_E: i32 = 6;
+pub const S_Y_S__W_A_I_T4: i32 = 7;
+pub const S_Y_S__L_I_N_K: i32 = 9;
+pub const S_Y_S__U_N_L_I_N_K: i32 = 10;
+pub const S_Y_S__C_H_D_I_R: i32 = 12;
+pub const S_Y_S__F_C_H_D_I_R: i32 = 13;
+pub const S_Y_S__M_K_N_O_D: i32 = 14;
+pub const S_Y_S__C_H_M_O_D: i32 = 15;
+pub const S_Y_S__C_H_O_W_N: i32 = 16;
+pub const S_Y_S__G_E_T_F_S_S_T_A_T: i32 = 18;
+pub const S_Y_S__G_E_T_P_I_D: i32 = 20;
+pub const S_Y_S__S_E_T_U_I_D: i32 = 23;
+pub const S_Y_S__G_E_T_U_I_D: i32 = 24;
+pub const S_Y_S__G_E_T_E_U_I_D: i32 = 25;
+pub const S_Y_S__P_T_R_A_C_E: i32 = 26;
+pub const S_Y_S__R_E_C_V_M_S_G: i32 = 27;
+pub const S_Y_S__S_E_N_D_M_S_G: i32 = 28;
+pub const S_Y_S__R_E_C_V_F_R_O_M: i32 = 29;
+pub const S_Y_S__A_C_C_E_P_T: i32 = 30;
+pub const S_Y_S__G_E_T_P_E_E_R_N_A_M_E: i32 = 31;
+pub const S_Y_S__G_E_T_S_O_C_K_N_A_M_E: i32 = 32;
+pub const S_Y_S__A_C_C_E_S_S: i32 = 33;
+pub const S_Y_S__C_H_F_L_A_G_S: i32 = 34;
+pub const S_Y_S__F_C_H_F_L_A_G_S: i32 = 35;
+pub const S_Y_S__S_Y_N_C: i32 = 36;
+pub const S_Y_S__K_I_L_L: i32 = 37;
+pub const S_Y_S__G_E_T_P_P_I_D: i32 = 39;
+pub const S_Y_S__D_U_P: i32 = 41;
+pub const S_Y_S__P_I_P_E: i32 = 42;
+pub const S_Y_S__G_E_T_E_G_I_D: i32 = 43;
+pub const S_Y_S__S_I_G_A_C_T_I_O_N: i32 = 46;
+pub const S_Y_S__G_E_T_G_I_D: i32 = 47;
+pub const S_Y_S__S_I_G_P_R_O_C_M_A_S_K: i32 = 48;
+pub const S_Y_S__G_E_T_L_O_G_I_N: i32 = 49;
+pub const S_Y_S__S_E_T_L_O_G_I_N: i32 = 50;
+pub const S_Y_S__A_C_C_T: i32 = 51;
+pub const S_Y_S__S_I_G_P_E_N_D_I_N_G: i32 = 52;
+pub const S_Y_S__S_I_G_A_L_T_S_T_A_C_K: i32 = 53;
+pub const S_Y_S__I_O_C_T_L: i32 = 54;
+pub const S_Y_S__R_E_B_O_O_T: i32 = 55;
+pub const S_Y_S__R_E_V_O_K_E: i32 = 56;
+pub const S_Y_S__S_Y_M_L_I_N_K: i32 = 57;
+pub const S_Y_S__R_E_A_D_L_I_N_K: i32 = 58;
+pub const S_Y_S__E_X_E_C_V_E: i32 = 59;
+pub const S_Y_S__U_M_A_S_K: i32 = 60;
+pub const S_Y_S__C_H_R_O_O_T: i32 = 61;
+pub const S_Y_S__M_S_Y_N_C: i32 = 65;
+pub const S_Y_S__V_F_O_R_K: i32 = 66;
+pub const S_Y_S__M_U_N_M_A_P: i32 = 73;
+pub const S_Y_S__M_P_R_O_T_E_C_T: i32 = 74;
+pub const S_Y_S__M_A_D_V_I_S_E: i32 = 75;
+pub const S_Y_S__M_I_N_C_O_R_E: i32 = 78;
+pub const S_Y_S__G_E_T_G_R_O_U_P_S: i32 = 79;
+pub const S_Y_S__S_E_T_G_R_O_U_P_S: i32 = 80;
+pub const S_Y_S__G_E_T_P_G_R_P: i32 = 81;
+pub const S_Y_S__S_E_T_P_G_I_D: i32 = 82;
+pub const S_Y_S__S_E_T_I_T_I_M_E_R: i32 = 83;
+pub const S_Y_S__S_W_A_P_O_N: i32 = 85;
+pub const S_Y_S__G_E_T_I_T_I_M_E_R: i32 = 86;
+pub const S_Y_S__G_E_T_D_T_A_B_L_E_S_I_Z_E: i32 = 89;
+pub const S_Y_S__D_U_P2: i32 = 90;
+pub const S_Y_S__F_C_N_T_L: i32 = 92;
+pub const S_Y_S__S_E_L_E_C_T: i32 = 93;
+pub const S_Y_S__F_S_Y_N_C: i32 = 95;
+pub const S_Y_S__S_E_T_P_R_I_O_R_I_T_Y: i32 = 96;
+pub const S_Y_S__S_O_C_K_E_T: i32 = 97;
+pub const S_Y_S__C_O_N_N_E_C_T: i32 = 98;
+pub const S_Y_S__G_E_T_P_R_I_O_R_I_T_Y: i32 = 100;
+pub const S_Y_S__B_I_N_D: i32 = 104;
+pub const S_Y_S__S_E_T_S_O_C_K_O_P_T: i32 = 105;
+pub const S_Y_S__L_I_S_T_E_N: i32 = 106;
+pub const S_Y_S__S_I_G_S_U_S_P_E_N_D: i32 = 111;
+pub const S_Y_S__G_E_T_T_I_M_E_O_F_D_A_Y: i32 = 116;
+pub const S_Y_S__G_E_T_R_U_S_A_G_E: i32 = 117;
+pub const S_Y_S__G_E_T_S_O_C_K_O_P_T: i32 = 118;
+pub const S_Y_S__R_E_A_D_V: i32 = 120;
+pub const S_Y_S__W_R_I_T_E_V: i32 = 121;
+pub const S_Y_S__S_E_T_T_I_M_E_O_F_D_A_Y: i32 = 122;
+pub const S_Y_S__F_C_H_O_W_N: i32 = 123;
+pub const S_Y_S__F_C_H_M_O_D: i32 = 124;
+pub const S_Y_S__S_E_T_R_E_U_I_D: i32 = 126;
+pub const S_Y_S__S_E_T_R_E_G_I_D: i32 = 127;
+pub const S_Y_S__R_E_N_A_M_E: i32 = 128;
+pub const S_Y_S__F_L_O_C_K: i32 = 131;
+pub const S_Y_S__M_K_F_I_F_O: i32 = 132;
+pub const S_Y_S__S_E_N_D_T_O: i32 = 133;
+pub const S_Y_S__S_H_U_T_D_O_W_N: i32 = 134;
+pub const S_Y_S__S_O_C_K_E_T_P_A_I_R: i32 = 135;
+pub const S_Y_S__M_K_D_I_R: i32 = 136;
+pub const S_Y_S__R_M_D_I_R: i32 = 137;
+pub const S_Y_S__U_T_I_M_E_S: i32 = 138;
+pub const S_Y_S__F_U_T_I_M_E_S: i32 = 139;
+pub const S_Y_S__A_D_J_T_I_M_E: i32 = 140;
+pub const S_Y_S__G_E_T_H_O_S_T_U_U_I_D: i32 = 142;
+pub const S_Y_S__S_E_T_S_I_D: i32 = 147;
+pub const S_Y_S__G_E_T_P_G_I_D: i32 = 151;
+pub const S_Y_S__S_E_T_P_R_I_V_E_X_E_C: i32 = 152;
+pub const S_Y_S__P_R_E_A_D: i32 = 153;
+pub const S_Y_S__P_W_R_I_T_E: i32 = 154;
+pub const S_Y_S__N_F_S_S_V_C: i32 = 155;
+pub const S_Y_S__S_T_A_T_F_S: i32 = 157;
+pub const S_Y_S__F_S_T_A_T_F_S: i32 = 158;
+pub const S_Y_S__U_N_M_O_U_N_T: i32 = 159;
+pub const S_Y_S__G_E_T_F_H: i32 = 161;
+pub const S_Y_S__Q_U_O_T_A_C_T_L: i32 = 165;
+pub const S_Y_S__M_O_U_N_T: i32 = 167;
+pub const S_Y_S__C_S_O_P_S: i32 = 169;
+pub const S_Y_S__C_S_O_P_S__A_U_D_I_T_T_O_K_E_N: i32 = 170;
+pub const S_Y_S__W_A_I_T_I_D: i32 = 173;
+pub const S_Y_S__K_D_E_B_U_G__T_R_A_C_E: i32 = 180;
+pub const S_Y_S__S_E_T_G_I_D: i32 = 181;
+pub const S_Y_S__S_E_T_E_G_I_D: i32 = 182;
+pub const S_Y_S__S_E_T_E_U_I_D: i32 = 183;
+pub const S_Y_S__S_I_G_R_E_T_U_R_N: i32 = 184;
+pub const S_Y_S__C_H_U_D: i32 = 185;
+pub const S_Y_S__F_D_A_T_A_S_Y_N_C: i32 = 187;
+pub const S_Y_S__S_T_A_T: i32 = 188;
+pub const S_Y_S__F_S_T_A_T: i32 = 189;
+pub const S_Y_S__L_S_T_A_T: i32 = 190;
+pub const S_Y_S__P_A_T_H_C_O_N_F: i32 = 191;
+pub const S_Y_S__F_P_A_T_H_C_O_N_F: i32 = 192;
+pub const S_Y_S__G_E_T_R_L_I_M_I_T: i32 = 194;
+pub const S_Y_S__S_E_T_R_L_I_M_I_T: i32 = 195;
+pub const S_Y_S__G_E_T_D_I_R_E_N_T_R_I_E_S: i32 = 196;
+pub const S_Y_S__M_M_A_P: i32 = 197;
+pub const S_Y_S__L_S_E_E_K: i32 = 199;
+pub const S_Y_S__T_R_U_N_C_A_T_E: i32 = 200;
+pub const S_Y_S__F_T_R_U_N_C_A_T_E: i32 = 201;
+pub const S_Y_S____S_Y_S_C_T_L: i32 = 202;
+pub const S_Y_S__M_L_O_C_K: i32 = 203;
+pub const S_Y_S__M_U_N_L_O_C_K: i32 = 204;
+pub const S_Y_S__U_N_D_E_L_E_T_E: i32 = 205;
+pub const S_Y_S__A_T_S_O_C_K_E_T: i32 = 206;
+pub const S_Y_S__A_T_G_E_T_M_S_G: i32 = 207;
+pub const S_Y_S__A_T_P_U_T_M_S_G: i32 = 208;
+pub const S_Y_S__A_T_P_S_N_D_R_E_Q: i32 = 209;
+pub const S_Y_S__A_T_P_S_N_D_R_S_P: i32 = 210;
+pub const S_Y_S__A_T_P_G_E_T_R_E_Q: i32 = 211;
+pub const S_Y_S__A_T_P_G_E_T_R_S_P: i32 = 212;
+pub const S_Y_S__O_P_E_N__D_P_R_O_T_E_C_T_E_D__N_P: i32 = 216;
+pub const S_Y_S__G_E_T_A_T_T_R_L_I_S_T: i32 = 220;
+pub const S_Y_S__S_E_T_A_T_T_R_L_I_S_T: i32 = 221;
+pub const S_Y_S__G_E_T_D_I_R_E_N_T_R_I_E_S_A_T_T_R: i32 = 222;
+pub const S_Y_S__E_X_C_H_A_N_G_E_D_A_T_A: i32 = 223;
+pub const S_Y_S__S_E_A_R_C_H_F_S: i32 = 225;
+pub const S_Y_S__D_E_L_E_T_E: i32 = 226;
+pub const S_Y_S__C_O_P_Y_F_I_L_E: i32 = 227;
+pub const S_Y_S__F_G_E_T_A_T_T_R_L_I_S_T: i32 = 228;
+pub const S_Y_S__F_S_E_T_A_T_T_R_L_I_S_T: i32 = 229;
+pub const S_Y_S__P_O_L_L: i32 = 230;
+pub const S_Y_S__W_A_T_C_H_E_V_E_N_T: i32 = 231;
+pub const S_Y_S__W_A_I_T_E_V_E_N_T: i32 = 232;
+pub const S_Y_S__M_O_D_W_A_T_C_H: i32 = 233;
+pub const S_Y_S__G_E_T_X_A_T_T_R: i32 = 234;
+pub const S_Y_S__F_G_E_T_X_A_T_T_R: i32 = 235;
+pub const S_Y_S__S_E_T_X_A_T_T_R: i32 = 236;
+pub const S_Y_S__F_S_E_T_X_A_T_T_R: i32 = 237;
+pub const S_Y_S__R_E_M_O_V_E_X_A_T_T_R: i32 = 238;
+pub const S_Y_S__F_R_E_M_O_V_E_X_A_T_T_R: i32 = 239;
+pub const S_Y_S__L_I_S_T_X_A_T_T_R: i32 = 240;
+pub const S_Y_S__F_L_I_S_T_X_A_T_T_R: i32 = 241;
+pub const S_Y_S__F_S_C_T_L: i32 = 242;
+pub const S_Y_S__I_N_I_T_G_R_O_U_P_S: i32 = 243;
+pub const S_Y_S__P_O_S_I_X__S_P_A_W_N: i32 = 244;
+pub const S_Y_S__F_F_S_C_T_L: i32 = 245;
+pub const S_Y_S__N_F_S_C_L_N_T: i32 = 247;
+pub const S_Y_S__F_H_O_P_E_N: i32 = 248;
+pub const S_Y_S__M_I_N_H_E_R_I_T: i32 = 250;
+pub const S_Y_S__S_E_M_S_Y_S: i32 = 251;
+pub const S_Y_S__M_S_G_S_Y_S: i32 = 252;
+pub const S_Y_S__S_H_M_S_Y_S: i32 = 253;
+pub const S_Y_S__S_E_M_C_T_L: i32 = 254;
+pub const S_Y_S__S_E_M_G_E_T: i32 = 255;
+pub const S_Y_S__S_E_M_O_P: i32 = 256;
+pub const S_Y_S__M_S_G_C_T_L: i32 = 258;
+pub const S_Y_S__M_S_G_G_E_T: i32 = 259;
+pub const S_Y_S__M_S_G_S_N_D: i32 = 260;
+pub const S_Y_S__M_S_G_R_C_V: i32 = 261;
+pub const S_Y_S__S_H_M_A_T: i32 = 262;
+pub const S_Y_S__S_H_M_C_T_L: i32 = 263;
+pub const S_Y_S__S_H_M_D_T: i32 = 264;
+pub const S_Y_S__S_H_M_G_E_T: i32 = 265;
+pub const S_Y_S__S_H_M__O_P_E_N: i32 = 266;
+pub const S_Y_S__S_H_M__U_N_L_I_N_K: i32 = 267;
+pub const S_Y_S__S_E_M__O_P_E_N: i32 = 268;
+pub const S_Y_S__S_E_M__C_L_O_S_E: i32 = 269;
+pub const S_Y_S__S_E_M__U_N_L_I_N_K: i32 = 270;
+pub const S_Y_S__S_E_M__W_A_I_T: i32 = 271;
+pub const S_Y_S__S_E_M__T_R_Y_W_A_I_T: i32 = 272;
+pub const S_Y_S__S_E_M__P_O_S_T: i32 = 273;
+pub const S_Y_S__S_E_M__G_E_T_V_A_L_U_E: i32 = 274;
+pub const S_Y_S__S_E_M__I_N_I_T: i32 = 275;
+pub const S_Y_S__S_E_M__D_E_S_T_R_O_Y: i32 = 276;
+pub const S_Y_S__O_P_E_N__E_X_T_E_N_D_E_D: i32 = 277;
+pub const S_Y_S__U_M_A_S_K__E_X_T_E_N_D_E_D: i32 = 278;
+pub const S_Y_S__S_T_A_T__E_X_T_E_N_D_E_D: i32 = 279;
+pub const S_Y_S__L_S_T_A_T__E_X_T_E_N_D_E_D: i32 = 280;
+pub const S_Y_S__F_S_T_A_T__E_X_T_E_N_D_E_D: i32 = 281;
+pub const S_Y_S__C_H_M_O_D__E_X_T_E_N_D_E_D: i32 = 282;
+pub const S_Y_S__F_C_H_M_O_D__E_X_T_E_N_D_E_D: i32 = 283;
+pub const S_Y_S__A_C_C_E_S_S__E_X_T_E_N_D_E_D: i32 = 284;
+pub const S_Y_S__S_E_T_T_I_D: i32 = 285;
+pub const S_Y_S__G_E_T_T_I_D: i32 = 286;
+pub const S_Y_S__S_E_T_S_G_R_O_U_P_S: i32 = 287;
+pub const S_Y_S__G_E_T_S_G_R_O_U_P_S: i32 = 288;
+pub const S_Y_S__S_E_T_W_G_R_O_U_P_S: i32 = 289;
+pub const S_Y_S__G_E_T_W_G_R_O_U_P_S: i32 = 290;
+pub const S_Y_S__M_K_F_I_F_O__E_X_T_E_N_D_E_D: i32 = 291;
+pub const S_Y_S__M_K_D_I_R__E_X_T_E_N_D_E_D: i32 = 292;
+pub const S_Y_S__I_D_E_N_T_I_T_Y_S_V_C: i32 = 293;
+pub const S_Y_S__S_H_A_R_E_D__R_E_G_I_O_N__C_H_E_C_K__N_P: i32 = 294;
+pub const S_Y_S__V_M__P_R_E_S_S_U_R_E__M_O_N_I_T_O_R: i32 = 296;
+pub const S_Y_S__P_S_Y_N_C_H__R_W__L_O_N_G_R_D_L_O_C_K: i32 = 297;
+pub const S_Y_S__P_S_Y_N_C_H__R_W__Y_I_E_L_D_W_R_L_O_C_K: i32 = 298;
+pub const S_Y_S__P_S_Y_N_C_H__R_W__D_O_W_N_G_R_A_D_E: i32 = 299;
+pub const S_Y_S__P_S_Y_N_C_H__R_W__U_P_G_R_A_D_E: i32 = 300;
+pub const S_Y_S__P_S_Y_N_C_H__M_U_T_E_X_W_A_I_T: i32 = 301;
+pub const S_Y_S__P_S_Y_N_C_H__M_U_T_E_X_D_R_O_P: i32 = 302;
+pub const S_Y_S__P_S_Y_N_C_H__C_V_B_R_O_A_D: i32 = 303;
+pub const S_Y_S__P_S_Y_N_C_H__C_V_S_I_G_N_A_L: i32 = 304;
+pub const S_Y_S__P_S_Y_N_C_H__C_V_W_A_I_T: i32 = 305;
+pub const S_Y_S__P_S_Y_N_C_H__R_W__R_D_L_O_C_K: i32 = 306;
+pub const S_Y_S__P_S_Y_N_C_H__R_W__W_R_L_O_C_K: i32 = 307;
+pub const S_Y_S__P_S_Y_N_C_H__R_W__U_N_L_O_C_K: i32 = 308;
+pub const S_Y_S__P_S_Y_N_C_H__R_W__U_N_L_O_C_K2: i32 = 309;
+pub const S_Y_S__G_E_T_S_I_D: i32 = 310;
+pub const S_Y_S__S_E_T_T_I_D__W_I_T_H__P_I_D: i32 = 311;
+pub const S_Y_S__P_S_Y_N_C_H__C_V_C_L_R_P_R_E_P_O_S_T: i32 = 312;
+pub const S_Y_S__A_I_O__F_S_Y_N_C: i32 = 313;
+pub const S_Y_S__A_I_O__R_E_T_U_R_N: i32 = 314;
+pub const S_Y_S__A_I_O__S_U_S_P_E_N_D: i32 = 315;
+pub const S_Y_S__A_I_O__C_A_N_C_E_L: i32 = 316;
+pub const S_Y_S__A_I_O__E_R_R_O_R: i32 = 317;
+pub const S_Y_S__A_I_O__R_E_A_D: i32 = 318;
+pub const S_Y_S__A_I_O__W_R_I_T_E: i32 = 319;
+pub const S_Y_S__L_I_O__L_I_S_T_I_O: i32 = 320;
+pub const S_Y_S__I_O_P_O_L_I_C_Y_S_Y_S: i32 = 322;
+pub const S_Y_S__P_R_O_C_E_S_S__P_O_L_I_C_Y: i32 = 323;
+pub const S_Y_S__M_L_O_C_K_A_L_L: i32 = 324;
+pub const S_Y_S__M_U_N_L_O_C_K_A_L_L: i32 = 325;
+pub const S_Y_S__I_S_S_E_T_U_G_I_D: i32 = 327;
+pub const S_Y_S____P_T_H_R_E_A_D__K_I_L_L: i32 = 328;
+pub const S_Y_S____P_T_H_R_E_A_D__S_I_G_M_A_S_K: i32 = 329;
+pub const S_Y_S____S_I_G_W_A_I_T: i32 = 330;
+pub const S_Y_S____D_I_S_A_B_L_E__T_H_R_E_A_D_S_I_G_N_A_L: i32 = 331;
+pub const S_Y_S____P_T_H_R_E_A_D__M_A_R_K_C_A_N_C_E_L: i32 = 332;
+pub const S_Y_S____P_T_H_R_E_A_D__C_A_N_C_E_L_E_D: i32 = 333;
+pub const S_Y_S____S_E_M_W_A_I_T__S_I_G_N_A_L: i32 = 334;
+pub const S_Y_S__P_R_O_C__I_N_F_O: i32 = 336;
+pub const S_Y_S__S_E_N_D_F_I_L_E: i32 = 337;
+pub const S_Y_S__S_T_A_T64: i32 = 338;
+pub const S_Y_S__F_S_T_A_T64: i32 = 339;
+pub const S_Y_S__L_S_T_A_T64: i32 = 340;
+pub const S_Y_S__S_T_A_T64__E_X_T_E_N_D_E_D: i32 = 341;
+pub const S_Y_S__L_S_T_A_T64__E_X_T_E_N_D_E_D: i32 = 342;
+pub const S_Y_S__F_S_T_A_T64__E_X_T_E_N_D_E_D: i32 = 343;
+pub const S_Y_S__G_E_T_D_I_R_E_N_T_R_I_E_S64: i32 = 344;
+pub const S_Y_S__S_T_A_T_F_S64: i32 = 345;
+pub const S_Y_S__F_S_T_A_T_F_S64: i32 = 346;
+pub const S_Y_S__G_E_T_F_S_S_T_A_T64: i32 = 347;
+pub const S_Y_S____P_T_H_R_E_A_D__C_H_D_I_R: i32 = 348;
+pub const S_Y_S____P_T_H_R_E_A_D__F_C_H_D_I_R: i32 = 349;
+pub const S_Y_S__A_U_D_I_T: i32 = 350;
+pub const S_Y_S__A_U_D_I_T_O_N: i32 = 351;
+pub const S_Y_S__G_E_T_A_U_I_D: i32 = 353;
+pub const S_Y_S__S_E_T_A_U_I_D: i32 = 354;
+pub const S_Y_S__G_E_T_A_U_D_I_T__A_D_D_R: i32 = 357;
+pub const S_Y_S__S_E_T_A_U_D_I_T__A_D_D_R: i32 = 358;
+pub const S_Y_S__A_U_D_I_T_C_T_L: i32 = 359;
+pub const S_Y_S__B_S_D_T_H_R_E_A_D__C_R_E_A_T_E: i32 = 360;
+pub const S_Y_S__B_S_D_T_H_R_E_A_D__T_E_R_M_I_N_A_T_E: i32 = 361;
+pub const S_Y_S__K_Q_U_E_U_E: i32 = 362;
+pub const S_Y_S__K_E_V_E_N_T: i32 = 363;
+pub const S_Y_S__L_C_H_O_W_N: i32 = 364;
+pub const S_Y_S__S_T_A_C_K__S_N_A_P_S_H_O_T: i32 = 365;
+pub const S_Y_S__B_S_D_T_H_R_E_A_D__R_E_G_I_S_T_E_R: i32 = 366;
+pub const S_Y_S__W_O_R_K_Q__O_P_E_N: i32 = 367;
+pub const S_Y_S__W_O_R_K_Q__K_E_R_N_R_E_T_U_R_N: i32 = 368;
+pub const S_Y_S__K_E_V_E_N_T64: i32 = 369;
+pub const S_Y_S____O_L_D__S_E_M_W_A_I_T__S_I_G_N_A_L: i32 = 370;
+pub const S_Y_S____O_L_D__S_E_M_W_A_I_T__S_I_G_N_A_L__N_O_C_A_N_C_E_L: i32 = 371;
+pub const S_Y_S__T_H_R_E_A_D__S_E_L_F_I_D: i32 = 372;
+pub const S_Y_S__L_E_D_G_E_R: i32 = 373;
+pub const S_Y_S____M_A_C__E_X_E_C_V_E: i32 = 380;
+pub const S_Y_S____M_A_C__S_Y_S_C_A_L_L: i32 = 381;
+pub const S_Y_S____M_A_C__G_E_T__F_I_L_E: i32 = 382;
+pub const S_Y_S____M_A_C__S_E_T__F_I_L_E: i32 = 383;
+pub const S_Y_S____M_A_C__G_E_T__L_I_N_K: i32 = 384;
+pub const S_Y_S____M_A_C__S_E_T__L_I_N_K: i32 = 385;
+pub const S_Y_S____M_A_C__G_E_T__P_R_O_C: i32 = 386;
+pub const S_Y_S____M_A_C__S_E_T__P_R_O_C: i32 = 387;
+pub const S_Y_S____M_A_C__G_E_T__F_D: i32 = 388;
+pub const S_Y_S____M_A_C__S_E_T__F_D: i32 = 389;
+pub const S_Y_S____M_A_C__G_E_T__P_I_D: i32 = 390;
+pub const S_Y_S____M_A_C__G_E_T__L_C_I_D: i32 = 391;
+pub const S_Y_S____M_A_C__G_E_T__L_C_T_X: i32 = 392;
+pub const S_Y_S____M_A_C__S_E_T__L_C_T_X: i32 = 393;
+pub const S_Y_S__S_E_T_L_C_I_D: i32 = 394;
+pub const S_Y_S__G_E_T_L_C_I_D: i32 = 395;
+pub const S_Y_S__R_E_A_D__N_O_C_A_N_C_E_L: i32 = 396;
+pub const S_Y_S__W_R_I_T_E__N_O_C_A_N_C_E_L: i32 = 397;
+pub const S_Y_S__O_P_E_N__N_O_C_A_N_C_E_L: i32 = 398;
+pub const S_Y_S__C_L_O_S_E__N_O_C_A_N_C_E_L: i32 = 399;
+pub const S_Y_S__W_A_I_T4__N_O_C_A_N_C_E_L: i32 = 400;
+pub const S_Y_S__R_E_C_V_M_S_G__N_O_C_A_N_C_E_L: i32 = 401;
+pub const S_Y_S__S_E_N_D_M_S_G__N_O_C_A_N_C_E_L: i32 = 402;
+pub const S_Y_S__R_E_C_V_F_R_O_M__N_O_C_A_N_C_E_L: i32 = 403;
+pub const S_Y_S__A_C_C_E_P_T__N_O_C_A_N_C_E_L: i32 = 404;
+pub const S_Y_S__M_S_Y_N_C__N_O_C_A_N_C_E_L: i32 = 405;
+pub const S_Y_S__F_C_N_T_L__N_O_C_A_N_C_E_L: i32 = 406;
+pub const S_Y_S__S_E_L_E_C_T__N_O_C_A_N_C_E_L: i32 = 407;
+pub const S_Y_S__F_S_Y_N_C__N_O_C_A_N_C_E_L: i32 = 408;
+pub const S_Y_S__C_O_N_N_E_C_T__N_O_C_A_N_C_E_L: i32 = 409;
+pub const S_Y_S__S_I_G_S_U_S_P_E_N_D__N_O_C_A_N_C_E_L: i32 = 410;
+pub const S_Y_S__R_E_A_D_V__N_O_C_A_N_C_E_L: i32 = 411;
+pub const S_Y_S__W_R_I_T_E_V__N_O_C_A_N_C_E_L: i32 = 412;
+pub const S_Y_S__S_E_N_D_T_O__N_O_C_A_N_C_E_L: i32 = 413;
+pub const S_Y_S__P_R_E_A_D__N_O_C_A_N_C_E_L: i32 = 414;
+pub const S_Y_S__P_W_R_I_T_E__N_O_C_A_N_C_E_L: i32 = 415;
+pub const S_Y_S__W_A_I_T_I_D__N_O_C_A_N_C_E_L: i32 = 416;
+pub const S_Y_S__P_O_L_L__N_O_C_A_N_C_E_L: i32 = 417;
+pub const S_Y_S__M_S_G_S_N_D__N_O_C_A_N_C_E_L: i32 = 418;
+pub const S_Y_S__M_S_G_R_C_V__N_O_C_A_N_C_E_L: i32 = 419;
+pub const S_Y_S__S_E_M__W_A_I_T__N_O_C_A_N_C_E_L: i32 = 420;
+pub const S_Y_S__A_I_O__S_U_S_P_E_N_D__N_O_C_A_N_C_E_L: i32 = 421;
+pub const S_Y_S____S_I_G_W_A_I_T__N_O_C_A_N_C_E_L: i32 = 422;
+pub const S_Y_S____S_E_M_W_A_I_T__S_I_G_N_A_L__N_O_C_A_N_C_E_L: i32 = 423;
+pub const S_Y_S____M_A_C__M_O_U_N_T: i32 = 424;
+pub const S_Y_S____M_A_C__G_E_T__M_O_U_N_T: i32 = 425;
+pub const S_Y_S____M_A_C__G_E_T_F_S_S_T_A_T: i32 = 426;
+pub const S_Y_S__F_S_G_E_T_P_A_T_H: i32 = 427;
+pub const S_Y_S__A_U_D_I_T__S_E_S_S_I_O_N__S_E_L_F: i32 = 428;
+pub const S_Y_S__A_U_D_I_T__S_E_S_S_I_O_N__J_O_I_N: i32 = 429;
+pub const S_Y_S__F_I_L_E_P_O_R_T__M_A_K_E_P_O_R_T: i32 = 430;
+pub const S_Y_S__F_I_L_E_P_O_R_T__M_A_K_E_F_D: i32 = 431;
+pub const S_Y_S__A_U_D_I_T__S_E_S_S_I_O_N__P_O_R_T: i32 = 432;
+pub const S_Y_S__P_I_D__S_U_S_P_E_N_D: i32 = 433;
+pub const S_Y_S__P_I_D__R_E_S_U_M_E: i32 = 434;
+pub const S_Y_S__P_I_D__H_I_B_E_R_N_A_T_E: i32 = 435;
+pub const S_Y_S__P_I_D__S_H_U_T_D_O_W_N__S_O_C_K_E_T_S: i32 = 436;
+pub const S_Y_S__S_H_A_R_E_D__R_E_G_I_O_N__M_A_P__A_N_D__S_L_I_D_E__N_P: i32 = 438;
+pub const S_Y_S__K_A_S__I_N_F_O: i32 = 439;
+pub const S_Y_S__M_A_X_S_Y_S_C_A_L_L: i32 = 440;
+
+
+#[derive(Debug, Clone)]
+pub struct AnonymousStruct1 {
+    pub r#type: Arc<Mutex<Option<u8>>>,
+    pub nlen: Arc<Mutex<Option<u8>>>,
+    pub alen: Arc<Mutex<Option<u8>>>,
+    pub slen: Arc<Mutex<Option<u8>>>,
+}
+impl AnonymousStruct1 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { r#type: { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, nlen: { let __guard = self.nlen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, alen: { let __guard = self.alen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, slen: { let __guard = self.slen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct1 {
+    fn default() -> Self {
+        Self { r#type: Arc::new(Mutex::new(Some(0))), nlen: Arc::new(Mutex::new(Some(0))), alen: Arc::new(Mutex::new(Some(0))), slen: Arc::new(Mutex::new(Some(0))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct1 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {} {}}}", (*self.r#type.lock().unwrap().as_ref().unwrap()), (*self.nlen.lock().unwrap().as_ref().unwrap()), (*self.alen.lock().unwrap().as_ref().unwrap()), (*self.slen.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct1 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        if let Some(field_value) = object.get("Type") {
+            out.r#type = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
+        }
+        if let Some(field_value) = object.get("Nlen") {
+            out.nlen = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
+        }
+        if let Some(field_value) = object.get("Alen") {
+            out.alen = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
+        }
+        if let Some(field_value) = object.get("Slen") {
+            out.slen = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
+        }
+        Ok(out)
+    }
+}

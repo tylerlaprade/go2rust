@@ -1,0 +1,31 @@
+use go2rust_stdlib_stubs::*;
+
+use crate::arc4random_darwin::*;
+use crate::at_darwin::*;
+use crate::at_libc2::*;
+use crate::at_sysnum_darwin::*;
+use crate::constants::*;
+use crate::eaccess::*;
+use crate::faccessat_darwin::*;
+use crate::fcntl_unix::*;
+use crate::kernel_version_other::*;
+use crate::net::*;
+use crate::nofollow_posix::*;
+use crate::nonblocking_unix::*;
+use crate::pty_darwin::*;
+use crate::syscall::*;
+use crate::tcsetpgrp_bsd::*;
+use crate::user_darwin::*;
+
+pub const A_I__C_A_N_O_N_N_A_M_E: i32 = 0x2;
+pub const A_I__A_L_L: i32 = 0x100;
+pub const A_I__V4_M_A_P_P_E_D: i32 = 0x800;
+pub const A_I__M_A_S_K: i32 = 0x1407;
+pub const E_A_I__A_D_D_R_F_A_M_I_L_Y: i32 = 1;
+pub const E_A_I__A_G_A_I_N: i32 = 2;
+pub const E_A_I__N_O_D_A_T_A: i32 = 7;
+pub const E_A_I__N_O_N_A_M_E: i32 = 8;
+pub const E_A_I__S_E_R_V_I_C_E: i32 = 9;
+pub const E_A_I__S_Y_S_T_E_M: i32 = 11;
+pub const E_A_I__O_V_E_R_F_L_O_W: i32 = 14;
+pub const N_I__N_A_M_E_R_E_Q_D: i32 = 4;

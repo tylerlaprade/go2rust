@@ -1,0 +1,25 @@
+[package]
+name = "syscall"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "syscall"
+path = "lib.rs"
+
+[dependencies]
+serde_json = "1"
+errors = { path = "../errors" }
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
+internal_abi = { path = "../internal_abi" }
+internal_asan = { path = "../internal_asan" }
+internal_bytealg = { path = "../internal_bytealg" }
+internal_byteorder = { path = "../internal_byteorder" }
+internal_goarch = { path = "../internal_goarch" }
+internal_itoa = { path = "../internal_itoa" }
+internal_msan = { path = "../internal_msan" }
+internal_oserror = { path = "../internal_oserror" }
+internal_race = { path = "../internal_race" }
+runtime = { path = "../runtime" }
+sync = { path = "../sync" }
+sync_atomic = { path = "../sync_atomic" }

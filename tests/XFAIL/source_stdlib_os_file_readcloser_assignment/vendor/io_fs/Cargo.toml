@@ -1,0 +1,20 @@
+[package]
+name = "io_fs"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "io_fs"
+path = "lib.rs"
+
+[dependencies]
+serde_json = "1"
+errors = { path = "../errors" }
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
+internal_bytealg = { path = "../internal_bytealg" }
+internal_oserror = { path = "../internal_oserror" }
+io = { path = "../io" }
+path = { path = "../path" }
+slices = { path = "../slices" }
+time = { path = "../time" }
+unicode_utf8 = { path = "../unicode_utf8" }

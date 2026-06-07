@@ -1,0 +1,15 @@
+[package]
+name = "internal_bisect"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "internal_bisect"
+path = "lib.rs"
+
+[dependencies]
+serde_json = "1"
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
+runtime = { path = "../runtime" }
+sync = { path = "../sync" }
+sync_atomic = { path = "../sync_atomic" }

@@ -1,0 +1,18 @@
+[package]
+name = "internal_runtime_maps"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "internal_runtime_maps"
+path = "lib.rs"
+
+[dependencies]
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
+internal_abi = { path = "../internal_abi" }
+internal_asan = { path = "../internal_asan" }
+internal_goarch = { path = "../internal_goarch" }
+internal_msan = { path = "../internal_msan" }
+internal_race = { path = "../internal_race" }
+internal_runtime_math = { path = "../internal_runtime_math" }
+internal_runtime_sys = { path = "../internal_runtime_sys" }

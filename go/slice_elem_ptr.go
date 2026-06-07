@@ -4627,15 +4627,10 @@ func writeSliceElemPtrFieldAssignment(out *strings.Builder, lhs ast.Expr, rhs as
 
 func writeGoPtrLocalFieldAssignment(out *strings.Builder, sel *ast.SelectorExpr) bool {
 	ident, ok := unwrapParens(sel.X).(*ast.Ident)
-	fieldInfo := selectorFieldAccessInfo(sel)
-	if !ok || !isGoPtrVar(ident.Name) || fieldInfo.IsPromoted {
+	if !ok || !isGoPtrVar(ident.Name) {
 		return false
 	}
-	out.WriteString(rustIdentForUseWithCapture(ident))
-	out.WriteString(".with_mut(|__ptr_value| { __ptr_value.")
-	out.WriteString(fieldInfo.FieldName)
-	out.WriteString(" = new_val; });")
-	return true
+	return writeGoPtrLocalSelectorHandleReplacement(out, sel, "new_val")
 }
 
 func writeGoPtrAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {

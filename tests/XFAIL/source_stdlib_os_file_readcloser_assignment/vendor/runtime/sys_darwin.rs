@@ -1,0 +1,1999 @@
+use go2rust_stdlib_stubs::*;
+
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+
+use crate::alg::*;
+use crate::arena::*;
+use crate::asan0::*;
+use crate::atomic_pointer::*;
+use crate::badlinkname::*;
+use crate::cgo::*;
+use crate::cgocall::*;
+use crate::cgocallback::*;
+use crate::cgocheck::*;
+use crate::chan::*;
+use crate::checkptr::*;
+use crate::compiler::*;
+use crate::complex::*;
+use crate::coro::*;
+use crate::covercounter::*;
+use crate::covermeta::*;
+use crate::cpuflags::*;
+use crate::cpuflags_arm64::*;
+use crate::cpuprof::*;
+use crate::create_file_unix::*;
+use crate::debug::*;
+use crate::debugcall::*;
+use crate::debuglog::*;
+use crate::debuglog_off::*;
+use crate::defs_darwin_arm64::*;
+use crate::env_posix::*;
+use crate::error::*;
+use crate::r#extern::*;
+use crate::fastlog2::*;
+use crate::fastlog2table::*;
+use crate::fds_unix::*;
+use crate::float::*;
+use crate::hash64::*;
+use crate::heapdump::*;
+use crate::histogram::*;
+use crate::iface::*;
+use crate::lfstack::*;
+use crate::linkname::*;
+use crate::linkname_swiss::*;
+use crate::linkname_unix::*;
+use crate::lock_sema::*;
+use crate::lock_spinbit::*;
+use crate::lockrank::*;
+use crate::lockrank_off::*;
+use crate::malloc::*;
+use crate::map_fast32_swiss::*;
+use crate::map_fast64_swiss::*;
+use crate::map_faststr_swiss::*;
+use crate::map_swiss::*;
+use crate::mbarrier::*;
+use crate::mbitmap::*;
+use crate::mcache::*;
+use crate::mcentral::*;
+use crate::mcheckmark::*;
+use crate::mcleanup::*;
+use crate::mem::*;
+use crate::mem_darwin::*;
+use crate::mem_nonsbrk::*;
+use crate::metrics::*;
+use crate::mfinal::*;
+use crate::mfixalloc::*;
+use crate::mgc::*;
+use crate::mgclimit::*;
+use crate::mgcmark::*;
+use crate::mgcpacer::*;
+use crate::mgcscavenge::*;
+use crate::mgcstack::*;
+use crate::mgcsweep::*;
+use crate::mgcwork::*;
+use crate::mheap::*;
+use crate::minmax::*;
+use crate::mpagealloc::*;
+use crate::mpagealloc_64bit::*;
+use crate::mpagecache::*;
+use crate::mpallocbits::*;
+use crate::mprof::*;
+use crate::mranges::*;
+use crate::msan0::*;
+use crate::msize::*;
+use crate::mspanset::*;
+use crate::mstats::*;
+use crate::mwbbuf::*;
+use crate::nbpipe_pipe::*;
+use crate::netpoll::*;
+use crate::netpoll_kqueue::*;
+use crate::netpoll_kqueue_event::*;
+use crate::nonwindows_stub::*;
+use crate::note_other::*;
+use crate::os_darwin::*;
+use crate::os_darwin_arm64::*;
+use crate::os_nonopenbsd::*;
+use crate::os_unix::*;
+use crate::os_unix_nonlinux::*;
+use crate::panic::*;
+use crate::pinner::*;
+use crate::plugin::*;
+use crate::preempt::*;
+use crate::preempt_nonwindows::*;
+use crate::print::*;
+use crate::proc::*;
+use crate::profbuf::*;
+use crate::proflabel::*;
+use crate::race0::*;
+use crate::rand::*;
+use crate::rdebug::*;
+use crate::retry::*;
+use crate::r#mod::*;
+use crate::runtime1::*;
+use crate::runtime2::*;
+use crate::runtime_boring::*;
+use crate::rwmutex::*;
+use crate::security_issetugid::*;
+use crate::security_unix::*;
+use crate::select::*;
+use crate::sema::*;
+use crate::signal_arm64::*;
+use crate::signal_darwin::*;
+use crate::signal_darwin_arm64::*;
+use crate::signal_unix::*;
+use crate::sigqueue::*;
+use crate::sizeclasses::*;
+use crate::slice::*;
+use crate::softfloat64::*;
+use crate::stack::*;
+use crate::stkframe::*;
+use crate::string::*;
+use crate::stubs::*;
+use crate::stubs_arm64::*;
+use crate::stubs_nonlinux::*;
+use crate::stubs_nonwasm::*;
+use crate::symtab::*;
+use crate::symtabinl::*;
+use crate::synctest::*;
+use crate::sys_arm64::*;
+use crate::sys_darwin_arm64::*;
+use crate::sys_libc::*;
+use crate::sys_nonppc64x::*;
+use crate::tagptr::*;
+use crate::tagptr_64bit::*;
+use crate::test_stubs::*;
+use crate::time::*;
+use crate::time_nofake::*;
+use crate::timestub::*;
+use crate::tls_stub::*;
+use crate::trace::*;
+use crate::traceallocfree::*;
+use crate::traceback::*;
+use crate::tracebuf::*;
+use crate::tracecpu::*;
+use crate::traceevent::*;
+use crate::traceexp::*;
+use crate::tracemap::*;
+use crate::traceregion::*;
+use crate::traceruntime::*;
+use crate::tracestack::*;
+use crate::tracestatus::*;
+use crate::tracestring::*;
+use crate::tracetime::*;
+use crate::tracetype::*;
+use crate::r#type::*;
+use crate::typekind::*;
+use crate::r#unsafe::*;
+use crate::utf8::*;
+use crate::vdso_in_none::*;
+use crate::vgetrandom_unsupported::*;
+use crate::write_err::*;
+
+use std::any::Any;
+use std::fmt::{Display, Formatter};
+use std::sync::{Arc, Mutex};
+
+#[derive(Clone)]
+pub struct AnonymousStruct1 {
+    pub lock: Arc<Mutex<Option<mutex>>>,
+    pub reuse: Arc<Mutex<Option<Vec<liveUserArenaChunk>>>>,
+    pub fault: Arc<Mutex<Option<Vec<liveUserArenaChunk>>>>,
+}
+impl AnonymousStruct1 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, reuse: self.reuse.clone(), fault: self.fault.clone() }
+    }
+}
+
+
+impl Default for AnonymousStruct1 {
+    fn default() -> Self {
+        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), reuse: Arc::new(Mutex::new(None)), fault: Arc::new(Mutex::new(None)) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct1 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), format_slice(&self.reuse), format_slice(&self.fault))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct1 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct AnonymousStruct10 {
+    pub enabled: Arc<Mutex<Option<bool>>>,
+    pub pad: Arc<Mutex<Option<[u8; 3]>>>,
+    pub alignme: Arc<Mutex<Option<u64>>>,
+}
+impl AnonymousStruct10 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { enabled: { let __guard = self.enabled.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pad: { let __guard = self.pad.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, alignme: { let __guard = self.alignme.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct10 {
+    fn default() -> Self {
+        Self { enabled: Arc::new(Mutex::new(Some(false))), pad: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), alignme: Arc::new(Mutex::new(Some(0))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct10 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {}}}", (*self.enabled.lock().unwrap().as_ref().unwrap()), format_slice(&self.pad), (*self.alignme.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct10 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct AnonymousStruct11 {
+    pub spin_after_ragged_barrier: Arc<Mutex<Option<internal_runtime_atomic::types::Bool>>>,
+    pub restarted_due_to27993: Arc<Mutex<Option<bool>>>,
+}
+impl AnonymousStruct11 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { spin_after_ragged_barrier: { let __guard = self.spin_after_ragged_barrier.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, restarted_due_to27993: { let __guard = self.restarted_due_to27993.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct11 {
+    fn default() -> Self {
+        Self { spin_after_ragged_barrier: Arc::new(Mutex::new(Some(Default::default()))), restarted_due_to27993: Arc::new(Mutex::new(Some(false))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct11 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.spin_after_ragged_barrier.lock().unwrap().as_ref().unwrap()), (*self.restarted_due_to27993.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct11 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Debug, Clone, Default)]
+pub struct AnonymousStruct12 {
+}
+impl AnonymousStruct12 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self {  }
+    }
+}
+
+
+impl std::fmt::Display for AnonymousStruct12 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{}}")
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct12 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct AnonymousStruct13 {
+    pub fill: Arc<Mutex<Option<u64>>>,
+    pub capacity: Arc<Mutex<Option<u64>>>,
+}
+impl AnonymousStruct13 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { fill: { let __guard = self.fill.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, capacity: { let __guard = self.capacity.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct13 {
+    fn default() -> Self {
+        Self { fill: Arc::new(Mutex::new(Some(0))), capacity: Arc::new(Mutex::new(Some(0))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct13 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.fill.lock().unwrap().as_ref().unwrap()), (*self.capacity.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct13 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct AnonymousStruct14 {
+    pub gc_percent_goal: Arc<Mutex<Option<internal_runtime_atomic::types::Uint64>>>,
+    pub memory_limit_goal: Arc<Mutex<Option<internal_runtime_atomic::types::Uint64>>>,
+    pub assist_time: Arc<Mutex<Option<internal_runtime_atomic::types::Int64>>>,
+    pub background_time: Arc<Mutex<Option<internal_runtime_atomic::types::Int64>>>,
+}
+impl AnonymousStruct14 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { gc_percent_goal: { let __guard = self.gc_percent_goal.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, memory_limit_goal: { let __guard = self.memory_limit_goal.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, assist_time: { let __guard = self.assist_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, background_time: { let __guard = self.background_time.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct14 {
+    fn default() -> Self {
+        Self { gc_percent_goal: Arc::new(Mutex::new(Some(Default::default()))), memory_limit_goal: Arc::new(Mutex::new(Some(Default::default()))), assist_time: Arc::new(Mutex::new(Some(Default::default()))), background_time: Arc::new(Mutex::new(Some(Default::default()))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct14 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {} {}}}", (*self.gc_percent_goal.lock().unwrap().as_ref().unwrap()), (*self.memory_limit_goal.lock().unwrap().as_ref().unwrap()), (*self.assist_time.lock().unwrap().as_ref().unwrap()), (*self.background_time.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct14 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct AnonymousStruct15 {
+    pub index: Arc<Mutex<Option<scavengeIndex>>>,
+    pub released_bg: Arc<Mutex<Option<internal_runtime_atomic::types::Uintptr>>>,
+    pub released_eager: Arc<Mutex<Option<internal_runtime_atomic::types::Uintptr>>>,
+}
+impl AnonymousStruct15 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { index: { let __guard = self.index.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, released_bg: { let __guard = self.released_bg.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, released_eager: { let __guard = self.released_eager.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct15 {
+    fn default() -> Self {
+        Self { index: Arc::new(Mutex::new(Some(scavengeIndex::default()))), released_bg: Arc::new(Mutex::new(Some(Default::default()))), released_eager: Arc::new(Mutex::new(Some(Default::default()))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct15 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {}}}", (*self.index.lock().unwrap().as_ref().unwrap()), (*self.released_bg.lock().unwrap().as_ref().unwrap()), (*self.released_eager.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct15 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct AnonymousStruct16 {
+    pub base: Arc<Mutex<Option<usize>>>,
+    pub end: Arc<Mutex<Option<usize>>>,
+}
+impl AnonymousStruct16 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { base: { let __guard = self.base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, end: { let __guard = self.end.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct16 {
+    fn default() -> Self {
+        Self { base: Arc::new(Mutex::new(Some(0))), end: Arc::new(Mutex::new(Some(0))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct16 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.base.lock().unwrap().as_ref().unwrap()), (*self.end.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct16 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct AnonymousStruct17 {
+    pub mcentral: Arc<Mutex<Option<mcentral>>>,
+    pub pad: Arc<Mutex<Option<[u8; 88]>>>,
+}
+impl AnonymousStruct17 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { mcentral: { let __guard = self.mcentral.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pad: { let __guard = self.pad.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct17 {
+    fn default() -> Self {
+        Self { mcentral: Arc::new(Mutex::new(Some(mcentral::default()))), pad: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct17 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.mcentral.lock().unwrap().as_ref().unwrap()), format_slice(&self.pad))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct17 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct AnonymousStruct18 {
+    pub arena_hints: GoPtr<crate::mheap::arenaHint>,
+    pub quarantine_list: Arc<Mutex<Option<mSpanList>>>,
+    pub ready_list: Arc<Mutex<Option<mSpanList>>>,
+}
+impl AnonymousStruct18 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { arena_hints: self.arena_hints.clone(), quarantine_list: { let __guard = self.quarantine_list.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, ready_list: { let __guard = self.ready_list.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct18 {
+    fn default() -> Self {
+        Self { arena_hints: GoPtr::nil(), quarantine_list: Arc::new(Mutex::new(Some(mSpanList::default()))), ready_list: Arc::new(Mutex::new(Some(mSpanList::default()))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct18 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {}}}", { if self.arena_hints.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.quarantine_list.lock().unwrap().as_ref().unwrap()), (*self.ready_list.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct18 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct AnonymousStruct19 {
+    pub lock: Arc<Mutex<Option<mutex>>>,
+    pub free: GoPtr<crate::mheap::gcBitsArena>,
+    pub next: Arc<Mutex<Option<gcBitsArena>>>,
+    pub current: Arc<Mutex<Option<gcBitsArena>>>,
+    pub previous: Arc<Mutex<Option<gcBitsArena>>>,
+}
+impl AnonymousStruct19 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, free: self.free.clone(), next: self.next.clone(), current: self.current.clone(), previous: self.previous.clone() }
+    }
+}
+
+
+impl Default for AnonymousStruct19 {
+    fn default() -> Self {
+        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), free: GoPtr::nil(), next: Arc::new(Mutex::new(None)), current: Arc::new(Mutex::new(None)), previous: Arc::new(Mutex::new(None)) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct19 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {} {} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), { if self.free.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, { let __guard = self.next.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, { let __guard = self.current.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, { let __guard = self.previous.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct19 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct AnonymousStruct2 {
+    pub debug_log_reader: Arc<Mutex<Option<debugLogReader>>>,
+    pub first: Arc<Mutex<Option<bool>>>,
+    pub lost: Arc<Mutex<Option<u64>>>,
+    pub next_tick: Arc<Mutex<Option<u64>>>,
+}
+impl AnonymousStruct2 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { debug_log_reader: { let __guard = self.debug_log_reader.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, first: { let __guard = self.first.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, lost: { let __guard = self.lost.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, next_tick: { let __guard = self.next_tick.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+impl AnonymousStruct2 {
+    pub fn header(&mut self) -> (u64, u64, u64, i32) {
+        // Forward to embedded type's method
+        let embedded = self.debug_log_reader.clone();
+        let mut guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_mut().unwrap();
+        embedded_ref.header()
+    }
+
+    pub fn peek(&mut self) -> u64 {
+        // Forward to embedded type's method
+        let embedded = self.debug_log_reader.clone();
+        let mut guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_mut().unwrap();
+        embedded_ref.peek()
+    }
+
+    pub fn print_val(&mut self) -> bool {
+        // Forward to embedded type's method
+        let embedded = self.debug_log_reader.clone();
+        let mut guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_mut().unwrap();
+        embedded_ref.print_val()
+    }
+
+    pub fn read_uint16_l_e_at(&self, pos: Arc<Mutex<Option<u64>>>) -> u16 {
+        // Forward to embedded type's method
+        let embedded = self.debug_log_reader.clone();
+        let guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_ref().unwrap();
+        embedded_ref.read_uint16_l_e_at(pos)
+    }
+
+    pub fn read_uint64_l_e_at(&self, pos: Arc<Mutex<Option<u64>>>) -> u64 {
+        // Forward to embedded type's method
+        let embedded = self.debug_log_reader.clone();
+        let guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_ref().unwrap();
+        embedded_ref.read_uint64_l_e_at(pos)
+    }
+
+    pub fn skip(&mut self) -> u64 {
+        // Forward to embedded type's method
+        let embedded = self.debug_log_reader.clone();
+        let mut guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_mut().unwrap();
+        embedded_ref.skip()
+    }
+
+    pub fn uvarint(&mut self) -> u64 {
+        // Forward to embedded type's method
+        let embedded = self.debug_log_reader.clone();
+        let mut guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_mut().unwrap();
+        embedded_ref.uvarint()
+    }
+
+    pub fn varint(&mut self) -> i64 {
+        // Forward to embedded type's method
+        let embedded = self.debug_log_reader.clone();
+        let mut guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_mut().unwrap();
+        embedded_ref.varint()
+    }
+}
+
+
+impl Default for AnonymousStruct2 {
+    fn default() -> Self {
+        Self { debug_log_reader: Arc::new(Mutex::new(Some(debugLogReader::default()))), first: Arc::new(Mutex::new(Some(false))), lost: Arc::new(Mutex::new(Some(0))), next_tick: Arc::new(Mutex::new(Some(0))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct2 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {} {}}}", (*self.debug_log_reader.lock().unwrap().as_ref().unwrap()), (*self.first.lock().unwrap().as_ref().unwrap()), (*self.lost.lock().unwrap().as_ref().unwrap()), (*self.next_tick.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct2 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct AnonymousStruct20 {
+    pub base: Arc<Mutex<Option<offAddr>>>,
+    pub bound: Arc<Mutex<Option<offAddr>>>,
+}
+impl AnonymousStruct20 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { base: { let __guard = self.base.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, bound: { let __guard = self.bound.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct20 {
+    fn default() -> Self {
+        Self { base: Arc::new(Mutex::new(Some(offAddr::default()))), bound: Arc::new(Mutex::new(Some(offAddr::default()))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct20 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.base.lock().unwrap().as_ref().unwrap()), (*self.bound.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct20 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct AnonymousStruct21 {
+    pub sema: Arc<Mutex<Option<u32>>>,
+    pub active: Arc<Mutex<Option<bool>>>,
+    pub offset: Arc<Mutex<Option<internal_runtime_atomic::types::Int64>>>,
+    pub records: Arc<Mutex<Option<Vec<internal_profilerecord::r#mod::StackRecord>>>>,
+    pub labels: Arc<Mutex<Option<Vec<usize>>>>,
+}
+impl AnonymousStruct21 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { sema: { let __guard = self.sema.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, active: { let __guard = self.active.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, offset: { let __guard = self.offset.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, records: self.records.clone(), labels: self.labels.clone() }
+    }
+}
+
+
+impl Default for AnonymousStruct21 {
+    fn default() -> Self {
+        Self { sema: Arc::new(Mutex::new(Some(0))), active: Arc::new(Mutex::new(Some(false))), offset: Arc::new(Mutex::new(Some(Default::default()))), records: Arc::new(Mutex::new(None)), labels: Arc::new(Mutex::new(None)) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct21 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {} {} {}}}", (*self.sema.lock().unwrap().as_ref().unwrap()), (*self.active.lock().unwrap().as_ref().unwrap()), (*self.offset.lock().unwrap().as_ref().unwrap()), format_slice(&self.records), format_slice(&self.labels))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct21 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct AnonymousStruct22 {
+    pub lock: Arc<Mutex<Option<mutex>>>,
+    pub newm: Arc<Mutex<Option<muintptr>>>,
+    pub waiting: Arc<Mutex<Option<bool>>>,
+    pub wake: Arc<Mutex<Option<note>>>,
+    pub have_template_thread: Arc<Mutex<Option<u32>>>,
+}
+impl AnonymousStruct22 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, newm: { let __guard = self.newm.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, waiting: { let __guard = self.waiting.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, wake: { let __guard = self.wake.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, have_template_thread: { let __guard = self.have_template_thread.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct22 {
+    fn default() -> Self {
+        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), newm: Arc::new(Mutex::new(Some(crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0))))))), waiting: Arc::new(Mutex::new(Some(false))), wake: Arc::new(Mutex::new(Some(note::default()))), have_template_thread: Arc::new(Mutex::new(Some(0))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct22 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {} {} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), (*self.newm.lock().unwrap().as_ref().unwrap()), (*self.waiting.lock().unwrap().as_ref().unwrap()), (*self.wake.lock().unwrap().as_ref().unwrap()), (*self.have_template_thread.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct22 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct AnonymousStruct23 {
+    pub signal_lock: Arc<Mutex<Option<internal_runtime_atomic::types::Uint32>>>,
+    pub hz: Arc<Mutex<Option<internal_runtime_atomic::types::Int32>>>,
+}
+impl AnonymousStruct23 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { signal_lock: { let __guard = self.signal_lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, hz: { let __guard = self.hz.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct23 {
+    fn default() -> Self {
+        Self { signal_lock: Arc::new(Mutex::new(Some(Default::default()))), hz: Arc::new(Mutex::new(Some(Default::default()))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct23 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.signal_lock.lock().unwrap().as_ref().unwrap()), (*self.hz.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct23 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct AnonymousStruct24 {
+    pub lock: Arc<Mutex<Option<mutex>>>,
+    pub seed: Arc<Mutex<Option<[u8; 32]>>>,
+    pub state: Arc<Mutex<Option<internal_chacha8rand::chacha8::State>>>,
+    pub init: Arc<Mutex<Option<bool>>>,
+}
+impl AnonymousStruct24 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, seed: { let __guard = self.seed.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, state: { let __guard = self.state.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, init: { let __guard = self.init.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct24 {
+    fn default() -> Self {
+        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), seed: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), state: Arc::new(Mutex::new(Some(Default::default()))), init: Arc::new(Mutex::new(Some(false))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct24 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), format_slice(&self.seed), (*self.state.lock().unwrap().as_ref().unwrap()), (*self.init.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct24 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct AnonymousStruct25 {
+    pub cgocheck: Arc<Mutex<Option<i32>>>,
+    pub clobberfree: Arc<Mutex<Option<i32>>>,
+    pub disablethp: Arc<Mutex<Option<i32>>>,
+    pub dontfreezetheworld: Arc<Mutex<Option<i32>>>,
+    pub efence: Arc<Mutex<Option<i32>>>,
+    pub gccheckmark: Arc<Mutex<Option<i32>>>,
+    pub gcpacertrace: Arc<Mutex<Option<i32>>>,
+    pub gcshrinkstackoff: Arc<Mutex<Option<i32>>>,
+    pub gcstoptheworld: Arc<Mutex<Option<i32>>>,
+    pub gctrace: Arc<Mutex<Option<i32>>>,
+    pub invalidptr: Arc<Mutex<Option<i32>>>,
+    pub madvdontneed: Arc<Mutex<Option<i32>>>,
+    pub runtime_contention_stacks: Arc<Mutex<Option<internal_runtime_atomic::types::Int32>>>,
+    pub scavtrace: Arc<Mutex<Option<i32>>>,
+    pub scheddetail: Arc<Mutex<Option<i32>>>,
+    pub schedtrace: Arc<Mutex<Option<i32>>>,
+    pub tracebackancestors: Arc<Mutex<Option<i32>>>,
+    pub asyncpreemptoff: Arc<Mutex<Option<i32>>>,
+    pub harddecommit: Arc<Mutex<Option<i32>>>,
+    pub adaptivestackstart: Arc<Mutex<Option<i32>>>,
+    pub tracefpunwindoff: Arc<Mutex<Option<i32>>>,
+    pub traceadvanceperiod: Arc<Mutex<Option<i32>>>,
+    pub trace_check_stack_ownership: Arc<Mutex<Option<i32>>>,
+    pub profstackdepth: Arc<Mutex<Option<i32>>>,
+    pub dataindependenttiming: Arc<Mutex<Option<i32>>>,
+    pub malloc: Arc<Mutex<Option<bool>>>,
+    pub inittrace: Arc<Mutex<Option<i32>>>,
+    pub sbrk: Arc<Mutex<Option<i32>>>,
+    pub traceallocfree: Arc<Mutex<Option<internal_runtime_atomic::types::Int32>>>,
+    pub panicnil: Arc<Mutex<Option<internal_runtime_atomic::types::Int32>>>,
+    pub asynctimerchan: Arc<Mutex<Option<internal_runtime_atomic::types::Int32>>>,
+}
+impl AnonymousStruct25 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { cgocheck: { let __guard = self.cgocheck.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, clobberfree: { let __guard = self.clobberfree.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, disablethp: { let __guard = self.disablethp.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, dontfreezetheworld: { let __guard = self.dontfreezetheworld.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, efence: { let __guard = self.efence.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, gccheckmark: { let __guard = self.gccheckmark.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, gcpacertrace: { let __guard = self.gcpacertrace.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, gcshrinkstackoff: { let __guard = self.gcshrinkstackoff.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, gcstoptheworld: { let __guard = self.gcstoptheworld.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, gctrace: { let __guard = self.gctrace.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, invalidptr: { let __guard = self.invalidptr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, madvdontneed: { let __guard = self.madvdontneed.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, runtime_contention_stacks: { let __guard = self.runtime_contention_stacks.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, scavtrace: { let __guard = self.scavtrace.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, scheddetail: { let __guard = self.scheddetail.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, schedtrace: { let __guard = self.schedtrace.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, tracebackancestors: { let __guard = self.tracebackancestors.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, asyncpreemptoff: { let __guard = self.asyncpreemptoff.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, harddecommit: { let __guard = self.harddecommit.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, adaptivestackstart: { let __guard = self.adaptivestackstart.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, tracefpunwindoff: { let __guard = self.tracefpunwindoff.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, traceadvanceperiod: { let __guard = self.traceadvanceperiod.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, trace_check_stack_ownership: { let __guard = self.trace_check_stack_ownership.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, profstackdepth: { let __guard = self.profstackdepth.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, dataindependenttiming: { let __guard = self.dataindependenttiming.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, malloc: { let __guard = self.malloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, inittrace: { let __guard = self.inittrace.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, sbrk: { let __guard = self.sbrk.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, traceallocfree: { let __guard = self.traceallocfree.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, panicnil: { let __guard = self.panicnil.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, asynctimerchan: { let __guard = self.asynctimerchan.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct25 {
+    fn default() -> Self {
+        Self { cgocheck: Arc::new(Mutex::new(Some(0))), clobberfree: Arc::new(Mutex::new(Some(0))), disablethp: Arc::new(Mutex::new(Some(0))), dontfreezetheworld: Arc::new(Mutex::new(Some(0))), efence: Arc::new(Mutex::new(Some(0))), gccheckmark: Arc::new(Mutex::new(Some(0))), gcpacertrace: Arc::new(Mutex::new(Some(0))), gcshrinkstackoff: Arc::new(Mutex::new(Some(0))), gcstoptheworld: Arc::new(Mutex::new(Some(0))), gctrace: Arc::new(Mutex::new(Some(0))), invalidptr: Arc::new(Mutex::new(Some(0))), madvdontneed: Arc::new(Mutex::new(Some(0))), runtime_contention_stacks: Arc::new(Mutex::new(Some(Default::default()))), scavtrace: Arc::new(Mutex::new(Some(0))), scheddetail: Arc::new(Mutex::new(Some(0))), schedtrace: Arc::new(Mutex::new(Some(0))), tracebackancestors: Arc::new(Mutex::new(Some(0))), asyncpreemptoff: Arc::new(Mutex::new(Some(0))), harddecommit: Arc::new(Mutex::new(Some(0))), adaptivestackstart: Arc::new(Mutex::new(Some(0))), tracefpunwindoff: Arc::new(Mutex::new(Some(0))), traceadvanceperiod: Arc::new(Mutex::new(Some(0))), trace_check_stack_ownership: Arc::new(Mutex::new(Some(0))), profstackdepth: Arc::new(Mutex::new(Some(0))), dataindependenttiming: Arc::new(Mutex::new(Some(0))), malloc: Arc::new(Mutex::new(Some(false))), inittrace: Arc::new(Mutex::new(Some(0))), sbrk: Arc::new(Mutex::new(Some(0))), traceallocfree: Arc::new(Mutex::new(Some(Default::default()))), panicnil: Arc::new(Mutex::new(Some(Default::default()))), asynctimerchan: Arc::new(Mutex::new(Some(Default::default()))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct25 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.cgocheck.lock().unwrap().as_ref().unwrap()), (*self.clobberfree.lock().unwrap().as_ref().unwrap()), (*self.disablethp.lock().unwrap().as_ref().unwrap()), (*self.dontfreezetheworld.lock().unwrap().as_ref().unwrap()), (*self.efence.lock().unwrap().as_ref().unwrap()), (*self.gccheckmark.lock().unwrap().as_ref().unwrap()), (*self.gcpacertrace.lock().unwrap().as_ref().unwrap()), (*self.gcshrinkstackoff.lock().unwrap().as_ref().unwrap()), (*self.gcstoptheworld.lock().unwrap().as_ref().unwrap()), (*self.gctrace.lock().unwrap().as_ref().unwrap()), (*self.invalidptr.lock().unwrap().as_ref().unwrap()), (*self.madvdontneed.lock().unwrap().as_ref().unwrap()), (*self.runtime_contention_stacks.lock().unwrap().as_ref().unwrap()), (*self.scavtrace.lock().unwrap().as_ref().unwrap()), (*self.scheddetail.lock().unwrap().as_ref().unwrap()), (*self.schedtrace.lock().unwrap().as_ref().unwrap()), (*self.tracebackancestors.lock().unwrap().as_ref().unwrap()), (*self.asyncpreemptoff.lock().unwrap().as_ref().unwrap()), (*self.harddecommit.lock().unwrap().as_ref().unwrap()), (*self.adaptivestackstart.lock().unwrap().as_ref().unwrap()), (*self.tracefpunwindoff.lock().unwrap().as_ref().unwrap()), (*self.traceadvanceperiod.lock().unwrap().as_ref().unwrap()), (*self.trace_check_stack_ownership.lock().unwrap().as_ref().unwrap()), (*self.profstackdepth.lock().unwrap().as_ref().unwrap()), (*self.dataindependenttiming.lock().unwrap().as_ref().unwrap()), (*self.malloc.lock().unwrap().as_ref().unwrap()), (*self.inittrace.lock().unwrap().as_ref().unwrap()), (*self.sbrk.lock().unwrap().as_ref().unwrap()), (*self.traceallocfree.lock().unwrap().as_ref().unwrap()), (*self.panicnil.lock().unwrap().as_ref().unwrap()), (*self.asynctimerchan.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct25 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct AnonymousStruct26 {
+    pub g_list: Arc<Mutex<Option<gList>>>,
+    pub n: Arc<Mutex<Option<i32>>>,
+}
+impl AnonymousStruct26 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { g_list: { let __guard = self.g_list.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, n: { let __guard = self.n.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+impl AnonymousStruct26 {
+    pub fn empty(&self) -> bool {
+        // Forward to embedded type's method
+        let embedded = self.g_list.clone();
+        let guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_ref().unwrap();
+        embedded_ref.empty()
+    }
+
+    pub fn pop(&mut self) -> GoPtr<crate::runtime2::g> {
+        // Forward to embedded type's method
+        let embedded = self.g_list.clone();
+        let mut guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_mut().unwrap();
+        embedded_ref.pop()
+    }
+
+    pub fn push(&self, gp: GoPtr<crate::runtime2::g>) {
+        // Forward to embedded type's method
+        let embedded = self.g_list.clone();
+        let guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_ref().unwrap();
+        embedded_ref.push(gp)
+    }
+
+    pub fn push_all(&mut self, q: Arc<Mutex<Option<gQueue>>>) {
+        // Forward to embedded type's method
+        let embedded = self.g_list.clone();
+        let mut guard = embedded.lock().unwrap();
+        let embedded_ref = guard.as_mut().unwrap();
+        embedded_ref.push_all(q)
+    }
+}
+
+
+impl Default for AnonymousStruct26 {
+    fn default() -> Self {
+        Self { g_list: Arc::new(Mutex::new(Some(gList::default()))), n: Arc::new(Mutex::new(Some(0))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct26 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.g_list.lock().unwrap().as_ref().unwrap()), (*self.n.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct26 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct AnonymousStruct27 {
+    pub len: Arc<Mutex<Option<i32>>>,
+    pub buf: Arc<Mutex<Option<[Arc<Mutex<Option<mspan>>>; 128]>>>,
+}
+impl AnonymousStruct27 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { len: { let __guard = self.len.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, buf: { let __guard = self.buf.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct27 {
+    fn default() -> Self {
+        Self { len: Arc::new(Mutex::new(Some(0))), buf: Arc::new(Mutex::new(Some(std::array::from_fn(|_| GoPtr::nil())))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct27 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.len.lock().unwrap().as_ref().unwrap()), { let __guard = self.buf.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("[{}]", __v.iter().map(|__p| if __p.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() }).collect::<Vec<_>>().join(" ")), None => "[]".to_string() } })
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct27 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct AnonymousStruct28 {
+    pub user: Arc<Mutex<Option<bool>>>,
+    pub runnable: Arc<Mutex<Option<gQueue>>>,
+    pub n: Arc<Mutex<Option<i32>>>,
+}
+impl AnonymousStruct28 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { user: { let __guard = self.user.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, runnable: { let __guard = self.runnable.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, n: { let __guard = self.n.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct28 {
+    fn default() -> Self {
+        Self { user: Arc::new(Mutex::new(Some(false))), runnable: Arc::new(Mutex::new(Some(gQueue::default()))), n: Arc::new(Mutex::new(Some(0))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct28 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {}}}", (*self.user.lock().unwrap().as_ref().unwrap()), (*self.runnable.lock().unwrap().as_ref().unwrap()), (*self.n.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct28 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct AnonymousStruct29 {
+    pub lock: Arc<Mutex<Option<mutex>>>,
+    pub stack: Arc<Mutex<Option<gList>>>,
+    pub no_stack: Arc<Mutex<Option<gList>>>,
+    pub n: Arc<Mutex<Option<i32>>>,
+}
+impl AnonymousStruct29 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, stack: { let __guard = self.stack.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, no_stack: { let __guard = self.no_stack.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, n: { let __guard = self.n.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct29 {
+    fn default() -> Self {
+        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), stack: Arc::new(Mutex::new(Some(gList::default()))), no_stack: Arc::new(Mutex::new(Some(gList::default()))), n: Arc::new(Mutex::new(Some(0))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct29 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), (*self.stack.lock().unwrap().as_ref().unwrap()), (*self.no_stack.lock().unwrap().as_ref().unwrap()), (*self.n.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct29 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct AnonymousStruct3 {
+    pub tick: Arc<Mutex<Option<u64>>>,
+    pub i: Arc<Mutex<Option<i32>>>,
+}
+impl AnonymousStruct3 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { tick: { let __guard = self.tick.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, i: { let __guard = self.i.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct3 {
+    fn default() -> Self {
+        Self { tick: Arc::new(Mutex::new(Some(0))), i: Arc::new(Mutex::new(Some(0))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct3 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.tick.lock().unwrap().as_ref().unwrap()), (*self.i.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct3 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct AnonymousStruct30 {
+    pub root: Arc<Mutex<Option<semaRoot>>>,
+    pub pad: Arc<Mutex<Option<[u8; 104]>>>,
+}
+impl AnonymousStruct30 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { root: { let __guard = self.root.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, pad: { let __guard = self.pad.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct30 {
+    fn default() -> Self {
+        Self { root: Arc::new(Mutex::new(Some(semaRoot::default()))), pad: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct30 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.root.lock().unwrap().as_ref().unwrap()), format_slice(&self.pad))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct30 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct AnonymousStruct31 {
+    pub note: Arc<Mutex<Option<note>>>,
+    pub mask: Arc<Mutex<Option<[u32; 1]>>>,
+    pub wanted: Arc<Mutex<Option<[u32; 1]>>>,
+    pub ignored: Arc<Mutex<Option<[u32; 1]>>>,
+    pub recv: Arc<Mutex<Option<[u32; 1]>>>,
+    pub state: Arc<Mutex<Option<internal_runtime_atomic::types::Uint32>>>,
+    pub delivering: Arc<Mutex<Option<internal_runtime_atomic::types::Uint32>>>,
+    pub inuse: Arc<Mutex<Option<bool>>>,
+}
+impl AnonymousStruct31 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { note: { let __guard = self.note.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, mask: { let __guard = self.mask.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, wanted: { let __guard = self.wanted.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, ignored: { let __guard = self.ignored.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, recv: { let __guard = self.recv.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, state: { let __guard = self.state.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, delivering: { let __guard = self.delivering.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, inuse: { let __guard = self.inuse.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct31 {
+    fn default() -> Self {
+        Self { note: Arc::new(Mutex::new(Some(note::default()))), mask: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), wanted: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), ignored: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), recv: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), state: Arc::new(Mutex::new(Some(Default::default()))), delivering: Arc::new(Mutex::new(Some(Default::default()))), inuse: Arc::new(Mutex::new(Some(false))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct31 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {} {} {} {} {} {}}}", (*self.note.lock().unwrap().as_ref().unwrap()), format_slice(&self.mask), format_slice(&self.wanted), format_slice(&self.ignored), format_slice(&self.recv), (*self.state.lock().unwrap().as_ref().unwrap()), (*self.delivering.lock().unwrap().as_ref().unwrap()), (*self.inuse.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct31 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct AnonymousStruct32 {
+    pub item: Arc<Mutex<Option<stackpoolItem>>>,
+    pub __blank_1_0: Arc<Mutex<Option<[u8; 104]>>>,
+}
+impl AnonymousStruct32 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { item: { let __guard = self.item.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, __blank_1_0: { let __guard = self.__blank_1_0.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct32 {
+    fn default() -> Self {
+        Self { item: Arc::new(Mutex::new(Some(stackpoolItem::default()))), __blank_1_0: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct32 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.item.lock().unwrap().as_ref().unwrap()), format_slice(&self.__blank_1_0))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct32 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct AnonymousStruct33 {
+    pub lock: Arc<Mutex<Option<mutex>>>,
+    pub free: Arc<Mutex<Option<[mSpanList; 35]>>>,
+}
+impl AnonymousStruct33 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, free: { let __guard = self.free.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct33 {
+    fn default() -> Self {
+        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), free: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct33 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), format_slice(&self.free))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct33 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct AnonymousStruct4 {
+    pub mutex: Arc<Mutex<Option<mutex>>>,
+    pub persistent_alloc: Arc<Mutex<Option<persistentAlloc>>>,
+}
+impl AnonymousStruct4 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { mutex: { let __guard = self.mutex.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, persistent_alloc: { let __guard = self.persistent_alloc.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct4 {
+    fn default() -> Self {
+        Self { mutex: Arc::new(Mutex::new(Some(mutex::default()))), persistent_alloc: Arc::new(Mutex::new(Some(persistentAlloc::default()))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct4 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.mutex.lock().unwrap().as_ref().unwrap()), (*self.persistent_alloc.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct4 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct AnonymousStruct5 {
+    pub lock: Arc<Mutex<Option<mutex>>>,
+    pub data: Arc<Mutex<Option<u8>>>,
+}
+impl AnonymousStruct5 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, data: self.data.clone() }
+    }
+}
+
+
+impl Default for AnonymousStruct5 {
+    fn default() -> Self {
+        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), data: Arc::new(Mutex::new(None)) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct5 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), { let __guard = self.data.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct5 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct AnonymousStruct6 {
+    pub lock: Arc<Mutex<Option<mutex>>>,
+    pub free: Arc<Mutex<Option<mSpanList>>>,
+    pub busy: Arc<Mutex<Option<mSpanList>>>,
+}
+impl AnonymousStruct6 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, free: { let __guard = self.free.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, busy: { let __guard = self.busy.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct6 {
+    fn default() -> Self {
+        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), free: Arc::new(Mutex::new(Some(mSpanList::default()))), busy: Arc::new(Mutex::new(Some(mSpanList::default()))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct6 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), (*self.free.lock().unwrap().as_ref().unwrap()), (*self.busy.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct6 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct AnonymousStruct7 {
+    pub lock: Arc<Mutex<Option<mutex>>>,
+    pub q: Arc<Mutex<Option<gQueue>>>,
+}
+impl AnonymousStruct7 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, q: { let __guard = self.q.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct7 {
+    fn default() -> Self {
+        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), q: Arc::new(Mutex::new(Some(gQueue::default()))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct7 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), (*self.q.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct7 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct AnonymousStruct8 {
+    pub lock: Arc<Mutex<Option<mutex>>>,
+    pub list: Arc<Mutex<Option<gList>>>,
+}
+impl AnonymousStruct8 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, list: { let __guard = self.list.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct8 {
+    fn default() -> Self {
+        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), list: Arc::new(Mutex::new(Some(gList::default()))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct8 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), (*self.list.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct8 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct AnonymousStruct9 {
+    pub block: Arc<Mutex<Option<bool>>>,
+    pub lock: Arc<Mutex<Option<mutex>>>,
+    pub q: Arc<Mutex<Option<gQueue>>>,
+}
+impl AnonymousStruct9 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { block: { let __guard = self.block.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, q: { let __guard = self.q.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct9 {
+    fn default() -> Self {
+        Self { block: Arc::new(Mutex::new(Some(false))), lock: Arc::new(Mutex::new(Some(mutex::default()))), q: Arc::new(Mutex::new(Some(gQueue::default()))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct9 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {}}}", (*self.block.lock().unwrap().as_ref().unwrap()), (*self.lock.lock().unwrap().as_ref().unwrap()), (*self.q.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct9 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+pub(crate) type debug = AnonymousStruct25;
+
+
+pub(crate) type debugPtrmask = AnonymousStruct5;
+
+
+pub(crate) type gcBitsArenas = AnonymousStruct19;
+
+
+pub(crate) type gcDebugMarkDone = AnonymousStruct11;
+
+
+pub(crate) type globalAlloc = AnonymousStruct4;
+
+
+pub(crate) type globalRand = AnonymousStruct24;
+
+
+pub(crate) type goroutineProfile = AnonymousStruct21;
+
+
+pub(crate) type newmHandoff = AnonymousStruct22;
+
+
+pub(crate) type prof = AnonymousStruct23;
+
+
+pub(crate) type scavenge = AnonymousStruct14;
+
+
+pub(crate) type sig = AnonymousStruct31;
+
+
+pub(crate) type stackLarge = AnonymousStruct33;
+
+
+pub(crate) type userArenaState = AnonymousStruct1;
+
+
+pub(crate) type writeBarrier = AnonymousStruct10;
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn pthread_attr_init(attr: Arc<Mutex<Option<pthreadattr>>>) -> i32 {
+    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_attr_init_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(attr.clone())))) as usize))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(attr.clone()) as Box<dyn Any + Send + Sync>))));
+    ret
+}
+
+pub fn pthread_attr_init_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn pthread_attr_getstacksize(attr: Arc<Mutex<Option<pthreadattr>>>, size: Arc<Mutex<Option<usize>>>) -> i32 {
+    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_attr_getstacksize_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(attr.clone())))) as usize))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(attr.clone()) as Box<dyn Any + Send + Sync>))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(size.clone()) as Box<dyn Any + Send + Sync>))));
+    ret
+}
+
+pub fn pthread_attr_getstacksize_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn pthread_attr_setdetachstate(attr: Arc<Mutex<Option<pthreadattr>>>, state: Arc<Mutex<Option<i32>>>) -> i32 {
+    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_attr_setdetachstate_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(attr.clone())))) as usize))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(attr.clone()) as Box<dyn Any + Send + Sync>))));
+    ret
+}
+
+pub fn pthread_attr_setdetachstate_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn pthread_create(attr: Arc<Mutex<Option<pthreadattr>>>, start: Arc<Mutex<Option<usize>>>, arg: Arc<Mutex<Option<usize>>>) -> i32 {
+    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_create_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(attr.clone())))) as usize))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(attr.clone()) as Box<dyn Any + Send + Sync>))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = arg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>))));
+    ret
+}
+
+pub fn pthread_create_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn raise(sig_local: Arc<Mutex<Option<u32>>>) {
+    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(raise_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&sig_local.clone()) as usize))));
+}
+
+pub fn raise_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn pthread_self() -> Arc<Mutex<Option<crate::defs_darwin_arm64::pthread>>> {
+    let mut t: Arc<Mutex<Option<pthread>>> = Arc::new(Mutex::new(Some(Default::default())));
+
+    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_self_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&t.clone()) as usize))));
+    t.clone()
+}
+
+pub fn pthread_self_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn pthread_kill(t: Arc<Mutex<Option<pthread>>>, sig_local: Arc<Mutex<Option<u32>>>) {
+    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_kill_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&t.clone()) as usize))));
+    ()
+}
+
+pub fn pthread_kill_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+/// mmap is used to do low-level memory allocation via mmap. Don't allow stack
+/// splits, since this function (used by sysAlloc) is called in a lot of low-level
+/// parts of the runtime and callers often assume it won't acquire any locks.
+///
+///go:nosplit
+pub fn mmap(addr: Arc<Mutex<Option<usize>>>, n: Arc<Mutex<Option<usize>>>, prot: Arc<Mutex<Option<i32>>>, flags: Arc<Mutex<Option<i32>>>, fd: Arc<Mutex<Option<i32>>>, off: Arc<Mutex<Option<u32>>>) -> (Arc<Mutex<Option<usize>>>, i32) {
+    let mut args = Arc::new(Mutex::new(Some(AnonymousStruct34 { addr: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), n: Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), prot: Arc::new(Mutex::new(Some({ let __arg_holder = prot.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), flags: Arc::new(Mutex::new(Some({ let __arg_holder = flags.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), fd: Arc::new(Mutex::new(Some({ let __arg_holder = fd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), off: Arc::new(Mutex::new(Some({ let __arg_holder = off.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ret1: Default::default(), ret2: Arc::new(Mutex::new(Some(0))) })));
+    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(mmap_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&args.clone()) as usize))));
+    return ({ let __return_value_0 = Arc::new(Mutex::new(Some({ let __selector_holder = (*args.lock().unwrap().as_ref().unwrap()).ret1.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); __return_value_0 }, (*(*args.lock().unwrap().as_ref().unwrap()).ret2.lock().unwrap().as_ref().unwrap()));
+}
+
+pub fn mmap_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn munmap(addr: Arc<Mutex<Option<usize>>>, n: Arc<Mutex<Option<usize>>>) {
+    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(munmap_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&addr.clone()) as usize))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>))));
+}
+
+pub fn munmap_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn madvise(addr: Arc<Mutex<Option<usize>>>, n: Arc<Mutex<Option<usize>>>, flags: Arc<Mutex<Option<i32>>>) {
+    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(madvise_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&addr.clone()) as usize))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>))));
+}
+
+pub fn madvise_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn mlock(addr: Arc<Mutex<Option<usize>>>, n: Arc<Mutex<Option<usize>>>) {
+    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(mlock_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&addr.clone()) as usize))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>))));
+}
+
+pub fn mlock_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+/// This is exported via linkname to assembly in runtime/cgo.
+///
+///go:nosplit
+///go:cgo_unsafe_args
+///go:linkname exit
+pub fn exit(code: Arc<Mutex<Option<i32>>>) {
+    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(exit_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&code.clone()) as usize))));
+}
+
+pub fn exit_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn usleep(usec: Arc<Mutex<Option<u32>>>) {
+    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(usleep_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&usec.clone()) as usize))));
+}
+
+pub fn usleep_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn usleep_no_g(usec: Arc<Mutex<Option<u32>>>) {
+    asmcgocall_no_g(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(usleep_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&usec.clone()) as usize))));
+}
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn write1(fd: Arc<Mutex<Option<usize>>>, p: Arc<Mutex<Option<usize>>>, n: Arc<Mutex<Option<i32>>>) -> i32 {
+    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(write_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&fd.clone()) as usize))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = p.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>))));
+    ret
+}
+
+pub fn write_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn nanotime1() -> i64 {
+    let mut r: Arc<Mutex<Option<AnonymousStruct35>>> = Arc::new(Mutex::new(Some(Default::default())));
+        // raw timer
+        // conversion factors. nanoseconds = t * numer / denom.
+    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(nanotime_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&r.clone()) as usize))));
+
+        // Note: Apple seems unconcerned about overflow here. See
+        // https://developer.apple.com/library/content/qa/qa1398/_index.html
+        // Note also, numer == denom == 1 is common.
+    let mut t = Arc::new(Mutex::new(Some({ let __selector_holder = (*r.lock().unwrap().as_ref().unwrap()).t.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+    if { let __tmp_x = (*{ let __field = (*r.lock().unwrap().as_ref().unwrap()).numer.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as u32; __tmp_x != __tmp_y } {
+        { let __rhs = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*r.lock().unwrap().as_ref().unwrap()).numer.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()); let mut guard = t.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() * __rhs); };
+    }
+    if { let __tmp_x = (*{ let __field = (*r.lock().unwrap().as_ref().unwrap()).denom.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as u32; __tmp_x != __tmp_y } {
+        { let __rhs = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*r.lock().unwrap().as_ref().unwrap()).denom.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()); let mut guard = t.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() / __rhs); };
+    }
+    return { let __v = (*t.lock().unwrap().as_ref().unwrap()).clone(); __v };
+}
+
+pub fn nanotime_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+/// walltime should be an internal detail,
+/// but widely used packages access it using linkname.
+/// Notable members of the hall of shame include:
+///   - gitee.com/quant1x/gox
+///
+/// Do not remove or change the type signature.
+/// See go.dev/issue/67401.
+///
+///go:linkname walltime
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn walltime() -> (i64, i32) {
+    let mut t: Arc<Mutex<Option<timespec>>> = Arc::new(Mutex::new(Some(Default::default())));
+    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(walltime_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&t.clone()) as usize))));
+    return ((*(*t.lock().unwrap().as_ref().unwrap()).tv_sec.lock().unwrap().as_ref().unwrap()), (*Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).tv_nsec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()));
+}
+
+pub fn walltime_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn sigaction(sig_local: Arc<Mutex<Option<u32>>>, new: Arc<Mutex<Option<usigactiont>>>, old: Arc<Mutex<Option<usigactiont>>>) {
+    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(sigaction_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&sig_local.clone()) as usize))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(new.clone()) as Box<dyn Any + Send + Sync>))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(old.clone()) as Box<dyn Any + Send + Sync>))));
+}
+
+pub fn sigaction_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn sigprocmask(how: Arc<Mutex<Option<u32>>>, new: Arc<Mutex<Option<sigset>>>, old: Arc<Mutex<Option<sigset>>>) {
+    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(sigprocmask_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&how.clone()) as usize))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(new.clone()) as Box<dyn Any + Send + Sync>))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(old.clone()) as Box<dyn Any + Send + Sync>))));
+}
+
+pub fn sigprocmask_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn sigaltstack(new: Arc<Mutex<Option<stackt>>>, old: Arc<Mutex<Option<stackt>>>) {
+    if { let __nil_result = (*new.lock().unwrap()).is_some(); __nil_result } && { let __tmp_x = { let __tmp_x = (*{ let __field = (*new.lock().unwrap().as_ref().unwrap()).ss_flags.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __S_S__D_I_S_A_B_L_E as i32; __tmp_x & __tmp_y }; let __tmp_y = 0 as i32; __tmp_x != __tmp_y } && { let __tmp_x = (*{ let __field = (*new.lock().unwrap().as_ref().unwrap()).ss_size.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
+                // Despite the fact that Darwin's sigaltstack man page says it ignores the size
+                // when SS_DISABLE is set, it doesn't. sigaltstack returns ENOMEM
+                // if we don't give it a reasonable size.
+                // ref: http://lists.llvm.org/pipermail/llvm-commits/Week-of-Mon-20140421/214296.html
+        { let new_val = 32768 as usize; *(*new.lock().unwrap().as_ref().unwrap()).ss_size.lock().unwrap() = Some(new_val); };
+    }
+        // Despite the fact that Darwin's sigaltstack man page says it ignores the size
+        // when SS_DISABLE is set, it doesn't. sigaltstack returns ENOMEM
+        // if we don't give it a reasonable size.
+        // ref: http://lists.llvm.org/pipermail/llvm-commits/Week-of-Mon-20140421/214296.html
+    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(sigaltstack_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(new.clone())))) as usize))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(new.clone()) as Box<dyn Any + Send + Sync>))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(old.clone()) as Box<dyn Any + Send + Sync>))));
+}
+
+pub fn sigaltstack_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn raiseproc(sig_local: Arc<Mutex<Option<u32>>>) {
+    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(raiseproc_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&sig_local.clone()) as usize))));
+}
+
+pub fn raiseproc_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn fcntl(fd: Arc<Mutex<Option<i32>>>, cmd: Arc<Mutex<Option<i32>>>, arg: Arc<Mutex<Option<i32>>>) -> (i32, i32) {
+    let mut ret: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
+    let mut errno: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
+
+    let mut args = Arc::new(Mutex::new(Some(AnonymousStruct36 { fd: Arc::new(Mutex::new(Some({ let __arg_holder = fd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), cmd: Arc::new(Mutex::new(Some({ let __arg_holder = cmd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), arg: Arc::new(Mutex::new(Some({ let __arg_holder = arg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ret: Arc::new(Mutex::new(Some(0 as i32))), errno: Arc::new(Mutex::new(Some(0 as i32))) })));
+    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(fcntl_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&args.clone()) as usize))));
+    return ((*(*args.lock().unwrap().as_ref().unwrap()).ret.lock().unwrap().as_ref().unwrap()), (*(*args.lock().unwrap().as_ref().unwrap()).errno.lock().unwrap().as_ref().unwrap()));
+}
+
+pub fn fcntl_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn kqueue() -> i32 {
+    let mut v = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(kqueue_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(None)));
+    v
+}
+
+pub fn kqueue_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn kevent(kq_local: Arc<Mutex<Option<i32>>>, ch: GoPtr<crate::defs_darwin_arm64::keventt>, nch: Arc<Mutex<Option<i32>>>, ev: GoPtr<crate::defs_darwin_arm64::keventt>, nev: Arc<Mutex<Option<i32>>>, ts: Arc<Mutex<Option<timespec>>>) -> i32 {
+    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(kevent_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&kq_local.clone()) as usize))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(ch.clone()) as Box<dyn Any + Send + Sync>))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(ev.clone()) as Box<dyn Any + Send + Sync>))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(ts.clone()) as Box<dyn Any + Send + Sync>))));
+    ret
+}
+
+pub fn kevent_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn pthread_mutex_init(m: Arc<Mutex<Option<pthreadmutex>>>, attr: Arc<Mutex<Option<pthreadmutexattr>>>) -> i32 {
+    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_mutex_init_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(m.clone())))) as usize))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(m.clone()) as Box<dyn Any + Send + Sync>))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(attr.clone()) as Box<dyn Any + Send + Sync>))));
+    ret
+}
+
+pub fn pthread_mutex_init_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn pthread_mutex_lock(m: Arc<Mutex<Option<pthreadmutex>>>) -> i32 {
+    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_mutex_lock_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(m.clone())))) as usize))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(m.clone()) as Box<dyn Any + Send + Sync>))));
+    ret
+}
+
+pub fn pthread_mutex_lock_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn pthread_mutex_unlock(m: Arc<Mutex<Option<pthreadmutex>>>) -> i32 {
+    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_mutex_unlock_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(m.clone())))) as usize))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(m.clone()) as Box<dyn Any + Send + Sync>))));
+    ret
+}
+
+pub fn pthread_mutex_unlock_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn pthread_cond_init(c: Arc<Mutex<Option<pthreadcond>>>, attr: Arc<Mutex<Option<pthreadcondattr>>>) -> i32 {
+    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_cond_init_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(c.clone())))) as usize))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(c.clone()) as Box<dyn Any + Send + Sync>))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(attr.clone()) as Box<dyn Any + Send + Sync>))));
+    ret
+}
+
+pub fn pthread_cond_init_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn pthread_cond_wait(c: Arc<Mutex<Option<pthreadcond>>>, m: Arc<Mutex<Option<pthreadmutex>>>) -> i32 {
+    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_cond_wait_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(c.clone())))) as usize))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(c.clone()) as Box<dyn Any + Send + Sync>))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(m.clone()) as Box<dyn Any + Send + Sync>))));
+    ret
+}
+
+pub fn pthread_cond_wait_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn pthread_cond_timedwait_relative_np(c: Arc<Mutex<Option<pthreadcond>>>, m: Arc<Mutex<Option<pthreadmutex>>>, t: Arc<Mutex<Option<timespec>>>) -> i32 {
+    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_cond_timedwait_relative_np_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(c.clone())))) as usize))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(c.clone()) as Box<dyn Any + Send + Sync>))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(m.clone()) as Box<dyn Any + Send + Sync>))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(t.clone()) as Box<dyn Any + Send + Sync>))));
+    ret
+}
+
+pub fn pthread_cond_timedwait_relative_np_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+///go:nosplit
+///go:cgo_unsafe_args
+pub fn pthread_cond_signal(c: Arc<Mutex<Option<pthreadcond>>>) -> i32 {
+    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_cond_signal_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(c.clone())))) as usize))));
+    keep_alive(Arc::new(Mutex::new(Some(Box::new(c.clone()) as Box<dyn Any + Send + Sync>))));
+    ret
+}
+
+pub fn pthread_cond_signal_trampoline() {
+    unimplemented!("Go function declaration has no body");
+}
+
+
+#[derive(Debug, Clone)]
+pub struct AnonymousStruct34 {
+    pub addr: Arc<Mutex<Option<usize>>>,
+    pub n: Arc<Mutex<Option<usize>>>,
+    pub prot: Arc<Mutex<Option<i32>>>,
+    pub flags: Arc<Mutex<Option<i32>>>,
+    pub fd: Arc<Mutex<Option<i32>>>,
+    pub off: Arc<Mutex<Option<u32>>>,
+    pub ret1: Arc<Mutex<Option<usize>>>,
+    pub ret2: Arc<Mutex<Option<i32>>>,
+}
+impl AnonymousStruct34 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { addr: { let __guard = self.addr.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, n: { let __guard = self.n.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, prot: { let __guard = self.prot.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, flags: { let __guard = self.flags.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, fd: { let __guard = self.fd.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, off: { let __guard = self.off.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, ret1: { let __guard = self.ret1.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, ret2: { let __guard = self.ret2.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct34 {
+    fn default() -> Self {
+        Self { addr: Arc::new(Mutex::new(Some(0))), n: Arc::new(Mutex::new(Some(0))), prot: Arc::new(Mutex::new(Some(0))), flags: Arc::new(Mutex::new(Some(0))), fd: Arc::new(Mutex::new(Some(0))), off: Arc::new(Mutex::new(Some(0))), ret1: Arc::new(Mutex::new(Some(0))), ret2: Arc::new(Mutex::new(Some(0))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct34 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {} {} {} {} {} {}}}", (*self.addr.lock().unwrap().as_ref().unwrap()), (*self.n.lock().unwrap().as_ref().unwrap()), (*self.prot.lock().unwrap().as_ref().unwrap()), (*self.flags.lock().unwrap().as_ref().unwrap()), (*self.fd.lock().unwrap().as_ref().unwrap()), (*self.off.lock().unwrap().as_ref().unwrap()), (*self.ret1.lock().unwrap().as_ref().unwrap()), (*self.ret2.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct34 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct AnonymousStruct35 {
+    pub t: Arc<Mutex<Option<i64>>>,
+    pub numer: Arc<Mutex<Option<u32>>>,
+    pub denom: Arc<Mutex<Option<u32>>>,
+}
+impl AnonymousStruct35 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { t: { let __guard = self.t.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, numer: { let __guard = self.numer.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, denom: { let __guard = self.denom.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct35 {
+    fn default() -> Self {
+        Self { t: Arc::new(Mutex::new(Some(0))), numer: Arc::new(Mutex::new(Some(0))), denom: Arc::new(Mutex::new(Some(0))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct35 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {}}}", (*self.t.lock().unwrap().as_ref().unwrap()), (*self.numer.lock().unwrap().as_ref().unwrap()), (*self.denom.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct35 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct AnonymousStruct36 {
+    pub fd: Arc<Mutex<Option<i32>>>,
+    pub cmd: Arc<Mutex<Option<i32>>>,
+    pub arg: Arc<Mutex<Option<i32>>>,
+    pub ret: Arc<Mutex<Option<i32>>>,
+    pub errno: Arc<Mutex<Option<i32>>>,
+}
+impl AnonymousStruct36 {
+    pub fn __go_value_clone(&self) -> Self {
+        Self { fd: { let __guard = self.fd.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, cmd: { let __guard = self.cmd.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, arg: { let __guard = self.arg.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, ret: { let __guard = self.ret.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, errno: { let __guard = self.errno.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
+    }
+}
+
+
+impl Default for AnonymousStruct36 {
+    fn default() -> Self {
+        Self { fd: Arc::new(Mutex::new(Some(0))), cmd: Arc::new(Mutex::new(Some(0))), arg: Arc::new(Mutex::new(Some(0))), ret: Arc::new(Mutex::new(Some(0))), errno: Arc::new(Mutex::new(Some(0))) }
+    }
+}
+
+impl std::fmt::Display for AnonymousStruct36 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{{{} {} {} {} {}}}", (*self.fd.lock().unwrap().as_ref().unwrap()), (*self.cmd.lock().unwrap().as_ref().unwrap()), (*self.arg.lock().unwrap().as_ref().unwrap()), (*self.ret.lock().unwrap().as_ref().unwrap()), (*self.errno.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for AnonymousStruct36 {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
+    }
+}

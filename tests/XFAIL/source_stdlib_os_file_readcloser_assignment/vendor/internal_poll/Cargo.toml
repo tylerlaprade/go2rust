@@ -1,0 +1,21 @@
+[package]
+name = "internal_poll"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "internal_poll"
+path = "lib.rs"
+
+[dependencies]
+serde_json = "1"
+errors = { path = "../errors" }
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
+internal_itoa = { path = "../internal_itoa" }
+internal_syscall_unix = { path = "../internal_syscall_unix" }
+io = { path = "../io" }
+runtime = { path = "../runtime" }
+sync = { path = "../sync" }
+sync_atomic = { path = "../sync_atomic" }
+syscall = { path = "../syscall" }
+time = { path = "../time" }

@@ -4364,6 +4364,123 @@ func touch(addr uintptr, i int) int {
 	}
 }
 
+func TestGoPtrLocalFieldAssignmentBorrowsOriginalPointee(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct {
+	next *node
+}
+
+func raw(addr uintptr) *node {
+	return (*node)(unsafe.Pointer(addr))
+}
+
+func link(addr uintptr) {
+	n := raw(addr)
+	n.next = raw(addr)
+}
+`)
+
+	if strings.Contains(rust, "{ let __ptr_value = n.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value } =") {
+		t.Fatalf("GoPtr local field assignment should not use the read-handle expression as an assignment target:\n%s", rust)
+	}
+	if !strings.Contains(rust, "n.with_mut(|__ptr_value| { __ptr_value.next = new_val; });") {
+		t.Fatalf("GoPtr local field assignment should mutate through the original pointee:\n%s", rust)
+	}
+}
+
+func TestGoPtrLocalSliceFieldAssignmentBorrowsOriginalPointee(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type histogram struct {
+	buckets []int
+}
+
+func raw(addr uintptr) *histogram {
+	return (*histogram)(unsafe.Pointer(addr))
+}
+
+func store(addr uintptr, buckets []int) {
+	h := raw(addr)
+	h.buckets = buckets
+}
+`)
+
+	if strings.Contains(rust, "{ let __ptr_value = h.with_mut(|__ptr_value| __ptr_value.buckets.clone()); __ptr_value } =") {
+		t.Fatalf("GoPtr local slice field assignment should not use the read-handle expression as an assignment target:\n%s", rust)
+	}
+	if !strings.Contains(rust, "h.with_mut(|__ptr_value| { __ptr_value.buckets = new_val; });") {
+		t.Fatalf("GoPtr local slice field assignment should mutate through the original pointee:\n%s", rust)
+	}
+}
+
+func TestGoPtrLocalPromotedPointerFieldAssignmentBorrowsOriginalPointee(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type header struct {
+	next *node
+}
+
+type node struct {
+	header
+}
+
+func raw(addr uintptr) *node {
+	return (*node)(unsafe.Pointer(addr))
+}
+
+func link(addr uintptr) {
+	n := raw(addr)
+	other := raw(addr + 1)
+	n.next = nil
+	n.next = other
+}
+`)
+
+	if strings.Contains(rust, "{ let __ptr_value = n.with_mut(|__ptr_value| { let __field = __ptr_value.header") &&
+		strings.Contains(rust, "__field }); __ptr_value } = new_val") {
+		t.Fatalf("GoPtr local promoted pointer field assignment should not use the read-handle expression as an assignment target:\n%s", rust)
+	}
+	if !strings.Contains(rust, "n.with_mut(|__ptr_value| { (*__ptr_value.header") ||
+		!strings.Contains(rust, ".next = new_val; });") {
+		t.Fatalf("GoPtr local promoted pointer field assignment should mutate through the embedded pointee:\n%s", rust)
+	}
+}
+
+func TestParallelGoPtrLocalFieldAssignmentBorrowsOriginalPointee(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct {
+	next *node
+}
+
+func raw(addr uintptr) *node {
+	return (*node)(unsafe.Pointer(addr))
+}
+
+func rotate(addr uintptr) {
+	n := raw(addr)
+	other := raw(addr + 1)
+	n.next, other = other, n
+}
+`)
+
+	if strings.Contains(rust, "{ let __ptr_value = n.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value } =") {
+		t.Fatalf("parallel GoPtr local field assignment should not use the read-handle expression as an assignment target:\n%s", rust)
+	}
+	if !strings.Contains(rust, "n.with_mut(|__ptr_value| { __ptr_value.next = __tmp_0.clone(); });") {
+		t.Fatalf("parallel GoPtr local field assignment should mutate through the original pointee:\n%s", rust)
+	}
+}
+
 func TestGoPtrLocalAssignmentNilComparisonAndReturnPreservesHandle(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

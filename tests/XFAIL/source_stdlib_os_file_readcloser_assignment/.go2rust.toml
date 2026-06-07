@@ -1,0 +1,1 @@
+source_stdlib_packages = "io+deps,os+deps"

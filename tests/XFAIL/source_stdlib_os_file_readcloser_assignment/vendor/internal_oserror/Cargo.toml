@@ -1,0 +1,12 @@
+[package]
+name = "internal_oserror"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "internal_oserror"
+path = "lib.rs"
+
+[dependencies]
+errors = { path = "../errors" }
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
