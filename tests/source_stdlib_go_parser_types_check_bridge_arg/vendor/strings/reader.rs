@@ -200,7 +200,7 @@ impl Reader {
     }
         { let __target = self.i.clone(); let __rhs = (*Arc::new(Mutex::new(Some(m as i64))).lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let new_val = Arc::new(Mutex::new(Some(m as i64))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *n.lock().unwrap() = __moved_val; };
-        if { let __tmp_x = (m as i32); let __tmp_y = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x != __tmp_y } && (*err.lock().unwrap()).is_none() {
+        if { let __tmp_x = (m as i32); let __tmp_y = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x != __tmp_y } && { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } {
         { let __rhs_holder = io::ErrShortWrite().clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
     }
         return ((*n.lock().unwrap().as_ref().unwrap()), err.clone());

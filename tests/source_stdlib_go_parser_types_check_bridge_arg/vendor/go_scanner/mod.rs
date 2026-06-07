@@ -1328,8 +1328,8 @@ pub fn trailing_digits(text: Arc<Mutex<Option<Vec<u8>>>>) -> (i32, i32, bool) {
 
         // no ":"
         // i >= 0
-    let (mut n, mut err) = strconv::parse_uint(Arc::new(Mutex::new(Some(String::from_utf8((*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = text.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; let __low = ({ let __tmp_x = i; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __seq[__low..].to_vec() }))).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))), 10, 0);
-    return ({ let __tmp_x = i; let __tmp_y = 1; __tmp_x + __tmp_y }, (*Arc::new(Mutex::new(Some(n as i32))).lock().unwrap().as_ref().unwrap()), (*err.lock().unwrap()).is_none());
+    let (mut n, mut err) = strconv::parse_uint(Arc::new(Mutex::new(Some(String::from_utf8((*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = text.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; let __low = ({ let __tmp_x = i; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __seq[__low..].to_vec() }))).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))), Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(0))));
+    return ({ let __tmp_x = i; let __tmp_y = 1; __tmp_x + __tmp_y }, (*Arc::new(Mutex::new(Some(n as i32))).lock().unwrap().as_ref().unwrap()), { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result });
 }
 
 pub fn is_letter(ch: Arc<Mutex<Option<i32>>>) -> bool {

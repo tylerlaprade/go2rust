@@ -525,7 +525,7 @@ impl Token {
         { let new_val = { let __seq = { let __seq_holder = tokens.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*self.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }; *s.lock().unwrap() = Some(new_val); };
     }
         if { let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
-        { let new_val = { let mut __s = String::new(); __s.push_str(&format!("{}", "token(".to_string())); __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) as i32).to_string()))).lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", ")".to_string())); __s }; *s.lock().unwrap() = Some(new_val); };
+        { let new_val = { let mut __s = String::new(); __s.push_str(&format!("{}", "token(".to_string())); __s.push_str(&format!("{}", (*strconv::itoa(Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()) as i32)))).lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", ")".to_string())); __s }; *s.lock().unwrap() = Some(new_val); };
     }
         return { let __owned = s.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
     }

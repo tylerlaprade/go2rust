@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::alias::*;
 use crate::api::*;
@@ -154,10 +154,10 @@ impl Context {
     /// does not assume this. The result is guaranteed to not contain blanks.
     pub fn instance_hash(&mut self, orig: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, targs: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>>>>>) -> Arc<Mutex<Option<String>>> {
         assert(Arc::new(Mutex::new(Some(true))));
-        assert(Arc::new(Mutex::new(Some((*orig.lock().unwrap()).is_some()))));
+        assert(Arc::new(Mutex::new(Some({ let __nil_result = (*orig.lock().unwrap()).is_some(); __nil_result }))));
         let mut buf: Arc<Mutex<Option<bytes_Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
         let mut h = new_type_hasher(buf.clone(), Arc::new(Mutex::new(Some(self.clone()))));
-        { let __recv = h.clone(); let __recv_ptr: *const crate::typestring::typeWriter = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::typestring::typeWriter }; let __result = unsafe { &*__recv_ptr }.string(Arc::new(Mutex::new(Some((self.get_i_d(orig.clone())).to_string())))); __result };
+        { let __recv = h.clone(); let __recv_ptr: *const crate::typestring::typeWriter = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::typestring::typeWriter }; let __result = unsafe { &*__recv_ptr }.string(strconv::itoa(Arc::new(Mutex::new(Some(self.get_i_d(orig.clone())))))); __result };
                 // Because we've already written the unique origin ID this call to h.typ is
                 // unnecessary, but we leave it for hash readability. It can be removed later
                 // if performance is an issue.
@@ -232,13 +232,13 @@ impl Context {
         let __go_previous_panic_hook = std::panic::take_hook();
         std::panic::set_hook(Box::new(|_| {}));
         let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            assert(Arc::new(Mutex::new(Some((*inst.lock().unwrap()).is_some()))));
+            assert(Arc::new(Mutex::new(Some({ let __nil_result = (*inst.lock().unwrap()).is_some(); __nil_result }))));
             self.mu.lock();
             let mut ctxt_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         ctxt_defer_captured.mu.unlock();
     }));
             { let __range_holder = { let __map = { let __map_holder = self.type_map.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*h.lock().unwrap().as_ref().unwrap()).clone())).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for e in __range_values.iter() {
-        if (*inst.lock().unwrap()).is_none() || identical(inst.clone(), { let __field = e.instance.clone(); __field }) {
+        if { let __nil_result = (*inst.lock().unwrap()).is_none(); __nil_result } || identical(inst.clone(), { let __field = e.instance.clone(); __field }) {
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {

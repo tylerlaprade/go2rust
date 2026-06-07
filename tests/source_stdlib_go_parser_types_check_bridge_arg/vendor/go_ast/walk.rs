@@ -44,8 +44,8 @@ pub fn walk_list<N: crate::r#mod::Node + Clone + Send + Sync + 'static>(v: Arc<M
 pub fn walk(mut v: Arc<Mutex<Option<Box<dyn Visitor + Send + Sync>>>>, node: Arc<Mutex<Option<Box<dyn Node + Send + Sync>>>>) {
     let mut v: Arc<Mutex<Option<Box<dyn Visitor + Send + Sync>>>> = Arc::new(Mutex::new(v.lock().unwrap().as_ref().map(|__v| Visitor::__go_clone_box_visitor(__v.as_ref()))));
     {
-        { let __iface_handle = { let __recv = v.clone(); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).visit(node.clone()).clone(); __result }; let __iface_guard = __iface_handle.lock().unwrap(); *v.lock().unwrap() = (*__iface_guard).clone(); };;
-        if (*v.lock().unwrap()).is_none() {
+        { let __iface_handle = { let __recv = v.clone(); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).visit(node.clone()).clone(); __result }; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *v.lock().unwrap() = __iface_value; };;
+        if { let __nil_result = (*v.lock().unwrap()).is_none(); __nil_result } {
             return;;
         }
     }

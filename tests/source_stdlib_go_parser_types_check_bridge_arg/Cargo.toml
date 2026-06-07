@@ -31,6 +31,7 @@ members = [
     "vendor/path_filepath",
     "vendor/slices",
     "vendor/sort",
+    "vendor/strconv",
     "vendor/strings",
     "vendor/sync",
     "vendor/sync_atomic",
@@ -78,6 +79,7 @@ math_bits = { path = "vendor/math_bits" }
 path_filepath = { path = "vendor/path_filepath" }
 slices = { path = "vendor/slices" }
 sort = { path = "vendor/sort" }
+strconv = { path = "vendor/strconv" }
 strings = { path = "vendor/strings" }
 sync = { path = "vendor/sync" }
 sync_atomic = { path = "vendor/sync_atomic" }

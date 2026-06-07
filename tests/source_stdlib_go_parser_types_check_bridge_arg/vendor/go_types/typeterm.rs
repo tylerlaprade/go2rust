@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::alias::*;
 use crate::api::*;
@@ -166,7 +166,7 @@ impl term {
     /// equal reports whether x and y represent the same type set.
     pub fn equal(&self, y: Arc<Mutex<Option<term>>>) -> bool {
                 // easy cases
-        if false || (*y.lock().unwrap()).is_none() {
+        if false || { let __nil_result = (*y.lock().unwrap()).is_none(); __nil_result } {
             return { let __peer = y.clone(); let __peer_guard = __peer.lock().unwrap(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); __eq };
         } else if { let __iface_handle = { let __field = self.typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } || { let __iface_handle = { let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
             return { let __left_holder = self.typ.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Type + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; __eq };
@@ -181,11 +181,11 @@ impl term {
     let _: Arc<Mutex<Option<term>>> = Arc::new(Mutex::new(None));
 
                 // easy cases
-        if false && (*y.lock().unwrap()).is_none() {
+        if false && { let __nil_result = (*y.lock().unwrap()).is_none(); __nil_result } {
             return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)));
         } else if false {
             return (y.clone(), Arc::new(Mutex::new(None)));
-        } else if (*y.lock().unwrap()).is_none() {
+        } else if { let __nil_result = (*y.lock().unwrap()).is_none(); __nil_result } {
             return (Arc::new(Mutex::new(Some(self.clone()))), Arc::new(Mutex::new(None)));
         } else if { let __iface_handle = { let __field = self.typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
             return (Arc::new(Mutex::new(Some(self.clone()))), Arc::new(Mutex::new(None)));
@@ -216,7 +216,7 @@ impl term {
     /// intersect returns the intersection x ∩ y.
     pub fn intersect(&self, y: Arc<Mutex<Option<term>>>) -> Arc<Mutex<Option<term>>> {
                 // easy cases
-        if false || (*y.lock().unwrap()).is_none() {
+        if false || { let __nil_result = (*y.lock().unwrap()).is_none(); __nil_result } {
             return Arc::new(Mutex::new(None));
         } else if { let __iface_handle = { let __field = self.typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
             return y.clone();
@@ -255,7 +255,7 @@ impl term {
                 // ∅ ⊂ x ⊂ 𝓤
         let mut u = t.clone();
         if (*self.tilde.clone().lock().unwrap().as_ref().unwrap()) {
-        { let __iface_handle = under(u.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *u.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = under(u.clone()).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *u.lock().unwrap() = __iface_value; };
     }
         return identical({ let __field = self.typ.clone(); __field }, u.clone());
     }
@@ -265,7 +265,7 @@ impl term {
                 // easy cases
         if false {
             return true;
-        } else if (*y.lock().unwrap()).is_none() {
+        } else if { let __nil_result = (*y.lock().unwrap()).is_none(); __nil_result } {
             return false;
         } else if { let __iface_handle = { let __field = (*y.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
             return true;
@@ -297,11 +297,11 @@ impl term {
     }
         let mut ux = self.typ.clone();
         if (*{ let __field = (*y.lock().unwrap().as_ref().unwrap()).tilde.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
-        { let __iface_handle = under(ux.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *ux.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = under(ux.clone()).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *ux.lock().unwrap() = __iface_value; };
     }
         let mut uy = (*y.lock().unwrap().as_ref().unwrap()).typ.clone();
         if (*self.tilde.clone().lock().unwrap().as_ref().unwrap()) {
-        { let __iface_handle = under(uy.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *uy.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = under(uy.clone()).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *uy.lock().unwrap() = __iface_value; };
     }
         return !identical(ux.clone(), uy.clone());
     }

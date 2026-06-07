@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_any_clone, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_any_clone};
 
 use crate::accuracy_string::*;
 use crate::arith::*;
@@ -528,7 +528,7 @@ impl Int {
     pub fn set_from_scanner(&mut self, r: Arc<Mutex<Option<io_ByteScanner>>>, base: Arc<Mutex<Option<i32>>>) -> (Arc<Mutex<Option<Int>>>, bool) {
         {
         let (_, _, mut err) = self.scan_1(r.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
-        if (*err.lock().unwrap()).is_some() {
+        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
             return (Arc::new(Mutex::new(None)), false);;
         }
     }
@@ -605,12 +605,12 @@ impl Int {
                 // See Knuth, volume 2, section 4.6.3.
         let mut xWords = Arc::new(Mutex::new(Some({ let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).abs.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         if (*{ let __field = (*y.lock().unwrap().as_ref().unwrap()).neg.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
-        if (*m.lock().unwrap()).is_none() || { let __tmp_x = ({ let __slice_holder = { let __named_slice = (*(*m.lock().unwrap().as_ref().unwrap()).abs.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
+        if { let __nil_result = (*m.lock().unwrap()).is_none(); __nil_result } || { let __tmp_x = ({ let __slice_holder = { let __named_slice = (*(*m.lock().unwrap().as_ref().unwrap()).abs.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
         return self.set_int64(Arc::new(Mutex::new(Some(1 as i64))));
     }
                 // for y < 0: x**y mod m == (x**(-1))**|y| mod m
         let mut inverse = { let __recv = Arc::new(Mutex::new(Some(Int::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).mod_inverse(x.clone(), m.clone()); __result };
-        if (*inverse.lock().unwrap()).is_none() {
+        if { let __nil_result = (*inverse.lock().unwrap()).is_none(); __nil_result } {
         return Arc::new(Mutex::new(None));
     }
         { let new_val = { let __selector_holder = (*inverse.lock().unwrap().as_ref().unwrap()).abs.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *xWords.lock().unwrap() = Some(new_val); };
@@ -618,7 +618,7 @@ impl Int {
                 // for y < 0: x**y mod m == (x**(-1))**|y| mod m
         let mut yWords = Arc::new(Mutex::new(Some({ let __selector_holder = (*y.lock().unwrap().as_ref().unwrap()).abs.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         let mut mWords: Arc<Mutex<Option<nat>>> = Arc::new(Mutex::new(Some(Default::default())));
-        if (*m.lock().unwrap()).is_some() {
+        if { let __nil_result = (*m.lock().unwrap()).is_some(); __nil_result } {
         if { let __peer = m.clone(); let __peer_guard = __peer.lock().unwrap(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); __eq } || alias({ let __field = self.abs.clone(); __field }, { let __field = (*m.lock().unwrap().as_ref().unwrap()).abs.clone(); __field }) {
         { let new_val = { let __recv = Arc::new(Mutex::new(Some(Int::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).set(m.clone()); __result }.clone(); m = new_val; };
     }
@@ -657,7 +657,7 @@ impl Int {
         self.set(a.clone());
     }
         { let new_val = false; *self.neg.lock().unwrap() = Some(new_val); };
-        if (*x.lock().unwrap()).is_some() {
+        if { let __nil_result = (*x.lock().unwrap()).is_some(); __nil_result } {
         if { let __tmp_x = { let __v = (*lenA.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
         { let __recv = x.clone(); let __recv_ptr: *mut Int = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Int }; let __result = unsafe { &mut *__recv_ptr }.set_uint64(Arc::new(Mutex::new(Some(0 as u64)))); __result };
     } else {
@@ -665,7 +665,7 @@ impl Int {
         { let new_val = negA.lock().unwrap().as_ref().unwrap().clone(); *(*x.lock().unwrap().as_ref().unwrap()).neg.lock().unwrap() = Some(new_val); };
     }
     }
-        if (*y.lock().unwrap()).is_some() {
+        if { let __nil_result = (*y.lock().unwrap()).is_some(); __nil_result } {
         if { let __tmp_x = { let __v = (*lenB.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
         { let __recv = y.clone(); let __recv_ptr: *mut Int = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Int }; let __result = unsafe { &mut *__recv_ptr }.set_uint64(Arc::new(Mutex::new(Some(0 as u64)))); __result };
     } else {
@@ -692,7 +692,7 @@ impl Int {
         let mut A: Arc<Mutex<Option<Int>>> = Arc::new(Mutex::new(None));let mut B: Arc<Mutex<Option<Int>>> = Arc::new(Mutex::new(None));let mut Ua: Arc<Mutex<Option<Int>>> = Arc::new(Mutex::new(None));let mut Ub: Arc<Mutex<Option<Int>>> = Arc::new(Mutex::new(None));
         { let new_val = { let __recv = Arc::new(Mutex::new(Some(Int::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).abs(a.clone()); __result }.clone(); A = new_val; };
         { let new_val = { let __recv = Arc::new(Mutex::new(Some(Int::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).abs(b.clone()); __result }.clone(); B = new_val; };
-        let mut extended = Arc::new(Mutex::new(Some((*x.lock().unwrap()).is_some() || (*y.lock().unwrap()).is_some())));
+        let mut extended = Arc::new(Mutex::new(Some({ let __nil_result = (*x.lock().unwrap()).is_some(); __nil_result } || { let __nil_result = (*y.lock().unwrap()).is_some(); __nil_result })));
         if { let __v = (*extended.lock().unwrap().as_ref().unwrap()).clone(); __v } {
                 // Ua (Ub) tracks how many times input a has been accumulated into A (B).
         { let new_val = { let __recv = Arc::new(Mutex::new(Some(Int::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).set_int64(Arc::new(Mutex::new(Some(1 as i64)))); __result }.clone(); Ua = new_val; };
@@ -781,7 +781,7 @@ impl Int {
                 // A is longer than a single Word, so one update is needed.
                 // A and B are both a single Word.
         let mut negA = Arc::new(Mutex::new(Some({ let __selector_holder = (*a.lock().unwrap().as_ref().unwrap()).neg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        if (*y.lock().unwrap()).is_some() {
+        if { let __nil_result = (*y.lock().unwrap()).is_some(); __nil_result } {
                 // avoid aliasing b needed in the division below
         if { let __left = y.clone(); let __right = b.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
         { let __recv = B.clone(); let __recv_ptr: *mut Int = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut Int }; let __result = unsafe { &mut *__recv_ptr }.set(b.clone()); __result };
@@ -799,7 +799,7 @@ impl Int {
                 // avoid aliasing b needed in the division below
                 // y = (z - a*x)/b
                 // y can safely alias a
-        if (*x.lock().unwrap()).is_some() {
+        if { let __nil_result = (*x.lock().unwrap()).is_some(); __nil_result } {
         { let new_val = { let __v = (*Ua.lock().unwrap().as_ref().unwrap()).clone(); __v }; *x.lock().unwrap() = Some(new_val); };
         if { let __v = (*negA.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         { let new_val = !(*{ let __field = (*x.lock().unwrap().as_ref().unwrap()).neg.clone(); __field }.lock().unwrap().as_ref().unwrap()); *(*x.lock().unwrap().as_ref().unwrap()).neg.lock().unwrap() = Some(new_val); };

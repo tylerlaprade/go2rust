@@ -8768,7 +8768,7 @@ pub fn unparen(mut e: Arc<Mutex<Option<Box<dyn Expr + Send + Sync>>>>) -> Arc<Mu
         if !ok {
         return e.clone();
     }
-        { let __iface_handle = { let __field = (*paren.lock().unwrap().as_ref().unwrap()).x.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *e.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __field = (*paren.lock().unwrap().as_ref().unwrap()).x.clone(); __field }; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *e.lock().unwrap() = __iface_value; };
     }
 }
 
