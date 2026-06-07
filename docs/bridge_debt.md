@@ -177,11 +177,19 @@ in the first place.
 
 ### io-writer-trait-bridging
 
-- Location: `go/external_type_stubs.go:2171`
+- Location: `go/external_type_stubs.go:1885`
 - Go symbol: `io.Writer` trait bridging
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
-- Removal trigger: transpiler can map `io.Writer` callers without a hand-written bridge.
+- Transpiler gap: Source-transpiled `io` now handles `io.Discard`,
+  `io.MultiWriter`, and direct `Writer.Write` in focused fixtures, but the
+  no-type-info external fallback still emits `io_Writer`. Full retirement needs
+  the remaining fallback users moved to source `io` or replaced with a loud
+  unsupported path instead of hand-written writer behavior.
+- Fixture: `tests/external_stdlib_variadic/`,
+  `tests/external_stub_closure_capture/`,
+  `go/expr_test.go:TestNoTypeInfoExternalStdlibVariadicRegistersStubs`
+- Removal trigger: no runtime fixture or snapshot requires `io_Writer`; the
+  no-type-info fallback either source-maps the stdlib path or emits a loud
+  unsupported path without hand-written writer behavior.
 - Added: 2026-05-27 (backfill)
 
 ### json-package

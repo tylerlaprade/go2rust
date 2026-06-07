@@ -58,7 +58,7 @@ Use this when a function or method call emits nested handles, moves out of share
 - Variadic function and method calls pack trailing operands into one wrapped vector argument. Do not emit each variadic operand as a separate Rust parameter.
 - Variadic function-value calls also need go/types signature packing, including an empty variadic vector when no trailing operands are provided.
 - Package selector calls into transpiled dependencies need the same variadic packing and stdlib-interface argument conversion as local calls.
-- External stdlib variadic stubs have one generated generic parameter for the variadic bundle. Calls such as `io.MultiWriter(a, b)` lower to one tuple-shaped variadic argument.
+- No-type-info external stdlib variadic fallback still has one generated generic parameter for the variadic bundle. Source-mapped stdlib packages use the normal variadic vector lowering.
 - `...any` elements need interface boxing.
 
 ## External Stubs And Stdlib Helpers

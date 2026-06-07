@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"fmt"
 	"io"
 )
@@ -9,7 +8,7 @@ import (
 func main() {
 	out := io.MultiWriter(io.Discard)
 	write := func(x uint32) {
-		_ = binary.Write(out, binary.LittleEndian, x)
+		_, _ = out.Write([]byte{byte(x)})
 	}
 	write(7)
 	fmt.Println("ok")
