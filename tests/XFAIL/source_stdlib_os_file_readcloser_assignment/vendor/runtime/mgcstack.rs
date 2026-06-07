@@ -978,7 +978,7 @@ impl stackScanState {
         buf_local = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(getempty().addr()))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         { let new_val = 0; *{ let __ptr_value = buf_local.with_mut(|__ptr_value| { let __field = __ptr_value.stack_work_buf_hdr.lock().unwrap().as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap() = Some(new_val); };
         *{ let __ptr_value = buf_local.with_mut(|__ptr_value| { let __field = __ptr_value.stack_work_buf_hdr.lock().unwrap().as_ref().unwrap().next.clone(); __field }); __ptr_value }.lock().unwrap() = None;
-        { let new_val = buf_local.clone(); let __dst = head.clone(); let __dst_guard = __dst.lock().unwrap(); *__dst_guard.as_ref().unwrap().lock().unwrap() = (*new_val.lock().unwrap()).clone(); };
+        { let new_val = buf_local.clone().borrow(); let __dst = head.clone(); let __dst_guard = __dst.lock().unwrap(); *__dst_guard.as_ref().unwrap().lock().unwrap() = new_val; };
     } else if { let __tmp_x = ((*{ let __ptr_value = buf_local.borrow(); let __field_value = __ptr_value.as_ref().unwrap().stack_work_buf_hdr.lock().unwrap().as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()) as i32); let __tmp_y = 252; __tmp_x == __tmp_y } {
         if { let __nil_target = self.free_buf.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
         buf_local = GoPtr::local(self.free_buf.clone());
@@ -988,7 +988,7 @@ impl stackScanState {
     }
         { let new_val = 0; *{ let __ptr_value = buf_local.with_mut(|__ptr_value| { let __field = __ptr_value.stack_work_buf_hdr.lock().unwrap().as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap() = Some(new_val); };
         { let new_val = (*head.lock().unwrap().as_mut().unwrap()).clone(); buf_local.with_mut(|__ptr_value| { (*__ptr_value.stack_work_buf_hdr.lock().unwrap().as_mut().unwrap()).next = new_val; }); };
-        { let new_val = buf_local.clone(); let __dst = head.clone(); let __dst_guard = __dst.lock().unwrap(); *__dst_guard.as_ref().unwrap().lock().unwrap() = (*new_val.lock().unwrap()).clone(); };
+        { let new_val = buf_local.clone().borrow(); let __dst = head.clone(); let __dst_guard = __dst.lock().unwrap(); *__dst_guard.as_ref().unwrap().lock().unwrap() = new_val; };
     }
                 // Initial setup.
         (*{ let __ptr_value = buf_local.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap())[((*{ let __ptr_value = buf_local.borrow(); let __field_value = __ptr_value.as_ref().unwrap().stack_work_buf_hdr.lock().unwrap().as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap())) as usize] = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v };

@@ -2988,6 +2988,49 @@ func (h *heap) alloc() {
 	}
 }
 
+func TestPointerSlotAssignmentFromGoPtrLocalStoresBorrowedValue(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type work struct {
+	next *work
+}
+
+type state struct {
+	buf *work
+	cbuf *work
+}
+
+func raw(addr uintptr) *work {
+	return (*work)(unsafe.Pointer(addr))
+}
+
+func put(s *state, addr uintptr, conservative bool) {
+	head := &s.buf
+	if conservative {
+		head = &s.cbuf
+	}
+	buf := raw(addr)
+	*head = buf
+}
+`)
+
+	if !strings.Contains(rust, "pub buf: Arc<Mutex<Option<work>>>") &&
+		!strings.Contains(rust, "pub buf: Rc<RefCell<Option<work>>>") {
+		t.Fatalf("test setup should leave the field as an ordinary wrapped pointer slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut buf: GoPtr<work> = raw(") {
+		t.Fatalf("test setup should promote the local RHS to a GoPtr handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = buf.clone().borrow();") {
+		t.Fatalf("assignment through the wrapped pointer slot should borrow the GoPtr RHS value:\n%s", rust)
+	}
+	if strings.Contains(rust, "new_val.lock().unwrap()") {
+		t.Fatalf("GoPtr RHS assignment must not treat the handle as an ordinary wrapped pointer:\n%s", rust)
+	}
+}
+
 func TestGoPtrParamDeclUsesTypedCalleeModulePath(t *testing.T) {
 	const src = `package maps
 

@@ -958,6 +958,40 @@ func writePointerDerefAssignmentValue(out *strings.Builder, rhs ast.Expr, expect
 	return false
 }
 
+func writeGoPtrBorrowOptionForPointerValue(out *strings.Builder, rhs ast.Expr, expected types.Type) bool {
+	info, ok := goPtrInfoForPointerType(expected)
+	if !ok || !goPtrHandleValueExpression(rhs) {
+		return false
+	}
+	var handle strings.Builder
+	if !writeGoPtrCallArgumentForInfo(&handle, rhs, info) {
+		return false
+	}
+	out.WriteString(handle.String())
+	out.WriteString(".borrow()")
+	return true
+}
+
+func goPtrHandleValueExpression(expr ast.Expr) bool {
+	switch e := unwrapParens(expr).(type) {
+	case *ast.Ident:
+		return isGoPtrIdent(e)
+	case *ast.CallExpr:
+		_, ok := goPtrResultInfoForCall(e, 0)
+		return ok
+	case *ast.SelectorExpr:
+		return generatedGoPtrFieldForSelector(e)
+	case *ast.IndexExpr:
+		_, ok := goPtrArrayFieldInfoForIndexExpr(e)
+		return ok
+	case *ast.StarExpr:
+		_, ok := goPtrSlotDerefResultInfo(e)
+		return ok
+	default:
+		return false
+	}
+}
+
 func writePointerDerefPointerHandleAssignment(out *strings.Builder, star *ast.StarExpr, rhs ast.Expr) bool {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || star == nil {
@@ -990,11 +1024,16 @@ func writePointerDerefPointerHandleAssignment(out *strings.Builder, star *ast.St
 	}
 
 	out.WriteString("{ ")
+	rhsIsGoPtrHandle := false
 	if rhsIsNil {
 		out.WriteString("let new_val = None; ")
 	} else {
 		out.WriteString("let new_val = ")
-		writePointerHandleValueClone(out, rhs)
+		if writeGoPtrBorrowOptionForPointerValue(out, rhs, expected) {
+			rhsIsGoPtrHandle = true
+		} else {
+			writePointerHandleValueClone(out, rhs)
+		}
 		out.WriteString("; ")
 	}
 	out.WriteString("let __dst = ")
@@ -1004,7 +1043,7 @@ func writePointerDerefPointerHandleAssignment(out *strings.Builder, star *ast.St
 	out.WriteString("; *__dst_guard.as_ref().unwrap()")
 	WriteBorrowMethod(out, true)
 	out.WriteString(" = ")
-	if rhsIsNil {
+	if rhsIsNil || rhsIsGoPtrHandle {
 		out.WriteString("new_val")
 	} else {
 		out.WriteString("(*new_val")
