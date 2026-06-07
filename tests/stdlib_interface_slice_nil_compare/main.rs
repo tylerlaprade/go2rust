@@ -21,6 +21,8 @@ pub fn count_non_nil(exprs: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast
 fn main() {
     go_ast::__go_init_all();
     go_token::__go_init_all();
+    unicode::__go_init_all();
+    unicode_utf8::__go_init_all();
 
     let mut exprs = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("x".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)))])));
     println!("{}", format!("{}", count_non_nil(exprs.clone())));

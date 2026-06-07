@@ -13,3 +13,4 @@ internal_bytealg = { path = "../internal_bytealg" }
 internal_filepathlite = { path = "../internal_filepathlite" }
 slices = { path = "../slices" }
 strings = { path = "../strings" }
+unicode_utf8 = { path = "../unicode_utf8" }

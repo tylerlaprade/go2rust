@@ -1,1 +1,1 @@
-source_stdlib_packages = "go/ast,go/token"
+source_stdlib_packages = "go/ast,go/token,unicode,unicode/utf8"

@@ -52,6 +52,8 @@ pub fn asserted_field_element() -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr 
 fn main() {
     go_ast::__go_init_all();
     go_token::__go_init_all();
+    unicode::__go_init_all();
+    unicode_utf8::__go_init_all();
 
     if false {
         println!("{}", format!("{}", { let __nil_result = (*asserted_field_element().lock().unwrap()).is_some(); __nil_result }));

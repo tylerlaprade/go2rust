@@ -16,6 +16,8 @@ members = [
     "vendor/slices",
     "vendor/strconv",
     "vendor/strings",
+    "vendor/unicode",
+    "vendor/unicode_utf8",
 ]
 
 [package]
@@ -42,3 +44,5 @@ path_filepath = { path = "vendor/path_filepath" }
 slices = { path = "vendor/slices" }
 strconv = { path = "vendor/strconv" }
 strings = { path = "vendor/strings" }
+unicode = { path = "vendor/unicode" }
+unicode_utf8 = { path = "vendor/unicode_utf8" }

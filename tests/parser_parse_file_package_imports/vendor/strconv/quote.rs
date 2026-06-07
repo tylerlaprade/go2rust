@@ -38,10 +38,10 @@ pub fn append_quoted_with(mut buf: Arc<Mutex<Option<Vec<u8>>>>, mut s: Arc<Mutex
     while { let __tmp_x = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
         let mut r = Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] } as i32)));
         { let new_val = 1; *width.lock().unwrap() = Some(new_val); };
-        if { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = utf8::RUNE_SELF as i32; __tmp_x >= __tmp_y } {
-        { let (__tmp_0, __tmp_1) = utf8::decode_rune_in_string({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }); *r.lock().unwrap() = Some(__tmp_0); *width.lock().unwrap() = Some(__tmp_1); };
+        if { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = unicode_utf8::RUNE_SELF as i32; __tmp_x >= __tmp_y } {
+        { let (__tmp_0, __tmp_1) = unicode_utf8::decode_rune_in_string(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); *r.lock().unwrap() = Some(__tmp_0); *width.lock().unwrap() = Some(__tmp_1); };
     }
-        if { let __tmp_x = { let __v = (*width.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x == __tmp_y } && { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = utf8::RUNE_ERROR as i32; __tmp_x == __tmp_y } {
+        if { let __tmp_x = { let __v = (*width.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x == __tmp_y } && { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = unicode_utf8::RUNE_ERROR as i32; __tmp_x == __tmp_y } {
         { let new_val = { let __append_target = buf.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend("\\x".to_string().as_bytes().iter().cloned()); __append_target.clone() }; buf = new_val; };
         { let new_val = { let __append_target = buf.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push({ let __s = &(LOWERHEX); __s.as_bytes()[({ let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = 4; __tmp_x >> __tmp_y }) as usize] }); __append_target.clone() }; buf = new_val; };
         { let new_val = { let __append_target = buf.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push({ let __s = &(LOWERHEX); __s.as_bytes()[({ let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = 0xF as u8; __tmp_x & __tmp_y }) as usize] }); __append_target.clone() }; buf = new_val; };
@@ -61,12 +61,12 @@ pub fn append_escaped_rune(mut buf: Arc<Mutex<Option<Vec<u8>>>>, mut r: Arc<Mute
         return buf.clone();
     }
     if { let __v = (*ASCIIonly.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        if { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = utf8::RUNE_SELF as i32; __tmp_x < __tmp_y } && is_print(Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
+        if { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = unicode_utf8::RUNE_SELF as i32; __tmp_x < __tmp_y } && is_print(Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
         { let new_val = { let __append_target = buf.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*Arc::new(Mutex::new(Some((*r.lock().unwrap().as_ref().unwrap()) as u8))).lock().unwrap().as_ref().unwrap()).clone()); __append_target.clone() }; buf = new_val; };
         return buf.clone();
     }
     } else if is_print(Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) || { let __v = (*graphicOnly.lock().unwrap().as_ref().unwrap()).clone(); __v } && is_in_graphic_list(Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
-        return utf8::append_rune(buf.clone(), { let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
+        return unicode_utf8::append_rune(buf.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
     { let _switch_val = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v };
     if _switch_val == (('\u{7}' as i32)) {
@@ -94,7 +94,7 @@ pub fn append_escaped_rune(mut buf: Arc<Mutex<Option<Vec<u8>>>>, mut r: Arc<Mute
             { let new_val = { let __append_target = buf.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push({ let __s = &(LOWERHEX); __s.as_bytes()[({ let __tmp_x = (*Arc::new(Mutex::new(Some((*r.lock().unwrap().as_ref().unwrap()) as u8))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 4; __tmp_x >> __tmp_y }) as usize] }); __append_target.clone() }; buf = new_val; };
             { let new_val = { let __append_target = buf.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push({ let __s = &(LOWERHEX); __s.as_bytes()[({ let __tmp_x = (*Arc::new(Mutex::new(Some((*r.lock().unwrap().as_ref().unwrap()) as u8))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 0xF as u8; __tmp_x & __tmp_y }) as usize] }); __append_target.clone() }; buf = new_val; };
         }
-        if !_matched && (!utf8::valid_rune({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })) || _fallthrough {
+        if !_matched && (!unicode_utf8::valid_rune(Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))) || _fallthrough {
             _matched = true;
             _fallthrough = false;
             { let new_val = 0xFFFD as i32; *r.lock().unwrap() = Some(new_val); };

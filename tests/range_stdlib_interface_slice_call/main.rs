@@ -70,6 +70,8 @@ pub fn assert_expr_stmt(stmts: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_
 fn main() {
     go_ast::__go_init_all();
     go_token::__go_init_all();
+    unicode::__go_init_all();
+    unicode_utf8::__go_init_all();
 
     let mut stmts = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ExprStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::ExprStmt { x: Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("x".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>)))])));
     if false {

@@ -13,4 +13,5 @@ go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
 internal_bytealg = { path = "../internal_bytealg" }
 internal_stringslite = { path = "../internal_stringslite" }
 math_bits = { path = "../math_bits" }
+unicode = { path = "../unicode" }
 unicode_utf8 = { path = "../unicode_utf8" }

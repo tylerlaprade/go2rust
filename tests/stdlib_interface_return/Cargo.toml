@@ -5,6 +5,8 @@ members = [
     "vendor/go2rust_stdlib_stubs",
     "vendor/go_ast",
     "vendor/go_token",
+    "vendor/unicode",
+    "vendor/unicode_utf8",
 ]
 
 [package]
@@ -20,3 +22,5 @@ path = "main.rs"
 go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
 go_ast = { path = "vendor/go_ast" }
 go_token = { path = "vendor/go_token" }
+unicode = { path = "vendor/unicode" }
+unicode_utf8 = { path = "vendor/unicode_utf8" }

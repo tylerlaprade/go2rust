@@ -946,21 +946,3 @@ pub mod os {
         }
     }
 }
-
-
-pub mod unicode {
-    use super::*;
-    pub const MAX_RUNE: i32 = 1114111;
-
-    pub fn is_digit<T0>(_arg0: T0) -> bool {
-        panic!("is_digit bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn is_letter<T0>(_arg0: T0) -> bool {
-        panic!("is_letter bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn is_upper<T0>(_arg0: T0) -> bool {
-        panic!("is_upper bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}

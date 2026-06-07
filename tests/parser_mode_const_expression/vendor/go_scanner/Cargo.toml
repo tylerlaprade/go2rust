@@ -13,3 +13,5 @@ go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
 go_token = { path = "../go_token" }
 path_filepath = { path = "../path_filepath" }
 strconv = { path = "../strconv" }
+unicode = { path = "../unicode" }
+unicode_utf8 = { path = "../unicode_utf8" }

@@ -4,6 +4,8 @@ use std::sync::{Arc, Mutex};
 fn main() {
     go_ast::__go_init_all();
     go_token::__go_init_all();
+    unicode::__go_init_all();
+    unicode_utf8::__go_init_all();
 
     let mut call = Arc::new(Mutex::new(Some(go_ast::r#mod::CallExpr { fun: Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("f".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), args: Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(go_ast::new_ident(Arc::new(Mutex::new(Some("x".to_string())))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)))]))), ..Default::default() })));
     let mut names: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));

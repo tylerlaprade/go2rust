@@ -16,6 +16,8 @@ fn main() {
     slices::__go_init_all();
     strconv::__go_init_all();
     strings::__go_init_all();
+    unicode::__go_init_all();
+    unicode_utf8::__go_init_all();
 
     const mode: u64 = go_parser::ALL_ERRORS as u64 | go_parser::PARSE_COMMENTS as u64;
 

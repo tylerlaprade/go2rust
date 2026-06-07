@@ -19,6 +19,7 @@ fn main() {
     slices::__go_init_all();
     strconv::__go_init_all();
     strings::__go_init_all();
+    unicode::__go_init_all();
     unicode_utf8::__go_init_all();
 
     let mut fset = go_token::new_file_set();

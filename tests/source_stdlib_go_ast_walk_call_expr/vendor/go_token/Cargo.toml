@@ -9,3 +9,5 @@ path = "lib.rs"
 
 [dependencies]
 go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
+unicode = { path = "../unicode" }
+unicode_utf8 = { path = "../unicode_utf8" }

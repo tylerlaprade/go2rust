@@ -69,8 +69,8 @@ pub fn unquote_char(mut s: Arc<Mutex<Option<String>>>, quote: Arc<Mutex<Option<u
     if { let __tmp_x = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*quote.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } && ({ let __tmp_x = { let __v = (*quote.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('\'' as i32) as u8; __tmp_x == __tmp_y } || { let __tmp_x = { let __v = (*quote.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('"' as i32) as u8; __tmp_x == __tmp_y }) {
             { let __rhs_holder = ErrSyntax.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
             return ((*value.lock().unwrap().as_ref().unwrap()), (*multibyte.lock().unwrap().as_ref().unwrap()), tail.clone(), err.clone());
-        } else if { let __tmp_x = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = utf8::RUNE_SELF as u8; __tmp_x >= __tmp_y } {
-            let (mut r, mut size) = utf8::decode_rune_in_string({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
+        } else if { let __tmp_x = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = unicode_utf8::RUNE_SELF as u8; __tmp_x >= __tmp_y } {
+            let (mut r, mut size) = unicode_utf8::decode_rune_in_string(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
             return (r, true, Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (size) as usize; __s[__low..].to_string() }))), Arc::new(Mutex::new(None)));
         } else if { let __tmp_x = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('\\' as i32) as u8; __tmp_x != __tmp_y } {
             return ((*Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] } as i32))).lock().unwrap().as_ref().unwrap()), false, Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; __s[__low..].to_string() }))), Arc::new(Mutex::new(None)));
@@ -133,7 +133,7 @@ pub fn unquote_char(mut s: Arc<Mutex<Option<String>>>, quote: Arc<Mutex<Option<u
         break '__go_switch_1
     }
                         // single-byte string, possibly not UTF-8
-            if !utf8::valid_rune({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) {
+            if !unicode_utf8::valid_rune(Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
         { let __rhs_holder = ErrSyntax.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
         return ((*value.lock().unwrap().as_ref().unwrap()), (*multibyte.lock().unwrap().as_ref().unwrap()), tail.clone(), err.clone());
     }
@@ -251,10 +251,10 @@ pub fn unquote_1(mut r#in: Arc<Mutex<Option<String>>>, unescape: Arc<Mutex<Optio
         let mut valid: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
         { let _switch_val = { let __v = (*quote.lock().unwrap().as_ref().unwrap()).clone(); __v };
     if _switch_val == (('"' as i32) as u8) {
-            { let new_val = utf8::valid_string(Arc::new(Mutex::new(Some({ let __s = &((*r#in.lock().unwrap().as_ref().unwrap()).clone()); let __low = ("\"".len()) as usize; let __high = ({ let __tmp_x = (end as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; __s[__low..__high].to_string() })))); *valid.lock().unwrap() = Some(new_val); };
+            { let new_val = unicode_utf8::valid_string(Arc::new(Mutex::new(Some({ let __s = &((*r#in.lock().unwrap().as_ref().unwrap()).clone()); let __low = ("\"".len()) as usize; let __high = ({ let __tmp_x = (end as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; __s[__low..__high].to_string() })))); *valid.lock().unwrap() = Some(new_val); };
         } else if _switch_val == (('\'' as i32) as u8) {
-            let (mut r, mut n) = utf8::decode_rune_in_string(Arc::new(Mutex::new(Some({ let __s = &((*r#in.lock().unwrap().as_ref().unwrap()).clone()); let __low = ("'".len()) as usize; let __high = ({ let __tmp_x = (end as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; __s[__low..__high].to_string() }))));
-            { let new_val = { let __tmp_x = ({ let __tmp_x = ({ let __tmp_x = 1; let __tmp_y = (n as i32); __tmp_x + __tmp_y } as i32); let __tmp_y = 1; __tmp_x + __tmp_y } as i32); let __tmp_y = (end as i32); __tmp_x == __tmp_y } && ({ let __tmp_x = r; let __tmp_y = utf8::RUNE_ERROR as i32; __tmp_x != __tmp_y } || { let __tmp_x = n; let __tmp_y = 1; __tmp_x != __tmp_y }); *valid.lock().unwrap() = Some(new_val); };
+            let (mut r, mut n) = unicode_utf8::decode_rune_in_string(Arc::new(Mutex::new(Some({ let __s = &((*r#in.lock().unwrap().as_ref().unwrap()).clone()); let __low = ("'".len()) as usize; let __high = ({ let __tmp_x = (end as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; __s[__low..__high].to_string() }))));
+            { let new_val = { let __tmp_x = ({ let __tmp_x = ({ let __tmp_x = 1; let __tmp_y = (n as i32); __tmp_x + __tmp_y } as i32); let __tmp_y = 1; __tmp_x + __tmp_y } as i32); let __tmp_y = (end as i32); __tmp_x == __tmp_y } && ({ let __tmp_x = r; let __tmp_y = unicode_utf8::RUNE_ERROR as i32; __tmp_x != __tmp_y } || { let __tmp_x = n; let __tmp_y = 1; __tmp_x != __tmp_y }); *valid.lock().unwrap() = Some(new_val); };
         }
     }
         if { let __v = (*valid.lock().unwrap().as_ref().unwrap()).clone(); __v } {
@@ -286,10 +286,10 @@ pub fn unquote_1(mut r#in: Arc<Mutex<Option<String>>>, unescape: Arc<Mutex<Optio
 
                 // Append the character if unescaping the input.
         if { let __v = (*unescape.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        if { let __tmp_x = r; let __tmp_y = utf8::RUNE_SELF as i32; __tmp_x < __tmp_y } || !multibyte {
+        if { let __tmp_x = r; let __tmp_y = unicode_utf8::RUNE_SELF as i32; __tmp_x < __tmp_y } || !multibyte {
         { let new_val = { let __append_target = buf.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*Arc::new(Mutex::new(Some(r as u8))).lock().unwrap().as_ref().unwrap()).clone()); __append_target.clone() }; buf = new_val; };
     } else {
-        { let new_val = utf8::append_rune(buf.clone(), r); buf = new_val; };
+        { let new_val = unicode_utf8::append_rune(buf.clone(), Arc::new(Mutex::new(Some(r)))); buf = new_val; };
     }
     }
 

@@ -373,19 +373,3 @@ impl reflect_Value {
         None
     }
 }
-
-
-pub mod unicode {
-    use super::*;
-    pub fn is_upper<T0>(_arg0: T0) -> bool {
-        panic!("is_upper bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
-
-
-pub mod utf8 {
-    use super::*;
-    pub fn decode_rune_in_string<T0>(_arg0: T0) -> (i32, i32) {
-        panic!("decode_rune_in_string bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}

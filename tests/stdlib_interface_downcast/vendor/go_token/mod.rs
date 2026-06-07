@@ -577,8 +577,8 @@ fn __go_init_0() {
 
 /// IsExported reports whether name starts with an upper-case letter.
 pub fn is_exported(name: Arc<Mutex<Option<String>>>) -> bool {
-    let (mut ch, _) = utf8::decode_rune_in_string({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
-    unicode::is_upper(ch)
+    let (mut ch, _) = unicode_utf8::decode_rune_in_string(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    unicode::is_upper(Arc::new(Mutex::new(Some(ch))))
 }
 
 pub(crate) fn __go_init_functions() {

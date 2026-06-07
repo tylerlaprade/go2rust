@@ -12,6 +12,8 @@ static __GO_INIT_ONCE: std::sync::Once = std::sync::Once::new();
 
 pub fn __go_init_all() {
     __GO_INIT_ONCE.call_once(|| {
+        unicode::__go_init_all();
+        unicode_utf8::__go_init_all();
         r#mod::__go_zero_globals();
         r#mod::__go_init_order_0();
         r#mod::__go_init_functions();

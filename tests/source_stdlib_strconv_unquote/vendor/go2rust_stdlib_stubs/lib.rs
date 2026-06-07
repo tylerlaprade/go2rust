@@ -274,27 +274,3 @@ where
         Ok(())
     }
 }
-
-
-
-pub mod utf8 {
-    use super::*;
-    pub const RUNE_ERROR: i32 = 65533;
-    pub const RUNE_SELF: i32 = 128;
-
-    pub fn append_rune<T0, T1>(_arg0: T0, _arg1: T1) -> Arc<Mutex<Option<Vec<u8>>>> {
-        panic!("append_rune bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn decode_rune_in_string<T0>(_arg0: T0) -> (i32, i32) {
-        panic!("decode_rune_in_string bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn valid_rune<T0>(_arg0: T0) -> bool {
-        panic!("valid_rune bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn valid_string<T0>(_arg0: T0) -> bool {
-        panic!("valid_string bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
