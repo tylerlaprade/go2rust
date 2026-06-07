@@ -15,6 +15,7 @@ pub fn __go_init_all() {
     __GO_INIT_ONCE.call_once(|| {
         internal_goexperiment::__go_init_all();
         path_filepath::__go_init_all();
+        strconv::__go_init_all();
         cfg::__go_zero_globals();
         exp::__go_zero_globals();
         cfg::__go_init_order_0();

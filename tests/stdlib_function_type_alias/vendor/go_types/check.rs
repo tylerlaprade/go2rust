@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::alias::*;
 use crate::api::*;
@@ -544,10 +544,10 @@ impl environment {
     /// whose parent is the scope of the package that exported them.
     pub fn lookup_scope(&self, name: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<crate::scope::Scope>>>, Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>) {
         let mut s = self.scope.clone();
-    while (*s.lock().unwrap()).is_some() {
+    while { let __nil_result = (*s.lock().unwrap()).is_some(); __nil_result } {
         {
         let mut obj = { let __recv = s.clone(); let __recv_ptr: *const crate::scope::Scope = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::scope::Scope }; let __result = unsafe { &*__recv_ptr }.lookup(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result };;
-        if (*obj.lock().unwrap()).is_some() && (!go_token::position::Pos::is_valid(&(*self.expr_pos.lock().unwrap().as_ref().unwrap())) || { let __tmp_x = cmp_pos((*obj.lock().unwrap().as_ref().unwrap()).scope_pos(), Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some((*(*self.expr_pos.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))))))); let __tmp_y = 0; __tmp_x <= __tmp_y }) {
+        if { let __nil_result = (*obj.lock().unwrap()).is_some(); __nil_result } && (!go_token::position::Pos::is_valid(&(*self.expr_pos.lock().unwrap().as_ref().unwrap())) || { let __tmp_x = cmp_pos((*obj.lock().unwrap().as_ref().unwrap()).scope_pos(), Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some((*(*self.expr_pos.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))))))); let __tmp_y = 0; __tmp_x <= __tmp_y }) {
             return (s.clone(), obj.clone());;
         }
     }
@@ -577,7 +577,7 @@ impl Checker {
     /// addDeclDep adds the dependency edge (check.decl -> to) if check.decl exists
     pub fn add_decl_dep(&self, to: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>) {
         let mut from = (*self.environment.lock().unwrap().as_ref().unwrap()).decl.clone();
-        if (*from.lock().unwrap()).is_none() {
+        if { let __nil_result = (*from.lock().unwrap()).is_none(); __nil_result } {
         return;
     }
                 // not in a package-level init expression
@@ -600,14 +600,14 @@ impl Checker {
         { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<crate::object::TypeName>, Arc<Mutex<Option<bool>>>>::new()))); self.broken_aliases = new_val; };
     }
         { let __map_key = GoLocalPtrKey::new(alias.clone()); let __map_value = Arc::new(Mutex::new(Some(true))); (*self.broken_aliases.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
-        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr({ let __seq = { let __seq_holder = Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(INVALID as i32) as usize].clone() }.clone())) as Box<dyn Type + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*(*alias.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr({ let __seq = { let __seq_holder = Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(INVALID as i32) as usize].clone() }.clone())) as Box<dyn Type + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*(*alias.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = __iface_value; };
     }
 
     /// validAlias records that alias has the valid type typ (possibly Typ[Invalid]).
     pub fn valid_alias(&self, alias: Arc<Mutex<Option<TypeName>>>, typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) {
         assert(Arc::new(Mutex::new(Some(!(*(*self.conf.lock().unwrap().as_ref().unwrap()).__enable_alias.lock().unwrap().as_ref().unwrap())))));
         { let __map_handle = self.broken_aliases.clone(); let mut __map_guard = __map_handle.lock().unwrap(); __map_guard.as_mut().unwrap().remove(&GoLocalPtrKey::new(alias.clone())); };
-        { let __iface_handle = typ.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*(*alias.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = typ.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*(*alias.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = __iface_value; };
     }
 
     /// isBrokenAlias reports whether alias doesn't have a determined type yet.
@@ -618,7 +618,7 @@ impl Checker {
 
     pub fn remember_untyped(&mut self, e: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>, lhs: Arc<Mutex<Option<bool>>>, mode: Arc<Mutex<Option<operandMode>>>, typ: Arc<Mutex<Option<Basic>>>, val: Arc<Mutex<Option<Box<dyn go_constant::value::Value + Send + Sync>>>>) {
         let mut m = self.untyped.clone();
-        if (*m.lock().unwrap()).is_none() {
+        if { let __nil_result = (*m.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<Box<dyn go_ast::r#mod::Expr + Send + Sync>>, Arc<Mutex<Option<exprInfo>>>>::new()))); m = new_val; };
         { let new_val = m.clone(); self.untyped = new_val; };
     }
@@ -712,7 +712,7 @@ impl Checker {
                 // ignore this file
                 // reuse Info.FileVersions if provided
         let mut versions = (*self.info.lock().unwrap().as_ref().unwrap()).file_versions.clone();
-        if (*versions.lock().unwrap()).is_none() {
+        if { let __nil_result = (*versions.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = Arc::new(Mutex::new(Some(BTreeMap::<GoLocalPtrKey<go_ast::r#mod::File>, Arc<Mutex<Option<String>>>>::new()))); versions = new_val; };
     }
         { let new_val = versions.clone(); self.versions = new_val; };
@@ -1089,12 +1089,12 @@ pub fn alias_any() -> bool {
 /// [Package] files may be added incrementally via checker.Files.
 pub fn new_checker(mut conf: Arc<Mutex<Option<Config>>>, fset: Arc<Mutex<Option<go_token::position::FileSet>>>, pkg: Arc<Mutex<Option<Package>>>, mut info: Arc<Mutex<Option<Info>>>) -> Arc<Mutex<Option<Checker>>> {
         // make sure we have a configuration
-    if (*conf.lock().unwrap()).is_none() {
+    if { let __nil_result = (*conf.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = Arc::new(Mutex::new(Some(Config::default()))).clone(); conf = new_val; };
     }
 
         // make sure we have an info struct
-    if (*info.lock().unwrap()).is_none() {
+    if { let __nil_result = (*info.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = Arc::new(Mutex::new(Some(Info::default()))).clone(); info = new_val; };
     }
 
@@ -1136,13 +1136,13 @@ pub fn instantiated_ident(expr: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + S
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IndexExprPtr>()).is_some() {
         let e = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IndexExprPtr>()).unwrap().0.clone();
-        { let __iface_handle = { let __field = (*e.lock().unwrap().as_ref().unwrap()).x.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *selOrIdent.lock().unwrap() = (*__iface_guard).clone(); };;
+        { let __iface_handle = { let __field = (*e.lock().unwrap().as_ref().unwrap()).x.clone(); __field }; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *selOrIdent.lock().unwrap() = __iface_value; };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IndexListExprPtr>()).is_some() {
         let e = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IndexListExprPtr>()).unwrap().0.clone();
-        { let __iface_handle = { let __field = (*e.lock().unwrap().as_ref().unwrap()).x.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *selOrIdent.lock().unwrap() = (*__iface_guard).clone(); };;
+        { let __iface_handle = { let __field = (*e.lock().unwrap().as_ref().unwrap()).x.clone(); __field }; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *selOrIdent.lock().unwrap() = __iface_value; };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::SelectorExprPtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IdentPtr>()).is_some() {
         let e = _ts_subject.clone();
-        { let __iface_handle = e.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *selOrIdent.lock().unwrap() = (*__iface_guard).clone(); };;
+        { let __iface_handle = e.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *selOrIdent.lock().unwrap() = __iface_value; };;
     }
     }
         // only exists in go/ast, not syntax

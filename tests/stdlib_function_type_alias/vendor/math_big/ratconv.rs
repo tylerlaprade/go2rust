@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_any_clone, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_any_clone};
 
 use crate::accuracy_string::*;
 use crate::arith::*;
@@ -81,7 +81,7 @@ impl crate::rat::Rat {
     /// 'e', 'E', 'f', 'F', 'g', 'G', and 'v'. All formats are equivalent.
     pub fn scan(&mut self, s: Arc<Mutex<Option<fmt_ScanState>>>, ch: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
         let (mut tok, mut err) = (*s.lock().unwrap().as_ref().unwrap()).token(true, rat_tok);
-        if (*err.lock().unwrap()).is_some() {
+        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         return err.clone();
     }
         if !strings::contains_rune("efgEFGv".to_string(), { let __arg_holder = ch.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) {
@@ -133,7 +133,7 @@ impl crate::rat::Rat {
             let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));;
             {
         { let (__tmp_0, __tmp_1, __tmp_2, __tmp_3) = (*(*self.b.lock().unwrap().as_ref().unwrap()).abs.lock().unwrap().as_ref().unwrap()).scan({ let __arg = r.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<io_ByteScanner> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) }, Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(false)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *(*self.b.lock().unwrap().as_ref().unwrap()).abs.lock().unwrap() = __moved_tmp_0; let __moved_tmp_3 = { let mut __guard = __tmp_3.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_3; };;
-        if (*err.lock().unwrap()).is_some() {
+        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
             return (Arc::new(Mutex::new(None)), false);;
         }
     };
@@ -154,21 +154,21 @@ impl crate::rat::Rat {
         let mut r = strings::new_reader({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
                 // sign
         let (mut neg, mut err) = scan_sign({ let __arg = r.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<io_ByteScanner> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) });
-        if (*err.lock().unwrap()).is_some() {
+        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         return (Arc::new(Mutex::new(None)), false);
     }
                 // mantissa
         let mut base: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
         let mut fcount: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
         { let (__tmp_0, __tmp_1, __tmp_2, __tmp_3) = (*(*self.a.lock().unwrap().as_ref().unwrap()).abs.lock().unwrap().as_ref().unwrap()).scan({ let __arg = r.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<io_ByteScanner> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) }, Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(true)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *(*self.a.lock().unwrap().as_ref().unwrap()).abs.lock().unwrap() = __moved_tmp_0; *base.lock().unwrap() = Some(__tmp_1); *fcount.lock().unwrap() = Some(__tmp_2); let __moved_tmp_3 = { let mut __guard = __tmp_3.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_3; };
-        if (*err.lock().unwrap()).is_some() {
+        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         return (Arc::new(Mutex::new(None)), false);
     }
                 // exponent
         let mut exp: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
         let mut ebase: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
         { let (__tmp_0, __tmp_1, __tmp_2) = scan_exponent({ let __arg = r.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<io_ByteScanner> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) }, Arc::new(Mutex::new(Some(true))), Arc::new(Mutex::new(Some(true)))); *exp.lock().unwrap() = Some(__tmp_0); *ebase.lock().unwrap() = Some(__tmp_1); let __moved_tmp_2 = { let mut __guard = __tmp_2.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_2; };
-        if (*err.lock().unwrap()).is_some() {
+        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         return (Arc::new(Mutex::new(None)), false);
     }
                 // there should be no unread characters left
@@ -506,7 +506,7 @@ pub fn scan_exponent(r: Arc<Mutex<Option<io_ByteScanner>>>, base2ok: Arc<Mutex<O
 
         // one char look-ahead
     let (mut ch, __tmp_1) = (*r.lock().unwrap().as_ref().unwrap()).read_byte(); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
-    if (*err.lock().unwrap()).is_some() {
+    if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         if { let __left = err.clone(); let __right = io::EOF().clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); if __left_guard.is_none() || __right_guard.is_none() { __left_guard.is_none() == __right_guard.is_none() } else { false } }; __eq } {
         *err.lock().unwrap() = None;
     }
@@ -549,7 +549,7 @@ pub fn scan_exponent(r: Arc<Mutex<Option<io_ByteScanner>>>, base2ok: Arc<Mutex<O
         // sign
     let mut digits: Arc<Mutex<Option<Vec<u8>>>> = Arc::new(Mutex::new(None));
     { let (__tmp_0, __tmp_1) = (*r.lock().unwrap().as_ref().unwrap()).read_byte(); ch = __tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
-    if (*err.lock().unwrap()).is_none() && ({ let __tmp_x = ch; let __tmp_y = ('+' as i32) as u8; __tmp_x == __tmp_y } || { let __tmp_x = ch; let __tmp_y = ('-' as i32) as u8; __tmp_x == __tmp_y }) {
+    if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } && ({ let __tmp_x = ch; let __tmp_y = ('+' as i32) as u8; __tmp_x == __tmp_y } || { let __tmp_x = ch; let __tmp_y = ('-' as i32) as u8; __tmp_x == __tmp_y }) {
         if { let __tmp_x = ch; let __tmp_y = ('-' as i32) as u8; __tmp_x == __tmp_y } {
         { let new_val = { let __append_target = digits.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(('-' as i32) as u8); __append_target.clone() }; digits = new_val; };
     }
@@ -564,7 +564,7 @@ pub fn scan_exponent(r: Arc<Mutex<Option<io_ByteScanner>>>, base2ok: Arc<Mutex<O
 
         // exponent value
     let mut hasDigits = Arc::new(Mutex::new(Some(false)));
-    while (*err.lock().unwrap()).is_none() {
+    while { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } {
         if { let __tmp_x = ('0' as i32) as u8; let __tmp_y = ch; __tmp_x <= __tmp_y } && { let __tmp_x = ch; let __tmp_y = ('9' as i32) as u8; __tmp_x <= __tmp_y } {
         { let new_val = { let __append_target = digits.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(ch); __append_target.clone() }; digits = new_val; };
         { let new_val = ('0' as i32); *prev.lock().unwrap() = Some(new_val); };
@@ -586,15 +586,15 @@ pub fn scan_exponent(r: Arc<Mutex<Option<io_ByteScanner>>>, base2ok: Arc<Mutex<O
     if { let __left = err.clone(); let __right = io::EOF().clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); if __left_guard.is_none() || __right_guard.is_none() { __left_guard.is_none() == __right_guard.is_none() } else { false } }; __eq } {
         *err.lock().unwrap() = None;
     }
-    if (*err.lock().unwrap()).is_none() && !{ let __v = (*hasDigits.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+    if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } && !{ let __v = (*hasDigits.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         { let __rhs_holder = errNoDigits.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
     }
-    if (*err.lock().unwrap()).is_none() {
-        { let (__tmp_0, __tmp_1) = strconv::parse_int(Arc::new(Mutex::new(Some(String::from_utf8((*digits.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))), 10, 64); *exp.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+    if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } {
+        { let (__tmp_0, __tmp_1) = strconv::parse_int(Arc::new(Mutex::new(Some(String::from_utf8((*digits.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))), Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(64)))); *exp.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
     }
 
         // other errors take precedence over invalid separators
-    if (*err.lock().unwrap()).is_none() && ({ let __v = (*invalSep.lock().unwrap().as_ref().unwrap()).clone(); __v } || { let __tmp_x = { let __v = (*prev.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('_' as i32); __tmp_x == __tmp_y }) {
+    if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } && ({ let __v = (*invalSep.lock().unwrap().as_ref().unwrap()).clone(); __v } || { let __tmp_x = { let __v = (*prev.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('_' as i32); __tmp_x == __tmp_y }) {
         { let __rhs_holder = errInvalSep.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
     }
 
