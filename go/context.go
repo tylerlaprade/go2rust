@@ -54,6 +54,7 @@ type PackageState struct {
 	SliceElemPtrFields            map[string]sliceElemPtrFieldInfo
 	SliceElemPtrSliceFields       map[string]sliceElemPtrSliceFieldInfo
 	GoPtrArrayFields              map[string]goPtrArrayFieldInfo
+	GoPtrArrayLocalObjs           map[types.Object]goPtrArrayFieldInfo
 	GeneratedGoPtrFields          map[string]bool
 	PackageGlobalGoPtrElemRust    map[string]string
 	ArrayElemPtrResultFuncs       map[*types.Func]map[int]arrayElemPtrInfo
@@ -185,6 +186,7 @@ func NewPackageState() *PackageState {
 		SliceElemPtrFields:            make(map[string]sliceElemPtrFieldInfo),
 		SliceElemPtrSliceFields:       make(map[string]sliceElemPtrSliceFieldInfo),
 		GoPtrArrayFields:              make(map[string]goPtrArrayFieldInfo),
+		GoPtrArrayLocalObjs:           make(map[types.Object]goPtrArrayFieldInfo),
 		GeneratedGoPtrFields:          make(map[string]bool),
 		PackageGlobalGoPtrElemRust:    make(map[string]string),
 		ArrayElemPtrResultFuncs:       make(map[*types.Func]map[int]arrayElemPtrInfo),
@@ -392,6 +394,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		}
 		if ctx.Package.GoPtrArrayFields == nil {
 			ctx.Package.GoPtrArrayFields = make(map[string]goPtrArrayFieldInfo)
+		}
+		if ctx.Package.GoPtrArrayLocalObjs == nil {
+			ctx.Package.GoPtrArrayLocalObjs = make(map[types.Object]goPtrArrayFieldInfo)
 		}
 		if ctx.Package.GeneratedGoPtrFields == nil {
 			ctx.Package.GeneratedGoPtrFields = make(map[string]bool)

@@ -7207,7 +7207,7 @@ pub fn runqput(pp: GoPtr<crate::runtime2::p>, mut gp: GoPtr<crate::runtime2::g>,
 /// Put g and a batch of work from local runnable queue on global queue.
 /// Executed only by the owner P.
 pub fn runqputslow(pp: GoPtr<crate::runtime2::p>, gp: GoPtr<crate::runtime2::g>, h: Arc<Mutex<Option<u32>>>, t: Arc<Mutex<Option<u32>>>) -> bool {
-    let mut batch: Arc<Mutex<Option<[Arc<Mutex<Option<g>>>; 129]>>> = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Arc::new(Mutex::new(None))))));
+    let mut batch: Arc<Mutex<Option<[GoPtr<crate::runtime2::g>; 129]>>> = Arc::new(Mutex::new(Some(std::array::from_fn(|_| GoPtr::nil()))));
 
         // First, grab a batch from local queue.
     let mut n = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*t.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y })));
@@ -7237,12 +7237,12 @@ pub fn runqputslow(pp: GoPtr<crate::runtime2::p>, gp: GoPtr<crate::runtime2::g>,
         // Link the goroutines.
     let mut i = Arc::new(Mutex::new(Some(0 as u32)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
-        (*(*{ let __seq = { let __seq_holder = batch.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.lock().unwrap().as_ref().unwrap()).schedlink.lock().unwrap().as_mut().unwrap()).set(GoPtr::local({ let __seq = { let __seq_holder = batch.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u32; __tmp_x + __tmp_y }) as usize].clone() }));
+        (*(*{ let __seq = { let __seq_holder = batch.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.lock().unwrap().as_ref().unwrap()).schedlink.lock().unwrap().as_mut().unwrap()).set(batch.lock().unwrap().as_ref().unwrap()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u32; __tmp_x + __tmp_y }) as usize].clone());
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     let mut q: Arc<Mutex<Option<gQueue>>> = Arc::new(Mutex::new(Some(Default::default())));
-    (*(*q.lock().unwrap().as_ref().unwrap()).head.lock().unwrap().as_mut().unwrap()).set(GoPtr::local({ let __seq = { let __seq_holder = batch.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }));
-    (*(*q.lock().unwrap().as_ref().unwrap()).tail.lock().unwrap().as_mut().unwrap()).set(GoPtr::local({ let __seq = { let __seq_holder = batch.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }));
+    (*(*q.lock().unwrap().as_ref().unwrap()).head.lock().unwrap().as_mut().unwrap()).set(batch.lock().unwrap().as_ref().unwrap()[(0) as usize].clone());
+    (*(*q.lock().unwrap().as_ref().unwrap()).tail.lock().unwrap().as_mut().unwrap()).set(batch.lock().unwrap().as_ref().unwrap()[({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone());
 
         // Now put the batch on global queue.
     lock(GoPtr::local((*sched.lock().unwrap().as_ref().unwrap()).lock.clone()));

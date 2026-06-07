@@ -11787,6 +11787,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							sliceElemPtrRustType, isSliceElemPtr := sliceElemPtrCandidateForDecl(name)
 							arrayElemPtrInfo, isArrayElemPtr := arrayElemPtrCandidateForDecl(name)
 							goPtrInfo, isGoPtr := goPtrCandidateForDecl(name)
+							goPtrArrayLocalInfo, isGoPtrArrayLocal := goPtrArrayLocalInfoForDecl(name)
 							if isSliceElemPtr {
 								registerSliceElemPtrVar(name.Name, sliceElemPtrRustType)
 							} else if valueSpec.Type == nil && len(valueSpec.Values) > i {
@@ -11804,13 +11805,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							if isGoPtr && !isSliceElemPtr && !isArrayElemPtr {
 								registerGoPtrVar(name.Name, goPtrResultElemRustType(goPtrInfo), nil)
 							}
+							if isGoPtrArrayLocal {
+								if vt := GetVarTable(); vt != nil {
+									vt.Register(name.Name, &VarInfo{
+										WrapLevel: WrapFull,
+										RustType:  goPtrArrayFieldRustType(goPtrArrayLocalInfo),
+										Source:    SourceLocal,
+									})
+								}
+							}
 
 							// Add type annotation if type is specified (skip for sync types and local interfaces)
 							isLocalInterface := false
 							if typeIdent, ok := valueSpec.Type.(*ast.Ident); ok && localInterfaces[typeIdent.Name] {
 								isLocalInterface = true
 							}
-							if valueSpec.Type != nil && name.Name != "_" && !isSyncType && !isSliceElemPtr && !isArrayElemPtr && !isGoPtr && !isLocalInterface {
+							if valueSpec.Type != nil && name.Name != "_" && !isSyncType && !isSliceElemPtr && !isArrayElemPtr && !isGoPtr && !isGoPtrArrayLocal && !isLocalInterface {
 								if _, isFunctionType := functionTypeRustNameFromTypeExpr(valueSpec.Type); !isFunctionType {
 									if vt := GetVarTable(); vt != nil {
 										vt.Register(name.Name, &VarInfo{
@@ -11833,6 +11843,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString("GoPtr<")
 									out.WriteString(goPtrResultElemRustType(goPtrInfo))
 									out.WriteString(">")
+								} else if isGoPtrArrayLocal {
+									out.WriteString(goPtrArrayFieldRustType(goPtrArrayLocalInfo))
 								} else if elemRustType, ok := sliceElemPtrSliceCandidateForDecl(name); ok {
 									out.WriteString(sliceElemPtrSliceRustType(elemRustType))
 								} else {
@@ -12061,6 +12073,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString(" = None")
 								} else if isGoPtr {
 									out.WriteString(" = GoPtr::nil()")
+								} else if isGoPtrArrayLocal {
+									out.WriteString(" = ")
+									writeGoPtrArrayFieldDefaultValue(out, goPtrArrayLocalInfo)
 								} else if valueSpec.Type != nil && writeNilZeroValueInitializerFromTypeInfo(out, valueSpec.Type) {
 									// nil zero value supplied from go/types
 								} else if valueSpec.Type != nil && !isSyncType && writeWrappedZeroValueInitializerFromTypeInfo(out, valueSpec.Type) {

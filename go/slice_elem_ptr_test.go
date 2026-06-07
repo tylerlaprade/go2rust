@@ -236,6 +236,46 @@ func use(c *cache, items []node) *node {
 	}
 }
 
+func TestGoPtrArrayPointerLocalSlotsPreserveHandle(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type node struct {
+	value int
+}
+
+func pick(items []node) *node {
+	var batch [2]*node
+	p := &items[0]
+	batch[0] = p
+	batch[1] = batch[0]
+	return batch[1]
+}
+`)
+
+	if !strings.Contains(rust, "let mut batch: Rc<RefCell<Option<[GoPtr<node>; 2]>>>") &&
+		!strings.Contains(rust, "let mut batch: Arc<Mutex<Option<[GoPtr<node>; 2]>>>") {
+		t.Fatalf("pointer array local assigned a GoPtr value should store GoPtr slots:\n%s", rust)
+	}
+	if strings.Contains(rust, "let mut batch: Rc<RefCell<Option<[Rc<RefCell<Option<node>>>; 2]>>>") ||
+		strings.Contains(rust, "let mut batch: Arc<Mutex<Option<[Arc<Mutex<Option<node>>>; 2]>>>") {
+		t.Fatalf("pointer array local should not use ordinary pointer wrappers once GoPtr slot identity is proven:\n%s", rust)
+	}
+	if !strings.Contains(rust, "std::array::from_fn(|_| GoPtr::nil())") {
+		t.Fatalf("GoPtr pointer array local default should initialize nil slots:\n%s", rust)
+	}
+	if !strings.Contains(rust, "batch.borrow_mut().as_mut().unwrap())[(0) as usize] = GoPtr::slice_elem_opt(p.clone())") &&
+		!strings.Contains(rust, "batch.lock().unwrap().as_mut().unwrap())[(0) as usize] = GoPtr::slice_elem_opt(p.clone())") {
+		t.Fatalf("assignment into a GoPtr pointer array local slot should convert the slice-element handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "fn pick(items: Rc<RefCell<Option<Vec<node>>>>) -> GoPtr<node>") &&
+		!strings.Contains(rust, "fn pick(items: Arc<Mutex<Option<Vec<node>>>>) -> GoPtr<node>") {
+		t.Fatalf("return from a GoPtr pointer array local slot should use GoPtr result type:\n%s", rust)
+	}
+	if strings.Contains(rust, "return GoPtr::local({ let __seq") {
+		t.Fatalf("return from a GoPtr pointer array local slot should not rewrap the handle:\n%s", rust)
+	}
+}
+
 func TestUnsafePointerFromGoPtrArrayPointerFieldElementUsesAddress(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

@@ -1066,7 +1066,7 @@ func registerSliceElemPtrFieldsFromFilesPass(files []*ast.File) bool {
 						if indexExpr, ok := unwrapParens(lhs).(*ast.IndexExpr); ok {
 							rhs := assignmentRHSForLHS(n, i)
 							if rhs != nil {
-								if registerGoPtrArrayFieldAssignment(indexExpr, rhs, currentFn, localCandidates, arrayCandidates, goPtrCandidates) {
+								if registerGoPtrArrayIndexAssignment(indexExpr, rhs, currentFn, localCandidates, arrayCandidates, goPtrCandidates) {
 									changed = true
 								}
 								if registerSliceElemPtrSliceFieldAssignment(indexExpr, rhs, currentFn, localCandidates, arrayCandidates, goPtrCandidates) {
@@ -1255,6 +1255,29 @@ func registerGoPtrArrayFieldAssignment(indexExpr *ast.IndexExpr, rhs ast.Expr, c
 	return registerGoPtrArrayFieldInfoForKey(key, fieldInfo)
 }
 
+func registerGoPtrArrayIndexAssignment(indexExpr *ast.IndexExpr, rhs ast.Expr, currentFn *types.Func, localCandidates map[types.Object]string, arrayCandidates map[types.Object]arrayElemPtrInfo, goPtrCandidates map[types.Object]goPtrResultInfo) bool {
+	changed := false
+	if registerGoPtrArrayFieldAssignment(indexExpr, rhs, currentFn, localCandidates, arrayCandidates, goPtrCandidates) {
+		changed = true
+	}
+	if registerGoPtrArrayLocalAssignment(indexExpr, rhs, currentFn, localCandidates, arrayCandidates, goPtrCandidates) {
+		changed = true
+	}
+	return changed
+}
+
+func registerGoPtrArrayLocalAssignment(indexExpr *ast.IndexExpr, rhs ast.Expr, currentFn *types.Func, localCandidates map[types.Object]string, arrayCandidates map[types.Object]arrayElemPtrInfo, goPtrCandidates map[types.Object]goPtrResultInfo) bool {
+	obj, fieldInfo, ok := goPtrArrayLocalObjectForIndexExpr(indexExpr)
+	if !ok {
+		return false
+	}
+	rhsElemType, rhsElemRustType, ok := sliceElemPtrValueElemType(rhs, currentFn, localCandidates, arrayCandidates, goPtrCandidates)
+	if !ok || !goPtrArrayFieldElemCompatible(rhsElemType, rhsElemRustType, fieldInfo) {
+		return false
+	}
+	return registerGoPtrArrayLocalInfoForObject(obj, fieldInfo)
+}
+
 func registerSliceElemPtrSliceFieldAssignment(indexExpr *ast.IndexExpr, rhs ast.Expr, currentFn *types.Func, localCandidates map[types.Object]string, arrayCandidates map[types.Object]arrayElemPtrInfo, goPtrCandidates map[types.Object]goPtrResultInfo) bool {
 	key, fieldInfo, ok := sliceElemPtrSliceFieldKeyForIndexExpr(indexExpr)
 	if !ok {
@@ -1281,6 +1304,23 @@ func registerGoPtrArrayFieldInfoForKey(key string, fieldInfo goPtrArrayFieldInfo
 		ctx.Session.GoPtrArrayFields[key] = fieldInfo
 	}
 	return !existed
+}
+
+func registerGoPtrArrayLocalInfoForObject(obj types.Object, fieldInfo goPtrArrayFieldInfo) bool {
+	ctx := GetTranspileContext()
+	if obj == nil || ctx == nil || ctx.Package == nil {
+		return false
+	}
+	if ctx.Package.GoPtrArrayLocalObjs == nil {
+		ctx.Package.GoPtrArrayLocalObjs = make(map[types.Object]goPtrArrayFieldInfo)
+	}
+	if existing, ok := ctx.Package.GoPtrArrayLocalObjs[obj]; ok {
+		if goPtrArrayFieldElemCompatible(existing.elemType, existing.elemRustType, fieldInfo) && existing.arrayLen == fieldInfo.arrayLen {
+			return false
+		}
+	}
+	ctx.Package.GoPtrArrayLocalObjs[obj] = fieldInfo
+	return true
 }
 
 func registerSliceElemPtrSliceFieldInfoForKey(key string, fieldInfo sliceElemPtrSliceFieldInfo) bool {
@@ -1883,9 +1923,74 @@ func sliceElemPtrSliceFieldInfoForKey(key string) (sliceElemPtrSliceFieldInfo, b
 func goPtrArrayFieldInfoForIndexExpr(indexExpr *ast.IndexExpr) (goPtrArrayFieldInfo, bool) {
 	key, _, ok := goPtrArrayFieldKeyForIndexExpr(indexExpr)
 	if !ok {
+		return goPtrArrayLocalInfoForIndexExpr(indexExpr)
+	}
+	if info, ok := goPtrArrayFieldInfoForKey(key); ok {
+		return info, true
+	}
+	return goPtrArrayLocalInfoForIndexExpr(indexExpr)
+}
+
+func goPtrArrayLocalInfoForDecl(name *ast.Ident) (goPtrArrayFieldInfo, bool) {
+	typeInfo := GetTypeInfo()
+	if name == nil || typeInfo == nil || typeInfo.info == nil {
 		return goPtrArrayFieldInfo{}, false
 	}
-	return goPtrArrayFieldInfoForKey(key)
+	return goPtrArrayLocalInfoForObject(typeInfo.GetObject(name))
+}
+
+func goPtrArrayLocalInfoForIndexExpr(indexExpr *ast.IndexExpr) (goPtrArrayFieldInfo, bool) {
+	typeInfo := GetTypeInfo()
+	if indexExpr == nil || typeInfo == nil || typeInfo.info == nil {
+		return goPtrArrayFieldInfo{}, false
+	}
+	ident, ok := unwrapParens(indexExpr.X).(*ast.Ident)
+	if !ok {
+		return goPtrArrayFieldInfo{}, false
+	}
+	return goPtrArrayLocalInfoForObject(typeInfo.GetObject(ident))
+}
+
+func goPtrArrayLocalInfoForObject(obj types.Object) (goPtrArrayFieldInfo, bool) {
+	ctx := GetTranspileContext()
+	if obj == nil || ctx == nil || ctx.Package == nil || ctx.Package.GoPtrArrayLocalObjs == nil {
+		return goPtrArrayFieldInfo{}, false
+	}
+	info, ok := ctx.Package.GoPtrArrayLocalObjs[obj]
+	return info, ok
+}
+
+func goPtrArrayLocalObjectForIndexExpr(indexExpr *ast.IndexExpr) (types.Object, goPtrArrayFieldInfo, bool) {
+	typeInfo := GetTypeInfo()
+	if indexExpr == nil || typeInfo == nil || typeInfo.info == nil {
+		return nil, goPtrArrayFieldInfo{}, false
+	}
+	ident, ok := unwrapParens(indexExpr.X).(*ast.Ident)
+	if !ok || ident.Name == "_" {
+		return nil, goPtrArrayFieldInfo{}, false
+	}
+	obj := typeInfo.GetObject(ident)
+	if obj == nil {
+		return nil, goPtrArrayFieldInfo{}, false
+	}
+	array, ok := types.Unalias(obj.Type()).Underlying().(*types.Array)
+	if !ok {
+		return nil, goPtrArrayFieldInfo{}, false
+	}
+	ptr, ok := types.Unalias(array.Elem()).Underlying().(*types.Pointer)
+	if !ok {
+		return nil, goPtrArrayFieldInfo{}, false
+	}
+	elemType := coreType(ptr.Elem())
+	elemRustType := goTypesCollectionElemTypeToRust(elemType)
+	if elemRustType == "" {
+		return nil, goPtrArrayFieldInfo{}, false
+	}
+	ownerPkgPath := ""
+	if typeInfo.pkg != nil {
+		ownerPkgPath = typeInfo.pkg.Path()
+	}
+	return obj, goPtrArrayFieldInfo{elemRustType: elemRustType, ownerPkgPath: ownerPkgPath, elemType: elemType, arrayLen: array.Len()}, true
 }
 
 func sliceElemPtrSliceFieldInfoForIndexExpr(indexExpr *ast.IndexExpr) (sliceElemPtrSliceFieldInfo, bool) {
