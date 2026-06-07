@@ -4540,6 +4540,29 @@ func store(raw unsafe.Pointer, value byte) {
 	}
 }
 
+func TestGoPtrPointerToArraySliceBorrowsPointee(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+func window(raw unsafe.Pointer, n int) []byte {
+	go func() {}()
+	q := (*[8]byte)(raw)
+	return q[:n:n]
+}
+`)
+
+	if !strings.Contains(rust, "let mut q: GoPtr<[u8; 8]>") {
+		t.Fatalf("unsafe pointer conversion to array pointer should use GoPtr:\n%s", rust)
+	}
+	if strings.Contains(rust, "q.clone(); let __seq_guard = __seq_holder.lock().unwrap()") {
+		t.Fatalf("GoPtr pointer-to-array slice should not lock the GoPtr as a normal wrapper handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __seq_ref = q.borrow(); let mut __seq = __seq_ref.as_ref().unwrap().clone()") {
+		t.Fatalf("GoPtr pointer-to-array slice should borrow the pointed-to array:\n%s", rust)
+	}
+}
+
 func TestGoPtrUnsafePointerToUintptrUsesGoPtrAddress(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

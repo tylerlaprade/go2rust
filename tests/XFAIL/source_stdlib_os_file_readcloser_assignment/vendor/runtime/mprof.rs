@@ -2202,7 +2202,7 @@ impl bucket {
         throw(Arc::new(Mutex::new(Some("bad profile stack count".to_string()))));
     }
                 // prove that slicing works; otherwise a failure requires a P
-        Arc::new(Mutex::new(Some({ let mut __seq = { let __seq_holder = stk.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; let __low = 0; let __high = (*self.nstk.clone().lock().unwrap().as_ref().unwrap()) as usize; let __max = (*self.nstk.clone().lock().unwrap().as_ref().unwrap()) as usize; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))
+        Arc::new(Mutex::new(Some({ let __seq_ref = stk.borrow(); let mut __seq = __seq_ref.as_ref().unwrap().clone(); let __low = 0; let __high = (*self.nstk.clone().lock().unwrap().as_ref().unwrap()) as usize; let __max = (*self.nstk.clone().lock().unwrap().as_ref().unwrap()) as usize; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))
     }
 
     /// mp returns the memRecord associated with the memProfile bucket b.

@@ -12716,6 +12716,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			WriteWrapperPrefix(out)
 			writeGoByteSequenceSliceToString(out, e.X, e.Low, e.High)
 			WriteWrapperSuffix(out)
+		} else if writeGoPtrPointedArraySliceExpression(out, e) {
+			// GoPtr pointer-to-array helper slice.
 		} else if e.Slice3 && e.Max != nil && !isStringSlice {
 			// Three-index slice: s[low:high:max] → cap = max - low
 			WriteWrapperPrefix(out)

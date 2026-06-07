@@ -5084,6 +5084,23 @@ func writeGoPtrPointedArrayIndexValue(out *strings.Builder, expr ast.Expr, index
 	return true
 }
 
+func writeGoPtrPointedArraySliceExpression(out *strings.Builder, slice *ast.SliceExpr) bool {
+	ident, ok := unwrapParens(slice.X).(*ast.Ident)
+	if !ok {
+		return false
+	}
+	if _, ok := goPtrIdentPointedArrayType(ident); !ok {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __seq_ref = ")
+	out.WriteString(rustIdentForUseWithCapture(ident))
+	out.WriteString(".borrow(); let mut __seq = __seq_ref.as_ref().unwrap().clone()")
+	writeSliceVecFromSeq(out, slice.Low, slice.High, slice.Max, "__seq.len()", false)
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeGoPtrUnsafePointerIndexedElementAddress(out *strings.Builder, indexExpr *ast.IndexExpr) bool {
 	ident, ok := unwrapParens(indexExpr.X).(*ast.Ident)
 	if !ok {
