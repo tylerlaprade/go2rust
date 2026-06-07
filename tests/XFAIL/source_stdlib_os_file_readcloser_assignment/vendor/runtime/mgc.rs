@@ -2113,7 +2113,7 @@ pub fn gc_start(trigger: Arc<Mutex<Option<gcTrigger>>>) {
                 // Check that all Ps have finished deferred mcache flushes.
         { let __range_holder = allp.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
         {
-        let mut fg = (*(*(*p.lock().unwrap().as_ref().unwrap()).mcache.lock().unwrap().as_ref().unwrap()).flush_gen.lock().unwrap().as_mut().unwrap()).load();;
+        let mut fg = (*{ let __ptr_value = (*p.lock().unwrap().as_ref().unwrap()).mcache.with_mut(|__ptr_value| __ptr_value.flush_gen.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load();;
         if { let __tmp_x = fg; let __tmp_y = (*{ let __field = (*mheap_.lock().unwrap().as_ref().unwrap()).sweepgen.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x != __tmp_y } {
             eprintln!("{} {} {} {} {} {}", format!("{}", "runtime: p".to_string()), format!("{}", (*{ let __field = (*p.lock().unwrap().as_ref().unwrap()).id.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", "flushGen".to_string()), format!("{}", fg), format!("{}", "!= sweepgen".to_string()), format!("{}", (*{ let __field = (*mheap_.lock().unwrap().as_ref().unwrap()).sweepgen.clone(); __field }.lock().unwrap().as_ref().unwrap())));;
             throw(Arc::new(Mutex::new(Some("p mcache not flushed".to_string()))));;
@@ -2631,7 +2631,7 @@ pub fn gc_mark_termination(stw: Arc<Mutex<Option<worldStop>>>) {
         // Also, flush the pinner cache, to avoid leaking that memory
         // indefinitely.
     for_each_p(Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_FLUSH_PROC_CACHES as u8))))))), Arc::new(Mutex::new(Some(Box::new(move |pp: Arc<Mutex<Option<p>>>| {
-        (*(*pp.lock().unwrap().as_ref().unwrap()).mcache.lock().unwrap().as_mut().unwrap()).prepare_for_sweep();
+        { let __recv_field = (*pp.lock().unwrap().as_ref().unwrap()).mcache.clone(); let __result = __recv_field.with_mut(|__recv_value| __recv_value.prepare_for_sweep()); __result };
         if { let __tmp_x = (*{ let __field = (*pp.lock().unwrap().as_ref().unwrap()).status.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __PIDLE as u32; __tmp_x == __tmp_y } {
         let pp_closure_clone = pp.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
         lock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).lock.clone()));
@@ -3075,11 +3075,11 @@ pub fn gc_mark(startTime: Arc<Mutex<Option<i64>>>) {
         // Note that it's not important to retain this information; we know
         // exactly what heapScan is at this point via scanWork.
     { let __range_holder = allp.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
-        let mut c = (*p.lock().unwrap().as_ref().unwrap()).mcache.clone();
-        if { let __nil_result = (*c.lock().unwrap()).is_none(); __nil_result } {
+        let mut c: GoPtr<crate::mcache::mcache> = (*p.lock().unwrap().as_ref().unwrap()).mcache.clone();
+        if c.is_nil() {
         continue
     }
-        { let new_val = 0 as usize; *(*c.lock().unwrap().as_ref().unwrap()).scan_alloc.lock().unwrap() = Some(new_val); };
+        { let new_val = 0 as usize; *{ let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.scan_alloc.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
     } }
 
         // Reset controller state.
@@ -3120,7 +3120,7 @@ pub fn gc_sweep(mode: Arc<Mutex<Option<gcMode>>>) -> bool {
         unlock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).lock.clone()));
                 // Flush all mcaches.
         { let __range_holder = allp.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for pp in __range_values.iter() {
-        (*(*pp.lock().unwrap().as_ref().unwrap()).mcache.lock().unwrap().as_mut().unwrap()).prepare_for_sweep();
+        { let __recv_field = (*pp.lock().unwrap().as_ref().unwrap()).mcache.clone(); let __result = __recv_field.with_mut(|__recv_value| __recv_value.prepare_for_sweep()); __result };
     } }
                 // Sweep all spans eagerly.
         while { let __tmp_x = sweepone(); let __tmp_y = !(0 as usize) as usize; __tmp_x != __tmp_y } {

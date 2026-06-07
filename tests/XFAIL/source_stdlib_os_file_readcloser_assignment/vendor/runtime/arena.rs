@@ -331,14 +331,14 @@ impl crate::mheap::mspan {
     } else {
         user_arena_heap_bits_set_type(typ.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = ptr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(self.clone()))));
     }
-        let mut c = get_m_cache(mp.clone());
-        if { let __nil_result = (*c.lock().unwrap()).is_none(); __nil_result } {
+        let mut c: GoPtr<crate::mcache::mcache> = get_m_cache(mp.clone());
+        if c.is_nil() {
         throw(Arc::new(Mutex::new(Some("mallocgc called without a P or outside bootstrapping".to_string()))));
     }
         if { let __tmp_x = { let __v = (*cap.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
-        { let __target = (*c.lock().unwrap().as_ref().unwrap()).scan_alloc.clone(); let __rhs = { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); __tmp_x - __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __target = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.scan_alloc.clone()); __ptr_value }.clone(); let __rhs = { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); __tmp_x - __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } else {
-        { let __target = (*c.lock().unwrap().as_ref().unwrap()).scan_alloc.clone(); let __rhs = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __target = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.scan_alloc.clone()); __ptr_value }.clone(); let __rhs = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
     }
                 // Ensure that the stores above that initialize x to

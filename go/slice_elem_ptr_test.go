@@ -4916,7 +4916,8 @@ func find(s *state, a int) *node {
 	if !strings.Contains(rust, "obj.is_nil()") {
 		t.Fatalf("GoPtr local nil comparison should call is_nil:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".left.clone() }.clone()") || !strings.Contains(rust, ".right.clone() }.clone()") {
+	if (!strings.Contains(rust, ".left.clone() }.clone()") && !strings.Contains(rust, ".left.clone(); __field_value }")) ||
+		(!strings.Contains(rust, ".right.clone() }.clone()") && !strings.Contains(rust, ".right.clone(); __field_value }")) {
 		t.Fatalf("GoPtr local assignment from GoPtr fields should clone the field handle:\n%s", rust)
 	}
 	if !strings.Contains(rust, "return obj.clone();") {

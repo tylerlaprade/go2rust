@@ -1263,15 +1263,15 @@ pub fn heap_set_type_small_header(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mu
     return (*{ let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.elemsize.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap());
 }
 
-pub fn heap_set_type_large(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mutex<Option<usize>>>, typ: GoPtr<internal_abi::r#type::Type>, span: Arc<Mutex<Option<mspan>>>) -> usize {
+pub fn heap_set_type_large(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mutex<Option<usize>>>, typ: GoPtr<internal_abi::r#type::Type>, span: GoPtr<crate::mheap::mspan>) -> usize {
     let mut gctyp: GoPtr<internal_abi::r#type::Type> = typ.clone();
 
         // Write out the header.
-    { let new_val = gctyp.clone(); (*span.lock().unwrap().as_mut().unwrap()).large_type = new_val; };
+    { let new_val = gctyp.clone(); span.with_mut(|__ptr_value| { __ptr_value.large_type = new_val; }); };
     if DOUBLE_CHECK_HEAP_SET_TYPE {
-        double_check_heap_type(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = dataSize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), typ.clone(), GoPtr::local(Arc::new(Mutex::new(Some((*span.lock().unwrap().as_ref().unwrap()).large_type.clone())))), GoPtr::local(span.clone()));
+        double_check_heap_type(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = dataSize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), typ.clone(), GoPtr::local(Arc::new(Mutex::new(Some({ let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.large_type.clone()); __ptr_value }.clone())))), span.clone());
     }
-    return (*(*span.lock().unwrap().as_ref().unwrap()).elemsize.lock().unwrap().as_ref().unwrap());
+    return (*{ let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.elemsize.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap());
 }
 
 pub fn double_check_heap_type(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mutex<Option<usize>>>, gctyp: GoPtr<internal_abi::r#type::Type>, header: GoPtr<Arc<Mutex<Option<internal_abi::r#type::Type>>>>, span: GoPtr<crate::mheap::mspan>) {

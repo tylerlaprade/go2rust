@@ -1956,16 +1956,16 @@ impl crate::runtime2::p {
         { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = self.sudogbuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = (0) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); self.sudogcache = new_val; };
         { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = self.deferpoolbuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = (0) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); self.deferpool = new_val; };
         (*self.wb_buf.lock().unwrap().as_mut().unwrap()).reset();
-        if { let __nil_target = self.mcache.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
+        if { let __ptr_field = self.mcache.clone(); __ptr_field.is_nil() } {
         if { let __tmp_x = { let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i32; __tmp_x == __tmp_y } {
         if { let __slot_guard = mcache0.lock().unwrap(); let __not_nil = __slot_guard.as_ref().map(|__ptr| (*__ptr.lock().unwrap()).is_some()).unwrap_or(false); !__not_nil } {
         throw(Arc::new(Mutex::new(Some("missing mcache?".to_string()))));
     }
                 // Use the bootstrap mcache0. Only one P will get
                 // mcache0: the one with ID 0.
-        { let new_val = (*mcache0.lock().unwrap().as_ref().unwrap()).clone(); self.mcache = new_val; };
+        { let new_val = GoPtr::local((*mcache0.lock().unwrap().as_ref().unwrap()).clone()); self.mcache = new_val; };
     } else {
-        { let new_val = allocmcache().clone(); self.mcache = new_val; };
+        { let new_val = allocmcache(); self.mcache = new_val; };
     }
     }
                 // Use the bootstrap mcache0. Only one P will get
@@ -2038,8 +2038,8 @@ impl crate::runtime2::p {
         unlock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).lock.clone()));
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
                 // Safe to call since the world is stopped.
-        freemcache({ let __field = self.mcache.clone(); __field });
-        *self.mcache.lock().unwrap() = None;
+        freemcache(self.mcache.clone());
+        { let new_val = GoPtr::nil(); self.mcache = new_val; };
         gfpurge(Arc::new(Mutex::new(Some(self.clone()))));
         if RACEENABLED {
         if { let __tmp_x = (*(*self.timers.lock().unwrap().as_ref().unwrap()).race_ctx.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
@@ -6450,7 +6450,7 @@ pub fn procresize(nprocs: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<crate::ru
     if { let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } && { let __tmp_x = (*{ let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().id.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*nprocs.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
                 // continue to use the current P
         { let new_val = __PRUNNING as u32; *{ let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().status.clone() }.lock().unwrap() = Some(new_val); };
-        (*{ let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().mcache.clone() }.lock().unwrap().as_mut().unwrap()).prepare_for_sweep();
+        { let __recv_field = { let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().mcache.clone() }.clone(); let __result = __recv_field.with_mut(|__recv_value| __recv_value.prepare_for_sweep()); __result };
     } else {
                 // release the current P and acquire allp[0].
                 //
@@ -6558,7 +6558,7 @@ pub fn acquirep(pp: GoPtr<crate::runtime2::p>) {
         // Have p; write barriers now allowed.
         // Perform deferred mcache flush before this P can allocate
         // from a potentially stale mcache.
-    (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.mcache.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).prepare_for_sweep();
+    { let __recv_field = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.mcache.clone()); __ptr_value }.clone(); let __result = __recv_field.with_mut(|__recv_value| __recv_value.prepare_for_sweep()); __result };
 
     let mut trace_local = trace_acquire();
     if (*trace_local.lock().unwrap().as_ref().unwrap()).ok() {

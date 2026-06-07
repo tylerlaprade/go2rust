@@ -1125,24 +1125,24 @@ impl mcache {
         throw(Arc::new(Mutex::new(Some("bad flushGen".to_string()))));
     }
         self.release_all();
-        stackcache_clear(Arc::new(Mutex::new(Some(self.clone()))));
+        stackcache_clear(GoPtr::local(Arc::new(Mutex::new(Some(self.clone())))));
         (*self.flush_gen.lock().unwrap().as_mut().unwrap()).store(Arc::new(Mutex::new(Some({ let __selector_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).sweepgen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
     }
 }
 
-pub fn allocmcache() -> Arc<Mutex<Option<mcache>>> {
-    let mut c: Arc<Mutex<Option<mcache>>> = Arc::new(Mutex::new(None));
+pub fn allocmcache() -> GoPtr<mcache> {
+    let mut c: GoPtr<mcache> = GoPtr::nil();
     let mut c_closure_clone = c.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
         lock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).lock.clone()));
-        { let new_val = Arc::new(Mutex::new({ let __ptr = (*(*mheap_.lock().unwrap().as_ref().unwrap()).cachealloc.lock().unwrap().as_mut().unwrap()).alloc().clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<mcache>(unimplemented!("unsafe.Pointer conversion to mcache")) } })).clone(); c_closure_clone = new_val; };
-        (*(*c_closure_clone.lock().unwrap().as_ref().unwrap()).flush_gen.lock().unwrap().as_mut().unwrap()).store(Arc::new(Mutex::new(Some({ let __selector_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).sweepgen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+        c_closure_clone = GoPtr::raw({ let __ptr = (*(*mheap_.lock().unwrap().as_ref().unwrap()).cachealloc.lock().unwrap().as_mut().unwrap()).alloc().clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
+        (*{ let __ptr_value = c_closure_clone.with_mut(|__ptr_value| __ptr_value.flush_gen.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).store(Arc::new(Mutex::new(Some({ let __selector_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).sweepgen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
         unlock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).lock.clone()));
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
-    for i in 0..(({ let __range_holder = (*c.lock().unwrap().as_ref().unwrap()).alloc.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
-        (*(*c.lock().unwrap().as_ref().unwrap()).alloc.lock().unwrap().as_mut().unwrap())[(i) as usize] = GoPtr::local(emptymspan.clone());
+    for i in 0..(({ let __range_holder = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.alloc.clone()); __ptr_value }.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
+        (*{ let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.alloc.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap())[(i) as usize] = GoPtr::local(emptymspan.clone());
     }
-    { let new_val = next_sample(); *(*c.lock().unwrap().as_ref().unwrap()).next_sample.lock().unwrap() = Some(new_val); };
-    return c.clone();
+    { let new_val = next_sample(); *{ let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.next_sample.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
+    c.clone()
 }
 
 /// freemcache releases resources associated with this
@@ -1151,12 +1151,12 @@ pub fn allocmcache() -> Arc<Mutex<Option<mcache>>> {
 /// In some cases there is no way to simply release
 /// resources, such as statistics, so donate them to
 /// a different mcache (the recipient).
-pub fn freemcache(c: Arc<Mutex<Option<mcache>>>) {
+pub fn freemcache(c: GoPtr<mcache>) {
     let c_closure_clone = c.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
-        { let __recv = c_closure_clone.clone(); let __recv_ptr: *mut mcache = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut mcache }; let __result = unsafe { &mut *__recv_ptr }.release_all(); __result };
+        { let __result = c_closure_clone.with_mut(|__recv_value| __recv_value.release_all()); __result };
         stackcache_clear(c_closure_clone.clone());
         lock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).lock.clone()));
-        (*(*mheap_.lock().unwrap().as_ref().unwrap()).cachealloc.lock().unwrap().as_mut().unwrap()).free(Arc::new(Mutex::new(Some(Arc::as_ptr(&c) as usize))));
+        (*(*mheap_.lock().unwrap().as_ref().unwrap()).cachealloc.lock().unwrap().as_mut().unwrap()).free(Arc::new(Mutex::new(Some(c.addr()))));
         unlock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).lock.clone()));
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
 }
@@ -1165,24 +1165,24 @@ pub fn freemcache(c: Arc<Mutex<Option<mcache>>>) {
 ///
 /// Returns nil if we're not bootstrapping or we don't have a P. The caller's
 /// P must not change, so we must be in a non-preemptible state.
-pub fn get_m_cache(mp: Arc<Mutex<Option<m>>>) -> Arc<Mutex<Option<mcache>>> {
+pub fn get_m_cache(mp: Arc<Mutex<Option<m>>>) -> GoPtr<mcache> {
         // Grab the mcache, since that's where stats live.
     let mut pp: GoPtr<crate::runtime2::p> = crate::runtime2::puintptr::ptr(&(*(*mp.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()));
-    let mut c: Arc<Mutex<Option<mcache>>> = Arc::new(Mutex::new(None));
+    let mut c: GoPtr<mcache> = GoPtr::nil();
     if pp.is_nil() {
                 // We will be called without a P while bootstrapping,
                 // in which case we use mcache0, which is set in mallocinit.
                 // mcache0 is cleared when bootstrapping is complete,
                 // by procresize.
-        { let new_val = (*mcache0.lock().unwrap().as_ref().unwrap()).clone(); c = new_val; };
+        c = GoPtr::local((*mcache0.lock().unwrap().as_ref().unwrap()).clone());
     } else {
-        { let new_val = { let __ptr_value = pp.borrow(); let __field_value = __ptr_value.as_ref().unwrap().mcache.clone(); __field_value }; c = new_val; };
+        c = { let __ptr_value = pp.borrow(); let __field_value = __ptr_value.as_ref().unwrap().mcache.clone(); __field_value };
     }
         // We will be called without a P while bootstrapping,
         // in which case we use mcache0, which is set in mallocinit.
         // mcache0 is cleared when bootstrapping is complete,
         // by procresize.
-    return c.clone();
+    c.clone()
 }
 
 pub(crate) fn __go_init_functions() {

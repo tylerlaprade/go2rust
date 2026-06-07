@@ -4627,6 +4627,190 @@ func use(h *heap, items []node) *node {
 	}
 }
 
+func TestCrossFileGoPtrMethodReturnChainPromotesCalleeParam(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "mheap.go"), `package main
+
+import "unsafe"
+
+type rtype struct{}
+
+type mspan struct {
+	largeType *rtype
+	elemsize uintptr
+}
+
+type mcache struct{}
+
+type mheap struct{}
+
+var globalHeap mheap
+
+func systemstack(fn func()) {
+	fn()
+}
+
+func rawSpan(addr uintptr) *mspan {
+	return (*mspan)(unsafe.Pointer(addr))
+}
+
+func (h *mheap) alloc() *mspan {
+	var s *mspan
+	systemstack(func() {
+		s = rawSpan(0)
+	})
+	return s
+}
+
+func (c *mcache) allocLarge() *mspan {
+	s := globalHeap.alloc()
+	s.elemsize = 1
+	return s
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "mbitmap.go"), `package main
+
+func doubleCheck(typ *rtype, header **rtype, span *mspan) {
+}
+
+func heapSetTypeLarge(typ *rtype, span *mspan) uintptr {
+	span.largeType = typ
+	doubleCheck(typ, &span.largeType, span)
+	return span.elemsize
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "malloc.go"), `package main
+
+func use(c *mcache, typ *rtype) uintptr {
+	span := c.allocLarge()
+	return heapSetTypeLarge(typ, span)
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "malloc.go"),
+		filepath.Join(tempDir, "mbitmap.go"),
+		filepath.Join(tempDir, "mheap.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mbitmapRS := mustReadFile(t, filepath.Join(tempDir, "mbitmap.rs"))
+	if !strings.Contains(mbitmapRS, "span: GoPtr<crate::mheap::mspan>") {
+		t.Fatalf("callee receiving a cross-file GoPtr method result should use a GoPtr parameter:\n%s", mbitmapRS)
+	}
+	if strings.Contains(mbitmapRS, "span: Arc<Mutex<Option<mspan>>>") ||
+		strings.Contains(mbitmapRS, "span: Rc<RefCell<Option<mspan>>>") {
+		t.Fatalf("callee receiving a cross-file GoPtr method result should not keep the ordinary pointer wrapper:\n%s", mbitmapRS)
+	}
+
+	mallocRS := mustReadFile(t, filepath.Join(tempDir, "malloc.rs"))
+	if !strings.Contains(mallocRS, "heap_set_type_large(typ.clone(), span.clone())") {
+		t.Fatalf("caller should pass the cross-file GoPtr method result without rewrapping:\n%s", mallocRS)
+	}
+}
+
+func TestImportedPackageGoPtrMethodReturnPromotesCalleeParam(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "rt", "mheap.go"), `package rt
+
+import "unsafe"
+
+type rtype struct{}
+
+type mspan struct {
+	largeType *rtype
+	elemsize uintptr
+}
+
+type mcache struct{}
+
+type mheap struct{}
+
+var globalHeap mheap
+
+func systemstack(fn func()) {
+	fn()
+}
+
+func rawSpan(addr uintptr) *mspan {
+	return (*mspan)(unsafe.Pointer(addr))
+}
+
+func (h *mheap) alloc() *mspan {
+	var s *mspan
+	systemstack(func() {
+		s = rawSpan(0)
+	})
+	return s
+}
+
+func (c *mcache) allocLarge() *mspan {
+	s := globalHeap.alloc()
+	s.elemsize = 1
+	return s
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "rt", "mbitmap.go"), `package rt
+
+func doubleCheck(typ *rtype, header **rtype, span *mspan) {
+}
+
+func heapSetTypeLarge(typ *rtype, span *mspan) uintptr {
+	span.largeType = typ
+	doubleCheck(typ, &span.largeType, span)
+	return span.elemsize
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "rt", "malloc.go"), `package rt
+
+func Run() uintptr {
+	var c mcache
+	var typ rtype
+	span := c.allocLarge()
+	return heapSetTypeLarge(&typ, span)
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/mainmod/rt"
+
+func main() {
+	_ = rt.Run()
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	rtRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_mainmod_rt", "mbitmap.rs"))
+	if !strings.Contains(rtRS, "span: GoPtr<crate::mheap::mspan>") {
+		t.Fatalf("imported callee receiving a cross-file GoPtr method result should use a GoPtr parameter:\n%s", rtRS)
+	}
+	if strings.Contains(rtRS, "span: Arc<Mutex<Option<mspan>>>") ||
+		strings.Contains(rtRS, "span: Rc<RefCell<Option<mspan>>>") {
+		t.Fatalf("imported callee receiving a cross-file GoPtr method result should not keep the ordinary pointer wrapper:\n%s", rtRS)
+	}
+
+	mallocRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_mainmod_rt", "malloc.rs"))
+	if !strings.Contains(mallocRS, "heap_set_type_large(GoPtr::local(typ.clone()), span.clone())") &&
+		!strings.Contains(mallocRS, "heap_set_type_large(typ.clone(), span.clone())") {
+		t.Fatalf("imported caller should pass the cross-file GoPtr method result without rewrapping:\n%s", mallocRS)
+	}
+}
+
 func TestCrossFileNamedSliceFieldCompoundAssignUsesInnerHandle(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

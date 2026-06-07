@@ -3100,13 +3100,13 @@ pub fn gc_mark_tiny_allocs() {
     assert_world_stopped();
 
     { let __range_holder = allp.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for p in __range_values.iter() {
-        let mut c = (*p.lock().unwrap().as_ref().unwrap()).mcache.clone();
-        if { let __nil_result = (*c.lock().unwrap()).is_none(); __nil_result } || { let __tmp_x = (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).tiny.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
+        let mut c: GoPtr<crate::mcache::mcache> = (*p.lock().unwrap().as_ref().unwrap()).mcache.clone();
+        if c.is_nil() || { let __tmp_x = (*{ let __ptr_value = c.borrow(); __ptr_value.as_ref().unwrap().tiny.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
         continue
     }
-        let (_, mut span, mut objIndex) = find_object(Arc::new(Mutex::new(Some({ let __selector_holder = (*c.lock().unwrap().as_ref().unwrap()).tiny.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(0 as usize))), Arc::new(Mutex::new(Some(0 as usize))));
+        let (_, mut span, mut objIndex) = find_object(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.tiny.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(0 as usize))), Arc::new(Mutex::new(Some(0 as usize))));
         let mut gcw = (*p.lock().unwrap().as_ref().unwrap()).gcw.clone();
-        greyobject(Arc::new(Mutex::new(Some({ let __selector_holder = (*c.lock().unwrap().as_ref().unwrap()).tiny.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(0 as usize))), Arc::new(Mutex::new(Some(0 as usize))), span.clone(), gcw.clone(), Arc::new(Mutex::new(Some(objIndex))));
+        greyobject(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.tiny.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(0 as usize))), Arc::new(Mutex::new(Some(0 as usize))), span.clone(), gcw.clone(), Arc::new(Mutex::new(Some(objIndex))));
     } }
 }
 

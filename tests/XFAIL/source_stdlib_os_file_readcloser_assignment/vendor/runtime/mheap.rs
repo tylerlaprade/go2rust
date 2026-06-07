@@ -3484,20 +3484,20 @@ impl mheap {
     ///
     /// Returns a span that has been fully initialized. span.needzero indicates
     /// whether the span has been zeroed. Note that it may not be.
-    pub fn alloc(&mut self, npages: Arc<Mutex<Option<usize>>>, spanclass: Arc<Mutex<Option<spanClass>>>) -> Arc<Mutex<Option<mspan>>> {
+    pub fn alloc(&mut self, npages: Arc<Mutex<Option<usize>>>, spanclass: Arc<Mutex<Option<spanClass>>>) -> GoPtr<mspan> {
                 // Don't do any operations that lock the heap on the G stack.
                 // It might trigger stack growth, and the stack growth code needs
                 // to be able to allocate heap.
-        let mut s: Arc<Mutex<Option<mspan>>> = Arc::new(Mutex::new(None));
+        let mut s: GoPtr<mspan> = GoPtr::nil();
         let mut h_closure_clone = (*self).clone(); let npages_closure_clone = npages.clone(); let mut s_closure_clone = s.clone(); let spanclass_closure_clone = spanclass.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
         if !is_sweep_done() {
         h_closure_clone.reclaim(Arc::new(Mutex::new(Some({ let __arg_holder = npages_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
-        { let new_val = h_closure_clone.alloc_span(Arc::new(Mutex::new(Some({ let __arg_holder = npages_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(spanAllocType(Arc::new(Mutex::new(Some(SPAN_ALLOC_HEAP as u8))))))), Arc::new(Mutex::new(Some({ let __arg_holder = spanclass_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); s_closure_clone = new_val; };
+        s_closure_clone = h_closure_clone.alloc_span(Arc::new(Mutex::new(Some({ let __arg_holder = npages_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(spanAllocType(Arc::new(Mutex::new(Some(SPAN_ALLOC_HEAP as u8))))))), Arc::new(Mutex::new(Some({ let __arg_holder = spanclass_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
                 // To prevent excessive heap growth, before allocating n pages
                 // we need to sweep and reclaim at least n pages.
-        return s.clone();
+        s.clone()
     }
 
     /// allocManual allocates a manually-managed span of npage pages.

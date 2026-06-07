@@ -3781,7 +3781,9 @@ func collectGoPtrCandidatesForFunc(fn *ast.FuncDecl) map[types.Object]goPtrResul
 	ast.Inspect(fn.Body, func(node ast.Node) bool {
 		switch n := node.(type) {
 		case *ast.FuncLit:
-			return false
+			// Captured outer pointer locals can be assigned inside closures.
+			// Inner locals have distinct go/types objects and are ignored below.
+			return true
 		case *ast.AssignStmt:
 			if n.Tok != token.ASSIGN && n.Tok != token.DEFINE {
 				return true
