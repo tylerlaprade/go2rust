@@ -356,9 +356,11 @@ func assignPackageMethodNames(files []*ast.File, typeInfo *TypeInfo) map[string]
 }
 
 type packageGlobal struct {
-	name     string
-	rustType string
-	typ      types.Type
+	name          string
+	rustType      string
+	typ           types.Type
+	goPtrStorage  bool
+	goPtrElemRust string
 }
 
 func registerPackageGlobalNames(globalVars []*ast.GenDecl) {
@@ -576,10 +578,20 @@ func collectPackageGlobals(globalVars []*ast.GenDecl) []packageGlobal {
 				} else if valueSpec.Type != nil {
 					rustType = goTypeToRustBase(valueSpec.Type)
 				}
+				goPtrStorage := false
+				goPtrElemRust := ""
+				if info, ok := packageGlobalGoPtrInitializerInfo(valueSpec, name, typ); ok {
+					goPtrStorage = true
+					goPtrElemRust = goPtrResultElemRustType(info)
+					rustType = "GoPtr<" + goPtrElemRust + ">"
+					NeedSliceElemPtr()
+				}
 				globals = append(globals, packageGlobal{
-					name:     name.Name,
-					rustType: rustType,
-					typ:      typ,
+					name:          name.Name,
+					rustType:      rustType,
+					typ:           typ,
+					goPtrStorage:  goPtrStorage,
+					goPtrElemRust: goPtrElemRust,
 				})
 				packageGlobalNames[name.Name] = true
 				registerTypeExprCollectionInfo(name.Name, valueSpec.Type)
@@ -587,6 +599,62 @@ func collectPackageGlobals(globalVars []*ast.GenDecl) []packageGlobal {
 		}
 	}
 	return globals
+}
+
+func packageGlobalInitializerForName(valueSpec *ast.ValueSpec, name *ast.Ident) (ast.Expr, int, bool) {
+	if valueSpec == nil || name == nil || len(valueSpec.Values) == 0 {
+		return nil, 0, false
+	}
+	for i, candidate := range valueSpec.Names {
+		if candidate != name {
+			continue
+		}
+		if len(valueSpec.Values) == len(valueSpec.Names) {
+			return valueSpec.Values[i], 0, true
+		}
+		if len(valueSpec.Values) == 1 {
+			return valueSpec.Values[0], i, true
+		}
+		return nil, 0, false
+	}
+	return nil, 0, false
+}
+
+func packageGlobalGoPtrInitializerInfo(valueSpec *ast.ValueSpec, name *ast.Ident, targetType types.Type) (goPtrResultInfo, bool) {
+	expr, resultIndex, ok := packageGlobalInitializerForName(valueSpec, name)
+	if !ok {
+		return goPtrResultInfo{}, false
+	}
+	return packageGlobalGoPtrInitializerExprInfo(expr, resultIndex, targetType)
+}
+
+func packageGlobalGoPtrInitializerExprInfo(expr ast.Expr, resultIndex int, targetType types.Type) (goPtrResultInfo, bool) {
+	if targetType == nil {
+		return goPtrResultInfo{}, false
+	}
+	ptr, ok := types.Unalias(targetType).Underlying().(*types.Pointer)
+	if !ok {
+		return goPtrResultInfo{}, false
+	}
+	targetElem := coreType(ptr.Elem())
+	switch e := unwrapParens(expr).(type) {
+	case *ast.SelectorExpr:
+		if resultIndex != 0 || !generatedGoPtrFieldForSelector(e) {
+			return goPtrResultInfo{}, false
+		}
+		fieldInfo, ok := sliceElemPtrFieldInfoForSelector(e)
+		if !ok || !sliceElemPtrElemCompatible(targetElem, goTypesCollectionElemTypeToRust(targetElem), fieldInfo) {
+			return goPtrResultInfo{}, false
+		}
+		return goPtrResultInfo{elemRustType: sliceElemPtrFieldElemRustType(fieldInfo), elemType: fieldInfo.elemType}, true
+	case *ast.CallExpr:
+		info, ok := goPtrResultInfoForCall(e, resultIndex)
+		if !ok || !goPtrResultElemCompatible(info, goPtrResultInfo{elemRustType: goTypesCollectionElemTypeToRust(targetElem), elemType: targetElem}) {
+			return goPtrResultInfo{}, false
+		}
+		return info, true
+	}
+	return goPtrResultInfo{}, false
 }
 
 func registerAnonymousStructsForPackageGlobal(valueSpec *ast.ValueSpec, name *ast.Ident) {
@@ -782,7 +850,9 @@ func transpilePackageGlobalInit(out *strings.Builder, globals []packageGlobal) {
 			continue
 		}
 		out.WriteString("Some(")
-		if global.typ != nil {
+		if global.goPtrStorage {
+			out.WriteString("GoPtr::nil()")
+		} else if global.typ != nil {
 			out.WriteString(zeroValueForTypesType(global.typ))
 		} else {
 			out.WriteString("Default::default()")
@@ -869,7 +939,9 @@ func transpilePackageGlobalZeroHelper(out *strings.Builder, globals []packageGlo
 			continue
 		}
 		out.WriteString("Some(")
-		if global.typ != nil {
+		if global.goPtrStorage {
+			out.WriteString("GoPtr::nil()")
+		} else if global.typ != nil {
 			out.WriteString(zeroValueForTypesType(global.typ))
 		} else {
 			out.WriteString("Default::default()")
@@ -1007,6 +1079,12 @@ func writePackageGlobalInitTempAssignment(out *strings.Builder, global packageGl
 		return
 	}
 	if mapValueTypeKeepsHandle(global.typ) {
+		out.WriteString("Some(")
+		out.WriteString(tempName)
+		out.WriteString(".clone());\n")
+		return
+	}
+	if global.goPtrStorage {
 		out.WriteString("Some(")
 		out.WriteString(tempName)
 		out.WriteString(".clone());\n")

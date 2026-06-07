@@ -1466,7 +1466,7 @@ pub(crate) static netpollWaiters: std::sync::LazyLock<std::sync::Arc<std::sync::
 
 pub(crate) static pdEface: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Box<dyn Any + Send + Sync>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
-pub(crate) static pdType: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<Mutex<Option<internal_abi::r#type::Type>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) static pdType: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<GoPtr<internal_abi::r#type::Type>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
 
 fn __go_init_globals() {
@@ -1475,7 +1475,7 @@ fn __go_init_globals() {
     *pollcache.lock().unwrap() = Some(Default::default());
     *netpollWaiters.lock().unwrap() = Some(Default::default());
     *pdEface.lock().unwrap() = None;
-    *pdType.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
+    *pdType.lock().unwrap() = Some(GoPtr::nil());
     *pdEface.lock().unwrap() = Some({ let __boxed = Box::new(Arc::new(Mutex::new(None::<pollDesc>))) as Box<dyn Any + Send + Sync>; go_register_any_type_with_elem::<Arc<Mutex<Option<pollDesc>>>>("pointer", true, "struct", false); __boxed });
     *pdType.lock().unwrap() = Some({ let __field = { let __ptr = eface_of(pdEface.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap()._type.clone() }.clone(); __field });
 }
@@ -1487,7 +1487,7 @@ pub(crate) fn __go_zero_globals() {
     *pollcache.lock().unwrap() = Some(Default::default());
     *netpollWaiters.lock().unwrap() = Some(Default::default());
     *pdEface.lock().unwrap() = None;
-    *pdType.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
+    *pdType.lock().unwrap() = Some(GoPtr::nil());
 }
 
 

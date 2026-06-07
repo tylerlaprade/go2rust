@@ -1582,15 +1582,15 @@ pub(crate) static stringEface: std::sync::LazyLock<std::sync::Arc<std::sync::Mut
 
 pub(crate) static sliceEface: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Box<dyn Any + Send + Sync>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
-pub(crate) static uint16Type: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<Mutex<Option<internal_abi::r#type::Type>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) static uint16Type: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<GoPtr<internal_abi::r#type::Type>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
-pub(crate) static uint32Type: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<Mutex<Option<internal_abi::r#type::Type>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) static uint32Type: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<GoPtr<internal_abi::r#type::Type>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
-pub(crate) static uint64Type: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<Mutex<Option<internal_abi::r#type::Type>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) static uint64Type: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<GoPtr<internal_abi::r#type::Type>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
-pub(crate) static stringType: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<Mutex<Option<internal_abi::r#type::Type>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) static stringType: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<GoPtr<internal_abi::r#type::Type>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
-pub(crate) static sliceType: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<Mutex<Option<internal_abi::r#type::Type>>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
+pub(crate) static sliceType: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<GoPtr<internal_abi::r#type::Type>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
 pub(crate) static emptyTypeAssertCache: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<internal_abi::switch::TypeAssertCache>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
@@ -1608,11 +1608,11 @@ fn __go_init_globals() {
     *uint64Eface.lock().unwrap() = None;
     *stringEface.lock().unwrap() = None;
     *sliceEface.lock().unwrap() = None;
-    *uint16Type.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
-    *uint32Type.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
-    *uint64Type.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
-    *stringType.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
-    *sliceType.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
+    *uint16Type.lock().unwrap() = Some(GoPtr::nil());
+    *uint32Type.lock().unwrap() = Some(GoPtr::nil());
+    *uint64Type.lock().unwrap() = Some(GoPtr::nil());
+    *stringType.lock().unwrap() = Some(GoPtr::nil());
+    *sliceType.lock().unwrap() = Some(GoPtr::nil());
     *emptyTypeAssertCache.lock().unwrap() = Some(Default::default());
     *emptyInterfaceSwitchCache.lock().unwrap() = Some(Default::default());
     *staticuint64s.lock().unwrap() = Some(std::array::from_fn(|_| 0));
@@ -1642,11 +1642,11 @@ pub(crate) fn __go_zero_globals() {
     *uint64Eface.lock().unwrap() = None;
     *stringEface.lock().unwrap() = None;
     *sliceEface.lock().unwrap() = None;
-    *uint16Type.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
-    *uint32Type.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
-    *uint64Type.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
-    *stringType.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
-    *sliceType.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
+    *uint16Type.lock().unwrap() = Some(GoPtr::nil());
+    *uint32Type.lock().unwrap() = Some(GoPtr::nil());
+    *uint64Type.lock().unwrap() = Some(GoPtr::nil());
+    *stringType.lock().unwrap() = Some(GoPtr::nil());
+    *sliceType.lock().unwrap() = Some(GoPtr::nil());
     *emptyTypeAssertCache.lock().unwrap() = Some(Default::default());
     *emptyInterfaceSwitchCache.lock().unwrap() = Some(Default::default());
     *staticuint64s.lock().unwrap() = Some(std::array::from_fn(|_| 0));

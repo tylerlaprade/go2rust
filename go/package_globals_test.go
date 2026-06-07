@@ -317,6 +317,65 @@ func main() {
 	}
 }
 
+func TestPackageGlobalPointerInitFromGoPtrFieldUsesGoPtrStorage(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "unsafe"
+
+type Type struct{}
+
+type eface struct {
+	typ *Type
+}
+
+var sink any
+
+func raw() *Type {
+	return (*Type)(unsafe.Pointer(uintptr(0)))
+}
+
+func forceGoPtrField(e *eface) {
+	e.typ = raw()
+}
+
+func efaceOf(ep *any) *eface {
+	return (*eface)(unsafe.Pointer(ep))
+}
+
+var typ *Type = efaceOf(&sink).typ
+
+func main() {
+	go func() {}()
+}
+`)
+
+	if !strings.Contains(rust, "static typ: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<GoPtr<Type>>>>>") {
+		t.Fatalf("package-global pointer initialized from a GoPtr field should use GoPtr storage:\n%s", rust)
+	}
+	if strings.Contains(rust, "static typ: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Arc<Mutex<Option<Type>>>>>>>") {
+		t.Fatalf("package-global pointer initialized from a GoPtr field should not keep wrapper storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*typ.lock().unwrap() = Some(GoPtr::nil());") {
+		t.Fatalf("package-global GoPtr zero value should be GoPtr::nil():\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __ptr = eface_of(sink.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().typ.clone()") {
+		t.Fatalf("package-global GoPtr initializer should clone the selected GoPtr field handle:\n%s", rust)
+	}
+}
+
+func TestPackageGlobalGoPtrZeroHelperUsesGoPtrNil(t *testing.T) {
+	var out strings.Builder
+	transpilePackageGlobalZeroHelper(&out, []packageGlobal{{
+		name:         "typ",
+		rustType:     "GoPtr<Type>",
+		goPtrStorage: true,
+	}})
+	rust := out.String()
+	if !strings.Contains(rust, "*typ.borrow_mut() = Some(GoPtr::nil());") {
+		t.Fatalf("package-global GoPtr reset helper should use GoPtr::nil():\n%s", rust)
+	}
+}
+
 func TestLargePackageGlobalMapLiteralIsChunked(t *testing.T) {
 	var src strings.Builder
 	src.WriteString("package main\n\n")
