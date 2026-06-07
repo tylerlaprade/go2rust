@@ -1617,36 +1617,6 @@ pub mod os {
 }
 
 
-pub mod race {
-    use super::*;
-    pub const ENABLED: bool = false;
-
-    pub fn acquire<T0>(_arg0: T0) {
-        panic!("acquire bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn disable() {
-        panic!("disable bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn enable() {
-        panic!("enable bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn read<T0>(_arg0: T0) {
-        panic!("read bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn release<T0>(_arg0: T0) {
-        panic!("release bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn release_merge<T0>(_arg0: T0) {
-        panic!("release_merge bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
-
-
 pub mod rand {
     use super::*;
     pub fn new<T0>(_arg0: T0) -> Arc<Mutex<Option<rand_Rand>>> {

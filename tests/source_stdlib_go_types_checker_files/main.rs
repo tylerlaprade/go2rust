@@ -50,6 +50,7 @@ fn main() {
     internal_goexperiment::__go_init_all();
     internal_gover::__go_init_all();
     internal_goversion::__go_init_all();
+    internal_race::__go_init_all();
     internal_stringslite::__go_init_all();
     internal_sync::__go_init_all();
     internal_types_errors::__go_init_all();

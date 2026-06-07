@@ -149,18 +149,18 @@ impl RWMutex {
     /// call excludes new readers from acquiring the lock. See the
     /// documentation on the [RWMutex] type.
     pub fn r_lock(&self) {
-        if race::ENABLED {
-        race::read(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.w.clone()) as usize))));
-        race::disable();
+        if internal_race::ENABLED {
+        internal_race::read(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.w.clone()) as usize))));
+        internal_race::disable();
     }
         if { let __tmp_x = (*self.reader_count.lock().unwrap().as_mut().unwrap()).add(Arc::new(StdMutex::new(Some(1 as i32)))); let __tmp_y = 0 as i32; __tmp_x < __tmp_y } {
                 // A writer is pending, wait for it.
         runtime__semacquire_r_w_mutex_r(self.reader_sem.clone(), Arc::new(StdMutex::new(Some(false))), Arc::new(StdMutex::new(Some(0))));
     }
                 // A writer is pending, wait for it.
-        if race::ENABLED {
-        race::enable();
-        race::acquire(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.reader_sem.clone()) as usize))));
+        if internal_race::ENABLED {
+        internal_race::enable();
+        internal_race::acquire(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.reader_sem.clone()) as usize))));
     }
     }
 
@@ -170,22 +170,22 @@ impl RWMutex {
     /// and use of TryRLock is often a sign of a deeper problem
     /// in a particular use of mutexes.
     pub fn try_r_lock(&self) -> bool {
-        if race::ENABLED {
-        race::read(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.w.clone()) as usize))));
-        race::disable();
+        if internal_race::ENABLED {
+        internal_race::read(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.w.clone()) as usize))));
+        internal_race::disable();
     }
         loop {
         let mut c = (*self.reader_count.lock().unwrap().as_mut().unwrap()).load();
         if { let __tmp_x = c; let __tmp_y = 0 as i32; __tmp_x < __tmp_y } {
-        if race::ENABLED {
-        race::enable();
+        if internal_race::ENABLED {
+        internal_race::enable();
     }
         return false;
     }
         if (*self.reader_count.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(StdMutex::new(Some(c))), Arc::new(StdMutex::new(Some({ let __tmp_x = c; let __tmp_y = 1 as i32; __tmp_x + __tmp_y })))) {
-        if race::ENABLED {
-        race::enable();
-        race::acquire(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.reader_sem.clone()) as usize))));
+        if internal_race::ENABLED {
+        internal_race::enable();
+        internal_race::acquire(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.reader_sem.clone()) as usize))));
     }
         return true;
     }
@@ -197,10 +197,10 @@ impl RWMutex {
     /// It is a run-time error if rw is not locked for reading
     /// on entry to RUnlock.
     pub fn r_unlock(&self) {
-        if race::ENABLED {
-        race::read(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.w.clone()) as usize))));
-        race::release_merge(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.writer_sem.clone()) as usize))));
-        race::disable();
+        if internal_race::ENABLED {
+        internal_race::read(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.w.clone()) as usize))));
+        internal_race::release_merge(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.writer_sem.clone()) as usize))));
+        internal_race::disable();
     }
         {
         let mut r = (*self.reader_count.lock().unwrap().as_mut().unwrap()).add(Arc::new(StdMutex::new(Some(-1 as i32))));;
@@ -209,14 +209,14 @@ impl RWMutex {
         }
     }
                 // Outlined slow-path to allow the fast-path to be inlined
-        if race::ENABLED {
-        race::enable();
+        if internal_race::ENABLED {
+        internal_race::enable();
     }
     }
 
     pub fn r_unlock_slow(&self, r: Arc<StdMutex<Option<i32>>>) {
         if { let __tmp_x = { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as i32; __tmp_x + __tmp_y }; let __tmp_y = 0 as i32; __tmp_x == __tmp_y } || { let __tmp_x = { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as i32; __tmp_x + __tmp_y }; let __tmp_y = -RWMUTEX_MAX_READERS as i32; __tmp_x == __tmp_y } {
-        race::enable();
+        internal_race::enable();
         fatal(Arc::new(StdMutex::new(Some("sync: RUnlock of unlocked RWMutex".to_string()))));
     }
                 // A writer is pending.
@@ -230,9 +230,9 @@ impl RWMutex {
     /// If the lock is already locked for reading or writing,
     /// Lock blocks until the lock is available.
     pub fn lock(&self) {
-        if race::ENABLED {
-        race::read(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.w.clone()) as usize))));
-        race::disable();
+        if internal_race::ENABLED {
+        internal_race::read(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.w.clone()) as usize))));
+        internal_race::disable();
     }
                 // First, resolve competition with other writers.
         (*self.w.lock().unwrap().as_ref().unwrap()).lock();
@@ -242,10 +242,10 @@ impl RWMutex {
         if { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i32; __tmp_x != __tmp_y } && { let __tmp_x = (*self.reader_wait.lock().unwrap().as_mut().unwrap()).add(Arc::new(StdMutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __tmp_y = 0 as i32; __tmp_x != __tmp_y } {
         runtime__semacquire_r_w_mutex(self.writer_sem.clone(), Arc::new(StdMutex::new(Some(false))), Arc::new(StdMutex::new(Some(0))));
     }
-        if race::ENABLED {
-        race::enable();
-        race::acquire(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.reader_sem.clone()) as usize))));
-        race::acquire(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.writer_sem.clone()) as usize))));
+        if internal_race::ENABLED {
+        internal_race::enable();
+        internal_race::acquire(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.reader_sem.clone()) as usize))));
+        internal_race::acquire(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.writer_sem.clone()) as usize))));
     }
     }
 
@@ -255,27 +255,27 @@ impl RWMutex {
     /// and use of TryLock is often a sign of a deeper problem
     /// in a particular use of mutexes.
     pub fn try_lock(&self) -> bool {
-        if race::ENABLED {
-        race::read(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.w.clone()) as usize))));
-        race::disable();
+        if internal_race::ENABLED {
+        internal_race::read(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.w.clone()) as usize))));
+        internal_race::disable();
     }
         if !(*self.w.lock().unwrap().as_ref().unwrap()).try_lock() {
-        if race::ENABLED {
-        race::enable();
+        if internal_race::ENABLED {
+        internal_race::enable();
     }
         return false;
     }
         if !(*self.reader_count.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(StdMutex::new(Some(0 as i32))), Arc::new(StdMutex::new(Some(-RWMUTEX_MAX_READERS as i32)))) {
         (*self.w.lock().unwrap().as_ref().unwrap()).unlock();
-        if race::ENABLED {
-        race::enable();
+        if internal_race::ENABLED {
+        internal_race::enable();
     }
         return false;
     }
-        if race::ENABLED {
-        race::enable();
-        race::acquire(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.reader_sem.clone()) as usize))));
-        race::acquire(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.writer_sem.clone()) as usize))));
+        if internal_race::ENABLED {
+        internal_race::enable();
+        internal_race::acquire(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.reader_sem.clone()) as usize))));
+        internal_race::acquire(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.writer_sem.clone()) as usize))));
     }
         true
     }
@@ -287,15 +287,15 @@ impl RWMutex {
     /// goroutine. One goroutine may [RWMutex.RLock] ([RWMutex.Lock]) a RWMutex and then
     /// arrange for another goroutine to [RWMutex.RUnlock] ([RWMutex.Unlock]) it.
     pub fn unlock(&self) {
-        if race::ENABLED {
-        race::read(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.w.clone()) as usize))));
-        race::release(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.reader_sem.clone()) as usize))));
-        race::disable();
+        if internal_race::ENABLED {
+        internal_race::read(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.w.clone()) as usize))));
+        internal_race::release(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.reader_sem.clone()) as usize))));
+        internal_race::disable();
     }
                 // Announce to readers there is no active writer.
         let mut r = (*self.reader_count.lock().unwrap().as_mut().unwrap()).add(Arc::new(StdMutex::new(Some(RWMUTEX_MAX_READERS as i32))));
         if { let __tmp_x = r; let __tmp_y = RWMUTEX_MAX_READERS as i32; __tmp_x >= __tmp_y } {
-        race::enable();
+        internal_race::enable();
         fatal(Arc::new(StdMutex::new(Some("sync: Unlock of unlocked RWMutex".to_string()))));
     }
                 // Unblock blocked readers, if any.
@@ -306,8 +306,8 @@ impl RWMutex {
     }
                 // Allow other writers to proceed.
         (*self.w.lock().unwrap().as_ref().unwrap()).unlock();
-        if race::ENABLED {
-        race::enable();
+        if internal_race::ENABLED {
+        internal_race::enable();
     }
     }
 

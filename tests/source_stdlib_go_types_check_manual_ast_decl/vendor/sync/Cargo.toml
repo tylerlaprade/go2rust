@@ -10,5 +10,6 @@ path = "lib.rs"
 [dependencies]
 serde_json = "1"
 go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
+internal_race = { path = "../internal_race" }
 internal_sync = { path = "../internal_sync" }
 sync_atomic = { path = "../sync_atomic" }

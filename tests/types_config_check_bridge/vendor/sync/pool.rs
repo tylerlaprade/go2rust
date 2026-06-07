@@ -193,14 +193,14 @@ impl Pool {
         if { let __nil_result = (*x.lock().unwrap()).is_none(); __nil_result } {
         return;
     }
-        if race::ENABLED {
+        if internal_race::ENABLED {
         if { let __tmp_x = runtime_randn(Arc::new(StdMutex::new(Some(4 as u32)))); let __tmp_y = 0 as u32; __tmp_x == __tmp_y } {
                 // Randomly drop x on floor.
         return;
     }
                 // Randomly drop x on floor.
-        race::release_merge(pool_race_addr(x.clone()));
-        race::disable();
+        internal_race::release_merge(pool_race_addr(x.clone()));
+        internal_race::disable();
     }
                 // Randomly drop x on floor.
         let (mut l, _) = self.pin();
@@ -210,8 +210,8 @@ impl Pool {
         (*{ let __ptr_value = l.with_mut(|__ptr_value| { let __field = __ptr_value.pool_local_internal.lock().unwrap().as_ref().unwrap().shared.clone(); __field }); __ptr_value }.lock().unwrap().as_mut().unwrap()).push_head(x.clone());
     }
         runtime_proc_unpin();
-        if race::ENABLED {
-        race::enable();
+        if internal_race::ENABLED {
+        internal_race::enable();
     }
     }
 
@@ -224,8 +224,8 @@ impl Pool {
     /// If Get would otherwise return nil and p.New is non-nil, Get returns
     /// the result of calling p.New.
     pub fn get(&self) -> Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>> {
-        if race::ENABLED {
-        race::disable();
+        if internal_race::ENABLED {
+        internal_race::disable();
     }
         let (mut l, mut pid) = self.pin();
         let mut x = { let __ptr_value = l.with_mut(|__ptr_value| { let __field = __ptr_value.pool_local_internal.lock().unwrap().as_ref().unwrap().private.clone(); __field }); __ptr_value }.clone();
@@ -243,10 +243,10 @@ impl Pool {
                 // the head over the tail for temporal locality of
                 // reuse.
         runtime_proc_unpin();
-        if race::ENABLED {
-        race::enable();
+        if internal_race::ENABLED {
+        internal_race::enable();
         if { let __nil_result = (*x.lock().unwrap()).is_some(); __nil_result } {
-        race::acquire(pool_race_addr(x.clone()));
+        internal_race::acquire(pool_race_addr(x.clone()));
     }
     }
         if { let __nil_result = (*x.lock().unwrap()).is_none(); __nil_result } && { let __nil_target = self.new.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {

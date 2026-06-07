@@ -59,8 +59,8 @@ impl Mutex {
     pub fn lock(&self) {
                 // Fast path: grab unlocked mutex.
         if sync_atomic::compare_and_swap_int32(self.state.clone(), Arc::new(StdMutex::new(Some(0 as i32))), Arc::new(StdMutex::new(Some(MUTEX_LOCKED as i32)))) {
-        if race::ENABLED {
-        race::acquire(Arc::new(StdMutex::new(Some(self as *const _ as usize))));
+        if internal_race::ENABLED {
+        internal_race::acquire(Arc::new(StdMutex::new(Some(self as *const _ as usize))));
     }
         return;
     }
@@ -82,8 +82,8 @@ impl Mutex {
         if !sync_atomic::compare_and_swap_int32(self.state.clone(), Arc::new(StdMutex::new(Some({ let __arg_holder = old.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some({ let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MUTEX_LOCKED as i32; __tmp_x | __tmp_y })))) {
         return false;
     }
-        if race::ENABLED {
-        race::acquire(Arc::new(StdMutex::new(Some(self as *const _ as usize))));
+        if internal_race::ENABLED {
+        internal_race::acquire(Arc::new(StdMutex::new(Some(self as *const _ as usize))));
     }
         true
     }
@@ -215,8 +215,8 @@ impl Mutex {
                 // Starvation mode is so inefficient, that two goroutines
                 // can go lock-step infinitely once they switch mutex
                 // to starvation mode.
-        if race::ENABLED {
-        race::acquire(Arc::new(StdMutex::new(Some(self as *const _ as usize))));
+        if internal_race::ENABLED {
+        internal_race::acquire(Arc::new(StdMutex::new(Some(self as *const _ as usize))));
     }
     }
 
@@ -224,9 +224,9 @@ impl Mutex {
     ///
     /// See package [sync.Mutex] documentation.
     pub fn unlock(&self) {
-        if race::ENABLED {
+        if internal_race::ENABLED {
         let _ = self.state.clone();
-        race::release(Arc::new(StdMutex::new(Some(self as *const _ as usize))));
+        internal_race::release(Arc::new(StdMutex::new(Some(self as *const _ as usize))));
     }
                 // Fast path: drop lock bit.
         let mut new = sync_atomic::add_int32(self.state.clone(), Arc::new(StdMutex::new(Some(-MUTEX_LOCKED as i32))));

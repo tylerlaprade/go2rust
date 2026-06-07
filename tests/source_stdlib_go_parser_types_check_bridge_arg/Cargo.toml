@@ -22,6 +22,7 @@ members = [
     "vendor/internal_goexperiment",
     "vendor/internal_gover",
     "vendor/internal_goversion",
+    "vendor/internal_race",
     "vendor/internal_stringslite",
     "vendor/internal_sync",
     "vendor/internal_types_errors",
@@ -70,6 +71,7 @@ internal_godebugs = { path = "vendor/internal_godebugs" }
 internal_goexperiment = { path = "vendor/internal_goexperiment" }
 internal_gover = { path = "vendor/internal_gover" }
 internal_goversion = { path = "vendor/internal_goversion" }
+internal_race = { path = "vendor/internal_race" }
 internal_stringslite = { path = "vendor/internal_stringslite" }
 internal_sync = { path = "vendor/internal_sync" }
 internal_types_errors = { path = "vendor/internal_types_errors" }
