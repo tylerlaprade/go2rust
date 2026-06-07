@@ -3769,6 +3769,29 @@ func TestNoTypeInfoIoMultiWriterRequiresTypeInfo(t *testing.T) {
 	}
 }
 
+func TestNoTypeInfoIoDiscardRequiresTypeInfo(t *testing.T) {
+	rust := transpileNoTypeInfoRegression(t, `package main
+
+	import (
+		"fmt"
+		"io"
+	)
+
+	func main() {
+		fmt.Println(io.Discard)
+	}`)
+
+	want := `unimplemented!("type info required for io.Discard")`
+	if !strings.Contains(rust, want) {
+		t.Fatalf("io.Discard without type info must emit %q per AGENTS.md \"Type Info Is Authoritative\":\n%s", want, rust)
+	}
+	for _, forbidden := range []string{"pub mod io", "pub fn Discard()", "io_Writer"} {
+		if strings.Contains(rust, forbidden) {
+			t.Fatalf("io.Discard without type info should not emit bridge fallback %q:\n%s", forbidden, rust)
+		}
+	}
+}
+
 func TestNoTypeInfoExternalMd5NewRegistersHashStub(t *testing.T) {
 	rust := transpileNoTypeInfoRegression(t, `package main
 

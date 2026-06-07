@@ -183,17 +183,17 @@ in the first place.
   `io.MultiWriter`, direct `Writer.Write`, and promoted `bytes.Buffer`
   method signatures in focused fixtures. No runtime fixture snapshot requires
   `io_Writer`, and no-type-info `io.MultiWriter` now emits a loud type-info
-  boundary instead of registering a bridge. The remaining debt is the
-  no-type-info `io.Discard` selector fallback plus typed non-source-mapped
-  interface conversions that still emit `io_Writer`.
+  boundary instead of registering a bridge. No-type-info `io.Discard` does the
+  same. The remaining debt is typed non-source-mapped interface conversions
+  that still emit `io_Writer`.
 - Fixture: `tests/external_stdlib_variadic/`,
   `tests/external_stub_closure_capture/`,
   `tests/embedded_external_method_promotion/`,
-  `go/expr_test.go:TestNoTypeInfoIoMultiWriterRequiresTypeInfo`
-- Removal trigger: no-type-info `io.Discard` and typed non-source-mapped
-  `io.Writer` conversions either source-map the stdlib path or emit loud
-  unsupported paths without hand-written writer behavior; then delete
-  `writeIoWriterStub`.
+  `go/expr_test.go:TestNoTypeInfoIoMultiWriterRequiresTypeInfo`,
+  `go/expr_test.go:TestNoTypeInfoIoDiscardRequiresTypeInfo`
+- Removal trigger: typed non-source-mapped `io.Writer` conversions either
+  source-map the stdlib path or emit loud unsupported paths without
+  hand-written writer behavior; then delete `writeIoWriterStub`.
 - Added: 2026-05-27 (backfill)
 
 ### json-package

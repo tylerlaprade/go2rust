@@ -3556,6 +3556,30 @@ func writeNoTypeInfoExternalStdlibCallBoundary(out *strings.Builder, sel *ast.Se
 	return true
 }
 
+func writeNoTypeInfoExternalStdlibSelectorBoundary(out *strings.Builder, sel *ast.SelectorExpr) bool {
+	if GetTypeInfo() != nil {
+		return false
+	}
+	_, pkgPath, ok := externalStdlibPackageSelector(sel)
+	if !ok {
+		return false
+	}
+	var selectorName string
+	switch pkgPath {
+	case "io":
+		if sel.Sel.Name == "Discard" {
+			selectorName = "io.Discard"
+		}
+	}
+	if selectorName == "" {
+		return false
+	}
+	out.WriteString("unimplemented!(\"type info required for ")
+	out.WriteString(selectorName)
+	out.WriteString("\")")
+	return true
+}
+
 func writeAlreadyWrappedCallArgument(out *strings.Builder, arg ast.Expr) bool {
 	if unary, ok := arg.(*ast.UnaryExpr); ok && unary.Op == token.AND {
 		if ident, ok := unary.X.(*ast.Ident); ok && ident.Name != "_" && ident.Name != "nil" {
@@ -11277,6 +11301,8 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				// Check for known stdlib selector mappings (constants like time.Hour)
 				if rustExpr := GetStdlibSelectorMapping(resolveStdlibPackageName(ident.Name), e.Sel.Name); rustExpr != "" {
 					out.WriteString(rustExpr)
+				} else if writeNoTypeInfoExternalStdlibSelectorBoundary(out, e) {
+					// Missing type facts must stay loud instead of registering bridge fallbacks.
 				} else {
 					// Unknown stdlib selector - emit as package::selector
 					RegisterExternalPackageSelector(e)
