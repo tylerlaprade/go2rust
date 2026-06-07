@@ -754,6 +754,14 @@ func writeGoPtrPointerPrintAddressValue(out *strings.Builder, arg ast.Expr) bool
 		}
 		out.WriteString(`; format!("0x{:x}", __ptr.addr()) }`)
 		return true
+	case *ast.SelectorExpr:
+		if !generatedGoPtrFieldForSelector(e) {
+			return false
+		}
+		out.WriteString(`{ let __ptr = `)
+		writeGeneratedGoPtrFieldHandleClone(out, e)
+		out.WriteString(`; format!("0x{:x}", __ptr.addr()) }`)
+		return true
 	}
 	return false
 }

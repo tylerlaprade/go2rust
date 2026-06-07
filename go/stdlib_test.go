@@ -1156,6 +1156,42 @@ func warn(addr uintptr) {
 	}
 }
 
+func TestBuiltinPrintGoPtrPointerSelectorFormatsHandle(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct {
+	next *node
+}
+
+func raw(addr uintptr) *node {
+	return (*node)(unsafe.Pointer(addr))
+}
+
+func initNode(n *node, addr uintptr) {
+	n.next = raw(addr)
+}
+
+func warn(addr uintptr) {
+	n := raw(addr)
+	print(" next=", n.next)
+}
+`)
+
+	if !strings.Contains(rust, "pub next: GoPtr<node>") {
+		t.Fatalf("test setup should promote next to GoPtr storage:\n%s", rust)
+	}
+	if strings.Contains(rust, ".next.lock()") ||
+		strings.Contains(rust, ".next.borrow()") ||
+		strings.Contains(rust, ".next.clone(); __field }.lock()") {
+		t.Fatalf("printing a GoPtr pointer selector should not treat the GoPtr handle as an old wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, `format!("{}", { let __ptr = { let __ptr_value = n.borrow(); let __field_value = __ptr_value.as_ref().unwrap().next.clone(); __field_value }; format!("0x{:x}", __ptr.addr()) })`) {
+		t.Fatalf("printing a GoPtr pointer selector should format the selected GoPtr address:\n%s", rust)
+	}
+}
+
 func TestBuiltinPrintAddressOfPointerFormatsHandleAddress(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
