@@ -318,6 +318,36 @@ func wire(items []node) {
 	}
 }
 
+func TestGoPtrPointedArrayTupleAssignmentUsesGoPtrMutation(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type state struct {
+	seed uint64
+}
+
+func swap(s *state) uint32 {
+	t := (*[2]uint32)(unsafe.Pointer(&s.seed))
+	s1, s0 := t[0], t[1]
+	t[0], t[1] = s0, s1
+	return t[0]
+}
+`)
+
+	if !strings.Contains(rust, "let mut t: GoPtr<[u32; 2]>") {
+		t.Fatalf("test setup should lower pointer-to-array unsafe conversion to a GoPtr array handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "t.with_mut(|__seq| { __seq[(0) as usize] = __tmp_0; });") ||
+		!strings.Contains(rust, "t.with_mut(|__seq| { __seq[(1) as usize] = __tmp_1; });") {
+		t.Fatalf("tuple assignment to a GoPtr pointed array should mutate through GoPtr::with_mut:\n%s", rust)
+	}
+	if strings.Contains(rust, "(*t.borrow_mut().as_mut().unwrap())") ||
+		strings.Contains(rust, "(*t.lock().unwrap().as_mut().unwrap())") {
+		t.Fatalf("tuple assignment to a GoPtr pointed array should not treat GoPtr as an ordinary wrapper:\n%s", rust)
+	}
+}
+
 func TestUnsafePointerFromGoPtrArrayPointerFieldElementUsesAddress(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

@@ -6441,6 +6441,9 @@ func writeIndexedSequenceAssignmentFromTemp(out *strings.Builder, indexExpr *ast
 	if !elemKeepsHandle {
 		elemKeepsHandle = tupleTempAssignsHandleToElementBySyntax(indexExpr.X)
 	}
+	if writeGoPtrPointedArrayAssignmentFromTemp(out, indexExpr, tmpName, tmpWrapped, rhs, elemKeepsHandle) {
+		return true
+	}
 	out.WriteString(" (*")
 	if subj := unwrapParens(indexExpr.X); isNamedSliceExpression(subj) {
 		writeNamedSliceInnerHandleClone(out, subj)
@@ -6451,6 +6454,30 @@ func writeIndexedSequenceAssignmentFromTemp(out *strings.Builder, indexExpr *ast
 	out.WriteString(".as_mut().unwrap())[")
 	writeExpressionAsUsize(out, indexExpr.Index)
 	out.WriteString("] = ")
+	writeIndexedSequenceTempAssignmentValue(out, indexExpr, tmpName, tmpWrapped, rhs, elemKeepsHandle)
+	out.WriteString(";")
+	return true
+}
+
+func writeGoPtrPointedArrayAssignmentFromTemp(out *strings.Builder, indexExpr *ast.IndexExpr, tmpName string, tmpWrapped bool, rhs ast.Expr, elemKeepsHandle bool) bool {
+	ident, ok := unwrapParens(indexExpr.X).(*ast.Ident)
+	if !ok {
+		return false
+	}
+	if _, ok := goPtrIdentPointedArrayType(ident); !ok {
+		return false
+	}
+	out.WriteString(" ")
+	out.WriteString(rustIdentForUseWithCapture(ident))
+	out.WriteString(".with_mut(|__seq| { __seq[")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("] = ")
+	writeIndexedSequenceTempAssignmentValue(out, indexExpr, tmpName, tmpWrapped, rhs, elemKeepsHandle)
+	out.WriteString("; });")
+	return true
+}
+
+func writeIndexedSequenceTempAssignmentValue(out *strings.Builder, indexExpr *ast.IndexExpr, tmpName string, tmpWrapped bool, rhs ast.Expr, elemKeepsHandle bool) {
 	if elemKeepsHandle {
 		out.WriteString(tmpName)
 	} else if tmpWrapped {
@@ -6462,8 +6489,6 @@ func writeIndexedSequenceAssignmentFromTemp(out *strings.Builder, indexExpr *ast
 	} else {
 		out.WriteString(tmpName)
 	}
-	out.WriteString(";")
-	return true
 }
 
 func writeIndexedSequenceBareTempValue(out *strings.Builder, indexExpr *ast.IndexExpr, tmpName string, rhs ast.Expr) {
