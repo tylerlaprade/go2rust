@@ -1131,6 +1131,31 @@ func forceConcurrent(ch chan bool) {
 	}
 }
 
+func TestBuiltinPrintGoPtrPointerFormatsHandle(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct{}
+
+func raw(addr uintptr) *node {
+	return (*node)(unsafe.Pointer(addr))
+}
+
+func warn(addr uintptr) {
+	n := raw(addr)
+	print(" node=", n)
+}
+`)
+
+	if strings.Contains(rust, "n.lock()") || strings.Contains(rust, "n.borrow()") {
+		t.Fatalf("printing a GoPtr pointer should not borrow it as a wrapper handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, `format!("{}", format!("0x{:x}", n.addr()))`) {
+		t.Fatalf("printing a GoPtr pointer should format the GoPtr address:\n%s", rust)
+	}
+}
+
 func TestBuiltinPrintAddressOfPointerFormatsHandleAddress(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

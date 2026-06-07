@@ -535,6 +535,9 @@ func transpilePrintArg(out *strings.Builder, arg ast.Expr) {
 		if writePointerAddressPrintArg(out, arg, argType) {
 			return
 		}
+		if writeGoPtrPointerPrintArg(out, arg, argType) {
+			return
+		}
 		// Check if it's a pointer to a struct - Go prints "&{...}" for these
 		if ptr, ok := argType.(*types.Pointer); ok {
 			if _, ok := ptr.Elem().Underlying().(*types.Struct); ok {
@@ -711,6 +714,48 @@ func isPointerToPointerType(typ types.Type) bool {
 	}
 	_, ok = types.Unalias(ptr.Elem()).Underlying().(*types.Pointer)
 	return ok
+}
+
+func writeGoPtrPointerPrintArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
+	if !isPointerType(argType) {
+		return false
+	}
+	if !writeGoPtrPointerPrintAddressValue(out, arg) {
+		return false
+	}
+	return true
+}
+
+func writeGoPtrPointerPrintAddressValue(out *strings.Builder, arg ast.Expr) bool {
+	switch e := unwrapParens(arg).(type) {
+	case *ast.Ident:
+		if !isGoPtrVar(e.Name) {
+			return false
+		}
+		out.WriteString(`format!("0x{:x}", `)
+		out.WriteString(rustIdentForUseWithCapture(e))
+		out.WriteString(".addr())")
+		return true
+	case *ast.CallExpr:
+		if _, ok := goPtrResultInfoForCall(e, 0); !ok {
+			return false
+		}
+		out.WriteString(`{ let __ptr = `)
+		TranspileExpression(out, e)
+		out.WriteString(`; format!("0x{:x}", __ptr.addr()) }`)
+		return true
+	case *ast.StarExpr:
+		if _, ok := goPtrSlotDerefResultInfo(e); !ok {
+			return false
+		}
+		out.WriteString(`{ let __ptr = `)
+		if !writeGoPtrSlotDerefRead(out, e) {
+			return false
+		}
+		out.WriteString(`; format!("0x{:x}", __ptr.addr()) }`)
+		return true
+	}
+	return false
 }
 
 func writeGoErrorFormatArg(out *strings.Builder, arg ast.Expr, argType types.Type) bool {
