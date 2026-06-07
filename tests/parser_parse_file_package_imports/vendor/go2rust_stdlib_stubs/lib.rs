@@ -843,6 +843,10 @@ pub mod bits {
     pub fn mul<T0, T1>(_arg0: T0, _arg1: T1) -> (u64, u64) {
         panic!("mul bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
+
+    pub fn trailing_zeros<T0>(_arg0: T0) -> i32 {
+        panic!("trailing_zeros bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
 }
 
 
@@ -956,109 +960,6 @@ pub mod os {
 }
 
 
-pub mod strconv {
-    use super::*;
-
-    pub trait GoStrconvStringArg {
-        fn into_go_strconv_string(self) -> String;
-    }
-
-    impl GoStrconvStringArg for String {
-        fn into_go_strconv_string(self) -> String {
-            self
-        }
-    }
-
-    impl<'a> GoStrconvStringArg for &'a str {
-        fn into_go_strconv_string(self) -> String {
-            self.to_string()
-        }
-    }
-
-    impl<'a> GoStrconvStringArg for &'a String {
-        fn into_go_strconv_string(self) -> String {
-            self.clone()
-        }
-    }
-
-    impl GoStrconvStringArg for Arc<Mutex<Option<String>>> {
-        fn into_go_strconv_string(self) -> String {
-            self.lock().unwrap().as_ref().cloned().unwrap_or_default()
-        }
-    }
-
-    fn strconv_error(message: String) -> Box<dyn std::error::Error + Send + Sync> {
-        Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, message))
-    }
-
-    fn strconv_hex_digit(ch: char) -> Option<u32> {
-        ch.to_digit(16)
-    }
-
-    fn strconv_read_hex<I: Iterator<Item = char>>(chars: &mut I, count: usize) -> Result<char, Box<dyn std::error::Error + Send + Sync>> {
-        let mut value = 0u32;
-        for _ in 0..count {
-            let ch = chars.next().ok_or_else(|| strconv_error("invalid quoted string".to_string()))?;
-            let digit = strconv_hex_digit(ch).ok_or_else(|| strconv_error("invalid quoted string".to_string()))?;
-            value = (value << 4) | digit;
-        }
-        char::from_u32(value).ok_or_else(|| strconv_error("invalid quoted string".to_string()))
-    }
-
-    fn strconv_unquote_text(input: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        let mut chars = input.chars();
-        let quote = chars.next().ok_or_else(|| strconv_error("invalid quoted string".to_string()))?;
-        if quote != '"' && quote != '\'' && quote != char::from(96) {
-            return Err(strconv_error("invalid quoted string".to_string()));
-        }
-        let inner = input.strip_prefix(quote).and_then(|s| s.strip_suffix(quote)).ok_or_else(|| strconv_error("invalid quoted string".to_string()))?;
-        if quote == char::from(96) {
-            return Ok(inner.to_string());
-        }
-        let mut out = String::new();
-        let mut chars = inner.chars();
-        while let Some(ch) = chars.next() {
-            if ch != '\\' {
-                out.push(ch);
-                continue;
-            }
-            let esc = chars.next().ok_or_else(|| strconv_error("invalid quoted string".to_string()))?;
-            match esc {
-                'a' => out.push('\x07'),
-                'b' => out.push('\x08'),
-                'f' => out.push('\x0c'),
-                'n' => out.push('\n'),
-                'r' => out.push('\r'),
-                't' => out.push('\t'),
-                'v' => out.push('\x0b'),
-                '\\' => out.push('\\'),
-                '"' => out.push('"'),
-                '\'' => out.push('\''),
-                'x' => out.push(strconv_read_hex(&mut chars, 2)?),
-                'u' => out.push(strconv_read_hex(&mut chars, 4)?),
-                'U' => out.push(strconv_read_hex(&mut chars, 8)?),
-                '0'..='7' => {
-                    let mut value = esc.to_digit(8).unwrap();
-                    for _ in 0..2 {
-                        let Some(next) = chars.clone().next() else { break };
-                        let Some(digit) = next.to_digit(8) else { break };
-                        chars.next();
-                        value = (value << 3) | digit;
-                    }
-                    out.push(char::from_u32(value).ok_or_else(|| strconv_error("invalid quoted string".to_string()))?);
-                }
-                _ => return Err(strconv_error("invalid quoted string".to_string())),
-            }
-        }
-        Ok(out)
-    }
-
-    pub fn parse_uint<T0, T1, T2>(_arg0: T0, _arg1: T1, _arg2: T2) -> (u64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        panic!("parse_uint bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
-
-
 pub mod unicode {
     use super::*;
     pub const MAX_RUNE: i32 = 1114111;
@@ -1096,5 +997,9 @@ pub mod utf8 {
 
     pub fn rune_count_in_string<T0>(_arg0: T0) -> i32 {
         panic!("rune_count_in_string bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+
+    pub fn valid_rune<T0>(_arg0: T0) -> bool {
+        panic!("valid_rune bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }

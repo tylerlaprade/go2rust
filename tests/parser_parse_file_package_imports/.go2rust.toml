@@ -1,1 +1,1 @@
-source_stdlib_packages = "go/parser,go/scanner,go/ast,go/token,strings,slices,cmp,path/filepath,internal/filepathlite,internal/stringslite,internal/bytealg,internal/cpu"
+source_stdlib_packages = "go/parser,go/scanner,go/ast,go/token,strings,slices,cmp,path/filepath,internal/filepathlite,internal/stringslite,internal/bytealg,internal/cpu,strconv"

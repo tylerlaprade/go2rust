@@ -14,6 +14,7 @@ members = [
     "vendor/internal_stringslite",
     "vendor/path_filepath",
     "vendor/slices",
+    "vendor/strconv",
     "vendor/strings",
 ]
 
@@ -39,4 +40,5 @@ internal_filepathlite = { path = "vendor/internal_filepathlite" }
 internal_stringslite = { path = "vendor/internal_stringslite" }
 path_filepath = { path = "vendor/path_filepath" }
 slices = { path = "vendor/slices" }
+strconv = { path = "vendor/strconv" }
 strings = { path = "vendor/strings" }

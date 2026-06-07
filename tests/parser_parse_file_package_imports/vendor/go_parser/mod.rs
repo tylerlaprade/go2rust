@@ -1,11 +1,12 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_any_slice, format_any_variadic, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_any_slice, format_any_variadic, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::interface::*;
 use crate::resolver::*;
 
 use std::any::Any;
+use std::cell::{RefCell};
 use std::collections::BTreeMap;
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
@@ -261,7 +262,7 @@ impl parser {
 
         const n: i32 = dots.len() as i32;
 
-        let mut pos = (*self.file.lock().unwrap().as_ref().unwrap()).position({ let __field = self.pos.clone(); __field });
+        let mut pos = (*self.file.lock().unwrap().as_ref().unwrap()).position(Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
         print!("{:5}:{:3}: ", (*{ let __field = (*pos.lock().unwrap().as_ref().unwrap()).line.clone(); __field }.lock().unwrap().as_ref().unwrap()), (*{ let __field = (*pos.lock().unwrap().as_ref().unwrap()).column.clone(); __field }.lock().unwrap().as_ref().unwrap()));
         let mut i = Arc::new(Mutex::new(Some({ let __tmp_x = 2; let __tmp_y = (*self.indent.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y })));
         while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 64; __tmp_x > __tmp_y } {
@@ -292,10 +293,10 @@ impl parser {
         loop {
         { let (__tmp_0, __tmp_1, __tmp_2) = (*self.scanner.lock().unwrap().as_mut().unwrap()).scan(); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *self.pos.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *self.tok.lock().unwrap() = __moved_tmp_1; let __moved_tmp_2 = { let mut __guard = __tmp_2.lock().unwrap(); __guard.take() }; *self.lit.lock().unwrap() = __moved_tmp_2; };
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_M_M_E_N_T as i32)))); __tmp_x == __tmp_y } {
-        if (*self.top.clone().lock().unwrap().as_ref().unwrap()) && strings::has_prefix({ let __field = self.lit.clone(); __field }, Arc::new(Mutex::new(Some("//go:build".to_string())))) {
+        if (*self.top.clone().lock().unwrap().as_ref().unwrap()) && strings::has_prefix(Arc::new(Mutex::new(Some({ let __selector_holder = self.lit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some("//go:build".to_string())))) {
         {
         let (mut x, mut err) = constraint::parse({ let __selector_holder = self.lit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned });;
-        if (*err.lock().unwrap()).is_none() {
+        if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } {
             { let new_val = constraint::go_version(x.clone()); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *self.go_version.lock().unwrap() = __moved_val; };;
         }
     }
@@ -319,7 +320,7 @@ impl parser {
 
                 // /*-style comments may end on a different line than where they start.
                 // Scan the comment for '\n' chars and adjust endline accordingly.
-        { let new_val = (*self.file.lock().unwrap().as_ref().unwrap()).line({ let __field = self.pos.clone(); __field }); *endline.lock().unwrap() = Some(new_val); };
+        { let new_val = (*self.file.lock().unwrap().as_ref().unwrap()).line(Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); *endline.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = { let __s = &((*self.lit.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] }; let __tmp_y = ('*' as i32) as u8; __tmp_x == __tmp_y } {
                 // don't use range here - no need to decode Unicode code points
         let mut i = Arc::new(Mutex::new(Some(0)));
@@ -333,7 +334,7 @@ impl parser {
                 // don't use range here - no need to decode Unicode code points
         { let new_val = Arc::new(Mutex::new(Some(go_ast::r#mod::Comment { slash: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), text: Arc::new(Mutex::new(Some({ let __selector_holder = self.lit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone(); comment = new_val; };
         self.next0();
-        return (comment, (*endline.lock().unwrap().as_ref().unwrap()));
+        return (comment.clone(), (*endline.lock().unwrap().as_ref().unwrap()));
     }
 
     /// Consume a group of adjacent comments, add it to the parser's
@@ -345,8 +346,8 @@ impl parser {
     let mut endline: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
 
         let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<go_ast::r#mod::Comment>>>>>>> = Arc::new(Mutex::new(None));
-        { let new_val = (*self.file.lock().unwrap().as_ref().unwrap()).line({ let __field = self.pos.clone(); __field }); *endline.lock().unwrap() = Some(new_val); };
-        while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_M_M_E_N_T as i32)))); __tmp_x == __tmp_y } && { let __tmp_x = (*self.file.lock().unwrap().as_ref().unwrap()).line({ let __field = self.pos.clone(); __field }); let __tmp_y = { let __tmp_x = { let __v = (*endline.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; __tmp_x <= __tmp_y } {
+        { let new_val = (*self.file.lock().unwrap().as_ref().unwrap()).line(Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); *endline.lock().unwrap() = Some(new_val); };
+        while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_M_M_E_N_T as i32)))); __tmp_x == __tmp_y } && { let __tmp_x = (*self.file.lock().unwrap().as_ref().unwrap()).line(Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __tmp_y = { let __tmp_x = { let __v = (*endline.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; __tmp_x <= __tmp_y } {
         let mut comment: Arc<Mutex<Option<go_ast::r#mod::Comment>>> = Arc::new(Mutex::new(None));
         { let (__tmp_0, __tmp_1) = self.consume_comment(); comment = __tmp_0.clone(); *endline.lock().unwrap() = Some(__tmp_1); };
         { let new_val = { let __append_target = list.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(comment.clone()); __append_target.clone() }; list = new_val; };
@@ -354,7 +355,7 @@ impl parser {
                 // add comment group to the comments list
         { let new_val = Arc::new(Mutex::new(Some(go_ast::r#mod::CommentGroup { list: list.clone(), ..Default::default() }))).clone(); comments = new_val; };
         { let new_val = { let __append_target = self.comments.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(comments.clone()); __append_target.clone() }; self.comments = new_val; };
-        return (comments, (*endline.lock().unwrap().as_ref().unwrap()));
+        return (comments.clone(), (*endline.lock().unwrap().as_ref().unwrap()));
     }
 
     /// Advance to the next non-comment token. In the process, collect
@@ -379,11 +380,11 @@ impl parser {
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_M_M_E_N_T as i32)))); __tmp_x == __tmp_y } {
         let mut comment: Arc<Mutex<Option<go_ast::r#mod::CommentGroup>>> = Arc::new(Mutex::new(None));
         let mut endline: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
-        if { let __tmp_x = (*self.file.lock().unwrap().as_ref().unwrap()).line({ let __field = self.pos.clone(); __field }); let __tmp_y = (*self.file.lock().unwrap().as_ref().unwrap()).line(Arc::new(Mutex::new(Some({ let __arg_holder = prev.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __tmp_x == __tmp_y } {
+        if { let __tmp_x = (*self.file.lock().unwrap().as_ref().unwrap()).line(Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __tmp_y = (*self.file.lock().unwrap().as_ref().unwrap()).line(Arc::new(Mutex::new(Some({ let __arg_holder = prev.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __tmp_x == __tmp_y } {
                 // The comment is on same line as the previous token; it
                 // cannot be a lead comment but may be a line comment.
         { let (__tmp_0, __tmp_1) = self.consume_comment_group(Arc::new(Mutex::new(Some(0)))); comment = __tmp_0.clone(); *endline.lock().unwrap() = Some(__tmp_1); };
-        if { let __tmp_x = (*self.file.lock().unwrap().as_ref().unwrap()).line({ let __field = self.pos.clone(); __field }); let __tmp_y = { let __v = (*endline.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x != __tmp_y } || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_M_I_C_O_L_O_N as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_O_F as i32)))); __tmp_x == __tmp_y } {
+        if { let __tmp_x = (*self.file.lock().unwrap().as_ref().unwrap()).line(Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __tmp_y = { let __v = (*endline.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x != __tmp_y } || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_M_I_C_O_L_O_N as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_O_F as i32)))); __tmp_x == __tmp_y } {
                 // The next token is on a different line, thus
                 // the last comment group is a line comment.
         { let new_val = comment.clone(); self.line_comment = new_val; };
@@ -398,7 +399,7 @@ impl parser {
         while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_M_M_E_N_T as i32)))); __tmp_x == __tmp_y } {
         { let (__tmp_0, __tmp_1) = self.consume_comment_group(Arc::new(Mutex::new(Some(1)))); comment = __tmp_0.clone(); *endline.lock().unwrap() = Some(__tmp_1); };
     }
-        if { let __tmp_x = { let __tmp_x = { let __v = (*endline.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }; let __tmp_y = (*self.file.lock().unwrap().as_ref().unwrap()).line({ let __field = self.pos.clone(); __field }); __tmp_x == __tmp_y } {
+        if { let __tmp_x = { let __tmp_x = { let __v = (*endline.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }; let __tmp_y = (*self.file.lock().unwrap().as_ref().unwrap()).line(Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); __tmp_x == __tmp_y } {
                 // The next token is following on the line immediately after the
                 // comment group, thus the last comment group is a lead comment.
         { let new_val = comment.clone(); self.lead_comment = new_val; };
@@ -409,16 +410,19 @@ impl parser {
     pub fn error(&self, pos: Arc<Mutex<Option<go_token::position::Pos>>>, msg: Arc<Mutex<Option<String>>>) {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let msg_defer_captured = msg.clone(); let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some(format!("{}{}", "error: ".to_string(), { let __v = (*msg_defer_captured.lock().unwrap().as_ref().unwrap()).clone(); __v }))))));
     }));
     }
-        let mut epos = (*self.file.lock().unwrap().as_ref().unwrap()).position(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-                // If AllErrors is not set, discard errors reported on the same line
-                // as the last recorded error and stop parsing if there are more than
-                // 10 errors.
-        if { let __tmp_x = crate::interface::Mode(Arc::new(Mutex::new(Some(((*(*self.mode.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & ALL_ERRORS as u64))))); let __tmp_y = crate::interface::Mode(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x == __tmp_y } {
+            let mut epos = (*self.file.lock().unwrap().as_ref().unwrap()).position(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+                        // If AllErrors is not set, discard errors reported on the same line
+                        // as the last recorded error and stop parsing if there are more than
+                        // 10 errors.
+            if { let __tmp_x = crate::interface::Mode(Arc::new(Mutex::new(Some(((*(*self.mode.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & ALL_ERRORS as u64))))); let __tmp_y = crate::interface::Mode(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x == __tmp_y } {
         let mut n = Arc::new(Mutex::new(Some({ let __slice_holder = { let __named_slice = (*self.errors.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32)));
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } && { let __tmp_x = (*(*(*{ let __seq_holder = { let __named_slice = (*self.errors.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }.lock().unwrap().as_ref().unwrap()).pos.lock().unwrap().as_ref().unwrap()).line.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*epos.lock().unwrap().as_ref().unwrap()).line.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } {
         {
@@ -431,15 +435,28 @@ impl parser {
     }
                 // discard - likely a spurious error
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x > __tmp_y } {
-        panic!("{}", bailout { pos: Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(0))))))), msg: Arc::new(Mutex::new(Some(String::new()))) });
+        std::panic::panic_any(Box::new(bailout { pos: Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(0))))))), msg: Arc::new(Mutex::new(Some(String::new()))) }) as Box<dyn Any + Send + Sync>);
     }
     }
-                // discard - likely a spurious error
-        (*self.errors.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some({ let __arg_holder = epos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = msg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+                        // discard - likely a spurious error
+            (*self.errors.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some({ let __arg_holder = epos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = msg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
 
-        // Execute deferred functions
-        while let Some(f) = __defer_stack.pop() {
-            f();
+            // Execute deferred functions
+            while let Some(f) = __defer_stack.pop() {
+                f();
+            }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                ()
+            }
         }
     }
 
@@ -480,17 +497,17 @@ impl parser {
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*tok.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } {
         { let new_val = go_token::position::Pos(Arc::new(Mutex::new(Some((*(*self.pos.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *pos.lock().unwrap() = Some(new_val); };
     } else {
-        { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "'".to_string())); __s.push_str(&format!("{}", (*go_token::r#mod::Token::string(&(*tok.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", "'".to_string())); __s }))); self.error_expected(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "'".to_string())); __s.push_str(&format!("{}", (*go_token::r#mod::Token::string(&(*tok.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", "'".to_string())); __s }))); self.error_expected(__method_arg0, __method_arg1) };
     }
         self.next();
-        pos
+        pos.clone()
     }
 
     /// expectClosing is like expect but provides a better error message
     /// for the common case of a missing comma before a newline.
     pub fn expect_closing(&mut self, tok: Arc<Mutex<Option<go_token::r#mod::Token>>>, context: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<go_token::position::Pos>>> {
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*tok.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_M_I_C_O_L_O_N as i32)))); __tmp_x == __tmp_y } && { let __tmp_x = (*self.lit.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "\n".to_string(); __tmp_x == __tmp_y } {
-        { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some(format!("{}{}", "missing ',' before newline in ".to_string(), { let __v = (*context.lock().unwrap().as_ref().unwrap()).clone(); __v })))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some(format!("{}{}", "missing ',' before newline in ".to_string(), { let __v = (*context.lock().unwrap().as_ref().unwrap()).clone(); __v })))); self.error(__method_arg0, __method_arg1) };
         self.next();
     }
         self.expect(Arc::new(Mutex::new(Some({ let __arg_holder = tok.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))
@@ -510,7 +527,7 @@ impl parser {
             _matched = true;
             _fallthrough = false;
                         // permit a ',' instead of a ';' but complain
-            { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("';'".to_string()))); self.error_expected(__method_arg0, __method_arg1) };
+            { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("';'".to_string()))); self.error_expected(__method_arg0, __method_arg1) };
             _fallthrough = true;
         }
         if !_matched && (_switch_val == go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_M_I_C_O_L_O_N as i32))))) || _fallthrough {
@@ -534,7 +551,7 @@ impl parser {
         if !_matched || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("';'".to_string()))); self.error_expected(__method_arg0, __method_arg1) };
+            { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("';'".to_string()))); self.error_expected(__method_arg0, __method_arg1) };
             self.advance(stmtStart.clone());
         }
     }
@@ -556,7 +573,7 @@ impl parser {
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_M_I_C_O_L_O_N as i32)))); __tmp_x == __tmp_y } && { let __tmp_x = (*self.lit.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "\n".to_string(); __tmp_x == __tmp_y } {
         { (*msg.lock().unwrap().as_mut().unwrap()).push_str(&" before newline".to_string()); };
     }
-        { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", " in ".to_string())); __s.push_str(&format!("{}", { let __v = (*context.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s }))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", " in ".to_string())); __s.push_str(&format!("{}", { let __v = (*context.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s }))); self.error(__method_arg0, __method_arg1) };
         return true;
     }
                 // "insert" comma and continue
@@ -603,23 +620,39 @@ impl parser {
 
     let mut res: Arc<Mutex<Option<go_token::position::Pos>>> = Arc::new(Mutex::new(Some(Default::default())));
 
-        let mut p_defer_captured = self.clone(); let mut res_defer_captured = res.clone(); __defer_stack.push(Box::new(move || {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let mut p_defer_captured = self.clone(); let mut res_defer_captured = res.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
-        if (*Arc::new(Mutex::new(None::<Box<dyn Any + Send + Sync>>)).lock().unwrap()).is_some() {
+        if { let __nil_result = (*go_recover().lock().unwrap()).is_some(); __nil_result } {
         { let new_val = go_token::position::Pos(Arc::new(Mutex::new(Some({ let __tmp_x = (*p_defer_captured.file.lock().unwrap().as_ref().unwrap()).base(); let __tmp_y = (*p_defer_captured.file.lock().unwrap().as_ref().unwrap()).size(); __tmp_x + __tmp_y } as i32)))); *res_defer_captured.lock().unwrap() = Some(new_val); };
     }
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
-                // EOF position
-        let _ = (*self.file.lock().unwrap().as_ref().unwrap()).offset(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-        {
+                        // EOF position
+            let _ = (*self.file.lock().unwrap().as_ref().unwrap()).offset(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            {
         { let new_val = pos.lock().unwrap().as_ref().unwrap().clone(); *res.lock().unwrap() = Some(new_val); };;
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return res;
+        return res.clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                res.clone()
+            }
+        }
     }
 
     pub fn parse_ident(&mut self) -> Arc<Mutex<Option<go_ast::r#mod::Ident>>> {
@@ -640,23 +673,39 @@ impl parser {
 
     let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<go_ast::r#mod::Ident>>>>>>> = Arc::new(Mutex::new(None));
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("IdentList".to_string())))));
     }));
     }
-        { let new_val = { let __append_target = list.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(self.parse_ident()); __append_target.clone() }; list = new_val; };
-        while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_M_M_A as i32)))); __tmp_x == __tmp_y } {
+            { let new_val = { let __append_target = list.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(self.parse_ident()); __append_target.clone() }; list = new_val; };
+            while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_M_M_A as i32)))); __tmp_x == __tmp_y } {
         self.next();
         { let new_val = { let __append_target = list.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(self.parse_ident()); __append_target.clone() }; list = new_val; };
     }
-        {
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return list;
+        return list.clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                list.clone()
+            }
+        }
     }
 
     /// If lhs is set, result list elements which are identifiers are not resolved.
@@ -665,23 +714,39 @@ impl parser {
 
     let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("ExpressionList".to_string())))));
     }));
     }
-        { let new_val = { let __append_target = list.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(self.parse_expr().clone()); __append_target.clone() }; list = new_val; };
-        while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_M_M_A as i32)))); __tmp_x == __tmp_y } {
+            { let new_val = { let __append_target = list.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(self.parse_expr().clone()); __append_target.clone() }; list = new_val; };
+            while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_M_M_A as i32)))); __tmp_x == __tmp_y } {
         self.next();
         { let new_val = { let __append_target = list.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(self.parse_expr().clone()); __append_target.clone() }; list = new_val; };
     }
-        {
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return list;
+        return list.clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                list.clone()
+            }
+        }
     }
 
     pub fn parse_list(&mut self, inRhs: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>> {
@@ -695,13 +760,16 @@ impl parser {
     pub fn parse_type(&mut self) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("Type".to_string())))));
     }));
     }
-        let mut typ = self.try_ident_or_type();
-        if (*typ.lock().unwrap()).is_none() {
+            let mut typ = self.try_ident_or_type();
+            if { let __nil_result = (*typ.lock().unwrap()).is_none(); __nil_result } {
         let mut pos = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         self.error_expected(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("type".to_string()))));
         self.advance(exprEnd.clone());
@@ -713,49 +781,81 @@ impl parser {
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadExpr { from: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), to: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)));
     }
     }
-        {
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return typ.clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_qualified_ident(&mut self, ident: Arc<Mutex<Option<go_ast::r#mod::Ident>>>) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("QualifiedIdent".to_string())))));
     }));
     }
-        let mut typ = self.parse_type_name(ident.clone());
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_K as i32)))); __tmp_x == __tmp_y } {
-        { let __iface_handle = self.parse_type_instance(typ.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+            let mut typ = self.parse_type_name(ident.clone());
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_K as i32)))); __tmp_x == __tmp_y } {
+        { let __iface_handle = self.parse_type_instance(typ.clone()).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };
     }
-        {
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return typ.clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     /// If the result is an identifier, it is not resolved.
     pub fn parse_type_name(&mut self, mut ident: Arc<Mutex<Option<go_ast::r#mod::Ident>>>) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("TypeName".to_string())))));
     }));
     }
-        if (*ident.lock().unwrap()).is_none() {
+            if { let __nil_result = (*ident.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = self.parse_ident().clone(); ident = new_val; };
     }
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::P_E_R_I_O_D as i32)))); __tmp_x == __tmp_y } {
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::P_E_R_I_O_D as i32)))); __tmp_x == __tmp_y } {
                 // ident is a package name
         self.next();
         let mut sel = self.parse_ident();
@@ -767,14 +867,27 @@ impl parser {
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::SelectorExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::SelectorExpr { x: Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(ident.clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), sel: sel.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)));
     }
     }
-                // ident is a package name
-        {
+                        // ident is a package name
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(ident.clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     /// "[" has already been consumed, and lbrack is its position.
@@ -783,56 +896,75 @@ impl parser {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
         let mut len: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> = Arc::new(Mutex::new(len.lock().unwrap().as_ref().map(|__v| go_ast::r#mod::Expr::__go_clone_box_expr(__v.as_ref()))));
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("ArrayType".to_string())))));
     }));
     }
-        if (*len.lock().unwrap()).is_none() {
+            if { let __nil_result = (*len.lock().unwrap()).is_none(); __nil_result } {
         { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
                 // always permit ellipsis for more fault-tolerant parsing
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_L_L_I_P_S_I_S as i32)))); __tmp_x == __tmp_y } {
-        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::EllipsisPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::Ellipsis { ellipsis: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *len.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::EllipsisPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::Ellipsis { ellipsis: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *len.lock().unwrap() = __iface_value; };
         self.next();
     } else if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32)))); __tmp_x != __tmp_y } {
-        { let __iface_handle = self.parse_rhs().clone(); let __iface_guard = __iface_handle.lock().unwrap(); *len.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = self.parse_rhs().clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *len.lock().unwrap() = __iface_value; };
     }
         { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
-                // always permit ellipsis for more fault-tolerant parsing
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_M_M_A as i32)))); __tmp_x == __tmp_y } {
+                        // always permit ellipsis for more fault-tolerant parsing
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_M_M_A as i32)))); __tmp_x == __tmp_y } {
                 // Trailing commas are accepted in type parameter
                 // lists but not in array type declarations.
                 // Accept for better error handling but complain.
-        { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("unexpected comma; expecting ]".to_string()))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("unexpected comma; expecting ]".to_string()))); self.error(__method_arg0, __method_arg1) };
         self.next();
     }
-                // Trailing commas are accepted in type parameter
-                // lists but not in array type declarations.
-                // Accept for better error handling but complain.
-        self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32))))))));
-        let mut elt = self.parse_type();
-        {
+                        // Trailing commas are accepted in type parameter
+                        // lists but not in array type declarations.
+                        // Accept for better error handling but complain.
+            self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32))))))));
+            let mut elt = self.parse_type();
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(go_ast::r#mod::ArrayType { lbrack: Arc::new(Mutex::new(Some({ let __arg_holder = lbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), len: len.clone(), elt: elt.clone(), ..Default::default() })));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_array_field_or_type_instance(&mut self, x: Arc<Mutex<Option<go_ast::r#mod::Ident>>>) -> (Arc<Mutex<Option<go_ast::r#mod::Ident>>>, Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>) {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("ArrayFieldOrTypeInstance".to_string())))));
     }));
     }
-        let mut lbrack = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_K as i32))))))));
-        let mut trailingComma = Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i32)))))));
-        let mut args: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32)))); __tmp_x != __tmp_y } {
+            let mut lbrack = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_K as i32))))))));
+            let mut trailingComma = Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i32)))))));
+            let mut args: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32)))); __tmp_x != __tmp_y } {
         { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         { let new_val = { let __append_target = args.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(self.parse_rhs().clone()); __append_target.clone() }; args = new_val; };
         while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_M_M_A as i32)))); __tmp_x == __tmp_y } {
@@ -846,8 +978,8 @@ impl parser {
     }
         { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
-        let mut rbrack = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32))))))));
-        if { let __tmp_x = ((*args.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
+            let mut rbrack = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32))))))));
+            if { let __tmp_x = ((*args.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
                 // x []E
         let mut elt = self.parse_type();
         {
@@ -858,11 +990,11 @@ impl parser {
         return (x.clone(), Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ArrayTypePtr(Arc::new(Mutex::new(Some(go_ast::r#mod::ArrayType { lbrack: Arc::new(Mutex::new(Some({ let __arg_holder = lbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), elt: elt.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))));
     }
     }
-                // x []E
-                // x [P]E or x[P]
-        if { let __tmp_x = ((*args.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x == __tmp_y } {
+                        // x []E
+                        // x [P]E or x[P]
+            if { let __tmp_x = ((*args.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x == __tmp_y } {
         let mut elt = self.try_ident_or_type();
-        if (*elt.lock().unwrap()).is_some() {
+        if { let __nil_result = (*elt.lock().unwrap()).is_some(); __nil_result } {
                 // x [P]E
         if go_token::position::Pos::is_valid(&(*trailingComma.lock().unwrap().as_ref().unwrap())) {
                 // Trailing commas are invalid in array type fields.
@@ -878,37 +1010,53 @@ impl parser {
     }
     }
     }
-                // x [P]E
-                // Trailing commas are invalid in array type fields.
-                // x[P], x[P1, P2], ...
-        {
+                        // x [P]E
+                        // Trailing commas are invalid in array type fields.
+                        // x[P], x[P1, P2], ...
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return (Arc::new(Mutex::new(None)), pack_index_expr(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(x.clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = lbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), args.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = rbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone());
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)))
+            }
+        }
     }
 
     pub fn parse_field_decl(&mut self) -> Arc<Mutex<Option<go_ast::r#mod::Field>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("FieldDecl".to_string())))));
     }));
     }
-        let mut doc = self.lead_comment.clone();
-        let mut names: Arc<Mutex<Option<Vec<Arc<Mutex<Option<go_ast::r#mod::Ident>>>>>>> = Arc::new(Mutex::new(None));
-        let mut typ: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> = Arc::new(Mutex::new(None));
-        { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let mut doc = self.lead_comment.clone();
+            let mut names: Arc<Mutex<Option<Vec<Arc<Mutex<Option<go_ast::r#mod::Ident>>>>>>> = Arc::new(Mutex::new(None));
+            let mut typ: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> = Arc::new(Mutex::new(None));
+            { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_D_E_N_T as i32))))) {
             let mut name = self.parse_ident();
             if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::P_E_R_I_O_D as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_T_R_I_N_G as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_M_I_C_O_L_O_N as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32)))); __tmp_x == __tmp_y } {
                 // embedded type
-        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(name.clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(name.clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::P_E_R_I_O_D as i32)))); __tmp_x == __tmp_y } {
-        { let __iface_handle = self.parse_qualified_ident(name.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = self.parse_qualified_ident(name.clone()).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };
     }
     } else {
                 // name1, name2, ... T
@@ -921,12 +1069,12 @@ impl parser {
                 // type T[P1, P2, ...] or a field T of array type []E or [P]E.
         if { let __tmp_x = ((*names.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x == __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_K as i32)))); __tmp_x == __tmp_y } {
         { let (__tmp_0, __tmp_1) = self.parse_array_field_or_type_instance(name.clone()); name = __tmp_0.clone(); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *typ.lock().unwrap() = __moved_tmp_1; };
-        if (*name.lock().unwrap()).is_none() {
+        if { let __nil_result = (*name.lock().unwrap()).is_none(); __nil_result } {
         *names.lock().unwrap() = None;
     }
     } else {
                 // T P
-        { let __iface_handle = self.parse_type().clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = self.parse_type().clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };
     }
     }
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::M_U_L as i32))))) {
@@ -934,32 +1082,32 @@ impl parser {
             self.next();
             if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32)))); __tmp_x == __tmp_y } {
                 // *(T)
-        { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("cannot parenthesize embedded type".to_string()))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("cannot parenthesize embedded type".to_string()))); self.error(__method_arg0, __method_arg1) };
         self.next();
-        { let __iface_handle = self.parse_qualified_ident(Arc::new(Mutex::new(None))).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = self.parse_qualified_ident(Arc::new(Mutex::new(None))).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };
                 // expect closing ')' but no need to complain if missing
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_P_A_R_E_N as i32)))); __tmp_x == __tmp_y } {
         self.next();
     }
     } else {
                 // *T
-        { let __iface_handle = self.parse_qualified_ident(Arc::new(Mutex::new(None))).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = self.parse_qualified_ident(Arc::new(Mutex::new(None))).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };
     }
                         // *(T)
                         // expect closing ')' but no need to complain if missing
                         // *T
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::StarExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::StarExpr { star: Arc::new(Mutex::new(Some({ let __arg_holder = star.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), x: typ.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::StarExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::StarExpr { star: Arc::new(Mutex::new(Some({ let __arg_holder = star.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), x: typ.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32))))) {
-            { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("cannot parenthesize embedded type".to_string()))); self.error(__method_arg0, __method_arg1) };
+            { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("cannot parenthesize embedded type".to_string()))); self.error(__method_arg0, __method_arg1) };
             self.next();
             if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::M_U_L as i32)))); __tmp_x == __tmp_y } {
                 // (*T)
         let mut star = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         self.next();
-        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::StarExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::StarExpr { star: Arc::new(Mutex::new(Some({ let __arg_holder = star.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), x: self.parse_qualified_ident(Arc::new(Mutex::new(None))).clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::StarExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::StarExpr { star: Arc::new(Mutex::new(Some({ let __arg_holder = star.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), x: self.parse_qualified_ident(Arc::new(Mutex::new(None))).clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };
     } else {
                 // (T)
-        { let __iface_handle = self.parse_qualified_ident(Arc::new(Mutex::new(None))).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = self.parse_qualified_ident(Arc::new(Mutex::new(None))).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };
     }
                         // (*T)
                         // (T)
@@ -971,102 +1119,163 @@ impl parser {
             let mut pos = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
             self.error_expected(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("field name or embedded type".to_string()))));
             self.advance(exprEnd.clone());
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadExpr { from: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), to: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadExpr { from: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), to: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };
         }
     }
-                // embedded type
-                // name1, name2, ... T
-                // Careful dance: We don't know if we have an embedded instantiated
-                // type T[P1, P2, ...] or a field T of array type []E or [P]E.
-                // T P
-                // *(T)
-                // expect closing ')' but no need to complain if missing
-                // *T
-                // (*T)
-                // (T)
-                // expect closing ')' but no need to complain if missing
-        let mut tag: Arc<Mutex<Option<go_ast::r#mod::BasicLit>>> = Arc::new(Mutex::new(None));
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_T_R_I_N_G as i32)))); __tmp_x == __tmp_y } {
+                        // embedded type
+                        // name1, name2, ... T
+                        // Careful dance: We don't know if we have an embedded instantiated
+                        // type T[P1, P2, ...] or a field T of array type []E or [P]E.
+                        // T P
+                        // *(T)
+                        // expect closing ')' but no need to complain if missing
+                        // *T
+                        // (*T)
+                        // (T)
+                        // expect closing ')' but no need to complain if missing
+            let mut tag: Arc<Mutex<Option<go_ast::r#mod::BasicLit>>> = Arc::new(Mutex::new(None));
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_T_R_I_N_G as i32)))); __tmp_x == __tmp_y } {
         { let new_val = Arc::new(Mutex::new(Some(go_ast::r#mod::BasicLit { value_pos: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), kind: Arc::new(Mutex::new(Some({ let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), value: Arc::new(Mutex::new(Some({ let __selector_holder = self.lit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone(); tag = new_val; };
         self.next();
     }
-        let mut comment = self.expect_semi();
-        let mut field = Arc::new(Mutex::new(Some(go_ast::r#mod::Field { doc: doc.clone(), names: names.clone(), r#type: typ.clone(), tag: tag.clone(), comment: comment.clone(), ..Default::default() })));
-        {
+            let mut comment = self.expect_semi();
+            let mut field = Arc::new(Mutex::new(Some(go_ast::r#mod::Field { doc: doc.clone(), names: names.clone(), r#type: typ.clone(), tag: tag.clone(), comment: comment.clone(), ..Default::default() })));
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return field.clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_struct_type(&mut self) -> Arc<Mutex<Option<go_ast::r#mod::StructType>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("StructType".to_string())))));
     }));
     }
-        let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_T_R_U_C_T as i32))))))));
-        let mut lbrace = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32))))))));
-        let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<go_ast::r#mod::Field>>>>>>> = Arc::new(Mutex::new(None));
-        while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_D_E_N_T as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::M_U_L as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32)))); __tmp_x == __tmp_y } {
+            let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_T_R_U_C_T as i32))))))));
+            let mut lbrace = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32))))))));
+            let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<go_ast::r#mod::Field>>>>>>> = Arc::new(Mutex::new(None));
+            while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_D_E_N_T as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::M_U_L as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32)))); __tmp_x == __tmp_y } {
                 // a field declaration cannot start with a '(' but we accept
                 // it here for more robust parsing and better error messages
                 // (parseFieldDecl will check and complain if necessary)
         { let new_val = { let __append_target = list.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(self.parse_field_decl()); __append_target.clone() }; list = new_val; };
     }
-                // a field declaration cannot start with a '(' but we accept
-                // it here for more robust parsing and better error messages
-                // (parseFieldDecl will check and complain if necessary)
-        let mut rbrace = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32))))))));
-        {
+                        // a field declaration cannot start with a '(' but we accept
+                        // it here for more robust parsing and better error messages
+                        // (parseFieldDecl will check and complain if necessary)
+            let mut rbrace = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32))))))));
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(go_ast::r#mod::StructType { r#struct: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), fields: Arc::new(Mutex::new(Some(go_ast::r#mod::FieldList { opening: Arc::new(Mutex::new(Some({ let __arg_holder = lbrace.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), list: list.clone(), closing: Arc::new(Mutex::new(Some({ let __arg_holder = rbrace.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone(), ..Default::default() })));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_pointer_type(&mut self) -> Arc<Mutex<Option<go_ast::r#mod::StarExpr>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("PointerType".to_string())))));
     }));
     }
-        let mut star = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::M_U_L as i32))))))));
-        let mut base = self.parse_type();
-        {
+            let mut star = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::M_U_L as i32))))))));
+            let mut base = self.parse_type();
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(go_ast::r#mod::StarExpr { star: Arc::new(Mutex::new(Some({ let __arg_holder = star.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), x: base.clone(), ..Default::default() })));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_dots_type(&mut self) -> Arc<Mutex<Option<go_ast::r#mod::Ellipsis>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("DotsType".to_string())))));
     }));
     }
-        let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_L_L_I_P_S_I_S as i32))))))));
-        let mut elt = self.parse_type();
-        {
+            let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_L_L_I_P_S_I_S as i32))))))));
+            let mut elt = self.parse_type();
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(go_ast::r#mod::Ellipsis { ellipsis: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), elt: elt.clone(), ..Default::default() })));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_param_decl(&mut self, name: Arc<Mutex<Option<go_ast::r#mod::Ident>>>, typeSetsOK: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<field>>> {
@@ -1074,15 +1283,18 @@ impl parser {
 
     let mut f: Arc<Mutex<Option<field>>> = Arc::new(Mutex::new(Some(Default::default())));
 
-                // TODO(rFindley) refactor to be more similar to paramDeclOrNil in the syntax
-                // package
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        // TODO(rFindley) refactor to be more similar to paramDeclOrNil in the syntax
+                        // package
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("ParamDecl".to_string())))));
     }));
     }
-        let mut ptok = Arc::new(Mutex::new(Some({ let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        if (*name.lock().unwrap()).is_some() {
+            let mut ptok = Arc::new(Mutex::new(Some({ let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+            if { let __nil_result = (*name.lock().unwrap()).is_some(); __nil_result } {
         { let new_val = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_D_E_N_T as i32)))); *self.tok.lock().unwrap() = Some(new_val); };
     } else if { let __v = (*typeSetsOK.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::T_I_L_D_E as i32)))); __tmp_x == __tmp_y } {
         {
@@ -1091,15 +1303,15 @@ impl parser {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return f;
+        return f.clone();
     }
     }
-                // force token.IDENT case in switch below
-                // "~" ...
-        { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                        // force token.IDENT case in switch below
+                        // "~" ...
+            { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_D_E_N_T as i32))))) {
                         // name
-            if (*name.lock().unwrap()).is_some() {
+            if { let __nil_result = (*name.lock().unwrap()).is_some(); __nil_result } {
         { let new_val = name.clone(); (*f.lock().unwrap().as_mut().unwrap()).name = new_val; };
         { let new_val = ptok.lock().unwrap().as_ref().unwrap().clone(); *self.tok.lock().unwrap() = Some(new_val); };
     } else {
@@ -1108,95 +1320,108 @@ impl parser {
             { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_D_E_N_T as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::M_U_L as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_R_R_O_W as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::F_U_N_C as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_H_A_N as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::M_A_P as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_T_R_U_C_T as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_N_T_E_R_F_A_C_E as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32))))) {
                         // name type
-            { let __iface_handle = self.parse_type().clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*f.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = self.parse_type().clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*f.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = __iface_value; };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_K as i32))))) {
                         // name "[" type1, ..., typeN "]" or name "[" n "]" type
             { let (__tmp_0, __tmp_1) = self.parse_array_field_or_type_instance({ let __field = (*f.lock().unwrap().as_ref().unwrap()).name.clone(); __field }); (*f.lock().unwrap().as_mut().unwrap()).name = __tmp_0.clone(); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *(*f.lock().unwrap().as_ref().unwrap()).typ.lock().unwrap() = __moved_tmp_1; };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_L_L_I_P_S_I_S as i32))))) {
                         // name "..." type
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::EllipsisPtr(self.parse_dots_type().clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*f.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::EllipsisPtr(self.parse_dots_type().clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*f.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = __iface_value; };
             {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return f;
+        return f.clone();
     }
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::P_E_R_I_O_D as i32))))) {
                         // name "." ...
-            { let __iface_handle = self.parse_qualified_ident({ let __field = (*f.lock().unwrap().as_ref().unwrap()).name.clone(); __field }).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*f.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = self.parse_qualified_ident({ let __field = (*f.lock().unwrap().as_ref().unwrap()).name.clone(); __field }).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*f.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = __iface_value; };
             *(*f.lock().unwrap().as_ref().unwrap()).name.lock().unwrap() = None;
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::T_I_L_D_E as i32))))) {
             if { let __v = (*typeSetsOK.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        { let __iface_handle = self.embedded_elem(Arc::new(Mutex::new(None))).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*f.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = self.embedded_elem(Arc::new(Mutex::new(None))).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*f.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = __iface_value; };
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return f;
+        return f.clone();
     }
     }
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::O_R as i32))))) {
             if { let __v = (*typeSetsOK.lock().unwrap().as_ref().unwrap()).clone(); __v } {
                 // name "|" typeset
-        { let __iface_handle = self.embedded_elem(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr((*f.lock().unwrap().as_ref().unwrap()).name.clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)))).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*f.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = self.embedded_elem(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr((*f.lock().unwrap().as_ref().unwrap()).name.clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)))).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*f.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = __iface_value; };
         *(*f.lock().unwrap().as_ref().unwrap()).name.lock().unwrap() = None;
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return f;
+        return f.clone();
     }
     }
         }
     }
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::M_U_L as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_R_R_O_W as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::F_U_N_C as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_K as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_H_A_N as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::M_A_P as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_T_R_U_C_T as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_N_T_E_R_F_A_C_E as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32))))) {
                         // type
-            { let __iface_handle = self.parse_type().clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*f.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = self.parse_type().clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*f.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = __iface_value; };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_L_L_I_P_S_I_S as i32))))) {
                         // "..." type
                         // (always accepted)
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::EllipsisPtr(self.parse_dots_type().clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*f.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::EllipsisPtr(self.parse_dots_type().clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*f.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = __iface_value; };
             {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return f;
+        return f.clone();
     }
         } else {
                         // TODO(rfindley): this is incorrect in the case of type parameter lists
                         //                 (should be "']'" in that case)
-            { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("')'".to_string()))); self.error_expected(__method_arg0, __method_arg1) };
+            { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("')'".to_string()))); self.error_expected(__method_arg0, __method_arg1) };
             self.advance(exprEnd.clone());
         }
     }
-                // name
-                // name type
-                // name "[" type1, ..., typeN "]" or name "[" n "]" type
-                // name "..." type
-                // don't allow ...type "|" ...
-                // name "." ...
-                // name "|" typeset
-                // type
-                // "..." type
-                // (always accepted)
-                // don't allow ...type "|" ...
-                // TODO(rfindley): this is incorrect in the case of type parameter lists
-                //                 (should be "']'" in that case)
-                // [name] type "|"
-        if { let __v = (*typeSetsOK.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::O_R as i32)))); __tmp_x == __tmp_y } && { let __iface_handle = { let __field = (*f.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
-        { let __iface_handle = self.embedded_elem((*f.lock().unwrap().as_ref().unwrap()).typ.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*f.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+                        // name
+                        // name type
+                        // name "[" type1, ..., typeN "]" or name "[" n "]" type
+                        // name "..." type
+                        // don't allow ...type "|" ...
+                        // name "." ...
+                        // name "|" typeset
+                        // type
+                        // "..." type
+                        // (always accepted)
+                        // don't allow ...type "|" ...
+                        // TODO(rfindley): this is incorrect in the case of type parameter lists
+                        //                 (should be "']'" in that case)
+                        // [name] type "|"
+            if { let __v = (*typeSetsOK.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::O_R as i32)))); __tmp_x == __tmp_y } && { let __iface_handle = { let __field = (*f.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
+        { let __iface_handle = self.embedded_elem({ let __field = (*f.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*f.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = __iface_value; };
     }
-        {
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return f;
+        return f.clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                f.clone()
+            }
+        }
     }
 
     pub fn parse_parameter_list(&mut self, mut name0: Arc<Mutex<Option<go_ast::r#mod::Ident>>>, mut typ0: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>, closing: Arc<Mutex<Option<go_token::r#mod::Token>>>) -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<go_ast::r#mod::Field>>>>>>> {
@@ -1205,32 +1430,35 @@ impl parser {
     let mut params: Arc<Mutex<Option<Vec<Arc<Mutex<Option<go_ast::r#mod::Field>>>>>>> = Arc::new(Mutex::new(None));
 
         let mut typ0: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> = Arc::new(Mutex::new(typ0.lock().unwrap().as_ref().map(|__v| go_ast::r#mod::Expr::__go_clone_box_expr(__v.as_ref()))));
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("ParameterList".to_string())))));
     }));
     }
-                // Type parameters are the only parameter list closed by ']'.
-        let mut tparams = Arc::new(Mutex::new(Some({ let __tmp_x = (*closing.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32)))); __tmp_x == __tmp_y })));
-        let mut pos0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        if (*name0.lock().unwrap()).is_some() {
+                        // Type parameters are the only parameter list closed by ']'.
+            let mut tparams = Arc::new(Mutex::new(Some({ let __tmp_x = (*closing.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32)))); __tmp_x == __tmp_y })));
+            let mut pos0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+            if { let __nil_result = (*name0.lock().unwrap()).is_some(); __nil_result } {
         { let new_val = { let __recv = name0.clone(); let __recv_ptr: *const go_ast::r#mod::Ident = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_ast::r#mod::Ident }; let __result = unsafe { &*__recv_ptr }.pos(); __result }; let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *pos0.lock().unwrap() = __moved_val; };
-    } else if (*typ0.lock().unwrap()).is_some() {
+    } else if { let __nil_result = (*typ0.lock().unwrap()).is_some(); __nil_result } {
         { let new_val = (*typ0.lock().unwrap().as_ref().unwrap()).pos(); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *pos0.lock().unwrap() = __moved_val; };
     }
-                // Note: The code below matches the corresponding code in the syntax
-                //       parser closely. Changes must be reflected in either parser.
-                //       For the code to match, we use the local []field list that
-                //       corresponds to []syntax.Field. At the end, the list must be
-                //       converted into an []*ast.Field.
-        let mut list: Arc<Mutex<Option<Vec<field>>>> = Arc::new(Mutex::new(None));
-        let mut named: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
-        let mut typed: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
-        while (*name0.lock().unwrap()).is_some() || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*closing.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_O_F as i32)))); __tmp_x != __tmp_y } {
+                        // Note: The code below matches the corresponding code in the syntax
+                        //       parser closely. Changes must be reflected in either parser.
+                        //       For the code to match, we use the local []field list that
+                        //       corresponds to []syntax.Field. At the end, the list must be
+                        //       converted into an []*ast.Field.
+            let mut list: Arc<Mutex<Option<Vec<field>>>> = Arc::new(Mutex::new(None));
+            let mut named: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
+            let mut typed: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
+            while { let __nil_result = (*name0.lock().unwrap()).is_some(); __nil_result } || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*closing.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_O_F as i32)))); __tmp_x != __tmp_y } {
         let mut par: Arc<Mutex<Option<field>>> = Arc::new(Mutex::new(Some(Default::default())));
-        if (*typ0.lock().unwrap()).is_some() {
+        if { let __nil_result = (*typ0.lock().unwrap()).is_some(); __nil_result } {
         if { let __v = (*tparams.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        { let __iface_handle = self.embedded_elem(typ0.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ0.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = self.embedded_elem(typ0.clone()).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ0.lock().unwrap() = __iface_value; };
     }
         { let new_val = field { name: name0.clone(), typ: typ0.clone(), ..Default::default() }; *par.lock().unwrap() = Some(new_val); };
     } else {
@@ -1252,28 +1480,28 @@ impl parser {
     }
         self.next();
     }
-                // 1st name was consumed if present
-                // 1st typ was consumed if present
-        if { let __tmp_x = ((*list.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
+                        // 1st name was consumed if present
+                        // 1st typ was consumed if present
+            if { let __tmp_x = ((*list.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return params;
+        return params.clone();
     }
     }
-                // not uncommon
-                // distribute parameter types (len(list) > 0)
-        if { let __tmp_x = { let __v = (*named.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
+                        // not uncommon
+                        // distribute parameter types (len(list) > 0)
+            if { let __tmp_x = { let __v = (*named.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
                 // all unnamed => found names are type names
         let mut i = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*list.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x < __tmp_y } {
         let mut par: Option<GoSliceElemPtr<field>> = Some(GoSliceElemPtr::new(list.clone(), ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize));
         {
         let mut typ = (*par.as_ref().unwrap().borrow().as_ref().unwrap()).name.clone();;
-        if (*typ.lock().unwrap()).is_some() {
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(typ.clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*par.as_ref().unwrap().borrow_mut().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };;
+        if { let __nil_result = (*typ.lock().unwrap()).is_some(); __nil_result } {
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(typ.clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*par.as_ref().unwrap().borrow_mut().as_mut().unwrap()).typ.lock().unwrap() = __iface_value; };;
             *(*par.as_ref().unwrap().borrow().as_ref().unwrap()).name.lock().unwrap() = None;;
         }
     }
@@ -1306,18 +1534,18 @@ impl parser {
         {
         let mut par: Option<GoSliceElemPtr<field>> = Some(GoSliceElemPtr::new(list.clone(), ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize));;
         if { let __iface_handle = { let __field = (*par.as_ref().unwrap().borrow().as_ref().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
-            { let __iface_handle = (*par.as_ref().unwrap().borrow().as_ref().unwrap()).typ.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };;
+            { let __iface_handle = { let __field = (*par.as_ref().unwrap().borrow().as_ref().unwrap()).typ.clone(); __field }; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };;
             if { let __nil_target = (*par.as_ref().unwrap().borrow().as_ref().unwrap()).name.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = (*typ.lock().unwrap().as_ref().unwrap()).pos(); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *errPos.lock().unwrap() = __moved_val; };
         let mut n = go_ast::new_ident(Arc::new(Mutex::new(Some("_".to_string()))));
         { let new_val = errPos.lock().unwrap().as_ref().unwrap().clone(); *(*n.lock().unwrap().as_ref().unwrap()).name_pos.lock().unwrap() = Some(new_val); };
         { let new_val = n.clone(); (*par.as_ref().unwrap().borrow_mut().as_mut().unwrap()).name = new_val; };
     };
-        } else if (*typ.lock().unwrap()).is_some() {
-        { let __iface_handle = typ.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*par.as_ref().unwrap().borrow_mut().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+        } else if { let __nil_result = (*typ.lock().unwrap()).is_some(); __nil_result } {
+        { let __iface_handle = typ.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*par.as_ref().unwrap().borrow_mut().as_mut().unwrap()).typ.lock().unwrap() = __iface_value; };
     } else {
         { let new_val = (*(*par.as_ref().unwrap().borrow().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).pos(); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *errPos.lock().unwrap() = __moved_val; };
-        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadExpr { from: Arc::new(Mutex::new(Some({ let __arg_holder = errPos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), to: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*par.as_ref().unwrap().borrow_mut().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadExpr { from: Arc::new(Mutex::new(Some({ let __arg_holder = errPos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), to: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*par.as_ref().unwrap().borrow_mut().as_mut().unwrap()).typ.lock().unwrap() = __iface_value; };
     }
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
@@ -1344,28 +1572,28 @@ impl parser {
         self.error(Arc::new(Mutex::new(Some({ let __arg_holder = errPos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = msg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
     }
-                // all unnamed => found names are type names
-                // This is the same error handling as below, adjusted for type parameters only.
-                // See comment below for details. (go.dev/issue/64534)
-                /* same as typed == 0 */
-                // position error at closing ]
-                // position at opening [ or first name
-                // some named or we're in a type parameter list => all must be named
-                // left-most error position (or invalid)
-                // current type (from right to left)
-                // correct position
-                // par.typ == nil && typ == nil => we only have a par.name
-                // Not all parameters are named because named != len(list).
-                // If named == typed, there must be parameters that have no types.
-                // They must be at the end of the parameter list, otherwise types
-                // would have been filled in by the right-to-left sweep above and
-                // there would be no error.
-                // If tparams is set, the parameter list is a type parameter list.
-                // position error at closing token ) or ]
-                // go.dev/issue/60812
-                // Convert list to []*ast.Field.
-                // If list contains types only, each type gets its own ast.Field.
-        if { let __tmp_x = { let __v = (*named.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
+                        // all unnamed => found names are type names
+                        // This is the same error handling as below, adjusted for type parameters only.
+                        // See comment below for details. (go.dev/issue/64534)
+                        /* same as typed == 0 */
+                        // position error at closing ]
+                        // position at opening [ or first name
+                        // some named or we're in a type parameter list => all must be named
+                        // left-most error position (or invalid)
+                        // current type (from right to left)
+                        // correct position
+                        // par.typ == nil && typ == nil => we only have a par.name
+                        // Not all parameters are named because named != len(list).
+                        // If named == typed, there must be parameters that have no types.
+                        // They must be at the end of the parameter list, otherwise types
+                        // would have been filled in by the right-to-left sweep above and
+                        // there would be no error.
+                        // If tparams is set, the parameter list is a type parameter list.
+                        // position error at closing token ) or ]
+                        // go.dev/issue/60812
+                        // Convert list to []*ast.Field.
+                        // If list contains types only, each type gets its own ast.Field.
+            if { let __tmp_x = { let __v = (*named.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
                 // parameter list consists of types only
         { let __range_holder = list.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for par in __range_values.iter() {
         assert(Arc::new(Mutex::new(Some({ let __iface_handle = { let __field = par.typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() }))), Arc::new(Mutex::new(Some("nil type in unnamed parameter list".to_string()))));
@@ -1376,39 +1604,52 @@ impl parser {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return params;
+        return params.clone();
     }
     }
-                // parameter list consists of types only
-                // If the parameter list consists of named parameters with types,
-                // collect all names with the same types into a single ast.Field.
-        let mut names: Arc<Mutex<Option<Vec<Arc<Mutex<Option<go_ast::r#mod::Ident>>>>>>> = Arc::new(Mutex::new(None));
-        let mut typ: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> = Arc::new(Mutex::new(None));
-        let mut names_closure_clone = names.clone(); let mut params_closure_clone = params.clone(); let typ_closure_clone = typ.clone(); let mut addParams = Arc::new(Mutex::new(Some(Box::new(move || {
-        assert(Arc::new(Mutex::new(Some((*typ_closure_clone.lock().unwrap()).is_some()))), Arc::new(Mutex::new(Some("nil type in named parameter list".to_string()))));
+                        // parameter list consists of types only
+                        // If the parameter list consists of named parameters with types,
+                        // collect all names with the same types into a single ast.Field.
+            let mut names: Arc<Mutex<Option<Vec<Arc<Mutex<Option<go_ast::r#mod::Ident>>>>>>> = Arc::new(Mutex::new(None));
+            let mut typ: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> = Arc::new(Mutex::new(None));
+            let mut names_closure_clone = names.clone(); let mut params_closure_clone = params.clone(); let typ_closure_clone = typ.clone(); let mut addParams = Arc::new(Mutex::new(Some(Box::new(move || {
+        assert(Arc::new(Mutex::new(Some({ let __nil_result = (*typ_closure_clone.lock().unwrap()).is_some(); __nil_result }))), Arc::new(Mutex::new(Some("nil type in named parameter list".to_string()))));
         let mut field = Arc::new(Mutex::new(Some(go_ast::r#mod::Field { names: names_closure_clone.clone(), r#type: typ_closure_clone.clone(), ..Default::default() })));
         { let __append_target = params_closure_clone.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(field.clone()); __append_target.clone() };
         *names_closure_clone.lock().unwrap() = None;
     }) as Box<dyn FnMut() -> () + Send + Sync>)));
-        { let __range_holder = list.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for par in __range_values.iter() {
+            { let __range_holder = list.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for par in __range_values.iter() {
         if { let __left_holder = par.typ.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn go_ast::r#mod::Expr + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = typ.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn go_ast::r#mod::Expr + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_expr(__right), _ => false }; !__eq } {
         if { let __tmp_x = ((*names.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
         { let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = addParams.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }
-        { let __iface_handle = par.typ.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __field = par.typ.clone(); __field }; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };
     }
         { let new_val = { let __append_target = names.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push({ let __field = par.name.clone(); __field }); __append_target.clone() }; names = new_val; };
     } }
-        if { let __tmp_x = ((*names.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
+            if { let __tmp_x = ((*names.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
         { let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = addParams.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }
-        {
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return params;
+        return params.clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                params.clone()
+            }
+        }
     }
 
     pub fn parse_parameters(&mut self, acceptTParams: Arc<Mutex<Option<bool>>>) -> (Arc<Mutex<Option<go_ast::r#mod::FieldList>>>, Arc<Mutex<Option<go_ast::r#mod::FieldList>>>) {
@@ -1417,12 +1658,15 @@ impl parser {
     let mut tparams: Arc<Mutex<Option<go_ast::r#mod::FieldList>>> = Arc::new(Mutex::new(None));
     let mut params: Arc<Mutex<Option<go_ast::r#mod::FieldList>>> = Arc::new(Mutex::new(None));
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("Parameters".to_string())))));
     }));
     }
-        if { let __v = (*acceptTParams.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_K as i32)))); __tmp_x == __tmp_y } {
+            if { let __v = (*acceptTParams.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_K as i32)))); __tmp_x == __tmp_y } {
         let mut opening = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         self.next();
                 // [T any](params) syntax
@@ -1431,38 +1675,54 @@ impl parser {
         { let new_val = Arc::new(Mutex::new(Some(go_ast::r#mod::FieldList { opening: Arc::new(Mutex::new(Some({ let __arg_holder = opening.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), list: list.clone(), closing: Arc::new(Mutex::new(Some({ let __arg_holder = rbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone(); tparams = new_val; };
                 // Type parameter lists must not be empty.
         if { let __tmp_x = { let __recv = tparams.clone(); let __recv_ptr: *const go_ast::r#mod::FieldList = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_ast::r#mod::FieldList }; let __result = unsafe { &*__recv_ptr }.num_fields(); __result }; let __tmp_y = 0; __tmp_x == __tmp_y } {
-        self.error({ let __field = (*tparams.lock().unwrap().as_ref().unwrap()).closing.clone(); __field }, Arc::new(Mutex::new(Some("empty type parameter list".to_string()))));
+        self.error(Arc::new(Mutex::new(Some({ let __selector_holder = (*tparams.lock().unwrap().as_ref().unwrap()).closing.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some("empty type parameter list".to_string()))));
         *tparams.lock().unwrap() = None;
     }
     }
-                // [T any](params) syntax
-                // Type parameter lists must not be empty.
-                // avoid follow-on errors
-        let mut opening = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32))))))));
-        let mut fields: Arc<Mutex<Option<Vec<Arc<Mutex<Option<go_ast::r#mod::Field>>>>>>> = Arc::new(Mutex::new(None));
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_P_A_R_E_N as i32)))); __tmp_x != __tmp_y } {
+                        // [T any](params) syntax
+                        // Type parameter lists must not be empty.
+                        // avoid follow-on errors
+            let mut opening = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32))))))));
+            let mut fields: Arc<Mutex<Option<Vec<Arc<Mutex<Option<go_ast::r#mod::Field>>>>>>> = Arc::new(Mutex::new(None));
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_P_A_R_E_N as i32)))); __tmp_x != __tmp_y } {
         { let new_val = self.parse_parameter_list(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_P_A_R_E_N as i32)))))))); fields = new_val; };
     }
-        let mut rparen = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_P_A_R_E_N as i32))))))));
-        { let new_val = Arc::new(Mutex::new(Some(go_ast::r#mod::FieldList { opening: Arc::new(Mutex::new(Some({ let __arg_holder = opening.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), list: fields.clone(), closing: Arc::new(Mutex::new(Some({ let __arg_holder = rparen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone(); params = new_val; };
-        {
+            let mut rparen = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_P_A_R_E_N as i32))))))));
+            { let new_val = Arc::new(Mutex::new(Some(go_ast::r#mod::FieldList { opening: Arc::new(Mutex::new(Some({ let __arg_holder = opening.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), list: fields.clone(), closing: Arc::new(Mutex::new(Some({ let __arg_holder = rparen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone(); params = new_val; };
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (tparams, params);
+        return (tparams.clone(), params.clone());
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                (tparams.clone(), params.clone())
+            }
+        }
     }
 
     pub fn parse_result(&mut self) -> Arc<Mutex<Option<go_ast::r#mod::FieldList>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("Result".to_string())))));
     }));
     }
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32)))); __tmp_x == __tmp_y } {
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32)))); __tmp_x == __tmp_y } {
         let (_, mut results) = self.parse_parameters(Arc::new(Mutex::new(Some(false))));
         {
         // Execute deferred functions
@@ -1472,8 +1732,8 @@ impl parser {
         return results.clone();
     }
     }
-        let mut typ = self.try_ident_or_type();
-        if (*typ.lock().unwrap()).is_some() {
+            let mut typ = self.try_ident_or_type();
+            if { let __nil_result = (*typ.lock().unwrap()).is_some(); __nil_result } {
         let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<go_ast::r#mod::Field>>>>>>> = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(None)); (1) as usize])));
         (*list.lock().unwrap().as_mut().unwrap())[(0) as usize] = Arc::new(Mutex::new(Some(go_ast::r#mod::Field { r#type: typ.clone(), ..Default::default() })));
         {
@@ -1484,51 +1744,83 @@ impl parser {
         return Arc::new(Mutex::new(Some(go_ast::r#mod::FieldList { list: list.clone(), ..Default::default() })));
     }
     }
-        {
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(None));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_func_type(&mut self) -> Arc<Mutex<Option<go_ast::r#mod::FuncType>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("FuncType".to_string())))));
     }));
     }
-        let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::F_U_N_C as i32))))))));
-        let (mut tparams, mut params) = self.parse_parameters(Arc::new(Mutex::new(Some(true))));
-        if (*tparams.lock().unwrap()).is_some() {
+            let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::F_U_N_C as i32))))))));
+            let (mut tparams, mut params) = self.parse_parameters(Arc::new(Mutex::new(Some(true))));
+            if { let __nil_result = (*tparams.lock().unwrap()).is_some(); __nil_result } {
         self.error({ let __recv = tparams.clone(); let __recv_ptr: *const go_ast::r#mod::FieldList = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_ast::r#mod::FieldList }; let __result = unsafe { &*__recv_ptr }.pos(); __result }, Arc::new(Mutex::new(Some("function type must have no type parameters".to_string()))));
     }
-        let mut results = self.parse_result();
-        {
+            let mut results = self.parse_result();
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(go_ast::r#mod::FuncType { func: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), params: params.clone(), results: results.clone(), ..Default::default() })));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_method_spec(&mut self) -> Arc<Mutex<Option<go_ast::r#mod::Field>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("MethodSpec".to_string())))));
     }));
     }
-        let mut doc = self.lead_comment.clone();
-        let mut idents: Arc<Mutex<Option<Vec<Arc<Mutex<Option<go_ast::r#mod::Ident>>>>>>> = Arc::new(Mutex::new(None));
-        let mut typ: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> = Arc::new(Mutex::new(None));
-        let mut x = self.parse_type_name(Arc::new(Mutex::new(None)));
-        {
+            let mut doc = self.lead_comment.clone();
+            let mut idents: Arc<Mutex<Option<Vec<Arc<Mutex<Option<go_ast::r#mod::Ident>>>>>>> = Arc::new(Mutex::new(None));
+            let mut typ: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> = Arc::new(Mutex::new(None));
+            let mut x = self.parse_type_name(Arc::new(Mutex::new(None)));
+            {
         let (mut ident, _) = ({
         let val = x.clone();
         let guard = val.lock().unwrap();
@@ -1542,7 +1834,7 @@ impl parser {
             (Arc::new(Mutex::new(None::<go_ast::r#mod::Ident>)), false)
         }
     });;
-        if (*ident.lock().unwrap()).is_some() {
+        if { let __nil_result = (*ident.lock().unwrap()).is_some(); __nil_result } {
             if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_K as i32)))); __tmp_x == __tmp_y } {
             let mut lbrack = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
             self.next();
@@ -1563,14 +1855,14 @@ impl parser {
             (Arc::new(Mutex::new(None::<go_ast::r#mod::Ident>)), false)
         }
     });;
-        if (*name0.lock().unwrap()).is_some() && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_M_M_A as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32)))); __tmp_x != __tmp_y } {
+        if { let __nil_result = (*name0.lock().unwrap()).is_some(); __nil_result } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_M_M_A as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32)))); __tmp_x != __tmp_y } {
             let _ = self.parse_parameter_list(name0.clone(), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32))))))));;
             let _ = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32))))))));;
             self.error(Arc::new(Mutex::new(Some({ let __arg_holder = lbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("interface method must have no type parameters".to_string()))));;
             let (_, mut params) = self.parse_parameters(Arc::new(Mutex::new(Some(false))));;
             let mut results = self.parse_result();;
             { let new_val = Arc::new(Mutex::new(Some(vec![ident.clone()]))); idents = new_val; };;
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::FuncTypePtr(Arc::new(Mutex::new(Some(go_ast::r#mod::FuncType { func: Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i32))))))), params: params.clone(), results: results.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };;
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::FuncTypePtr(Arc::new(Mutex::new(Some(go_ast::r#mod::FuncType { func: Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i32))))))), params: params.clone(), results: results.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };;
         } else {
             let mut list = Arc::new(Mutex::new(Some(vec![x.clone()])));;
             if self.at_comma(Arc::new(Mutex::new(Some("type argument list".to_string()))), Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32)))))))) {
@@ -1586,94 +1878,126 @@ impl parser {
         { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
     };
             let mut rbrack = self.expect_closing(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32))))))), Arc::new(Mutex::new(Some("type argument list".to_string()))));;
-            { let __iface_handle = pack_index_expr(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(ident.clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = lbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), list.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = rbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };;
+            { let __iface_handle = pack_index_expr(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IdentPtr(ident.clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = lbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), list.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = rbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };;
         }
     }
         } else if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32)))); __tmp_x == __tmp_y } {
             let (_, mut params) = self.parse_parameters(Arc::new(Mutex::new(Some(false))));
             let mut results = self.parse_result();
             { let new_val = Arc::new(Mutex::new(Some(vec![ident.clone()]))); idents = new_val; };
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::FuncTypePtr(Arc::new(Mutex::new(Some(go_ast::r#mod::FuncType { func: Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i32))))))), params: params.clone(), results: results.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::FuncTypePtr(Arc::new(Mutex::new(Some(go_ast::r#mod::FuncType { func: Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i32))))))), params: params.clone(), results: results.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };
         } else {
-            { let __iface_handle = x.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = x.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };
         };
         } else {
-            { let __iface_handle = x.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };;
+            { let __iface_handle = x.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };;
             if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_K as i32)))); __tmp_x == __tmp_y } {
-        { let __iface_handle = self.parse_type_instance(typ.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = self.parse_type_instance(typ.clone()).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };
     };
         }
     }
-                // generic method or embedded instantiated type
-                // generic method m[T any]
-                //
-                // Interface methods do not have type parameters. We parse them for a
-                // better error message and improved error recovery.
-                // TODO(rfindley) refactor to share code with parseFuncType.
-                // embedded instantiated type
-                // TODO(rfindley) should resolve all identifiers in x.
-                // ordinary method
-                // TODO(rfindley) refactor to share code with parseFuncType.
-                // embedded type
-                // embedded, possibly instantiated type
-                // embedded instantiated interface
-                // Comment is added at the callsite: the field below may joined with
-                // additional type specs using '|'.
-                // TODO(rfindley) this should be refactored.
-                // TODO(rfindley) add more tests for comment handling.
-        {
+                        // generic method or embedded instantiated type
+                        // generic method m[T any]
+                        //
+                        // Interface methods do not have type parameters. We parse them for a
+                        // better error message and improved error recovery.
+                        // TODO(rfindley) refactor to share code with parseFuncType.
+                        // embedded instantiated type
+                        // TODO(rfindley) should resolve all identifiers in x.
+                        // ordinary method
+                        // TODO(rfindley) refactor to share code with parseFuncType.
+                        // embedded type
+                        // embedded, possibly instantiated type
+                        // embedded instantiated interface
+                        // Comment is added at the callsite: the field below may joined with
+                        // additional type specs using '|'.
+                        // TODO(rfindley) this should be refactored.
+                        // TODO(rfindley) add more tests for comment handling.
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(go_ast::r#mod::Field { doc: doc.clone(), names: idents.clone(), r#type: typ.clone(), ..Default::default() })));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn embedded_elem(&mut self, mut x: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
         let mut x: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> = Arc::new(Mutex::new(x.lock().unwrap().as_ref().map(|__v| go_ast::r#mod::Expr::__go_clone_box_expr(__v.as_ref()))));
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("EmbeddedElem".to_string())))));
     }));
     }
-        if (*x.lock().unwrap()).is_none() {
-        { let __iface_handle = self.embedded_term().clone(); let __iface_guard = __iface_handle.lock().unwrap(); *x.lock().unwrap() = (*__iface_guard).clone(); };
+            if { let __nil_result = (*x.lock().unwrap()).is_none(); __nil_result } {
+        { let __iface_handle = self.embedded_term().clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *x.lock().unwrap() = __iface_value; };
     }
-        while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::O_R as i32)))); __tmp_x == __tmp_y } {
+            while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::O_R as i32)))); __tmp_x == __tmp_y } {
         let mut t = Arc::new(Mutex::new(Some(go_ast::r#mod::BinaryExpr::default())));
         { let new_val = go_token::position::Pos(Arc::new(Mutex::new(Some((*(*self.pos.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *(*t.lock().unwrap().as_ref().unwrap()).op_pos.lock().unwrap() = Some(new_val); };
         { let new_val = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::O_R as i32)))); *(*t.lock().unwrap().as_ref().unwrap()).op.lock().unwrap() = Some(new_val); };
         self.next();
-        { let __iface_handle = x.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*t.lock().unwrap().as_mut().unwrap()).x.lock().unwrap() = (*__iface_guard).clone(); };
-        { let __iface_handle = self.embedded_term().clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*t.lock().unwrap().as_mut().unwrap()).y.lock().unwrap() = (*__iface_guard).clone(); };
-        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BinaryExprPtr(t.clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *x.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = x.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*t.lock().unwrap().as_mut().unwrap()).x.lock().unwrap() = __iface_value; };
+        { let __iface_handle = self.embedded_term().clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*t.lock().unwrap().as_mut().unwrap()).y.lock().unwrap() = __iface_value; };
+        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BinaryExprPtr(t.clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *x.lock().unwrap() = __iface_value; };
     }
-        {
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return x.clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn embedded_term(&mut self) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("EmbeddedTerm".to_string())))));
     }));
     }
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::T_I_L_D_E as i32)))); __tmp_x == __tmp_y } {
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::T_I_L_D_E as i32)))); __tmp_x == __tmp_y } {
         let mut t = Arc::new(Mutex::new(Some(go_ast::r#mod::UnaryExpr::default())));
         { let new_val = go_token::position::Pos(Arc::new(Mutex::new(Some((*(*self.pos.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *(*t.lock().unwrap().as_ref().unwrap()).op_pos.lock().unwrap() = Some(new_val); };
         { let new_val = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::T_I_L_D_E as i32)))); *(*t.lock().unwrap().as_ref().unwrap()).op.lock().unwrap() = Some(new_val); };
         self.next();
-        { let __iface_handle = self.parse_type().clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*t.lock().unwrap().as_mut().unwrap()).x.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = self.parse_type().clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*t.lock().unwrap().as_mut().unwrap()).x.lock().unwrap() = __iface_value; };
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -1682,8 +2006,8 @@ impl parser {
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::UnaryExprPtr(t.clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)));
     }
     }
-        let mut t = self.try_ident_or_type();
-        if (*t.lock().unwrap()).is_none() {
+            let mut t = self.try_ident_or_type();
+            if { let __nil_result = (*t.lock().unwrap()).is_none(); __nil_result } {
         let mut pos = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         self.error_expected(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("~ term or type".to_string()))));
         self.advance(exprEnd.clone());
@@ -1695,31 +2019,47 @@ impl parser {
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadExpr { from: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), to: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)));
     }
     }
-        {
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return t.clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_interface_type(&mut self) -> Arc<Mutex<Option<go_ast::r#mod::InterfaceType>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("InterfaceType".to_string())))));
     }));
     }
-        let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_N_T_E_R_F_A_C_E as i32))))))));
-        let mut lbrace = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32))))))));
-        let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<go_ast::r#mod::Field>>>>>>> = Arc::new(Mutex::new(None));
-        'parse_elements: loop {
+            let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_N_T_E_R_F_A_C_E as i32))))))));
+            let mut lbrace = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32))))))));
+            let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<go_ast::r#mod::Field>>>>>>> = Arc::new(Mutex::new(None));
+            'parse_elements: loop {
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_D_E_N_T as i32)))); __tmp_x == __tmp_y } {
             let mut f = self.parse_method_spec();
             if { let __nil_target = (*f.lock().unwrap().as_ref().unwrap()).names.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
-        { let __iface_handle = self.embedded_elem((*f.lock().unwrap().as_ref().unwrap()).r#type.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*f.lock().unwrap().as_mut().unwrap()).r#type.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = self.embedded_elem({ let __field = (*f.lock().unwrap().as_ref().unwrap()).r#type.clone(); __field }).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*f.lock().unwrap().as_mut().unwrap()).r#type.lock().unwrap() = __iface_value; };
     }
             { let new_val = self.expect_semi().clone(); (*f.lock().unwrap().as_mut().unwrap()).comment = new_val; };
             { let new_val = { let __append_target = list.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(f.clone()); __append_target.clone() }; list = new_val; };
@@ -1730,7 +2070,7 @@ impl parser {
         } else {
             {
         let mut t = self.try_ident_or_type();;
-        if (*t.lock().unwrap()).is_some() {
+        if { let __nil_result = (*t.lock().unwrap()).is_some(); __nil_result } {
             let mut typ = self.embedded_elem(t.clone());;
             let mut comment = self.expect_semi();;
             { let new_val = { let __append_target = list.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(Arc::new(Mutex::new(Some(go_ast::r#mod::Field { r#type: typ.clone(), comment: comment.clone(), ..Default::default() })))); __append_target.clone() }; list = new_val; };;
@@ -1740,52 +2080,84 @@ impl parser {
     }
         }
     }
-                // TODO(rfindley): the error produced here could be improved, since we could
-                // accept an identifier, 'type', or a '}' at this point.
-        let mut rbrace = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32))))))));
-        {
+                        // TODO(rfindley): the error produced here could be improved, since we could
+                        // accept an identifier, 'type', or a '}' at this point.
+            let mut rbrace = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32))))))));
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(go_ast::r#mod::InterfaceType { interface: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), methods: Arc::new(Mutex::new(Some(go_ast::r#mod::FieldList { opening: Arc::new(Mutex::new(Some({ let __arg_holder = lbrace.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), list: list.clone(), closing: Arc::new(Mutex::new(Some({ let __arg_holder = rbrace.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone(), ..Default::default() })));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_map_type(&mut self) -> Arc<Mutex<Option<go_ast::r#mod::MapType>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("MapType".to_string())))));
     }));
     }
-        let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::M_A_P as i32))))))));
-        self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_K as i32))))))));
-        let mut key = self.parse_type();
-        self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32))))))));
-        let mut value = self.parse_type();
-        {
+            let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::M_A_P as i32))))))));
+            self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_K as i32))))))));
+            let mut key = self.parse_type();
+            self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32))))))));
+            let mut value = self.parse_type();
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(go_ast::r#mod::MapType { map: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), key: key.clone(), value: value.clone(), ..Default::default() })));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_chan_type(&mut self) -> Arc<Mutex<Option<go_ast::r#mod::ChanType>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("ChanType".to_string())))));
     }));
     }
-        let mut pos = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        let mut dir = Arc::new(Mutex::new(Some(go_ast::r#mod::ChanDir(Arc::new(Mutex::new(Some((go_ast::S_E_N_D as i32 | go_ast::R_E_C_V as i32) as i32)))))));
-        let mut arrow: Arc<Mutex<Option<go_token::position::Pos>>> = Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(0)))))));
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_H_A_N as i32)))); __tmp_x == __tmp_y } {
+            let mut pos = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+            let mut dir = Arc::new(Mutex::new(Some(go_ast::r#mod::ChanDir(Arc::new(Mutex::new(Some((go_ast::S_E_N_D as i32 | go_ast::R_E_C_V as i32) as i32)))))));
+            let mut arrow: Arc<Mutex<Option<go_token::position::Pos>>> = Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(0)))))));
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_H_A_N as i32)))); __tmp_x == __tmp_y } {
         self.next();
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_R_R_O_W as i32)))); __tmp_x == __tmp_y } {
         { let new_val = go_token::position::Pos(Arc::new(Mutex::new(Some((*(*self.pos.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *arrow.lock().unwrap() = Some(new_val); };
@@ -1797,37 +2169,53 @@ impl parser {
         self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_H_A_N as i32))))))));
         { let new_val = go_ast::r#mod::ChanDir(Arc::new(Mutex::new(Some(go_ast::R_E_C_V as i32)))); *dir.lock().unwrap() = Some(new_val); };
     }
-        let mut value = self.parse_type();
-        {
+            let mut value = self.parse_type();
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(go_ast::r#mod::ChanType { begin: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), arrow: Arc::new(Mutex::new(Some({ let __arg_holder = arrow.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), dir: Arc::new(Mutex::new(Some({ let __arg_holder = dir.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), value: value.clone(), ..Default::default() })));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_type_instance(&mut self, typ: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("TypeInstance".to_string())))));
     }));
     }
-        let mut opening = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_K as i32))))))));
-        { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
-        while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_O_F as i32)))); __tmp_x != __tmp_y } {
+            let mut opening = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_K as i32))))))));
+            { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+            let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
+            while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_O_F as i32)))); __tmp_x != __tmp_y } {
         { let new_val = { let __append_target = list.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(self.parse_type().clone()); __append_target.clone() }; list = new_val; };
         if !self.at_comma(Arc::new(Mutex::new(Some("type argument list".to_string()))), Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32)))))))) {
         break
     }
         self.next();
     }
-        { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
-        let mut closing = self.expect_closing(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32))))))), Arc::new(Mutex::new(Some("type argument list".to_string()))));
-        if { let __tmp_x = ((*list.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
+            { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
+            let mut closing = self.expect_closing(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32))))))), Arc::new(Mutex::new(Some("type argument list".to_string()))));
+            if { let __tmp_x = ((*list.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
         self.error_expected(Arc::new(Mutex::new(Some({ let __arg_holder = closing.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("type argument list".to_string()))));
         {
         // Execute deferred functions
@@ -1837,26 +2225,42 @@ impl parser {
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IndexExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::IndexExpr { x: typ.clone(), lbrack: Arc::new(Mutex::new(Some({ let __arg_holder = opening.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), index: Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadExpr { from: Arc::new(Mutex::new(Some({ let __tmp_x = (*opening.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::position::Pos(Arc::new(Mutex::new(Some(1 as i32)))); __tmp_x + __tmp_y }))), to: Arc::new(Mutex::new(Some({ let __arg_holder = closing.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), rbrack: Arc::new(Mutex::new(Some({ let __arg_holder = closing.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)));
     }
     }
-        {
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return pack_index_expr(typ.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = opening.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), list.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = closing.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn try_ident_or_type(&mut self) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         dec_nest_lev(inc_nest_lev(Arc::new(Mutex::new(Some(p_defer_captured.clone())))));
     }));
-        { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_D_E_N_T as i32))))) {
             let mut typ = self.parse_type_name(Arc::new(Mutex::new(None)));
             if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_K as i32)))); __tmp_x == __tmp_y } {
-        { let __iface_handle = self.parse_type_instance(typ.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = self.parse_type_instance(typ.clone()).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };
     }
             {
         // Execute deferred functions
@@ -1936,14 +2340,27 @@ impl parser {
     }
         }
     }
-                // no type found
-        {
+                        // no type found
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(None));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_stmt_list(&mut self) -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>>>>>> {
@@ -1951,73 +2368,124 @@ impl parser {
 
     let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("StatementList".to_string())))));
     }));
     }
-        while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_A_S_E as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::D_E_F_A_U_L_T as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_O_F as i32)))); __tmp_x != __tmp_y } {
+            while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_A_S_E as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::D_E_F_A_U_L_T as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_O_F as i32)))); __tmp_x != __tmp_y } {
         { let new_val = { let __append_target = list.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(self.parse_stmt().clone()); __append_target.clone() }; list = new_val; };
     }
-        {
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return list;
+        return list.clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                list.clone()
+            }
+        }
     }
 
     pub fn parse_body(&mut self) -> Arc<Mutex<Option<go_ast::r#mod::BlockStmt>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("Body".to_string())))));
     }));
     }
-        let mut lbrace = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32))))))));
-        let mut list = self.parse_stmt_list();
-        let mut rbrace = self.expect2(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32))))))));
-        {
+            let mut lbrace = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32))))))));
+            let mut list = self.parse_stmt_list();
+            let mut rbrace = self.expect2(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32))))))));
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(go_ast::r#mod::BlockStmt { lbrace: Arc::new(Mutex::new(Some({ let __arg_holder = lbrace.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), list: list.clone(), rbrace: Arc::new(Mutex::new(Some({ let __arg_holder = rbrace.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_block_stmt(&mut self) -> Arc<Mutex<Option<go_ast::r#mod::BlockStmt>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("BlockStmt".to_string())))));
     }));
     }
-        let mut lbrace = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32))))))));
-        let mut list = self.parse_stmt_list();
-        let mut rbrace = self.expect2(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32))))))));
-        {
+            let mut lbrace = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32))))))));
+            let mut list = self.parse_stmt_list();
+            let mut rbrace = self.expect2(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32))))))));
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(go_ast::r#mod::BlockStmt { lbrace: Arc::new(Mutex::new(Some({ let __arg_holder = lbrace.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), list: list.clone(), rbrace: Arc::new(Mutex::new(Some({ let __arg_holder = rbrace.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_func_type_or_lit(&mut self) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("FuncTypeOrLit".to_string())))));
     }));
     }
-        let mut typ = self.parse_func_type();
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32)))); __tmp_x != __tmp_y } {
+            let mut typ = self.parse_func_type();
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32)))); __tmp_x != __tmp_y } {
                 // function type only
         {
         // Execute deferred functions
@@ -2027,17 +2495,30 @@ impl parser {
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::FuncTypePtr(typ.clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)));
     }
     }
-                // function type only
-        { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        let mut body = self.parse_body();
-        { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
-        {
+                        // function type only
+            { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+            let mut body = self.parse_body();
+            { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::FuncLitPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::FuncLit { r#type: typ.clone(), body: body.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     /// parseOperand may return an expression or a raw type (incl. array
@@ -2045,12 +2526,15 @@ impl parser {
     pub fn parse_operand(&mut self) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("Operand".to_string())))));
     }));
     }
-        { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_D_E_N_T as i32))))) {
             let mut x = self.parse_ident();
             {
@@ -2094,10 +2578,10 @@ impl parser {
     }
         }
     }
-                // types may be parenthesized: (some type)
-        {
+                        // types may be parenthesized: (some type)
+            {
         let mut typ = self.try_ident_or_type();;
-        if (*typ.lock().unwrap()).is_some() {
+        if { let __nil_result = (*typ.lock().unwrap()).is_some(); __nil_result } {
             let (_, mut isIdent) = ({
         let val = typ.clone();
         let guard = val.lock().unwrap();
@@ -2121,78 +2605,126 @@ impl parser {
     };
         }
     }
-                // could be type for composite literal or conversion
-                // we have an error
-        let mut pos = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        self.error_expected(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("operand".to_string()))));
-        self.advance(stmtStart.clone());
-        {
+                        // could be type for composite literal or conversion
+                        // we have an error
+            let mut pos = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+            self.error_expected(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("operand".to_string()))));
+            self.advance(stmtStart.clone());
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadExpr { from: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), to: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_selector(&mut self, x: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("Selector".to_string())))));
     }));
     }
-        let mut sel = self.parse_ident();
-        {
+            let mut sel = self.parse_ident();
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::SelectorExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::SelectorExpr { x: x.clone(), sel: sel.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_type_assertion(&mut self, x: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("TypeAssertion".to_string())))));
     }));
     }
-        let mut lparen = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32))))))));
-        let mut typ: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> = Arc::new(Mutex::new(None));
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::T_Y_P_E as i32)))); __tmp_x == __tmp_y } {
+            let mut lparen = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32))))))));
+            let mut typ: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> = Arc::new(Mutex::new(None));
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::T_Y_P_E as i32)))); __tmp_x == __tmp_y } {
                 // type switch: typ == nil
         self.next();
     } else {
-        { let __iface_handle = self.parse_type().clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = self.parse_type().clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };
     }
-                // type switch: typ == nil
-        let mut rparen = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_P_A_R_E_N as i32))))))));
-        {
+                        // type switch: typ == nil
+            let mut rparen = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_P_A_R_E_N as i32))))))));
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::TypeAssertExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::TypeAssertExpr { x: x.clone(), r#type: typ.clone(), lparen: Arc::new(Mutex::new(Some({ let __arg_holder = lparen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), rparen: Arc::new(Mutex::new(Some({ let __arg_holder = rparen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_index_or_slice_or_instance(&mut self, x: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("parseIndexOrSliceOrInstance".to_string())))));
     }));
     }
-        let mut lbrack = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_K as i32))))))));
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32)))); __tmp_x == __tmp_y } {
+            let mut lbrack = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_K as i32))))))));
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32)))); __tmp_x == __tmp_y } {
                 // empty index, slice or index expressions are not permitted;
                 // accept them for parsing tolerance, but complain
-        { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("operand".to_string()))); self.error_expected(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("operand".to_string()))); self.error_expected(__method_arg0, __method_arg1) };
         let mut rbrack = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         self.next();
         {
@@ -2203,23 +2735,23 @@ impl parser {
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IndexExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::IndexExpr { x: x.clone(), lbrack: Arc::new(Mutex::new(Some({ let __arg_holder = lbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), index: Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadExpr { from: Arc::new(Mutex::new(Some({ let __arg_holder = rbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), to: Arc::new(Mutex::new(Some({ let __arg_holder = rbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))), rbrack: Arc::new(Mutex::new(Some({ let __arg_holder = rbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)));
     }
     }
-                // empty index, slice or index expressions are not permitted;
-                // accept them for parsing tolerance, but complain
-        { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        const N: i32 = 3;
+                        // empty index, slice or index expressions are not permitted;
+                        // accept them for parsing tolerance, but complain
+            { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+            const N: i32 = 3;
 
-        let mut args: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
-        let mut index: Arc<Mutex<Option<[Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>; 3]>>> = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
-        let mut colons: Arc<Mutex<Option<[go_token::position::Pos; 2]>>> = Arc::new(Mutex::new(Some(std::array::from_fn(|_| go_token::position::Pos(Arc::new(Mutex::new(Some(0))))))));
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_L_O_N as i32)))); __tmp_x != __tmp_y } {
+            let mut args: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
+            let mut index: Arc<Mutex<Option<[Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>; 3]>>> = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
+            let mut colons: Arc<Mutex<Option<[go_token::position::Pos; 2]>>> = Arc::new(Mutex::new(Some(std::array::from_fn(|_| go_token::position::Pos(Arc::new(Mutex::new(Some(0))))))));
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_L_O_N as i32)))); __tmp_x != __tmp_y } {
                 // We can't know if we have an index expression or a type instantiation;
                 // so even if we see a (named) type we are not going to be in type context.
         (*index.lock().unwrap().as_mut().unwrap())[(0) as usize] = self.parse_rhs().clone();
     }
-                // We can't know if we have an index expression or a type instantiation;
-                // so even if we see a (named) type we are not going to be in type context.
-        let mut ncolons = Arc::new(Mutex::new(Some(0)));
-        { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                        // We can't know if we have an index expression or a type instantiation;
+                        // so even if we see a (named) type we are not going to be in type context.
+            let mut ncolons = Arc::new(Mutex::new(Some(0)));
+            { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_L_O_N as i32))))) {
                         // slice expression
             while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_L_O_N as i32)))); __tmp_x == __tmp_y } && { let __tmp_x = ({ let __v = (*ncolons.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = 2; __tmp_x < __tmp_y } {
@@ -2241,22 +2773,22 @@ impl parser {
     }
         }
     }
-                // slice expression
-                // instance expression
-        { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
-        let mut rbrack = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32))))))));
-        if { let __tmp_x = { let __v = (*ncolons.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
+                        // slice expression
+                        // instance expression
+            { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
+            let mut rbrack = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32))))))));
+            if { let __tmp_x = { let __v = (*ncolons.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
                 // slice expression
         let mut slice3 = Arc::new(Mutex::new(Some(false)));
         if { let __tmp_x = { let __v = (*ncolons.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x == __tmp_y } {
         { let new_val = true; *slice3.lock().unwrap() = Some(new_val); };
                 // Check presence of middle and final index here rather than during type-checking
                 // to prevent erroneous programs from passing through gofmt (was go.dev/issue/7305).
-        if (*{ let __seq = { let __seq_holder = index.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.lock().unwrap()).is_none() {
+        if { let __nil_result = (*{ let __seq = { let __seq_holder = index.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.lock().unwrap()).is_none(); __nil_result } {
         self.error(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = colons.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }))), Arc::new(Mutex::new(Some("middle index required in 3-index slice".to_string()))));
         (*index.lock().unwrap().as_mut().unwrap())[(1) as usize] = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadExpr { from: Arc::new(Mutex::new(Some({ let __tmp_x = { let __seq = { let __seq_holder = colons.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __tmp_y = go_token::position::Pos(Arc::new(Mutex::new(Some(1 as i32)))); __tmp_x + __tmp_y }))), to: Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = colons.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)));
     }
-        if (*{ let __seq = { let __seq_holder = index.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() }.lock().unwrap()).is_none() {
+        if { let __nil_result = (*{ let __seq = { let __seq_holder = index.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() }.lock().unwrap()).is_none(); __nil_result } {
         self.error(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = colons.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }))), Arc::new(Mutex::new(Some("final index required in 3-index slice".to_string()))));
         (*index.lock().unwrap().as_mut().unwrap())[(2) as usize] = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadExpr { from: Arc::new(Mutex::new(Some({ let __tmp_x = { let __seq = { let __seq_holder = colons.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }; let __tmp_y = go_token::position::Pos(Arc::new(Mutex::new(Some(1 as i32)))); __tmp_x + __tmp_y }))), to: Arc::new(Mutex::new(Some({ let __arg_holder = rbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)));
     }
@@ -2271,10 +2803,10 @@ impl parser {
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::SliceExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::SliceExpr { x: x.clone(), lbrack: Arc::new(Mutex::new(Some({ let __arg_holder = lbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), low: { let __seq = { let __seq_holder = index.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(), high: { let __seq = { let __seq_holder = index.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.clone(), max: { let __seq = { let __seq_holder = index.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() }.clone(), slice3: Arc::new(Mutex::new(Some({ let __arg_holder = slice3.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), rbrack: Arc::new(Mutex::new(Some({ let __arg_holder = rbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)));
     }
     }
-                // slice expression
-                // Check presence of middle and final index here rather than during type-checking
-                // to prevent erroneous programs from passing through gofmt (was go.dev/issue/7305).
-        if { let __tmp_x = ((*args.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
+                        // slice expression
+                        // Check presence of middle and final index here rather than during type-checking
+                        // to prevent erroneous programs from passing through gofmt (was go.dev/issue/7305).
+            if { let __tmp_x = ((*args.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
                 // index expression
         {
         // Execute deferred functions
@@ -2284,30 +2816,46 @@ impl parser {
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IndexExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::IndexExpr { x: x.clone(), lbrack: Arc::new(Mutex::new(Some({ let __arg_holder = lbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), index: { let __seq = { let __seq_holder = index.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(), rbrack: Arc::new(Mutex::new(Some({ let __arg_holder = rbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)));
     }
     }
-                // index expression
-                // instance expression
-        {
+                        // index expression
+                        // instance expression
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return pack_index_expr(x.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = lbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), args.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = rbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_call_or_conversion(&mut self, fun: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>) -> Arc<Mutex<Option<go_ast::r#mod::CallExpr>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("CallOrConversion".to_string())))));
     }));
     }
-        let mut lparen = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32))))))));
-        { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
-        let mut ellipsis: Arc<Mutex<Option<go_token::position::Pos>>> = Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(0)))))));
-        while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_P_A_R_E_N as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_O_F as i32)))); __tmp_x != __tmp_y } && !go_token::position::Pos::is_valid(&(*ellipsis.lock().unwrap().as_ref().unwrap())) {
+            let mut lparen = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32))))))));
+            { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+            let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
+            let mut ellipsis: Arc<Mutex<Option<go_token::position::Pos>>> = Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(0)))))));
+            while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_P_A_R_E_N as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_O_F as i32)))); __tmp_x != __tmp_y } && !go_token::position::Pos::is_valid(&(*ellipsis.lock().unwrap().as_ref().unwrap())) {
         { let new_val = { let __append_target = list.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(self.parse_rhs().clone()); __append_target.clone() }; list = new_val; };
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_L_L_I_P_S_I_S as i32)))); __tmp_x == __tmp_y } {
         { let new_val = go_token::position::Pos(Arc::new(Mutex::new(Some((*(*self.pos.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *ellipsis.lock().unwrap() = Some(new_val); };
@@ -2318,27 +2866,43 @@ impl parser {
     }
         self.next();
     }
-                // builtins may expect a type: make(some type, ...)
-        { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
-        let mut rparen = self.expect_closing(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_P_A_R_E_N as i32))))))), Arc::new(Mutex::new(Some("argument list".to_string()))));
-        {
+                        // builtins may expect a type: make(some type, ...)
+            { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
+            let mut rparen = self.expect_closing(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_P_A_R_E_N as i32))))))), Arc::new(Mutex::new(Some("argument list".to_string()))));
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(go_ast::r#mod::CallExpr { fun: fun.clone(), lparen: Arc::new(Mutex::new(Some({ let __arg_holder = lparen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), args: list.clone(), ellipsis: Arc::new(Mutex::new(Some({ let __arg_holder = ellipsis.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), rparen: Arc::new(Mutex::new(Some({ let __arg_holder = rparen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_value(&mut self) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("Element".to_string())))));
     }));
     }
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32)))); __tmp_x == __tmp_y } {
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32)))); __tmp_x == __tmp_y } {
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -2347,37 +2911,66 @@ impl parser {
         return self.parse_literal_value(Arc::new(Mutex::new(None))).clone();
     }
     }
-        let mut x = self.parse_expr();
-        {
+            let mut x = self.parse_expr();
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return x.clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_element(&mut self) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("Element".to_string())))));
     }));
     }
-        let mut x = self.parse_value();
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_L_O_N as i32)))); __tmp_x == __tmp_y } {
+            let mut x = self.parse_value();
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_L_O_N as i32)))); __tmp_x == __tmp_y } {
         let mut colon = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         self.next();
-        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::KeyValueExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::KeyValueExpr { key: x.clone(), colon: Arc::new(Mutex::new(Some({ let __arg_holder = colon.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), value: self.parse_value().clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *x.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::KeyValueExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::KeyValueExpr { key: x.clone(), colon: Arc::new(Mutex::new(Some({ let __arg_holder = colon.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), value: self.parse_value().clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *x.lock().unwrap() = __iface_value; };
     }
-        {
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return x.clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_element_list(&mut self) -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>> {
@@ -2385,77 +2978,112 @@ impl parser {
 
     let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("ElementList".to_string())))));
     }));
     }
-        while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_O_F as i32)))); __tmp_x != __tmp_y } {
+            while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_O_F as i32)))); __tmp_x != __tmp_y } {
         { let new_val = { let __append_target = list.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(self.parse_element().clone()); __append_target.clone() }; list = new_val; };
         if !self.at_comma(Arc::new(Mutex::new(Some("composite literal".to_string()))), Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32)))))))) {
         break
     }
         self.next();
     }
-        {
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return list;
+        return list.clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                list.clone()
+            }
+        }
     }
 
     pub fn parse_literal_value(&mut self, typ: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         dec_nest_lev(inc_nest_lev(Arc::new(Mutex::new(Some(p_defer_captured.clone())))));
     }));
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("LiteralValue".to_string())))));
     }));
     }
-        let mut lbrace = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32))))))));
-        let mut elts: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
-        { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32)))); __tmp_x != __tmp_y } {
+            let mut lbrace = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32))))))));
+            let mut elts: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
+            { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32)))); __tmp_x != __tmp_y } {
         { let new_val = self.parse_element_list(); elts = new_val; };
     }
-        { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
-        let mut rbrace = self.expect_closing(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32))))))), Arc::new(Mutex::new(Some("composite literal".to_string()))));
-        {
+            { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
+            let mut rbrace = self.expect_closing(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32))))))), Arc::new(Mutex::new(Some("composite literal".to_string()))));
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::CompositeLitPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::CompositeLit { r#type: typ.clone(), lbrace: Arc::new(Mutex::new(Some({ let __arg_holder = lbrace.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), elts: elts.clone(), rbrace: Arc::new(Mutex::new(Some({ let __arg_holder = rbrace.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_primary_expr(&mut self, mut x: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
         let mut x: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> = Arc::new(Mutex::new(x.lock().unwrap().as_ref().map(|__v| go_ast::r#mod::Expr::__go_clone_box_expr(__v.as_ref()))));
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("PrimaryExpr".to_string())))));
     }));
     }
-        if (*x.lock().unwrap()).is_none() {
-        { let __iface_handle = self.parse_operand().clone(); let __iface_guard = __iface_handle.lock().unwrap(); *x.lock().unwrap() = (*__iface_guard).clone(); };
+            if { let __nil_result = (*x.lock().unwrap()).is_none(); __nil_result } {
+        { let __iface_handle = self.parse_operand().clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *x.lock().unwrap() = __iface_value; };
     }
-                // We track the nesting here rather than at the entry for the function,
-                // since it can iteratively produce a nested output, and we want to
-                // limit how deep a structure we generate.
-        let mut n: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
-        let n_defer_captured = n.clone(); let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
+                        // We track the nesting here rather than at the entry for the function,
+                        // since it can iteratively produce a nested output, and we want to
+                        // limit how deep a structure we generate.
+            let mut n: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
+            let n_defer_captured = n.clone(); let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
         { let __target = p_defer_captured.nest_lev.clone(); let __rhs = (*n_defer_captured.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
-        { let new_val = 1; *n.lock().unwrap() = Some(new_val); };
+            { let new_val = 1; *n.lock().unwrap() = Some(new_val); };
     loop {
         inc_nest_lev(Arc::new(Mutex::new(Some(self.clone()))));
         { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
@@ -2463,9 +3091,9 @@ impl parser {
             self.next();
             { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_D_E_N_T as i32))))) {
-            { let __iface_handle = self.parse_selector(x.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *x.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = self.parse_selector(x.clone()).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *x.lock().unwrap() = __iface_value; };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32))))) {
-            { let __iface_handle = self.parse_type_assertion(x.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *x.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = self.parse_type_assertion(x.clone()).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *x.lock().unwrap() = __iface_value; };
         } else {
             let mut pos = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
             self.error_expected(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("selector or type assertion".to_string()))));
@@ -2479,13 +3107,13 @@ impl parser {
     }
                         // make progress
             let mut sel = Arc::new(Mutex::new(Some(go_ast::r#mod::Ident { name_pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), name: Arc::new(Mutex::new(Some("_".to_string()))), ..Default::default() })));
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::SelectorExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::SelectorExpr { x: x.clone(), sel: sel.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *x.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::SelectorExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::SelectorExpr { x: x.clone(), sel: sel.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *x.lock().unwrap() = __iface_value; };
         }
     }
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_K as i32))))) {
-            { let __iface_handle = self.parse_index_or_slice_or_instance(x.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *x.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = self.parse_index_or_slice_or_instance(x.clone()).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *x.lock().unwrap() = __iface_value; };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32))))) {
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::CallExprPtr(self.parse_call_or_conversion(x.clone()).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *x.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::CallExprPtr(self.parse_call_or_conversion(x.clone()).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *x.lock().unwrap() = __iface_value; };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32))))) {
                         // operand may have returned a parenthesized complit
                         // type; accept it but complain if we have a complit
@@ -2498,9 +3126,9 @@ impl parser {
     let _ts_owned = _ts_guard.as_ref().cloned();
     drop(_ts_guard);
     let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {
-        let __any = __v.__go_as_any();
+        let __any = __v.as_ref().__go_as_any();
         if let Some(__boxed) = __any.downcast_ref::<Box<dyn go_ast::r#mod::Expr + Send + Sync>>() {
-            __boxed.__go_as_any()
+            __boxed.as_ref().__go_as_any()
         } else {
             __any
         }
@@ -2543,7 +3171,7 @@ impl parser {
         self.error((*t.lock().unwrap().as_ref().unwrap()).pos(), Arc::new(Mutex::new(Some("cannot parenthesize type in composite literal".to_string()))));
     }
                         // already progressed, no need to advance
-            { let __iface_handle = self.parse_literal_value(x.clone()).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *x.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = self.parse_literal_value(x.clone()).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *x.lock().unwrap() = __iface_value; };
         } else {
             {
         // Execute deferred functions
@@ -2556,20 +3184,36 @@ impl parser {
     }
         { let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_unary_expr(&mut self) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         dec_nest_lev(inc_nest_lev(Arc::new(Mutex::new(Some(p_defer_captured.clone())))));
     }));
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("UnaryExpr".to_string())))));
     }));
     }
-        { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_D_D as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_U_B as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::N_O_T as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::X_O_R as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_N_D as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::T_I_L_D_E as i32))))) {
             let (mut pos, mut op) = (Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some((*(*self.pos.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap())))))))), Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some((*(*self.tok.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap())))))))));
             self.next();
@@ -2618,7 +3262,7 @@ impl parser {
             let mut dir = Arc::new(Mutex::new(Some(go_ast::r#mod::ChanDir(Arc::new(Mutex::new(Some(go_ast::S_E_N_D as i32)))))));;
             while ok && { let __tmp_x = (*dir.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_ast::r#mod::ChanDir(Arc::new(Mutex::new(Some(go_ast::S_E_N_D as i32)))); __tmp_x == __tmp_y } {
         if { let __tmp_x = { let __selector_holder = (*typ.lock().unwrap().as_ref().unwrap()).dir.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = go_ast::r#mod::ChanDir(Arc::new(Mutex::new(Some(go_ast::R_E_C_V as i32)))); __tmp_x == __tmp_y } {
-        self.error_expected({ let __field = (*typ.lock().unwrap().as_ref().unwrap()).arrow.clone(); __field }, Arc::new(Mutex::new(Some("'chan'".to_string()))));
+        self.error_expected(Arc::new(Mutex::new(Some({ let __selector_holder = (*typ.lock().unwrap().as_ref().unwrap()).arrow.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some("'chan'".to_string()))));
     }
         { let __tmp_0 = { let __selector_holder = (*typ.lock().unwrap().as_ref().unwrap()).arrow.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_1 = (*arrow.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_2 = (*arrow.lock().unwrap().as_ref().unwrap()).clone(); *arrow.lock().unwrap() = Some(__tmp_0); *(*typ.lock().unwrap().as_ref().unwrap()).begin.lock().unwrap() = Some(__tmp_1); *(*typ.lock().unwrap().as_ref().unwrap()).arrow.lock().unwrap() = Some(__tmp_2); };
         { let __tmp_0 = { let __selector_holder = (*typ.lock().unwrap().as_ref().unwrap()).dir.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_1 = go_ast::R_E_C_V; *dir.lock().unwrap() = Some(__tmp_0); *(*typ.lock().unwrap().as_ref().unwrap()).dir.lock().unwrap() = Some(go_ast::r#mod::ChanDir(Arc::new(Mutex::new(Some(__tmp_1 as i32))))); };
@@ -2673,33 +3317,46 @@ impl parser {
     }
         }
     }
-                // channel type or receive expression
-                // If the next token is token.CHAN we still don't know if it
-                // is a channel type or a receive operation - we only know
-                // once we have found the end of the unary expression. There
-                // are two cases:
-                //
-                //   <- type  => (<-type) must be channel type
-                //   <- expr  => <-(expr) is a receive from an expression
-                //
-                // In the first case, the arrow must be re-associated with
-                // the channel type parsed already:
-                //
-                //   <- (chan type)    =>  (<-chan type)
-                //   <- (chan<- type)  =>  (<-chan (<-type))
-                // determine which case we have
-                // (<-type)
-                // re-associate position info and <-
-                // error: (<-type) is (<-(<-chan T))
-                // <-(expr)
-                // pointer type or unary "*" expression
-        {
+                        // channel type or receive expression
+                        // If the next token is token.CHAN we still don't know if it
+                        // is a channel type or a receive operation - we only know
+                        // once we have found the end of the unary expression. There
+                        // are two cases:
+                        //
+                        //   <- type  => (<-type) must be channel type
+                        //   <- expr  => <-(expr) is a receive from an expression
+                        //
+                        // In the first case, the arrow must be re-associated with
+                        // the channel type parsed already:
+                        //
+                        //   <- (chan type)    =>  (<-chan type)
+                        //   <- (chan<- type)  =>  (<-chan (<-type))
+                        // determine which case we have
+                        // (<-type)
+                        // re-associate position info and <-
+                        // error: (<-type) is (<-(<-chan T))
+                        // <-(expr)
+                        // pointer type or unary "*" expression
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return self.parse_primary_expr(Arc::new(Mutex::new(None))).clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn tok_prec(&self) -> (Arc<Mutex<Option<go_token::r#mod::Token>>>, i32) {
@@ -2718,24 +3375,27 @@ impl parser {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
         let mut x: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> = Arc::new(Mutex::new(x.lock().unwrap().as_ref().map(|__v| go_ast::r#mod::Expr::__go_clone_box_expr(__v.as_ref()))));
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("BinaryExpr".to_string())))));
     }));
     }
-        if (*x.lock().unwrap()).is_none() {
-        { let __iface_handle = self.parse_unary_expr().clone(); let __iface_guard = __iface_handle.lock().unwrap(); *x.lock().unwrap() = (*__iface_guard).clone(); };
+            if { let __nil_result = (*x.lock().unwrap()).is_none(); __nil_result } {
+        { let __iface_handle = self.parse_unary_expr().clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *x.lock().unwrap() = __iface_value; };
     }
-                // We track the nesting here rather than at the entry for the function,
-                // since it can iteratively produce a nested output, and we want to
-                // limit how deep a structure we generate.
-        let mut n: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
-        let n_defer_captured = n.clone(); let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
+                        // We track the nesting here rather than at the entry for the function,
+                        // since it can iteratively produce a nested output, and we want to
+                        // limit how deep a structure we generate.
+            let mut n: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
+            let n_defer_captured = n.clone(); let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         { let __f_holder = Arc::new(Mutex::new(Some(Box::new(move || {
         { let __target = p_defer_captured.nest_lev.clone(); let __rhs = (*n_defer_captured.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
     }) as Box<dyn FnMut() -> () + Send + Sync>))); let __f_ptr: *mut Box<dyn FnMut() -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };
     }));
-        { let new_val = 1; *n.lock().unwrap() = Some(new_val); };
+            { let new_val = 1; *n.lock().unwrap() = Some(new_val); };
     loop {
         inc_nest_lev(Arc::new(Mutex::new(Some(self.clone()))));
         let (mut op, mut oprec) = self.tok_prec();
@@ -2750,27 +3410,56 @@ impl parser {
     }
         let mut pos = self.expect(Arc::new(Mutex::new(Some({ let __arg_holder = op.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         let mut y = self.parse_binary_expr(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some({ let __tmp_x = oprec; let __tmp_y = 1; __tmp_x + __tmp_y }))));
-        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BinaryExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BinaryExpr { x: x.clone(), op_pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), op: Arc::new(Mutex::new(Some({ let __arg_holder = op.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), y: y.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *x.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BinaryExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BinaryExpr { x: x.clone(), op_pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), op: Arc::new(Mutex::new(Some({ let __arg_holder = op.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), y: y.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *x.lock().unwrap() = __iface_value; };
         { let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     /// The result may be a type or even a raw type ([...]int).
     pub fn parse_expr(&mut self) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("Expression".to_string())))));
     }));
     }
-        {
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return self.parse_binary_expr(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(1)))).clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_rhs(&mut self) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
@@ -2788,13 +3477,16 @@ impl parser {
     pub fn parse_simple_stmt(&mut self, mode: Arc<Mutex<Option<i32>>>) -> (Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>>, bool) {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("SimpleStmt".to_string())))));
     }));
     }
-        let mut x = self.parse_list(Arc::new(Mutex::new(Some(false))));
-        { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let mut x = self.parse_list(Arc::new(Mutex::new(Some(false))));
+            { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::D_E_F_I_N_E as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_S_S_I_G_N as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_D_D__A_S_S_I_G_N as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_U_B__A_S_S_I_G_N as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::M_U_L__A_S_S_I_G_N as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::Q_U_O__A_S_S_I_G_N as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_E_M__A_S_S_I_G_N as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_N_D__A_S_S_I_G_N as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::O_R__A_S_S_I_G_N as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::X_O_R__A_S_S_I_G_N as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_H_L__A_S_S_I_G_N as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_H_R__A_S_S_I_G_N as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_N_D__N_O_T__A_S_S_I_G_N as i32))))) {
                         // assignment statement, possibly part of a range clause
             let (mut pos, mut tok) = (Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some((*(*self.pos.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap())))))))), Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some((*(*self.tok.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap())))))))));
@@ -2818,12 +3510,12 @@ impl parser {
     }
         }
     }
-                // assignment statement, possibly part of a range clause
-        if { let __tmp_x = ((*x.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x > __tmp_y } {
+                        // assignment statement, possibly part of a range clause
+            if { let __tmp_x = ((*x.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x > __tmp_y } {
         self.error_expected({ let __recv = { let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).pos(); __result }, Arc::new(Mutex::new(Some("1 expression".to_string()))));
     }
-                // continue with first expression
-        { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                        // continue with first expression
+            { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_L_O_N as i32))))) {
                         // labeled statement
             let mut colon = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
@@ -2895,26 +3587,39 @@ impl parser {
     }
         }
     }
-                // labeled statement
-                // Go spec: The scope of a label is the body of the function
-                // in which it is declared and excludes the body of any nested
-                // function.
-                // The label declaration typically starts at x[0].Pos(), but the label
-                // declaration may be erroneous due to a token after that position (and
-                // before the ':'). If SpuriousErrors is not set, the (only) error
-                // reported for the line is the illegal label error instead of the token
-                // before the ':' that caused the problem. Thus, use the (latest) colon
-                // position for error reporting.
-                // send statement
-                // increment or decrement
-                // expression
-        {
+                        // labeled statement
+                        // Go spec: The scope of a label is the body of the function
+                        // in which it is declared and excludes the body of any nested
+                        // function.
+                        // The label declaration typically starts at x[0].Pos(), but the label
+                        // declaration may be erroneous due to a token after that position (and
+                        // before the ':'). If SpuriousErrors is not set, the (only) error
+                        // reported for the line is the illegal label error instead of the token
+                        // before the ':' that caused the problem. Thus, use the (latest) colon
+                        // position for error reporting.
+                        // send statement
+                        // increment or decrement
+                        // expression
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return (Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ExprStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::ExprStmt { x: { let __seq = { let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))), false);
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                (Arc::new(Mutex::new(None)), false)
+            }
+        }
     }
 
     pub fn parse_call_expr(&mut self, callType: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<go_ast::r#mod::CallExpr>>> {
@@ -2923,7 +3628,7 @@ impl parser {
         let mut t = go_ast::unparen(x.clone());;
         if { let __left_holder = t.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn go_ast::r#mod::Expr + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = x.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn go_ast::r#mod::Expr + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_expr(__right), _ => false }; !__eq } {
             self.error((*x.lock().unwrap().as_ref().unwrap()).pos(), Arc::new(Mutex::new(Some(format!("expression in {} must not be parenthesized", { let __v = (*callType.lock().unwrap().as_ref().unwrap()).clone(); __v })))));;
-            { let __iface_handle = t.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *x.lock().unwrap() = (*__iface_guard).clone(); };;
+            { let __iface_handle = t.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *x.lock().unwrap() = __iface_value; };;
         }
     }
         {
@@ -2969,15 +3674,18 @@ impl parser {
     pub fn parse_go_stmt(&mut self) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("GoStmt".to_string())))));
     }));
     }
-        let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::G_O as i32))))))));
-        let mut call = self.parse_call_expr(Arc::new(Mutex::new(Some("go".to_string()))));
-        self.expect_semi();
-        if (*call.lock().unwrap()).is_none() {
+            let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::G_O as i32))))))));
+            let mut call = self.parse_call_expr(Arc::new(Mutex::new(Some("go".to_string()))));
+            self.expect_semi();
+            if { let __nil_result = (*call.lock().unwrap()).is_none(); __nil_result } {
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -2986,28 +3694,44 @@ impl parser {
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadStmt { from: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), to: Arc::new(Mutex::new(Some({ let __tmp_x = (*pos.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::position::Pos(Arc::new(Mutex::new(Some(2 as i32)))); __tmp_x + __tmp_y }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>)));
     }
     }
-                // len("go")
-        {
+                        // len("go")
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::GoStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::GoStmt { go: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), call: call.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>)));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_defer_stmt(&mut self) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("DeferStmt".to_string())))));
     }));
     }
-        let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::D_E_F_E_R as i32))))))));
-        let mut call = self.parse_call_expr(Arc::new(Mutex::new(Some("defer".to_string()))));
-        self.expect_semi();
-        if (*call.lock().unwrap()).is_none() {
+            let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::D_E_F_E_R as i32))))))));
+            let mut call = self.parse_call_expr(Arc::new(Mutex::new(Some("defer".to_string()))));
+            self.expect_semi();
+            if { let __nil_result = (*call.lock().unwrap()).is_none(); __nil_result } {
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -3016,65 +3740,110 @@ impl parser {
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadStmt { from: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), to: Arc::new(Mutex::new(Some({ let __tmp_x = (*pos.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::position::Pos(Arc::new(Mutex::new(Some(5 as i32)))); __tmp_x + __tmp_y }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>)));
     }
     }
-                // len("defer")
-        {
+                        // len("defer")
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::DeferStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::DeferStmt { defer: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), call: call.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>)));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_return_stmt(&mut self) -> Arc<Mutex<Option<go_ast::r#mod::ReturnStmt>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("ReturnStmt".to_string())))));
     }));
     }
-        let mut pos = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_E_T_U_R_N as i32))))))));
-        let mut x: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_M_I_C_O_L_O_N as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32)))); __tmp_x != __tmp_y } {
+            let mut pos = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+            self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_E_T_U_R_N as i32))))))));
+            let mut x: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_M_I_C_O_L_O_N as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32)))); __tmp_x != __tmp_y } {
         { let new_val = self.parse_list(Arc::new(Mutex::new(Some(true)))); x = new_val; };
     }
-        self.expect_semi();
-        {
+            self.expect_semi();
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(go_ast::r#mod::ReturnStmt { r#return: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), results: x.clone(), ..Default::default() })));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_branch_stmt(&mut self, tok: Arc<Mutex<Option<go_token::r#mod::Token>>>) -> Arc<Mutex<Option<go_ast::r#mod::BranchStmt>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("BranchStmt".to_string())))));
     }));
     }
-        let mut pos = self.expect(Arc::new(Mutex::new(Some({ let __arg_holder = tok.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-        let mut label: Arc<Mutex<Option<go_ast::r#mod::Ident>>> = Arc::new(Mutex::new(None));
-        if { let __tmp_x = (*tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::F_A_L_L_T_H_R_O_U_G_H as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_D_E_N_T as i32)))); __tmp_x == __tmp_y } {
+            let mut pos = self.expect(Arc::new(Mutex::new(Some({ let __arg_holder = tok.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            let mut label: Arc<Mutex<Option<go_ast::r#mod::Ident>>> = Arc::new(Mutex::new(None));
+            if { let __tmp_x = (*tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::F_A_L_L_T_H_R_O_U_G_H as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_D_E_N_T as i32)))); __tmp_x == __tmp_y } {
         { let new_val = self.parse_ident().clone(); label = new_val; };
     }
-        self.expect_semi();
-        {
+            self.expect_semi();
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(go_ast::r#mod::BranchStmt { tok_pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), tok: Arc::new(Mutex::new(Some({ let __arg_holder = tok.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), label: label.clone(), ..Default::default() })));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn make_expr(&self, s: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>>, want: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
-        if (*s.lock().unwrap()).is_none() {
+        if { let __nil_result = (*s.lock().unwrap()).is_none(); __nil_result } {
         return Arc::new(Mutex::new(None));
     }
         {
@@ -3092,7 +3861,7 @@ impl parser {
         }
     });;
         if isExpr {
-            return (*es.lock().unwrap().as_ref().unwrap()).x.clone();;
+            return { let __field = (*es.lock().unwrap().as_ref().unwrap()).x.clone(); __field };;
         }
     }
         let mut found = Arc::new(Mutex::new(Some("simple statement".to_string())));
@@ -3126,9 +3895,9 @@ impl parser {
     let mut cond: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32)))); __tmp_x == __tmp_y } {
-        { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("missing condition in if statement".to_string()))); self.error(__method_arg0, __method_arg1) };
-        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadExpr { from: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), to: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *cond.lock().unwrap() = (*__iface_guard).clone(); };
-        return (init, cond);
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("missing condition in if statement".to_string()))); self.error(__method_arg0, __method_arg1) };
+        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadExpr { from: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), to: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *cond.lock().unwrap() = __iface_value; };
+        return (init.clone(), cond.clone());
     }
                 // p.tok != token.LBRACE
         let mut prevLev = Arc::new(Mutex::new(Some({ let __selector_holder = self.expr_lev.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
@@ -3137,7 +3906,7 @@ impl parser {
                 // accept potential variable declaration but complain
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::V_A_R as i32)))); __tmp_x == __tmp_y } {
         self.next();
-        { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("var declaration not allowed in if initializer".to_string()))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("var declaration not allowed in if initializer".to_string()))); self.error(__method_arg0, __method_arg1) };
     }
         { let (__tmp_0, __tmp_1) = self.parse_simple_stmt(Arc::new(Mutex::new(Some(0)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *init.lock().unwrap() = __moved_tmp_0; };
     }
@@ -3157,91 +3926,123 @@ impl parser {
         { let (__tmp_0, __tmp_1) = self.parse_simple_stmt(Arc::new(Mutex::new(Some(0)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *condStmt.lock().unwrap() = __moved_tmp_0; };
     }
     } else {
-        { let __iface_handle = init.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *condStmt.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = init.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *condStmt.lock().unwrap() = __iface_value; };
         *init.lock().unwrap() = None;
     }
-        if (*condStmt.lock().unwrap()).is_some() {
-        { let __iface_handle = self.make_expr(condStmt.clone(), Arc::new(Mutex::new(Some("boolean expression".to_string())))).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *cond.lock().unwrap() = (*__iface_guard).clone(); };
+        if { let __nil_result = (*condStmt.lock().unwrap()).is_some(); __nil_result } {
+        { let __iface_handle = self.make_expr(condStmt.clone(), Arc::new(Mutex::new(Some("boolean expression".to_string())))).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *cond.lock().unwrap() = __iface_value; };
     } else if go_token::position::Pos::is_valid(&(*(*semi.lock().unwrap().as_ref().unwrap()).pos.lock().unwrap().as_ref().unwrap())) {
         if { let __tmp_x = { let __selector_holder = (*semi.lock().unwrap().as_ref().unwrap()).lit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = "\n".to_string(); __tmp_x == __tmp_y } {
-        self.error({ let __field = (*semi.lock().unwrap().as_ref().unwrap()).pos.clone(); __field }, Arc::new(Mutex::new(Some("unexpected newline, expecting { after if clause".to_string()))));
+        self.error(Arc::new(Mutex::new(Some({ let __selector_holder = (*semi.lock().unwrap().as_ref().unwrap()).pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some("unexpected newline, expecting { after if clause".to_string()))));
     } else {
-        self.error({ let __field = (*semi.lock().unwrap().as_ref().unwrap()).pos.clone(); __field }, Arc::new(Mutex::new(Some("missing condition in if statement".to_string()))));
+        self.error(Arc::new(Mutex::new(Some({ let __selector_holder = (*semi.lock().unwrap().as_ref().unwrap()).pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some("missing condition in if statement".to_string()))));
     }
     }
                 // make sure we have a valid AST
-        if (*cond.lock().unwrap()).is_none() {
-        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadExpr { from: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), to: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *cond.lock().unwrap() = (*__iface_guard).clone(); };
+        if { let __nil_result = (*cond.lock().unwrap()).is_none(); __nil_result } {
+        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadExpr { from: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), to: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *cond.lock().unwrap() = __iface_value; };
     }
         { let new_val = prevLev.lock().unwrap().as_ref().unwrap().clone(); *self.expr_lev.lock().unwrap() = Some(new_val); };
-        (init, cond)
+        (init.clone(), cond.clone())
     }
 
     pub fn parse_if_stmt(&mut self) -> Arc<Mutex<Option<go_ast::r#mod::IfStmt>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         dec_nest_lev(inc_nest_lev(Arc::new(Mutex::new(Some(p_defer_captured.clone())))));
     }));
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("IfStmt".to_string())))));
     }));
     }
-        let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_F as i32))))))));
-        let (mut init, mut cond) = self.parse_if_header();
-        let mut body = self.parse_block_stmt();
-        let mut else_: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>> = Arc::new(Mutex::new(None));
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_L_S_E as i32)))); __tmp_x == __tmp_y } {
+            let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_F as i32))))))));
+            let (mut init, mut cond) = self.parse_if_header();
+            let mut body = self.parse_block_stmt();
+            let mut else_: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>> = Arc::new(Mutex::new(None));
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_L_S_E as i32)))); __tmp_x == __tmp_y } {
         self.next();
         { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_F as i32))))) {
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IfStmtPtr(self.parse_if_stmt().clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *else_.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IfStmtPtr(self.parse_if_stmt().clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *else_.lock().unwrap() = __iface_value; };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32))))) {
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BlockStmtPtr(self.parse_block_stmt().clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *else_.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BlockStmtPtr(self.parse_block_stmt().clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *else_.lock().unwrap() = __iface_value; };
             self.expect_semi();
         } else {
-            { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("if statement or block".to_string()))); self.error_expected(__method_arg0, __method_arg1) };
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadStmt { from: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), to: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *else_.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("if statement or block".to_string()))); self.error_expected(__method_arg0, __method_arg1) };
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadStmt { from: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), to: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *else_.lock().unwrap() = __iface_value; };
         }
     }
     } else {
         self.expect_semi();
     }
-        {
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(go_ast::r#mod::IfStmt { r#if: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), init: init.clone(), cond: cond.clone(), body: body.clone(), r#else: else_.clone(), ..Default::default() })));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_case_clause(&mut self) -> Arc<Mutex<Option<go_ast::r#mod::CaseClause>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("CaseClause".to_string())))));
     }));
     }
-        let mut pos = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_A_S_E as i32)))); __tmp_x == __tmp_y } {
+            let mut pos = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+            let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_A_S_E as i32)))); __tmp_x == __tmp_y } {
         self.next();
         { let new_val = self.parse_list(Arc::new(Mutex::new(Some(true)))); list = new_val; };
     } else {
         self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::D_E_F_A_U_L_T as i32))))))));
     }
-        let mut colon = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_L_O_N as i32))))))));
-        let mut body = self.parse_stmt_list();
-        {
+            let mut colon = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_L_O_N as i32))))))));
+            let mut body = self.parse_stmt_list();
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(go_ast::r#mod::CaseClause { case: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), list: list.clone(), colon: Arc::new(Mutex::new(Some({ let __arg_holder = colon.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), body: body.clone(), ..Default::default() })));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn is_type_switch_guard(&self, s: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>>) -> bool {
@@ -3252,16 +4053,16 @@ impl parser {
     let _ts_owned = _ts_guard.as_ref().cloned();
     drop(_ts_guard);
     let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {
-        let __any = __v.__go_as_any();
+        let __any = __v.as_ref().__go_as_any();
         if let Some(__boxed) = __any.downcast_ref::<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>() {
-            __boxed.__go_as_any()
+            __boxed.as_ref().__go_as_any()
         } else {
             __any
         }
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ExprStmtPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ExprStmtPtr>()).unwrap().0.clone();
-        return is_type_switch_assert((*t.lock().unwrap().as_ref().unwrap()).x.clone());;
+        return is_type_switch_assert({ let __field = (*t.lock().unwrap().as_ref().unwrap()).x.clone(); __field });;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::AssignStmtPtr>()).is_some() {
         let t = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::AssignStmtPtr>()).unwrap().0.clone();
         if { let __tmp_x = (({ let __len_target = { let __field = (*t.lock().unwrap().as_ref().unwrap()).lhs.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x == __tmp_y } && { let __tmp_x = (({ let __len_target = { let __field = (*t.lock().unwrap().as_ref().unwrap()).rhs.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x == __tmp_y } && is_type_switch_assert({ let __seq = { let __seq_holder = (*t.lock().unwrap().as_ref().unwrap()).rhs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone()) {
@@ -3272,7 +4073,7 @@ impl parser {
         if !_matched && (_switch_val == go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_S_S_I_G_N as i32))))) || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            self.error({ let __field = (*t.lock().unwrap().as_ref().unwrap()).tok_pos.clone(); __field }, Arc::new(Mutex::new(Some("expected ':=', found '='".to_string()))));
+            self.error(Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).tok_pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some("expected ':=', found '='".to_string()))));
             _fallthrough = true;
         }
         if !_matched && (_switch_val == go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::D_E_F_I_N_E as i32))))) || _fallthrough {
@@ -3293,14 +4094,17 @@ impl parser {
     pub fn parse_switch_stmt(&mut self) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("SwitchStmt".to_string())))));
     }));
     }
-        let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_W_I_T_C_H as i32))))))));
-        let mut s1: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>> = Arc::new(Mutex::new(None));let mut s2: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>> = Arc::new(Mutex::new(None));
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32)))); __tmp_x != __tmp_y } {
+            let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_W_I_T_C_H as i32))))))));
+            let mut s1: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>> = Arc::new(Mutex::new(None));let mut s2: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>> = Arc::new(Mutex::new(None));
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32)))); __tmp_x != __tmp_y } {
         let mut prevLev = Arc::new(Mutex::new(Some({ let __selector_holder = self.expr_lev.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         { let new_val = -1; *self.expr_lev.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_M_I_C_O_L_O_N as i32)))); __tmp_x != __tmp_y } {
@@ -3308,7 +4112,7 @@ impl parser {
     }
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_M_I_C_O_L_O_N as i32)))); __tmp_x == __tmp_y } {
         self.next();
-        { let __iface_handle = s2.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *s1.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = s2.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *s1.lock().unwrap() = __iface_value; };
         *s2.lock().unwrap() = None;
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32)))); __tmp_x != __tmp_y } {
                 // A TypeSwitchGuard may declare a variable in addition
@@ -3340,28 +4144,28 @@ impl parser {
                 // Having the extra nested but empty scope won't affect it.
         { let new_val = prevLev.lock().unwrap().as_ref().unwrap().clone(); *self.expr_lev.lock().unwrap() = Some(new_val); };
     }
-                // A TypeSwitchGuard may declare a variable in addition
-                // to the variable declared in the initial SimpleStmt.
-                // Introduce extra scope to avoid redeclaration errors:
-                //
-                //	switch t := 0; t := x.(T) { ... }
-                //
-                // (this code is not valid Go because the first t
-                // cannot be accessed and thus is never used, the extra
-                // scope is needed for the correct error message).
-                //
-                // If we don't have a type switch, s2 must be an expression.
-                // Having the extra nested but empty scope won't affect it.
-        let mut typeSwitch = self.is_type_switch_guard(s2.clone());
-        let mut lbrace = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32))))))));
-        let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
-        while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_A_S_E as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::D_E_F_A_U_L_T as i32)))); __tmp_x == __tmp_y } {
+                        // A TypeSwitchGuard may declare a variable in addition
+                        // to the variable declared in the initial SimpleStmt.
+                        // Introduce extra scope to avoid redeclaration errors:
+                        //
+                        //	switch t := 0; t := x.(T) { ... }
+                        //
+                        // (this code is not valid Go because the first t
+                        // cannot be accessed and thus is never used, the extra
+                        // scope is needed for the correct error message).
+                        //
+                        // If we don't have a type switch, s2 must be an expression.
+                        // Having the extra nested but empty scope won't affect it.
+            let mut typeSwitch = self.is_type_switch_guard(s2.clone());
+            let mut lbrace = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32))))))));
+            let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
+            while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_A_S_E as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::D_E_F_A_U_L_T as i32)))); __tmp_x == __tmp_y } {
         { let new_val = { let __append_target = list.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::CaseClausePtr(self.parse_case_clause().clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>)))); __append_target.clone() }; list = new_val; };
     }
-        let mut rbrace = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32))))))));
-        self.expect_semi();
-        let mut body = Arc::new(Mutex::new(Some(go_ast::r#mod::BlockStmt { lbrace: Arc::new(Mutex::new(Some({ let __arg_holder = lbrace.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), list: list.clone(), rbrace: Arc::new(Mutex::new(Some({ let __arg_holder = rbrace.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
-        if typeSwitch {
+            let mut rbrace = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32))))))));
+            self.expect_semi();
+            let mut body = Arc::new(Mutex::new(Some(go_ast::r#mod::BlockStmt { lbrace: Arc::new(Mutex::new(Some({ let __arg_holder = lbrace.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), list: list.clone(), rbrace: Arc::new(Mutex::new(Some({ let __arg_holder = rbrace.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
+            if typeSwitch {
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -3370,26 +4174,42 @@ impl parser {
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::TypeSwitchStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::TypeSwitchStmt { switch: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), init: s1.clone(), assign: s2.clone(), body: body.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>)));
     }
     }
-        {
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::SwitchStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::SwitchStmt { switch: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), init: s1.clone(), tag: self.make_expr(s2.clone(), Arc::new(Mutex::new(Some("switch expression".to_string())))).clone(), body: body.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>)));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_comm_clause(&mut self) -> Arc<Mutex<Option<go_ast::r#mod::CommClause>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("CommClause".to_string())))));
     }));
     }
-        let mut pos = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        let mut comm: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>> = Arc::new(Mutex::new(None));
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_A_S_E as i32)))); __tmp_x == __tmp_y } {
+            let mut pos = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+            let mut comm: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>> = Arc::new(Mutex::new(None));
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_A_S_E as i32)))); __tmp_x == __tmp_y } {
         self.next();
         let mut lhs = self.parse_list(Arc::new(Mutex::new(Some(false))));
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_R_R_O_W as i32)))); __tmp_x == __tmp_y } {
@@ -3401,7 +4221,7 @@ impl parser {
         let mut arrow = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         self.next();
         let mut rhs = self.parse_rhs();
-        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::SendStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::SendStmt { chan: { let __seq = { let __seq_holder = lhs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(), arrow: Arc::new(Mutex::new(Some({ let __arg_holder = arrow.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), value: rhs.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *comm.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::SendStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::SendStmt { chan: { let __seq = { let __seq_holder = lhs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(), arrow: Arc::new(Mutex::new(Some({ let __arg_holder = arrow.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), value: rhs.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *comm.lock().unwrap() = __iface_value; };
     } else {
                 // RecvStmt
         {
@@ -3414,74 +4234,106 @@ impl parser {
             let mut pos = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));;
             self.next();;
             let mut rhs = self.parse_rhs();;
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::AssignStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::AssignStmt { lhs: lhs.clone(), tok_pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), tok: Arc::new(Mutex::new(Some({ let __arg_holder = tok.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), rhs: Arc::new(Mutex::new(Some(vec![rhs.clone()]))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *comm.lock().unwrap() = (*__iface_guard).clone(); };;
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::AssignStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::AssignStmt { lhs: lhs.clone(), tok_pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), tok: Arc::new(Mutex::new(Some({ let __arg_holder = tok.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), rhs: Arc::new(Mutex::new(Some(vec![rhs.clone()]))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *comm.lock().unwrap() = __iface_value; };;
         } else {
             if { let __tmp_x = ((*lhs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x > __tmp_y } {
         self.error_expected({ let __recv = { let __seq = { let __seq_holder = lhs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).pos(); __result }, Arc::new(Mutex::new(Some("1 expression".to_string()))));
     };
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ExprStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::ExprStmt { x: { let __seq = { let __seq_holder = lhs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *comm.lock().unwrap() = (*__iface_guard).clone(); };;
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ExprStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::ExprStmt { x: { let __seq = { let __seq_holder = lhs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *comm.lock().unwrap() = __iface_value; };;
         }
     }
     }
     } else {
         self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::D_E_F_A_U_L_T as i32))))))));
     }
-                // SendStmt
-                // continue with first expression
-                // RecvStmt
-                // RecvStmt with assignment
-                // continue with first two expressions
-                // lhs must be single receive operation
-                // continue with first expression
-        let mut colon = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_L_O_N as i32))))))));
-        let mut body = self.parse_stmt_list();
-        {
+                        // SendStmt
+                        // continue with first expression
+                        // RecvStmt
+                        // RecvStmt with assignment
+                        // continue with first two expressions
+                        // lhs must be single receive operation
+                        // continue with first expression
+            let mut colon = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_L_O_N as i32))))))));
+            let mut body = self.parse_stmt_list();
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(go_ast::r#mod::CommClause { case: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), comm: comm.clone(), colon: Arc::new(Mutex::new(Some({ let __arg_holder = colon.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), body: body.clone(), ..Default::default() })));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_select_stmt(&mut self) -> Arc<Mutex<Option<go_ast::r#mod::SelectStmt>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("SelectStmt".to_string())))));
     }));
     }
-        let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_L_E_C_T as i32))))))));
-        let mut lbrace = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32))))))));
-        let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
-        while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_A_S_E as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::D_E_F_A_U_L_T as i32)))); __tmp_x == __tmp_y } {
+            let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_L_E_C_T as i32))))))));
+            let mut lbrace = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32))))))));
+            let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
+            while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_A_S_E as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::D_E_F_A_U_L_T as i32)))); __tmp_x == __tmp_y } {
         { let new_val = { let __append_target = list.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::CommClausePtr(self.parse_comm_clause().clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>)))); __append_target.clone() }; list = new_val; };
     }
-        let mut rbrace = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32))))))));
-        self.expect_semi();
-        let mut body = Arc::new(Mutex::new(Some(go_ast::r#mod::BlockStmt { lbrace: Arc::new(Mutex::new(Some({ let __arg_holder = lbrace.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), list: list.clone(), rbrace: Arc::new(Mutex::new(Some({ let __arg_holder = rbrace.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
-        {
+            let mut rbrace = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32))))))));
+            self.expect_semi();
+            let mut body = Arc::new(Mutex::new(Some(go_ast::r#mod::BlockStmt { lbrace: Arc::new(Mutex::new(Some({ let __arg_holder = lbrace.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), list: list.clone(), rbrace: Arc::new(Mutex::new(Some({ let __arg_holder = rbrace.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(go_ast::r#mod::SelectStmt { select: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), body: body.clone(), ..Default::default() })));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_for_stmt(&mut self) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("ForStmt".to_string())))));
     }));
     }
-        let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::F_O_R as i32))))))));
-        let mut s1: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>> = Arc::new(Mutex::new(None));let mut s2: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>> = Arc::new(Mutex::new(None));let mut s3: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>> = Arc::new(Mutex::new(None));
-        let mut isRange: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32)))); __tmp_x != __tmp_y } {
+            let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::F_O_R as i32))))))));
+            let mut s1: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>> = Arc::new(Mutex::new(None));let mut s2: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>> = Arc::new(Mutex::new(None));let mut s3: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>> = Arc::new(Mutex::new(None));
+            let mut isRange: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32)))); __tmp_x != __tmp_y } {
         let mut prevLev = Arc::new(Mutex::new(Some({ let __selector_holder = self.expr_lev.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         { let new_val = -1; *self.expr_lev.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_M_I_C_O_L_O_N as i32)))); __tmp_x != __tmp_y } {
@@ -3490,7 +4342,7 @@ impl parser {
         let mut pos = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         self.next();
         let mut y = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::UnaryExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::UnaryExpr { op_pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), op: Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_A_N_G_E as i32))))))), x: self.parse_rhs().clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)))])));
-        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::AssignStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::AssignStmt { rhs: y.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *s2.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::AssignStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::AssignStmt { rhs: y.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *s2.lock().unwrap() = __iface_value; };
         { let new_val = true; *isRange.lock().unwrap() = Some(new_val); };
     } else {
         { let (__tmp_0, __tmp_1) = self.parse_simple_stmt(Arc::new(Mutex::new(Some(2)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *s2.lock().unwrap() = __moved_tmp_0; *isRange.lock().unwrap() = Some(__tmp_1); };
@@ -3499,7 +4351,7 @@ impl parser {
                 // "for range x" (nil lhs in assignment)
         if !{ let __v = (*isRange.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_M_I_C_O_L_O_N as i32)))); __tmp_x == __tmp_y } {
         self.next();
-        { let __iface_handle = s2.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *s1.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = s2.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *s1.lock().unwrap() = __iface_value; };
         *s2.lock().unwrap() = None;
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_M_I_C_O_L_O_N as i32)))); __tmp_x != __tmp_y } {
         { let (__tmp_0, __tmp_1) = self.parse_simple_stmt(Arc::new(Mutex::new(Some(0)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *s2.lock().unwrap() = __moved_tmp_0; };
@@ -3511,10 +4363,10 @@ impl parser {
     }
         { let new_val = prevLev.lock().unwrap().as_ref().unwrap().clone(); *self.expr_lev.lock().unwrap() = Some(new_val); };
     }
-                // "for range x" (nil lhs in assignment)
-        let mut body = self.parse_block_stmt();
-        self.expect_semi();
-        if { let __v = (*isRange.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+                        // "for range x" (nil lhs in assignment)
+            let mut body = self.parse_block_stmt();
+            self.expect_semi();
+            if { let __v = (*isRange.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         let mut r#as = ({
         let val = s2.clone();
         let guard = val.lock().unwrap();
@@ -3533,9 +4385,9 @@ impl parser {
         { let _switch_val = ({ let __len_target = { let __field = (*r#as.lock().unwrap().as_ref().unwrap()).lhs.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) });
     if _switch_val == (0) {
         } else if _switch_val == (1) {
-            { let __iface_handle = { let __seq = { let __seq_holder = (*r#as.lock().unwrap().as_ref().unwrap()).lhs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *key.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = { let __seq = { let __seq_holder = (*r#as.lock().unwrap().as_ref().unwrap()).lhs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *key.lock().unwrap() = __iface_value; };
         } else if _switch_val == (2) {
-            { let __tmp_0 = { let __seq = { let __seq_holder = (*r#as.lock().unwrap().as_ref().unwrap()).lhs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(); let __tmp_1 = { let __seq = { let __seq_holder = (*r#as.lock().unwrap().as_ref().unwrap()).lhs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.clone(); { let __iface_handle = __tmp_0; let __iface_guard = __iface_handle.lock().unwrap(); *key.lock().unwrap() = (*__iface_guard).clone(); } { let __iface_handle = __tmp_1; let __iface_guard = __iface_handle.lock().unwrap(); *value.lock().unwrap() = (*__iface_guard).clone(); } };
+            { let __tmp_0 = { let __seq = { let __seq_holder = (*r#as.lock().unwrap().as_ref().unwrap()).lhs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(); let __tmp_1 = { let __seq = { let __seq_holder = (*r#as.lock().unwrap().as_ref().unwrap()).lhs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.clone(); { let __iface_handle = __tmp_0; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *key.lock().unwrap() = __iface_value; } { let __iface_handle = __tmp_1; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *value.lock().unwrap() = __iface_value; } };
         } else {
             self.error_expected({ let __recv = { let __seq = { let __seq_holder = (*r#as.lock().unwrap().as_ref().unwrap()).lhs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (({ let __len_target = { let __field = (*r#as.lock().unwrap().as_ref().unwrap()).lhs.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).pos(); __result }, Arc::new(Mutex::new(Some("at most 2 expressions".to_string()))));
             {
@@ -3571,18 +4423,31 @@ impl parser {
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::RangeStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::RangeStmt { r#for: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), key: key.clone(), value: value.clone(), tok_pos: Arc::new(Mutex::new(Some({ let __selector_holder = (*r#as.lock().unwrap().as_ref().unwrap()).tok_pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), tok: Arc::new(Mutex::new(Some({ let __selector_holder = (*r#as.lock().unwrap().as_ref().unwrap()).tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), range: { let __recv = { let __seq = { let __seq_holder = (*r#as.lock().unwrap().as_ref().unwrap()).rhs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).pos(); __result }, x: x.clone(), body: body.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>)));
     }
     }
-                // check lhs
-                // nothing to do
-                // parseSimpleStmt returned a right-hand side that
-                // is a single unary expression of the form "range x"
-                // regular for statement
-        {
+                        // check lhs
+                        // nothing to do
+                        // parseSimpleStmt returned a right-hand side that
+                        // is a single unary expression of the form "range x"
+                        // regular for statement
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ForStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::ForStmt { r#for: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), init: s1.clone(), cond: self.make_expr(s2.clone(), Arc::new(Mutex::new(Some("boolean or range expression".to_string())))).clone(), post: s3.clone(), body: body.clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>)));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_stmt(&mut self) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>> {
@@ -3590,17 +4455,20 @@ impl parser {
 
     let mut s: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Stmt + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
-        let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         dec_nest_lev(inc_nest_lev(Arc::new(Mutex::new(Some(p_defer_captured.clone())))));
     }));
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("Statement".to_string())))));
     }));
     }
-        { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_N_S_T as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::T_Y_P_E as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::V_A_R as i32))))) {
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::DeclStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::DeclStmt { decl: self.parse_decl(stmtStart.clone()).clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *s.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::DeclStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::DeclStmt { decl: self.parse_decl(stmtStart.clone()).clone(), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *s.lock().unwrap() = __iface_value; };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_D_E_N_T as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_N_T as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::F_L_O_A_T as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_M_A_G as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_H_A_R as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_T_R_I_N_G as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::F_U_N_C as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_K as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_T_R_U_C_T as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::M_A_P as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_H_A_N as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_N_T_E_R_F_A_C_E as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_D_D as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_U_B as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::M_U_L as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_N_D as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::X_O_R as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_R_R_O_W as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::N_O_T as i32))))) {
             { let (__tmp_0, __tmp_1) = self.parse_simple_stmt(Arc::new(Mutex::new(Some(1)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_tmp_0; };
                         // because of the required look-ahead, labeled statements are
@@ -3625,72 +4493,88 @@ impl parser {
         }
     }
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::G_O as i32))))) {
-            { let __iface_handle = self.parse_go_stmt().clone(); let __iface_guard = __iface_handle.lock().unwrap(); *s.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = self.parse_go_stmt().clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *s.lock().unwrap() = __iface_value; };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::D_E_F_E_R as i32))))) {
-            { let __iface_handle = self.parse_defer_stmt().clone(); let __iface_guard = __iface_handle.lock().unwrap(); *s.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = self.parse_defer_stmt().clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *s.lock().unwrap() = __iface_value; };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_E_T_U_R_N as i32))))) {
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ReturnStmtPtr(self.parse_return_stmt().clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *s.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ReturnStmtPtr(self.parse_return_stmt().clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *s.lock().unwrap() = __iface_value; };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::B_R_E_A_K as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_N_T_I_N_U_E as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::G_O_T_O as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::F_A_L_L_T_H_R_O_U_G_H as i32))))) {
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BranchStmtPtr({ let __method_arg0 = { let __field = self.tok.clone(); __field }; self.parse_branch_stmt(__method_arg0) }.clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *s.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BranchStmtPtr({ let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); self.parse_branch_stmt(__method_arg0) }.clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *s.lock().unwrap() = __iface_value; };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32))))) {
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BlockStmtPtr(self.parse_block_stmt().clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *s.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BlockStmtPtr(self.parse_block_stmt().clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *s.lock().unwrap() = __iface_value; };
             self.expect_semi();
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_F as i32))))) {
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IfStmtPtr(self.parse_if_stmt().clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *s.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IfStmtPtr(self.parse_if_stmt().clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *s.lock().unwrap() = __iface_value; };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_W_I_T_C_H as i32))))) {
-            { let __iface_handle = self.parse_switch_stmt().clone(); let __iface_guard = __iface_handle.lock().unwrap(); *s.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = self.parse_switch_stmt().clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *s.lock().unwrap() = __iface_value; };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_L_E_C_T as i32))))) {
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::SelectStmtPtr(self.parse_select_stmt().clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *s.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::SelectStmtPtr(self.parse_select_stmt().clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *s.lock().unwrap() = __iface_value; };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::F_O_R as i32))))) {
-            { let __iface_handle = self.parse_for_stmt().clone(); let __iface_guard = __iface_handle.lock().unwrap(); *s.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = self.parse_for_stmt().clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *s.lock().unwrap() = __iface_value; };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_M_I_C_O_L_O_N as i32))))) {
                         // Is it ever possible to have an implicit semicolon
                         // producing an empty statement in a valid program?
                         // (handle correctly anyway)
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::EmptyStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::EmptyStmt { semicolon: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), implicit: Arc::new(Mutex::new(Some({ let __tmp_x = (*self.lit.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "\n".to_string(); __tmp_x == __tmp_y }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *s.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::EmptyStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::EmptyStmt { semicolon: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), implicit: Arc::new(Mutex::new(Some({ let __tmp_x = (*self.lit.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "\n".to_string(); __tmp_x == __tmp_y }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *s.lock().unwrap() = __iface_value; };
             self.next();
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_E as i32))))) {
                         // a semicolon may be omitted before a closing "}"
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::EmptyStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::EmptyStmt { semicolon: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), implicit: Arc::new(Mutex::new(Some(true))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *s.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::EmptyStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::EmptyStmt { semicolon: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), implicit: Arc::new(Mutex::new(Some(true))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *s.lock().unwrap() = __iface_value; };
         } else {
                         // no statement found
             let mut pos = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
             self.error_expected(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("statement".to_string()))));
             self.advance(stmtStart.clone());
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadStmt { from: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), to: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *s.lock().unwrap() = (*__iface_guard).clone(); };
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BadStmtPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::BadStmt { from: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), to: Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Stmt + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *s.lock().unwrap() = __iface_value; };
         }
     }
-                // tokens that may start an expression
-                // operands
-                // composite types
-                // unary operators
-                // because of the required look-ahead, labeled statements are
-                // parsed by parseSimpleStmt - don't expect a semicolon after
-                // them
-                // Is it ever possible to have an implicit semicolon
-                // producing an empty statement in a valid program?
-                // (handle correctly anyway)
-                // a semicolon may be omitted before a closing "}"
-                // no statement found
-        {
+                        // tokens that may start an expression
+                        // operands
+                        // composite types
+                        // unary operators
+                        // because of the required look-ahead, labeled statements are
+                        // parsed by parseSimpleStmt - don't expect a semicolon after
+                        // them
+                        // Is it ever possible to have an implicit semicolon
+                        // producing an empty statement in a valid program?
+                        // (handle correctly anyway)
+                        // a semicolon may be omitted before a closing "}"
+                        // no statement found
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return s;
+        return s.clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                s.clone()
+            }
+        }
     }
 
     pub fn parse_import_spec(&mut self, doc: Arc<Mutex<Option<go_ast::r#mod::CommentGroup>>>, _: Arc<Mutex<Option<go_token::r#mod::Token>>>, _: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Spec + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("ImportSpec".to_string())))));
     }));
     }
-        let mut ident: Arc<Mutex<Option<go_ast::r#mod::Ident>>> = Arc::new(Mutex::new(None));
-        { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let mut ident: Arc<Mutex<Option<go_ast::r#mod::Ident>>> = Arc::new(Mutex::new(None));
+            { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_D_E_N_T as i32))))) {
             { let new_val = self.parse_ident().clone(); ident = new_val; };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::P_E_R_I_O_D as i32))))) {
@@ -3698,9 +4582,9 @@ impl parser {
             self.next();
         }
     }
-        let mut pos = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        let mut path: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_T_R_I_N_G as i32)))); __tmp_x == __tmp_y } {
+            let mut pos = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+            let mut path: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_T_R_I_N_G as i32)))); __tmp_x == __tmp_y } {
         { let new_val = { let __selector_holder = self.lit.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *path.lock().unwrap() = Some(new_val); };
         self.next();
     } else if go_token::r#mod::Token::is_literal(&(*self.tok.lock().unwrap().as_ref().unwrap())) {
@@ -3710,35 +4594,51 @@ impl parser {
         self.error(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("missing import path".to_string()))));
         self.advance(exprEnd.clone());
     }
-        let mut comment = self.expect_semi();
-                // collect imports
-        let mut spec = Arc::new(Mutex::new(Some(go_ast::r#mod::ImportSpec { doc: doc.clone(), name: ident.clone(), path: Arc::new(Mutex::new(Some(go_ast::r#mod::BasicLit { value_pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), kind: Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_T_R_I_N_G as i32))))))), value: Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone(), comment: comment.clone(), ..Default::default() })));
-        { let new_val = { let __append_target = self.imports.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(spec.clone()); __append_target.clone() }; self.imports = new_val; };
-        {
+            let mut comment = self.expect_semi();
+                        // collect imports
+            let mut spec = Arc::new(Mutex::new(Some(go_ast::r#mod::ImportSpec { doc: doc.clone(), name: ident.clone(), path: Arc::new(Mutex::new(Some(go_ast::r#mod::BasicLit { value_pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), kind: Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_T_R_I_N_G as i32))))))), value: Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone(), comment: comment.clone(), ..Default::default() })));
+            { let new_val = { let __append_target = self.imports.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(spec.clone()); __append_target.clone() }; self.imports = new_val; };
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ImportSpecPtr(spec.clone())) as Box<dyn go_ast::r#mod::Spec + Send + Sync>)));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_value_spec(&mut self, doc: Arc<Mutex<Option<go_ast::r#mod::CommentGroup>>>, keyword: Arc<Mutex<Option<go_token::r#mod::Token>>>, iota: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Spec + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let keyword_defer_captured = keyword.clone(); let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some(format!("{}{}", (*go_token::r#mod::Token::string(&(*keyword_defer_captured.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()), "Spec".to_string()))))));
     }));
     }
-        let mut idents = self.parse_ident_list();
-        let mut typ: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> = Arc::new(Mutex::new(None));
-        let mut values: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
-        { let _switch_val = (*keyword.lock().unwrap().as_ref().unwrap()).clone();
+            let mut idents = self.parse_ident_list();
+            let mut typ: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> = Arc::new(Mutex::new(None));
+            let mut values: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
+            { let _switch_val = (*keyword.lock().unwrap().as_ref().unwrap()).clone();
     if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_N_S_T as i32))))) {
                         // always permit optional type and initialization for more tolerant parsing
             if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_O_F as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_E_M_I_C_O_L_O_N as i32)))); __tmp_x != __tmp_y } && { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_P_A_R_E_N as i32)))); __tmp_x != __tmp_y } {
-        { let __iface_handle = self.try_ident_or_type().clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = self.try_ident_or_type().clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_S_S_I_G_N as i32)))); __tmp_x == __tmp_y } {
         self.next();
         { let new_val = self.parse_list(Arc::new(Mutex::new(Some(true)))); values = new_val; };
@@ -3746,66 +4646,98 @@ impl parser {
     }
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::V_A_R as i32))))) {
             if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_S_S_I_G_N as i32)))); __tmp_x != __tmp_y } {
-        { let __iface_handle = self.parse_type().clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = self.parse_type().clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };
     }
             if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_S_S_I_G_N as i32)))); __tmp_x == __tmp_y } {
         self.next();
         { let new_val = self.parse_list(Arc::new(Mutex::new(Some(true)))); values = new_val; };
     }
         } else {
-            panic!("unreachable");
+            std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
         }
     }
-                // always permit optional type and initialization for more tolerant parsing
-        let mut comment = self.expect_semi();
-        let mut spec = Arc::new(Mutex::new(Some(go_ast::r#mod::ValueSpec { doc: doc.clone(), names: idents.clone(), r#type: typ.clone(), values: values.clone(), comment: comment.clone(), ..Default::default() })));
-        {
+                        // always permit optional type and initialization for more tolerant parsing
+            let mut comment = self.expect_semi();
+            let mut spec = Arc::new(Mutex::new(Some(go_ast::r#mod::ValueSpec { doc: doc.clone(), names: idents.clone(), r#type: typ.clone(), values: values.clone(), comment: comment.clone(), ..Default::default() })));
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ValueSpecPtr(spec.clone())) as Box<dyn go_ast::r#mod::Spec + Send + Sync>)));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_generic_type(&mut self, spec: Arc<Mutex<Option<go_ast::r#mod::TypeSpec>>>, openPos: Arc<Mutex<Option<go_token::position::Pos>>>, name0: Arc<Mutex<Option<go_ast::r#mod::Ident>>>, typ0: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>) {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("parseGenericType".to_string())))));
     }));
     }
-        let mut list = self.parse_parameter_list(name0.clone(), typ0.clone(), Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32))))))));
-        let mut closePos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32))))))));
-        { let new_val = Arc::new(Mutex::new(Some(go_ast::r#mod::FieldList { opening: Arc::new(Mutex::new(Some({ let __arg_holder = openPos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), list: list.clone(), closing: Arc::new(Mutex::new(Some({ let __arg_holder = closePos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone(); (*spec.lock().unwrap().as_mut().unwrap()).type_params = new_val; };
-                // Let the type checker decide whether to accept type parameters on aliases:
-                // see go.dev/issue/46477.
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_S_S_I_G_N as i32)))); __tmp_x == __tmp_y } {
+            let mut list = self.parse_parameter_list(name0.clone(), typ0.clone(), Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32))))))));
+            let mut closePos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32))))))));
+            { let new_val = Arc::new(Mutex::new(Some(go_ast::r#mod::FieldList { opening: Arc::new(Mutex::new(Some({ let __arg_holder = openPos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), list: list.clone(), closing: Arc::new(Mutex::new(Some({ let __arg_holder = closePos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone(); (*spec.lock().unwrap().as_mut().unwrap()).type_params = new_val; };
+                        // Let the type checker decide whether to accept type parameters on aliases:
+                        // see go.dev/issue/46477.
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::A_S_S_I_G_N as i32)))); __tmp_x == __tmp_y } {
                 // type alias
         { let new_val = go_token::position::Pos(Arc::new(Mutex::new(Some((*(*self.pos.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *(*spec.lock().unwrap().as_ref().unwrap()).assign.lock().unwrap() = Some(new_val); };
         self.next();
     }
-                // type alias
-        { let __iface_handle = self.parse_type().clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*spec.lock().unwrap().as_mut().unwrap()).r#type.lock().unwrap() = (*__iface_guard).clone(); };
+                        // type alias
+            { let __iface_handle = self.parse_type().clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*spec.lock().unwrap().as_mut().unwrap()).r#type.lock().unwrap() = __iface_value; };
 
-        // Execute deferred functions
-        while let Some(f) = __defer_stack.pop() {
-            f();
+            // Execute deferred functions
+            while let Some(f) = __defer_stack.pop() {
+                f();
+            }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                ()
+            }
         }
     }
 
     pub fn parse_type_spec(&mut self, doc: Arc<Mutex<Option<go_ast::r#mod::CommentGroup>>>, _: Arc<Mutex<Option<go_token::r#mod::Token>>>, _: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Spec + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("TypeSpec".to_string())))));
     }));
     }
-        let mut name = self.parse_ident();
-        let mut spec = Arc::new(Mutex::new(Some(go_ast::r#mod::TypeSpec { doc: doc.clone(), name: name.clone(), ..Default::default() })));
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_K as i32)))); __tmp_x == __tmp_y } {
+            let mut name = self.parse_ident();
+            let mut spec = Arc::new(Mutex::new(Some(go_ast::r#mod::TypeSpec { doc: doc.clone(), name: name.clone(), ..Default::default() })));
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_K as i32)))); __tmp_x == __tmp_y } {
                 // spec.Name "[" ...
                 // array/slice type or type parameter list
         let mut lbrack = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
@@ -3833,7 +4765,7 @@ impl parser {
                 // to parser.expr, and pass in name to parsePrimaryExpr.
         { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         let mut lhs = self.parse_primary_expr(x.clone());
-        { let __iface_handle = self.parse_binary_expr(lhs.clone(), Arc::new(Mutex::new(Some(1)))).clone(); let __iface_guard = __iface_handle.lock().unwrap(); *x.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = self.parse_binary_expr(lhs.clone(), Arc::new(Mutex::new(Some(1)))).clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *x.lock().unwrap() = __iface_value; };
         { let __target = self.expr_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
                 // To parse the expression starting with name, expand
@@ -3848,15 +4780,15 @@ impl parser {
                 // the decision towards a type parameter list.
         {
         let (mut pname, mut ptype) = extract_name(x.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_M_M_A as i32)))); __tmp_x == __tmp_y }))));;
-        if (*pname.lock().unwrap()).is_some() && ((*ptype.lock().unwrap()).is_some() || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32)))); __tmp_x != __tmp_y }) {
+        if { let __nil_result = (*pname.lock().unwrap()).is_some(); __nil_result } && ({ let __nil_result = (*ptype.lock().unwrap()).is_some(); __nil_result } || { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::R_B_R_A_C_K as i32)))); __tmp_x != __tmp_y }) {
             self.parse_generic_type(spec.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = lbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), pname.clone(), ptype.clone());;
         } else {
-            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ArrayTypePtr(self.parse_array_type(Arc::new(Mutex::new(Some({ let __arg_holder = lbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), x.clone()).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*spec.lock().unwrap().as_mut().unwrap()).r#type.lock().unwrap() = (*__iface_guard).clone(); };;
+            { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ArrayTypePtr(self.parse_array_type(Arc::new(Mutex::new(Some({ let __arg_holder = lbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), x.clone()).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*spec.lock().unwrap().as_mut().unwrap()).r#type.lock().unwrap() = __iface_value; };;
         }
     }
     } else {
                 // array type
-        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ArrayTypePtr(self.parse_array_type(Arc::new(Mutex::new(Some({ let __arg_holder = lbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(None))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*spec.lock().unwrap().as_mut().unwrap()).r#type.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ArrayTypePtr(self.parse_array_type(Arc::new(Mutex::new(Some({ let __arg_holder = lbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(None))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*spec.lock().unwrap().as_mut().unwrap()).r#type.lock().unwrap() = __iface_value; };
     }
     } else {
                 // no type parameters
@@ -3866,67 +4798,83 @@ impl parser {
         self.next();
     }
                 // type alias
-        { let __iface_handle = self.parse_type().clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*spec.lock().unwrap().as_mut().unwrap()).r#type.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = self.parse_type().clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*spec.lock().unwrap().as_mut().unwrap()).r#type.lock().unwrap() = __iface_value; };
     }
-                // spec.Name "[" ...
-                // array/slice type or type parameter list
-                // We may have an array type or a type parameter list.
-                // In either case we expect an expression x (which may
-                // just be a name, or a more complex expression) which
-                // we can analyze further.
-                //
-                // A type parameter list may have a type bound starting
-                // with a "[" as in: P []E. In that case, simply parsing
-                // an expression would lead to an error: P[] is invalid.
-                // But since index or slice expressions are never constant
-                // and thus invalid array length expressions, if the name
-                // is followed by "[" it must be the start of an array or
-                // slice constraint. Only if we don't see a "[" do we
-                // need to parse a full expression. Notably, name <- x
-                // is not a concern because name <- x is a statement and
-                // not an expression.
-                // To parse the expression starting with name, expand
-                // the call sequence we would get by passing in name
-                // to parser.expr, and pass in name to parsePrimaryExpr.
-                // Analyze expression x. If we can split x into a type parameter
-                // name, possibly followed by a type parameter type, we consider
-                // this the start of a type parameter list, with some caveats:
-                // a single name followed by "]" tilts the decision towards an
-                // array declaration; a type parameter type that could also be
-                // an ordinary expression but which is followed by a comma tilts
-                // the decision towards a type parameter list.
-                // spec.Name "[" pname ...
-                // spec.Name "[" pname ptype ...
-                // spec.Name "[" pname ptype "," ...
-                // ptype may be nil
-                // spec.Name "[" pname "]" ...
-                // spec.Name "[" x ...
-                // array type
-                // no type parameters
-                // type alias
-        { let new_val = self.expect_semi().clone(); (*spec.lock().unwrap().as_mut().unwrap()).comment = new_val; };
-        {
+                        // spec.Name "[" ...
+                        // array/slice type or type parameter list
+                        // We may have an array type or a type parameter list.
+                        // In either case we expect an expression x (which may
+                        // just be a name, or a more complex expression) which
+                        // we can analyze further.
+                        //
+                        // A type parameter list may have a type bound starting
+                        // with a "[" as in: P []E. In that case, simply parsing
+                        // an expression would lead to an error: P[] is invalid.
+                        // But since index or slice expressions are never constant
+                        // and thus invalid array length expressions, if the name
+                        // is followed by "[" it must be the start of an array or
+                        // slice constraint. Only if we don't see a "[" do we
+                        // need to parse a full expression. Notably, name <- x
+                        // is not a concern because name <- x is a statement and
+                        // not an expression.
+                        // To parse the expression starting with name, expand
+                        // the call sequence we would get by passing in name
+                        // to parser.expr, and pass in name to parsePrimaryExpr.
+                        // Analyze expression x. If we can split x into a type parameter
+                        // name, possibly followed by a type parameter type, we consider
+                        // this the start of a type parameter list, with some caveats:
+                        // a single name followed by "]" tilts the decision towards an
+                        // array declaration; a type parameter type that could also be
+                        // an ordinary expression but which is followed by a comma tilts
+                        // the decision towards a type parameter list.
+                        // spec.Name "[" pname ...
+                        // spec.Name "[" pname ptype ...
+                        // spec.Name "[" pname ptype "," ...
+                        // ptype may be nil
+                        // spec.Name "[" pname "]" ...
+                        // spec.Name "[" x ...
+                        // array type
+                        // no type parameters
+                        // type alias
+            { let new_val = self.expect_semi().clone(); (*spec.lock().unwrap().as_mut().unwrap()).comment = new_val; };
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::TypeSpecPtr(spec.clone())) as Box<dyn go_ast::r#mod::Spec + Send + Sync>)));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_gen_decl(&mut self, keyword: Arc<Mutex<Option<go_token::r#mod::Token>>>, f: parseSpecFunction) -> Arc<Mutex<Option<go_ast::r#mod::GenDecl>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let keyword_defer_captured = keyword.clone(); let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "GenDecl(".to_string())); __s.push_str(&format!("{}", (*go_token::r#mod::Token::string(&(*keyword_defer_captured.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", ")".to_string())); __s })))));
     }));
     }
-        let mut doc = self.lead_comment.clone();
-        let mut pos = self.expect(Arc::new(Mutex::new(Some({ let __arg_holder = keyword.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-        let mut lparen: Arc<Mutex<Option<go_token::position::Pos>>> = Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(0)))))));let mut rparen: Arc<Mutex<Option<go_token::position::Pos>>> = Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(0)))))));
-        let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Spec + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32)))); __tmp_x == __tmp_y } {
+            let mut doc = self.lead_comment.clone();
+            let mut pos = self.expect(Arc::new(Mutex::new(Some({ let __arg_holder = keyword.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            let mut lparen: Arc<Mutex<Option<go_token::position::Pos>>> = Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(0)))))));let mut rparen: Arc<Mutex<Option<go_token::position::Pos>>> = Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(0)))))));
+            let mut list: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Spec + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32)))); __tmp_x == __tmp_y } {
         { let new_val = go_token::position::Pos(Arc::new(Mutex::new(Some((*(*self.pos.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *lparen.lock().unwrap() = Some(new_val); };
         self.next();
         let mut iota = Arc::new(Mutex::new(Some(0)));
@@ -3939,42 +4887,58 @@ impl parser {
     } else {
         { let new_val = { let __append_target = list.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push({ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<go_ast::r#mod::CommentGroup>>>, Arc<Mutex<Option<go_token::r#mod::Token>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Spec + Send + Sync>>>> + Send + Sync> = { let mut __f_guard = f.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<go_ast::r#mod::CommentGroup>>>, Arc<Mutex<Option<go_token::r#mod::Token>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Spec + Send + Sync>>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(None)), keyword.clone(), Arc::new(Mutex::new(Some(0)))) }.clone()); __append_target.clone() }; list = new_val; };
     }
-        {
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return Arc::new(Mutex::new(Some(go_ast::r#mod::GenDecl { doc: doc.clone(), tok_pos: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), tok: Arc::new(Mutex::new(Some({ let __arg_holder = keyword.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), lparen: Arc::new(Mutex::new(Some({ let __arg_holder = lparen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), specs: list.clone(), rparen: Arc::new(Mutex::new(Some({ let __arg_holder = rparen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_func_decl(&mut self) -> Arc<Mutex<Option<go_ast::r#mod::FuncDecl>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("FunctionDecl".to_string())))));
     }));
     }
-        let mut doc = self.lead_comment.clone();
-        let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::F_U_N_C as i32))))))));
-        let mut recv: Arc<Mutex<Option<go_ast::r#mod::FieldList>>> = Arc::new(Mutex::new(None));
-        if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32)))); __tmp_x == __tmp_y } {
+            let mut doc = self.lead_comment.clone();
+            let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::F_U_N_C as i32))))))));
+            let mut recv: Arc<Mutex<Option<go_ast::r#mod::FieldList>>> = Arc::new(Mutex::new(None));
+            if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_P_A_R_E_N as i32)))); __tmp_x == __tmp_y } {
         { let (__tmp_0, __tmp_1) = self.parse_parameters(Arc::new(Mutex::new(Some(false)))); recv = __tmp_1.clone(); };
     }
-        let mut ident = self.parse_ident();
-        let (mut tparams, mut params) = self.parse_parameters(Arc::new(Mutex::new(Some(true))));
-        if (*recv.lock().unwrap()).is_some() && (*tparams.lock().unwrap()).is_some() {
+            let mut ident = self.parse_ident();
+            let (mut tparams, mut params) = self.parse_parameters(Arc::new(Mutex::new(Some(true))));
+            if { let __nil_result = (*recv.lock().unwrap()).is_some(); __nil_result } && { let __nil_result = (*tparams.lock().unwrap()).is_some(); __nil_result } {
                 // Method declarations do not have type parameters. We parse them for a
                 // better error message and improved error recovery.
-        self.error({ let __field = (*tparams.lock().unwrap().as_ref().unwrap()).opening.clone(); __field }, Arc::new(Mutex::new(Some("method must have no type parameters".to_string()))));
+        self.error(Arc::new(Mutex::new(Some({ let __selector_holder = (*tparams.lock().unwrap().as_ref().unwrap()).opening.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some("method must have no type parameters".to_string()))));
         *tparams.lock().unwrap() = None;
     }
-                // Method declarations do not have type parameters. We parse them for a
-                // better error message and improved error recovery.
-        let mut results = self.parse_result();
-        let mut body: Arc<Mutex<Option<go_ast::r#mod::BlockStmt>>> = Arc::new(Mutex::new(None));
-        { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+                        // Method declarations do not have type parameters. We parse them for a
+                        // better error message and improved error recovery.
+            let mut results = self.parse_result();
+            let mut body: Arc<Mutex<Option<go_ast::r#mod::BlockStmt>>> = Arc::new(Mutex::new(None));
+            { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32))))) {
             { let new_val = self.parse_body().clone(); body = new_val; };
             self.expect_semi();
@@ -3982,7 +4946,7 @@ impl parser {
             self.next();
             if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::L_B_R_A_C_E as i32)))); __tmp_x == __tmp_y } {
                 // opening { of function declaration on next line
-        { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("unexpected semicolon or newline before {".to_string()))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("unexpected semicolon or newline before {".to_string()))); self.error(__method_arg0, __method_arg1) };
         { let new_val = self.parse_body().clone(); body = new_val; };
         self.expect_semi();
     }
@@ -3990,27 +4954,43 @@ impl parser {
             self.expect_semi();
         }
     }
-                // opening { of function declaration on next line
-        let mut decl = Arc::new(Mutex::new(Some(go_ast::r#mod::FuncDecl { doc: doc.clone(), recv: recv.clone(), name: ident.clone(), r#type: Arc::new(Mutex::new(Some(go_ast::r#mod::FuncType { func: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), type_params: tparams.clone(), params: params.clone(), results: results.clone(), ..Default::default() }))).clone(), body: body.clone(), ..Default::default() })));
-        {
+                        // opening { of function declaration on next line
+            let mut decl = Arc::new(Mutex::new(Some(go_ast::r#mod::FuncDecl { doc: doc.clone(), recv: recv.clone(), name: ident.clone(), r#type: Arc::new(Mutex::new(Some(go_ast::r#mod::FuncType { func: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), type_params: tparams.clone(), params: params.clone(), results: results.clone(), ..Default::default() }))).clone(), body: body.clone(), ..Default::default() })));
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return decl.clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_decl(&mut self, sync: Arc<Mutex<Option<BTreeMap<go_token::r#mod::Token, Arc<Mutex<Option<bool>>>>>>>) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Decl + Send + Sync>>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("Declaration".to_string())))));
     }));
     }
-        let mut f: parseSpecFunction = Arc::new(Mutex::new(None));
-        { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            let mut f: parseSpecFunction = Arc::new(Mutex::new(None));
+            { let _switch_val = { let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
     if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_M_P_O_R_T as i32))))) {
             { let new_val = Arc::new(Mutex::new(Some({ let mut __recv = self.clone(); Box::new(move |__arg0: Arc<Mutex<Option<go_ast::r#mod::CommentGroup>>>, __arg1: Arc<Mutex<Option<go_token::r#mod::Token>>>, __arg2: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Spec + Send + Sync>>>> { __recv.parse_import_spec(__arg0, __arg1, __arg2) }) as Box<dyn FnMut(Arc<Mutex<Option<go_ast::r#mod::CommentGroup>>>, Arc<Mutex<Option<go_token::r#mod::Token>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Spec + Send + Sync>>>> + Send + Sync> }))); f = new_val; };
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::C_O_N_S_T as i32))))) || _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::V_A_R as i32))))) {
@@ -4038,26 +5018,42 @@ impl parser {
     }
         }
     }
-        {
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::GenDeclPtr({ let __method_arg0 = { let __field = self.tok.clone(); __field }; let __method_arg1 = f.clone(); self.parse_gen_decl(__method_arg0, __method_arg1) }.clone())) as Box<dyn go_ast::r#mod::Decl + Send + Sync>)));
+        return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::GenDeclPtr({ let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.tok.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = f.clone(); self.parse_gen_decl(__method_arg0, __method_arg1) }.clone())) as Box<dyn go_ast::r#mod::Decl + Send + Sync>)));
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 
     pub fn parse_file(&mut self) -> Arc<Mutex<Option<go_ast::r#mod::File>>> {
         let mut __defer_stack: Vec<Box<dyn FnOnce()>> = Vec::new();
 
-        if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
+        let __go_previous_panic_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if (*self.trace.clone().lock().unwrap().as_ref().unwrap()) {
         let mut p_defer_captured = self.clone(); __defer_stack.push(Box::new(move || {
         un(trace(Arc::new(Mutex::new(Some(p_defer_captured.clone()))), Arc::new(Mutex::new(Some("File".to_string())))));
     }));
     }
-                // Don't bother parsing the rest if we had errors scanning the first token.
-                // Likely not a Go source file at all.
-        if { let __tmp_x = (*self.errors.lock().unwrap().as_ref().unwrap()).len(); let __tmp_y = 0; __tmp_x != __tmp_y } {
+                        // Don't bother parsing the rest if we had errors scanning the first token.
+                        // Likely not a Go source file at all.
+            if { let __tmp_x = (*self.errors.lock().unwrap().as_ref().unwrap()).len(); let __tmp_y = 0; __tmp_x != __tmp_y } {
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -4066,19 +5062,19 @@ impl parser {
         return Arc::new(Mutex::new(None));
     }
     }
-                // package clause
-        let mut doc = self.lead_comment.clone();
-        let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::P_A_C_K_A_G_E as i32))))))));
-                // Go spec: The package clause is not a declaration;
-                // the package name does not appear in any scope.
-        let mut ident = self.parse_ident();
-        if { let __tmp_x = { let __selector_holder = (*ident.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = "_".to_string(); __tmp_x == __tmp_y } && { let __tmp_x = crate::interface::Mode(Arc::new(Mutex::new(Some(((*(*self.mode.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & DECLARATION_ERRORS as u64))))); let __tmp_y = crate::interface::Mode(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x != __tmp_y } {
-        { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("invalid package name _".to_string()))); self.error(__method_arg0, __method_arg1) };
+                        // package clause
+            let mut doc = self.lead_comment.clone();
+            let mut pos = self.expect(Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::P_A_C_K_A_G_E as i32))))))));
+                        // Go spec: The package clause is not a declaration;
+                        // the package name does not appear in any scope.
+            let mut ident = self.parse_ident();
+            if { let __tmp_x = { let __selector_holder = (*ident.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = "_".to_string(); __tmp_x == __tmp_y } && { let __tmp_x = crate::interface::Mode(Arc::new(Mutex::new(Some(((*(*self.mode.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & DECLARATION_ERRORS as u64))))); let __tmp_y = crate::interface::Mode(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x != __tmp_y } {
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("invalid package name _".to_string()))); self.error(__method_arg0, __method_arg1) };
     }
-        self.expect_semi();
-                // Don't bother parsing the rest if we had errors parsing the package clause.
-                // Likely not a Go source file at all.
-        if { let __tmp_x = (*self.errors.lock().unwrap().as_ref().unwrap()).len(); let __tmp_y = 0; __tmp_x != __tmp_y } {
+            self.expect_semi();
+                        // Don't bother parsing the rest if we had errors parsing the package clause.
+                        // Likely not a Go source file at all.
+            if { let __tmp_x = (*self.errors.lock().unwrap().as_ref().unwrap()).len(); let __tmp_y = 0; __tmp_x != __tmp_y } {
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
@@ -4087,8 +5083,8 @@ impl parser {
         return Arc::new(Mutex::new(None));
     }
     }
-        let mut decls: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Decl + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
-        if { let __tmp_x = crate::interface::Mode(Arc::new(Mutex::new(Some(((*(*self.mode.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & PACKAGE_CLAUSE_ONLY as u64))))); let __tmp_y = crate::interface::Mode(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x == __tmp_y } {
+            let mut decls: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Decl + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
+            if { let __tmp_x = crate::interface::Mode(Arc::new(Mutex::new(Some(((*(*self.mode.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & PACKAGE_CLAUSE_ONLY as u64))))); let __tmp_y = crate::interface::Mode(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x == __tmp_y } {
                 // import decls
         while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_M_P_O_R_T as i32)))); __tmp_x == __tmp_y } {
         { let new_val = { let __append_target = decls.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::GenDeclPtr({ let __method_arg0 = Arc::new(Mutex::new(Some(go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_M_P_O_R_T as i32))))))); let __method_arg1 = Arc::new(Mutex::new(Some({ let mut __recv = self.clone(); Box::new(move |__arg0: Arc<Mutex<Option<go_ast::r#mod::CommentGroup>>>, __arg1: Arc<Mutex<Option<go_token::r#mod::Token>>>, __arg2: Arc<Mutex<Option<i32>>>| -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Spec + Send + Sync>>>> { __recv.parse_import_spec(__arg0, __arg1, __arg2) }) as Box<dyn FnMut(Arc<Mutex<Option<go_ast::r#mod::CommentGroup>>>, Arc<Mutex<Option<go_token::r#mod::Token>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Spec + Send + Sync>>>> + Send + Sync> }))); self.parse_gen_decl(__method_arg0, __method_arg1) }.clone())) as Box<dyn go_ast::r#mod::Decl + Send + Sync>)))); __append_target.clone() }; decls = new_val; };
@@ -4099,7 +5095,7 @@ impl parser {
         while { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::E_O_F as i32)))); __tmp_x != __tmp_y } {
                 // Continue to accept import declarations for error tolerance, but complain.
         if { let __tmp_x = (*self.tok.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_M_P_O_R_T as i32)))); __tmp_x == __tmp_y } && { let __tmp_x = (*prev.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_M_P_O_R_T as i32)))); __tmp_x != __tmp_y } {
-        { let __method_arg0 = { let __field = self.pos.clone(); __field }; let __method_arg1 = Arc::new(Mutex::new(Some("imports must appear before other declarations".to_string()))); self.error(__method_arg0, __method_arg1) };
+        { let __method_arg0 = Arc::new(Mutex::new(Some({ let __selector_holder = self.pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); let __method_arg1 = Arc::new(Mutex::new(Some("imports must appear before other declarations".to_string()))); self.error(__method_arg0, __method_arg1) };
     }
         { let new_val = go_token::r#mod::Token(Arc::new(Mutex::new(Some((*(*self.tok.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *prev.lock().unwrap() = Some(new_val); };
 
@@ -4107,25 +5103,38 @@ impl parser {
     }
     }
     }
-                // import decls
-                // rest of package body
-                // Continue to accept import declarations for error tolerance, but complain.
-        let mut f = Arc::new(Mutex::new(Some(go_ast::r#mod::File { doc: doc.clone(), package: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), name: ident.clone(), decls: decls.clone(), imports: { let __field = self.imports.clone(); __field }, comments: { let __field = self.comments.clone(); __field }, go_version: Arc::new(Mutex::new(Some({ let __selector_holder = self.go_version.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() })));
-                // File{Start,End} are set by the defer in the caller.
-        let mut declErr: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<go_token::position::Pos>>>, Arc<Mutex<Option<String>>>) -> () + Send + Sync>>>> = Arc::new(Mutex::new(None));
-        if { let __tmp_x = crate::interface::Mode(Arc::new(Mutex::new(Some(((*(*self.mode.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & DECLARATION_ERRORS as u64))))); let __tmp_y = crate::interface::Mode(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x != __tmp_y } {
+                        // import decls
+                        // rest of package body
+                        // Continue to accept import declarations for error tolerance, but complain.
+            let mut f = Arc::new(Mutex::new(Some(go_ast::r#mod::File { doc: doc.clone(), package: Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), name: ident.clone(), decls: decls.clone(), imports: { let __field = self.imports.clone(); __field }, comments: { let __field = self.comments.clone(); __field }, go_version: Arc::new(Mutex::new(Some({ let __selector_holder = self.go_version.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() })));
+                        // File{Start,End} are set by the defer in the caller.
+            let mut declErr: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<go_token::position::Pos>>>, Arc<Mutex<Option<String>>>) -> () + Send + Sync>>>> = Arc::new(Mutex::new(None));
+            if { let __tmp_x = crate::interface::Mode(Arc::new(Mutex::new(Some(((*(*self.mode.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & DECLARATION_ERRORS as u64))))); let __tmp_y = crate::interface::Mode(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x != __tmp_y } {
         { let new_val = Arc::new(Mutex::new(Some({ let mut __recv = self.clone(); Box::new(move |__arg0: Arc<Mutex<Option<go_token::position::Pos>>>, __arg1: Arc<Mutex<Option<String>>>| { __recv.error(__arg0, __arg1) }) as Box<dyn FnMut(Arc<Mutex<Option<go_token::position::Pos>>>, Arc<Mutex<Option<String>>>) -> () + Send + Sync> }))); declErr = new_val; };
     }
-        if { let __tmp_x = crate::interface::Mode(Arc::new(Mutex::new(Some(((*(*self.mode.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & SKIP_OBJECT_RESOLUTION as u64))))); let __tmp_y = crate::interface::Mode(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x == __tmp_y } {
+            if { let __tmp_x = crate::interface::Mode(Arc::new(Mutex::new(Some(((*(*self.mode.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) & SKIP_OBJECT_RESOLUTION as u64))))); let __tmp_y = crate::interface::Mode(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x == __tmp_y } {
         resolve_file(f.clone(), { let __field = self.file.clone(); __field }, declErr.clone());
     }
-        {
+            {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {
             f();
         }
         return f.clone();
     }
+        }));
+        std::panic::set_hook(__go_previous_panic_hook);
+        match __go_panic_result {
+            Ok(__go_value) => __go_value,
+            Err(__go_panic_payload) => {
+                go_store_panic_payload(__go_panic_payload);
+                while let Some(f) = __defer_stack.pop() {
+                    f();
+                }
+                go_resume_unrecovered_panic();
+                Arc::new(Mutex::new(None))
+            }
+        }
     }
 }
 
@@ -4144,8 +5153,8 @@ pub fn un(p: Arc<Mutex<Option<parser>>>) {
 pub fn inc_nest_lev(p: Arc<Mutex<Option<parser>>>) -> Arc<Mutex<Option<parser>>> {
     { let __target = (*p.lock().unwrap().as_ref().unwrap()).nest_lev.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     if { let __tmp_x = (*{ let __field = (*p.lock().unwrap().as_ref().unwrap()).nest_lev.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 100000; __tmp_x > __tmp_y } {
-        { let __recv = p.clone(); let __recv_ptr: *const parser = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const parser }; let __result = unsafe { &*__recv_ptr }.error({ let __field = (*p.lock().unwrap().as_ref().unwrap()).pos.clone(); __field }, Arc::new(Mutex::new(Some("exceeded max nesting depth".to_string())))); __result };
-        panic!("{}", bailout { pos: Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(0))))))), msg: Arc::new(Mutex::new(Some(String::new()))) });
+        { let __recv = p.clone(); let __recv_ptr: *const parser = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const parser }; let __result = unsafe { &*__recv_ptr }.error(Arc::new(Mutex::new(Some({ let __selector_holder = (*p.lock().unwrap().as_ref().unwrap()).pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some("exceeded max nesting depth".to_string())))); __result };
+        std::panic::panic_any(Box::new(bailout { pos: Arc::new(Mutex::new(Some(go_token::position::Pos(Arc::new(Mutex::new(Some(0))))))), msg: Arc::new(Mutex::new(Some(String::new()))) }) as Box<dyn Any + Send + Sync>);
     }
     p.clone()
 }
@@ -4158,7 +5167,7 @@ pub fn dec_nest_lev(p: Arc<Mutex<Option<parser>>>) {
 
 pub fn assert(cond: Arc<Mutex<Option<bool>>>, msg: Arc<Mutex<Option<String>>>) {
     if !{ let __v = (*cond.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        panic!("{}", format!("{}{}", "go/parser internal error: ".to_string(), { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+        std::panic::panic_any(Box::new(format!("{}{}", "go/parser internal error: ".to_string(), { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v })) as Box<dyn Any + Send + Sync>);
     }
 }
 
@@ -4206,9 +5215,9 @@ pub fn extract_name(mut x: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send +
     let _ts_owned = _ts_guard.as_ref().cloned();
     drop(_ts_guard);
     let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {
-        let __any = __v.__go_as_any();
+        let __any = __v.as_ref().__go_as_any();
         if let Some(__boxed) = __any.downcast_ref::<Box<dyn go_ast::r#mod::Expr + Send + Sync>>() {
-            __boxed.__go_as_any()
+            __boxed.as_ref().__go_as_any()
         } else {
             __any
         }
@@ -4234,16 +5243,16 @@ pub fn extract_name(mut x: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send +
             (Arc::new(Mutex::new(None::<go_ast::r#mod::Ident>)), false)
         }
     });;
-        if (*name.lock().unwrap()).is_some() && ({ let __v = (*force.lock().unwrap().as_ref().unwrap()).clone(); __v } || is_type_elem((*x.lock().unwrap().as_ref().unwrap()).y.clone())) {
+        if { let __nil_result = (*name.lock().unwrap()).is_some(); __nil_result } && ({ let __v = (*force.lock().unwrap().as_ref().unwrap()).clone(); __v } || is_type_elem({ let __field = (*x.lock().unwrap().as_ref().unwrap()).y.clone(); __field })) {
             return (name.clone(), Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::StarExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::StarExpr { star: Arc::new(Mutex::new(Some({ let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).op_pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), x: { let __field = (*x.lock().unwrap().as_ref().unwrap()).y.clone(); __field }, ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))));;
         }
     }
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::O_R as i32))))) {
             {
-        let (mut name, mut lhs) = extract_name((*x.lock().unwrap().as_ref().unwrap()).x.clone(), Arc::new(Mutex::new(Some({ let __v = (*force.lock().unwrap().as_ref().unwrap()).clone(); __v } || is_type_elem((*x.lock().unwrap().as_ref().unwrap()).y.clone())))));;
-        if (*name.lock().unwrap()).is_some() && (*lhs.lock().unwrap()).is_some() {
+        let (mut name, mut lhs) = extract_name({ let __field = (*x.lock().unwrap().as_ref().unwrap()).x.clone(); __field }, Arc::new(Mutex::new(Some({ let __v = (*force.lock().unwrap().as_ref().unwrap()).clone(); __v } || is_type_elem({ let __field = (*x.lock().unwrap().as_ref().unwrap()).y.clone(); __field })))));;
+        if { let __nil_result = (*name.lock().unwrap()).is_some(); __nil_result } && { let __nil_result = (*lhs.lock().unwrap()).is_some(); __nil_result } {
             let mut op = Arc::new(Mutex::new(Some({ let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v })));;
-            { let __iface_handle = lhs.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*op.lock().unwrap().as_mut().unwrap()).x.lock().unwrap() = (*__iface_guard).clone(); };;
+            { let __iface_handle = lhs.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*op.lock().unwrap().as_mut().unwrap()).x.lock().unwrap() = __iface_value; };;
             return (name.clone(), Arc::new(Mutex::new(Some(Box::new((*op.clone().lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))));;
         }
     }
@@ -4265,7 +5274,7 @@ pub fn extract_name(mut x: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send +
             (Arc::new(Mutex::new(None::<go_ast::r#mod::Ident>)), false)
         }
     });;
-        if (*name.lock().unwrap()).is_some() {
+        if { let __nil_result = (*name.lock().unwrap()).is_some(); __nil_result } {
             if { let __tmp_x = (({ let __len_target = { let __field = (*x.lock().unwrap().as_ref().unwrap()).args.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x == __tmp_y } && { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).ellipsis.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = go_token::position::Pos(Arc::new(Mutex::new(Some(go_token::NO_POS as i32)))); __tmp_x == __tmp_y } && ({ let __v = (*force.lock().unwrap().as_ref().unwrap()).clone(); __v } || is_type_elem({ let __seq = { let __seq_holder = (*x.lock().unwrap().as_ref().unwrap()).args.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone())) {
         return (name.clone(), Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::ParenExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::ParenExpr { lparen: Arc::new(Mutex::new(Some({ let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).lparen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), x: { let __seq = { let __seq_holder = (*x.lock().unwrap().as_ref().unwrap()).args.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(), rparen: Arc::new(Mutex::new(Some({ let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).rparen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>))));
     };
@@ -4292,25 +5301,25 @@ pub fn is_type_elem(mut x: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send +
     let _ts_owned = _ts_guard.as_ref().cloned();
     drop(_ts_guard);
     let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {
-        let __any = __v.__go_as_any();
+        let __any = __v.as_ref().__go_as_any();
         if let Some(__boxed) = __any.downcast_ref::<Box<dyn go_ast::r#mod::Expr + Send + Sync>>() {
-            __boxed.__go_as_any()
+            __boxed.as_ref().__go_as_any()
         } else {
             __any
         }
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ArrayTypePtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::StructTypePtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::FuncTypePtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::InterfaceTypePtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::MapTypePtr>()).is_some() || _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ChanTypePtr>()).is_some() {
-        let x = x.clone();
+        let x = _ts_subject.clone();
         return true;;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::BinaryExprPtr>()).is_some() {
         let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::BinaryExprPtr>()).unwrap().0.clone();
-        return is_type_elem((*x.lock().unwrap().as_ref().unwrap()).x.clone()) || is_type_elem((*x.lock().unwrap().as_ref().unwrap()).y.clone());;
+        return is_type_elem({ let __field = (*x.lock().unwrap().as_ref().unwrap()).x.clone(); __field }) || is_type_elem({ let __field = (*x.lock().unwrap().as_ref().unwrap()).y.clone(); __field });;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::UnaryExprPtr>()).is_some() {
         let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::UnaryExprPtr>()).unwrap().0.clone();
         return { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).op.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::T_I_L_D_E as i32)))); __tmp_x == __tmp_y };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ParenExprPtr>()).is_some() {
         let x = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::ParenExprPtr>()).unwrap().0.clone();
-        return is_type_elem((*x.lock().unwrap().as_ref().unwrap()).x.clone());;
+        return is_type_elem({ let __field = (*x.lock().unwrap().as_ref().unwrap()).x.clone(); __field });;
     }
     }
     false
@@ -4320,7 +5329,7 @@ pub fn is_type_elem(mut x: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send +
 pub fn pack_index_expr(x: Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>, lbrack: Arc<Mutex<Option<go_token::position::Pos>>>, exprs: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>>, rbrack: Arc<Mutex<Option<go_token::position::Pos>>>) -> Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>> {
     { let _switch_val = (*exprs.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0);
     if _switch_val == (0) {
-            panic!("internal error: packIndexExpr with empty expr slice");
+            std::panic::panic_any(Box::new("internal error: packIndexExpr with empty expr slice".to_string()) as Box<dyn Any + Send + Sync>);
         } else if _switch_val == (1) {
             return Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::IndexExprPtr(Arc::new(Mutex::new(Some(go_ast::r#mod::IndexExpr { x: x.clone(), lbrack: Arc::new(Mutex::new(Some({ let __arg_holder = lbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), index: { let __seq = { let __seq_holder = exprs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone(), rbrack: Arc::new(Mutex::new(Some({ let __arg_holder = rbrack.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))).clone())) as Box<dyn go_ast::r#mod::Expr + Send + Sync>)));
         } else {

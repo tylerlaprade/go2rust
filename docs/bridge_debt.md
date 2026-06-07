@@ -218,9 +218,10 @@ in the first place.
   `tests/stdlib_function_type_alias/` also source-map `strconv` for
   `go/types`/`go/constant` callers after error-interface assertions to pointer
   concrete errors learned to rebuild the pointer handle from the concrete error
-  payload. `tests/parser_mode_const_expression/` now source-maps `strconv` for
-  parser/scanner callers. Other source-stdlib fixtures still emit calls through
-  the external `strconv` module when their configs do not source-map
+  payload. `tests/parser_mode_const_expression/` and
+  `tests/parser_parse_file_package_imports/` now source-map `strconv` for
+  parser/scanner callers. Other source-stdlib fixtures still emit calls
+  through the external `strconv` module when their configs do not source-map
   `strconv`.
 - Fixture: `tests/source_stdlib_strconv_unquote/`,
   `tests/source_stdlib_go_types_new_type_name/`,
@@ -230,7 +231,8 @@ in the first place.
   `tests/source_stdlib_go_parser_types_check_bridge_arg/`,
   `tests/types_config_check_bridge/`,
   `tests/stdlib_function_type_alias/`,
-  `tests/parser_mode_const_expression/`
+  `tests/parser_mode_const_expression/`,
+  `tests/parser_parse_file_package_imports/`
 - Removal trigger: all existing source-stdlib callers that need `strconv`
   source-map it and no generated fixture still requires the external
   `strconv` package bridge.

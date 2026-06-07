@@ -8,6 +8,7 @@ use crate::reader::*;
 use crate::replace::*;
 use crate::search::*;
 
+use std::any::Any;
 use std::sync::{Arc, Mutex};
 
 pub(crate) const MAX_INT: i32 = i32::MAX;
@@ -144,13 +145,13 @@ pub fn join(elems: Arc<Mutex<Option<Vec<String>>>>, sep: Arc<Mutex<Option<String
     let mut n: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
     if { let __tmp_x = ((*sep.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
         if { let __tmp_x = ((*sep.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ({ let __tmp_x = i32::MAX; let __tmp_y = (({ let __tmp_x = ((*elems.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as i32); __tmp_x / __tmp_y } as i32); __tmp_x >= __tmp_y } {
-        panic!("strings: Join output length overflow");
+        std::panic::panic_any(Box::new("strings: Join output length overflow".to_string()) as Box<dyn Any + Send + Sync>);
     }
         { let __rhs = { let __tmp_x = ((*sep.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (({ let __tmp_x = ((*elems.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as i32); __tmp_x * __tmp_y }; let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
     { let __range_holder = elems.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for elem in __range_values.iter() {
         if { let __tmp_x = (elem.len() as i32); let __tmp_y = ({ let __tmp_x = i32::MAX; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y } as i32); __tmp_x > __tmp_y } {
-        panic!("strings: Join output length overflow");
+        std::panic::panic_any(Box::new("strings: Join output length overflow".to_string()) as Box<dyn Any + Send + Sync>);
     }
         { let __rhs = elem.len() as i32; let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } }
@@ -187,11 +188,11 @@ pub fn repeat(s: Arc<Mutex<Option<String>>>, count: Arc<Mutex<Option<i32>>>) -> 
         // we should panic if the repeat will generate an overflow.
         // See golang.org/issue/16237.
     if { let __tmp_x = { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x < __tmp_y } {
-        panic!("strings: negative Repeat count");
+        std::panic::panic_any(Box::new("strings: negative Repeat count".to_string()) as Box<dyn Any + Send + Sync>);
     }
     let (mut hi, mut lo) = bits::mul(Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).len() as u64))), Arc::new(Mutex::new(Some((*count.lock().unwrap().as_ref().unwrap()) as u64))));
     if { let __tmp_x = hi; let __tmp_y = 0 as u64; __tmp_x > __tmp_y } || { let __tmp_x = lo; let __tmp_y = (*Arc::new(Mutex::new(Some(MAX_INT as u64))).lock().unwrap().as_ref().unwrap()) as u64; __tmp_x > __tmp_y } {
-        panic!("strings: Repeat output length overflow");
+        std::panic::panic_any(Box::new("strings: Repeat output length overflow".to_string()) as Box<dyn Any + Send + Sync>);
     }
     let mut n = Arc::new(Mutex::new(Some(lo as i32)));
 
