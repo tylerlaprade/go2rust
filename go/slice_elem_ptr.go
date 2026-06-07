@@ -2882,6 +2882,7 @@ func registerGoPtrParamsFromFiles(files []*ast.File) {
 				sliceCandidates := collectSliceElemPtrCandidates(fnDecl.Body)
 				arrayCandidates := collectArrayElemPtrCandidatesForFunc(fnDecl)
 				goPtrCandidates := collectGoPtrCandidatesForFunc(fnDecl)
+				goPtrCandidates = mergeGoPtrCandidateInfos(goPtrCandidates, collectFunctionValueCallArgumentGoPtrParamObjects(fnDecl))
 				goPtrSlotCandidates := collectGoPtrSlotCandidatesForFunc(fnDecl)
 				if registerGoPtrParamsFromAssignments(currentFn, fnDecl, goPtrCandidates) {
 					changed = true
@@ -2945,6 +2946,22 @@ func registerGoPtrParamsFromFiles(files []*ast.File) {
 	}
 }
 
+func mergeGoPtrCandidateInfos(base map[types.Object]goPtrResultInfo, extra map[types.Object]goPtrResultInfo) map[types.Object]goPtrResultInfo {
+	if len(extra) == 0 {
+		return base
+	}
+	if base == nil {
+		base = make(map[types.Object]goPtrResultInfo, len(extra))
+	}
+	for obj, info := range extra {
+		if obj == nil || goPtrResultElemRustType(info) == "" {
+			continue
+		}
+		base[obj] = info
+	}
+	return base
+}
+
 func registerGoPtrParamsFromAssignments(currentFn *types.Func, fnDecl *ast.FuncDecl, goPtrCandidates map[types.Object]goPtrResultInfo) bool {
 	typeInfo := GetTypeInfo()
 	if currentFn == nil || fnDecl == nil || fnDecl.Body == nil || typeInfo == nil {
@@ -2987,6 +3004,68 @@ func registerGoPtrParamsFromAssignments(currentFn *types.Func, fnDecl *ast.FuncD
 		return true
 	})
 	return changed
+}
+
+func collectFunctionValueCallArgumentGoPtrParamObjects(fn *ast.FuncDecl) map[types.Object]goPtrResultInfo {
+	typeInfo := GetTypeInfo()
+	if fn == nil || fn.Body == nil || typeInfo == nil || typeInfo.info == nil {
+		return nil
+	}
+	result := map[types.Object]goPtrResultInfo{}
+	ast.Inspect(fn.Body, func(node ast.Node) bool {
+		call, ok := node.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		for i, arg := range call.Args {
+			funcLit, ok := unwrapParens(arg).(*ast.FuncLit)
+			if !ok {
+				continue
+			}
+			infos, _, ok := functionValueGoPtrParamInfosForCallArgument(call, i)
+			if !ok {
+				continue
+			}
+			for paramIndex, info := range infos {
+				obj := funcLitParamObjectAt(funcLit, paramIndex, typeInfo)
+				if obj == nil || goPtrResultElemRustType(info) == "" {
+					continue
+				}
+				result[obj] = info
+			}
+		}
+		return true
+	})
+	if len(result) == 0 {
+		return nil
+	}
+	return result
+}
+
+func funcLitParamObjectAt(funcLit *ast.FuncLit, paramIndex int, typeInfo *TypeInfo) types.Object {
+	if funcLit == nil || funcLit.Type == nil || funcLit.Type.Params == nil || paramIndex < 0 || typeInfo == nil {
+		return nil
+	}
+	seen := 0
+	for _, field := range funcLit.Type.Params.List {
+		if field == nil {
+			continue
+		}
+		if len(field.Names) == 0 {
+			if seen == paramIndex {
+				return nil
+			}
+			seen++
+			continue
+		}
+		for _, name := range field.Names {
+			if seen == paramIndex {
+				return typeInfo.GetObject(name)
+			}
+			seen++
+		}
+	}
+	return nil
 }
 
 func goPtrCandidatesAsStates(candidates map[types.Object]goPtrResultInfo) map[types.Object]*goPtrCandidate {

@@ -1280,6 +1280,55 @@ func fatal(gp *g, mp *m, flag bool) *g {
 	}
 }
 
+func TestMethodCallInsideGoPtrFunctionLiteralPromotesMethodParam(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type p struct {
+	id int
+}
+
+type writer struct {
+}
+
+func raw(addr uintptr) *p {
+	return (*p)(unsafe.Pointer(addr))
+}
+
+func each(fn func(*p)) {
+	fn(raw(1))
+}
+
+func (w writer) write(pp *p) {
+	pp.id = 1
+}
+
+func use(w writer) {
+	each(func(pp *p) {
+		w.write(pp)
+	})
+}
+`)
+
+	if !strings.Contains(rust, "Box<dyn FnMut(GoPtr<p>) -> ()") {
+		t.Fatalf("function literal parameter should use the GoPtr ABI:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn write(&self, pp: GoPtr<p>)") &&
+		!strings.Contains(rust, "pub fn write(&mut self, pp: GoPtr<p>)") {
+		t.Fatalf("method called with a GoPtr function-literal parameter should use a GoPtr parameter:\n%s", rust)
+	}
+	if strings.Contains(rust, "pub fn write(&self, pp: Rc<RefCell<Option<p>>>)") ||
+		strings.Contains(rust, "pub fn write(&mut self, pp: Rc<RefCell<Option<p>>>)") ||
+		strings.Contains(rust, "pub fn write(&self, pp: Arc<Mutex<Option<p>>>)") ||
+		strings.Contains(rust, "pub fn write(&mut self, pp: Arc<Mutex<Option<p>>>)") {
+		t.Fatalf("method should not keep the old pointer-wrapper parameter ABI:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".write(pp.clone())") {
+		t.Fatalf("method call should pass the existing GoPtr handle from the function literal:\n%s", rust)
+	}
+}
+
 func TestAnonymousNestedPointerFieldAssignedSliceElemAddressUsesGoPtrField(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

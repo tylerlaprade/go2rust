@@ -2509,16 +2509,16 @@ impl crate::tracebuf::traceWriter {
     /// have any stack growth.
     ///
     ///go:nosplit
-    pub fn write_proc_status_for_p(&self, pp: Arc<Mutex<Option<p>>>, inSTW: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<crate::tracebuf::traceWriter>>> {
+    pub fn write_proc_status_for_p(&self, pp: GoPtr<crate::runtime2::p>, inSTW: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<crate::tracebuf::traceWriter>>> {
         let mut __self = self.clone();
-        if !(*(*pp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_mut().unwrap()).acquire_status(Arc::new(Mutex::new(Some({ let __selector_holder = (*__self.trace_locker.lock().unwrap().as_ref().unwrap()).gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) {
+        if !(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).acquire_status(Arc::new(Mutex::new(Some({ let __selector_holder = (*__self.trace_locker.lock().unwrap().as_ref().unwrap()).gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) {
         return Arc::new(Mutex::new(Some(__self.clone())));
     }
         let mut status: Arc<Mutex<Option<traceProcStatus>>> = Arc::new(Mutex::new(Some(traceProcStatus(Arc::new(Mutex::new(Some(0)))))));
-        { let _switch_val = { let __v = (*pp.lock().unwrap().as_ref().unwrap()).status.clone(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
+        { let _switch_val = { let __v = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.status.clone()); __ptr_value }.clone(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
     if _switch_val == (__PIDLE as u32) || _switch_val == (__PGCSTOP as u32) {
             { let new_val = traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_IDLE as u8)))); *status.lock().unwrap() = Some(new_val); };
-            if { let __tmp_x = (*{ let __field = (*pp.lock().unwrap().as_ref().unwrap()).status.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __PGCSTOP as u32; __tmp_x == __tmp_y } && { let __v = (*inSTW.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+            if { let __tmp_x = (*{ let __ptr_value = pp.borrow(); __ptr_value.as_ref().unwrap().status.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __PGCSTOP as u32; __tmp_x == __tmp_y } && { let __v = (*inSTW.lock().unwrap().as_ref().unwrap()).clone(); __v } {
                 // N.B. a P that is running and currently has the world stopped will be
                 // in _Pgcstop, but we model it as running in the tracer.
         { let new_val = traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8)))); *status.lock().unwrap() = Some(new_val); };
@@ -2529,7 +2529,7 @@ impl crate::tracebuf::traceWriter {
                         // but it still owns the P (it's not in _Psyscall yet). The goroutine entering
                         // _Gsyscall is the tracer's signal that the P its bound to is also in a syscall,
                         // so we need to emit a status that matches. See #64318.
-            if { let __left_addr = crate::runtime2::puintptr::ptr(&(*(*(*__self.trace_locker.lock().unwrap().as_ref().unwrap()).mp.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())).addr(); let __right_addr = { let __ptr = GoPtr::local(pp.clone()); __ptr.addr() }; let __eq = __left_addr == __right_addr; __eq } && { let __ptr_field = (*(*__self.trace_locker.lock().unwrap().as_ref().unwrap()).mp.lock().unwrap().as_ref().unwrap()).curg.clone(); !__ptr_field.is_nil() } && { let __tmp_x = { let __tmp_x = readgstatus((*(*__self.trace_locker.lock().unwrap().as_ref().unwrap()).mp.lock().unwrap().as_ref().unwrap()).curg.clone()); let __tmp_y = __GSCAN as u32; __tmp_x & ! __tmp_y }; let __tmp_y = __GSYSCALL as u32; __tmp_x == __tmp_y } {
+            if { let __left_addr = crate::runtime2::puintptr::ptr(&(*(*(*__self.trace_locker.lock().unwrap().as_ref().unwrap()).mp.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())).addr(); let __right_addr = pp.addr(); let __eq = __left_addr == __right_addr; __eq } && { let __ptr_field = (*(*__self.trace_locker.lock().unwrap().as_ref().unwrap()).mp.lock().unwrap().as_ref().unwrap()).curg.clone(); !__ptr_field.is_nil() } && { let __tmp_x = { let __tmp_x = readgstatus((*(*__self.trace_locker.lock().unwrap().as_ref().unwrap()).mp.lock().unwrap().as_ref().unwrap()).curg.clone()); let __tmp_y = __GSCAN as u32; __tmp_x & ! __tmp_y }; let __tmp_y = __GSYSCALL as u32; __tmp_x == __tmp_y } {
         { let new_val = traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_SYSCALL as u8)))); *status.lock().unwrap() = Some(new_val); };
     }
         } else if _switch_val == (__PSYSCALL as u32) {
@@ -2544,7 +2544,7 @@ impl crate::tracebuf::traceWriter {
                 // but it still owns the P (it's not in _Psyscall yet). The goroutine entering
                 // _Gsyscall is the tracer's signal that the P its bound to is also in a syscall,
                 // so we need to emit a status that matches. See #64318.
-        { let new_val = __self.write_proc_status(Arc::new(Mutex::new(Some({ let __selector_holder = (*pp.lock().unwrap().as_ref().unwrap()).id.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))), Arc::new(Mutex::new(Some({ let __arg_holder = status.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*(*pp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).in_sweep.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
+        { let new_val = __self.write_proc_status(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.id.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))), Arc::new(Mutex::new(Some({ let __arg_holder = status.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).in_sweep.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
         Arc::new(Mutex::new(Some(__self.clone())))
     }
 
