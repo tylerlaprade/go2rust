@@ -1,7 +1,5 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{go_strconv_format_float, go_strconv_format_int};
-
 use crate::code_string::*;
 
 use std::fmt::{Display, Formatter};

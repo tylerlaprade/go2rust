@@ -11,6 +11,8 @@ members = [
     "vendor/go_version",
     "vendor/internal_abi",
     "vendor/internal_buildcfg",
+    "vendor/internal_bytealg",
+    "vendor/internal_cpu",
     "vendor/internal_filepathlite",
     "vendor/internal_goarch",
     "vendor/internal_godebug",
@@ -27,6 +29,7 @@ members = [
     "vendor/math_bits",
     "vendor/path_filepath",
     "vendor/slices",
+    "vendor/strconv",
     "vendor/sync",
     "vendor/sync_atomic",
     "vendor/unicode",
@@ -53,6 +56,8 @@ go_types = { path = "vendor/go_types" }
 go_version = { path = "vendor/go_version" }
 internal_abi = { path = "vendor/internal_abi" }
 internal_buildcfg = { path = "vendor/internal_buildcfg" }
+internal_bytealg = { path = "vendor/internal_bytealg" }
+internal_cpu = { path = "vendor/internal_cpu" }
 internal_filepathlite = { path = "vendor/internal_filepathlite" }
 internal_goarch = { path = "vendor/internal_goarch" }
 internal_godebug = { path = "vendor/internal_godebug" }
@@ -69,6 +74,7 @@ math_big = { path = "vendor/math_big" }
 math_bits = { path = "vendor/math_bits" }
 path_filepath = { path = "vendor/path_filepath" }
 slices = { path = "vendor/slices" }
+strconv = { path = "vendor/strconv" }
 sync = { path = "vendor/sync" }
 sync_atomic = { path = "vendor/sync_atomic" }
 unicode = { path = "vendor/unicode" }

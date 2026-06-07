@@ -15,6 +15,7 @@ pub fn __go_init_all() {
     __GO_INIT_ONCE.call_once(|| {
         cmp::__go_init_all();
         slices::__go_init_all();
+        strconv::__go_init_all();
         sync::__go_init_all();
         sync_atomic::__go_init_all();
         unicode::__go_init_all();

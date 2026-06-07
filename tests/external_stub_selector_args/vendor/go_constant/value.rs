@@ -1,7 +1,5 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{go_strconv_format_float, go_strconv_format_int};
-
 use crate::kind_string::*;
 
 use std::any::Any;
@@ -1209,7 +1207,7 @@ impl stringVal {
     pub fn string(&mut self) -> Arc<Mutex<Option<String>>> {
         const maxLen: i32 = 72;
 
-        let mut s = Arc::new(Mutex::new(Some(format!("{:?}", (*self.string_1().lock().unwrap().as_ref().unwrap()).clone()))));
+        let mut s = strconv::quote(self.string_1());
         if { let __tmp_x = unicode_utf8::rune_count_in_string(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __tmp_y = 72; __tmp_x > __tmp_y } {
                 // The string without the enclosing quotes is greater than maxLen-2 runes
                 // long. Remove the last 3 runes (including the closing '"') by keeping
@@ -1274,7 +1272,7 @@ impl stringVal {
     }
 
     pub fn exact_string(&mut self) -> Arc<Mutex<Option<String>>> {
-        Arc::new(Mutex::new(Some(format!("{:?}", (*self.string_1().lock().unwrap().as_ref().unwrap()).clone()))))
+        strconv::quote(self.string_1())
     }
 
     pub fn implements_value(&self) {
@@ -1361,7 +1359,7 @@ impl int64Val {
     }
 
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        Arc::new(Mutex::new(Some(go_strconv_format_int((*Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap()) as i64, 10 as i32))))
+        strconv::format_int(Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()) as i64))), Arc::new(Mutex::new(Some(10))))
     }
 
     pub fn exact_string(&self) -> Arc<Mutex<Option<String>>> {
@@ -2059,7 +2057,7 @@ pub fn make_from_literal(lit: Arc<Mutex<Option<String>>>, tok: Arc<Mutex<Option<
     { let _switch_val = (*tok.lock().unwrap().as_ref().unwrap()).clone();
     if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::I_N_T as i32))))) {
             {
-        let (mut x, mut err) = strconv::parse_int({ let __arg_holder = lit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }, 0, 64);;
+        let (mut x, mut err) = strconv::parse_int(Arc::new(Mutex::new(Some({ let __arg_holder = lit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(64))));;
         if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } {
             return Arc::new(Mutex::new(Some(Box::new(int64Val(Arc::new(Mutex::new(Some(x as i64))))) as Box<dyn Value + Send + Sync>)));;
         }
@@ -2094,7 +2092,7 @@ pub fn make_from_literal(lit: Arc<Mutex<Option<String>>>, tok: Arc<Mutex<Option<
         let mut n = Arc::new(Mutex::new(Some((*lit.lock().unwrap().as_ref().unwrap()).len() as i32)));;
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x >= __tmp_y } {
             {
-        let (mut code, _, _, mut err) = strconv::unquote_char(Arc::new(Mutex::new(Some({ let __s = &((*lit.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = ({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; __s[__low..__high].to_string() }))), ('\'' as i32) as u8);;
+        let (mut code, _, _, mut err) = strconv::unquote_char(Arc::new(Mutex::new(Some({ let __s = &((*lit.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; let __high = ({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; __s[__low..__high].to_string() }))), Arc::new(Mutex::new(Some(('\'' as i32) as u8))));;
         if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } {
             return make_int64(Arc::new(Mutex::new(Some(code as i64)))).clone();;
         }
@@ -2103,7 +2101,7 @@ pub fn make_from_literal(lit: Arc<Mutex<Option<String>>>, tok: Arc<Mutex<Option<
     }
         } else if _switch_val == (go_token::r#mod::Token(Arc::new(Mutex::new(Some(go_token::S_T_R_I_N_G as i32))))) {
             {
-        let (mut s, mut err) = strconv::unquote({ let __arg_holder = lit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });;
+        let (mut s, mut err) = strconv::unquote(Arc::new(Mutex::new(Some({ let __arg_holder = lit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
         if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } {
             return make_string(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone();;
         }
