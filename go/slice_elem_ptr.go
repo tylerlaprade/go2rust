@@ -5985,6 +5985,10 @@ func writeGoPtrCallArgumentWithQualifierForInfo(out *strings.Builder, arg ast.Ex
 			return true
 		}
 		if info, ok := arrayElemPtrVarInfo(ident.Name); ok && elemRustTypeFromArrayElemPtrRustType(info.RustType) == elemRustType {
+			if helperQualifier != "" {
+				writeCrossPackageGoPtrArrayElemForwardingGap(out)
+				return true
+			}
 			writeGoPtrQualifiedConstructor(out, helperQualifier, "array_elem_opt")
 			out.WriteString("(")
 			out.WriteString(rustIdentForUseWithCapture(ident))
@@ -6028,6 +6032,10 @@ func writeGoPtrCallArgumentWithQualifierForInfo(out *strings.Builder, arg ast.Ex
 			return true
 		}
 		if info, ok := arrayElemPtrResultInfoForCall(call, 0); ok && info.elemRustType == elemRustType {
+			if helperQualifier != "" {
+				writeCrossPackageGoPtrArrayElemForwardingGap(out)
+				return true
+			}
 			writeGoPtrQualifiedConstructor(out, helperQualifier, "array_elem_opt")
 			out.WriteString("(")
 			TranspileExpression(out, arg)
@@ -6277,7 +6285,13 @@ func writeGoPtrConversion(out *strings.Builder, inputHelperQualifier string, out
 	}
 	out.WriteString("GoSliceElemPtr::new(__value.slice_handle(), __value.index())), ")
 	writeGoPtrQualifiedVariant(out, inputHelperQualifier, "ArrayElem")
-	out.WriteString("(_) => unimplemented!(\"cross-package GoPtr array element forwarding requires shared GoPtr helpers\") } }")
+	out.WriteString("(_) => ")
+	writeCrossPackageGoPtrArrayElemForwardingGap(out)
+	out.WriteString(" } }")
+}
+
+func writeCrossPackageGoPtrArrayElemForwardingGap(out *strings.Builder) {
+	out.WriteString(`unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers")`)
 }
 
 func writeGoPtrQualifiedVariant(out *strings.Builder, helperQualifier string, variant string) {

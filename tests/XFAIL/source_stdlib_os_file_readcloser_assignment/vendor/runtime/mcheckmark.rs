@@ -533,13 +533,13 @@ pub fn set_checkmark(obj: Arc<Mutex<Option<usize>>>, base: Arc<Mutex<Option<usiz
     let mut mask = Arc::new(Mutex::new(Some(({ let __tmp_x = (1 as u8); let __tmp_y = ({ let __tmp_x = ({ let __tmp_x = { let __v = (*obj.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = HEAP_ARENA_BYTES as usize; __tmp_x / __tmp_y }); let __tmp_y = 8 as usize; __tmp_x % __tmp_y }); __tmp_x << __tmp_y }) as u8)));
     let mut bytep: Option<GoArrayElemPtr<u8, 1048576>> = Some(GoArrayElemPtr::new({ let __ptr_value = (*arena.lock().unwrap().as_ref().unwrap()).checkmarks.with_mut(|__ptr_value| __ptr_value.b.clone()); __ptr_value }.clone(), ({ let __v = (*arenaWord.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize));
 
-    if { let __tmp_x = { let __tmp_x = internal_runtime_atomic::load8(internal_runtime_atomic::GoPtr::array_elem_opt(bytep.clone())); let __tmp_y = { let __v = (*mask.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y } {
+    if { let __tmp_x = { let __tmp_x = internal_runtime_atomic::load8(unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers")); let __tmp_y = { let __v = (*mask.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y } {
                 // Already checkmarked.
         return true;
     }
 
         // Already checkmarked.
-    internal_runtime_atomic::or8(internal_runtime_atomic::GoPtr::array_elem_opt(bytep.clone()), Arc::new(Mutex::new(Some({ let __arg_holder = mask.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    internal_runtime_atomic::or8(unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"), Arc::new(Mutex::new(Some({ let __arg_holder = mask.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     false
 }
 

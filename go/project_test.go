@@ -2081,6 +2081,52 @@ func main() {
 	}
 }
 
+func TestExternalGoPtrArgumentArrayElemPointerLocalUsesLoudCrossPackageGap(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "go.mod"), `module example.com/dep
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "dep", "dep.go"), `package dep
+
+func Take(p *byte) {
+	_ = p
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import "example.com/dep"
+
+func main() {
+	var buf [8]byte
+	slot := &buf[0]
+	dep.Take(slot)
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	mainRS := mustReadFile(t, filepath.Join(tempDir, "main.rs"))
+	if strings.Contains(mainRS, "example_com_dep::GoPtr::array_elem_opt(slot.clone())") {
+		t.Fatalf("external GoPtr argument should not wrap a local array element helper with the external constructor:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, `unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers")`) {
+		t.Fatalf("external GoPtr argument should expose the missing shared array-element helper boundary loudly:\n%s", mainRS)
+	}
+}
+
 func TestAtomicUint64MethodValueUsesSharedAtomicHelper(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

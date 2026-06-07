@@ -472,10 +472,10 @@ pub fn lock2(l: GoPtr<crate::runtime2::mutex>) {
     let mut k8: Option<GoArrayElemPtr<u8, 8>> = key8({ let __ptr_value = l.with_mut(|__ptr_value| __ptr_value.key.clone()); __ptr_value }.clone());
 
         // Speculative grab for lock.
-    let mut v8 = internal_runtime_atomic::xchg8(internal_runtime_atomic::GoPtr::array_elem_opt(k8.clone()), Arc::new(Mutex::new(Some(MUTEX_LOCKED as u8))));
+    let mut v8 = internal_runtime_atomic::xchg8(unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"), Arc::new(Mutex::new(Some(MUTEX_LOCKED as u8))));
     if { let __tmp_x = { let __tmp_x = v8; let __tmp_y = MUTEX_LOCKED as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x == __tmp_y } {
         if { let __tmp_x = { let __tmp_x = v8; let __tmp_y = MUTEX_SLEEPING as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y } {
-        internal_runtime_atomic::or8(internal_runtime_atomic::GoPtr::array_elem_opt(k8.clone()), Arc::new(Mutex::new(Some(MUTEX_SLEEPING as u8))));
+        internal_runtime_atomic::or8(unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"), Arc::new(Mutex::new(Some(MUTEX_SLEEPING as u8))));
     }
         return;
     }
@@ -510,7 +510,7 @@ pub fn lock2(l: GoPtr<crate::runtime2::mutex>) {
         return;
     }
     } else {
-        let mut prev8 = internal_runtime_atomic::xchg8(internal_runtime_atomic::GoPtr::array_elem_opt(k8.clone()), Arc::new(Mutex::new(Some(((MUTEX_LOCKED as u8) | (MUTEX_SLEEPING as u8)) as u8))));
+        let mut prev8 = internal_runtime_atomic::xchg8(unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"), Arc::new(Mutex::new(Some(((MUTEX_LOCKED as u8) | (MUTEX_SLEEPING as u8)) as u8))));
         if { let __tmp_x = { let __tmp_x = prev8; let __tmp_y = MUTEX_LOCKED as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x == __tmp_y } {
         { let __recv = timer.clone(); let __recv_ptr: *const crate::mprof::lockTimer = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::mprof::lockTimer }; let __result = unsafe { &*__recv_ptr }.end(); __result };
         return;
@@ -582,7 +582,7 @@ pub fn unlock(l: GoPtr<crate::runtime2::mutex>) {
 pub fn unlock2(l: GoPtr<crate::runtime2::mutex>) {
     let mut gp = getg();
 
-    let mut prev8 = internal_runtime_atomic::xchg8(internal_runtime_atomic::GoPtr::array_elem_opt(key8({ let __ptr_value = l.with_mut(|__ptr_value| __ptr_value.key.clone()); __ptr_value }.clone())), Arc::new(Mutex::new(Some(0 as u8))));
+    let mut prev8 = internal_runtime_atomic::xchg8(unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"), Arc::new(Mutex::new(Some(0 as u8))));
     if { let __tmp_x = { let __tmp_x = prev8; let __tmp_y = MUTEX_LOCKED as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x == __tmp_y } {
         throw(Arc::new(Mutex::new(Some("unlock of unlocked lock".to_string()))));
     }
