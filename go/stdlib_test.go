@@ -163,6 +163,38 @@ func order(names []string) {
 	}
 }
 
+func TestSlicesSortOfWrappedStructFieldKeepsFieldHandleAlive(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "slices"
+
+type Package struct {
+	AllTags []string
+}
+
+func order(p *Package) {
+	slices.Sort(p.AllTags)
+}
+
+func launch(p *Package) {
+	go order(p)
+}
+`)
+
+	if strings.Contains(rust, "(*p.lock().unwrap().as_ref().unwrap()).all_tags.lock().unwrap()") {
+		t.Fatalf("slices.Sort should not borrow a struct field through a temporary receiver guard:\n%s", rust)
+	}
+	for _, want := range []string{
+		"let __sort_target = ",
+		".all_tags.clone()",
+		"let mut __sort_guard = __sort_target.lock().unwrap()",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("slices.Sort field lowering missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestReflectTypeOfEmitsKindAndElemMetadata(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

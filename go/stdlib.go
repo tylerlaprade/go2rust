@@ -2929,8 +2929,9 @@ func writeSortIndexArg(out *strings.Builder, value string) {
 }
 
 func transpileNilSafeSort(out *strings.Builder, arg ast.Expr) {
-	out.WriteString("{ let mut __sort_guard = ")
+	out.WriteString("{ let __sort_target = ")
 	TranspileExpressionContext(out, arg, LValue)
+	out.WriteString(".clone(); let mut __sort_guard = __sort_target")
 	WriteBorrowMethod(out, true)
 	out.WriteString("; if let Some(__sort_values) = __sort_guard.as_mut() { __sort_values.sort(); } }")
 }

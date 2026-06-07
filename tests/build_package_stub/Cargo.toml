@@ -1,3 +1,27 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/bytes",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/go_build",
+    "vendor/internal_abi",
+    "vendor/internal_bytealg",
+    "vendor/internal_cpu",
+    "vendor/internal_filepathlite",
+    "vendor/internal_godebug",
+    "vendor/internal_godebugs",
+    "vendor/internal_race",
+    "vendor/internal_stringslite",
+    "vendor/internal_sync",
+    "vendor/path_filepath",
+    "vendor/strings",
+    "vendor/sync",
+    "vendor/sync_atomic",
+    "vendor/unicode",
+    "vendor/unicode_utf8",
+]
+
 [package]
 name = "build_package_stub"
 version = "0.1.0"
@@ -6,3 +30,23 @@ edition = "2021"
 [[bin]]
 name = "build_package_stub"
 path = "main.rs"
+
+[dependencies]
+bytes = { path = "vendor/bytes" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+go_build = { path = "vendor/go_build" }
+internal_abi = { path = "vendor/internal_abi" }
+internal_bytealg = { path = "vendor/internal_bytealg" }
+internal_cpu = { path = "vendor/internal_cpu" }
+internal_filepathlite = { path = "vendor/internal_filepathlite" }
+internal_godebug = { path = "vendor/internal_godebug" }
+internal_godebugs = { path = "vendor/internal_godebugs" }
+internal_race = { path = "vendor/internal_race" }
+internal_stringslite = { path = "vendor/internal_stringslite" }
+internal_sync = { path = "vendor/internal_sync" }
+path_filepath = { path = "vendor/path_filepath" }
+strings = { path = "vendor/strings" }
+sync = { path = "vendor/sync" }
+sync_atomic = { path = "vendor/sync_atomic" }
+unicode = { path = "vendor/unicode" }
+unicode_utf8 = { path = "vendor/unicode_utf8" }

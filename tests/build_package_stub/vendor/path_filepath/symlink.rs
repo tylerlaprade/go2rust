@@ -1,0 +1,171 @@
+use go2rust_stdlib_stubs::*;
+
+use crate::r#match::*;
+use crate::path::*;
+use crate::path_unix::*;
+use crate::symlink_unix::*;
+
+use std::error::Error as StdError;
+use std::sync::{Arc, Mutex};
+
+pub fn walk_symlinks(mut path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    let mut volLen = internal_filepathlite::volume_name_len(Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    let mut pathSeparator = Arc::new(Mutex::new(Some(char::from_u32((os::PATH_SEPARATOR) as u32).unwrap().to_string())));
+
+    if { let __tmp_x = (volLen as i32); let __tmp_y = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x < __tmp_y } && os::is_path_separator({ let __s = &((*path.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(volLen) as usize] }) {
+        { volLen += 1; }
+    }
+    let mut vol = Arc::new(Mutex::new(Some({ let __s = &((*path.lock().unwrap().as_ref().unwrap()).clone()); let __high = (volLen) as usize; __s[..__high].to_string() })));
+    let mut dest = { let __owned = vol.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
+    let mut linksWalked = Arc::new(Mutex::new(Some(0)));
+    let (mut start, mut end) = (Arc::new(Mutex::new(Some(volLen))), Arc::new(Mutex::new(Some(volLen))));
+    while { let __tmp_x = ({ let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x < __tmp_y } {
+        while { let __tmp_x = ({ let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x < __tmp_y } && os::is_path_separator({ let __s = &((*path.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] }) {
+        { let mut guard = start.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+        { let new_val = start.lock().unwrap().as_ref().unwrap().clone(); *end.lock().unwrap() = Some(new_val); };
+        while { let __tmp_x = ({ let __v = (*end.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x < __tmp_y } && !os::is_path_separator({ let __s = &((*path.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*end.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] }) {
+        { let mut guard = end.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+    }
+
+                // On Windows, "." can be a symlink.
+                // We look it up, and use the value if it is absolute.
+                // If not, we just return ".".
+        let mut isWindowsDot = Arc::new(Mutex::new(Some({ let __tmp_x = "darwin".to_string(); let __tmp_y = "windows".to_string(); __tmp_x == __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*path.lock().unwrap().as_ref().unwrap()).clone()); let __low = (internal_filepathlite::volume_name_len(Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))) as usize; __s[__low..].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = ".".to_string(); __tmp_x == __tmp_y })));
+
+                // The next path component is in path[start:end].
+        if { let __tmp_x = { let __v = (*end.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } {
+                // No more path components.
+        break
+    } else if { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*path.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = ({ let __v = (*end.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = ".".to_string(); __tmp_x == __tmp_y } && !{ let __v = (*isWindowsDot.lock().unwrap().as_ref().unwrap()).clone(); __v } {
+        { let new_val = end.lock().unwrap().as_ref().unwrap().clone(); *start.lock().unwrap() = Some(new_val); };; continue
+    } else if { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*path.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = ({ let __v = (*end.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "..".to_string(); __tmp_x == __tmp_y } {
+        let mut r: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
+        { let new_val = { let __tmp_x = ((*dest.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 1; __tmp_x - __tmp_y }; *r.lock().unwrap() = Some(new_val); };
+    while { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = volLen; __tmp_x >= __tmp_y } {
+        if os::is_path_separator({ let __s = &((*dest.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] }) {
+        break
+    }
+        { let mut guard = r.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
+    }
+        if { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = volLen; __tmp_x < __tmp_y } || { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*dest.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "..".to_string(); __tmp_x == __tmp_y } {
+        if { let __tmp_x = ((*dest.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (volLen as i32); __tmp_x > __tmp_y } {
+        { (*dest.lock().unwrap().as_mut().unwrap()).push_str(&{ let __v = (*pathSeparator.lock().unwrap().as_ref().unwrap()).clone(); __v }); };
+    }
+        { (*dest.lock().unwrap().as_mut().unwrap()).push_str(&"..".to_string()); };
+    } else {
+        { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*dest.lock().unwrap().as_ref().unwrap()).clone()); let __high = ({ let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[..__high].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *dest.lock().unwrap() = __moved_val; };
+    }
+        { let new_val = end.lock().unwrap().as_ref().unwrap().clone(); *start.lock().unwrap() = Some(new_val); };; continue
+    }
+
+                // No more path components.
+                // Ignore path component ".".
+                // Back up to previous component if possible.
+                // Note that volLen includes any leading slash.
+                // Set r to the index of the last slash in dest,
+                // after the volume.
+                // Either path has no slashes
+                // (it's empty or just "C:")
+                // or it ends in a ".." we had to keep.
+                // Either way, keep this "..".
+                // Discard everything since the last slash.
+                // Ordinary path component. Add it to result.
+        if { let __tmp_x = ((*dest.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = (internal_filepathlite::volume_name_len(Arc::new(Mutex::new(Some({ let __arg_holder = dest.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) as i32); __tmp_x > __tmp_y } && !os::is_path_separator({ let __s = &((*dest.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = ((*dest.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize] }) {
+        { (*dest.lock().unwrap().as_mut().unwrap()).push_str(&{ let __v = (*pathSeparator.lock().unwrap().as_ref().unwrap()).clone(); __v }); };
+    }
+
+        { (*dest.lock().unwrap().as_mut().unwrap()).push_str(&{ let __s = &((*path.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = ({ let __v = (*end.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }); };
+
+                // Resolve symlink.
+        let (mut fi, mut err) = os::lstat({ let __arg_holder = dest.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
+        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
+        return (Arc::new(Mutex::new(Some("".to_string()))), err.clone());
+    }
+
+        if { let __tmp_x = { let __tmp_x = (*(*fi.lock().unwrap().as_ref().unwrap()).mode().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = fs::MODE_SYMLINK; __tmp_x & __tmp_y }; let __tmp_y = fs_FileMode(0 as u32); __tmp_x == __tmp_y } {
+        if !fs_FileMode::is_dir(&(*(*fi.lock().unwrap().as_ref().unwrap()).mode().lock().unwrap().as_ref().unwrap())) && { let __tmp_x = ({ let __v = (*end.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*path.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x < __tmp_y } {
+        return (Arc::new(Mutex::new(Some("".to_string()))), Arc::new(Mutex::new(Some(Box::new(syscall::E_N_O_T_D_I_R) as Box<dyn StdError + Send + Sync>))));
+    }
+        { let new_val = end.lock().unwrap().as_ref().unwrap().clone(); *start.lock().unwrap() = Some(new_val); };; continue
+    }
+
+                // Found symlink.
+        { let mut guard = linksWalked.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+        if { let __tmp_x = { let __v = (*linksWalked.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 255; __tmp_x > __tmp_y } {
+        return (Arc::new(Mutex::new(Some("".to_string()))), Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("EvalSymlinks: too many links".to_string())))));
+    }
+
+        let (mut link, __tmp_1) = os::readlink({ let __arg_holder = dest.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
+        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
+        return (Arc::new(Mutex::new(Some("".to_string()))), err.clone());
+    }
+
+        if { let __v = (*isWindowsDot.lock().unwrap().as_ref().unwrap()).clone(); __v } && !is_abs(Arc::new(Mutex::new(Some({ let __arg_holder = link.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
+                // On Windows, if "." is a relative symlink,
+                // just return ".".
+        break
+    }
+
+                // On Windows, if "." is a relative symlink,
+                // just return ".".
+        { let new_val = format!("{}{}", { let __v = (*link.lock().unwrap().as_ref().unwrap()).clone(); __v }, (*Arc::new(Mutex::new(Some({ let __s = &((*path.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*end.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..].to_string() }))).lock().unwrap().as_ref().unwrap())); *path.lock().unwrap() = Some(new_val); };
+
+        let mut v = internal_filepathlite::volume_name_len(Arc::new(Mutex::new(Some({ let __arg_holder = link.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        if { let __tmp_x = v; let __tmp_y = 0; __tmp_x > __tmp_y } {
+                // Symlink to drive name is an absolute path.
+        if { let __tmp_x = (v as i32); let __tmp_y = ((*link.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x < __tmp_y } && os::is_path_separator({ let __s = &((*link.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(v) as usize] }) {
+        { v += 1; }
+    }
+        { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*link.lock().unwrap().as_ref().unwrap()).clone()); let __high = (v) as usize; __s[..__high].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *vol.lock().unwrap() = __moved_val; };
+        { let new_val = vol.lock().unwrap().as_ref().unwrap().clone(); *dest.lock().unwrap() = Some(new_val); };
+        { let new_val = (*vol.lock().unwrap().as_ref().unwrap()).len() as i32; *end.lock().unwrap() = Some(new_val); };
+    } else if { let __tmp_x = ((*link.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 0; __tmp_x > __tmp_y } && os::is_path_separator({ let __s = &((*link.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }) {
+        { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*link.lock().unwrap().as_ref().unwrap()).clone()); let __high = (1) as usize; __s[..__high].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *dest.lock().unwrap() = __moved_val; };
+        { let new_val = 1; *end.lock().unwrap() = Some(new_val); };
+        { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*link.lock().unwrap().as_ref().unwrap()).clone()); let __high = (1) as usize; __s[..__high].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *vol.lock().unwrap() = __moved_val; };
+        { let new_val = 1; volLen = new_val; };
+    } else {
+        let mut r: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
+        { let new_val = { let __tmp_x = ((*dest.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 1; __tmp_x - __tmp_y }; *r.lock().unwrap() = Some(new_val); };
+    while { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = volLen; __tmp_x >= __tmp_y } {
+        if os::is_path_separator({ let __s = &((*dest.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] }) {
+        break
+    }
+        { let mut guard = r.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
+    }
+        if { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = volLen; __tmp_x < __tmp_y } {
+        { let new_val = vol.lock().unwrap().as_ref().unwrap().clone(); *dest.lock().unwrap() = Some(new_val); };
+    } else {
+        { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*dest.lock().unwrap().as_ref().unwrap()).clone()); let __high = ({ let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[..__high].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *dest.lock().unwrap() = __moved_val; };
+    }
+        { let new_val = 0; *end.lock().unwrap() = Some(new_val); };
+    }
+        { let new_val = end.lock().unwrap().as_ref().unwrap().clone(); *start.lock().unwrap() = Some(new_val); };
+    }
+        // On Windows, "." can be a symlink.
+        // We look it up, and use the value if it is absolute.
+        // If not, we just return ".".
+        // The next path component is in path[start:end].
+        // No more path components.
+        // Ignore path component ".".
+        // Back up to previous component if possible.
+        // Note that volLen includes any leading slash.
+        // Set r to the index of the last slash in dest,
+        // after the volume.
+        // Either path has no slashes
+        // (it's empty or just "C:")
+        // or it ends in a ".." we had to keep.
+        // Either way, keep this "..".
+        // Discard everything since the last slash.
+        // Ordinary path component. Add it to result.
+        // Resolve symlink.
+        // Found symlink.
+        // On Windows, if "." is a relative symlink,
+        // just return ".".
+        // Symlink to drive name is an absolute path.
+        // Symlink to absolute path.
+        // Symlink to relative path; replace last
+        // path component in dest.
+    return (clean(Arc::new(Mutex::new(Some({ let __arg_holder = dest.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))), Arc::new(Mutex::new(None)));
+}

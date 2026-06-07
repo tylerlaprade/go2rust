@@ -1,0 +1,1 @@
+source_stdlib_packages = "go/build,internal/godebug,internal/godebugs,sync,internal/sync,sync/atomic,internal/abi,internal/race,bytes,internal/bytealg,internal/cpu,strings,internal/stringslite,unicode,unicode/utf8"

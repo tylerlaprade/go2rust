@@ -1,0 +1,18 @@
+[package]
+name = "go_build"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "go_build"
+path = "lib.rs"
+
+[dependencies]
+serde_json = "1"
+bytes = { path = "../bytes" }
+go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
+internal_godebug = { path = "../internal_godebug" }
+path_filepath = { path = "../path_filepath" }
+strings = { path = "../strings" }
+unicode = { path = "../unicode" }
+unicode_utf8 = { path = "../unicode_utf8" }
