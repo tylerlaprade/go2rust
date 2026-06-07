@@ -24,7 +24,7 @@ pub fn mul64(x: Arc<Mutex<Option<u64>>>, y: Arc<Mutex<Option<u64>>>) -> (u64, u6
     let mut hi: Arc<Mutex<Option<u64>>> = Arc::new(Mutex::new(Some(0)));
     let mut lo: Arc<Mutex<Option<u64>>> = Arc::new(Mutex::new(Some(0)));
 
-    const mask32: i64 = (1 << 32) - 1;
+    const mask32: i64 = (((1 as i64) << (32 as i64)) - (1 as i64));
 
     let mut x0 = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = mask32 as u64; __tmp_x & __tmp_y })));
     let mut x1 = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 32; __tmp_x >> __tmp_y })));

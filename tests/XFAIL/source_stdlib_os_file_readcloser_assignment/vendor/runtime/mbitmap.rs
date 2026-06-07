@@ -1153,7 +1153,7 @@ pub fn heap_bits_in_span(userSize: Arc<Mutex<Option<usize>>>) -> bool {
 ///
 ///go:nosplit
 pub fn bulk_barrier_pre_write(dst: Arc<Mutex<Option<usize>>>, src: Arc<Mutex<Option<usize>>>, size: Arc<Mutex<Option<usize>>>, typ: Arc<Mutex<Option<internal_abi::r#type::Type>>>) {
-    if { let __tmp_x = { let __tmp_x = ({ let __tmp_x = { let __tmp_x = { let __v = (*dst.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*src.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x | __tmp_y }; let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x | __tmp_y }); let __tmp_y = ({ let __tmp_x = internal_goarch::PTR_SIZE; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; __tmp_x & __tmp_y }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
+    if { let __tmp_x = { let __tmp_x = ({ let __tmp_x = { let __tmp_x = { let __v = (*dst.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*src.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x | __tmp_y }; let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x | __tmp_y }); let __tmp_y = ((internal_goarch::PTR_SIZE as usize) - (1 as usize)) as usize; __tmp_x & __tmp_y }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
         throw(Arc::new(Mutex::new(Some("bulkBarrierPreWrite: unaligned arguments".to_string()))));
     }
     if !(*{ let __field = (*writeBarrier.lock().unwrap().as_ref().unwrap()).enabled.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
@@ -1652,7 +1652,7 @@ pub fn bulk_barrier_bitmap(dst: Arc<Mutex<Option<usize>>>, src: Arc<Mutex<Option
         bits = addb(bits.clone(), Arc::new(Mutex::new(Some(1 as usize))));
         if { let __tmp_x = { let __ptr_value = bits.borrow(); __ptr_value.as_ref().unwrap().clone() }; let __tmp_y = 0 as u8; __tmp_x == __tmp_y } {
                 // Skip 8 words.
-        { let __rhs = { let __tmp_x = 7; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y } as usize; let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __rhs = ((7 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let __rhs = internal_goarch::PTR_SIZE as usize; let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };; continue
     }
                 // Skip 8 words.
@@ -1706,7 +1706,7 @@ pub fn type_bits_bulk_barrier(typ: Arc<Mutex<Option<internal_abi::r#type::Type>>
     let mut bits: Arc<Mutex<Option<u32>>> = Arc::new(Mutex::new(Some(0)));
     let mut i = Arc::new(Mutex::new(Some(0 as usize)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*typ.lock().unwrap().as_ref().unwrap()).ptr_bytes.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
-        if { let __tmp_x = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = { let __tmp_x = internal_goarch::PTR_SIZE; let __tmp_y = 8; __tmp_x * __tmp_y }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; __tmp_x & __tmp_y }; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
+        if { let __tmp_x = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (((internal_goarch::PTR_SIZE as usize) * (8 as usize)) - (1 as usize)) as usize; __tmp_x & __tmp_y }; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
         { let new_val = Arc::new(Mutex::new(Some({ let __ptr_value = ptrmask.borrow(); __ptr_value.as_ref().unwrap().clone() } as u32))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *bits.lock().unwrap() = __moved_val; };
         ptrmask = addb(ptrmask.clone(), Arc::new(Mutex::new(Some(1 as usize))));
     } else {

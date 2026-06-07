@@ -171,8 +171,8 @@ use crate::write_err::*;
 
 use std::sync::{Arc, Mutex};
 
-pub(crate) const C0: usize = (((8 - internal_goarch::PTR_SIZE) / 4 * 2860486313 + (internal_goarch::PTR_SIZE - 4) / 4 * 33054211828000289) as usize);
-pub(crate) const C1: usize = (((8 - internal_goarch::PTR_SIZE) / 4 * 3267000013 + (internal_goarch::PTR_SIZE - 4) / 4 * 23344194077549503) as usize);
+pub(crate) const C0: usize = ((((((8 as usize) - (internal_goarch::PTR_SIZE as usize)) / (4 as usize)) * (2860486313 as usize)) + ((((internal_goarch::PTR_SIZE as usize) - (4 as usize)) / (4 as usize)) * (33054211828000289 as usize))) as usize);
+pub(crate) const C1: usize = ((((((8 as usize) - (internal_goarch::PTR_SIZE as usize)) / (4 as usize)) * (3267000013 as usize)) + ((((internal_goarch::PTR_SIZE as usize) - (4 as usize)) / (4 as usize)) * (23344194077549503 as usize))) as usize);
 
 
 pub(crate) const HASH_RANDOM_BYTES: i32 = internal_goarch::PTR_SIZE / 4 * 64;

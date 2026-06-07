@@ -1278,7 +1278,7 @@ pub fn resume_g(state: Arc<Mutex<Option<suspendGState>>>) {
     let mut gp = (*state.lock().unwrap().as_ref().unwrap()).g.clone();
     let mut s = readgstatus(GoPtr::local(gp.clone()));
     { let _switch_val = s;
-    if _switch_val == ({ let __tmp_x = __GRUNNABLE; let __tmp_y = __GSCAN; __tmp_x | __tmp_y } as u32) || _switch_val == ({ let __tmp_x = __GWAITING; let __tmp_y = __GSCAN; __tmp_x | __tmp_y } as u32) || _switch_val == ({ let __tmp_x = __GSYSCALL; let __tmp_y = __GSCAN; __tmp_x | __tmp_y } as u32) {
+    if _switch_val == (((__GRUNNABLE as u32) | (__GSCAN as u32)) as u32) || _switch_val == (((__GWAITING as u32) | (__GSCAN as u32)) as u32) || _switch_val == (((__GSYSCALL as u32) | (__GSCAN as u32)) as u32) {
             casfrom__gscanstatus(GoPtr::local(gp.clone()), Arc::new(Mutex::new(Some(s))), Arc::new(Mutex::new(Some({ let __tmp_x = s; let __tmp_y = __GSCAN as u32; __tmp_x & ! __tmp_y }))));
         } else {
             dumpgstatus(GoPtr::local(gp.clone()));
@@ -1331,7 +1331,7 @@ fn __go_init_0() {
     { let __rhs = func_max_s_p_delta(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); total = total + __rhs; };
 
         // Add some overhead for return PCs, etc.
-    { let new_val = { let __tmp_x = (*Arc::new(Mutex::new(Some(total as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = 8; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y } as usize; __tmp_x + __tmp_y }; *asyncPreemptStack.lock().unwrap() = Some(new_val); };
+    { let new_val = { let __tmp_x = (*Arc::new(Mutex::new(Some(total as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ((8 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x + __tmp_y }; *asyncPreemptStack.lock().unwrap() = Some(new_val); };
     if { let __tmp_x = (*asyncPreemptStack.lock().unwrap().as_ref().unwrap()); let __tmp_y = STACK_NOSPLIT as usize; __tmp_x > __tmp_y } {
                 // We need more than the nosplit limit. This isn't
                 // unsafe, but it may limit asynchronous preemption.

@@ -181,7 +181,7 @@ pub(crate) const TIMER_ZOMBIE: u8 = 1 << 2;
 pub(crate) const TIMER_DEBUG: bool = false;
 
 
-pub(crate) const MAX_WHEN: u64 = (1 << 63) - 1;
+pub(crate) const MAX_WHEN: u64 = (((1 as u64) << (63 as u64)) - (1 as u64));
 
 
 pub(crate) const VERIFY_TIMERS: bool = false;

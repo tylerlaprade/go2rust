@@ -172,7 +172,7 @@ use crate::write_err::*;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
-pub(crate) const PAGE_CACHE_PAGES: usize = 8 as usize * std::mem::size_of::<u64>();
+pub(crate) const PAGE_CACHE_PAGES: usize = ((8 as usize) * (std::mem::size_of::<u64>() as usize));
 
 
 /// pageCache represents a per-p cache of pages the allocator can

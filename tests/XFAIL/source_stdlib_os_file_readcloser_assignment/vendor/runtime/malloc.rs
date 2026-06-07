@@ -187,7 +187,7 @@ pub(crate) const __FIX_ALLOC_CHUNK: i32 = 16 << 10;
 pub(crate) const __STACK_CACHE_SIZE: i32 = 32 * 1024;
 pub(crate) const __NUM_STACK_ORDERS: i32 = 4 - internal_goarch::PTR_SIZE / 4 * internal_goos::IS_WINDOWS - 1 * internal_goos::IS_PLAN9;
 pub(crate) const HEAP_ADDR_BITS: i32 = (_64BIT * (1 - internal_goarch::IS_WASM) * (1 - internal_goos::IS_IOS * internal_goarch::IS_ARM64)) * 48 + (1 - _64BIT + internal_goarch::IS_WASM) * (32 - (internal_goarch::IS_MIPS + internal_goarch::IS_MIPSLE)) + 40 * internal_goos::IS_IOS * internal_goarch::IS_ARM64;
-pub(crate) const MAX_ALLOC: i64 = (1 << HEAP_ADDR_BITS) - (1 - _64BIT) * 1;
+pub(crate) const MAX_ALLOC: i64 = (((1 as i64) << (HEAP_ADDR_BITS as i64)) - (((1 as i64) - (_64BIT as i64)) * (1 as i64)));
 pub(crate) const HEAP_ARENA_BYTES: i32 = 1 << LOG_HEAP_ARENA_BYTES;
 pub(crate) const HEAP_ARENA_WORDS: i32 = HEAP_ARENA_BYTES / internal_goarch::PTR_SIZE;
 pub(crate) const LOG_HEAP_ARENA_BYTES: i32 = (6 + 20) * (_64BIT * (1 - internal_goos::IS_WINDOWS) * (1 - internal_goarch::IS_WASM) * (1 - internal_goos::IS_IOS * internal_goarch::IS_ARM64)) + (2 + 20) * (_64BIT * internal_goos::IS_WINDOWS) + (2 + 20) * (1 - _64BIT) + (2 + 20) * internal_goarch::IS_WASM + (2 + 20) * internal_goos::IS_IOS * internal_goarch::IS_ARM64;
@@ -197,7 +197,7 @@ pub(crate) const ARENA_L1_BITS: i32 = 6 * (_64BIT * internal_goos::IS_WINDOWS);
 pub(crate) const ARENA_L2_BITS: i32 = HEAP_ADDR_BITS - LOG_HEAP_ARENA_BYTES - ARENA_L1_BITS;
 pub(crate) const ARENA_L1_SHIFT: i32 = ARENA_L2_BITS;
 pub(crate) const ARENA_BITS: i32 = ARENA_L1_BITS + ARENA_L2_BITS;
-pub(crate) const ARENA_BASE_OFFSET: u64 = 0xffff800000000000 * internal_goarch::IS_AMD64 + 0x0a00000000000000 * internal_goos::IS_AIX;
+pub(crate) const ARENA_BASE_OFFSET: u64 = (((0xffff800000000000 as u64) * (internal_goarch::IS_AMD64 as u64)) + ((0x0a00000000000000 as u64) * (internal_goos::IS_AIX as u64)));
 pub(crate) const ARENA_BASE_OFFSET_UINTPTR: usize = (ARENA_BASE_OFFSET as usize);
 pub(crate) const __MAX_GCPROC: i32 = 32;
 pub(crate) const MIN_LEGAL_POINTER: usize = 4096;
@@ -1308,7 +1308,7 @@ pub fn mallocgc_small_noscan(mut size: Arc<Mutex<Option<usize>>>, typ: GoPtr<int
     let mut checkGCTrigger = Arc::new(Mutex::new(Some(false)));
     let mut c = get_m_cache(mp.clone());
     let mut sizeclass: Arc<Mutex<Option<u8>>> = Arc::new(Mutex::new(Some(0)));
-    if { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = SMALL_SIZE_MAX; let __tmp_y = 8; __tmp_x - __tmp_y } as usize; __tmp_x <= __tmp_y } {
+    if { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((SMALL_SIZE_MAX as usize) - (8 as usize)) as usize; __tmp_x <= __tmp_y } {
         { let new_val = { let __seq = { let __seq_holder = size_to_class8.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(div_round_up(Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(SMALL_SIZE_DIV as usize))))) as usize].clone() }; *sizeclass.lock().unwrap() = Some(new_val); };
     } else {
         { let new_val = { let __seq = { let __seq_holder = size_to_class128.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(div_round_up(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = SMALL_SIZE_MAX as usize; __tmp_x - __tmp_y }))), Arc::new(Mutex::new(Some(LARGE_SIZE_DIV as usize))))) as usize].clone() }; *sizeclass.lock().unwrap() = Some(new_val); };
@@ -1499,7 +1499,7 @@ pub fn mallocgc_small_scan_header(mut size: Arc<Mutex<Option<usize>>>, typ: GoPt
     let mut c = get_m_cache(mp.clone());
     { let __rhs = MALLOC_HEADER_SIZE as usize; let mut guard = size.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     let mut sizeclass: Arc<Mutex<Option<u8>>> = Arc::new(Mutex::new(Some(0)));
-    if { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = SMALL_SIZE_MAX; let __tmp_y = 8; __tmp_x - __tmp_y } as usize; __tmp_x <= __tmp_y } {
+    if { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((SMALL_SIZE_MAX as usize) - (8 as usize)) as usize; __tmp_x <= __tmp_y } {
         { let new_val = { let __seq = { let __seq_holder = size_to_class8.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(div_round_up(Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(SMALL_SIZE_DIV as usize))))) as usize].clone() }; *sizeclass.lock().unwrap() = Some(new_val); };
     } else {
         { let new_val = { let __seq = { let __seq_holder = size_to_class128.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(div_round_up(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = SMALL_SIZE_MAX as usize; __tmp_x - __tmp_y }))), Arc::new(Mutex::new(Some(LARGE_SIZE_DIV as usize))))) as usize].clone() }; *sizeclass.lock().unwrap() = Some(new_val); };

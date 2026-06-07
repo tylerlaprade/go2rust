@@ -24,9 +24,9 @@ pub(crate) const MASKX: i32 = 0b00111111;
 pub(crate) const MASK2: i32 = 0b00011111;
 pub(crate) const MASK3: i32 = 0b00001111;
 pub(crate) const MASK4: i32 = 0b00000111;
-pub(crate) const RUNE1_MAX: i32 = (1 << 7) - 1;
-pub(crate) const RUNE2_MAX: i32 = (1 << 11) - 1;
-pub(crate) const RUNE3_MAX: i32 = (1 << 16) - 1;
+pub(crate) const RUNE1_MAX: i32 = (((1 as i32) << (7 as i32)) - (1 as i32));
+pub(crate) const RUNE2_MAX: i32 = (((1 as i32) << (11 as i32)) - (1 as i32));
+pub(crate) const RUNE3_MAX: i32 = (((1 as i32) << (16 as i32)) - (1 as i32));
 pub(crate) const LOCB: i32 = 0b10000000;
 pub(crate) const HICB: i32 = 0b10111111;
 pub(crate) const XX: i32 = 0xF1;
@@ -40,8 +40,8 @@ pub(crate) const S6: i32 = 0x04;
 pub(crate) const S7: i32 = 0x44;
 
 
-pub(crate) const RUNE_ERROR_BYTE0: i32 = T3 | (RUNE_ERROR >> 12);
-pub(crate) const RUNE_ERROR_BYTE1: i32 = TX | (RUNE_ERROR >> 6) & MASKX;
+pub(crate) const RUNE_ERROR_BYTE0: i32 = ((T3 as i32) | ((RUNE_ERROR as i32) >> (12 as i32)));
+pub(crate) const RUNE_ERROR_BYTE1: i32 = ((TX as i32) | (((RUNE_ERROR as i32) >> (6 as i32)) & (MASKX as i32)));
 pub(crate) const RUNE_ERROR_BYTE2: i32 = TX | RUNE_ERROR & MASKX;
 
 

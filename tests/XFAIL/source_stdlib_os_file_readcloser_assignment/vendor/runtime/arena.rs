@@ -462,7 +462,7 @@ impl writeUserArenaHeapBits {
         { let new_val = { let __tmp_x = { let __v = (*bits.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = PTR_BITS as usize; let __tmp_y = (*self.valid.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); __tmp_x >> __tmp_y }; *self.mask.lock().unwrap() = Some(new_val); };
         { let __target = self.valid.clone(); let __rhs = { let __tmp_x = { let __v = (*valid.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PTR_BITS as usize; __tmp_x - __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
                 // Flush mask to the memory bitmap.
-        let mut idx = Arc::new(Mutex::new(Some({ let __tmp_x = (*self.offset.lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = PTR_BITS; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y }) as usize; __tmp_x / __tmp_y })));
+        let mut idx = Arc::new(Mutex::new(Some({ let __tmp_x = (*self.offset.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x / __tmp_y })));
         let mut m = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (1 as usize); let __tmp_y = (*self.low.lock().unwrap().as_ref().unwrap()); __tmp_x << __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })));
         let mut bitmap = { let __recv = s.clone(); let __recv_ptr: *const crate::mheap::mspan = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::mheap::mspan }; let __result = unsafe { &*__recv_ptr }.heap_bits(); __result };
         (*bitmap.lock().unwrap().as_mut().unwrap())[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = bitmap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))); let __tmp_y = { let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x & __tmp_y }; let __tmp_y = { let __v = (*data.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x | __tmp_y }))));
@@ -471,7 +471,7 @@ impl writeUserArenaHeapBits {
                 // entries are all for a single page. Also, visibility of these
                 // writes is guaranteed by the publication barrier in mallocgc.
                 // Move to next word of bitmap.
-        { let __target = self.offset.clone(); let __rhs = { let __tmp_x = PTR_BITS; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y } as usize; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __target = self.offset.clone(); let __rhs = ((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let new_val = 0 as usize; *self.low.lock().unwrap() = Some(new_val); };
         Arc::new(Mutex::new(Some(self.clone())))
     }
@@ -509,7 +509,7 @@ impl writeUserArenaHeapBits {
     }
                 // Find word in bitmap that we're going to write.
         let mut bitmap = { let __recv = s.clone(); let __recv_ptr: *const crate::mheap::mspan = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::mheap::mspan }; let __result = unsafe { &*__recv_ptr }.heap_bits(); __result };
-        let mut idx = Arc::new(Mutex::new(Some({ let __tmp_x = (*self.offset.lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = PTR_BITS; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y }) as usize; __tmp_x / __tmp_y })));
+        let mut idx = Arc::new(Mutex::new(Some({ let __tmp_x = (*self.offset.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x / __tmp_y })));
                 // Write remaining bits.
         if { let __tmp_x = (*self.valid.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.low.lock().unwrap().as_ref().unwrap()); __tmp_x != __tmp_y } {
         let mut m = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (1 as usize); let __tmp_y = (*self.low.lock().unwrap().as_ref().unwrap()); __tmp_x << __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })));
@@ -522,7 +522,7 @@ impl writeUserArenaHeapBits {
         return;
     }
                 // Advance to next bitmap word.
-        { let __target = self.offset.clone(); let __rhs = { let __tmp_x = PTR_BITS; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y } as usize; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __target = self.offset.clone(); let __rhs = ((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
                 // Continue on writing zeros for the rest of the object.
                 // For standard use of the ptr bits this is not required, as
                 // the bits are read from the beginning of the object. Some uses,
@@ -530,7 +530,7 @@ impl writeUserArenaHeapBits {
                 // start mid-object, so these writes are still required.
         loop {
                 // Write zero bits.
-        let mut idx = Arc::new(Mutex::new(Some({ let __tmp_x = (*self.offset.lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = PTR_BITS; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y }) as usize; __tmp_x / __tmp_y })));
+        let mut idx = Arc::new(Mutex::new(Some({ let __tmp_x = (*self.offset.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x / __tmp_y })));
         if { let __tmp_x = { let __v = (*zeros.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PTR_BITS as usize; __tmp_x < __tmp_y } {
         (*bitmap.lock().unwrap().as_mut().unwrap())[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __tmp_x = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = bitmap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))); let __tmp_y = ({ let __tmp_x = { let __tmp_x = (1 as usize); let __tmp_y = { let __v = (*zeros.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y }); __tmp_x & ! __tmp_y }))));
         break
@@ -541,7 +541,7 @@ impl writeUserArenaHeapBits {
         (*bitmap.lock().unwrap().as_mut().unwrap())[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = 0 as usize;
         { let __rhs = PTR_BITS as usize; let mut guard = zeros.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
     }
-        { let __target = self.offset.clone(); let __rhs = { let __tmp_x = PTR_BITS; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y } as usize; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __target = self.offset.clone(); let __rhs = ((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
     }
 }
@@ -1000,7 +1000,7 @@ pub fn user_arena_chunk_reserve_bytes() -> usize {
         // a pointer/scalar bitmap. We also reserve space for a dummy _type that
         // refers to the bitmap. The PtrBytes field of the dummy _type indicates how
         // many of those bits are valid.
-    return { let __tmp_x = { let __tmp_x = { let __tmp_x = USER_ARENA_CHUNK_BYTES as usize; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y } as usize; let __tmp_y = 8 as usize; __tmp_x / __tmp_y } as usize; let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<internal_abi::r#type::Type>()))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x + __tmp_y } as usize;
+    return ((((USER_ARENA_CHUNK_BYTES as usize) / (internal_goarch::PTR_SIZE as usize)) / (8 as usize)) + (std::mem::size_of::<internal_abi::r#type::Type>() as usize)) as usize;
 }
 
 /// userArenaHeapBitsSetSliceType is the equivalent of heapBitsSetType but for

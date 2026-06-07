@@ -172,7 +172,7 @@ use crate::write_err::*;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
-pub(crate) const TRACE_REGION_ALLOC_BLOCK_DATA: usize = (((64 as usize) << (10 as usize)) as usize) - std::mem::size_of::<traceRegionAllocBlockHeader>();
+pub(crate) const TRACE_REGION_ALLOC_BLOCK_DATA: usize = (((64 as usize) << (10 as usize)) - (std::mem::size_of::<traceRegionAllocBlockHeader>() as usize));
 
 
 /// traceRegionAlloc is a thread-safe region allocator.

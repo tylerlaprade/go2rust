@@ -17,7 +17,7 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
 pub(crate) const ALPHA: i64 = -1 << 63;
-pub(crate) const OMEGA: u64 = (1 << 63) - 1;
+pub(crate) const OMEGA: u64 = (((1 as u64) << (63 as u64)) - (1 as u64));
 
 
 pub(crate) const RULE_JULIAN: i32 = 0;

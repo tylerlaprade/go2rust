@@ -195,7 +195,7 @@ pub(crate) const POLL_F_D_SEQ: i32 = 1 << 4;
 
 
 pub(crate) const POLL_F_D_SEQ_BITS: i32 = 20;
-pub(crate) const POLL_F_D_SEQ_MASK: i32 = (1 << POLL_F_D_SEQ_BITS) - 1;
+pub(crate) const POLL_F_D_SEQ_MASK: i32 = (((1 as i32) << (POLL_F_D_SEQ_BITS as i32)) - (1 as i32));
 
 
 /// Network poller descriptor.

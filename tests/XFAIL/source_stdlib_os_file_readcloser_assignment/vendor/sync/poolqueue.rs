@@ -20,7 +20,7 @@ use std::sync::{Arc, Mutex as StdMutex};
 pub(crate) const DEQUEUE_BITS: i32 = 32;
 
 
-pub(crate) const DEQUEUE_LIMIT: i64 = (1 << DEQUEUE_BITS) / 4;
+pub(crate) const DEQUEUE_LIMIT: i64 = (((1 as i64) << (DEQUEUE_BITS as i64)) / (4 as i64));
 
 
 /// poolDequeue is a lock-free fixed-size single-producer,
@@ -211,7 +211,7 @@ impl poolDequeue {
     let mut head: Arc<StdMutex<Option<u32>>> = Arc::new(StdMutex::new(Some(0)));
     let mut tail: Arc<StdMutex<Option<u32>>> = Arc::new(StdMutex::new(Some(0)));
 
-        const mask: i64 = (1 << DEQUEUE_BITS) - 1;
+        const mask: i64 = (((1 as i64) << (DEQUEUE_BITS as i64)) - (1 as i64));
 
         { let new_val = Arc::new(StdMutex::new(Some(({ let __tmp_x = ({ let __tmp_x = { let __v = (*ptrs.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = DEQUEUE_BITS; __tmp_x >> __tmp_y }); let __tmp_y = mask as u64; __tmp_x & __tmp_y }) as u32))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *head.lock().unwrap() = __moved_val; };
         { let new_val = Arc::new(StdMutex::new(Some(({ let __tmp_x = { let __v = (*ptrs.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = mask as u64; __tmp_x & __tmp_y }) as u32))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *tail.lock().unwrap() = __moved_val; };
@@ -219,7 +219,7 @@ impl poolDequeue {
     }
 
     pub fn pack(&self, head: Arc<StdMutex<Option<u32>>>, tail: Arc<StdMutex<Option<u32>>>) -> u64 {
-        const mask: i64 = (1 << DEQUEUE_BITS) - 1;
+        const mask: i64 = (((1 as i64) << (DEQUEUE_BITS as i64)) - (1 as i64));
 
         return { let __tmp_x = ({ let __tmp_x = (*Arc::new(StdMutex::new(Some((*head.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = DEQUEUE_BITS; __tmp_x << __tmp_y }); let __tmp_y = (*Arc::new(StdMutex::new(Some(({ let __tmp_x = { let __v = (*tail.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = mask as u32; __tmp_x & __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x | __tmp_y };
     }

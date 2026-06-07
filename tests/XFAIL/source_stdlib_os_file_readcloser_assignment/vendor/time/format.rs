@@ -79,7 +79,7 @@ pub(crate) const STD_NEED_YDAY: i32 = 1 << 9;
 pub(crate) const STD_NEED_CLOCK: i32 = 1 << 10;
 pub(crate) const STD_ARG_SHIFT: i32 = 16;
 pub(crate) const STD_SEPARATOR_SHIFT: i32 = 28;
-pub(crate) const STD_MASK: i32 = (1 << STD_ARG_SHIFT) - 1;
+pub(crate) const STD_MASK: i32 = (((1 as i32) << (STD_ARG_SHIFT as i32)) - (1 as i32));
 
 
 pub(crate) const LOWERHEX: &'static str = "0123456789abcdef";

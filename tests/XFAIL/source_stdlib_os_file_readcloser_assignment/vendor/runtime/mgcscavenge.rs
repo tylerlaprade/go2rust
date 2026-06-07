@@ -179,7 +179,7 @@ pub(crate) const REDUCE_EXTRA_PERCENT: i32 = 5;
 pub(crate) const MAX_PAGES_PER_PHYS_PAGE: i32 = MAX_PHYS_PAGE_SIZE / PAGE_SIZE;
 pub(crate) const SCAVENGE_COST_RATIO: f64 = 0.7 * 1.0;
 pub(crate) const SCAV_CHUNK_HI_OCC_FRAC: f64 = 0.96875;
-pub(crate) const SCAV_CHUNK_HI_OCC_PAGES: u16 = ((SCAV_CHUNK_HI_OCC_FRAC * 512.0) as u16);
+pub(crate) const SCAV_CHUNK_HI_OCC_PAGES: u16 = (((SCAV_CHUNK_HI_OCC_FRAC as u16) * (PALLOC_CHUNK_PAGES as u16)) as u16);
 
 
 pub(crate) const STARTING_SCAV_SLEEP_RATIO: f64 = 0.001;
@@ -188,9 +188,9 @@ pub(crate) const MIN_SCAV_WORK_TIME: f64 = 1e6;
 
 pub(crate) const SCAV_CHUNK_HAS_FREE: u8 = 1 << 0;
 pub(crate) const SCAV_CHUNK_MAX_FLAGS: i32 = 6;
-pub(crate) const SCAV_CHUNK_FLAGS_MASK: i32 = (1 << SCAV_CHUNK_MAX_FLAGS) - 1;
+pub(crate) const SCAV_CHUNK_FLAGS_MASK: i32 = (((1 as i32) << (SCAV_CHUNK_MAX_FLAGS as i32)) - (1 as i32));
 pub(crate) const LOG_SCAV_CHUNK_IN_USE_MAX: i32 = LOG_PALLOC_CHUNK_PAGES + 1;
-pub(crate) const SCAV_CHUNK_IN_USE_MASK: i32 = (1 << LOG_SCAV_CHUNK_IN_USE_MAX) - 1;
+pub(crate) const SCAV_CHUNK_IN_USE_MASK: i32 = (((1 as i32) << (LOG_SCAV_CHUNK_IN_USE_MAX as i32)) - (1 as i32));
 
 
 #[derive(Clone)]
@@ -1993,7 +1993,7 @@ impl scavengeIndex {
                 // incorrect search address, but it's far more important that
                 // we don't miss updates.
                 // Decrease searchAddr.
-        return ({ let __owned = i.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, { let __tmp_x = PALLOC_CHUNK_PAGES; let __tmp_y = 1; __tmp_x - __tmp_y } as u64);
+        return ({ let __owned = i.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, ((PALLOC_CHUNK_PAGES as u64) - (1 as u64)) as u64);
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() - 1 as u64); }
     }
                 // Skip over chunks.

@@ -1081,11 +1081,11 @@ impl wbBuf {
     ///go:nowritebarrierrec
     ///go:nosplit
     pub fn get2(&mut self) -> GoPtr<[usize; 2]> {
-        if { let __tmp_x = { let __tmp_x = (*self.next.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = 2; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y } as usize; __tmp_x + __tmp_y }; let __tmp_y = (*self.end.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
+        if { let __tmp_x = { let __tmp_x = (*self.next.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((2 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x + __tmp_y }; let __tmp_y = (*self.end.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
         wb_buf_flush();
     }
         let mut p: GoPtr<[usize; 2]> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some({ let __selector_holder = self.next.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
-        { let __target = self.next.clone(); let __rhs = { let __tmp_x = 2; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y } as usize; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __target = self.next.clone(); let __rhs = ((2 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         p.clone()
     }
 }

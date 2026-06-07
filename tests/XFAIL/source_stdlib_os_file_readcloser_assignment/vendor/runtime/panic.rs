@@ -2008,7 +2008,7 @@ pub fn recovery(gp: Arc<Mutex<Option<g>>>) {
                         // on x86, fp actually points one word higher than the top of
                         // the frame since the return address is saved on the stack by
                         // the caller
-            { let new_val = { let __tmp_x = { let __v = (*fp.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = 2; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y } as usize; __tmp_x - __tmp_y }; *(*(*gp.lock().unwrap().as_ref().unwrap()).sched.lock().unwrap().as_ref().unwrap()).bp.lock().unwrap() = Some(new_val); };
+            { let new_val = { let __tmp_x = { let __v = (*fp.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((2 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x - __tmp_y }; *(*(*gp.lock().unwrap().as_ref().unwrap()).sched.lock().unwrap().as_ref().unwrap()).bp.lock().unwrap() = Some(new_val); };
         } else if { let __tmp_x = internal_goarch::IS_ARM64; let __tmp_y = 0; __tmp_x != __tmp_y } {
                         // on arm64, the architectural bp points one word higher
                         // than the sp. fp is totally useless to us here, because it

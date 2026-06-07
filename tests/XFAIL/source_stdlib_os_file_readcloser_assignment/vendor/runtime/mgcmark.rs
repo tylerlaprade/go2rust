@@ -2644,9 +2644,9 @@ pub fn scanblock(b0: Arc<Mutex<Option<usize>>>, n0: Arc<Mutex<Option<usize>>>, p
     let mut i = Arc::new(Mutex::new(Some(0 as usize)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
                 // Find bits for the next word.
-        let mut bits = Arc::new(Mutex::new(Some({ let __ptr_handle = addb(ptrmask.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = internal_goarch::PTR_SIZE; let __tmp_y = 8; __tmp_x * __tmp_y }) as usize; __tmp_x / __tmp_y })))); let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() } as u32)));
+        let mut bits = Arc::new(Mutex::new(Some({ let __ptr_handle = addb(ptrmask.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((internal_goarch::PTR_SIZE as usize) * (8 as usize)) as usize; __tmp_x / __tmp_y })))); let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() } as u32)));
         if { let __tmp_x = { let __v = (*bits.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u32; __tmp_x == __tmp_y } {
-        { let __rhs = { let __tmp_x = internal_goarch::PTR_SIZE; let __tmp_y = 8; __tmp_x * __tmp_y } as usize; let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __rhs = ((internal_goarch::PTR_SIZE as usize) * (8 as usize)) as usize; let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         continue
     }
         let mut j = Arc::new(Mutex::new(Some(0)));
@@ -2861,10 +2861,10 @@ pub fn scan_conservative(b: Arc<Mutex<Option<usize>>>, n: Arc<Mutex<Option<usize
                 // seen this word of ptrmask, so i
                 // must be 8-word-aligned, but check
                 // our reasoning just in case.
-        if { let __tmp_x = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = internal_goarch::PTR_SIZE; let __tmp_y = 8; __tmp_x * __tmp_y }) as usize; __tmp_x % __tmp_y }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
+        if { let __tmp_x = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((internal_goarch::PTR_SIZE as usize) * (8 as usize)) as usize; __tmp_x % __tmp_y }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
         throw(Arc::new(Mutex::new(Some("misaligned mask".to_string()))));
     }
-        { let __rhs = { let __tmp_x = { let __tmp_x = internal_goarch::PTR_SIZE; let __tmp_y = 8; __tmp_x * __tmp_y }; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x - __tmp_y } as usize; let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __rhs = (((internal_goarch::PTR_SIZE as usize) * (8 as usize)) - (internal_goarch::PTR_SIZE as usize)) as usize; let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let __rhs = internal_goarch::PTR_SIZE as usize; let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };; continue
     }
                 // Skip 8 words (the loop increment will do the 8th)
@@ -2951,7 +2951,7 @@ pub fn shade(b: Arc<Mutex<Option<usize>>>) {
 ///go:nowritebarrierrec
 pub fn greyobject(obj: Arc<Mutex<Option<usize>>>, base: Arc<Mutex<Option<usize>>>, off: Arc<Mutex<Option<usize>>>, span: GoPtr<crate::mheap::mspan>, gcw: Arc<Mutex<Option<gcWork>>>, objIndex: Arc<Mutex<Option<usize>>>) {
         // obj should be start of allocation, and so must be at least pointer-aligned.
-    if { let __tmp_x = { let __tmp_x = { let __v = (*obj.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = internal_goarch::PTR_SIZE; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; __tmp_x & __tmp_y }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
+    if { let __tmp_x = { let __tmp_x = { let __v = (*obj.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((internal_goarch::PTR_SIZE as usize) - (1 as usize)) as usize; __tmp_x & __tmp_y }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
         throw(Arc::new(Mutex::new(Some("greyobject: obj not pointer-aligned".to_string()))));
     }
     let mut mbits = { let __recv_value = span.borrow(); let __result = (*__recv_value.as_ref().unwrap()).mark_bits_for_index(Arc::new(Mutex::new(Some({ let __arg_holder = objIndex.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result };
@@ -3039,7 +3039,7 @@ pub fn gc_dump_object(label: Arc<Mutex<Option<String>>>, obj: Arc<Mutex<Option<u
                 // For big objects, just print the beginning (because
                 // that usually hints at the object's type) and the
                 // fields around off.
-        if !({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = 128; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y } as usize; __tmp_x < __tmp_y } || { let __tmp_x = { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = 16; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y } as usize; __tmp_x - __tmp_y }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } && { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = 16; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y } as usize; __tmp_x + __tmp_y }; __tmp_x < __tmp_y }) {
+        if !({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((128 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x < __tmp_y } || { let __tmp_x = { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((16 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x - __tmp_y }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } && { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((16 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x + __tmp_y }; __tmp_x < __tmp_y }) {
         { let new_val = true; *skipped.lock().unwrap() = Some(new_val); };
         { let __rhs = internal_goarch::PTR_SIZE as usize; let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };; continue
     }

@@ -2937,11 +2937,11 @@ pub fn cas_g_to_waiting_for_suspend_g(gp: GoPtr<crate::runtime2::g>, old: Arc<Mu
 /// TODO(austin): This is the only status operation that both changes
 /// the status and locks the _Gscan bit. Rethink this.
 pub fn cas_g_to_preempt_scan(gp: GoPtr<crate::runtime2::g>, old: Arc<Mutex<Option<u32>>>, new: Arc<Mutex<Option<u32>>>) {
-    if { let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = __GRUNNING as u32; __tmp_x != __tmp_y } || { let __tmp_x = { let __v = (*new.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = __GSCAN; let __tmp_y = __GPREEMPTED; __tmp_x | __tmp_y } as u32; __tmp_x != __tmp_y } {
+    if { let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = __GRUNNING as u32; __tmp_x != __tmp_y } || { let __tmp_x = { let __v = (*new.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((__GSCAN as u32) | (__GPREEMPTED as u32)) as u32; __tmp_x != __tmp_y } {
         throw(Arc::new(Mutex::new(Some("bad g transition".to_string()))));
     }
     acquire_lock_rank_and_m(Arc::new(Mutex::new(Some(crate::lockrank::lockRank(Arc::new(Mutex::new(Some(LOCK_RANK_GSCAN as i32))))))));
-    while !(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.atomicstatus.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some(__GRUNNING as u32))), Arc::new(Mutex::new(Some({ let __tmp_x = __GSCAN; let __tmp_y = __GPREEMPTED; __tmp_x | __tmp_y } as u32)))) {
+    while !(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.atomicstatus.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some(__GRUNNING as u32))), Arc::new(Mutex::new(Some(((__GSCAN as u32) | (__GPREEMPTED as u32)) as u32)))) {
     }
 }
 
@@ -5517,7 +5517,7 @@ pub fn preempt_park(gp: GoPtr<crate::runtime2::g>) {
         // something could claim this G before we've fully cleaned it
         // up. Hence, we set the scan bit to lock down further
         // transitions until we can dropg.
-    cas_g_to_preempt_scan(gp.clone(), Arc::new(Mutex::new(Some(__GRUNNING as u32))), Arc::new(Mutex::new(Some({ let __tmp_x = __GSCAN; let __tmp_y = __GPREEMPTED; __tmp_x | __tmp_y } as u32))));
+    cas_g_to_preempt_scan(gp.clone(), Arc::new(Mutex::new(Some(__GRUNNING as u32))), Arc::new(Mutex::new(Some(((__GSCAN as u32) | (__GPREEMPTED as u32)) as u32))));
     dropg();
 
         // Be careful about how we trace this next event. The ordering
@@ -5539,7 +5539,7 @@ pub fn preempt_park(gp: GoPtr<crate::runtime2::g>) {
     if (*trace_local.lock().unwrap().as_ref().unwrap()).ok() {
         (*trace_local.lock().unwrap().as_ref().unwrap()).go_park(Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_PREEMPTED as u8))))))), Arc::new(Mutex::new(Some(0))));
     }
-    casfrom__gscanstatus(gp.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = __GSCAN; let __tmp_y = __GPREEMPTED; __tmp_x | __tmp_y } as u32))), Arc::new(Mutex::new(Some(__GPREEMPTED as u32))));
+    casfrom__gscanstatus(gp.clone(), Arc::new(Mutex::new(Some(((__GSCAN as u32) | (__GPREEMPTED as u32)) as u32))), Arc::new(Mutex::new(Some(__GPREEMPTED as u32))));
     if (*trace_local.lock().unwrap().as_ref().unwrap()).ok() {
         trace_release(Arc::new(Mutex::new(Some({ let __arg_holder = trace_local.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }

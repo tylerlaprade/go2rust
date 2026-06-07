@@ -176,11 +176,11 @@ pub(crate) const STACK_SYSTEM: i32 = internal_goos::IS_WINDOWS * 4096 + internal
 pub(crate) const STACK_MIN: i32 = 2048;
 pub(crate) const FIXED_STACK0: i32 = STACK_MIN + STACK_SYSTEM;
 pub(crate) const FIXED_STACK1: i32 = FIXED_STACK0 - 1;
-pub(crate) const FIXED_STACK2: i32 = FIXED_STACK1 | (FIXED_STACK1 >> 1);
-pub(crate) const FIXED_STACK3: i32 = FIXED_STACK2 | (FIXED_STACK2 >> 2);
-pub(crate) const FIXED_STACK4: i32 = FIXED_STACK3 | (FIXED_STACK3 >> 4);
-pub(crate) const FIXED_STACK5: i32 = FIXED_STACK4 | (FIXED_STACK4 >> 8);
-pub(crate) const FIXED_STACK6: i32 = FIXED_STACK5 | (FIXED_STACK5 >> 16);
+pub(crate) const FIXED_STACK2: i32 = ((FIXED_STACK1 as i32) | ((FIXED_STACK1 as i32) >> (1 as i32)));
+pub(crate) const FIXED_STACK3: i32 = ((FIXED_STACK2 as i32) | ((FIXED_STACK2 as i32) >> (2 as i32)));
+pub(crate) const FIXED_STACK4: i32 = ((FIXED_STACK3 as i32) | ((FIXED_STACK3 as i32) >> (4 as i32)));
+pub(crate) const FIXED_STACK5: i32 = ((FIXED_STACK4 as i32) | ((FIXED_STACK4 as i32) >> (8 as i32)));
+pub(crate) const FIXED_STACK6: i32 = ((FIXED_STACK5 as i32) | ((FIXED_STACK5 as i32) >> (16 as i32)));
 pub(crate) const FIXED_STACK: i32 = FIXED_STACK6 + 1;
 pub(crate) const STACK_NOSPLIT: i32 = internal_abi::STACK_NOSPLIT_BASE * internal_runtime_sys::STACK_GUARD_MULTIPLIER;
 pub(crate) const STACK_GUARD: i32 = STACK_NOSPLIT + STACK_SYSTEM + internal_abi::STACK_SMALL;
@@ -193,11 +193,11 @@ pub(crate) const STACK_NO_CACHE: i32 = 0;
 pub(crate) const DEBUG_CHECK_B_P: bool = false;
 
 
-pub(crate) const UINTPTR_MASK: u128 = (1 << (8 * internal_goarch::PTR_SIZE)) - 1;
-pub(crate) const STACK_PREEMPT: i128 = UINTPTR_MASK & -1314;
-pub(crate) const STACK_FORK: i128 = UINTPTR_MASK & -1234;
-pub(crate) const STACK_FORCE_MOVE: i128 = UINTPTR_MASK & -275;
-pub(crate) const STACK_POISON_MIN: i128 = UINTPTR_MASK & -4096;
+pub(crate) const UINTPTR_MASK: u128 = (((1 as u128) << ((8 as u128) * (internal_goarch::PTR_SIZE as u128))) - (1 as u128));
+pub(crate) const STACK_PREEMPT: i128 = ((UINTPTR_MASK as i128) & (-1314 as i128));
+pub(crate) const STACK_FORK: i128 = ((UINTPTR_MASK as i128) & (-1234 as i128));
+pub(crate) const STACK_FORCE_MOVE: i128 = ((UINTPTR_MASK as i128) & (-275 as i128));
+pub(crate) const STACK_POISON_MIN: i128 = ((UINTPTR_MASK as i128) & (-4096 as i128));
 
 
 #[derive(Clone)]
@@ -2113,7 +2113,7 @@ pub fn adjustframe(frame: Arc<Mutex<Option<stkframe>>>, adjinfo: Arc<Mutex<Optio
     }
 
         // Adjust saved frame pointer if there is one.
-    if ({ let __tmp_x = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::ARCH_FAMILY as i32)))); let __tmp_y = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::A_M_D64 as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::ARCH_FAMILY as i32)))); let __tmp_y = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::A_R_M64 as i32)))); __tmp_x == __tmp_y }) && { let __tmp_x = { let __tmp_x = (*{ let __field = (*frame.lock().unwrap().as_ref().unwrap()).argp.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*frame.lock().unwrap().as_ref().unwrap()).varp.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }; let __tmp_y = { let __tmp_x = 2; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y } as usize; __tmp_x == __tmp_y } {
+    if ({ let __tmp_x = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::ARCH_FAMILY as i32)))); let __tmp_y = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::A_M_D64 as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::ARCH_FAMILY as i32)))); let __tmp_y = internal_goarch::r#mod::ArchFamilyType(Arc::new(Mutex::new(Some(internal_goarch::A_R_M64 as i32)))); __tmp_x == __tmp_y }) && { let __tmp_x = { let __tmp_x = (*{ let __field = (*frame.lock().unwrap().as_ref().unwrap()).argp.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*frame.lock().unwrap().as_ref().unwrap()).varp.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }; let __tmp_y = ((2 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x == __tmp_y } {
         if { let __tmp_x = STACK_DEBUG; let __tmp_y = 3; __tmp_x >= __tmp_y } {
         eprint!("{}", format!("{}", "      saved bp\n".to_string()));
     }
@@ -2183,7 +2183,7 @@ pub fn adjustframe(frame: Arc<Mutex<Option<stkframe>>>, adjinfo: Arc<Mutex<Optio
         {
     let mut i = Arc::new(Mutex::new(Some(0 as usize)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ptrBytes; __tmp_x < __tmp_y } {
-        if { let __tmp_x = { let __tmp_x = { let __tmp_x = { let __ptr_handle = addb(gcData.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = 8; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y }) as usize; __tmp_x / __tmp_y })))); let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() }; let __tmp_y = ({ let __tmp_x = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }; let __tmp_y = 7 as usize; __tmp_x & __tmp_y }); __tmp_x >> __tmp_y }; let __tmp_y = 1 as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y } {
+        if { let __tmp_x = { let __tmp_x = { let __tmp_x = { let __ptr_handle = addb(gcData.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((8 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x / __tmp_y })))); let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() }; let __tmp_y = ({ let __tmp_x = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }; let __tmp_y = 7 as usize; __tmp_x & __tmp_y }); __tmp_x >> __tmp_y }; let __tmp_y = 1 as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y } {
         adjustpointer(adjinfo.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))));
     }
         { let __rhs = internal_goarch::PTR_SIZE as usize; let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };

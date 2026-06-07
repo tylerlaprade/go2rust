@@ -304,7 +304,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
             loop {
                 // Find the key or a candidate location for insertion.
         i = { let __go_ptr = (*self.root.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
-        { let new_val = { let __tmp_x = 8; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y } as u64; *hashShift.lock().unwrap() = Some(new_val); };
+        { let new_val = ((8 as u64) * (internal_goarch::PTR_SIZE as u64)) as u64; *hashShift.lock().unwrap() = Some(new_val); };
         let mut haveInsertPoint = Arc::new(StdMutex::new(Some(false)));
         while { let __tmp_x = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
         { let __rhs = N_CHILDREN_LOG2 as u64; let mut guard = hashShift.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
@@ -499,7 +499,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
             loop {
                 // Find the key or a candidate location for insertion.
         i = { let __go_ptr = (*self.root.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
-        { let new_val = { let __tmp_x = 8; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y } as u64; *hashShift.lock().unwrap() = Some(new_val); };
+        { let new_val = ((8 as u64) * (internal_goarch::PTR_SIZE as u64)) as u64; *hashShift.lock().unwrap() = Some(new_val); };
         let mut haveInsertPoint = Arc::new(StdMutex::new(Some(false)));
         while { let __tmp_x = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
         { let __rhs = N_CHILDREN_LOG2 as u64; let mut guard = hashShift.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
@@ -718,7 +718,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).store(sync_atomic::GoPtr::nil());
                 // Check if the node is now empty (and isn't the root), and delete it if able.
         while { let __ptr_field = { let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.parent.clone()); __ptr_value }.clone(); !__ptr_field.is_nil() } && { let __recv_value = i.borrow(); let __result = (*__recv_value.as_ref().unwrap()).empty(); __result } {
-        if { let __tmp_x = hashShift; let __tmp_y = { let __tmp_x = 8; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y } as u64; __tmp_x == __tmp_y } {
+        if { let __tmp_x = hashShift; let __tmp_y = ((8 as u64) * (internal_goarch::PTR_SIZE as u64)) as u64; __tmp_x == __tmp_y } {
         std::panic::panic_any(Box::new("internal/sync.HashTrieMap: ran out of hash bits while iterating".to_string()) as Box<dyn Any + Send + Sync>);
     }
         { let __rhs = N_CHILDREN_LOG2 as u64; hashShift = hashShift + __rhs; };
@@ -783,7 +783,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).store(sync_atomic::GoPtr::nil());
                 // Check if the node is now empty (and isn't the root), and delete it if able.
         while { let __ptr_field = { let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.parent.clone()); __ptr_value }.clone(); !__ptr_field.is_nil() } && { let __recv_value = i.borrow(); let __result = (*__recv_value.as_ref().unwrap()).empty(); __result } {
-        if { let __tmp_x = hashShift; let __tmp_y = { let __tmp_x = 8; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y } as u64; __tmp_x == __tmp_y } {
+        if { let __tmp_x = hashShift; let __tmp_y = ((8 as u64) * (internal_goarch::PTR_SIZE as u64)) as u64; __tmp_x == __tmp_y } {
         std::panic::panic_any(Box::new("internal/sync.HashTrieMap: ran out of hash bits while iterating".to_string()) as Box<dyn Any + Send + Sync>);
     }
         { let __rhs = N_CHILDREN_LOG2 as u64; hashShift = hashShift + __rhs; };
@@ -816,7 +816,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         loop {
                 // Find the key or return if it's not there.
         i = { let __go_ptr = (*self.root.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
-        { let new_val = { let __tmp_x = 8; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y } as u64; *hashShift.lock().unwrap() = Some(new_val); };
+        { let new_val = ((8 as u64) * (internal_goarch::PTR_SIZE as u64)) as u64; *hashShift.lock().unwrap() = Some(new_val); };
         let mut found = Arc::new(StdMutex::new(Some(false)));
         while { let __tmp_x = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
         { let __rhs = N_CHILDREN_LOG2 as u64; let mut guard = hashShift.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };

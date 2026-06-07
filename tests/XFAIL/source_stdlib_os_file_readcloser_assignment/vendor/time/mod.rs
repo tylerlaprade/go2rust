@@ -18,9 +18,9 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
 pub(crate) const HAS_MONOTONIC: u64 = 1 << 63;
-pub(crate) const MAX_WALL: i64 = WALL_TO_INTERNAL as i64 + (((1 as i64) << (33 as i64)) - (1 as i64)) as i64;
+pub(crate) const MAX_WALL: i64 = ((WALL_TO_INTERNAL as i64) + (((1 as i64) << (33 as i64)) - (1 as i64)));
 pub(crate) const MIN_WALL: i64 = WALL_TO_INTERNAL;
-pub(crate) const NSEC_MASK: i32 = (1 << 30) - 1;
+pub(crate) const NSEC_MASK: i32 = (((1 as i32) << (30 as i32)) - (1 as i32));
 pub(crate) const NSEC_SHIFT: i32 = 30;
 
 

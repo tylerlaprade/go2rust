@@ -288,6 +288,38 @@ func mask() Word {
 	}
 }
 
+func TestInferredWideIntegerConstCastsBinaryInitializerOperands(t *testing.T) {
+	rust := transpileTypedRegression(t, `package runtime
+
+import (
+	"internal/goarch"
+	"internal/goos"
+)
+
+const (
+	heapAddrBits = 48
+	is64 = 1
+	maxAlloc = (1 << heapAddrBits) - (1-is64)*1
+
+	arenaBaseOffset = 0xffff800000000000*goarch.IsAmd64 + 0x0a00000000000000*goos.IsAix
+)
+`)
+
+	if strings.Contains(rust, "const MAX_ALLOC: i64 = (1 << HEAP_ADDR_BITS)") {
+		t.Fatalf("inferred i64 const binary initializer should not stay at default integer width:\n%s", rust)
+	}
+	if !strings.Contains(rust, "HEAP_ADDR_BITS as i64") || !strings.Contains(rust, "IS64 as i64") {
+		t.Fatalf("inferred i64 const binary initializer should cast operands to the inferred width:\n%s", rust)
+	}
+	if strings.Contains(rust, "const ARENA_BASE_OFFSET: u64 = 0xffff800000000000 * IS_AMD64 +") ||
+		strings.Contains(rust, "0x0a00000000000000 * IS_AIX") {
+		t.Fatalf("inferred u64 const binary initializer should not leave operands at their source width:\n%s", rust)
+	}
+	if strings.Count(rust, "as u64") < 4 {
+		t.Fatalf("inferred u64 const binary initializer should cast literals and named const operands to u64:\n%s", rust)
+	}
+}
+
 func TestConstConversionBinaryKeepsNestedOperandsTypeConsistent(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

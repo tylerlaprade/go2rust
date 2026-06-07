@@ -6559,6 +6559,9 @@ func writeConstExprForRustType(out *strings.Builder, expr ast.Expr, iotaValue in
 	if declaredConstType && writeConstBinaryExprForDeclaredIntegerRustType(out, expr, rustType) {
 		return
 	}
+	if !declaredConstType && writeConstBinaryExprForInferredIntegerRustType(out, expr, rustType) {
+		return
+	}
 	TranspileConstExpr(out, expr, iotaValue)
 }
 
@@ -6576,6 +6579,43 @@ func writeConstBinaryExprForDeclaredIntegerRustType(out *strings.Builder, expr a
 		return false
 	}
 	return true
+}
+
+func writeConstBinaryExprForInferredIntegerRustType(out *strings.Builder, expr ast.Expr, rustType string) bool {
+	if _, ok := rustIntegerCastTypeFromRustType(rustType); !ok || !isConstantExpression(expr) {
+		return false
+	}
+	if constExprContainsIota(expr) {
+		return false
+	}
+	if constExprContainsTypeConversion(expr) {
+		return false
+	}
+	binary, ok := unwrapParens(expr).(*ast.BinaryExpr)
+	if !ok || binary.Op == token.SHL || binary.Op == token.SHR {
+		return false
+	}
+	return writeConstExpressionWithRustIntegerOperandsForExpected(out, expr, rustType)
+}
+
+func constExprContainsTypeConversion(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	found := false
+	ast.Inspect(expr, func(node ast.Node) bool {
+		if found {
+			return false
+		}
+		call, ok := node.(*ast.CallExpr)
+		if ok && typeInfo.IsTypeConversion(call) {
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
 }
 
 func constExprContainsIota(expr ast.Expr) bool {

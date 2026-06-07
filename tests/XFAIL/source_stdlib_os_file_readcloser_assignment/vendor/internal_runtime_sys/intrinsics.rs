@@ -136,7 +136,7 @@ pub fn ones_count64(mut x: Arc<Mutex<Option<u64>>>) -> i32 {
         // Per "Hacker's Delight", the first line can be simplified
         // more, but it saves at best one instruction, so we leave
         // it alone for clarity.
-    const m: u128 = (1 << 64) - 1;
+    const m: u128 = (((1 as u128) << (64 as u128)) - (1 as u128));
 
     { let new_val = { let __tmp_x = { let __tmp_x = { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x >> __tmp_y }; let __tmp_y = ((M0 as u64) & (m as u64)) as u64; __tmp_x & __tmp_y }; let __tmp_y = { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((M0 as u64) & (m as u64)) as u64; __tmp_x & __tmp_y }; __tmp_x + __tmp_y }; *x.lock().unwrap() = Some(new_val); };
     { let new_val = { let __tmp_x = { let __tmp_x = { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x >> __tmp_y }; let __tmp_y = ((M1 as u64) & (m as u64)) as u64; __tmp_x & __tmp_y }; let __tmp_y = { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((M1 as u64) & (m as u64)) as u64; __tmp_x & __tmp_y }; __tmp_x + __tmp_y }; *x.lock().unwrap() = Some(new_val); };

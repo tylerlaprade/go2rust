@@ -327,7 +327,7 @@ pub fn cgo_check_bits(mut src: Arc<Mutex<Option<usize>>>, gcbits: GoPtr<u8>, mut
     let mut bits: Arc<Mutex<Option<u32>>> = Arc::new(Mutex::new(Some(0)));
     let mut i = Arc::new(Mutex::new(Some(0 as usize)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
-        if { let __tmp_x = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = { let __tmp_x = internal_goarch::PTR_SIZE; let __tmp_y = 8; __tmp_x * __tmp_y }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; __tmp_x & __tmp_y }; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
+        if { let __tmp_x = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (((internal_goarch::PTR_SIZE as usize) * (8 as usize)) - (1 as usize)) as usize; __tmp_x & __tmp_y }; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
         { let new_val = Arc::new(Mutex::new(Some({ let __ptr_value = ptrmask.borrow(); __ptr_value.as_ref().unwrap().clone() } as u32))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *bits.lock().unwrap() = __moved_val; };
         ptrmask = addb(ptrmask.clone(), Arc::new(Mutex::new(Some(1 as usize))));
     } else {

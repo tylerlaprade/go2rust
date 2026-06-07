@@ -192,9 +192,9 @@ pub(crate) const MASKX: i32 = 0x3F;
 pub(crate) const MASK2: i32 = 0x1F;
 pub(crate) const MASK3: i32 = 0x0F;
 pub(crate) const MASK4: i32 = 0x07;
-pub(crate) const RUNE1_MAX: i32 = (1 << 7) - 1;
-pub(crate) const RUNE2_MAX: i32 = (1 << 11) - 1;
-pub(crate) const RUNE3_MAX: i32 = (1 << 16) - 1;
+pub(crate) const RUNE1_MAX: i32 = (((1 as i32) << (7 as i32)) - (1 as i32));
+pub(crate) const RUNE2_MAX: i32 = (((1 as i32) << (11 as i32)) - (1 as i32));
+pub(crate) const RUNE3_MAX: i32 = (((1 as i32) << (16 as i32)) - (1 as i32));
 pub(crate) const LOCB: i32 = 0x80;
 pub(crate) const HICB: i32 = 0xBF;
 

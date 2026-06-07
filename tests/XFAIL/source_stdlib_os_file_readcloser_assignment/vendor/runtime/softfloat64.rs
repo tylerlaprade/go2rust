@@ -174,13 +174,13 @@ use std::sync::{Arc, Mutex};
 
 pub(crate) const MANTBITS64: u64 = 52;
 pub(crate) const EXPBITS64: u64 = 11;
-pub(crate) const BIAS64: i32 = (-1 << (EXPBITS64 as u64 - 1 as u64)) + 1;
+pub(crate) const BIAS64: i32 = (((-1 as i32) << ((EXPBITS64 as i32) - (1 as i32))) + (1 as i32));
 pub(crate) const NAN64: u64 = (((((1 as u64) << (EXPBITS64 as u64)) - (1 as u64)) << (MANTBITS64 as u64)) + ((1 as u64) << ((MANTBITS64 as u64) - (1 as u64))));
 pub(crate) const INF64: u64 = ((((1 as u64) << (EXPBITS64 as u64)) - (1 as u64)) << (MANTBITS64 as u64));
 pub(crate) const NEG64: u64 = ((1 as u64) << ((EXPBITS64 as u64) + (MANTBITS64 as u64)));
 pub(crate) const MANTBITS32: u64 = 23;
 pub(crate) const EXPBITS32: u64 = 8;
-pub(crate) const BIAS32: i32 = (-1 << (EXPBITS32 as u64 - 1 as u64)) + 1;
+pub(crate) const BIAS32: i32 = (((-1 as i32) << ((EXPBITS32 as i32) - (1 as i32))) + (1 as i32));
 pub(crate) const NAN32: u32 = (((((1 as u32) << (EXPBITS32 as u32)) - (1 as u32)) << (MANTBITS32 as u32)) + ((1 as u32) << ((MANTBITS32 as u32) - (1 as u32))));
 pub(crate) const INF32: u32 = ((((1 as u32) << (EXPBITS32 as u32)) - (1 as u32)) << (MANTBITS32 as u32));
 pub(crate) const NEG32: u32 = ((1 as u32) << ((EXPBITS32 as u32) + (MANTBITS32 as u32)));

@@ -1628,7 +1628,7 @@ impl stkframe {
                         // Figure out whether the return values are valid.
                         // Reflect will update this value after it copies
                         // in the return values.
-            let mut retValid = Arc::new(Mutex::new(Some({ let __v = (*Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*arg0.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = 4; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y } as usize; __tmp_x + __tmp_y }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<bool>(unimplemented!("unsafe.Pointer conversion to bool")) } })).lock().unwrap().as_ref().unwrap()).clone(); __v })));
+            let mut retValid = Arc::new(Mutex::new(Some({ let __v = (*Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*arg0.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((4 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x + __tmp_y }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<bool>(unimplemented!("unsafe.Pointer conversion to bool")) } })).lock().unwrap().as_ref().unwrap()).clone(); __v })));
             if { let __tmp_x = (*{ let __field = (*mv.lock().unwrap().as_ref().unwrap()).r#fn.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*f.lock().unwrap().as_ref().unwrap()).entry(); __tmp_x != __tmp_y } {
         eprint!("{}{}{}", format!("{}", "runtime: confused by ".to_string()), format!("{}", (*funcname(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap())), format!("{}", "\n".to_string()));
         throw(Arc::new(Mutex::new(Some("reflect mismatch".to_string()))));
@@ -1637,7 +1637,7 @@ impl stkframe {
             if !{ let __v = (*retValid.lock().unwrap().as_ref().unwrap()).clone(); __v } {
                 // argMap.n includes the results, but
                 // those aren't valid, so drop them.
-        let mut n = Arc::new(Mutex::new(Some(({ let __tmp_x = ({ let __tmp_x = (*{ let __field = (*mv.lock().unwrap().as_ref().unwrap()).arg_len.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = internal_goarch::PTR_SIZE; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; __tmp_x & ! __tmp_y }); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }) as i32)));
+        let mut n = Arc::new(Mutex::new(Some(({ let __tmp_x = ({ let __tmp_x = (*{ let __field = (*mv.lock().unwrap().as_ref().unwrap()).arg_len.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((internal_goarch::PTR_SIZE as usize) - (1 as usize)) as usize; __tmp_x & ! __tmp_y }); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }) as i32)));
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*argMap.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
         { let new_val = n.lock().unwrap().as_ref().unwrap().clone(); *(*argMap.lock().unwrap().as_ref().unwrap()).n.lock().unwrap() = Some(new_val); };
     }

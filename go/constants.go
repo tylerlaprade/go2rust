@@ -1681,12 +1681,25 @@ func constExpressionOperandSyntaxRustType(expr ast.Expr) (string, bool) {
 	switch e := expr.(type) {
 	case *ast.Ident:
 		if obj, ok := typeInfo.GetObject(e).(*types.Const); ok {
-			return rustIntegerCastTypeForExpected(obj.Type())
+			return rustIntegerCastTypeForConstObject(obj)
 		}
 	case *ast.SelectorExpr:
 		if obj, ok := typeInfo.GetObject(e.Sel).(*types.Const); ok {
-			return rustIntegerCastTypeForExpected(obj.Type())
+			return rustIntegerCastTypeForConstObject(obj)
 		}
+	}
+	return "", false
+}
+
+func rustIntegerCastTypeForConstObject(obj *types.Const) (string, bool) {
+	if obj == nil {
+		return "", false
+	}
+	if rustType, ok := rustIntegerCastTypeForExpected(obj.Type()); ok {
+		return rustType, true
+	}
+	if obj.Val() != nil {
+		return rustConstTypeForUntypedIntegerValue(nil, obj.Val())
 	}
 	return "", false
 }
