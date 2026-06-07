@@ -186,7 +186,7 @@ pub(crate) const M_SPAN_MANUAL: u8 = 2;
 
 
 pub(crate) const NUM_SPAN_CLASSES: i32 = __NUM_SIZE_CLASSES << 1;
-pub(crate) const TINY_SPAN_CLASS: u8 = ((((TINY_SIZE_CLASS as u8) << (1 as u8)) | (1 as u8)) as u8);
+pub(crate) const TINY_SPAN_CLASS: u8 = ((((TINY_SIZE_CLASS as i8) << (1 as i8)) | (1 as i8)) as u8);
 
 
 pub(crate) const SPAN_ALLOC_HEAP: u8 = 0;

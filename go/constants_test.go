@@ -288,6 +288,27 @@ func mask() Word {
 	}
 }
 
+func TestConstConversionBinaryKeepsNestedOperandsTypeConsistent(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+const (
+	chunkBytesMax = 8 << 20
+	heapArenaBytes = 1 << 26
+	chunkBytes = uintptr(int64(chunkBytesMax-heapArenaBytes)&(int64(chunkBytesMax-heapArenaBytes)>>63) + heapArenaBytes)
+)
+`)
+
+	if !strings.Contains(rust, "pub(crate) const CHUNK_BYTES: usize =") {
+		t.Fatalf("runtime-style uintptr const should emit a usize const:\n%s", rust)
+	}
+	if strings.Contains(rust, "+ (HEAP_ARENA_BYTES as i128)") {
+		t.Fatalf("nested constant conversion must not mix i64 and i128 operands in the same Rust addition:\n%s", rust)
+	}
+	if !strings.Contains(rust, "+ (HEAP_ARENA_BYTES as i64)") {
+		t.Fatalf("uintptr conversion argument should use the argument expression's typed integer width before the outer cast:\n%s", rust)
+	}
+}
+
 func TestConstNameCollisionDisambiguatesPackageConstants(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

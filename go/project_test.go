@@ -74,6 +74,17 @@ func TestModuleImportPrefixesDoNotAddBlankLineForEmptyBody(t *testing.T) {
 	}
 }
 
+func TestModuleImportPrefixesDoNotAddBlankLineForImportOnlyBody(t *testing.T) {
+	pg := &ProjectGenerator{useSharedStdlibStubCrate: true}
+	got := pg.prefixModuleImports("use std::any::Any;\n\n", "slices", []string{"iter", "slices"}, nil)
+	if strings.HasSuffix(got, "\n\n") {
+		t.Fatalf("import-only module body should not end with a blank line: %q", got)
+	}
+	if !strings.HasSuffix(got, "use std::any::Any;\n") {
+		t.Fatalf("import-only module body should keep exactly one trailing newline: %q", got)
+	}
+}
+
 func TestPackageLoaderMainASTByPathUsesWorkDirForRelativeCompiledFiles(t *testing.T) {
 	tempDir := t.TempDir()
 	workDir := filepath.Join(tempDir, "go")

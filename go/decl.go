@@ -7351,8 +7351,9 @@ func writeConstTypeConversion(out *strings.Builder, call *ast.CallExpr, iotaValu
 		return false
 	}
 	out.WriteString("(")
-	if writeConstNumericConversionValueForRustType(out, call.Args[0], rustType) {
-		// Constant operands were emitted in a Rust integer type wide enough for the conversion.
+	argRustType := constTypeConversionArgumentRustType(typeInfo, call.Args[0], rustType)
+	if writeConstNumericConversionValueForRustType(out, call.Args[0], argRustType) {
+		// Constant operands were emitted in the argument expression's typed integer width.
 	} else if constTypeConversionArgNeedsParens(call.Args[0]) {
 		out.WriteString("(")
 		TranspileConstExpr(out, call.Args[0], iotaValue)
@@ -7364,6 +7365,16 @@ func writeConstTypeConversion(out *strings.Builder, call *ast.CallExpr, iotaValu
 	out.WriteString(rustType)
 	out.WriteString(")")
 	return true
+}
+
+func constTypeConversionArgumentRustType(typeInfo *TypeInfo, arg ast.Expr, conversionRustType string) string {
+	if typeInfo == nil {
+		return conversionRustType
+	}
+	if argRustType, ok := rustIntegerCastTypeForExpected(typeInfo.GetType(arg)); ok && rustIntegerTypeWidth(argRustType) > 0 {
+		return argRustType
+	}
+	return conversionRustType
 }
 
 func constTypeConversionArgNeedsParens(arg ast.Expr) bool {

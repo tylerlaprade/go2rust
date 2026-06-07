@@ -174,7 +174,7 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
 pub(crate) const USER_ARENA_CHUNK_BYTES_MAX: i32 = 8 << 20;
-pub(crate) const USER_ARENA_CHUNK_BYTES: usize = ((((((USER_ARENA_CHUNK_BYTES_MAX as i64) - (HEAP_ARENA_BYTES as i64)) as i64) & ((((USER_ARENA_CHUNK_BYTES_MAX as i64) - (HEAP_ARENA_BYTES as i64)) as i64) >> (63 as i128))) + (HEAP_ARENA_BYTES as i128)) as usize);
+pub(crate) const USER_ARENA_CHUNK_BYTES: usize = ((((((USER_ARENA_CHUNK_BYTES_MAX as i64) - (HEAP_ARENA_BYTES as i64)) as i64) & ((((USER_ARENA_CHUNK_BYTES_MAX as i64) - (HEAP_ARENA_BYTES as i64)) as i64) >> (63 as i64))) + (HEAP_ARENA_BYTES as i64)) as usize);
 pub(crate) const USER_ARENA_CHUNK_PAGES: usize = USER_ARENA_CHUNK_BYTES as usize / PAGE_SIZE as usize;
 pub(crate) const USER_ARENA_CHUNK_MAX_ALLOC_BYTES: usize = USER_ARENA_CHUNK_BYTES as usize / 4 as usize;
 

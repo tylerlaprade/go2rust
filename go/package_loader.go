@@ -1180,7 +1180,7 @@ func prefixExternalPackageModuleImports(rustCode, selfModule string, moduleNames
 	if helpers != nil && helpers.HasAny() {
 		rustCode = prefixPackageHelperImports(rustCode, helpers, true)
 	}
-	return prefixSharedStdlibStubImport(rustCode)
+	return trimExtraRustTrailingNewlines(prefixSharedStdlibStubImport(rustCode))
 }
 
 func prefixSharedStdlibStubImport(rustCode string) string {

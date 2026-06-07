@@ -617,7 +617,14 @@ func (pg *ProjectGenerator) prefixModuleImports(rustCode, selfModule string, mod
 	if pg.useSharedStdlibStubCrate {
 		rustCode = prefixSharedStdlibStubImport(rustCode)
 	}
-	return rustCode
+	return trimExtraRustTrailingNewlines(rustCode)
+}
+
+func trimExtraRustTrailingNewlines(rustCode string) string {
+	if !strings.HasSuffix(rustCode, "\n\n") {
+		return rustCode
+	}
+	return strings.TrimRight(rustCode, "\n") + "\n"
 }
 
 func (pg *ProjectGenerator) packageHelpersNeeded(packageState *PackageState) bool {
