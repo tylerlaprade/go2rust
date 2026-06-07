@@ -1743,7 +1743,7 @@ impl itabTableType {
         if m.is_nil() {
         return GoPtr::nil();
     }
-        if { let __left_addr = { let __ptr_value = m.with_mut(|__ptr_value| __ptr_value.inter.clone()); __ptr_value }.addr(); let __right_addr = inter.addr(); let __eq = __left_addr == __right_addr; __eq } && { let __left_addr = { let __ptr_value = m.with_mut(|__ptr_value| __ptr_value.r#type.clone()); __ptr_value }.addr(); let __right_addr = typ.addr(); let __eq = __left_addr == __right_addr; __eq } {
+        if { let __left_addr = { let __ptr_value = m.borrow(); let __field_value = __ptr_value.as_ref().unwrap().inter.clone(); __field_value }.addr(); let __right_addr = inter.addr(); let __eq = __left_addr == __right_addr; __eq } && { let __left_addr = { let __ptr_value = m.borrow(); let __field_value = __ptr_value.as_ref().unwrap().r#type.clone(); __field_value }.addr(); let __right_addr = typ.addr(); let __eq = __left_addr == __right_addr; __eq } {
         return m.clone();
     }
         { let __rhs = (*i.lock().unwrap().as_ref().unwrap()); let mut guard = h.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };

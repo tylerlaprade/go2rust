@@ -6444,6 +6444,9 @@ func writePointerHandleExpression(out *strings.Builder, expr ast.Expr) {
 		if writeSourceMappedPackageGlobalPointerHandleClone(out, e) {
 			return
 		}
+		if writeGoPtrSelectorReadHandle(out, e) {
+			return
+		}
 		TranspileExpressionContext(out, expr, LValue)
 		out.WriteString(".clone()")
 	default:
@@ -17126,6 +17129,9 @@ func writeUnsafePointerIndexedElementAddress(out *strings.Builder, indexExpr *as
 	}
 	if !typeInfo.IsArray(indexExpr.X) && !typeInfo.IsSlice(indexExpr.X) && !typeInfo.IsPointerToArray(indexExpr.X) {
 		return false
+	}
+	if writeGoPtrUnsafePointerIndexedElementAddress(out, indexExpr) {
+		return true
 	}
 	out.WriteString("{ let __seq_holder = ")
 	writeUnsafePointerIndexedSequenceHolder(out, indexExpr.X)

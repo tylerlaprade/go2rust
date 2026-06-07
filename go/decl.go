@@ -168,6 +168,8 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		} else {
 			// Embedded field
 			typeName := getEmbeddedFieldName(field.Type)
+			_, goPtrField := sliceElemPtrFieldInfoForStructField(nil, structType, structName, typeName)
+			_, goPtrArrayField := goPtrArrayFieldInfoForStructField(nil, structType, structName, typeName)
 			fields = append(fields, fieldEntry{
 				name:                      typeName,
 				isEmbedded:                true,
@@ -187,8 +189,8 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 				ptrToSlice:                ptrToSlice,
 				ptrToPtrSlice:             ptrToPtrSlice,
 				isPointer:                 isPointer,
-				goPtr:                     false,
-				goPtrArray:                false,
+				goPtr:                     goPtrField,
+				goPtrArray:                goPtrArrayField,
 				interfaceSlice:            interfaceSlice,
 				zeroLenArray:              zeroLenArray,
 			})
@@ -1242,7 +1244,14 @@ func generateStructDefault(out *strings.Builder, typeSpec *ast.TypeSpec, structN
 			fieldName := getEmbeddedFieldName(field.Type)
 			out.WriteString(ToSnakeCase(fieldName))
 			out.WriteString(": ")
-			writeStructDefaultValue(out, field.Type)
+			if fieldInfo, ok := goPtrArrayFieldInfoForStructField(typeSpec, structType, structName, fieldName); ok {
+				writeGoPtrArrayFieldDefaultValue(out, fieldInfo)
+			} else if _, ok := sliceElemPtrFieldInfoForStructField(typeSpec, structType, structName, fieldName); ok {
+				NeedSliceElemPtr()
+				out.WriteString("GoPtr::nil()")
+			} else {
+				writeStructDefaultValue(out, field.Type)
+			}
 		}
 	}
 	writeRustPhantomValue(out, generics, &needComma)

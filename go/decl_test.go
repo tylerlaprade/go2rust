@@ -2244,6 +2244,74 @@ type ctxResult struct {
 	}
 }
 
+func TestGoPtrStructFieldCustomDefaultAndDisplayUseGoPtr(t *testing.T) {
+	fset := token.NewFileSet()
+	mheapFile, err := parser.ParseFile(fset, "mheap.go", `package main
+
+type mspan struct{}
+`, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("ParseFile(mheap.go) error = %v", err)
+	}
+	arenaFile, err := parser.ParseFile(fset, "arena.go", `package main
+
+import "unsafe"
+
+type liveUserArenaChunk struct {
+	*mspan
+	x uintptr
+}
+
+func raw(addr uintptr) *mspan {
+	return (*mspan)(unsafe.Pointer(addr))
+}
+
+func assign(c *liveUserArenaChunk, addr uintptr) {
+	c.mspan = raw(addr)
+}
+`, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("ParseFile(arena.go) error = %v", err)
+	}
+	files := []*ast.File{mheapFile, arenaFile}
+	typeInfo, err := NewTypeInfo(files, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	prevTypeInfo := currentTypeInfo
+	prevContext := currentContext
+	prevVarTable := currentVarTable
+	t.Cleanup(func() {
+		SetTypeInfo(prevTypeInfo)
+		SetTranspileContext(prevContext)
+		SetVarTable(prevVarTable)
+	})
+
+	SetTypeInfo(typeInfo)
+	ctx := &TranspileContext{
+		Session: NewTranspileSession(typeInfo, nil),
+		Package: NewPackageState(),
+	}
+	SetTranspileContext(ctx)
+	registerSliceElemPtrFactsFromFiles(files)
+
+	rust, _, _ := TranspileWithMapping(arenaFile, fset, typeInfo, nil)
+
+	if !strings.Contains(rust, "pub mspan: GoPtr<mspan>") {
+		t.Fatalf("pointer field assigned a GoPtr value should emit GoPtr storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Self { mspan: GoPtr::nil(), x:") {
+		t.Fatalf("custom Default should initialize generated GoPtr fields with GoPtr::nil():\n%s", rust)
+	}
+	if strings.Contains(rust, "self.mspan.borrow()") || strings.Contains(rust, "self.mspan.lock()") {
+		t.Fatalf("Display should not format generated GoPtr fields as wrapped pointer handles:\n%s", rust)
+	}
+	if !strings.Contains(rust, "self.mspan.is_nil()") {
+		t.Fatalf("Display should format generated GoPtr fields through GoPtr::is_nil:\n%s", rust)
+	}
+}
+
 func TestNamedMapWithInterfaceValueDefinitionUsesFormatMapDisplay(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

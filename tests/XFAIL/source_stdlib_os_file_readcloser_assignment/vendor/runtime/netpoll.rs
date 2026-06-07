@@ -204,7 +204,7 @@ pub(crate) const POLL_F_D_SEQ_MASK: i32 = (((1 as i32) << (POLL_F_D_SEQ_BITS as 
 #[derive(Clone)]
 pub struct pollDesc {
     pub __blank_0_0: Arc<Mutex<Option<internal_runtime_sys::nih::NotInHeap>>>,
-    pub link: Arc<Mutex<Option<pollDesc>>>,
+    pub link: GoPtr<pollDesc>,
     pub fd: Arc<Mutex<Option<usize>>>,
     pub fdseq: Arc<Mutex<Option<internal_runtime_atomic::types::Uintptr>>>,
     pub atomic_info: Arc<Mutex<Option<internal_runtime_atomic::types::Uint32>>>,
@@ -233,13 +233,13 @@ impl pollDesc {
 
 impl Default for pollDesc {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), link: Arc::new(Mutex::new(None)), fd: Arc::new(Mutex::new(Some(0))), fdseq: Arc::new(Mutex::new(Some(Default::default()))), atomic_info: Arc::new(Mutex::new(Some(Default::default()))), rg: Arc::new(Mutex::new(Some(Default::default()))), wg: Arc::new(Mutex::new(Some(Default::default()))), lock: Arc::new(Mutex::new(Some(mutex::default()))), closing: Arc::new(Mutex::new(Some(false))), rrun: Arc::new(Mutex::new(Some(false))), wrun: Arc::new(Mutex::new(Some(false))), user: Arc::new(Mutex::new(Some(0))), rseq: Arc::new(Mutex::new(Some(0))), rt: Arc::new(Mutex::new(Some(timer::default()))), rd: Arc::new(Mutex::new(Some(0))), wseq: Arc::new(Mutex::new(Some(0))), wt: Arc::new(Mutex::new(Some(timer::default()))), wd: Arc::new(Mutex::new(Some(0))), self_: GoPtr::nil() }
+        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), link: GoPtr::nil(), fd: Arc::new(Mutex::new(Some(0))), fdseq: Arc::new(Mutex::new(Some(Default::default()))), atomic_info: Arc::new(Mutex::new(Some(Default::default()))), rg: Arc::new(Mutex::new(Some(Default::default()))), wg: Arc::new(Mutex::new(Some(Default::default()))), lock: Arc::new(Mutex::new(Some(mutex::default()))), closing: Arc::new(Mutex::new(Some(false))), rrun: Arc::new(Mutex::new(Some(false))), wrun: Arc::new(Mutex::new(Some(false))), user: Arc::new(Mutex::new(Some(0))), rseq: Arc::new(Mutex::new(Some(0))), rt: Arc::new(Mutex::new(Some(timer::default()))), rd: Arc::new(Mutex::new(Some(0))), wseq: Arc::new(Mutex::new(Some(0))), wt: Arc::new(Mutex::new(Some(timer::default()))), wd: Arc::new(Mutex::new(Some(0))), self_: GoPtr::nil() }
     }
 }
 
 impl std::fmt::Display for pollDesc {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), { let __guard = self.link.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.fd.lock().unwrap().as_ref().unwrap()), (*self.fdseq.lock().unwrap().as_ref().unwrap()), (*self.atomic_info.lock().unwrap().as_ref().unwrap()), (*self.rg.lock().unwrap().as_ref().unwrap()), (*self.wg.lock().unwrap().as_ref().unwrap()), (*self.lock.lock().unwrap().as_ref().unwrap()), (*self.closing.lock().unwrap().as_ref().unwrap()), (*self.rrun.lock().unwrap().as_ref().unwrap()), (*self.wrun.lock().unwrap().as_ref().unwrap()), (*self.user.lock().unwrap().as_ref().unwrap()), (*self.rseq.lock().unwrap().as_ref().unwrap()), (*self.rt.lock().unwrap().as_ref().unwrap()), (*self.rd.lock().unwrap().as_ref().unwrap()), (*self.wseq.lock().unwrap().as_ref().unwrap()), (*self.wt.lock().unwrap().as_ref().unwrap()), (*self.wd.lock().unwrap().as_ref().unwrap()), { if self.self_.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
+        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), { if self.link.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.fd.lock().unwrap().as_ref().unwrap()), (*self.fdseq.lock().unwrap().as_ref().unwrap()), (*self.atomic_info.lock().unwrap().as_ref().unwrap()), (*self.rg.lock().unwrap().as_ref().unwrap()), (*self.wg.lock().unwrap().as_ref().unwrap()), (*self.lock.lock().unwrap().as_ref().unwrap()), (*self.closing.lock().unwrap().as_ref().unwrap()), (*self.rrun.lock().unwrap().as_ref().unwrap()), (*self.wrun.lock().unwrap().as_ref().unwrap()), (*self.user.lock().unwrap().as_ref().unwrap()), (*self.rseq.lock().unwrap().as_ref().unwrap()), (*self.rt.lock().unwrap().as_ref().unwrap()), (*self.rd.lock().unwrap().as_ref().unwrap()), (*self.wseq.lock().unwrap().as_ref().unwrap()), (*self.wt.lock().unwrap().as_ref().unwrap()), (*self.wd.lock().unwrap().as_ref().unwrap()), { if self.self_.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
     }
 }
 
@@ -1629,7 +1629,7 @@ impl pollCache {
                 // Must be in non-GC memory because can be referenced
                 // only from epoll/kqueue internals.
         let mut pd: GoPtr<pollDesc> = self.first.clone();
-        { let new_val = GoPtr::local({ let __ptr_value = pd.with_mut(|__ptr_value| __ptr_value.link.clone()); __ptr_value }.clone()); self.first = new_val; };
+        { let new_val = { let __ptr_value = pd.with_mut(|__ptr_value| __ptr_value.link.clone()); __ptr_value }.clone(); self.first = new_val; };
         unlock(GoPtr::local(self.lock.clone()));
         pd.clone()
     }

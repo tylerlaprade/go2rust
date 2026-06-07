@@ -1122,7 +1122,7 @@ impl GoJsonDecode for AnonymousStruct26 {
 #[derive(Clone)]
 pub struct AnonymousStruct27 {
     pub len: Arc<Mutex<Option<i32>>>,
-    pub buf: Arc<Mutex<Option<[Arc<Mutex<Option<mspan>>>; 128]>>>,
+    pub buf: Arc<Mutex<Option<[GoPtr<crate::mheap::mspan>; 128]>>>,
 }
 impl AnonymousStruct27 {
     pub fn __go_value_clone(&self) -> Self {
@@ -2582,7 +2582,7 @@ pub fn free_stack_spans() {
         let mut list = (*{ let __seq = { let __seq_holder = stackpool.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(order) as usize].clone() }.item.lock().unwrap().as_ref().unwrap()).span.clone();
         let mut s: GoPtr<crate::mheap::mspan> = (*list.lock().unwrap().as_ref().unwrap()).first.clone();
     while !s.is_nil() {
-        let mut next: GoPtr<crate::mheap::mspan> = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.clone();
+        let mut next: GoPtr<crate::mheap::mspan> = { let __ptr_value = s.borrow(); let __field_value = __ptr_value.as_ref().unwrap().next.clone(); __field_value };
         if { let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().alloc_count.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u16; __tmp_x == __tmp_y } {
         { let __recv = list.clone(); let __recv_ptr: *mut crate::mheap::mSpanList = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::mheap::mSpanList }; let __result = unsafe { &mut *__recv_ptr }.remove(s.clone()); __result };
         { let new_val = crate::mcache::gclinkptr(Arc::new(Mutex::new(Some(0 as usize)))); *{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.manual_free_list.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
@@ -2599,7 +2599,7 @@ pub fn free_stack_spans() {
     for i in 0..(({ let __range_holder = (*stackLarge.lock().unwrap().as_ref().unwrap()).free.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
         let mut s: GoPtr<crate::mheap::mspan> = { let __seq = { let __seq_holder = (*stackLarge.lock().unwrap().as_ref().unwrap()).free.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.first.clone();
     while !s.is_nil() {
-        let mut next: GoPtr<crate::mheap::mspan> = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.clone();
+        let mut next: GoPtr<crate::mheap::mspan> = { let __ptr_value = s.borrow(); let __field_value = __ptr_value.as_ref().unwrap().next.clone(); __field_value };
         { let __seq = { let __seq_holder = (*stackLarge.lock().unwrap().as_ref().unwrap()).free.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.remove(s.clone());
         os_stack_free(s.clone());
         (*mheap_.lock().unwrap().as_mut().unwrap()).free_manual(s.clone(), Arc::new(Mutex::new(Some(crate::mheap::spanAllocType(Arc::new(Mutex::new(Some(SPAN_ALLOC_STACK as u8))))))));

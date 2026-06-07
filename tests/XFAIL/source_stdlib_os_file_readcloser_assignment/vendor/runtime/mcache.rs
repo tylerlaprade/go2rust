@@ -1176,7 +1176,7 @@ pub fn get_m_cache(mp: Arc<Mutex<Option<m>>>) -> Arc<Mutex<Option<mcache>>> {
                 // by procresize.
         { let new_val = (*mcache0.lock().unwrap().as_ref().unwrap()).clone(); c = new_val; };
     } else {
-        { let new_val = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.mcache.clone()); __ptr_value }.clone(); c = new_val; };
+        { let new_val = { let __ptr_value = pp.borrow(); let __field_value = __ptr_value.as_ref().unwrap().mcache.clone(); __field_value }; c = new_val; };
     }
         // We will be called without a P while bootstrapping,
         // in which case we use mcache0, which is set in mallocinit.

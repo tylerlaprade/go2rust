@@ -3885,7 +3885,9 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 					body.WriteString("    pub ")
 					body.WriteString(rustStructFieldName(name, fieldIndex, nameIndex))
 					body.WriteString(": ")
-					if fieldInfo, ok := sliceElemPtrFieldInfoForAnonymousStructField(structType, name.Name); ok {
+					if fieldInfo, ok := goPtrArrayFieldInfoForStructField(nil, structType, typeName, name.Name); ok {
+						body.WriteString(goPtrArrayFieldRustType(fieldInfo))
+					} else if fieldInfo, ok := sliceElemPtrFieldInfoForAnonymousStructField(structType, name.Name); ok {
 						NeedSliceElemPtr()
 						body.WriteString("GoPtr<")
 						body.WriteString(sliceElemPtrFieldElemRustType(fieldInfo))
@@ -3900,7 +3902,17 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 				body.WriteString("    pub ")
 				body.WriteString(rustStructFieldName(name, fieldIndex, 0))
 				body.WriteString(": ")
-				body.WriteString(GoTypeToRust(field.Type))
+				fieldName := getEmbeddedFieldName(field.Type)
+				if fieldInfo, ok := goPtrArrayFieldInfoForStructField(nil, structType, typeName, fieldName); ok {
+					body.WriteString(goPtrArrayFieldRustType(fieldInfo))
+				} else if fieldInfo, ok := sliceElemPtrFieldInfoForAnonymousStructField(structType, fieldName); ok {
+					NeedSliceElemPtr()
+					body.WriteString("GoPtr<")
+					body.WriteString(sliceElemPtrFieldElemRustType(fieldInfo))
+					body.WriteString(">")
+				} else {
+					body.WriteString(GoTypeToRust(field.Type))
+				}
 				body.WriteString(",\n")
 			}
 		}

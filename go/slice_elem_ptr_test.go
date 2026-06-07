@@ -236,6 +236,41 @@ func use(c *cache, items []node) *node {
 	}
 }
 
+func TestGoPtrArrayPointerAnonymousStructFieldSlotsPreserveHandle(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type node struct {
+	value int
+}
+
+func fill(items []node) struct {
+	len int
+	buf [2]*node
+} {
+	var c struct {
+		len int
+		buf [2]*node
+	}
+	p := &items[0]
+	c.buf[0] = p
+	c.len = 1
+	return c
+}
+`)
+
+	if !strings.Contains(rust, "pub buf: Rc<RefCell<Option<[GoPtr<node>; 2]>>>") &&
+		!strings.Contains(rust, "pub buf: Arc<Mutex<Option<[GoPtr<node>; 2]>>>") {
+		t.Fatalf("anonymous pointer array field assigned a GoPtr value should store GoPtr slots:\n%s", rust)
+	}
+	if strings.Contains(rust, "pub buf: Rc<RefCell<Option<[Rc<RefCell<Option<node>>>; 2]>>>") ||
+		strings.Contains(rust, "pub buf: Arc<Mutex<Option<[Arc<Mutex<Option<node>>>; 2]>>>") {
+		t.Fatalf("anonymous pointer array field should not use ordinary pointer wrappers once GoPtr slot identity is proven:\n%s", rust)
+	}
+	if !strings.Contains(rust, "std::array::from_fn(|_| GoPtr::nil())") {
+		t.Fatalf("anonymous GoPtr pointer array field default should initialize nil slots:\n%s", rust)
+	}
+}
+
 func TestArrayElemAddressShortDeclUsesArrayElemPtr(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
@@ -2264,8 +2299,8 @@ func test[T any](n *node[T]) {
 	if !strings.Contains(rust, "let i_defer_captured = i.clone();") {
 		t.Fatalf("deferred GoPtr local selector should capture the local clone:\n%s", rust)
 	}
-	if !strings.Contains(rust, "i_defer_captured.borrow()") {
-		t.Fatalf("deferred GoPtr field selector should borrow through the captured clone:\n%s", rust)
+	if !strings.Contains(rust, "i_defer_captured.with_mut(") {
+		t.Fatalf("deferred GoPtr field selector should use the captured clone:\n%s", rust)
 	}
 	if strings.Contains(rust, "let __ptr_value = i.borrow()") {
 		t.Fatalf("deferred GoPtr field selector should not move the outer local into the closure:\n%s", rust)
@@ -2916,7 +2951,7 @@ func forceConcurrent(ch chan bool) {
 	if strings.Contains(rust, "__left.lock()") || strings.Contains(rust, "__right.lock()") || strings.Contains(rust, "Arc::ptr_eq(&__left, &__right)") {
 		t.Fatalf("GoPtr pointer equality should not use wrapper lock or Arc pointer equality:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __left_addr = { let __ptr_value = m.borrow(); __ptr_value.as_ref().unwrap().inter.clone() }.addr()") ||
+	if !strings.Contains(rust, "let __left_addr = { let __ptr_value = m.borrow(); let __field_value = __ptr_value.as_ref().unwrap().inter.clone(); __field_value }.addr()") ||
 		!strings.Contains(rust, "let __right_addr = inter.addr()") {
 		t.Fatalf("GoPtr pointer equality should compare pointer addresses:\n%s", rust)
 	}
@@ -2995,7 +3030,7 @@ func find(m *ITab, typ *Type) bool {
 	if strings.Contains(rust, ".typ.clone() }.addr()") {
 		t.Fatalf("candidate-only field should not be treated as generated GoPtr storage:\n%s", rust)
 	}
-	if !strings.Contains(rust, "GoPtr::local({ let __ptr_value = m.borrow(); __ptr_value.as_ref().unwrap().typ.clone() }.clone())") {
+	if !strings.Contains(rust, "GoPtr::local({ let __ptr_value = m.borrow(); let __field_value = __ptr_value.as_ref().unwrap().typ.clone(); __field_value })") {
 		t.Fatalf("candidate-only field should be converted from its wrapped pointer handle:\n%s", rust)
 	}
 	if !strings.Contains(rust, "let __right_addr = typ.addr()") {
@@ -4627,6 +4662,20 @@ func touch(addr uintptr, i int) int {
 	}
 }
 
+func TestGoPtrLocalFieldReadHandleBindsCloneBeforeReturning(t *testing.T) {
+	var out strings.Builder
+	writeGoPtrLocalFieldReadHandle(&out, ast.NewIdent("b"), FieldAccessInfo{
+		EmbeddedPath: []string{"workbufhdr"},
+		FieldName:    "nobj",
+	})
+
+	rust := out.String()
+	if !strings.Contains(rust, "let __field_value = __ptr_value.as_ref().unwrap().workbufhdr") ||
+		!strings.Contains(rust, "; __field_value }") {
+		t.Fatalf("GoPtr field read handle should bind the cloned field before returning it:\n%s", rust)
+	}
+}
+
 func TestGoPtrLocalFieldAssignmentBorrowsOriginalPointee(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
@@ -4741,6 +4790,71 @@ func rotate(addr uintptr) {
 	}
 	if !strings.Contains(rust, "n.with_mut(|__ptr_value| { __ptr_value.next = __tmp_0.clone(); });") {
 		t.Fatalf("parallel GoPtr local field assignment should mutate through the original pointee:\n%s", rust)
+	}
+}
+
+func TestCrossFileParallelGoPtrFieldAssignmentConvergesFieldFacts(t *testing.T) {
+	fset := token.NewFileSet()
+	typesFile, err := parser.ParseFile(fset, "types.go", `package main
+
+type node struct {
+	next *node
+}
+
+type heap struct {
+	root *node
+}
+`, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("ParseFile(types.go) error = %v", err)
+	}
+	useFile, err := parser.ParseFile(fset, "use.go", `package main
+
+import "unsafe"
+
+func raw(addr uintptr) *node {
+	return (*node)(unsafe.Pointer(addr))
+}
+
+func link(h *heap, addr uintptr) {
+	n := raw(addr)
+	n.next, h.root = h.root, n
+}
+`, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("ParseFile(use.go) error = %v", err)
+	}
+	files := []*ast.File{typesFile, useFile}
+	typeInfo, err := NewTypeInfo(files, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	prevTypeInfo := currentTypeInfo
+	prevContext := currentContext
+	prevVarTable := currentVarTable
+	t.Cleanup(func() {
+		SetTypeInfo(prevTypeInfo)
+		SetTranspileContext(prevContext)
+		SetVarTable(prevVarTable)
+	})
+
+	SetTypeInfo(typeInfo)
+	ctx := &TranspileContext{
+		Session: NewTranspileSession(typeInfo, nil),
+		Package: NewPackageState(),
+	}
+	SetTranspileContext(ctx)
+	registerSliceElemPtrFactsFromFiles(files)
+
+	rust, _, _ := TranspileWithMapping(typesFile, fset, typeInfo, nil)
+	if !strings.Contains(rust, "pub next: GoPtr<node>") || !strings.Contains(rust, "pub root: GoPtr<node>") {
+		t.Fatalf("cross-file parallel pointer-field facts should converge before struct emission:\n%s", rust)
+	}
+
+	rust, _, _ = TranspileWithMapping(useFile, fset, typeInfo, nil)
+	if !strings.Contains(rust, "n.with_mut(|__ptr_value| { __ptr_value.next = __tmp_0.clone(); });") {
+		t.Fatalf("cross-file parallel GoPtr field assignment should store the GoPtr handle:\n%s", rust)
 	}
 }
 

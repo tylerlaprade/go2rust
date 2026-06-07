@@ -2479,7 +2479,7 @@ pub fn stkbucket(typ: Arc<Mutex<Option<bucketType>>>, size: Arc<Mutex<Option<usi
         if { let __tmp_x = { let __selector_holder = { let __ptr_value = b.with_mut(|__ptr_value| __ptr_value.typ.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = (*typ.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } && { let __tmp_x = (*{ let __ptr_value = b.borrow(); __ptr_value.as_ref().unwrap().hash.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } && { let __tmp_x = (*{ let __ptr_value = b.borrow(); __ptr_value.as_ref().unwrap().size.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } && eqslice({ let __result = b.with_mut(|__recv_value| __recv_value.stk()); __result }, stk.clone()) {
         return b.clone();
     }
-        b = GoPtr::local({ let __ptr_value = b.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.clone());
+        b = GoPtr::local({ let __ptr_value = b.borrow(); let __field_value = __ptr_value.as_ref().unwrap().next.clone(); __field_value });
     }
 
     if !{ let __v = (*alloc.lock().unwrap().as_ref().unwrap()).clone(); __v } {
@@ -2495,7 +2495,7 @@ pub fn stkbucket(typ: Arc<Mutex<Option<bucketType>>>, size: Arc<Mutex<Option<usi
         unlock(GoPtr::local(profInsertLock.clone()));
         return b.clone();
     }
-        b = GoPtr::local({ let __ptr_value = b.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.clone());
+        b = GoPtr::local({ let __ptr_value = b.borrow(); let __field_value = __ptr_value.as_ref().unwrap().next.clone(); __field_value });
     }
 
         // Create new bucket.
@@ -2585,7 +2585,7 @@ pub fn m_prof__flush_locked(index: Arc<Mutex<Option<u32>>>) {
         let mut mpc: Option<GoArrayElemPtr<memRecordCycle, 3>> = Some(GoArrayElemPtr::new({ let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.future.clone()); __ptr_value }.clone(), ({ let __v = (*index.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize));
         (*{ let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.active.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).add(GoPtr::array_elem_opt(mpc.clone()));
         { let new_val = memRecordCycle { allocs: Arc::new(Mutex::new(Some(0))), frees: Arc::new(Mutex::new(Some(0))), alloc_bytes: Arc::new(Mutex::new(Some(0))), free_bytes: Arc::new(Mutex::new(Some(0))) }; *mpc.as_ref().unwrap().borrow_mut() = Some(new_val); };
-        b = GoPtr::local({ let __ptr_value = b.with_mut(|__ptr_value| __ptr_value.allnext.clone()); __ptr_value }.clone());
+        b = GoPtr::local({ let __ptr_value = b.borrow(); let __field_value = __ptr_value.as_ref().unwrap().allnext.clone(); __field_value });
     }
 }
 

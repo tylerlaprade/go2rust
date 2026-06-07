@@ -724,7 +724,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         { let __rhs = N_CHILDREN_LOG2 as u64; hashShift = hashShift + __rhs; };
 
                 // Delete the current node in the parent.
-        let mut parent: GoPtr<indirect<K, V>> = { let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.parent.clone()); __ptr_value }.clone();
+        let mut parent: GoPtr<indirect<K, V>> = { let __ptr_value = i.borrow(); let __field_value = __ptr_value.as_ref().unwrap().parent.clone(); __field_value };
         (*{ let __ptr_value = parent.with_mut(|__ptr_value| __ptr_value.mu.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).lock();
         (*{ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.dead.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).store(Arc::new(StdMutex::new(Some(true))));
         { let __seq = { let __seq_holder = { let __ptr_value = parent.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ({ let __tmp_x = hash; let __tmp_y = hashShift; __tmp_x >> __tmp_y }); let __tmp_y = N_CHILDREN_MASK as usize; __tmp_x & __tmp_y }) as usize].clone() }.store(sync_atomic::GoPtr::nil());
@@ -789,7 +789,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         { let __rhs = N_CHILDREN_LOG2 as u64; hashShift = hashShift + __rhs; };
 
                 // Delete the current node in the parent.
-        let mut parent: GoPtr<indirect<K, V>> = { let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.parent.clone()); __ptr_value }.clone();
+        let mut parent: GoPtr<indirect<K, V>> = { let __ptr_value = i.borrow(); let __field_value = __ptr_value.as_ref().unwrap().parent.clone(); __field_value };
         (*{ let __ptr_value = parent.with_mut(|__ptr_value| __ptr_value.mu.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).lock();
         (*{ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.dead.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).store(Arc::new(StdMutex::new(Some(true))));
         { let __seq = { let __seq_holder = { let __ptr_value = parent.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ({ let __tmp_x = hash; let __tmp_y = hashShift; __tmp_x >> __tmp_y }); let __tmp_y = N_CHILDREN_MASK as usize; __tmp_x & __tmp_y }) as usize].clone() }.store(sync_atomic::GoPtr::nil());

@@ -294,7 +294,7 @@ impl rtype {
         if tt.is_nil() {
         std::panic::panic_any(Box::new("reflect: Key of non-map type".to_string()) as Box<dyn Any + Send + Sync>);
     }
-        to_type(GoPtr::local({ let __ptr_value = tt.with_mut(|__ptr_value| __ptr_value.key.clone()); __ptr_value }.clone())).clone()
+        to_type(GoPtr::local({ let __ptr_value = tt.borrow(); let __field_value = __ptr_value.as_ref().unwrap().key.clone(); __field_value })).clone()
     }
 
     pub fn len(&self) -> i32 {

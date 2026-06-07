@@ -237,7 +237,7 @@ impl GoJsonDecode for fixalloc {
 #[derive(Clone)]
 pub struct mlink {
     pub __blank_0_0: Arc<Mutex<Option<internal_runtime_sys::nih::NotInHeap>>>,
-    pub next: Arc<Mutex<Option<mlink>>>,
+    pub next: GoPtr<mlink>,
 }
 
 impl mlink {
@@ -249,13 +249,13 @@ impl mlink {
 
 impl Default for mlink {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), next: Arc::new(Mutex::new(None)) }
+        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), next: GoPtr::nil() }
     }
 }
 
 impl std::fmt::Display for mlink {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), { let __guard = self.next.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        write!(f, "{{{} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), { if self.next.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
     }
 }
 
@@ -538,7 +538,7 @@ impl fixalloc {
     }
         if { let __ptr_field = self.list.clone(); !__ptr_field.is_nil() } {
         let mut v = Arc::new(Mutex::new(Some(self.list.addr())));
-        { let new_val = GoPtr::local({ let __ptr_value = self.list.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.clone()); self.list = new_val; };
+        { let new_val = { let __ptr_value = self.list.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.clone(); self.list = new_val; };
         { let __target = self.inuse.clone(); let __rhs = { let __v = self.size.clone(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         if (*self.zero.clone().lock().unwrap().as_ref().unwrap()) {
         memclr_no_heap_pointers(Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __selector_holder = self.size.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));

@@ -200,7 +200,7 @@ impl rtype {
 
 impl std::fmt::Display for rtype {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", { let __guard = self.r#type.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        write!(f, "{{{}}}", { if self.r#type.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
     }
 }
 
@@ -1037,7 +1037,7 @@ impl GoJsonDecode for AnonymousStruct26 {
 #[derive(Clone)]
 pub struct AnonymousStruct27 {
     pub len: Arc<Mutex<Option<i32>>>,
-    pub buf: Arc<Mutex<Option<[Arc<Mutex<Option<mspan>>>; 128]>>>,
+    pub buf: Arc<Mutex<Option<[GoPtr<crate::mheap::mspan>; 128]>>>,
 }
 impl AnonymousStruct27 {
     pub fn __go_value_clone(&self) -> Self {
@@ -2118,7 +2118,7 @@ pub fn build_g_c_mask(mut t: GoPtr<internal_abi::r#type::Type>, mut dst: Arc<Mut
             if { let __tmp_x = (*{ let __ptr_value = a.borrow(); __ptr_value.as_ref().unwrap().len.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as usize; __tmp_x == __tmp_y } {
                 // Avoid recursive call for element type that
                 // isn't smaller than the parent type.
-        t = GoPtr::local({ let __ptr_value = a.with_mut(|__ptr_value| __ptr_value.elem.clone()); __ptr_value }.clone());
+        t = GoPtr::local({ let __ptr_value = a.borrow(); let __field_value = __ptr_value.as_ref().unwrap().elem.clone(); __field_value });
         continue 'top;
     }
                         // Avoid recursive call for element type that

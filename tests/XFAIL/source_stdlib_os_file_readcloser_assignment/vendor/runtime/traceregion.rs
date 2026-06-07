@@ -255,7 +255,7 @@ impl GoJsonDecode for traceRegionAllocBlock {
 
 #[derive(Clone)]
 pub struct traceRegionAllocBlockHeader {
-    pub next: Arc<Mutex<Option<traceRegionAllocBlock>>>,
+    pub next: GoPtr<traceRegionAllocBlock>,
     pub off: Arc<Mutex<Option<internal_runtime_atomic::types::Uintptr>>>,
 }
 
@@ -268,13 +268,13 @@ impl traceRegionAllocBlockHeader {
 
 impl Default for traceRegionAllocBlockHeader {
     fn default() -> Self {
-        Self { next: Arc::new(Mutex::new(None)), off: Arc::new(Mutex::new(Some(Default::default()))) }
+        Self { next: GoPtr::nil(), off: Arc::new(Mutex::new(Some(Default::default()))) }
     }
 }
 
 impl std::fmt::Display for traceRegionAllocBlockHeader {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", { let __guard = self.next.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.off.lock().unwrap().as_ref().unwrap()))
+        write!(f, "{{{} {}}}", { if self.next.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.off.lock().unwrap().as_ref().unwrap()))
     }
 }
 
@@ -1057,7 +1057,7 @@ impl GoJsonDecode for AnonymousStruct26 {
 #[derive(Clone)]
 pub struct AnonymousStruct27 {
     pub len: Arc<Mutex<Option<i32>>>,
-    pub buf: Arc<Mutex<Option<[Arc<Mutex<Option<mspan>>>; 128]>>>,
+    pub buf: Arc<Mutex<Option<[GoPtr<crate::mheap::mspan>; 128]>>>,
 }
 impl AnonymousStruct27 {
     pub fn __go_value_clone(&self) -> Self {
@@ -1838,7 +1838,7 @@ impl traceRegionAlloc {
         (*self.dropping.lock().unwrap().as_ref().unwrap()).store(Arc::new(Mutex::new(Some(true))));
         while { let __ptr_field = self.full.clone(); !__ptr_field.is_nil() } {
         let mut block: GoPtr<traceRegionAllocBlock> = self.full.clone();
-        { let new_val = GoPtr::local({ let __ptr_value = block.with_mut(|__ptr_value| { let __field = __ptr_value.trace_region_alloc_block_header.lock().unwrap().as_ref().unwrap().next.clone(); __field }); __ptr_value }.clone()); self.full = new_val; };
+        { let new_val = { let __ptr_value = block.with_mut(|__ptr_value| { let __field = __ptr_value.trace_region_alloc_block_header.lock().unwrap().as_ref().unwrap().next.clone(); __field }); __ptr_value }.clone(); self.full = new_val; };
         sys_free(Arc::new(Mutex::new(Some(block.addr()))), Arc::new(Mutex::new(Some(std::mem::size_of::<traceRegionAllocBlock>()))), (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone());
     }
         {

@@ -331,7 +331,7 @@ pub struct arenaHint {
     pub __blank_0_0: Arc<Mutex<Option<internal_runtime_sys::nih::NotInHeap>>>,
     pub addr: Arc<Mutex<Option<usize>>>,
     pub down: Arc<Mutex<Option<bool>>>,
-    pub next: Arc<Mutex<Option<arenaHint>>>,
+    pub next: GoPtr<arenaHint>,
 }
 
 impl arenaHint {
@@ -343,13 +343,13 @@ impl arenaHint {
 
 impl Default for arenaHint {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), addr: Arc::new(Mutex::new(Some(0))), down: Arc::new(Mutex::new(Some(false))), next: Arc::new(Mutex::new(None)) }
+        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), addr: Arc::new(Mutex::new(Some(0))), down: Arc::new(Mutex::new(Some(false))), next: GoPtr::nil() }
     }
 }
 
 impl std::fmt::Display for arenaHint {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.addr.lock().unwrap().as_ref().unwrap()), (*self.down.lock().unwrap().as_ref().unwrap()), { let __guard = self.next.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        write!(f, "{{{} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.addr.lock().unwrap().as_ref().unwrap()), (*self.down.lock().unwrap().as_ref().unwrap()), { if self.next.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
     }
 }
 
@@ -2406,7 +2406,7 @@ impl GoJsonDecode for gcBitsHeader {
 pub struct gcBitsArena {
     pub __blank_0_0: Arc<Mutex<Option<internal_runtime_sys::nih::NotInHeap>>>,
     pub free: Arc<Mutex<Option<usize>>>,
-    pub next: Arc<Mutex<Option<gcBitsArena>>>,
+    pub next: GoPtr<gcBitsArena>,
     pub bits: Arc<Mutex<Option<[gcBits; 65520]>>>,
 }
 
@@ -2419,13 +2419,13 @@ impl gcBitsArena {
 
 impl Default for gcBitsArena {
     fn default() -> Self {
-        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), free: Arc::new(Mutex::new(Some(0))), next: Arc::new(Mutex::new(None)), bits: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))) }
+        Self { __blank_0_0: Arc::new(Mutex::new(Some(Default::default()))), free: Arc::new(Mutex::new(Some(0))), next: GoPtr::nil(), bits: Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default())))) }
     }
 }
 
 impl std::fmt::Display for gcBitsArena {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.free.lock().unwrap().as_ref().unwrap()), { let __guard = self.next.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, format_slice(&self.bits))
+        write!(f, "{{{} {} {} {}}}", (*self.__blank_0_0.lock().unwrap().as_ref().unwrap()), (*self.free.lock().unwrap().as_ref().unwrap()), { if self.next.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, format_slice(&self.bits))
     }
 }
 
@@ -4355,7 +4355,7 @@ impl mSpanList {
     }
 
     pub fn remove(&mut self, span: GoPtr<mspan>) {
-        if { let __peer = { let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.list.clone()); __ptr_value }.clone(); let __peer_guard = __peer.lock().unwrap(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); !__eq } {
+        if { let __peer = { let __ptr_value = span.borrow(); let __field_value = __ptr_value.as_ref().unwrap().list.clone(); __field_value }; let __peer_guard = __peer.lock().unwrap(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); !__eq } {
         eprint!("{}{}{}{}{}{}{}{}{}{}{}", format!("{}", "runtime: failed mSpanList.remove span.npages=".to_string()), format!("{}", (*{ let __ptr_value = span.borrow(); __ptr_value.as_ref().unwrap().npages.clone() }.lock().unwrap().as_ref().unwrap())), format!("{}", " span=".to_string()), format!("{}", format!("0x{:x}", span.addr())), format!("{}", " prev=".to_string()), format!("{}", format!("&{}", (*{ let __field = { let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.prev.clone()); __ptr_value }.clone(); __field }.lock().unwrap().as_ref().unwrap()))), format!("{}", " span.list=".to_string()), format!("{}", format!("&{}", (*{ let __field = { let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.list.clone()); __ptr_value }.clone(); __field }.lock().unwrap().as_ref().unwrap()))), format!("{}", " list=".to_string()), format!("{}", format!("{:p}", self)), format!("{}", "\n".to_string()));
         throw(Arc::new(Mutex::new(Some("mSpanList.remove".to_string()))));
     }
@@ -4428,7 +4428,7 @@ impl mSpanList {
         let mut s: GoPtr<mspan> = (*other.lock().unwrap().as_ref().unwrap()).first.clone();
     while !s.is_nil() {
         { let new_val = Arc::new(Mutex::new(Some(self.clone()))); s.with_mut(|__ptr_value| { __ptr_value.list = new_val; }); };
-        s = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.clone();
+        s = { let __ptr_value = s.borrow(); let __field_value = __ptr_value.as_ref().unwrap().next.clone(); __field_value };
     }
                 // Concatenate the lists.
         if self.is_empty() {
@@ -4859,7 +4859,7 @@ pub fn free_special(s: Arc<Mutex<Option<special>>>, p: Arc<Mutex<Option<usize>>>
     { let _switch_val = { let __v = (*s.lock().unwrap().as_ref().unwrap()).kind.clone(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
     if _switch_val == (__KIND_SPECIAL_FINALIZER as u8) {
             let mut sf: GoPtr<specialfinalizer> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&s) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
-            queuefinalizer(Arc::new(Mutex::new(Some({ let __arg_holder = p.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), { let __field = { let __ptr_value = sf.with_mut(|__ptr_value| __ptr_value.r#fn.clone()); __ptr_value }.clone(); __field }, Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = sf.with_mut(|__ptr_value| __ptr_value.nret.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), { let __field = { let __ptr_value = sf.with_mut(|__ptr_value| __ptr_value.fint.clone()); __ptr_value }.clone(); __field }, { let __ptr_value = sf.with_mut(|__ptr_value| __ptr_value.ot.clone()); __ptr_value }.clone());
+            queuefinalizer(Arc::new(Mutex::new(Some({ let __arg_holder = p.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), { let __field = { let __ptr_value = sf.with_mut(|__ptr_value| __ptr_value.r#fn.clone()); __ptr_value }.clone(); __field }, Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = sf.with_mut(|__ptr_value| __ptr_value.nret.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), { let __field = { let __ptr_value = sf.with_mut(|__ptr_value| __ptr_value.fint.clone()); __ptr_value }.clone(); __field }, { let __ptr_value = sf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().ot.clone(); __field_value });
             lock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).speciallock.clone()));
             (*(*mheap_.lock().unwrap().as_ref().unwrap()).specialfinalizeralloc.lock().unwrap().as_mut().unwrap()).free(Arc::new(Mutex::new(Some(sf.addr()))));
             unlock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).speciallock.clone()));
@@ -4871,7 +4871,7 @@ pub fn free_special(s: Arc<Mutex<Option<special>>>, p: Arc<Mutex<Option<usize>>>
             unlock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).speciallock.clone()));
         } else if _switch_val == (__KIND_SPECIAL_PROFILE as u8) {
             let mut sp: GoPtr<specialprofile> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&s) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
-            m_prof__free({ let __ptr_value = sp.with_mut(|__ptr_value| __ptr_value.b.clone()); __ptr_value }.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            m_prof__free({ let __ptr_value = sp.borrow(); let __field_value = __ptr_value.as_ref().unwrap().b.clone(); __field_value }, Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
             lock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).speciallock.clone()));
             (*(*mheap_.lock().unwrap().as_ref().unwrap()).specialprofilealloc.lock().unwrap().as_mut().unwrap()).free(Arc::new(Mutex::new(Some(sp.addr()))));
             unlock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).speciallock.clone()));
@@ -4954,7 +4954,7 @@ pub fn new_mark_bits(nelems: Arc<Mutex<Option<usize>>>) -> Option<GoArrayElemPtr
     }
 
         // Add the fresh arena to the "next" list.
-    { let new_val = (*gcBitsArenas.lock().unwrap().as_ref().unwrap()).next.clone(); fresh.with_mut(|__ptr_value| { __ptr_value.next = new_val; }); };
+    { let new_val = GoPtr::local((*gcBitsArenas.lock().unwrap().as_ref().unwrap()).next.clone()); fresh.with_mut(|__ptr_value| { __ptr_value.next = new_val; }); };
     internal_runtime_atomic::storep_no_w_b(Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some((*gcBitsArenas.lock().unwrap().as_ref().unwrap()).next.clone())))) as usize))), Arc::new(Mutex::new(Some(fresh.addr()))));
 
     unlock(GoPtr::local((*gcBitsArenas.lock().unwrap().as_ref().unwrap()).lock.clone()));
@@ -4992,12 +4992,12 @@ pub fn next_mark_bit_arena_epoch() {
         { let new_val = GoPtr::local((*gcBitsArenas.lock().unwrap().as_ref().unwrap()).previous.clone()); (*gcBitsArenas.lock().unwrap().as_mut().unwrap()).free = new_val; };
     } else {
                 // Find end of previous arenas.
-        let mut last = (*gcBitsArenas.lock().unwrap().as_ref().unwrap()).previous.clone();
-        { let new_val = (*gcBitsArenas.lock().unwrap().as_ref().unwrap()).previous.clone(); last = new_val; };
-    while { let __nil_target = (*last.lock().unwrap().as_ref().unwrap()).next.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
-        { let new_val = (*last.lock().unwrap().as_ref().unwrap()).next.clone(); last = new_val; };
+        let mut last: GoPtr<gcBitsArena> = GoPtr::local((*gcBitsArenas.lock().unwrap().as_ref().unwrap()).previous.clone());
+        last = GoPtr::local((*gcBitsArenas.lock().unwrap().as_ref().unwrap()).previous.clone());
+    while { let __ptr_field = { let __ptr_value = last.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.clone(); !__ptr_field.is_nil() } {
+        last = { let __ptr_value = last.borrow(); let __field_value = __ptr_value.as_ref().unwrap().next.clone(); __field_value };
     }
-        { let new_val = (*gcBitsArenas.lock().unwrap().as_ref().unwrap()).free.clone(); (*last.lock().unwrap().as_mut().unwrap()).next = new_val; };
+        { let new_val = (*gcBitsArenas.lock().unwrap().as_ref().unwrap()).free.clone(); last.with_mut(|__ptr_value| { __ptr_value.next = new_val; }); };
         { let new_val = GoPtr::local((*gcBitsArenas.lock().unwrap().as_ref().unwrap()).previous.clone()); (*gcBitsArenas.lock().unwrap().as_mut().unwrap()).free = new_val; };
     }
     }
@@ -5021,10 +5021,10 @@ pub fn new_arena_may_unlock() -> GoPtr<gcBitsArena> {
         lock(GoPtr::local((*gcBitsArenas.lock().unwrap().as_ref().unwrap()).lock.clone()));
     } else {
         result = (*gcBitsArenas.lock().unwrap().as_ref().unwrap()).free.clone();
-        { let new_val = GoPtr::local({ let __ptr_value = (*gcBitsArenas.lock().unwrap().as_ref().unwrap()).free.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.clone()); (*gcBitsArenas.lock().unwrap().as_mut().unwrap()).free = new_val; };
+        { let new_val = { let __ptr_value = (*gcBitsArenas.lock().unwrap().as_ref().unwrap()).free.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.clone(); (*gcBitsArenas.lock().unwrap().as_mut().unwrap()).free = new_val; };
         memclr_no_heap_pointers(Arc::new(Mutex::new(Some(result.addr()))), Arc::new(Mutex::new(Some(GC_BITS_CHUNK_BYTES as usize))));
     }
-    *{ let __ptr_value = result.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.lock().unwrap() = None;
+    { let new_val = GoPtr::nil(); result.with_mut(|__ptr_value| { __ptr_value.next = new_val; }); };
 
         // If result.bits is not 8 byte aligned adjust index so
         // that &result.bits[result.free] is 8 byte aligned.

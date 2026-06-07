@@ -681,7 +681,7 @@ impl sweepLocked {
 
 impl std::fmt::Display for sweepLocked {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", { let __guard = self.mspan.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        write!(f, "{{{}}}", { if self.mspan.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
     }
 }
 
@@ -1788,7 +1788,7 @@ impl sweepLocked {
                 // The arena is ready to be recycled. Remove it from the quarantine list
                 // and place it on the ready list. Don't add it back to any sweep lists.
         let s_closure_clone = s.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
-        if { let __left = { let __ptr_value = s_closure_clone.with_mut(|__ptr_value| __ptr_value.list.clone()); __ptr_value }.clone(); let __right = (*(*mheap_.lock().unwrap().as_ref().unwrap()).user_arena.lock().unwrap().as_ref().unwrap()).quarantine_list.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
+        if { let __left = { let __ptr_value = s_closure_clone.borrow(); let __field_value = __ptr_value.as_ref().unwrap().list.clone(); __field_value }; let __right = (*(*mheap_.lock().unwrap().as_ref().unwrap()).user_arena.lock().unwrap().as_ref().unwrap()).quarantine_list.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
         throw(Arc::new(Mutex::new(Some("user arena span is on the wrong list".to_string()))));
     }
         lock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).lock.clone()));

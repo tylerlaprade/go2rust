@@ -865,10 +865,10 @@ impl gcWork {
         if wbuf.is_nil() {
         self.init();
         wbuf = self.wbuf1.clone();
-    } else if { let __tmp_x = ((*{ let __ptr_value = wbuf.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()) as i32); let __tmp_y = 253; __tmp_x == __tmp_y } {
+    } else if { let __tmp_x = ((*{ let __ptr_value = wbuf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()) as i32); let __tmp_y = 253; __tmp_x == __tmp_y } {
         { let __tmp_0 = { let __field = self.wbuf2.clone(); __field }; let __tmp_1 = { let __field = self.wbuf1.clone(); __field }; self.wbuf1 = __tmp_0.clone(); self.wbuf2 = __tmp_1.clone(); };
         wbuf = self.wbuf1.clone();
-        if { let __tmp_x = ((*{ let __ptr_value = wbuf.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()) as i32); let __tmp_y = 253; __tmp_x == __tmp_y } {
+        if { let __tmp_x = ((*{ let __ptr_value = wbuf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()) as i32); let __tmp_y = 253; __tmp_x == __tmp_y } {
         putfull(wbuf.clone());
         { let new_val = true; *self.flushed_work.lock().unwrap() = Some(new_val); };
         wbuf = getempty();
@@ -877,7 +877,7 @@ impl gcWork {
     }
     }
                 // wbuf is empty at this point.
-        (*{ let __ptr_value = wbuf.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap())[((*{ let __ptr_value = wbuf.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap())) as usize] = { let __v = (*obj.lock().unwrap().as_ref().unwrap()).clone(); __v };
+        (*{ let __ptr_value = wbuf.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap())[((*{ let __ptr_value = wbuf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap())) as usize] = { let __v = (*obj.lock().unwrap().as_ref().unwrap()).clone(); __v };
         { let __target = { let __ptr_value = wbuf.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
                 // If we put a buffer on full, let the GC controller know so
                 // it can encourage more workers to run. We delay this until
@@ -894,10 +894,10 @@ impl gcWork {
     ///go:nowritebarrierrec
     pub fn put_fast(&self, obj: Arc<Mutex<Option<usize>>>) -> bool {
         let mut wbuf: GoPtr<workbuf> = self.wbuf1.clone();
-        if wbuf.is_nil() || { let __tmp_x = ((*{ let __ptr_value = wbuf.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()) as i32); let __tmp_y = 253; __tmp_x == __tmp_y } {
+        if wbuf.is_nil() || { let __tmp_x = ((*{ let __ptr_value = wbuf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()) as i32); let __tmp_y = 253; __tmp_x == __tmp_y } {
         return false;
     }
-        (*{ let __ptr_value = wbuf.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap())[((*{ let __ptr_value = wbuf.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap())) as usize] = { let __v = (*obj.lock().unwrap().as_ref().unwrap()).clone(); __v };
+        (*{ let __ptr_value = wbuf.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap())[((*{ let __ptr_value = wbuf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap())) as usize] = { let __v = (*obj.lock().unwrap().as_ref().unwrap()).clone(); __v };
         { let __target = { let __ptr_value = wbuf.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         true
     }
@@ -917,14 +917,14 @@ impl gcWork {
         wbuf = self.wbuf1.clone();
     }
         while { let __tmp_x = ((*obj.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
-        while { let __tmp_x = ((*{ let __ptr_value = wbuf.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()) as i32); let __tmp_y = 253; __tmp_x == __tmp_y } {
+        while { let __tmp_x = ((*{ let __ptr_value = wbuf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()) as i32); let __tmp_y = 253; __tmp_x == __tmp_y } {
         putfull(wbuf.clone());
         { let new_val = true; *self.flushed_work.lock().unwrap() = Some(new_val); };
         { let __tmp_0 = { let __field = self.wbuf2.clone(); __field }; let __tmp_1 = getempty(); self.wbuf1 = __tmp_0.clone(); self.wbuf2 = __tmp_1.clone(); };
         wbuf = self.wbuf1.clone();
         { let new_val = true; *flushed.lock().unwrap() = Some(new_val); };
     }
-        let mut n = { let _dst_start = ((*{ let __ptr_value = wbuf.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap())) as usize; let _dst_len = (*{ let __ptr_value = wbuf.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() - _dst_start; let _src = { let __copy_src_holder = obj.clone(); let __copy_src_guard = __copy_src_holder.lock().unwrap(); __copy_src_guard.as_ref().cloned().unwrap_or_default() }; let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*{ let __ptr_value = wbuf.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+        let mut n = { let _dst_start = ((*{ let __ptr_value = wbuf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap())) as usize; let _dst_len = (*{ let __ptr_value = wbuf.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() - _dst_start; let _src = { let __copy_src_holder = obj.clone(); let __copy_src_guard = __copy_src_holder.lock().unwrap(); __copy_src_guard.as_ref().cloned().unwrap_or_default() }; let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*{ let __ptr_value = wbuf.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
         { let __target = { let __ptr_value = wbuf.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.clone(); let __rhs = (*n.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = obj.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); obj = new_val; };
     }
@@ -947,10 +947,10 @@ impl gcWork {
         wbuf = self.wbuf1.clone();
     }
                 // wbuf is empty at this point.
-        if { let __tmp_x = (*{ let __ptr_value = wbuf.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x == __tmp_y } {
+        if { let __tmp_x = (*{ let __ptr_value = wbuf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x == __tmp_y } {
         { let __tmp_0 = { let __field = self.wbuf2.clone(); __field }; let __tmp_1 = { let __field = self.wbuf1.clone(); __field }; self.wbuf1 = __tmp_0.clone(); self.wbuf2 = __tmp_1.clone(); };
         wbuf = self.wbuf1.clone();
-        if { let __tmp_x = (*{ let __ptr_value = wbuf.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x == __tmp_y } {
+        if { let __tmp_x = (*{ let __ptr_value = wbuf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x == __tmp_y } {
         let mut owbuf: GoPtr<workbuf> = wbuf.clone();
         wbuf = trygetfull();
         if wbuf.is_nil() {
@@ -961,7 +961,7 @@ impl gcWork {
     }
     }
         { let __target = { let __ptr_value = wbuf.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
-        { let __seq = { let __seq_holder = { let __ptr_value = wbuf.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[((*{ let __ptr_value = wbuf.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap())) as usize].clone() }
+        { let __seq = { let __seq_holder = { let __ptr_value = wbuf.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[((*{ let __ptr_value = wbuf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap())) as usize].clone() }
     }
 
     /// tryGetFast dequeues a pointer for the garbage collector to trace
@@ -971,11 +971,11 @@ impl gcWork {
     ///go:nowritebarrierrec
     pub fn try_get_fast(&self) -> usize {
         let mut wbuf: GoPtr<workbuf> = self.wbuf1.clone();
-        if wbuf.is_nil() || { let __tmp_x = (*{ let __ptr_value = wbuf.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x == __tmp_y } {
+        if wbuf.is_nil() || { let __tmp_x = (*{ let __ptr_value = wbuf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x == __tmp_y } {
         return 0;
     }
         { let __target = { let __ptr_value = wbuf.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
-        { let __seq = { let __seq_holder = { let __ptr_value = wbuf.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[((*{ let __ptr_value = wbuf.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap())) as usize].clone() }
+        { let __seq = { let __seq_holder = { let __ptr_value = wbuf.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[((*{ let __ptr_value = wbuf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap())) as usize].clone() }
     }
 
     /// dispose returns any cached pointers to the global queue.
@@ -989,7 +989,7 @@ impl gcWork {
         {
         let mut wbuf: GoPtr<workbuf> = self.wbuf1.clone();;
         if !wbuf.is_nil() {
-            if { let __tmp_x = (*{ let __ptr_value = wbuf.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x == __tmp_y } {
+            if { let __tmp_x = (*{ let __ptr_value = wbuf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x == __tmp_y } {
         putempty(wbuf.clone());
     } else {
         putfull(wbuf.clone());
@@ -997,7 +997,7 @@ impl gcWork {
     };
             { let new_val = GoPtr::nil(); self.wbuf1 = new_val; };;
             wbuf = self.wbuf2.clone();;
-            if { let __tmp_x = (*{ let __ptr_value = wbuf.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x == __tmp_y } {
+            if { let __tmp_x = (*{ let __ptr_value = wbuf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x == __tmp_y } {
         putempty(wbuf.clone());
     } else {
         putfull(wbuf.clone());
@@ -1034,13 +1034,13 @@ impl gcWork {
     }
         {
         let mut wbuf: GoPtr<workbuf> = self.wbuf2.clone();;
-        if { let __tmp_x = (*{ let __ptr_value = wbuf.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x != __tmp_y } {
+        if { let __tmp_x = (*{ let __ptr_value = wbuf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x != __tmp_y } {
             putfull(wbuf.clone());;
             { let new_val = true; *self.flushed_work.lock().unwrap() = Some(new_val); };;
             { let new_val = getempty(); self.wbuf2 = new_val; };;
         } else {
         let mut wbuf: GoPtr<workbuf> = self.wbuf1.clone();;
-        if { let __tmp_x = (*{ let __ptr_value = wbuf.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 4; __tmp_x > __tmp_y } {
+        if { let __tmp_x = (*{ let __ptr_value = wbuf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 4; __tmp_x > __tmp_y } {
             { let new_val = handoff(wbuf.clone()); self.wbuf1 = new_val; };;
             { let new_val = true; *self.flushed_work.lock().unwrap() = Some(new_val); };;
         } else {
@@ -1183,10 +1183,10 @@ pub fn trygetfull() -> GoPtr<workbuf> {
 pub fn handoff(b: GoPtr<workbuf>) -> GoPtr<workbuf> {
         // Make new buffer with half of b's pointers.
     let mut b1: GoPtr<workbuf> = getempty();
-    let mut n = Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __ptr_value = b.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2; __tmp_x / __tmp_y })));
+    let mut n = Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __ptr_value = b.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2; __tmp_x / __tmp_y })));
     { let __target = { let __ptr_value = b.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.clone(); let __rhs = (*n.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
     { let new_val = n.lock().unwrap().as_ref().unwrap().clone(); *{ let __ptr_value = b1.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap() = Some(new_val); };
-    memmove(Arc::new(Mutex::new(Some({ let __seq_holder = { let __ptr_value = b1.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))), Arc::new(Mutex::new(Some({ let __seq_holder = { let __ptr_value = b.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[((*{ let __ptr_value = b.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap())) as usize] as *const _ as usize }))), Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<usize>()))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x * __tmp_y }))));
+    memmove(Arc::new(Mutex::new(Some({ let __seq_holder = { let __ptr_value = b1.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))), Arc::new(Mutex::new(Some({ let __seq_holder = { let __ptr_value = b.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[((*{ let __ptr_value = b.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap())) as usize] as *const _ as usize }))), Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<usize>()))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x * __tmp_y }))));
 
         // Put b on full list - let first half of b get stolen.
     putfull(b.clone());

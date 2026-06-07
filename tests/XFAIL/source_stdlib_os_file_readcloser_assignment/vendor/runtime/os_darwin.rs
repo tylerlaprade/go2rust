@@ -1491,7 +1491,7 @@ pub fn semawakeup(mp: GoPtr<crate::runtime2::m>) {
     }
     pthread_mutex_lock({ let __ptr_value = mp.with_mut(|__ptr_value| { let __field = __ptr_value.m_o_s.lock().unwrap().as_ref().unwrap().mutex.clone(); __field }); __ptr_value }.clone());
     { let __target = { let __ptr_value = mp.with_mut(|__ptr_value| { let __field = __ptr_value.m_o_s.lock().unwrap().as_ref().unwrap().count.clone(); __field }); __ptr_value }.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-    if { let __tmp_x = (*{ let __ptr_value = mp.with_mut(|__ptr_value| { let __field = __ptr_value.m_o_s.lock().unwrap().as_ref().unwrap().count.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x > __tmp_y } {
+    if { let __tmp_x = (*{ let __ptr_value = mp.borrow(); let __field_value = __ptr_value.as_ref().unwrap().m_o_s.lock().unwrap().as_ref().unwrap().count.clone(); __field_value }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x > __tmp_y } {
         pthread_cond_signal({ let __ptr_value = mp.with_mut(|__ptr_value| { let __field = __ptr_value.m_o_s.lock().unwrap().as_ref().unwrap().cond.clone(); __field }); __ptr_value }.clone());
     }
     pthread_mutex_unlock({ let __ptr_value = mp.with_mut(|__ptr_value| { let __field = __ptr_value.m_o_s.lock().unwrap().as_ref().unwrap().mutex.clone(); __field }); __ptr_value }.clone());

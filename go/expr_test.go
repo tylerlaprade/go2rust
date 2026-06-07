@@ -4702,6 +4702,29 @@ func addr(values *[4]uint64, i int) uintptr {
 	}
 }
 
+func TestUnsafePointerAddressOfGoPtrArrayElementBorrowsPointerArray(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+func raw(addr uintptr) *[4]uint64 {
+	return (*[4]uint64)(unsafe.Pointer(addr))
+}
+
+func addr(base uintptr, i int) uintptr {
+	values := raw(base)
+	return uintptr(unsafe.Pointer(&values[i]))
+}
+`)
+
+	if strings.Contains(rust, "values.lock()") || strings.Contains(rust, "values.borrow().as_ref().unwrap()[") {
+		t.Fatalf("unsafe.Pointer(&goPtrArray[index]) should not treat GoPtr as a wrapped pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __seq = values.borrow(); &__seq.as_ref().unwrap()[") {
+		t.Fatalf("unsafe.Pointer(&goPtrArray[index]) should borrow through the GoPtr array payload:\n%s", rust)
+	}
+}
+
 func TestUnsafePointerAddressOfNestedSequenceElementBorrowsOuterSequence(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

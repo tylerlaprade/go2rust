@@ -181,7 +181,7 @@ pub(crate) const USER_ARENA_CHUNK_MAX_ALLOC_BYTES: usize = USER_ARENA_CHUNK_BYTE
 
 #[derive(Clone)]
 pub struct liveUserArenaChunk {
-    pub mspan: Arc<Mutex<Option<mspan>>>,
+    pub mspan: GoPtr<crate::mheap::mspan>,
     pub x: Arc<Mutex<Option<usize>>>,
 }
 
@@ -194,13 +194,13 @@ impl liveUserArenaChunk {
 
 impl Default for liveUserArenaChunk {
     fn default() -> Self {
-        Self { mspan: Arc::new(Mutex::new(None)), x: Arc::new(Mutex::new(Some(0))) }
+        Self { mspan: GoPtr::nil(), x: Arc::new(Mutex::new(Some(0))) }
     }
 }
 
 impl std::fmt::Display for liveUserArenaChunk {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", { let __guard = self.mspan.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.x.lock().unwrap().as_ref().unwrap()))
+        write!(f, "{{{} {}}}", { if self.mspan.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.x.lock().unwrap().as_ref().unwrap()))
     }
 }
 
@@ -696,281 +696,211 @@ impl liveUserArenaChunk {
     pub fn alloc_bits_for_index(&self, allocBitIndex: Arc<Mutex<Option<usize>>>) -> Arc<Mutex<Option<crate::mbitmap::markBits>>> {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.alloc_bits_for_index(allocBitIndex)
+        embedded.with_mut(|embedded_ref| { embedded_ref.alloc_bits_for_index(allocBitIndex) })
     }
 
     pub fn base(&self) -> usize {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.base()
+        embedded.with_mut(|embedded_ref| { embedded_ref.base() })
     }
 
     pub fn count_alloc(&self) -> i32 {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.count_alloc()
+        embedded.with_mut(|embedded_ref| { embedded_ref.count_alloc() })
     }
 
     pub fn dec_pin_counter(&self, offset: Arc<Mutex<Option<usize>>>) -> bool {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.dec_pin_counter(offset)
+        embedded.with_mut(|embedded_ref| { embedded_ref.dec_pin_counter(offset) })
     }
 
     pub fn divide_by_elem_size(&self, n: Arc<Mutex<Option<usize>>>) -> usize {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.divide_by_elem_size(n)
+        embedded.with_mut(|embedded_ref| { embedded_ref.divide_by_elem_size(n) })
     }
 
     pub fn ensure_swept(&mut self) {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let mut guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_mut().unwrap();
-        embedded_ref.ensure_swept()
+        embedded.with_mut(|embedded_ref| { embedded_ref.ensure_swept() })
     }
 
     pub fn get_pinner_bits(&self) -> GoPtr<crate::pinner::pinnerBits> {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.get_pinner_bits()
+        embedded.with_mut(|embedded_ref| { embedded_ref.get_pinner_bits() })
     }
 
     pub fn heap_bits(&self) -> Arc<Mutex<Option<Vec<usize>>>> {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.heap_bits()
+        embedded.with_mut(|embedded_ref| { embedded_ref.heap_bits() })
     }
 
     pub fn heap_bits_small_for_addr(&self, addr: Arc<Mutex<Option<usize>>>) -> usize {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.heap_bits_small_for_addr(addr)
+        embedded.with_mut(|embedded_ref| { embedded_ref.heap_bits_small_for_addr(addr) })
     }
 
     pub fn in_list(&self) -> bool {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.in_list()
+        embedded.with_mut(|embedded_ref| { embedded_ref.in_list() })
     }
 
     pub fn inc_pin_counter(&self, offset: Arc<Mutex<Option<usize>>>) {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.inc_pin_counter(offset)
+        embedded.with_mut(|embedded_ref| { embedded_ref.inc_pin_counter(offset) })
     }
 
     pub fn init(&mut self, base: Arc<Mutex<Option<usize>>>, npages: Arc<Mutex<Option<usize>>>) {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let mut guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_mut().unwrap();
-        embedded_ref.init(base, npages)
+        embedded.with_mut(|embedded_ref| { embedded_ref.init(base, npages) })
     }
 
     pub fn init_heap_bits(&self) {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.init_heap_bits()
+        embedded.with_mut(|embedded_ref| { embedded_ref.init_heap_bits() })
     }
 
     pub fn is_free(&self, index: Arc<Mutex<Option<usize>>>) -> bool {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.is_free(index)
+        embedded.with_mut(|embedded_ref| { embedded_ref.is_free(index) })
     }
 
     pub fn is_unused_user_arena_chunk(&self) -> bool {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.is_unused_user_arena_chunk()
+        embedded.with_mut(|embedded_ref| { embedded_ref.is_unused_user_arena_chunk() })
     }
 
     pub fn layout(&self) -> (usize, usize, usize) {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.layout()
+        embedded.with_mut(|embedded_ref| { embedded_ref.layout() })
     }
 
     pub fn mark_bits_for_base(&self) -> Arc<Mutex<Option<crate::mbitmap::markBits>>> {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.mark_bits_for_base()
+        embedded.with_mut(|embedded_ref| { embedded_ref.mark_bits_for_base() })
     }
 
     pub fn mark_bits_for_index(&self, objIndex: Arc<Mutex<Option<usize>>>) -> Arc<Mutex<Option<crate::mbitmap::markBits>>> {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.mark_bits_for_index(objIndex)
+        embedded.with_mut(|embedded_ref| { embedded_ref.mark_bits_for_index(objIndex) })
     }
 
     pub fn new_pinner_bits(&self) -> Arc<Mutex<Option<crate::pinner::pinnerBits>>> {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.new_pinner_bits()
+        embedded.with_mut(|embedded_ref| { embedded_ref.new_pinner_bits() })
     }
 
     pub fn next_free_index(&mut self) -> u16 {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let mut guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_mut().unwrap();
-        embedded_ref.next_free_index()
+        embedded.with_mut(|embedded_ref| { embedded_ref.next_free_index() })
     }
 
     pub fn obj_base(&self, addr: Arc<Mutex<Option<usize>>>) -> usize {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.obj_base(addr)
+        embedded.with_mut(|embedded_ref| { embedded_ref.obj_base(addr) })
     }
 
     pub fn obj_index(&self, p: Arc<Mutex<Option<usize>>>) -> usize {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.obj_index(p)
+        embedded.with_mut(|embedded_ref| { embedded_ref.obj_index(p) })
     }
 
     pub fn pinner_bit_size(&self) -> usize {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.pinner_bit_size()
+        embedded.with_mut(|embedded_ref| { embedded_ref.pinner_bit_size() })
     }
 
     pub fn refill_alloc_cache(&mut self, whichByte: Arc<Mutex<Option<u16>>>) {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let mut guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_mut().unwrap();
-        embedded_ref.refill_alloc_cache(whichByte)
+        embedded.with_mut(|embedded_ref| { embedded_ref.refill_alloc_cache(whichByte) })
     }
 
     pub fn refresh_pinner_bits(&self) {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.refresh_pinner_bits()
+        embedded.with_mut(|embedded_ref| { embedded_ref.refresh_pinner_bits() })
     }
 
     pub fn report_zombies(&self) {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.report_zombies()
+        embedded.with_mut(|embedded_ref| { embedded_ref.report_zombies() })
     }
 
     pub fn set_pinner_bits(&self, p: GoPtr<crate::pinner::pinnerBits>) {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.set_pinner_bits(p)
+        embedded.with_mut(|embedded_ref| { embedded_ref.set_pinner_bits(p) })
     }
 
     pub fn set_user_arena_chunk_to_fault(&mut self) {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let mut guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_mut().unwrap();
-        embedded_ref.set_user_arena_chunk_to_fault()
+        embedded.with_mut(|embedded_ref| { embedded_ref.set_user_arena_chunk_to_fault() })
     }
 
     pub fn special_find_splice_point(&self, offset: Arc<Mutex<Option<usize>>>, kind: Arc<Mutex<Option<u8>>>) -> (Arc<Mutex<Option<Arc<Mutex<Option<crate::mheap::special>>>>>>, bool) {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.special_find_splice_point(offset, kind)
+        embedded.with_mut(|embedded_ref| { embedded_ref.special_find_splice_point(offset, kind) })
     }
 
     pub fn type_pointers_of(&self, addr: Arc<Mutex<Option<usize>>>, size: Arc<Mutex<Option<usize>>>) -> Arc<Mutex<Option<crate::mbitmap::typePointers>>> {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.type_pointers_of(addr, size)
+        embedded.with_mut(|embedded_ref| { embedded_ref.type_pointers_of(addr, size) })
     }
 
     pub fn type_pointers_of_type(&self, typ: Arc<Mutex<Option<internal_abi::r#type::Type>>>, addr: Arc<Mutex<Option<usize>>>) -> Arc<Mutex<Option<crate::mbitmap::typePointers>>> {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.type_pointers_of_type(typ, addr)
+        embedded.with_mut(|embedded_ref| { embedded_ref.type_pointers_of_type(typ, addr) })
     }
 
     pub fn type_pointers_of_unchecked(&self, addr: Arc<Mutex<Option<usize>>>) -> Arc<Mutex<Option<crate::mbitmap::typePointers>>> {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.type_pointers_of_unchecked(addr)
+        embedded.with_mut(|embedded_ref| { embedded_ref.type_pointers_of_unchecked(addr) })
     }
 
     pub fn user_arena_next_free(&self, typ: GoPtr<internal_abi::r#type::Type>, cap: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<usize>>> {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.user_arena_next_free(typ, cap)
+        embedded.with_mut(|embedded_ref| { embedded_ref.user_arena_next_free(typ, cap) })
     }
 
     pub fn write_heap_bits_small(&self, x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mutex<Option<usize>>>, typ: GoPtr<internal_abi::r#type::Type>) -> usize {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.write_heap_bits_small(x, dataSize, typ)
+        embedded.with_mut(|embedded_ref| { embedded_ref.write_heap_bits_small(x, dataSize, typ) })
     }
 
     pub fn write_user_arena_heap_bits(&self, addr: Arc<Mutex<Option<usize>>>) -> Arc<Mutex<Option<writeUserArenaHeapBits>>> {
         // Forward to embedded type's method
         let embedded = self.mspan.clone();
-        let guard = embedded.lock().unwrap();
-        let embedded_ref = guard.as_ref().unwrap();
-        embedded_ref.write_user_arena_heap_bits(addr)
+        embedded.with_mut(|embedded_ref| { embedded_ref.write_user_arena_heap_bits(addr) })
     }
 }
 

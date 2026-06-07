@@ -1020,7 +1020,7 @@ impl GoJsonDecode for AnonymousStruct26 {
 #[derive(Clone)]
 pub struct AnonymousStruct27 {
     pub len: Arc<Mutex<Option<i32>>>,
-    pub buf: Arc<Mutex<Option<[Arc<Mutex<Option<mspan>>>; 128]>>>,
+    pub buf: Arc<Mutex<Option<[GoPtr<crate::mheap::mspan>; 128]>>>,
 }
 impl AnonymousStruct27 {
     pub fn __go_value_clone(&self) -> Self {
@@ -1789,7 +1789,7 @@ pub fn trace_stack(skip: Arc<Mutex<Option<i32>>>, mut gp: Arc<Mutex<Option<g>>>,
     let mut mp: GoPtr<crate::runtime2::m> = GoPtr::nil();
     if { let __nil_result = (*gp.lock().unwrap()).is_none(); __nil_result } {
         mp = GoPtr::local((*getg().lock().unwrap().as_ref().unwrap()).m.clone());
-        { let new_val = { let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.curg.clone()); __ptr_value }.clone(); gp = new_val; };
+        { let new_val = { let __ptr_value = mp.borrow(); let __field_value = __ptr_value.as_ref().unwrap().curg.clone(); __field_value }; gp = new_val; };
     }
 
         // Double-check that we own the stack we're about to trace.
@@ -1809,7 +1809,7 @@ pub fn trace_stack(skip: Arc<Mutex<Option<i32>>>, mut gp: Arc<Mutex<Option<g>>>,
         if !_matched && (_switch_val == crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8)))) || _switch_val == crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_SYSCALL as u8))))) || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            if { let __left = getg(); let __right = gp.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } || { let __left_addr = { let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.curg.clone()); __ptr_value }.addr(); let __right_addr = { let __ptr = GoPtr::local(gp.clone()); __ptr.addr() }; let __eq = __left_addr == __right_addr; __eq } {
+            if { let __left = getg(); let __right = gp.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } || { let __left_addr = { let __ptr_value = mp.borrow(); let __field_value = __ptr_value.as_ref().unwrap().curg.clone(); __field_value }.addr(); let __right_addr = { let __ptr = GoPtr::local(gp.clone()); __ptr.addr() }; let __eq = __left_addr == __right_addr; __eq } {
         break '__go_switch_1
     }
             _fallthrough = true;

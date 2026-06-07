@@ -916,7 +916,7 @@ pub fn is_go_pointer_without_span(p: Arc<Mutex<Option<usize>>>) -> bool {
 /// to avoid read-write races.
 pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finalizer: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) {
     let mut e: GoPtr<crate::runtime2::eface> = eface_of(obj.clone());
-    let mut etyp: GoPtr<internal_abi::r#type::Type> = { let __ptr_value = e.with_mut(|__ptr_value| __ptr_value._type.clone()); __ptr_value }.clone();
+    let mut etyp: GoPtr<internal_abi::r#type::Type> = { let __ptr_value = e.borrow(); let __field_value = __ptr_value.as_ref().unwrap()._type.clone(); __field_value };
     if etyp.is_nil() {
         throw(Arc::new(Mutex::new(Some("runtime.SetFinalizer: first argument is nil".to_string()))));
     }
@@ -966,7 +966,7 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
         // As an implementation detail we allow to set finalizers for an inner byte
         // of an object if it could come from tiny alloc (see mallocgc for details).
     let mut f: GoPtr<crate::runtime2::eface> = eface_of(finalizer.clone());
-    let mut ftyp: GoPtr<internal_abi::r#type::Type> = { let __ptr_value = f.with_mut(|__ptr_value| __ptr_value._type.clone()); __ptr_value }.clone();
+    let mut ftyp: GoPtr<internal_abi::r#type::Type> = { let __ptr_value = f.borrow(); let __field_value = __ptr_value.as_ref().unwrap()._type.clone(); __field_value };
     if ftyp.is_nil() {
                 // switch to system stack and remove finalizer
         let e_closure_clone = e.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
@@ -992,7 +992,7 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
                         // ok - same type
             break 'okarg;
         } else if { let __tmp_x = { let __tmp_x = { let __selector_holder = (*fint.lock().unwrap().as_ref().unwrap()).kind_.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::KIND_MASK as u8)))); __tmp_x & __tmp_y }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::POINTER as u8)))); __tmp_x == __tmp_y } {
-            if ({ let __nil_result = (*{ let __recv = fint.clone(); let __recv_ptr: *const internal_abi::r#type::Type = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const internal_abi::r#type::Type }; let __result = unsafe { &*__recv_ptr }.uncommon(); __result }.lock().unwrap()).is_none(); __nil_result } || { let __nil_result = (*{ let __result = etyp.with_mut(|__recv_value| __recv_value.uncommon()); __result }.lock().unwrap()).is_none(); __nil_result }) && { let __left = (*{ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&fint) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { Arc::new(Mutex::new(None::<internal_abi::r#type::PtrType>)) } else { go_lookup_embedded_owner::<internal_abi::r#type::PtrType>(*__ptr_guard.as_ref().unwrap(), "internal_abi::r#type::PtrType") } }.lock().unwrap().as_ref().unwrap()).elem.clone(); let __right = { let __ptr_value = ot.with_mut(|__ptr_value| __ptr_value.elem.clone()); __ptr_value }.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+            if ({ let __nil_result = (*{ let __recv = fint.clone(); let __recv_ptr: *const internal_abi::r#type::Type = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const internal_abi::r#type::Type }; let __result = unsafe { &*__recv_ptr }.uncommon(); __result }.lock().unwrap()).is_none(); __nil_result } || { let __nil_result = (*{ let __result = etyp.with_mut(|__recv_value| __recv_value.uncommon()); __result }.lock().unwrap()).is_none(); __nil_result }) && { let __left = (*{ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&fint) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { Arc::new(Mutex::new(None::<internal_abi::r#type::PtrType>)) } else { go_lookup_embedded_owner::<internal_abi::r#type::PtrType>(*__ptr_guard.as_ref().unwrap(), "internal_abi::r#type::PtrType") } }.lock().unwrap().as_ref().unwrap()).elem.clone(); let __right = { let __ptr_value = ot.borrow(); let __field_value = __ptr_value.as_ref().unwrap().elem.clone(); __field_value }; let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
                 // ok - not same type, but both pointers,
                 // one or the other is unnamed, and same element type, so assignable.
         break 'okarg;

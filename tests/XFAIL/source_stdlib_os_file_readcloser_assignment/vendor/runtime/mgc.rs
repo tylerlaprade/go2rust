@@ -2700,7 +2700,7 @@ pub fn gc_mark_termination(stw: Arc<Mutex<Option<worldStop>>>) {
     *(*userArenaState.lock().unwrap().as_ref().unwrap()).fault.lock().unwrap() = None;
     unlock(GoPtr::local((*userArenaState.lock().unwrap().as_ref().unwrap()).lock.clone()));
     { let __range_holder = faultList.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for lc in __range_values.iter() {
-        (*lc.mspan.lock().unwrap().as_mut().unwrap()).set_user_arena_chunk_to_fault();
+        { let __recv_field = lc.mspan.clone(); let __result = __recv_field.with_mut(|__recv_value| __recv_value.set_user_arena_chunk_to_fault()); __result };
     } }
 
         // Enable huge pages on some metadata if we cross a heap threshold.

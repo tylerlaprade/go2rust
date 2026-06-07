@@ -895,7 +895,7 @@ pub fn print_debug_log_impl() {
     let mut l: GoPtr<dloggerImpl> = all.clone();
     while !l.is_nil() {
         { let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        l = GoPtr::local({ let __ptr_value = l.with_mut(|__ptr_value| __ptr_value.all_link.clone()); __ptr_value }.clone());
+        l = GoPtr::local({ let __ptr_value = l.borrow(); let __field_value = __ptr_value.as_ref().unwrap().all_link.clone(); __field_value });
     }
     if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y } {
         printunlock();
@@ -922,7 +922,7 @@ pub fn print_debug_log_impl() {
         { let new_val = true; *(*s.as_ref().unwrap().borrow().as_ref().unwrap()).first.lock().unwrap() = Some(new_val); };
         { let new_val = { let __selector_holder = (*(*{ let __ptr_value = l.with_mut(|__ptr_value| __ptr_value.w.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).r.lock().unwrap().as_ref().unwrap()).begin.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *(*s.as_ref().unwrap().borrow().as_ref().unwrap()).lost.lock().unwrap() = Some(new_val); };
         { let new_val = { let __promoted_recv = (*s.as_ref().unwrap().borrow().as_ref().unwrap()).debug_log_reader.clone(); let mut __promoted_guard = __promoted_recv.lock().unwrap(); let __promoted_ref = __promoted_guard.as_mut().unwrap(); let __result = __promoted_ref.peek(); __result }; *(*s.as_ref().unwrap().borrow().as_ref().unwrap()).next_tick.lock().unwrap() = Some(new_val); };
-        l = GoPtr::local({ let __ptr_value = l.with_mut(|__ptr_value| __ptr_value.all_link.clone()); __ptr_value }.clone());
+        l = GoPtr::local({ let __ptr_value = l.borrow(); let __field_value = __ptr_value.as_ref().unwrap().all_link.clone(); __field_value });
     }
     }
 

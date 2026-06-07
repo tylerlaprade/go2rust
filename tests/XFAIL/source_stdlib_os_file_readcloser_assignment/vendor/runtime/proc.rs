@@ -3709,12 +3709,12 @@ pub fn needm(signal: Arc<Mutex<Option<bool>>>) {
     }
 
         // mp.curg is now a real goroutine.
-    casgstatus({ let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.curg.clone()); __ptr_value }.clone(), Arc::new(Mutex::new(Some(__GDEAD as u32))), Arc::new(Mutex::new(Some(__GSYSCALL as u32))));
+    casgstatus({ let __ptr_value = mp.borrow(); let __field_value = __ptr_value.as_ref().unwrap().curg.clone(); __field_value }, Arc::new(Mutex::new(Some(__GDEAD as u32))), Arc::new(Mutex::new(Some(__GSYSCALL as u32))));
     (*(*sched.lock().unwrap().as_ref().unwrap()).ngsys.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(-1 as i32))));
 
     if !{ let __v = (*signal.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         if (*trace_local.lock().unwrap().as_ref().unwrap()).ok() {
-        (*trace_local.lock().unwrap().as_ref().unwrap()).go_create_syscall({ let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.curg.clone()); __ptr_value }.clone());
+        (*trace_local.lock().unwrap().as_ref().unwrap()).go_create_syscall({ let __ptr_value = mp.borrow(); let __field_value = __ptr_value.as_ref().unwrap().curg.clone(); __field_value });
         trace_release(Arc::new(Mutex::new(Some({ let __arg_holder = trace_local.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
     }
@@ -3997,7 +3997,7 @@ pub fn newm1(mp: GoPtr<crate::runtime2::m>) {
         if { let __nil_result = (*_cgo_thread_start.lock().unwrap()).is_none(); __nil_result } {
         throw(Arc::new(Mutex::new(Some("_cgo_thread_start missing".to_string()))));
     }
-        (*(*ts.lock().unwrap().as_ref().unwrap()).g.lock().unwrap().as_mut().unwrap()).set(GoPtr::local({ let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.g0.clone()); __ptr_value }.clone()));
+        (*(*ts.lock().unwrap().as_ref().unwrap()).g.lock().unwrap().as_mut().unwrap()).set(GoPtr::local({ let __ptr_value = mp.borrow(); let __field_value = __ptr_value.as_ref().unwrap().g0.clone(); __field_value }));
         { let new_val = Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some({ let __seq_holder = { let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.tls.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<u64>(unimplemented!("unsafe.Pointer conversion to u64")) } })).clone(); (*ts.lock().unwrap().as_mut().unwrap()).tls = new_val; };
         { let new_val = Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(mstart.clone()) as Box<dyn Any + Send + Sync>))))))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *(*ts.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap() = __moved_val; };
         if MSANENABLED {
@@ -6782,8 +6782,8 @@ pub fn preemptone(pp: Arc<Mutex<Option<p>>>) -> bool {
     if mp.is_nil() || { let __left_addr = mp.addr(); let __right_addr = { let __ptr = GoPtr::local((*getg().lock().unwrap().as_ref().unwrap()).m.clone()); __ptr.addr() }; let __eq = __left_addr == __right_addr; __eq } {
         return false;
     }
-    let mut gp: GoPtr<crate::runtime2::g> = { let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.curg.clone()); __ptr_value }.clone();
-    if gp.is_nil() || { let __left_addr = gp.addr(); let __right_addr = { let __ptr = GoPtr::local({ let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.g0.clone()); __ptr_value }.clone()); __ptr.addr() }; let __eq = __left_addr == __right_addr; __eq } {
+    let mut gp: GoPtr<crate::runtime2::g> = { let __ptr_value = mp.borrow(); let __field_value = __ptr_value.as_ref().unwrap().curg.clone(); __field_value };
+    if gp.is_nil() || { let __left_addr = gp.addr(); let __right_addr = { let __ptr = GoPtr::local({ let __ptr_value = mp.borrow(); let __field_value = __ptr_value.as_ref().unwrap().g0.clone(); __field_value }); __ptr.addr() }; let __eq = __left_addr == __right_addr; __eq } {
         return false;
     }
 

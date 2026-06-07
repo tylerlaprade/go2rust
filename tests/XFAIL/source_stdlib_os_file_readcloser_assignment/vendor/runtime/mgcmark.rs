@@ -2222,7 +2222,7 @@ pub fn scanstack(gp: Arc<Mutex<Option<g>>>, gcw: Arc<Mutex<Option<gcWork>>>) -> 
         { let new_val = { let __ptr_value = x.with_mut(|__ptr_value| { let __field = __ptr_value.stack_object_buf_hdr.lock().unwrap().as_ref().unwrap().next.clone(); __field }); __ptr_value }.clone(); (*state.lock().unwrap().as_mut().unwrap()).head = new_val; };
         if STACK_TRACE_DEBUG {
         let mut i = Arc::new(Mutex::new(Some(0)));
-    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __ptr_value = x.with_mut(|__ptr_value| { let __field = __ptr_value.stack_object_buf_hdr.lock().unwrap().as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __ptr_value = x.borrow(); let __field_value = __ptr_value.as_ref().unwrap().stack_object_buf_hdr.lock().unwrap().as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
         let mut obj: Option<GoArrayElemPtr<crate::mgcstack::stackObject, 63>> = Some(GoArrayElemPtr::new({ let __ptr_value = x.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.clone(), ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize));
         if { let __nil_target = (*obj.as_ref().unwrap().borrow().as_ref().unwrap()).r.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }; continue

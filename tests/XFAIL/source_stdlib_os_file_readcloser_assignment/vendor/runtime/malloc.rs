@@ -611,7 +611,7 @@ impl crate::mheap::mheap {
         if { let __nil_result = (*v.lock().unwrap()).is_some(); __nil_result } {
         sys_free_o_s(Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
-        { let new_val = GoPtr::local({ let __ptr_value = hint.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.clone()); *hintList.lock().unwrap() = Some(new_val); };
+        { let new_val = { let __ptr_value = hint.borrow(); let __field_value = __ptr_value.as_ref().unwrap().next.clone(); __field_value }; *hintList.lock().unwrap() = Some(new_val); };
         (*self.arena_hint_alloc.lock().unwrap().as_mut().unwrap()).free(Arc::new(Mutex::new(Some(hint.addr()))));
     }
 
@@ -762,7 +762,7 @@ impl crate::mheap::mheap {
                 // new heap arena becomes visible before the heap lock
                 // is released (which shouldn't happen, but there's
                 // little downside to this).
-        internal_runtime_atomic::storep_no_w_b(Arc::new(Mutex::new(Some({ let __seq_holder = l2.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(crate::mheap::arenaIdx::l2(&(*ri.lock().unwrap().as_ref().unwrap()))) as usize] as *const _ as usize }))), Arc::new(Mutex::new(Some(r.addr()))));
+        internal_runtime_atomic::storep_no_w_b(Arc::new(Mutex::new(Some({ let __seq = l2.borrow(); &__seq.as_ref().unwrap()[(crate::mheap::arenaIdx::l2(&(*ri.lock().unwrap().as_ref().unwrap()))) as usize] as *const _ as usize }))), Arc::new(Mutex::new(Some(r.addr()))));
         { let mut guard = ri.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() + 1 as u64); }
     }
 

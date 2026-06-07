@@ -6506,6 +6506,11 @@ func writePointerHandleValueClone(out *strings.Builder, rhs ast.Expr) {
 	if writeSourceMappedPackageGlobalPointerHandleClone(out, rhs) {
 		return
 	}
+	if sel, ok := unwrapParens(rhs).(*ast.SelectorExpr); ok {
+		if writeGoPtrSelectorReadHandle(out, sel) {
+			return
+		}
+	}
 	TranspileExpressionContext(out, rhs, AddressOf)
 	out.WriteString(".clone()")
 }
