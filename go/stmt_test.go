@@ -912,6 +912,29 @@ func (s *Scope) String() string {
 	}
 }
 
+func TestPackageGlobalSelectorReturnedAsStdlibInterfaceConverts(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import (
+	"io"
+	"os"
+)
+
+func output() io.Writer {
+	return os.Stderr
+}
+`)
+
+	if strings.Contains(rust, "return os::Stderr().clone();") {
+		t.Fatalf("package-global selector returned as stdlib interface should not return the concrete handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __arg = os::Stderr()") ||
+		!strings.Contains(rust, "let __converted: Option<io_Writer>") ||
+		!strings.Contains(rust, "(*__v).clone().into()") {
+		t.Fatalf("package-global selector returned as stdlib interface should convert through the target interface:\n%s", rust)
+	}
+}
+
 func TestAddressOfExternalStructLocalPassedToPointerParamWrapsHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

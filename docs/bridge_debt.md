@@ -242,7 +242,7 @@ in the first place.
 
 - Location: `go/external_type_stubs.go:5753`
 - Go symbol: `flag` package
-- Transpiler gap: source `flag` compiles down to dependency-shape gaps: `time.Duration` is still lowered through Rust `std::time::Duration` instead of source Go duration semantics, `os.Stderr()` does not coerce to `io.Writer`, and reflect `Type`/`Value` method lowering is incomplete.
+- Transpiler gap: source `flag` compiles down to dependency-shape gaps: `time.Duration` is still lowered through Rust `std::time::Duration` instead of source Go duration semantics, and reflect `Type`/`Value` method lowering is incomplete.
 - Fixture: `tests/XFAIL/source_stdlib_flag_parsing/`
 - Removal trigger: transpiler can lower `flag` package source.
 - Added: 2026-05-27 (backfill)

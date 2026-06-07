@@ -1308,6 +1308,13 @@ impl time_fileSizeError {
 }
 
 
+impl From<os_File> for io_Writer {
+    fn from(_value: os_File) -> Self {
+        Self::__go_from(_value)
+    }
+}
+
+
 pub mod fmt {
     use super::*;
     pub fn fprint<T0, T1>(_arg0: T0, _arg1: T1) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {

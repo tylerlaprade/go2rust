@@ -3544,7 +3544,7 @@ impl FlagSet {
     /// output was not set or was set to nil.
     pub fn output(&self) -> Arc<Mutex<Option<io_Writer>>> {
         if { let __nil_target = self.output.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
-        return os::Stderr().clone();
+        return { let __arg = os::Stderr(); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<io_Writer> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) };
     }
         return self.output.clone();
     }
