@@ -13722,8 +13722,34 @@ func pointerMethodValueSignature(expr ast.Expr) (*types.Signature, bool) {
 	return sig, ok
 }
 
+func methodValueReceiverIsGoPtr(expr ast.Expr) bool {
+	switch e := unwrapParens(expr).(type) {
+	case *ast.Ident:
+		return isGoPtrVar(e.Name)
+	case *ast.CallExpr:
+		_, ok := goPtrResultInfoForCall(e, 0)
+		return ok
+	default:
+		return false
+	}
+}
+
+func writeMethodValueClosureArgument(out *strings.Builder, methodFn *types.Func, index int) {
+	if info, ok := goPtrParamResultInfoForFunc(methodFn, index); ok && goPtrResultElemRustType(info) != "" {
+		NeedSliceElemPtr()
+		writeGoPtrQualifiedConstructor(out, goPtrHelperQualifierForFunc(methodFn), "local")
+		out.WriteString("(__arg")
+		out.WriteString(strconv.Itoa(index))
+		out.WriteString(")")
+		return
+	}
+	out.WriteString("__arg")
+	out.WriteString(strconv.Itoa(index))
+}
+
 func writePointerMethodValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig *types.Signature) {
 	boxType := signatureToGoParamBoxDynFn(sig)
+	methodFn := selectedMethodFuncFromTypeInfo(GetTypeInfo(), sel)
 	// A method value bound to the current method's own receiver (`self`) binds a
 	// bare value, not a wrapped Arc/Rc handle; clone it (the clone shares the
 	// receiver's wrapped field handles, like the defer-capture pattern) and call
@@ -13733,6 +13759,9 @@ func writePointerMethodValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig
 	if ident, ok := unwrapParens(sel.X).(*ast.Ident); ok && isCurrentReceiverIdent(ident) {
 		rawReceiver = true
 	}
+	goPtrReceiver := !rawReceiver && methodValueReceiverIsGoPtr(sel.X)
+	goPtrReceiverNeedsMut := goPtrReceiver && methodCallNeedsMutableReceiver(sel)
+	receiverCallSuffix := ""
 	out.WriteString("{ let ")
 	if rawReceiver {
 		out.WriteString("mut ")
@@ -13767,6 +13796,12 @@ func writePointerMethodValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig
 
 	if rawReceiver {
 		out.WriteString(" { __recv.")
+	} else if goPtrReceiverNeedsMut {
+		out.WriteString(" { __recv.with_mut(|__recv_value| __recv_value.")
+		receiverCallSuffix = ")"
+	} else if goPtrReceiver {
+		out.WriteString(" { { let __recv_value = __recv.borrow(); (*__recv_value.as_ref().unwrap()).")
+		receiverCallSuffix = " }"
 	} else {
 		out.WriteString(" { (*__recv")
 		WriteBorrowMethod(out, true)
@@ -13778,9 +13813,11 @@ func writePointerMethodValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig
 		if i > 0 {
 			out.WriteString(", ")
 		}
-		out.WriteString(fmt.Sprintf("__arg%d", i))
+		writeMethodValueClosureArgument(out, methodFn, i)
 	}
-	out.WriteString(") }) as ")
+	out.WriteString(")")
+	out.WriteString(receiverCallSuffix)
+	out.WriteString(" }) as ")
 	out.WriteString(boxType)
 	out.WriteString(" }")
 }

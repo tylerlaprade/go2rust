@@ -1902,7 +1902,7 @@ pub fn itab_add(m: GoPtr<internal_abi::iface::ITab>) {
                 // Note: while copying, other threads may look for an itab and
                 // fail to find it. That's ok, they will then try to get the itab lock
                 // and as a consequence wait until this copying is complete.
-        iterate_itabs(Arc::new(Mutex::new(Some({ let __recv = t2.clone(); Box::new(move |__arg0: Arc<Mutex<Option<internal_abi::iface::ITab>>>| { (*__recv.lock().unwrap().as_mut().unwrap()).add(__arg0) }) as Box<dyn FnMut(Arc<Mutex<Option<internal_abi::iface::ITab>>>) -> () + Send + Sync> }))));
+        iterate_itabs(Arc::new(Mutex::new(Some({ let __recv = t2.clone(); Box::new(move |__arg0: Arc<Mutex<Option<internal_abi::iface::ITab>>>| { __recv.with_mut(|__recv_value| __recv_value.add(GoPtr::local(__arg0))) }) as Box<dyn FnMut(Arc<Mutex<Option<internal_abi::iface::ITab>>>) -> () + Send + Sync> }))));
         if { let __tmp_x = (*{ let __ptr_value = t2.borrow(); __ptr_value.as_ref().unwrap().count.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).count.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x != __tmp_y } {
         throw(Arc::new(Mutex::new(Some("mismatched count during itab table copy".to_string()))));
     }

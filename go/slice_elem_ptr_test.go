@@ -4413,6 +4413,56 @@ func forceConcurrent(ch chan bool) {
 	}
 }
 
+func TestGoPtrPointerReceiverMethodValueUsesGoPtrReceiver(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type entry struct{}
+
+type table struct {
+	root *entry
+	count int
+}
+
+func rawTable(addr uintptr) *table {
+	return (*table)(unsafe.Pointer(addr))
+}
+
+func rawEntry(addr uintptr) *entry {
+	return (*entry)(unsafe.Pointer(addr))
+}
+
+func initTable(t *table, entries []entry) {
+	t.root = &entries[0]
+}
+
+func (t *table) add(e *entry) {
+	if t.root == e {
+		t.count++
+	}
+}
+
+func iterate(fn func(*entry)) {}
+
+func copy(addr uintptr) {
+	t := rawTable(addr)
+	t.add(rawEntry(addr))
+	iterate(t.add)
+}
+`)
+
+	if strings.Contains(rust, "__recv.lock()") || strings.Contains(rust, "__recv.borrow_mut()") {
+		t.Fatalf("method value bound to a GoPtr receiver should not borrow it as a wrapper handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn add(&mut self, e: GoPtr<entry>)") {
+		t.Fatalf("method parameter promoted to GoPtr should be reflected in the generated method signature:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__recv.with_mut(|__recv_value| __recv_value.add(GoPtr::local(__arg0)))") {
+		t.Fatalf("method value bound to a GoPtr receiver should dispatch through GoPtr::with_mut and adapt GoPtr-promoted args:\n%s", rust)
+	}
+}
+
 func TestGoPtrLocalReassignedFromFieldAddressToArrayElementAddress(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
