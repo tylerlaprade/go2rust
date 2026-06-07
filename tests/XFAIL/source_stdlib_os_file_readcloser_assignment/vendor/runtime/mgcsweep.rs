@@ -2204,9 +2204,9 @@ pub fn sweepone() -> usize {
                 // swept this span, but in that case the sweep
                 // generation should always be up-to-date.
         {
-        let (mut s, mut ok) = (*sl.lock().unwrap().as_ref().unwrap()).try_acquire(GoPtr::local(s.clone()));;
+        let (mut s, mut ok) = (*sl.lock().unwrap().as_ref().unwrap()).try_acquire(s.clone());;
         if ok {
-            { let new_val = { let __selector_holder = (*(*s.lock().unwrap().as_mut().unwrap()).mspan.lock().unwrap().as_mut().unwrap()).npages.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *npages.lock().unwrap() = Some(new_val); };;
+            { let new_val = { let __selector_holder = { let __embedded = (*s.lock().unwrap().as_ref().unwrap()).mspan.clone(); let __field = __embedded.with_mut(|__ptr_value| { let __field = __ptr_value.npages.clone(); __field }); __field }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *npages.lock().unwrap() = Some(new_val); };;
             if (*s.lock().unwrap().as_mut().unwrap()).sweep(Arc::new(Mutex::new(Some(false)))) {
         (*(*mheap_.lock().unwrap().as_ref().unwrap()).reclaim_credit.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some({ let __arg_holder = npages.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     } else {

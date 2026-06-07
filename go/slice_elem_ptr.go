@@ -5969,6 +5969,27 @@ func writeGoPtrCurrentReceiverEmbeddedPromotedFieldSelector(out *strings.Builder
 	return true
 }
 
+func writeEmbeddedGoPtrPromotedFieldSelector(out *strings.Builder, baseName string, baseWrapped bool, fieldInfo FieldAccessInfo, sel *ast.SelectorExpr, ctx ExprContext) bool {
+	embeddedFieldName, remainingPath, ok := goPtrEmbeddedPromotedFieldAccess(sel, fieldInfo)
+	if !ok {
+		return false
+	}
+	if ctx == LValue || ctx == AddressOf {
+		writeEmbeddedGoPtrPromotedFieldHandle(out, baseName, baseWrapped, fieldInfo, embeddedFieldName, remainingPath)
+		return true
+	}
+	if typeInfoIsPointerExpr(sel) || selectorExpressionKeepsHandle(sel) {
+		writeEmbeddedGoPtrPromotedFieldHandle(out, baseName, baseWrapped, fieldInfo, embeddedFieldName, remainingPath)
+		return true
+	}
+	out.WriteString("(*")
+	writeEmbeddedGoPtrPromotedFieldHandle(out, baseName, baseWrapped, fieldInfo, embeddedFieldName, remainingPath)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()")
+	writeSelectorRValueClose(out, sel)
+	return true
+}
+
 func goPtrEmbeddedPromotedFieldAccess(sel *ast.SelectorExpr, fieldInfo FieldAccessInfo) (string, []string, bool) {
 	if !fieldInfo.IsPromoted || len(fieldInfo.EmbeddedPath) == 0 {
 		return "", nil, false
@@ -6039,6 +6060,30 @@ func writeGoPtrCurrentReceiverEmbeddedPromotedFieldHandle(out *strings.Builder, 
 	out.WriteString(".")
 	out.WriteString(fieldInfo.FieldName)
 	out.WriteString(".clone(); __field }); __ptr_value }")
+}
+
+func writeEmbeddedGoPtrPromotedFieldHandle(out *strings.Builder, baseName string, baseWrapped bool, fieldInfo FieldAccessInfo, embeddedFieldName string, remainingPath []string) {
+	out.WriteString("{ let __embedded = ")
+	if baseWrapped {
+		out.WriteString("(*")
+		out.WriteString(baseName)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).")
+	} else {
+		out.WriteString(baseName)
+		out.WriteString(".")
+	}
+	out.WriteString(embeddedFieldName)
+	out.WriteString(".clone(); let __field = __embedded.with_mut(|__ptr_value| { let __field = __ptr_value")
+	for _, embedded := range remainingPath {
+		out.WriteString(".")
+		out.WriteString(ToSnakeCase(embedded))
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()")
+	}
+	out.WriteString(".")
+	out.WriteString(fieldInfo.FieldName)
+	out.WriteString(".clone(); __field }); __field }")
 }
 
 func writeGoPtrLocalFieldHandle(out *strings.Builder, ident *ast.Ident, fieldInfo FieldAccessInfo) {

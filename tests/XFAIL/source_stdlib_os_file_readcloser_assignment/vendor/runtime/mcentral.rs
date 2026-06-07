@@ -536,7 +536,7 @@ impl mcentral {
         break
     }
         {
-        let (mut s, mut ok) = (*sl.lock().unwrap().as_ref().unwrap()).try_acquire(GoPtr::local(s.clone()));;
+        let (mut s, mut ok) = (*sl.lock().unwrap().as_ref().unwrap()).try_acquire(s.clone());;
         if ok {
             (*s.lock().unwrap().as_mut().unwrap()).sweep(Arc::new(Mutex::new(Some(true))));;
             (*(*sweep.lock().unwrap().as_ref().unwrap()).active.lock().unwrap().as_ref().unwrap()).end(Arc::new(Mutex::new(Some({ let __arg_holder = sl.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
@@ -560,12 +560,12 @@ impl mcentral {
         break
     }
         {
-        let (mut s, mut ok) = (*sl.lock().unwrap().as_ref().unwrap()).try_acquire(GoPtr::local(s.clone()));;
+        let (mut s, mut ok) = (*sl.lock().unwrap().as_ref().unwrap()).try_acquire(s.clone());;
         if ok {
             (*s.lock().unwrap().as_mut().unwrap()).sweep(Arc::new(Mutex::new(Some(true))));;
             let mut freeIndex = (*s.lock().unwrap().as_mut().unwrap()).next_free_index();;
-            if { let __tmp_x = freeIndex; let __tmp_y = (*(*(*s.lock().unwrap().as_ref().unwrap()).mspan.lock().unwrap().as_ref().unwrap()).nelems.lock().unwrap().as_ref().unwrap()); __tmp_x != __tmp_y } {
-        { let new_val = freeIndex; *(*(*s.lock().unwrap().as_mut().unwrap()).mspan.lock().unwrap().as_mut().unwrap()).freeindex.lock().unwrap() = Some(new_val); };
+            if { let __tmp_x = freeIndex; let __tmp_y = (*{ let __embedded = (*s.lock().unwrap().as_ref().unwrap()).mspan.clone(); let __field = __embedded.with_mut(|__ptr_value| { let __field = __ptr_value.nelems.clone(); __field }); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x != __tmp_y } {
+        { let new_val = freeIndex; *{ let __embedded = (*s.lock().unwrap().as_ref().unwrap()).mspan.clone(); let __field = __embedded.with_mut(|__ptr_value| { let __field = __ptr_value.freeindex.clone(); __field }); __field }.lock().unwrap() = Some(new_val); };
         (*(*sweep.lock().unwrap().as_ref().unwrap()).active.lock().unwrap().as_ref().unwrap()).end(Arc::new(Mutex::new(Some({ let __arg_holder = sl.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         break 'havespan;
     };

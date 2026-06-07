@@ -10514,7 +10514,9 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 					out.WriteString(" = ")
 
-					TranspileExpression(out, s.Rhs[0])
+					withShortDeclOuterRhsBindings(s.Lhs, s.Rhs[0], func() {
+						TranspileExpression(out, s.Rhs[0])
+					})
 					if call, ok := s.Rhs[0].(*ast.CallExpr); ok {
 						registrationLHS := s.Lhs
 						if anyExistingShortDeclLHS || anyWrappedScalarTempLHS {

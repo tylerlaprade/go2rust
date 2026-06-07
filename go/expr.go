@@ -11488,6 +11488,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				if writeArrayElemPtrFieldSelector(out, ident, fieldInfo, e, ctx) {
 					break
 				}
+				if writeEmbeddedGoPtrPromotedFieldSelector(out, baseName, needsUnwrap, fieldInfo, e, ctx) {
+					break
+				}
 
 				if fieldInfo.IsPromoted {
 					// Accessing promoted field through embedded struct(s)

@@ -1575,6 +1575,57 @@ func (r rtype) set(v int) {
 	}
 }
 
+func TestGoPtrEmbeddedPointerResultShadowedShortDeclUsesOuterGoPtr(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct {
+	value int
+}
+
+type locked struct {
+	*node
+}
+
+func raw(addr uintptr) *node {
+	return (*node)(unsafe.Pointer(addr))
+}
+
+func acquire(s *node) (locked, bool) {
+	return locked{s}, true
+}
+
+func consume(s *node) {
+}
+
+func use(addr uintptr) int {
+	s := raw(addr)
+	if s, ok := acquire(s); ok {
+		consume(s.node)
+		if s.value != 0 {
+			s.value = 1
+		}
+		return s.value
+	}
+	return 0
+}
+	`)
+
+	if !strings.Contains(rust, "pub fn acquire(s: GoPtr<node>)") {
+		t.Fatalf("callee receiving the shadowed outer GoPtr local should use a GoPtr parameter:\n%s", rust)
+	}
+	if strings.Contains(rust, "acquire(GoPtr::local(s.clone()))") {
+		t.Fatalf("short-decl RHS should pass the outer GoPtr local without rewrapping it:\n%s", rust)
+	}
+	if strings.Contains(rust, ".node.lock()") || strings.Contains(rust, ".node.borrow()") {
+		t.Fatalf("promoted selectors through an embedded GoPtr field should not lock the GoPtr field as a wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "consume(") || !strings.Contains(rust, ".node.clone()") {
+		t.Fatalf("embedded GoPtr field selected from the tuple result should be forwarded as the field handle:\n%s", rust)
+	}
+}
+
 func TestGoPtrInterfaceMethodReturnUsesConcreteGoPtrResult(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

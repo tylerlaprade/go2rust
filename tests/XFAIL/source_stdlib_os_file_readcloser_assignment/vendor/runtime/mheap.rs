@@ -3432,9 +3432,9 @@ impl mheap {
         if { let __tmp_x = { let __tmp_x = { let __v = (*inUseUnmarked.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = (1 as u8); let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }); __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y } {
         let mut s: GoPtr<mspan> = (*ha.lock().unwrap().as_ref().unwrap()).spans.lock().unwrap().as_ref().unwrap()[({ let __tmp_x = { let __tmp_x = { let __v = (*arenaPage.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some(i as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 8 as u64; __tmp_x * __tmp_y }; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone();
         {
-        let (mut s, mut ok) = (*sl.lock().unwrap().as_ref().unwrap()).try_acquire(GoPtr::local(s.clone()));;
+        let (mut s, mut ok) = (*sl.lock().unwrap().as_ref().unwrap()).try_acquire(s.clone());;
         if ok {
-            let mut npages = Arc::new(Mutex::new(Some({ let __selector_holder = (*(*s.lock().unwrap().as_mut().unwrap()).mspan.lock().unwrap().as_mut().unwrap()).npages.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));;
+            let mut npages = Arc::new(Mutex::new(Some({ let __selector_holder = { let __embedded = (*s.lock().unwrap().as_ref().unwrap()).mspan.clone(); let __field = __embedded.with_mut(|__ptr_value| { let __field = __ptr_value.npages.clone(); __field }); __field }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));;
             unlock(GoPtr::local(self.lock.clone()));;
             if (*s.lock().unwrap().as_mut().unwrap()).sweep(Arc::new(Mutex::new(Some(false)))) {
         { let __rhs = (*npages.lock().unwrap().as_ref().unwrap()); let mut guard = nFreed.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
