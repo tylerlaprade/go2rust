@@ -190,17 +190,17 @@ pub(crate) fn __go_zero_globals() {
 impl Pool {
     /// Put adds x to the pool.
     pub fn put(&self, x: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>) {
-        if (*x.lock().unwrap()).is_none() {
+        if { let __nil_result = (*x.lock().unwrap()).is_none(); __nil_result } {
         return;
     }
-        if race::ENABLED {
+        if internal_race::ENABLED {
         if { let __tmp_x = runtime_randn(Arc::new(StdMutex::new(Some(4 as u32)))); let __tmp_y = 0 as u32; __tmp_x == __tmp_y } {
                 // Randomly drop x on floor.
         return;
     }
                 // Randomly drop x on floor.
-        race::release_merge(pool_race_addr(x.clone()));
-        race::disable();
+        internal_race::release_merge(pool_race_addr(x.clone()));
+        internal_race::disable();
     }
                 // Randomly drop x on floor.
         let (mut l, _) = self.pin();
@@ -210,8 +210,8 @@ impl Pool {
         (*{ let __ptr_value = l.with_mut(|__ptr_value| { let __field = __ptr_value.pool_local_internal.lock().unwrap().as_ref().unwrap().shared.clone(); __field }); __ptr_value }.lock().unwrap().as_mut().unwrap()).push_head(x.clone());
     }
         runtime_proc_unpin();
-        if race::ENABLED {
-        race::enable();
+        if internal_race::ENABLED {
+        internal_race::enable();
     }
     }
 
@@ -224,18 +224,18 @@ impl Pool {
     /// If Get would otherwise return nil and p.New is non-nil, Get returns
     /// the result of calling p.New.
     pub fn get(&self) -> Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>> {
-        if race::ENABLED {
-        race::disable();
+        if internal_race::ENABLED {
+        internal_race::disable();
     }
         let (mut l, mut pid) = self.pin();
         let mut x = { let __ptr_value = l.with_mut(|__ptr_value| { let __field = __ptr_value.pool_local_internal.lock().unwrap().as_ref().unwrap().private.clone(); __field }); __ptr_value }.clone();
         *{ let __ptr_value = l.with_mut(|__ptr_value| { let __field = __ptr_value.pool_local_internal.lock().unwrap().as_ref().unwrap().private.clone(); __field }); __ptr_value }.lock().unwrap() = None;
-        if (*x.lock().unwrap()).is_none() {
+        if { let __nil_result = (*x.lock().unwrap()).is_none(); __nil_result } {
                 // Try to pop the head of the local shard. We prefer
                 // the head over the tail for temporal locality of
                 // reuse.
         { let (__tmp_0, __tmp_1) = (*{ let __ptr_value = l.with_mut(|__ptr_value| { let __field = __ptr_value.pool_local_internal.lock().unwrap().as_ref().unwrap().shared.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()).pop_head(); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *x.lock().unwrap() = __moved_tmp_0; };
-        if (*x.lock().unwrap()).is_none() {
+        if { let __nil_result = (*x.lock().unwrap()).is_none(); __nil_result } {
         x = self.get_slow(Arc::new(StdMutex::new(Some(pid)))).clone();
     }
     }
@@ -243,13 +243,13 @@ impl Pool {
                 // the head over the tail for temporal locality of
                 // reuse.
         runtime_proc_unpin();
-        if race::ENABLED {
-        race::enable();
-        if (*x.lock().unwrap()).is_some() {
-        race::acquire(pool_race_addr(x.clone()));
+        if internal_race::ENABLED {
+        internal_race::enable();
+        if { let __nil_result = (*x.lock().unwrap()).is_some(); __nil_result } {
+        internal_race::acquire(pool_race_addr(x.clone()));
     }
     }
-        if (*x.lock().unwrap()).is_none() && { let __nil_target = self.new.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
+        if { let __nil_result = (*x.lock().unwrap()).is_none(); __nil_result } && { let __nil_target = self.new.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
         x = { let __f_holder = self.new.clone(); let __f_ptr: *mut Box<dyn FnMut() -> Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>> + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() }.clone();
     }
         return x.clone();
@@ -265,7 +265,7 @@ impl Pool {
         let mut l: GoPtr<poolLocal> = index_local(Arc::new(StdMutex::new(Some({ let __arg_holder = locals.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __tmp_x = { let __v = (*pid.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y }); let __tmp_y = (*Arc::new(StdMutex::new(Some(size as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }))));
         {
         let (mut x, _) = (*{ let __ptr_value = l.with_mut(|__ptr_value| { let __field = __ptr_value.pool_local_internal.lock().unwrap().as_ref().unwrap().shared.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()).pop_tail();;
-        if (*x.lock().unwrap()).is_some() {
+        if { let __nil_result = (*x.lock().unwrap()).is_some(); __nil_result } {
             return x.clone();;
         }
     }
@@ -282,7 +282,7 @@ impl Pool {
         let mut l: GoPtr<poolLocal> = index_local(Arc::new(StdMutex::new(Some({ let __arg_holder = locals.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some({ let __arg_holder = pid.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         {
         let mut x = { let __ptr_value = l.with_mut(|__ptr_value| { let __field = __ptr_value.pool_local_internal.lock().unwrap().as_ref().unwrap().private.clone(); __field }); __ptr_value }.clone();;
-        if (*x.lock().unwrap()).is_some() {
+        if { let __nil_result = (*x.lock().unwrap()).is_some(); __nil_result } {
             *{ let __ptr_value = l.with_mut(|__ptr_value| { let __field = __ptr_value.pool_local_internal.lock().unwrap().as_ref().unwrap().private.clone(); __field }); __ptr_value }.lock().unwrap() = None;;
             return x.clone();;
         }
@@ -292,7 +292,7 @@ impl Pool {
         let mut l: GoPtr<poolLocal> = index_local(Arc::new(StdMutex::new(Some({ let __arg_holder = locals.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __v = (*pid.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }); let __tmp_y = (*Arc::new(StdMutex::new(Some(size as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }))));
         {
         let (mut x, _) = (*{ let __ptr_value = l.with_mut(|__ptr_value| { let __field = __ptr_value.pool_local_internal.lock().unwrap().as_ref().unwrap().shared.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()).pop_tail();;
-        if (*x.lock().unwrap()).is_some() {
+        if { let __nil_result = (*x.lock().unwrap()).is_some(); __nil_result } {
             return x.clone();;
         }
     }

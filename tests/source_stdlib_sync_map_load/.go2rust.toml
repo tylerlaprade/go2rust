@@ -1,1 +1,1 @@
-source_stdlib_packages = "sync,internal/sync,sync/atomic,internal/abi"
+source_stdlib_packages = "sync,internal/sync,sync/atomic,internal/abi,internal/race"

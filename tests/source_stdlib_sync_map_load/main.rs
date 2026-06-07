@@ -23,11 +23,11 @@ fn format_any(value: &(dyn Any + Send + Sync)) -> String {
     }
 }
 
-/// Source-transpiling sync is required before sync.Map bridge methods can
-/// retire. Today the generated internal/sync crate fails to compile on the
-/// hashtriemap generic implementation and a Mutex name collision.
+/// Source-transpiling sync and internal/race keep sync.Map on the real Go
+/// stdlib source path instead of the shared bridge stubs.
 fn main() {
     internal_abi::__go_init_all();
+    internal_race::__go_init_all();
     internal_sync::__go_init_all();
     sync::__go_init_all();
     sync_atomic::__go_init_all();

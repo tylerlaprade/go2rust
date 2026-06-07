@@ -5,9 +5,8 @@ import (
 	"sync"
 )
 
-// Source-transpiling sync is required before sync.Map bridge methods can
-// retire. Today the generated internal/sync crate fails to compile on the
-// hashtriemap generic implementation and a Mutex name collision.
+// Source-transpiling sync and internal/race keep sync.Map on the real Go
+// stdlib source path instead of the shared bridge stubs.
 func main() {
 	var m sync.Map
 	m.Store("key", "value")

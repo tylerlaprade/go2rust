@@ -3123,7 +3123,7 @@ impl Type {
 
     pub fn exported_methods(&self) -> Arc<Mutex<Option<Vec<Method>>>> {
         let mut ut = self.uncommon();
-        if (*ut.lock().unwrap()).is_none() {
+        if { let __nil_result = (*ut.lock().unwrap()).is_none(); __nil_result } {
         return Arc::new(Mutex::new(None));
     }
         return { let __recv = ut.clone(); let __recv_ptr: *const UncommonType = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const UncommonType }; let __result = unsafe { &*__recv_ptr }.exported_methods(); __result };
