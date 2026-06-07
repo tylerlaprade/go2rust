@@ -1034,6 +1034,44 @@ func openFile(name string) (io.ReadCloser, error) {
 	}
 }
 
+func TestMultiResultCallReturnConvertsFullySourceMappedStdlibInterfaceSlot(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import (
+	"io"
+	"os"
+)
+
+func openFile(name string) (io.ReadCloser, error) {
+	return os.Open(name)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{
+		"io": "io",
+		"os": "os",
+	})
+
+	if strings.Contains(rust, "io_ReadCloser") {
+		t.Fatalf("fully source-mapped return should not use the external io_ReadCloser bridge:\n%s", rust)
+	}
+	if strings.Contains(rust, "Box::new((*__return_tmp_0.") {
+		t.Fatalf("fully source-mapped return should not box the cloned os.File pointee:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(os::FilePtr(__return_tmp_0.clone())) as Box<dyn io::ReadCloser") &&
+		!strings.Contains(rust, "Box::new(os::file::FilePtr(__return_tmp_0.clone())) as Box<dyn io::r#mod::ReadCloser") {
+		t.Fatalf("fully source-mapped return should box os.FilePtr into io.ReadCloser:\n%s", rust)
+	}
+}
+
 func TestSyncWaitGroupAddCastsLenArgument(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

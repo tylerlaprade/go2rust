@@ -14081,6 +14081,7 @@ const (
 	multiResultReturnSlotNoConversion multiResultReturnSlotConversion = iota
 	multiResultReturnSlotWrapBareScalar
 	multiResultReturnSlotBoxTranspiledInterface
+	multiResultReturnSlotBoxSourceMappedPointerInterface
 	multiResultReturnSlotBoxStdlibInterface
 	multiResultReturnSlotBoxSourceMappedStdlibInterface
 )
@@ -14089,6 +14090,7 @@ type multiResultReturnSlotPlan struct {
 	conversion multiResultReturnSlotConversion
 	ifaceName  string
 	targetRust string
+	sourceRust string
 }
 
 func writeMultiResultCallReturnWithSlotConversions(out *strings.Builder, call *ast.CallExpr, fnType *ast.FuncType) bool {
@@ -14101,6 +14103,15 @@ func writeMultiResultCallReturnWithSlotConversions(out *strings.Builder, call *a
 	needsConversion := false
 	for i := 0; i < results.Len(); i++ {
 		actualType := results.At(i).Type()
+		if ifaceName, wrapperType, ok := multiResultReturnSlotSourceMappedPointerInterfaceConversion(returnResultTypeExpr(fnType, i), actualType); ok {
+			plans[i] = multiResultReturnSlotPlan{
+				conversion: multiResultReturnSlotBoxSourceMappedPointerInterface,
+				ifaceName:  ifaceName,
+				sourceRust: wrapperType,
+			}
+			needsConversion = true
+			continue
+		}
 		if ifaceName, ok := multiResultReturnSlotInterfaceConversion(returnResultTypeExpr(fnType, i), actualType); ok {
 			plans[i] = multiResultReturnSlotPlan{
 				conversion: multiResultReturnSlotBoxTranspiledInterface,
@@ -14175,6 +14186,8 @@ func writeMultiResultReturnSlotConversion(out *strings.Builder, tmpName string, 
 		WriteWrapperSuffix(out)
 	case multiResultReturnSlotBoxTranspiledInterface:
 		writeTranspiledInterfaceBoxedReturnTemp(out, tmpName, plan.ifaceName)
+	case multiResultReturnSlotBoxSourceMappedPointerInterface:
+		writeSourceMappedPointerInterfaceBoxedReturnTemp(out, tmpName, plan.sourceRust, plan.ifaceName)
 	case multiResultReturnSlotBoxStdlibInterface:
 		writeStdlibInterfaceBoxedReturnTemp(out, tmpName, plan.targetRust)
 	case multiResultReturnSlotBoxSourceMappedStdlibInterface:
@@ -14196,6 +14209,39 @@ func multiResultReturnSlotInterfaceConversion(expected ast.Expr, actualType type
 		return "", false
 	}
 	return transpiledNamedInterfaceTypeNameFromTypes(expectedType)
+}
+
+func multiResultReturnSlotSourceMappedPointerInterfaceConversion(expected ast.Expr, actualType types.Type) (string, string, bool) {
+	expectedType := expectedTypeFromParamExpr(expected)
+	if expectedType == nil || actualType == nil {
+		return "", "", false
+	}
+	if !types.AssignableTo(actualType, expectedType) {
+		return "", "", false
+	}
+	ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(expectedType)
+	if !ok {
+		return "", "", false
+	}
+	ptr, ok := types.Unalias(actualType).(*types.Pointer)
+	if !ok {
+		return "", "", false
+	}
+	elemNamed, ok := types.Unalias(ptr.Elem()).(*types.Named)
+	if !ok || elemNamed.Obj() == nil || elemNamed.Obj().Pkg() == nil {
+		return "", "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil && typeInfo.pkg != nil && elemNamed.Obj().Pkg() == typeInfo.pkg {
+		return "", "", false
+	}
+	if !isSourceMappedPackagePath(elemNamed.Obj().Pkg().Path()) {
+		return "", "", false
+	}
+	if !sourceMappedPointerWrapperAvailableForInterface(elemNamed, expectedType) {
+		return "", "", false
+	}
+	return ifaceName, sourceMappedPointerWrapperTypeName(elemNamed), true
 }
 
 func multiResultReturnSlotStdlibInterfaceConversion(expected ast.Expr, actualType types.Type) (string, bool) {
@@ -14244,6 +14290,17 @@ func writeTranspiledInterfaceBoxedReturnTemp(out *strings.Builder, tmpName strin
 	out.WriteString(tmpName)
 	WriteBorrowMethod(out, false)
 	out.WriteString(".as_ref().unwrap()).clone()) as ")
+	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+	WriteWrapperSuffix(out)
+}
+
+func writeSourceMappedPointerInterfaceBoxedReturnTemp(out *strings.Builder, tmpName string, wrapperType string, ifaceName string) {
+	WriteWrapperPrefix(out)
+	out.WriteString("Box::new(")
+	out.WriteString(wrapperType)
+	out.WriteString("(")
+	out.WriteString(tmpName)
+	out.WriteString(".clone())) as ")
 	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
 	WriteWrapperSuffix(out)
 }
