@@ -3539,7 +3539,7 @@ pub fn allocm(pp: GoPtr<crate::runtime2::p>, r#fn: Arc<Mutex<Option<Box<dyn FnMu
                 // reachable off the system stack transitively from
                 // startm.
         let freem_closure_clone = freem.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
-        stackfree(Arc::new(Mutex::new(Some((*(*(*freem_closure_clone.lock().unwrap().as_ref().unwrap()).g0.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).clone()))));
+        stackfree(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*freem_closure_clone.lock().unwrap().as_ref().unwrap()).g0.lock().unwrap().as_ref().unwrap()).stack.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
     }
                 // stackfree must be on the system stack, but allocm is

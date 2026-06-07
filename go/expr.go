@@ -7268,8 +7268,12 @@ func callArgumentFieldValueNeedsSnapshot(typ types.Type) bool {
 	}
 	unaliased := types.Unalias(typ)
 	if named, ok := unaliased.(*types.Named); ok && named.Obj() != nil {
-		_, ok := named.Underlying().(*types.Basic)
-		return ok
+		switch named.Underlying().(type) {
+		case *types.Basic, *types.Struct, *types.Array:
+			return true
+		default:
+			return false
+		}
 	}
 	switch unaliased.Underlying().(type) {
 	case *types.Basic, *types.Struct, *types.Array:

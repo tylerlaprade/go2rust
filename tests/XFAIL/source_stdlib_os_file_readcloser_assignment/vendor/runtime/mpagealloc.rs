@@ -2184,7 +2184,7 @@ impl pageAlloc {
                 // case the searchAddr should be the same as i after levelShift.
         let mut j0 = Arc::new(Mutex::new(Some(0)));
         {
-        let mut searchIdx = off_addr_to_level_index(Arc::new(Mutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(self.search_addr.clone()))));;
+        let mut searchIdx = off_addr_to_level_index(Arc::new(Mutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __selector_holder = self.search_addr.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));;
         if { let __tmp_x = { let __tmp_x = searchIdx; let __tmp_y = ({ let __tmp_x = { let __v = (*entriesPerBlock.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }); __tmp_x & ! __tmp_y }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } {
             { let new_val = { let __tmp_x = searchIdx; let __tmp_y = ({ let __tmp_x = { let __v = (*entriesPerBlock.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }); __tmp_x & __tmp_y }; *j0.lock().unwrap() = Some(new_val); };;
         }

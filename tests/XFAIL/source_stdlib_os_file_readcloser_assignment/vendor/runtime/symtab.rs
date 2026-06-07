@@ -2240,7 +2240,7 @@ impl Frames {
                 // Compute file/line just before we need to return it,
                 // as it can be expensive. This avoids computing file/line
                 // for the Frame we find but don't return. See issue 32093.
-        let (mut file, mut line) = funcline1(Arc::new(Mutex::new(Some((*{ let __field = (*frame.lock().unwrap().as_ref().unwrap()).func_info.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()))), Arc::new(Mutex::new(Some({ let __selector_holder = (*frame.lock().unwrap().as_ref().unwrap()).p_c.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(false))));
+        let (mut file, mut line) = funcline1(Arc::new(Mutex::new(Some({ let __selector_holder = (*frame.lock().unwrap().as_ref().unwrap()).func_info.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*frame.lock().unwrap().as_ref().unwrap()).p_c.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(false))));
         { let __tmp_0 = (*file.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_1 = Arc::new(Mutex::new(Some(line as i32))); *(*frame.lock().unwrap().as_ref().unwrap()).file.lock().unwrap() = Some(__tmp_0); *(*frame.lock().unwrap().as_ref().unwrap()).line.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
     }
                 // Compute file/line just before we need to return it,

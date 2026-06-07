@@ -3037,6 +3037,34 @@ func (c *controller) next() bool {
 	}
 }
 
+func TestStructSelectorCallArgumentCopiesInnerValue(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type offAddr struct {
+	a uintptr
+}
+
+type pageAlloc struct {
+	searchAddr offAddr
+}
+
+func levelIndex(level int, addr offAddr) int {
+	return level + int(addr.a)
+}
+
+func (p *pageAlloc) find(level int) int {
+	return levelIndex(level, p.searchAddr)
+}
+`)
+
+	if !strings.Contains(rust, "let __selector_holder = self.search_addr.clone()") {
+		t.Fatalf("struct selector call argument should copy the inner field value:\n%s", rust)
+	}
+	if strings.Contains(rust, "Some(self.search_addr.clone())") {
+		t.Fatalf("struct selector call argument should not wrap the field handle:\n%s", rust)
+	}
+}
+
 func TestScalarSelectorCallArgumentHelperUsesFieldObjectType(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
