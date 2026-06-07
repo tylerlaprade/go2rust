@@ -224,6 +224,7 @@ in the first place.
   `tests/local_concrete_stdlib_interface_return/`,
   `tests/stdlib_interface_struct_literal_concrete/`,
   `tests/stdlib_interface_map_value_assignment/`,
+  `tests/stdlib_interface_slice_conversions/`,
   `tests/stdlib_package_var_comparison/`, and
   `tests/stdlib_struct_field_map/` also source-map `strconv` for
   `go/types`/`go/constant` callers after error-interface assertions to pointer
@@ -252,6 +253,7 @@ in the first place.
   `tests/local_concrete_stdlib_interface_return/`,
   `tests/stdlib_interface_struct_literal_concrete/`,
   `tests/stdlib_interface_map_value_assignment/`,
+  `tests/stdlib_interface_slice_conversions/`,
   `tests/stdlib_package_var_comparison/`,
   `tests/stdlib_struct_field_map/`,
   `tests/parser_mode_const_expression/`,
@@ -284,6 +286,7 @@ in the first place.
   `tests/local_concrete_stdlib_interface_return/`,
   `tests/stdlib_interface_struct_literal_concrete/`,
   `tests/stdlib_interface_map_value_assignment/`,
+  `tests/stdlib_interface_slice_conversions/`,
   `tests/stdlib_package_var_comparison/`, and
   `tests/stdlib_struct_field_map/` now exercise source
   `strconv::unquote`/`unquote_char` through `go/constant`, but
@@ -304,6 +307,7 @@ in the first place.
   `tests/local_concrete_stdlib_interface_return/`,
   `tests/stdlib_interface_struct_literal_concrete/`,
   `tests/stdlib_interface_map_value_assignment/`,
+  `tests/stdlib_interface_slice_conversions/`,
   `tests/stdlib_package_var_comparison/`,
   `tests/stdlib_struct_field_map/`
 - Removal trigger: generated source-stdlib snapshots no longer call the
@@ -330,6 +334,7 @@ in the first place.
   `tests/local_concrete_stdlib_interface_return/`,
   `tests/stdlib_interface_struct_literal_concrete/`,
   `tests/stdlib_interface_map_value_assignment/`,
+  `tests/stdlib_interface_slice_conversions/`,
   `tests/stdlib_package_var_comparison/`, and
   `tests/stdlib_struct_field_map/` now exercise source
   `strconv::unquote`/`unquote_char` through `go/constant`, but other committed
@@ -353,6 +358,7 @@ in the first place.
   `tests/local_concrete_stdlib_interface_return/`,
   `tests/stdlib_interface_struct_literal_concrete/`,
   `tests/stdlib_interface_map_value_assignment/`,
+  `tests/stdlib_interface_slice_conversions/`,
   `tests/stdlib_package_var_comparison/`,
   `tests/stdlib_struct_field_map/`
 - Removal trigger: reroute the remaining source-stdlib fixtures that emit

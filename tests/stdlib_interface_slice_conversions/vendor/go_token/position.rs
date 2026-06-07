@@ -651,7 +651,7 @@ impl Position {
         if { let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
         { (*s.lock().unwrap().as_mut().unwrap()).push_str(&":".to_string()); };
     }
-        { (*s.lock().unwrap().as_mut().unwrap()).push_str(&{ let __s = Arc::new(Mutex::new(Some(({ let __selector_holder = self.line.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }).to_string()))); let __value = (*__s.lock().unwrap().as_ref().unwrap()).clone(); __value }); };
+        { (*s.lock().unwrap().as_mut().unwrap()).push_str(&{ let __s = strconv::itoa(Arc::new(Mutex::new(Some({ let __selector_holder = self.line.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __value = (*__s.lock().unwrap().as_ref().unwrap()).clone(); __value }); };
         if { let __tmp_x = (*self.column.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x != __tmp_y } {
         { (*s.lock().unwrap().as_mut().unwrap()).push_str(&{ let __s = Arc::new(Mutex::new(Some(format!(":{}", (*self.column.lock().unwrap().as_ref().unwrap()))))); let __value = (*__s.lock().unwrap().as_ref().unwrap()).clone(); __value }); };
     }
