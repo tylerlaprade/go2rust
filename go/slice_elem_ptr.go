@@ -6693,12 +6693,15 @@ func writeGoPtrExpressionFieldSelector(out *strings.Builder, base ast.Expr, fiel
 }
 
 func goPtrExpressionReturnsHandle(expr ast.Expr) bool {
-	call, ok := unwrapParens(expr).(*ast.CallExpr)
-	if !ok {
-		return false
+	switch e := unwrapParens(expr).(type) {
+	case *ast.CallExpr:
+		_, ok := goPtrResultInfoForCall(e, 0)
+		return ok
+	case *ast.IndexExpr:
+		_, ok := goPtrArrayFieldInfoForIndexExpr(e)
+		return ok
 	}
-	_, ok = goPtrResultInfoForCall(call, 0)
-	return ok
+	return false
 }
 
 func writeGoPtrExpressionFieldHandle(out *strings.Builder, base ast.Expr, fieldInfo FieldAccessInfo) {

@@ -276,6 +276,48 @@ func pick(items []node) *node {
 	}
 }
 
+func TestGoPtrArrayPointerLocalSlotSelectorUsesHandle(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type link struct {
+	ptr *node
+}
+
+func (l *link) set(n *node) {
+	l.ptr = n
+}
+
+type node struct {
+	sched link
+}
+
+func wire(items []node) {
+	var batch [2]*node
+	p := &items[0]
+	q := &items[1]
+	batch[0] = p
+	batch[1] = q
+	batch[0].sched.set(batch[1])
+}
+`)
+
+	if !strings.Contains(rust, "let mut batch: Rc<RefCell<Option<[GoPtr<node>; 2]>>>") &&
+		!strings.Contains(rust, "let mut batch: Arc<Mutex<Option<[GoPtr<node>; 2]>>>") {
+		t.Fatalf("test setup should store pointer array local elements as GoPtr slots:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __ptr = (*batch.borrow().as_ref().unwrap())[(0) as usize].clone()") &&
+		!strings.Contains(rust, "let __ptr = (*batch.lock().unwrap().as_ref().unwrap())[(0) as usize].clone()") {
+		t.Fatalf("selector through a GoPtr array slot should first materialize the selected GoPtr handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__ptr_value.as_ref().unwrap().sched.clone()") {
+		t.Fatalf("method call on a field selected through a GoPtr array slot should clone the pointee field handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "}.borrow().as_ref().unwrap()).sched") ||
+		strings.Contains(rust, "}.lock().unwrap().as_ref().unwrap()).sched") {
+		t.Fatalf("selector through a GoPtr array slot should not borrow the GoPtr as an ordinary wrapper:\n%s", rust)
+	}
+}
+
 func TestUnsafePointerFromGoPtrArrayPointerFieldElementUsesAddress(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
