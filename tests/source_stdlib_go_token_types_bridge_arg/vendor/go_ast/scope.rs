@@ -545,16 +545,16 @@ impl Scope {
 
     /// Debugging support
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        let mut buf: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(Default::default())));
-        (*buf.clone().lock().unwrap().as_mut().unwrap()).push_str(&format!("scope {:p} {{", self));
+        let mut buf: Arc<Mutex<Option<strings::builder::Builder>>> = Arc::new(Mutex::new(Some(Default::default())));
+        (*buf.clone().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("scope {:p} {{", self)))));
         if true && { let __tmp_x = (({ let __len_target = { let __field = self.objects.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
-        (*buf.clone().lock().unwrap().as_mut().unwrap()).push_str(&format!("\n"));
+        (*buf.clone().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("\n")))));
         for (_, obj) in { let __range_holder = self.objects.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
-        (*buf.clone().lock().unwrap().as_mut().unwrap()).push_str(&format!("\t{} {}\n", (*{ let __field = (*obj.lock().unwrap().as_ref().unwrap()).kind.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone(), (*{ let __field = (*obj.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()));
+        (*buf.clone().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("\t{} {}\n", (*{ let __field = (*obj.lock().unwrap().as_ref().unwrap()).kind.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone(), (*{ let __field = (*obj.lock().unwrap().as_ref().unwrap()).name.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone())))));
     }
     }
-        (*buf.clone().lock().unwrap().as_mut().unwrap()).push_str(&format!("}}\n"));
-        return Arc::new(Mutex::new(Some({ let __builder = buf.clone(); let __guard = __builder.lock().unwrap(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value })));
+        (*buf.clone().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("}}\n")))));
+        return (*buf.lock().unwrap().as_ref().unwrap()).string();
     }
 }
 

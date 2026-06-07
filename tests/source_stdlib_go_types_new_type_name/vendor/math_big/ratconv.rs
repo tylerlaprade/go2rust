@@ -84,7 +84,7 @@ impl crate::rat::Rat {
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         return err.clone();
     }
-        if !strings::contains_rune("efgEFGv".to_string(), { let __arg_holder = ch.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) {
+        if !strings::contains_rune(Arc::new(Mutex::new(Some("efgEFGv".to_string()))), Arc::new(Mutex::new(Some({ let __arg_holder = ch.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
         return Arc::new(Mutex::new(Some(Box::<dyn std::error::Error + Send + Sync>::from("Rat.Scan: invalid verb".to_string()))));
     }
         {
@@ -121,24 +121,24 @@ impl crate::rat::Rat {
                 // len(s) > 0
                 // parse fraction a/b, if any
         {
-        let mut sep = Arc::new(Mutex::new(Some({ let __s = (*s.lock().unwrap().as_ref().unwrap()).clone(); let __substr = "/".to_string(); __s.find(&__substr).map(|__i| __i as i32).unwrap_or(-1) })));;
-        if { let __tmp_x = { let __v = (*sep.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } {
+        let mut sep = strings::index(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("/".to_string()))));;
+        if { let __tmp_x = sep; let __tmp_y = 0; __tmp_x >= __tmp_y } {
             {
-        let (_, mut ok) = (*self.a.lock().unwrap().as_mut().unwrap()).set_string(Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __high = ({ let __v = (*sep.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[..__high].to_string() }))), Arc::new(Mutex::new(Some(0))));;
+        let (_, mut ok) = (*self.a.lock().unwrap().as_mut().unwrap()).set_string(Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __high = (sep) as usize; __s[..__high].to_string() }))), Arc::new(Mutex::new(Some(0))));;
         if !ok {
             return (Arc::new(Mutex::new(None)), false);;
         }
     };
-            let mut r = strings::new_reader(Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*sep.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));;
+            let mut r = strings::new_reader(Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = sep; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))));;
             let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));;
             {
-        { let (__tmp_0, __tmp_1, __tmp_2, __tmp_3) = (*(*self.b.lock().unwrap().as_ref().unwrap()).abs.lock().unwrap().as_ref().unwrap()).scan({ let __arg = r.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<io_ByteScanner> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) }, Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(false)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *(*self.b.lock().unwrap().as_ref().unwrap()).abs.lock().unwrap() = __moved_tmp_0; let __moved_tmp_3 = { let mut __guard = __tmp_3.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_3; };;
+        { let (__tmp_0, __tmp_1, __tmp_2, __tmp_3) = (*(*self.b.lock().unwrap().as_ref().unwrap()).abs.lock().unwrap().as_ref().unwrap()).scan(Arc::new(Mutex::new(Some(io_ByteScanner::__go_from(r.clone())))), Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(false)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *(*self.b.lock().unwrap().as_ref().unwrap()).abs.lock().unwrap() = __moved_tmp_0; let __moved_tmp_3 = { let mut __guard = __tmp_3.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_3; };;
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
             return (Arc::new(Mutex::new(None)), false);;
         }
     };
             {
-        { let (__tmp_0, __tmp_1) = { let __recv = r.clone(); let __recv_ptr: *mut strings_Reader = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut strings_Reader }; let __result = unsafe { &mut *__recv_ptr }.read_byte(); __result }; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };;
+        { let (__tmp_0, __tmp_1) = { let __recv = r.clone(); let __recv_ptr: *mut strings::reader::Reader = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut strings::reader::Reader }; let __result = unsafe { &mut *__recv_ptr }.read_byte(); __result }; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };;
         if { let __left = err.clone(); let __right = io::EOF().clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); if __left_guard.is_none() || __right_guard.is_none() { __left_guard.is_none() == __right_guard.is_none() } else { false } }; !__eq } {
             return (Arc::new(Mutex::new(None)), false);;
         }
@@ -151,29 +151,29 @@ impl crate::rat::Rat {
     }
                 // entire string must have been consumed
                 // parse floating-point number
-        let mut r = strings::new_reader({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
+        let mut r = strings::new_reader(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
                 // sign
-        let (mut neg, mut err) = scan_sign({ let __arg = r.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<io_ByteScanner> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) });
+        let (mut neg, mut err) = scan_sign(Arc::new(Mutex::new(Some(io_ByteScanner::__go_from(r.clone())))));
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         return (Arc::new(Mutex::new(None)), false);
     }
                 // mantissa
         let mut base: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
         let mut fcount: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
-        { let (__tmp_0, __tmp_1, __tmp_2, __tmp_3) = (*(*self.a.lock().unwrap().as_ref().unwrap()).abs.lock().unwrap().as_ref().unwrap()).scan({ let __arg = r.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<io_ByteScanner> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) }, Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(true)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *(*self.a.lock().unwrap().as_ref().unwrap()).abs.lock().unwrap() = __moved_tmp_0; *base.lock().unwrap() = Some(__tmp_1); *fcount.lock().unwrap() = Some(__tmp_2); let __moved_tmp_3 = { let mut __guard = __tmp_3.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_3; };
+        { let (__tmp_0, __tmp_1, __tmp_2, __tmp_3) = (*(*self.a.lock().unwrap().as_ref().unwrap()).abs.lock().unwrap().as_ref().unwrap()).scan(Arc::new(Mutex::new(Some(io_ByteScanner::__go_from(r.clone())))), Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(true)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *(*self.a.lock().unwrap().as_ref().unwrap()).abs.lock().unwrap() = __moved_tmp_0; *base.lock().unwrap() = Some(__tmp_1); *fcount.lock().unwrap() = Some(__tmp_2); let __moved_tmp_3 = { let mut __guard = __tmp_3.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_3; };
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         return (Arc::new(Mutex::new(None)), false);
     }
                 // exponent
         let mut exp: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
         let mut ebase: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
-        { let (__tmp_0, __tmp_1, __tmp_2) = scan_exponent({ let __arg = r.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<io_ByteScanner> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) }, Arc::new(Mutex::new(Some(true))), Arc::new(Mutex::new(Some(true)))); *exp.lock().unwrap() = Some(__tmp_0); *ebase.lock().unwrap() = Some(__tmp_1); let __moved_tmp_2 = { let mut __guard = __tmp_2.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_2; };
+        { let (__tmp_0, __tmp_1, __tmp_2) = scan_exponent(Arc::new(Mutex::new(Some(io_ByteScanner::__go_from(r.clone())))), Arc::new(Mutex::new(Some(true))), Arc::new(Mutex::new(Some(true)))); *exp.lock().unwrap() = Some(__tmp_0); *ebase.lock().unwrap() = Some(__tmp_1); let __moved_tmp_2 = { let mut __guard = __tmp_2.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_2; };
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         return (Arc::new(Mutex::new(None)), false);
     }
                 // there should be no unread characters left
         {
-        { let (__tmp_0, __tmp_1) = { let __recv = r.clone(); let __recv_ptr: *mut strings_Reader = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut strings_Reader }; let __result = unsafe { &mut *__recv_ptr }.read_byte(); __result }; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };;
+        { let (__tmp_0, __tmp_1) = { let __recv = r.clone(); let __recv_ptr: *mut strings::reader::Reader = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut strings::reader::Reader }; let __result = unsafe { &mut *__recv_ptr }.read_byte(); __result }; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };;
         if { let __left = err.clone(); let __right = io::EOF().clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); if __left_guard.is_none() || __right_guard.is_none() { __left_guard.is_none() == __right_guard.is_none() } else { false } }; !__eq } {
             return (Arc::new(Mutex::new(None)), false);;
         }
@@ -480,7 +480,7 @@ impl crate::rat::Rat {
 }
 
 pub fn rat_tok(ch: Arc<Mutex<Option<i32>>>) -> bool {
-    strings::contains_rune("+-/0123456789.eE".to_string(), { let __arg_holder = ch.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })
+    strings::contains_rune(Arc::new(Mutex::new(Some("+-/0123456789.eE".to_string()))), Arc::new(Mutex::new(Some({ let __arg_holder = ch.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))
 }
 
 /// scanExponent scans the longest possible prefix of r representing a base 10

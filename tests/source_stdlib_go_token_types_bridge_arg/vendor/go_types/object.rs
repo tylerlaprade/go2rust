@@ -1032,7 +1032,7 @@ impl object {
 
     pub fn same_id(&self, pkg: Arc<Mutex<Option<Package>>>, name: Arc<Mutex<Option<String>>>, foldCase: Arc<Mutex<Option<bool>>>) -> bool {
                 // If we don't care about capitalization, we also ignore packages.
-        if { let __v = (*foldCase.lock().unwrap().as_ref().unwrap()).clone(); __v } && (*Arc::new(Mutex::new(Some({ let __a = (*self.name.lock().unwrap().as_ref().unwrap()).clone(); let __b = (*name.lock().unwrap().as_ref().unwrap()).clone(); __a.to_lowercase() == __b.to_lowercase() }))).lock().unwrap().as_ref().unwrap()) {
+        if { let __v = (*foldCase.lock().unwrap().as_ref().unwrap()).clone(); __v } && strings::equal_fold(Arc::new(Mutex::new(Some({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
         return true;
     }
                 // spec:
@@ -1082,10 +1082,10 @@ impl object {
     }
                 // Order by name and then (for non-exported names) by package.
         if { let __tmp_x = (*self.name.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = { let __selector_holder = (*b.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __tmp_x != __tmp_y } {
-        return (*Arc::new(Mutex::new(Some({ let __a = (*self.name.lock().unwrap().as_ref().unwrap()).clone(); let __b = (*(*b.lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).clone(); match __a.cmp(&__b) { std::cmp::Ordering::Less => -1, std::cmp::Ordering::Equal => 0, std::cmp::Ordering::Greater => 1 } }))).lock().unwrap().as_ref().unwrap());
+        return strings::compare(Arc::new(Mutex::new(Some({ let __selector_holder = self.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*b.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
     }
         if !ea {
-        return (*Arc::new(Mutex::new(Some({ let __a = (*(*self.pkg.lock().unwrap().as_ref().unwrap()).path.lock().unwrap().as_ref().unwrap()).clone(); let __b = (*(*(*b.lock().unwrap().as_ref().unwrap()).pkg.lock().unwrap().as_ref().unwrap()).path.lock().unwrap().as_ref().unwrap()).clone(); match __a.cmp(&__b) { std::cmp::Ordering::Less => -1, std::cmp::Ordering::Equal => 0, std::cmp::Ordering::Greater => 1 } }))).lock().unwrap().as_ref().unwrap());
+        return strings::compare(Arc::new(Mutex::new(Some({ let __selector_holder = (*self.pkg.lock().unwrap().as_ref().unwrap()).path.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*(*b.lock().unwrap().as_ref().unwrap()).pkg.lock().unwrap().as_ref().unwrap()).path.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
     }
         0
     }

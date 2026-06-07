@@ -275,9 +275,9 @@ impl crate::check::Checker {
         }
     }
         {
-        let mut i = Arc::new(Mutex::new(Some({ let __s = (*name.lock().unwrap().as_ref().unwrap()).clone(); let __substr = "/".to_string(); __s.rfind(&__substr).map(|__i| __i as i32).unwrap_or(-1) })));;
-        if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } {
-            { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *name.lock().unwrap() = __moved_val; };;
+        let mut i = strings::last_index(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("/".to_string()))));;
+        if { let __tmp_x = i; let __tmp_y = 0; __tmp_x >= __tmp_y } {
+            { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = i; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *name.lock().unwrap() = __moved_val; };;
         }
     }
         { let new_val = new_package(Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); imp = new_val; };
@@ -1035,9 +1035,9 @@ impl crate::check::Checker {
         let mut path = Arc::new(Mutex::new(Some({ let __selector_holder = (*(*obj.lock().unwrap().as_ref().unwrap()).imported.lock().unwrap().as_ref().unwrap()).path.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         let mut elem = { let __owned = path.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
         {
-        let mut i = Arc::new(Mutex::new(Some({ let __s = (*elem.lock().unwrap().as_ref().unwrap()).clone(); let __substr = "/".to_string(); __s.rfind(&__substr).map(|__i| __i as i32).unwrap_or(-1) })));;
-        if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } {
-            { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*elem.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *elem.lock().unwrap() = __moved_val; };;
+        let mut i = strings::last_index(Arc::new(Mutex::new(Some({ let __arg_holder = elem.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("/".to_string()))));;
+        if { let __tmp_x = i; let __tmp_y = 0; __tmp_x >= __tmp_y } {
+            { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*elem.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = i; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *elem.lock().unwrap() = __moved_val; };;
         }
     }
         if { let __tmp_x = { let __selector_holder = (*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = "".to_string(); __tmp_x == __tmp_y } || { let __tmp_x = { let __selector_holder = (*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = ".".to_string(); __tmp_x == __tmp_y } || { let __tmp_x = { let __selector_holder = (*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = (*elem.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } {
@@ -1059,7 +1059,7 @@ pub fn validated_import_path(path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Opt
     const illegalChars: &'static str = "!\"#$%&'()*,:;<=>?[\\]^{|}`\u{fffd}";
 
     for (_, r) in (*s.lock().unwrap().as_ref().unwrap()).char_indices() {
-        if !unicode::is_graphic(Arc::new(Mutex::new(Some(r as i32)))) || unicode::is_space(Arc::new(Mutex::new(Some(r as i32)))) || strings::contains_rune("!\"#$%&'()*,:;<=>?[\\]^{|}`\u{fffd}".to_string(), r) {
+        if !unicode::is_graphic(Arc::new(Mutex::new(Some(r as i32)))) || unicode::is_space(Arc::new(Mutex::new(Some(r as i32)))) || strings::contains_rune(Arc::new(Mutex::new(Some("!\"#$%&'()*,:;<=>?[\\]^{|}`\u{fffd}".to_string()))), Arc::new(Mutex::new(Some(r as i32)))) {
         return ({ let __owned = s.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(format!("invalid character U+{:04X}", r as u32))))));
     }
     }
@@ -1072,7 +1072,7 @@ pub fn validated_import_path(path: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Opt
 /// path/filepath and simply use filepath.Dir.)
 pub fn dir(path: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
     {
-        let mut i = strings::last_index_any({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }, "/\\".to_string());;
+        let mut i = strings::last_index_any(Arc::new(Mutex::new(Some({ let __arg_holder = path.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("/\\".to_string()))));;
         if { let __tmp_x = i; let __tmp_y = 0; __tmp_x > __tmp_y } {
             return Arc::new(Mutex::new(Some({ let __s = &((*path.lock().unwrap().as_ref().unwrap()).clone()); let __high = (i) as usize; __s[..__high].to_string() })));;
         }

@@ -998,7 +998,7 @@ impl crate::check::Checker {
 /// goTypeName returns the Go type name for typ and
 /// removes any occurrences of "types." from that name.
 pub fn go_type_name(typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc<Mutex<Option<String>>> {
-    Arc::new(Mutex::new(Some({ let __s = (*Arc::new(Mutex::new(Some(format!("{}", __go_type_name(typ.lock().unwrap().as_ref().unwrap()))))).lock().unwrap().as_ref().unwrap()).clone(); let __old = "types.".to_string(); let __new = "".to_string(); __s.replace(&__old, &__new) })))
+    strings::replace_all(Arc::new(Mutex::new(Some(format!("{}", __go_type_name(typ.lock().unwrap().as_ref().unwrap()))))), Arc::new(Mutex::new(Some("types.".to_string()))), Arc::new(Mutex::new(Some("".to_string()))))
 }
 
 pub fn set_def_type(def: Arc<Mutex<Option<TypeName>>>, typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) {

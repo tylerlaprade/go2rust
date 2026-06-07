@@ -24,5 +24,6 @@ math = { path = "../math" }
 path_filepath = { path = "../path_filepath" }
 slices = { path = "../slices" }
 strconv = { path = "../strconv" }
+strings = { path = "../strings" }
 unicode = { path = "../unicode" }
 unicode_utf8 = { path = "../unicode_utf8" }

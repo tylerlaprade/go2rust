@@ -87,7 +87,7 @@ impl crate::check::Checker {
         return;
     }
                 // len(s) > 2
-        if (*Arc::new(Mutex::new(Some({ let __s = (*s.lock().unwrap().as_ref().unwrap()).clone(); let __arg = "_".to_string(); __s.contains(&__arg) }))).lock().unwrap().as_ref().unwrap()) {
+        if strings::contains(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("_".to_string())))) {
         self.version_errorf(Arc::new(Mutex::new(Some(Box::new(go_ast::r#mod::BasicLitPtr(lit.clone())) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = go1_13.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("underscore in numeric literal".to_string()))), Arc::new(Mutex::new(Some(vec![]))));
         return;
     }

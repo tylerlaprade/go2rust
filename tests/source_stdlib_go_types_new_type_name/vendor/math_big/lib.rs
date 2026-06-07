@@ -50,6 +50,7 @@ pub fn __go_init_all() {
         math::__go_init_all();
         math_bits::__go_init_all();
         strconv::__go_init_all();
+        strings::__go_init_all();
         accuracy_string::__go_zero_globals();
         floatconv::__go_zero_globals();
         int::__go_zero_globals();

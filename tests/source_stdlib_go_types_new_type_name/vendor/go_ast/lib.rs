@@ -27,6 +27,7 @@ pub fn __go_init_all() {
         go_token::__go_init_all();
         slices::__go_init_all();
         strconv::__go_init_all();
+        strings::__go_init_all();
         filter::__go_zero_globals();
         print::__go_zero_globals();
         scope::__go_zero_globals();

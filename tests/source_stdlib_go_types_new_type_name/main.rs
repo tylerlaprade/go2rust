@@ -13,6 +13,7 @@ fn main() {
     internal_cpu::__go_init_all();
     internal_filepathlite::__go_init_all();
     internal_godebug::__go_init_all();
+    internal_godebugs::__go_init_all();
     internal_goexperiment::__go_init_all();
     internal_gover::__go_init_all();
     internal_goversion::__go_init_all();
@@ -24,6 +25,7 @@ fn main() {
     path_filepath::__go_init_all();
     slices::__go_init_all();
     strconv::__go_init_all();
+    strings::__go_init_all();
     unicode::__go_init_all();
     unicode_utf8::__go_init_all();
 

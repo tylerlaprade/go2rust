@@ -540,7 +540,7 @@ impl typeWriter {
             if !{ let __v = (*first.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         self.byte(Arc::new(Mutex::new(Some((';' as i32) as u8))));
     }
-            self.string(Arc::new(Mutex::new(Some({ let __parts = (*termHashes.lock().unwrap()).as_ref().cloned().unwrap_or_default(); let __sep = "|".to_string(); __parts.join(&__sep) }))));
+            self.string(strings::join(termHashes.clone(), Arc::new(Mutex::new(Some("|".to_string())))));
         }
     }
 

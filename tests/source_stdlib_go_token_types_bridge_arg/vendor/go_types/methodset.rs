@@ -131,13 +131,13 @@ impl MethodSet {
         if { let __tmp_x = self.len(); let __tmp_y = 0; __tmp_x == __tmp_y } {
         return Arc::new(Mutex::new(Some("MethodSet {}".to_string())));
     }
-        let mut buf: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(Default::default())));
-        (*buf.clone().lock().unwrap().as_mut().unwrap()).push_str(&format!("{}\n", format!("{}", "MethodSet {".to_string())));
+        let mut buf: Arc<Mutex<Option<strings::builder::Builder>>> = Arc::new(Mutex::new(Some(Default::default())));
+        (*buf.clone().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("{}\n", format!("{}", "MethodSet {".to_string()))))));
         { let __range_holder = self.list.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter() {
-        (*buf.clone().lock().unwrap().as_mut().unwrap()).push_str(&format!("\t{}\n", format!("&{}", (*f.lock().unwrap().as_ref().unwrap()))));
+        (*buf.clone().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("\t{}\n", format!("&{}", (*f.lock().unwrap().as_ref().unwrap())))))));
     } }
-        (*buf.clone().lock().unwrap().as_mut().unwrap()).push_str(&format!("{}\n", format!("{}", "}".to_string())));
-        return Arc::new(Mutex::new(Some({ let __builder = buf.clone(); let __guard = __builder.lock().unwrap(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value })));
+        (*buf.clone().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("{}\n", format!("{}", "}".to_string()))))));
+        return (*buf.lock().unwrap().as_ref().unwrap()).string();
     }
 
     /// Len returns the number of methods in s.

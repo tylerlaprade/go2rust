@@ -365,7 +365,7 @@ impl gowasmFeatures {
         if (*self.sign_ext.clone().lock().unwrap().as_ref().unwrap()) {
         { let new_val = { let __append_target = flags.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push("signext".to_string()); __append_target.clone() }; flags = new_val; };
     }
-        return Arc::new(Mutex::new(Some({ let __parts = (*flags.lock().unwrap()).as_ref().cloned().unwrap_or_default(); let __sep = ",".to_string(); __parts.join(&__sep) })));
+        return strings::join(flags.clone(), Arc::new(Mutex::new(Some(",".to_string()))));
     }
 }
 
@@ -413,15 +413,15 @@ pub fn gofips140() -> Arc<Mutex<Option<String>>> {
 /// isFIPSVersion reports whether v is a valid FIPS version,
 /// of the form vX.Y.Z.
 pub fn is_f_i_p_s_version(mut v: Arc<Mutex<Option<String>>>) -> bool {
-    if !(*Arc::new(Mutex::new(Some({ let __s = (*v.lock().unwrap().as_ref().unwrap()).clone(); let __arg = "v".to_string(); __s.starts_with(&__arg) }))).lock().unwrap().as_ref().unwrap()) {
+    if !strings::has_prefix(Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("v".to_string())))) {
         return false;
     }
     let (__tmp_0, mut ok) = skip_num(Arc::new(Mutex::new(Some({ let __s = &((*v.lock().unwrap().as_ref().unwrap()).clone()); let __low = ("v".len()) as usize; __s[__low..].to_string() })))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *v.lock().unwrap() = __moved_tmp_0;;
-    if !ok || !(*Arc::new(Mutex::new(Some({ let __s = (*v.lock().unwrap().as_ref().unwrap()).clone(); let __arg = ".".to_string(); __s.starts_with(&__arg) }))).lock().unwrap().as_ref().unwrap()) {
+    if !ok || !strings::has_prefix(Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(".".to_string())))) {
         return false;
     }
     { let (__tmp_0, __tmp_1) = skip_num(Arc::new(Mutex::new(Some({ let __s = &((*v.lock().unwrap().as_ref().unwrap()).clone()); let __low = (".".len()) as usize; __s[__low..].to_string() })))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *v.lock().unwrap() = __moved_tmp_0; ok = __tmp_1; };
-    if !ok || !(*Arc::new(Mutex::new(Some({ let __s = (*v.lock().unwrap().as_ref().unwrap()).clone(); let __arg = ".".to_string(); __s.starts_with(&__arg) }))).lock().unwrap().as_ref().unwrap()) {
+    if !ok || !strings::has_prefix(Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(".".to_string())))) {
         return false;
     }
     { let (__tmp_0, __tmp_1) = skip_num(Arc::new(Mutex::new(Some({ let __s = &((*v.lock().unwrap().as_ref().unwrap()).clone()); let __low = (".".len()) as usize; __s[__low..].to_string() })))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *v.lock().unwrap() = __moved_tmp_0; ok = __tmp_1; };
@@ -456,12 +456,12 @@ const hardFloatOpt: &'static str = ",hardfloat";
     let mut v = env_or(Arc::new(Mutex::new(Some("GOARM".to_string()))), Arc::new(Mutex::new(Some({ let __arg_holder = def.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
 
     let mut floatSpecified = Arc::new(Mutex::new(Some(false)));
-    if (*Arc::new(Mutex::new(Some({ let __s = (*v.lock().unwrap().as_ref().unwrap()).clone(); let __arg = softFloatOpt; __s.ends_with(&__arg) }))).lock().unwrap().as_ref().unwrap()) {
+    if strings::has_suffix(Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(",softfloat".to_string())))) {
         { let new_val = true; *(*g.lock().unwrap().as_ref().unwrap()).soft_float.lock().unwrap() = Some(new_val); };
         { let new_val = true; *floatSpecified.lock().unwrap() = Some(new_val); };
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*v.lock().unwrap().as_ref().unwrap()).clone()); let __high = ({ let __tmp_x = ((*v.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 10; __tmp_x - __tmp_y }) as usize; __s[..__high].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *v.lock().unwrap() = __moved_val; };
     }
-    if (*Arc::new(Mutex::new(Some({ let __s = (*v.lock().unwrap().as_ref().unwrap()).clone(); let __arg = hardFloatOpt; __s.ends_with(&__arg) }))).lock().unwrap().as_ref().unwrap()) {
+    if strings::has_suffix(Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(",hardfloat".to_string())))) {
         { let new_val = true; *floatSpecified.lock().unwrap() = Some(new_val); };
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*v.lock().unwrap().as_ref().unwrap()).clone()); let __high = ({ let __tmp_x = ((*v.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 10; __tmp_x - __tmp_y }) as usize; __s[..__high].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *v.lock().unwrap() = __moved_val; };
     }
@@ -499,13 +499,13 @@ const cryptoOpt: &'static str = ",crypto";
 
         // We allow any combination of suffixes, in any order
     loop {
-        if (*Arc::new(Mutex::new(Some({ let __s = (*v.lock().unwrap().as_ref().unwrap()).clone(); let __arg = lseOpt; __s.ends_with(&__arg) }))).lock().unwrap().as_ref().unwrap()) {
+        if strings::has_suffix(Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(",lse".to_string())))) {
         { let new_val = true; *(*g.lock().unwrap().as_ref().unwrap()).l_s_e.lock().unwrap() = Some(new_val); };
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*v.lock().unwrap().as_ref().unwrap()).clone()); let __high = ({ let __tmp_x = ((*v.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 4; __tmp_x - __tmp_y }) as usize; __s[..__high].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *v.lock().unwrap() = __moved_val; };
         continue
     }
 
-        if (*Arc::new(Mutex::new(Some({ let __s = (*v.lock().unwrap().as_ref().unwrap()).clone(); let __arg = cryptoOpt; __s.ends_with(&__arg) }))).lock().unwrap().as_ref().unwrap()) {
+        if strings::has_suffix(Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(",crypto".to_string())))) {
         { let new_val = true; *(*g.lock().unwrap().as_ref().unwrap()).crypto.lock().unwrap() = Some(new_val); };
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*v.lock().unwrap().as_ref().unwrap()).clone()); let __high = ({ let __tmp_x = ((*v.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 7; __tmp_x - __tmp_y }) as usize; __s[..__high].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *v.lock().unwrap() = __moved_val; };
         continue
@@ -586,7 +586,7 @@ pub fn goriscv64() -> i32 {
     }
     { let __rhs_holder = Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(format!("invalid GORISCV64: must be rva20u64, rva22u64"))))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *Error.lock().unwrap() = new_val; };
     let mut v = Arc::new(Mutex::new(Some({ let __s = &(DEFAULT_G_O_R_I_S_C_V64); let __low = ("rva".len()) as usize; __s[__low..].to_string() })));
-    let mut i = strings::index_func({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }, Arc::new(Mutex::new(Some(Box::new(move |r: Arc<Mutex<Option<i32>>>| -> bool {
+    let mut i = strings::index_func(Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(Box::new(move |r: Arc<Mutex<Option<i32>>>| -> bool {
         return { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('0' as i32); __tmp_x < __tmp_y } || { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('9' as i32); __tmp_x > __tmp_y };
     }) as Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> bool + Send + Sync>))));
     let (mut year, _) = strconv::atoi(Arc::new(Mutex::new(Some({ let __s = &((*v.lock().unwrap().as_ref().unwrap()).clone()); let __high = (i) as usize; __s[..__high].to_string() }))));
@@ -596,7 +596,7 @@ pub fn goriscv64() -> i32 {
 pub fn gowasm() -> Arc<Mutex<Option<gowasmFeatures>>> {
     let mut f: Arc<Mutex<Option<gowasmFeatures>>> = Arc::new(Mutex::new(Some(Default::default())));
 
-    { let __range_holder = Arc::new(Mutex::new(Some({ let __s = (*env_or(Arc::new(Mutex::new(Some("GOWASM".to_string()))), Arc::new(Mutex::new(Some("".to_string())))).lock().unwrap().as_ref().unwrap()).clone(); let __sep = ",".to_string(); __s.split(&__sep).map(|__part| __part.to_string()).collect::<Vec<String>>() }))).clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for opt in __range_values.iter() {
+    { let __range_holder = strings::split(env_or(Arc::new(Mutex::new(Some("GOWASM".to_string()))), Arc::new(Mutex::new(Some("".to_string())))), Arc::new(Mutex::new(Some(",".to_string())))).clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for opt in __range_values.iter() {
         { let _switch_val = (*opt).clone();
     if _switch_val == ("satconv".to_string()) {
             { let new_val = true; *(*f.lock().unwrap().as_ref().unwrap()).sat_conv.lock().unwrap() = Some(new_val); };

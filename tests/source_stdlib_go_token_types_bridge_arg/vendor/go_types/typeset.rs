@@ -231,28 +231,28 @@ impl _TypeSet {
         }
         let mut hasMethods = Arc::new(Mutex::new(Some({ let __tmp_x = (({ let __len_target = { let __field = self.methods.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x > __tmp_y })));
         let mut hasTerms = self.has_terms();
-        let mut buf: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(Default::default())));
-        (*buf.lock().unwrap().as_mut().unwrap()).push((('{' as i32)) as u8 as char);
+        let mut buf: Arc<Mutex<Option<strings::builder::Builder>>> = Arc::new(Mutex::new(Some(Default::default())));
+        (*buf.lock().unwrap().as_mut().unwrap()).write_byte(Arc::new(Mutex::new(Some(('{' as i32) as u8))));
         if (*self.comparable.clone().lock().unwrap().as_ref().unwrap()) {
-        (*buf.lock().unwrap().as_mut().unwrap()).push_str("comparable");
+        (*buf.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some("comparable".to_string()))));
         if { let __v = (*hasMethods.lock().unwrap().as_ref().unwrap()).clone(); __v } || hasTerms {
-        (*buf.lock().unwrap().as_mut().unwrap()).push_str("; ");
+        (*buf.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some("; ".to_string()))));
     }
     }
         { let __range_holder = self.methods.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, m) in __range_values.iter().enumerate() {
         if { let __tmp_x = i as i32; let __tmp_y = 0; __tmp_x > __tmp_y } {
-        (*buf.lock().unwrap().as_mut().unwrap()).push_str("; ");
+        (*buf.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some("; ".to_string()))));
     }
-        (*buf.lock().unwrap().as_mut().unwrap()).push_str(&(*{ let __recv = m.clone(); let __recv_ptr: *const crate::object::Func = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::Func }; let __result = unsafe { &*__recv_ptr }.string(); __result }.lock().unwrap().as_ref().unwrap()).clone());
+        (*buf.lock().unwrap().as_mut().unwrap()).write_string({ let __recv = m.clone(); let __recv_ptr: *const crate::object::Func = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::object::Func }; let __result = unsafe { &*__recv_ptr }.string(); __result });
     } }
         if { let __v = (*hasMethods.lock().unwrap().as_ref().unwrap()).clone(); __v } && hasTerms {
-        (*buf.lock().unwrap().as_mut().unwrap()).push_str("; ");
+        (*buf.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some("; ".to_string()))));
     }
         if hasTerms {
-        (*buf.lock().unwrap().as_mut().unwrap()).push_str(&(*(*self.terms.lock().unwrap().as_ref().unwrap()).string().lock().unwrap().as_ref().unwrap()).clone());
+        (*buf.lock().unwrap().as_mut().unwrap()).write_string((*self.terms.lock().unwrap().as_ref().unwrap()).string());
     }
-        (*buf.lock().unwrap().as_mut().unwrap()).push_str("}");
-        return Arc::new(Mutex::new(Some({ let __builder = buf.clone(); let __guard = __builder.lock().unwrap(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value })));
+        (*buf.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some("}".to_string()))));
+        return (*buf.lock().unwrap().as_ref().unwrap()).string();
     }
 
     /// hasTerms reports whether s has specific type terms.

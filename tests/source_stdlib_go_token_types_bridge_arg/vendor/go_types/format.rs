@@ -90,7 +90,7 @@ impl crate::check::Checker {
     }
 
     pub fn trace(&self, pos: Arc<Mutex<Option<go_token::position::Pos>>>, format: Arc<Mutex<Option<String>>>, args: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) {
-        print!("{}:\t{}{}\n", (*(*self.fset.lock().unwrap().as_ref().unwrap()).position(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()), (*Arc::new(Mutex::new(Some({ let __s = ".  ".to_string(); let __count = { let __selector_holder = self.indent.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __s.repeat(__count as usize) }))).lock().unwrap().as_ref().unwrap()), (*sprintf({ let __field = self.fset.clone(); __field }, Arc::new(Mutex::new(Some({ let mut __recv = self.clone(); Box::new(move |__arg0: Arc<Mutex<Option<crate::package::Package>>>| -> Arc<Mutex<Option<String>>> { __recv.qualifier(__arg0) }) as Box<dyn FnMut(Arc<Mutex<Option<crate::package::Package>>>) -> Arc<Mutex<Option<String>>> + Send + Sync> }))), Arc::new(Mutex::new(Some(true))), Arc::new(Mutex::new(Some({ let __arg_holder = format.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), args.clone()).lock().unwrap().as_ref().unwrap()));
+        print!("{}:\t{}{}\n", (*(*self.fset.lock().unwrap().as_ref().unwrap()).position(Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()), (*strings::repeat(Arc::new(Mutex::new(Some(".  ".to_string()))), Arc::new(Mutex::new(Some({ let __selector_holder = self.indent.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap()), (*sprintf({ let __field = self.fset.clone(); __field }, Arc::new(Mutex::new(Some({ let mut __recv = self.clone(); Box::new(move |__arg0: Arc<Mutex<Option<crate::package::Package>>>| -> Arc<Mutex<Option<String>>> { __recv.qualifier(__arg0) }) as Box<dyn FnMut(Arc<Mutex<Option<crate::package::Package>>>) -> Arc<Mutex<Option<String>>> + Send + Sync> }))), Arc::new(Mutex::new(Some(true))), Arc::new(Mutex::new(Some({ let __arg_holder = format.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), args.clone()).lock().unwrap().as_ref().unwrap()));
     }
 
     /// dump is only needed for debugging
@@ -212,17 +212,17 @@ pub fn sprintf(fset: Arc<Mutex<Option<go_token::position::FileSet>>>, qf: crate:
 
 /// stripAnnotations removes internal (type) annotations from s.
 pub fn strip_annotations(s: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
-    let mut buf: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(Default::default())));
+    let mut buf: Arc<Mutex<Option<strings::builder::Builder>>> = Arc::new(Mutex::new(Some(Default::default())));
     for (_, r) in (*s.lock().unwrap().as_ref().unwrap()).char_indices() {
                 // strip #'s and subscript digits
         if { let __tmp_x = r; let __tmp_y = '\u{2080}'; __tmp_x < __tmp_y } || { let __tmp_x = { let __tmp_x = ('\u{2080}' as i32); let __tmp_y = 10; __tmp_x + __tmp_y } as i32; let __tmp_y = (r as i32); __tmp_x <= __tmp_y } {
-        (*buf.lock().unwrap().as_mut().unwrap()).push(r);
+        (*buf.lock().unwrap().as_mut().unwrap()).write_rune(Arc::new(Mutex::new(Some(r as i32))));
     }
     }
         // strip #'s and subscript digits
         // '₀' == U+2080
-    if { let __tmp_x = ((*buf.lock().unwrap().as_ref().unwrap()).len() as i32 as i32); let __tmp_y = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x < __tmp_y } {
-        return Arc::new(Mutex::new(Some({ let __builder = buf.clone(); let __guard = __builder.lock().unwrap(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value })));
+    if { let __tmp_x = ((*buf.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x < __tmp_y } {
+        return (*buf.lock().unwrap().as_ref().unwrap()).string();
     }
     return { let __owned = s.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
 }

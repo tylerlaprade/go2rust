@@ -453,7 +453,7 @@ impl crate::check::Checker {
     } else {
                 // If we don't have a number, omit the "untyped" qualifier
                 // for compactness.
-        { let new_val = Arc::new(Mutex::new(Some({ let __s = (*(*({
+        { let new_val = strings::replace(Arc::new(Mutex::new(Some({ let __selector_holder = (*({
         let val = t.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
@@ -465,7 +465,7 @@ impl crate::check::Checker {
         } else {
             panic!("type assertion on nil interface")
         }
-    }).lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).clone(); let __old = "untyped ".to_string(); let __new = "".to_string(); let __n = -(1); if __n < 0 { __s.replace(&__old, &__new) } else { __s.replacen(&__old, &__new, __n as usize) } }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_val; };
+    }).lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some("untyped ".to_string()))), Arc::new(Mutex::new(Some("".to_string()))), Arc::new(Mutex::new(Some(-1)))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_val; };
     }
         }
         if !_matched || _fallthrough {
@@ -522,7 +522,7 @@ impl crate::check::Checker {
                 // for compactness.
                 // handle ... parameters/arguments
                 // In correct code, the parameter type is a slice, but be careful.
-        return Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "(".to_string())); __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some({ let __parts = (*res.lock().unwrap()).as_ref().cloned().unwrap_or_default(); let __sep = ", ".to_string(); __parts.join(&__sep) }))).lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", ")".to_string())); __s })));
+        return Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "(".to_string())); __s.push_str(&format!("{}", (*strings::join(res.clone(), Arc::new(Mutex::new(Some(", ".to_string())))).lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", ")".to_string())); __s })));
     }
 
     pub fn assign_error(&self, rhs: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>>, l: Arc<Mutex<Option<i32>>>, r: Arc<Mutex<Option<i32>>>) {

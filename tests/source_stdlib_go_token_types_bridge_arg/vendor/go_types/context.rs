@@ -168,7 +168,7 @@ impl Context {
     }
                 // TODO(rfindley): consider asserting on isGeneric(typ) here, if and when
                 // isGeneric handles *Signature types.
-        return Arc::new(Mutex::new(Some({ let __s = (*(*buf.lock().unwrap().as_mut().unwrap()).string().lock().unwrap().as_ref().unwrap()).clone(); let __old = " ".to_string(); let __new = "#".to_string(); __s.replace(&__old, &__new) })));
+        return strings::replace_all((*buf.lock().unwrap().as_mut().unwrap()).string(), Arc::new(Mutex::new(Some(" ".to_string()))), Arc::new(Mutex::new(Some("#".to_string()))));
     }
 
     /// lookup returns an existing instantiation of orig with targs, if it exists.

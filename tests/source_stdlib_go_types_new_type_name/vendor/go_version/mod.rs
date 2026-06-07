@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 /// stripGo converts from a "go1.21-bigcorp" version to a "1.21" version.
 /// If v does not start with "go", stripGo returns the empty string (a known invalid version).
 pub fn strip_go(mut v: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
-    { let (__tmp_0, __tmp_1, __tmp_2) = { let __s = (*v.lock().unwrap().as_ref().unwrap()).clone(); let __sep = "-".to_string(); if let Some(__idx) = __s.find(&__sep) { let __before = __s[..__idx].to_string(); let __after = __s[__idx + __sep.len()..].to_string(); (Arc::new(Mutex::new(Some(__before))), Arc::new(Mutex::new(Some(__after))), true) } else { (Arc::new(Mutex::new(Some(__s))), Arc::new(Mutex::new(Some(String::new()))), false) } }; let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *v.lock().unwrap() = __moved_tmp_0; };
+    { let (__tmp_0, __tmp_1, __tmp_2) = strings::cut(Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("-".to_string())))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *v.lock().unwrap() = __moved_tmp_0; };
     if { let __tmp_x = ((*v.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 2; __tmp_x < __tmp_y } || { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = &((*v.lock().unwrap().as_ref().unwrap()).clone()); let __high = (2) as usize; __s[..__high].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "go".to_string(); __tmp_x != __tmp_y } {
         return Arc::new(Mutex::new(Some("".to_string())));
     }
@@ -27,7 +27,7 @@ pub fn lang(x: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
     if { let __tmp_x = (*v.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
         return Arc::new(Mutex::new(Some("".to_string())));
     }
-    if (*Arc::new(Mutex::new(Some({ let __s = (*Arc::new(Mutex::new(Some({ let __s = &((*x.lock().unwrap().as_ref().unwrap()).clone()); let __low = (2) as usize; __s[__low..].to_string() }))).lock().unwrap().as_ref().unwrap()).clone(); let __arg = (*v.lock().unwrap().as_ref().unwrap()).clone(); __s.starts_with(&__arg) }))).lock().unwrap().as_ref().unwrap()) {
+    if strings::has_prefix(Arc::new(Mutex::new(Some({ let __s = &((*x.lock().unwrap().as_ref().unwrap()).clone()); let __low = (2) as usize; __s[__low..].to_string() }))), Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
         return Arc::new(Mutex::new(Some({ let __s = &((*x.lock().unwrap().as_ref().unwrap()).clone()); let __high = ({ let __tmp_x = 2; let __tmp_y = ((*v.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x + __tmp_y }) as usize; __s[..__high].to_string() })));
     } else {
         return Arc::new(Mutex::new(Some(format!("{}{}", "go".to_string(), { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }))));

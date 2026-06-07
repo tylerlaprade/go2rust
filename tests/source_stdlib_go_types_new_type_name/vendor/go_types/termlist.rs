@@ -152,14 +152,14 @@ impl termlist {
         if { let __tmp_x = ({ let __slice_holder = self.0.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
         return Arc::new(Mutex::new(Some("\u{2205}".to_string())));
     }
-        let mut buf: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(Default::default())));
+        let mut buf: Arc<Mutex<Option<strings::builder::Builder>>> = Arc::new(Mutex::new(Some(Default::default())));
         { let __range_holder = self.0.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, x) in __range_values.iter().enumerate() {
         if { let __tmp_x = i as i32; let __tmp_y = 0; __tmp_x > __tmp_y } {
-        (*buf.lock().unwrap().as_mut().unwrap()).push_str(TERM_SEP);
+        (*buf.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(" | ".to_string()))));
     }
-        (*buf.lock().unwrap().as_mut().unwrap()).push_str(&(*{ let __recv = x.clone(); let __recv_ptr: *const crate::typeterm::term = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::typeterm::term }; let __result = unsafe { &*__recv_ptr }.string(); __result }.lock().unwrap().as_ref().unwrap()).clone());
+        (*buf.lock().unwrap().as_mut().unwrap()).write_string({ let __recv = x.clone(); let __recv_ptr: *const crate::typeterm::term = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::typeterm::term }; let __result = unsafe { &*__recv_ptr }.string(); __result });
     } }
-        return Arc::new(Mutex::new(Some({ let __builder = buf.clone(); let __guard = __builder.lock().unwrap(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value })));
+        return (*buf.lock().unwrap().as_ref().unwrap()).string();
     }
 
     /// isEmpty reports whether the termlist xl represents the empty set of types.

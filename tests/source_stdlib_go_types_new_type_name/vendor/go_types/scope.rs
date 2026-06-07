@@ -311,7 +311,7 @@ impl Scope {
     pub fn write_to(&self, w: Arc<Mutex<Option<io_Writer>>>, n: Arc<Mutex<Option<i32>>>, recurse: Arc<Mutex<Option<bool>>>) {
         const ind: &'static str = ".  ";
 
-        let mut indn = Arc::new(Mutex::new(Some({ let __s = ind; let __count = (*n.lock().unwrap().as_ref().unwrap()); __s.repeat(__count as usize) })));
+        let mut indn = strings::repeat(Arc::new(Mutex::new(Some(".  ".to_string()))), Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         { let __s = format!("{}{} scope {:p} {{\n", { let __v = (*indn.lock().unwrap().as_ref().unwrap()).clone(); __v }, (*self.comment.lock().unwrap().as_ref().unwrap()), self); let __n = __s.len() as i32; (*w.lock().unwrap().as_ref().unwrap()).__go_write_bytes(__s.as_bytes()); (__n, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))) };
         let mut indn1 = Arc::new(Mutex::new(Some(format!("{}{}", { let __v = (*indn.lock().unwrap().as_ref().unwrap()).clone(); __v }, ind))));
         { let __range_holder = self.names().clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for name in __range_values.iter() {
@@ -327,9 +327,9 @@ impl Scope {
 
     /// String returns a string representation of the scope, for debugging.
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        let mut buf: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(Default::default())));
+        let mut buf: Arc<Mutex<Option<strings::builder::Builder>>> = Arc::new(Mutex::new(Some(Default::default())));
         self.write_to(Arc::new(Mutex::new(Some(io_Writer::__go_from(buf.clone())))), Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(false))));
-        return Arc::new(Mutex::new(Some({ let __builder = buf.clone(); let __guard = __builder.lock().unwrap(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value })));
+        return (*buf.lock().unwrap().as_ref().unwrap()).string();
     }
 }
 

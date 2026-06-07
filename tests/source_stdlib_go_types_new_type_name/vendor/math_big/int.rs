@@ -520,7 +520,7 @@ impl Int {
     /// are no other errors. If base != 0, underscores are not recognized
     /// and act like any other character that is not a valid digit.
     pub fn set_string(&mut self, s: Arc<Mutex<Option<String>>>, base: Arc<Mutex<Option<i32>>>) -> (Arc<Mutex<Option<Int>>>, bool) {
-        self.set_from_scanner({ let __arg = strings::new_reader({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<io_ByteScanner> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) }, Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))
+        self.set_from_scanner(Arc::new(Mutex::new(Some(io_ByteScanner::__go_from(strings::new_reader(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))))))), Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))
     }
 
     /// setFromScanner implements SetString given an io.ByteScanner.

@@ -761,7 +761,7 @@ pub fn def(mut obj: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>) {
     let mut obj: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>> = Arc::new(Mutex::new(obj.lock().unwrap().as_ref().map(|__v| Object::__go_clone_box_object(__v.as_ref()))));
     assert(Arc::new(Mutex::new(Some({ let __tmp_x = (*(*obj.lock().unwrap().as_ref().unwrap()).color().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::object::color(Arc::new(Mutex::new(Some(BLACK as u32)))); __tmp_x == __tmp_y }))));
     let mut name = (*obj.lock().unwrap().as_ref().unwrap()).name();
-    if (*Arc::new(Mutex::new(Some({ let __s = (*name.lock().unwrap().as_ref().unwrap()).clone(); let __arg = " ".to_string(); __s.contains(&__arg) }))).lock().unwrap().as_ref().unwrap()) {
+    if strings::contains(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(" ".to_string())))) {
         return;
     }
 

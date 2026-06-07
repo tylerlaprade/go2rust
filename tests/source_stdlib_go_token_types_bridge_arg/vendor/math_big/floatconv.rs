@@ -299,16 +299,16 @@ impl crate::float::Float {
         { let new_val = self.set_inf(Arc::new(Mutex::new(Some({ let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('-' as i32) as u8; __tmp_x == __tmp_y })))).clone(); f = new_val; };
         return (f.clone(), (*b.lock().unwrap().as_ref().unwrap()), err.clone());
     }
-        let mut r = strings::new_reader({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
+        let mut r = strings::new_reader(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         {
-        { let (__tmp_0, __tmp_1, __tmp_2) = self.scan_1({ let __arg = r.clone(); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<io_ByteScanner> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) }, Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); f = __tmp_0.clone(); *b.lock().unwrap() = Some(__tmp_1); let __moved_tmp_2 = { let mut __guard = __tmp_2.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_2; };;
+        { let (__tmp_0, __tmp_1, __tmp_2) = self.scan_1(Arc::new(Mutex::new(Some(io_ByteScanner::__go_from(r.clone())))), Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); f = __tmp_0.clone(); *b.lock().unwrap() = Some(__tmp_1); let __moved_tmp_2 = { let mut __guard = __tmp_2.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_2; };;
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
             return (f.clone(), (*b.lock().unwrap().as_ref().unwrap()), err.clone());;
         }
     }
                 // entire string must have been consumed
         {
-        let (mut ch, mut err2) = { let __recv = r.clone(); let __recv_ptr: *mut strings_Reader = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut strings_Reader }; let __result = unsafe { &mut *__recv_ptr }.read_byte(); __result };;
+        let (mut ch, mut err2) = { let __recv = r.clone(); let __recv_ptr: *mut strings::reader::Reader = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut strings::reader::Reader }; let __result = unsafe { &mut *__recv_ptr }.read_byte(); __result };;
         if { let __nil_result = (*err2.lock().unwrap()).is_none(); __nil_result } {
             { let __rhs_holder = Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(format!("expected end of string, found {:?}", ch))))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };;
         } else if { let __left = err2.clone(); let __right = io::EOF().clone(); let __same_handle = Arc::ptr_eq(&__left, &__right); let __eq = if __same_handle { true } else { let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); if __left_guard.is_none() || __right_guard.is_none() { __left_guard.is_none() == __right_guard.is_none() } else { false } }; !__eq } {

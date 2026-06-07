@@ -15,4 +15,5 @@ math = { path = "../math" }
 math_big = { path = "../math_big" }
 math_bits = { path = "../math_bits" }
 strconv = { path = "../strconv" }
+strings = { path = "../strings" }
 unicode_utf8 = { path = "../unicode_utf8" }

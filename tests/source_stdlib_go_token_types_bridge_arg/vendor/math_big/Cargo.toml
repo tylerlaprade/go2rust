@@ -13,3 +13,4 @@ go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
 math = { path = "../math" }
 math_bits = { path = "../math_bits" }
 strconv = { path = "../strconv" }
+strings = { path = "../strings" }

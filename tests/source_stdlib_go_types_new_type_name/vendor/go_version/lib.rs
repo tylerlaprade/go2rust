@@ -9,5 +9,6 @@ static __GO_INIT_ONCE: std::sync::Once = std::sync::Once::new();
 pub fn __go_init_all() {
     __GO_INIT_ONCE.call_once(|| {
         internal_gover::__go_init_all();
+        strings::__go_init_all();
     });
 }

@@ -1,5 +1,7 @@
 use go2rust_stdlib_stubs::*;
 
+use crate::{GoByteSequence};
+
 use crate::r#mod::*;
 use crate::compare_native::*;
 use crate::count_native::*;

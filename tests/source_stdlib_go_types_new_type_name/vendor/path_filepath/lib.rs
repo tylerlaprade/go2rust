@@ -19,6 +19,7 @@ pub fn __go_init_all() {
         internal_bytealg::__go_init_all();
         internal_filepathlite::__go_init_all();
         slices::__go_init_all();
+        strings::__go_init_all();
         unicode_utf8::__go_init_all();
         r#match::__go_zero_globals();
         path::__go_zero_globals();

@@ -97,7 +97,7 @@ impl ExperimentFlags {
     /// String returns the canonical GOEXPERIMENT string to enable this experiment
     /// configuration. (Experiments in the same state as in the baseline are elided.)
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        Arc::new(Mutex::new(Some({ let __parts = (*exp_list(self.flags.clone(), self.baseline.clone(), Arc::new(Mutex::new(Some(false)))).lock().unwrap()).as_ref().cloned().unwrap_or_default(); let __sep = ",".to_string(); __parts.join(&__sep) })))
+        strings::join(exp_list(self.flags.clone(), self.baseline.clone(), Arc::new(Mutex::new(Some(false)))), Arc::new(Mutex::new(Some(",".to_string()))))
     }
 
     /// Enabled returns a list of enabled experiments, as
@@ -154,7 +154,7 @@ pub fn parse_g_o_e_x_p_e_r_i_m_e_n_t(goos: Arc<Mutex<Option<String>>>, goarch: A
         let mut i = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*rt.lock().unwrap().as_ref().unwrap()).num_field(); __tmp_x < __tmp_y } {
         let mut field = (*rv.lock().unwrap().as_ref().unwrap()).field({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
-        { let __map_key = { let __map_key_holder = Arc::new(Mutex::new(Some({ let __s = (*(*(*rt.lock().unwrap().as_ref().unwrap()).field(Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()).name.lock().unwrap().as_ref().unwrap()).clone(); __s.to_lowercase() }))).clone(); let __map_key_guard = __map_key_holder.lock().unwrap(); let __cloned = (*__map_key_guard.as_ref().unwrap()).clone(); drop(__map_key_guard); __cloned }; let __map_value = Arc::new(Mutex::new(Some({ let mut __recv = (*field.lock().unwrap().as_ref().unwrap()).clone(); Box::new(move |__arg0: Arc<Mutex<Option<bool>>>| { __recv.set_bool(__arg0) }) as Box<dyn FnMut(Arc<Mutex<Option<bool>>>) -> () + Send + Sync> }))); (*names.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
+        { let __map_key = { let __map_key_holder = strings::to_lower(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*rt.lock().unwrap().as_ref().unwrap()).field(Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).clone(); let __map_key_guard = __map_key_holder.lock().unwrap(); let __cloned = (*__map_key_guard.as_ref().unwrap()).clone(); drop(__map_key_guard); __cloned }; let __map_value = Arc::new(Mutex::new(Some({ let mut __recv = (*field.lock().unwrap().as_ref().unwrap()).clone(); Box::new(move |__arg0: Arc<Mutex<Option<bool>>>| { __recv.set_bool(__arg0) }) as Box<dyn FnMut(Arc<Mutex<Option<bool>>>) -> () + Send + Sync> }))); (*names.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
                 // "regabi" is an alias for all working regabi
@@ -166,7 +166,7 @@ pub fn parse_g_o_e_x_p_e_r_i_m_e_n_t(goos: Arc<Mutex<Option<String>>>, goarch: A
         { let new_val = v.lock().unwrap().as_ref().unwrap().clone(); *(*(*flags_closure_clone.lock().unwrap().as_mut().unwrap()).flags.lock().unwrap().as_mut().unwrap()).regabi_args.lock().unwrap() = Some(new_val); };
     }) as Box<dyn FnMut(Arc<Mutex<Option<bool>>>) -> () + Send + Sync>))); (*names.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
                 // Parse names.
-        { let __range_holder = Arc::new(Mutex::new(Some({ let __s = (*goexp.lock().unwrap().as_ref().unwrap()).clone(); let __sep = ",".to_string(); __s.split(&__sep).map(|__part| __part.to_string()).collect::<Vec<String>>() }))).clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for mut f in __range_values.iter().cloned() {
+        { let __range_holder = strings::split(Arc::new(Mutex::new(Some({ let __arg_holder = goexp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(",".to_string())))).clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for mut f in __range_values.iter().cloned() {
         if { let __tmp_x = f.clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
         continue
     }
@@ -181,7 +181,7 @@ pub fn parse_g_o_e_x_p_e_r_i_m_e_n_t(goos: Arc<Mutex<Option<String>>>, goarch: A
                 // This is used by cmd/dist, which doesn't know how
                 // to build with any experiment flags.
         let mut val = Arc::new(Mutex::new(Some(true)));
-        if (*Arc::new(Mutex::new(Some({ let __s = f.clone(); let __arg = "no".to_string(); __s.starts_with(&__arg) }))).lock().unwrap().as_ref().unwrap()) {
+        if strings::has_prefix(Arc::new(Mutex::new(Some(f.clone()))), Arc::new(Mutex::new(Some("no".to_string())))) {
         { let __tmp_0 = Arc::new(Mutex::new(Some({ let __s = &(f); let __low = (2) as usize; __s[__low..].to_string() }))); let __tmp_1 = false; f = (*__tmp_0.lock().unwrap().as_ref().unwrap()).clone(); *val.lock().unwrap() = Some(__tmp_1); };
     }
         let (mut set, mut ok) = { let __map = { let __map_holder = names.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&f)) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Default::default(), false) } };

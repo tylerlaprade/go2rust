@@ -863,7 +863,7 @@ impl Named {
     }
         if { let __v = (*foldCase.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         { let __range_holder = self.methods.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, m) in __range_values.iter().enumerate() {
-        if (*Arc::new(Mutex::new(Some({ let __a = (*(*(*m.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).name.lock().unwrap().as_ref().unwrap()).clone(); let __b = (*name.lock().unwrap().as_ref().unwrap()).clone(); __a.to_lowercase() == __b.to_lowercase() }))).lock().unwrap().as_ref().unwrap()) {
+        if strings::equal_fold(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*m.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
         return i as i32;
     }
     } }

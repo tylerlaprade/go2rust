@@ -996,25 +996,6 @@ impl fs_FileInfo {
 }
 
 
-#[derive(Debug, Clone, Default)]
-pub struct godebugs_Info {
-    pub opaque: Arc<Mutex<Option<bool>>>,
-}
-
-impl std::fmt::Display for godebugs_Info {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<godebugs_Info>")
-    }
-}
-
-
-impl godebugs_Info {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
-    }
-}
-
-
 #[derive(Clone)]
 pub struct io_ByteScanner {
     pub __go_id: usize,
@@ -1560,26 +1541,6 @@ impl runtime_plainError {
 
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct strings_Reader;
-
-impl std::fmt::Display for strings_Reader {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<strings_Reader>")
-    }
-}
-
-
-impl strings_Reader {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
-    }
-    pub fn read_byte(&self) -> (u8, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        panic!("strings_Reader.read_byte bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
-
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct sync_Map;
 
 impl std::fmt::Display for sync_Map {
@@ -1630,13 +1591,6 @@ impl sync_Pool {
 
 impl From<bytes_Reader> for io_ByteScanner {
     fn from(_value: bytes_Reader) -> Self {
-        Self::__go_from(_value)
-    }
-}
-
-
-impl From<strings_Reader> for io_ByteScanner {
-    fn from(_value: strings_Reader) -> Self {
         Self::__go_from(_value)
     }
 }
@@ -1714,14 +1668,6 @@ pub mod fs {
 }
 
 
-pub mod godebugs {
-    use super::*;
-    pub fn lookup<T0>(_arg0: T0) -> Arc<Mutex<Option<godebugs_Info>>> {
-        panic!("lookup bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
-
-
 pub mod heap {
     use super::*;
     pub fn fix<T0, T1>(_arg0: T0, _arg1: T1) {
@@ -1740,8 +1686,20 @@ pub mod heap {
 
 pub mod io {
     use super::*;
+    pub const SEEK_CURRENT: i32 = 1;
+    pub const SEEK_END: i32 = 2;
+    pub const SEEK_START: i32 = 0;
+
     pub fn EOF() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
         Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+    }
+
+    pub fn ErrShortWrite() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+    }
+
+    pub fn write_string<T0, T1>(_arg0: T0, _arg1: T1) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        panic!("write_string bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -1831,29 +1789,5 @@ pub mod runtime {
     use super::*;
     pub fn caller<T0>(_arg0: T0) -> (usize, Arc<Mutex<Option<String>>>, i32, bool) {
         panic!("caller bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
-
-
-pub mod strings {
-    use super::*;
-    pub fn contains_rune<T0, T1>(_arg0: T0, _arg1: T1) -> bool {
-        panic!("contains_rune bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn index_byte<T0, T1>(_arg0: T0, _arg1: T1) -> i32 {
-        panic!("index_byte bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn index_func<T0, T1>(_arg0: T0, _arg1: T1) -> i32 {
-        panic!("index_func bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn last_index_any<T0, T1>(_arg0: T0, _arg1: T1) -> i32 {
-        panic!("last_index_any bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn new_reader<T0>(_arg0: T0) -> Arc<Mutex<Option<strings_Reader>>> {
-        panic!("new_reader bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }

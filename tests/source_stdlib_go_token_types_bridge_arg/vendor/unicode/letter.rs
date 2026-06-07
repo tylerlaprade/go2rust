@@ -529,6 +529,66 @@ pub fn to_title(mut r: Arc<Mutex<Option<i32>>>) -> i32 {
     to(Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))
 }
 
+/// SimpleFold iterates over Unicode code points equivalent under
+/// the Unicode-defined simple case folding. Among the code points
+/// equivalent to rune (including rune itself), SimpleFold returns the
+/// smallest rune > r if one exists, or else the smallest rune >= 0.
+/// If r is not a valid Unicode code point, SimpleFold(r) returns r.
+///
+/// For example:
+///
+///	SimpleFold('A') = 'a'
+///	SimpleFold('a') = 'A'
+///
+///	SimpleFold('K') = 'k'
+///	SimpleFold('k') = '\u212A' (Kelvin symbol, K)
+///	SimpleFold('\u212A') = 'K'
+///
+///	SimpleFold('1') = '1'
+///
+///	SimpleFold(-2) = -2
+pub fn simple_fold(r: Arc<Mutex<Option<i32>>>) -> i32 {
+    if { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i32; __tmp_x < __tmp_y } || { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MAX_RUNE as i32; __tmp_x > __tmp_y } {
+        return { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v };
+    }
+
+    if { let __tmp_x = ((*Arc::new(Mutex::new(Some((*r.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()) as i32); let __tmp_y = 128; __tmp_x < __tmp_y } {
+        return (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = asciiFold.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() } as i32))).lock().unwrap().as_ref().unwrap());
+    }
+
+        // Consult caseOrbit table for special cases.
+    let mut lo = Arc::new(Mutex::new(Some(0)));
+    let mut hi = Arc::new(Mutex::new(Some((*caseOrbit.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)));
+    while { let __tmp_x = { let __v = (*lo.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*hi.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
+        let mut m = Arc::new(Mutex::new(Some(({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*lo.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*hi.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x >> __tmp_y }) as i32)));
+        if { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __seq = { let __seq_holder = caseOrbit.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.from.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
+        { let new_val = { let __tmp_x = { let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }; *lo.lock().unwrap() = Some(new_val); };
+    } else {
+        { let new_val = m.lock().unwrap().as_ref().unwrap().clone(); *hi.lock().unwrap() = Some(new_val); };
+    }
+    }
+    if { let __tmp_x = ({ let __v = (*lo.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*caseOrbit.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x < __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __seq = { let __seq_holder = caseOrbit.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*lo.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.from.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } {
+        return (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __seq = { let __seq_holder = caseOrbit.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*lo.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.to.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
+    }
+
+        // No folding specified. This is a one- or two-element
+        // equivalence class containing rune and ToLower(rune)
+        // and ToUpper(rune) if they are different from rune.
+    {
+        let mut cr: Option<GoSliceElemPtr<CaseRange>> = lookup_case_range(Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), CaseRanges.clone());;
+        if cr.is_some() {
+            {
+        let mut l = convert_case(Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), GoPtr::slice_elem_opt(cr.clone()));;
+        if { let __tmp_x = l; let __tmp_y = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x != __tmp_y } {
+            return l;;
+        }
+    };
+            return convert_case(Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), GoPtr::slice_elem_opt(cr.clone()));;
+        }
+    }
+    return { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v };
+}
+
 impl GoValueClone for RangeTable {
     fn go_value_clone(&self) -> Self {
         self.__go_value_clone()

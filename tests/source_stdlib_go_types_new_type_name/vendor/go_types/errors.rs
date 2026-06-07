@@ -254,9 +254,9 @@ impl crate::check::Checker {
         if { let __tmp_x = { let __selector_holder = (*self.conf.lock().unwrap().as_ref().unwrap()).__error_u_r_l.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
         let mut url = Arc::new(Mutex::new(Some(format!("{}", (*(*self.conf.lock().unwrap().as_ref().unwrap()).__error_u_r_l.lock().unwrap().as_ref().unwrap()).clone()))));
         {
-        let mut i = Arc::new(Mutex::new(Some({ let __s = (*msg.lock().unwrap().as_ref().unwrap()).clone(); let __substr = "\n".to_string(); __s.find(&__substr).map(|__i| __i as i32).unwrap_or(-1) })));;
-        if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } {
-            { let new_val = { let mut __s = String::new(); __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some({ let __s = &((*msg.lock().unwrap().as_ref().unwrap()).clone()); let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[..__high].to_string() }))).lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", { let __v = (*url.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some({ let __s = &((*msg.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..].to_string() }))).lock().unwrap().as_ref().unwrap()))); __s }; *msg.lock().unwrap() = Some(new_val); };;
+        let mut i = strings::index(Arc::new(Mutex::new(Some({ let __arg_holder = msg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("\n".to_string()))));;
+        if { let __tmp_x = i; let __tmp_y = 0; __tmp_x >= __tmp_y } {
+            { let new_val = { let mut __s = String::new(); __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some({ let __s = &((*msg.lock().unwrap().as_ref().unwrap()).clone()); let __high = (i) as usize; __s[..__high].to_string() }))).lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", { let __v = (*url.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some({ let __s = &((*msg.lock().unwrap().as_ref().unwrap()).clone()); let __low = (i) as usize; __s[__low..].to_string() }))).lock().unwrap().as_ref().unwrap()))); __s }; *msg.lock().unwrap() = Some(new_val); };;
         } else {
             { (*msg.lock().unwrap().as_mut().unwrap()).push_str(&{ let __v = (*url.lock().unwrap().as_ref().unwrap()).clone(); __v }); };;
         }
@@ -368,18 +368,18 @@ impl error_ {
         if self.empty() {
         return Arc::new(Mutex::new(Some("no error".to_string())));
     }
-        let mut buf: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(Default::default())));
+        let mut buf: Arc<Mutex<Option<strings::builder::Builder>>> = Arc::new(Mutex::new(Some(Default::default())));
         for i in 0..(({ let __range_holder = self.desc.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
         let mut p: Option<GoSliceElemPtr<errorDesc>> = Some(GoSliceElemPtr::new(self.desc.clone(), (i) as usize));
         if { let __tmp_x = i as i32; let __tmp_y = 0; __tmp_x > __tmp_y } {
         fmt::fprint(buf.clone(), ("\n\t".to_string(),));
         if go_token::position::Pos::is_valid(&(*(*(*p.as_ref().unwrap().borrow().as_ref().unwrap()).posn.lock().unwrap().as_ref().unwrap()).pos().lock().unwrap().as_ref().unwrap())) {
-        (*buf.clone().lock().unwrap().as_mut().unwrap()).push_str(&format!("{}: ", (*(*(*self.check.lock().unwrap().as_ref().unwrap()).fset.lock().unwrap().as_ref().unwrap()).position((*(*p.as_ref().unwrap().borrow().as_ref().unwrap()).posn.lock().unwrap().as_ref().unwrap()).pos()).lock().unwrap().as_ref().unwrap())));
+        (*buf.clone().lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(format!("{}: ", (*(*(*self.check.lock().unwrap().as_ref().unwrap()).fset.lock().unwrap().as_ref().unwrap()).position((*(*p.as_ref().unwrap().borrow().as_ref().unwrap()).posn.lock().unwrap().as_ref().unwrap()).pos()).lock().unwrap().as_ref().unwrap()))))));
     }
     }
-        (*buf.lock().unwrap().as_mut().unwrap()).push_str(&(*(*p.as_ref().unwrap().borrow().as_ref().unwrap()).msg.lock().unwrap().as_ref().unwrap()).clone());
+        (*buf.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some({ let __selector_holder = (*p.as_ref().unwrap().borrow().as_ref().unwrap()).msg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
     }
-        return Arc::new(Mutex::new(Some({ let __builder = buf.clone(); let __guard = __builder.lock().unwrap(); let __value = (*__guard.as_ref().unwrap()).clone(); drop(__guard); __value })));
+        return (*buf.lock().unwrap().as_ref().unwrap()).string();
     }
 
     /// report reports the error err, setting check.firstError if necessary.
@@ -396,7 +396,7 @@ impl error_ {
         if { let __nil_target = (*check.lock().unwrap().as_ref().unwrap()).first_err.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
                 // It is sufficient to look at the first sub-error only.
         let mut msg = Arc::new(Mutex::new(Some({ let __selector_holder = { let __seq = { let __seq_holder = self.desc.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.msg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        if { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = (*msg.lock().unwrap().as_ref().unwrap()).clone(); let __substr = "invalid operand".to_string(); __s.find(&__substr).map(|__i| __i as i32).unwrap_or(-1) }))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x > __tmp_y } || { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __s = (*msg.lock().unwrap().as_ref().unwrap()).clone(); let __substr = "invalid type".to_string(); __s.find(&__substr).map(|__i| __i as i32).unwrap_or(-1) }))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 0; __tmp_x > __tmp_y } {
+        if { let __tmp_x = strings::index(Arc::new(Mutex::new(Some({ let __arg_holder = msg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("invalid operand".to_string())))); let __tmp_y = 0; __tmp_x > __tmp_y } || { let __tmp_x = strings::index(Arc::new(Mutex::new(Some({ let __arg_holder = msg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("invalid type".to_string())))); let __tmp_y = 0; __tmp_x > __tmp_y } {
         return;
     }
     }

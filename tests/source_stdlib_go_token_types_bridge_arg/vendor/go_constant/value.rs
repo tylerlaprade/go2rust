@@ -1237,7 +1237,7 @@ impl stringVal {
     pub fn string_1(&mut self) -> Arc<Mutex<Option<String>>> {
         let __mutex_guard_source_4606 = self.mu.clone(); let __mutex_guard_4606 = __mutex_guard_source_4606.guard();
         if { let __nil_target = self.l.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
-        { let new_val = Arc::new(Mutex::new(Some({ let __parts = (*reverse(self.append_reverse(Arc::new(Mutex::new(None)))).lock().unwrap()).as_ref().cloned().unwrap_or_default(); let __sep = "".to_string(); __parts.join(&__sep) }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *self.s.lock().unwrap() = __moved_val; };
+        { let new_val = strings::join(reverse(self.append_reverse(Arc::new(Mutex::new(None)))), Arc::new(Mutex::new(Some("".to_string())))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *self.s.lock().unwrap() = __moved_val; };
         *self.l.lock().unwrap() = None;
         *self.r.lock().unwrap() = None;
     }
@@ -1650,7 +1650,7 @@ impl floatVal {
         let (mut x, _) = { let __recv = f.clone(); let __recv_ptr: *mut math_big::float::Float = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut math_big::float::Float }; let __result = unsafe { &mut *__recv_ptr }.float64(); __result };;
         if { let __tmp_x = { let __tmp_x = { let __recv = f.clone(); let __recv_ptr: *mut math_big::float::Float = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut math_big::float::Float }; let __result = unsafe { &mut *__recv_ptr }.sign(); __result }; let __tmp_y = 0; __tmp_x == __tmp_y }; let __tmp_y = ({ let __tmp_x = x; let __tmp_y = 0.0; __tmp_x == __tmp_y }); __tmp_x == __tmp_y } && !math::is_inf(Arc::new(Mutex::new(Some(x))), Arc::new(Mutex::new(Some(0)))) {
             let mut s = Arc::new(Mutex::new(Some(format!("{:.6}", x))));;
-            if !{ let __recv = f.clone(); let __recv_ptr: *mut math_big::float::Float = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut math_big::float::Float }; let __result = unsafe { &mut *__recv_ptr }.is_int(); __result } && { let __tmp_x = strings::index_byte({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }, ('.' as i32) as u8); let __tmp_y = 0; __tmp_x < __tmp_y } {
+            if !{ let __recv = f.clone(); let __recv_ptr: *mut math_big::float::Float = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut math_big::float::Float }; let __result = unsafe { &mut *__recv_ptr }.is_int(); __result } && { let __tmp_x = strings::index_byte(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(('.' as i32) as u8)))); let __tmp_y = 0; __tmp_x < __tmp_y } {
         { let new_val = Arc::new(Mutex::new(Some(format!("{}", x)))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_val; };
     };
             return { let __owned = s.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };;
