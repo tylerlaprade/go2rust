@@ -1227,6 +1227,29 @@ func writeArrayElemPtrPointedArrayElementAssignment(out *strings.Builder, indexE
 	return true
 }
 
+func writeGoPtrPointedArrayElementAssignment(out *strings.Builder, indexExpr *ast.IndexExpr, rhs ast.Expr) bool {
+	ident, ok := unwrapParens(indexExpr.X).(*ast.Ident)
+	if !ok {
+		return false
+	}
+	if _, ok := goPtrIdentPointedArrayType(ident); !ok {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		out.WriteString("/* ERROR: Type information required for GoPtr indexed array assignment */ unimplemented!(\"type info required for GoPtr indexed array assignment\")")
+		return true
+	}
+	out.WriteString("{ let new_val = ")
+	writeArraySliceElementAssignmentValue(out, rhs, indexedSequenceElementAssignmentType(typeInfo, indexExpr))
+	out.WriteString("; ")
+	out.WriteString(rustIdentForUseWithCapture(ident))
+	out.WriteString(".with_mut(|__seq| { __seq[")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("] = new_val; }); }")
+	return true
+}
+
 func pointerDerefTargetsSequence(starType types.Type, operandType types.Type) bool {
 	switch coreUnderlyingType(starType).(type) {
 	case *types.Array, *types.Slice:
@@ -10630,6 +10653,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 								// Array/slice element assignment: arr[i] = value
 								if writePointerDerefSequenceElementAssignment(out, indexExpr, s.Rhs[0]) {
 									// Pointer-to-slice/array element assignment mutates the pointee handle.
+								} else if writeGoPtrPointedArrayElementAssignment(out, indexExpr, s.Rhs[0]) {
+									// GoPtr pointer-to-array element assignment mutates through the GoPtr handle.
 								} else if writeArrayElemPtrPointedArrayElementAssignment(out, indexExpr, s.Rhs[0]) {
 									// Array element pointer to an array mutates the pointed-to array value.
 								} else if writeNestedSliceElementAssignment(out, indexExpr, s.Rhs[0]) {

@@ -226,8 +226,8 @@ pub(crate) type userArenaState = AnonymousStruct1;
 pub fn atomicwb(ptr: Arc<Mutex<Option<usize>>>, new: Arc<Mutex<Option<usize>>>) {
     let mut slot: GoPtr<usize> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&ptr) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
     let mut buf_local: GoPtr<[usize; 2]> = (*{ let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().wb_buf.clone() }.lock().unwrap().as_mut().unwrap()).get2();
-    (*buf_local.lock().unwrap().as_mut().unwrap())[(0) as usize] = { let __ptr_value = slot.borrow(); __ptr_value.as_ref().unwrap().clone() };
-    (*buf_local.lock().unwrap().as_mut().unwrap())[(1) as usize] = (*Arc::new(Mutex::new(Some((*new.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()).clone();
+    { let new_val = { let __ptr_value = slot.borrow(); __ptr_value.as_ref().unwrap().clone() }; buf_local.with_mut(|__seq| { __seq[(0) as usize] = new_val; }); };
+    { let new_val = (*Arc::new(Mutex::new(Some((*new.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()).clone(); buf_local.with_mut(|__seq| { __seq[(1) as usize] = new_val; }); };
 }
 
 /// atomicstorep performs *ptr = new atomically and invokes a write barrier.

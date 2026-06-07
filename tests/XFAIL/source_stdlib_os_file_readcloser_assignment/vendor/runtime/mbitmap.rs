@@ -1213,7 +1213,7 @@ pub fn bulk_barrier_pre_write(dst: Arc<Mutex<Option<usize>>>, src: Arc<Mutex<Opt
     }
         let mut dstx: GoPtr<usize> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some((*addr.lock().unwrap().as_ref().unwrap())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         let mut p: GoPtr<[usize; 1]> = { let __recv = buf_local.clone(); let __recv_ptr: *mut crate::mwbbuf::wbBuf = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::mwbbuf::wbBuf }; let __result = unsafe { &mut *__recv_ptr }.get1(); __result };
-        (*p.lock().unwrap().as_mut().unwrap())[(0) as usize] = { let __ptr_value = dstx.borrow(); __ptr_value.as_ref().unwrap().clone() };
+        { let new_val = { let __ptr_value = dstx.borrow(); __ptr_value.as_ref().unwrap().clone() }; p.with_mut(|__seq| { __seq[(0) as usize] = new_val; }); };
     }
     } else {
         loop {
@@ -1227,8 +1227,8 @@ pub fn bulk_barrier_pre_write(dst: Arc<Mutex<Option<usize>>>, src: Arc<Mutex<Opt
         let mut dstx: GoPtr<usize> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some((*addr.lock().unwrap().as_ref().unwrap())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         let mut srcx: GoPtr<usize> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*src.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = { let __v = (*addr.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*dst.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); __tmp_x + __tmp_y }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         let mut p: GoPtr<[usize; 2]> = { let __recv = buf_local.clone(); let __recv_ptr: *mut crate::mwbbuf::wbBuf = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::mwbbuf::wbBuf }; let __result = unsafe { &mut *__recv_ptr }.get2(); __result };
-        (*p.lock().unwrap().as_mut().unwrap())[(0) as usize] = { let __ptr_value = dstx.borrow(); __ptr_value.as_ref().unwrap().clone() };
-        (*p.lock().unwrap().as_mut().unwrap())[(1) as usize] = { let __ptr_value = srcx.borrow(); __ptr_value.as_ref().unwrap().clone() };
+        { let new_val = { let __ptr_value = dstx.borrow(); __ptr_value.as_ref().unwrap().clone() }; p.with_mut(|__seq| { __seq[(0) as usize] = new_val; }); };
+        { let new_val = { let __ptr_value = srcx.borrow(); __ptr_value.as_ref().unwrap().clone() }; p.with_mut(|__seq| { __seq[(1) as usize] = new_val; }); };
     }
     }
 }
@@ -1663,12 +1663,12 @@ pub fn bulk_barrier_bitmap(dst: Arc<Mutex<Option<usize>>>, src: Arc<Mutex<Option
         let mut dstx: GoPtr<usize> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*dst.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         if { let __tmp_x = { let __v = (*src.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
         let mut p: GoPtr<[usize; 1]> = { let __recv = buf_local.clone(); let __recv_ptr: *mut crate::mwbbuf::wbBuf = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::mwbbuf::wbBuf }; let __result = unsafe { &mut *__recv_ptr }.get1(); __result };
-        (*p.lock().unwrap().as_mut().unwrap())[(0) as usize] = { let __ptr_value = dstx.borrow(); __ptr_value.as_ref().unwrap().clone() };
+        { let new_val = { let __ptr_value = dstx.borrow(); __ptr_value.as_ref().unwrap().clone() }; p.with_mut(|__seq| { __seq[(0) as usize] = new_val; }); };
     } else {
         let mut srcx: GoPtr<usize> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*src.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         let mut p: GoPtr<[usize; 2]> = { let __recv = buf_local.clone(); let __recv_ptr: *mut crate::mwbbuf::wbBuf = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::mwbbuf::wbBuf }; let __result = unsafe { &mut *__recv_ptr }.get2(); __result };
-        (*p.lock().unwrap().as_mut().unwrap())[(0) as usize] = { let __ptr_value = dstx.borrow(); __ptr_value.as_ref().unwrap().clone() };
-        (*p.lock().unwrap().as_mut().unwrap())[(1) as usize] = { let __ptr_value = srcx.borrow(); __ptr_value.as_ref().unwrap().clone() };
+        { let new_val = { let __ptr_value = dstx.borrow(); __ptr_value.as_ref().unwrap().clone() }; p.with_mut(|__seq| { __seq[(0) as usize] = new_val; }); };
+        { let new_val = { let __ptr_value = srcx.borrow(); __ptr_value.as_ref().unwrap().clone() }; p.with_mut(|__seq| { __seq[(1) as usize] = new_val; }); };
     }
     }
         { let __rhs = 1 as u8; let mut guard = mask.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() << __rhs); };
@@ -1716,8 +1716,8 @@ pub fn type_bits_bulk_barrier(typ: Arc<Mutex<Option<internal_abi::r#type::Type>>
         let mut dstx: GoPtr<usize> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*dst.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         let mut srcx: GoPtr<usize> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*src.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         let mut p: GoPtr<[usize; 2]> = { let __recv = buf_local.clone(); let __recv_ptr: *mut crate::mwbbuf::wbBuf = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::mwbbuf::wbBuf }; let __result = unsafe { &mut *__recv_ptr }.get2(); __result };
-        (*p.lock().unwrap().as_mut().unwrap())[(0) as usize] = { let __ptr_value = dstx.borrow(); __ptr_value.as_ref().unwrap().clone() };
-        (*p.lock().unwrap().as_mut().unwrap())[(1) as usize] = { let __ptr_value = srcx.borrow(); __ptr_value.as_ref().unwrap().clone() };
+        { let new_val = { let __ptr_value = dstx.borrow(); __ptr_value.as_ref().unwrap().clone() }; p.with_mut(|__seq| { __seq[(0) as usize] = new_val; }); };
+        { let new_val = { let __ptr_value = srcx.borrow(); __ptr_value.as_ref().unwrap().clone() }; p.with_mut(|__seq| { __seq[(1) as usize] = new_val; }); };
     }
         { let __rhs = internal_goarch::PTR_SIZE as usize; let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }

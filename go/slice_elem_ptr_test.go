@@ -4081,6 +4081,31 @@ func load(raw unsafe.Pointer) byte {
 	}
 }
 
+func TestGoPtrPointerToArrayIndexAssignmentMutatesPointee(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+func store(raw unsafe.Pointer, value byte) {
+	q := (*[2]byte)(raw)
+	q[0] = value
+	q[1] = 3
+}
+`)
+
+	if !strings.Contains(rust, "let mut q: GoPtr<[u8; 2]>") {
+		t.Fatalf("unsafe pointer conversion to array pointer should use GoPtr:\n%s", rust)
+	}
+	if strings.Contains(rust, "q.lock().unwrap().as_mut().unwrap()") ||
+		strings.Contains(rust, "q.borrow_mut().as_mut().unwrap()") {
+		t.Fatalf("GoPtr pointer-to-array assignment should not use ordinary wrapper mutation:\n%s", rust)
+	}
+	if !strings.Contains(rust, "q.with_mut(|__seq| { __seq[(0) as usize] = new_val; })") ||
+		!strings.Contains(rust, "q.with_mut(|__seq| { __seq[(1) as usize] = new_val; })") {
+		t.Fatalf("GoPtr pointer-to-array assignment should mutate through GoPtr::with_mut:\n%s", rust)
+	}
+}
+
 func TestGoPtrUnsafePointerToUintptrUsesGoPtrAddress(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
