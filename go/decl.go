@@ -256,6 +256,10 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			out.WriteString("format_nested_slice(&self.")
 			out.WriteString(ToSnakeCase(f.name))
 			out.WriteString(")")
+		} else if f.goPtr {
+			out.WriteString("{ if self.")
+			out.WriteString(ToSnakeCase(f.name))
+			out.WriteString(".is_nil() { \"<nil>\".to_string() } else { \"<ptr>\".to_string() } }")
 		} else if f.goPtrSlice || f.goPtrArray {
 			out.WriteString("{ let __guard = self.")
 			out.WriteString(ToSnakeCase(f.name))
@@ -286,10 +290,6 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			out.WriteString("format_slice_wrapped_stringer(&self.")
 			out.WriteString(ToSnakeCase(f.name))
 			out.WriteString(")")
-		} else if f.goPtr {
-			out.WriteString("{ if self.")
-			out.WriteString(ToSnakeCase(f.name))
-			out.WriteString(".is_nil() { \"<nil>\".to_string() } else { \"<ptr>\".to_string() } }")
 		} else if f.isPointer {
 			out.WriteString("{ let __guard = self.")
 			out.WriteString(ToSnakeCase(f.name))

@@ -5293,6 +5293,9 @@ func writeArrayElemPtrNewExpressionWithQualifier(out *strings.Builder, indexExpr
 		}
 		return true
 	}
+	if writeGoPtrPointedArrayElemPtrNewExpressionWithQualifier(out, indexExpr, helperQualifier) {
+		return true
+	}
 	if writeNestedArrayElemPtrNewExpressionWithQualifier(out, indexExpr, helperQualifier) {
 		return true
 	}
@@ -5564,16 +5567,79 @@ func goPtrIdentPointedArrayType(ident *ast.Ident) (*types.Array, bool) {
 	return arrayType, ok
 }
 
-func writeGoPtrPointedArrayIndexValue(out *strings.Builder, expr ast.Expr, index ast.Expr) bool {
-	ident, ok := unwrapParens(expr).(*ast.Ident)
+func goPtrPointedArrayTypeForExpr(expr ast.Expr) (*types.Array, bool) {
+	expr = unwrapParens(expr)
+	if ident, ok := expr.(*ast.Ident); ok {
+		return goPtrIdentPointedArrayType(ident)
+	}
+	sel, ok := expr.(*ast.SelectorExpr)
+	if !ok || !generatedGoPtrFieldForSelector(sel) {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, false
+	}
+	typ := typeInfo.GetType(sel)
+	if typ == nil {
+		return nil, false
+	}
+	ptr, ok := types.Unalias(typ).Underlying().(*types.Pointer)
+	if !ok {
+		return nil, false
+	}
+	arrayType, ok := coreUnderlyingType(ptr.Elem()).(*types.Array)
+	return arrayType, ok
+}
+
+func writeGoPtrPointedArrayHandle(out *strings.Builder, expr ast.Expr, cloneIdent bool) bool {
+	expr = unwrapParens(expr)
+	if ident, ok := expr.(*ast.Ident); ok {
+		if _, ok := goPtrIdentPointedArrayType(ident); !ok {
+			return false
+		}
+		out.WriteString(rustIdentForUseWithCapture(ident))
+		if cloneIdent {
+			out.WriteString(".clone()")
+		}
+		return true
+	}
+	sel, ok := expr.(*ast.SelectorExpr)
 	if !ok {
 		return false
 	}
-	if _, ok := goPtrIdentPointedArrayType(ident); !ok {
+	if _, ok := goPtrPointedArrayTypeForExpr(sel); !ok {
+		return false
+	}
+	return writeGeneratedGoPtrFieldHandleClone(out, sel)
+}
+
+func writeGoPtrPointedArrayElemPtrNewExpressionWithQualifier(out *strings.Builder, indexExpr *ast.IndexExpr, helperQualifier string) bool {
+	if indexExpr == nil {
+		return false
+	}
+	if _, ok := goPtrPointedArrayTypeForExpr(indexExpr.X); !ok {
+		return false
+	}
+	if helperQualifier != "" {
+		out.WriteString(`unimplemented!("cross-package array element address through GoPtr pointer-to-array requires shared GoArrayElemPtr helpers")`)
+		return true
+	}
+	NeedSliceElemPtr()
+	out.WriteString("GoArrayElemPtr::from_go_ptr(")
+	writeGoPtrPointedArrayHandle(out, indexExpr.X, true)
+	out.WriteString(", ")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString(")")
+	return true
+}
+
+func writeGoPtrPointedArrayIndexValue(out *strings.Builder, expr ast.Expr, index ast.Expr) bool {
+	if _, ok := goPtrPointedArrayTypeForExpr(expr); !ok {
 		return false
 	}
 	out.WriteString("{ let __seq = ")
-	out.WriteString(rustIdentForUseWithCapture(ident))
+	writeGoPtrPointedArrayHandle(out, expr, false)
 	out.WriteString(".borrow(); __seq.as_ref().unwrap()[")
 	writeExpressionAsUsize(out, index)
 	out.WriteString("].clone() }")
@@ -5606,16 +5672,12 @@ func writeGoPtrPointedNamedArrayIndexValue(out *strings.Builder, expr ast.Expr, 
 }
 
 func writeGoPtrPointedArraySliceExpression(out *strings.Builder, slice *ast.SliceExpr) bool {
-	ident, ok := unwrapParens(slice.X).(*ast.Ident)
-	if !ok {
-		return false
-	}
-	if _, ok := goPtrIdentPointedArrayType(ident); !ok {
+	if _, ok := goPtrPointedArrayTypeForExpr(slice.X); !ok {
 		return false
 	}
 	WriteWrapperPrefix(out)
 	out.WriteString("{ let __seq_ref = ")
-	out.WriteString(rustIdentForUseWithCapture(ident))
+	writeGoPtrPointedArrayHandle(out, slice.X, false)
 	out.WriteString(".borrow(); let mut __seq = __seq_ref.as_ref().unwrap().clone()")
 	writeSliceVecFromSeq(out, slice.Low, slice.High, slice.Max, "__seq.len()", false)
 	WriteWrapperSuffix(out)

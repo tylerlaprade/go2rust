@@ -4885,6 +4885,78 @@ func window(raw unsafe.Pointer, n int) []byte {
 	}
 }
 
+func TestGoPtrPointerToArrayFieldUsesGoPtrHandle(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type item struct {
+	v int
+}
+
+type holder struct {
+	p *[4]item
+}
+
+func raw(addr uintptr) *[4]item {
+	return (*[4]item)(unsafe.Pointer(addr))
+}
+
+func start() {
+	go func() {}()
+}
+
+func attach(h *holder, addr uintptr) {
+	h.p = raw(addr)
+}
+
+func pick(h *holder, i int) int {
+	return h.p[i].v
+}
+
+func ptr(h *holder, i int) *item {
+	return &h.p[i]
+}
+
+func window(h *holder, n int) []item {
+	return h.p[:n:n]
+}
+`)
+
+	if !strings.Contains(rust, "pub p: GoPtr<[item; 4]>") {
+		t.Fatalf("test setup should promote pointer-to-array field to GoPtr storage:\n%s", rust)
+	}
+	if strings.Contains(rust, "format_slice(&self.p)") ||
+		strings.Contains(rust, "self.p.lock()") ||
+		strings.Contains(rust, "self.p.borrow()") {
+		t.Fatalf("Display should not treat a generated GoPtr pointer-to-array field as an old wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "self.p.is_nil()") {
+		t.Fatalf("Display should format a generated GoPtr pointer-to-array field as a pointer handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __seq_holder = (*h.lock().unwrap().as_ref().unwrap()).p.clone(); let __seq_guard = __seq_holder.lock().unwrap()") {
+		t.Fatalf("index through a generated GoPtr pointer-to-array field should not lock it as a wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".p.borrow().as_ref().unwrap())[") &&
+		!strings.Contains(rust, ".p.clone().borrow();") {
+		t.Fatalf("index through a generated GoPtr pointer-to-array field should borrow the pointed-to array:\n%s", rust)
+	}
+	if strings.Contains(rust, "GoArrayElemPtr::new((*h.lock().unwrap().as_ref().unwrap()).p.clone()") {
+		t.Fatalf("address through a generated GoPtr pointer-to-array field should not use the direct array constructor:\n%s", rust)
+	}
+	if !strings.Contains(rust, "GoArrayElemPtr::from_go_ptr((*h.lock().unwrap().as_ref().unwrap()).p.clone(),") &&
+		!strings.Contains(rust, "GoArrayElemPtr::from_go_ptr((*h.borrow().as_ref().unwrap()).p.clone(),") {
+		t.Fatalf("address through a generated GoPtr pointer-to-array field should preserve the GoPtr-backed array identity:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __seq_ref = (*h.lock().unwrap().as_ref().unwrap()).p.clone(); let mut __seq = __seq_ref.lock().unwrap()") {
+		t.Fatalf("slice through a generated GoPtr pointer-to-array field should not lock it as a wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __seq_ref = (*h.lock().unwrap().as_ref().unwrap()).p.clone().borrow(); let mut __seq = __seq_ref.as_ref().unwrap().clone()") &&
+		!strings.Contains(rust, "let __seq_ref = (*h.borrow().as_ref().unwrap()).p.clone().borrow(); let mut __seq = __seq_ref.as_ref().unwrap().clone()") {
+		t.Fatalf("slice through a generated GoPtr pointer-to-array field should borrow the pointed-to array:\n%s", rust)
+	}
+}
+
 func TestGoPtrUnsafePointerToUintptrUsesGoPtrAddress(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

@@ -99,6 +99,30 @@ impl<T: Clone + Send + Sync + 'static, const N: usize, const OUT: usize> GoArray
 }
 
 #[derive(Clone)]
+pub struct GoArrayElemFromGoPtrBacking<T: Clone + Send + Sync + 'static, const N: usize> {
+    parent: GoPtr<[T; N]>,
+}
+
+impl<T: Clone + Send + Sync + 'static, const N: usize> GoArrayElemBacking<T, N> for GoArrayElemFromGoPtrBacking<T, N> {
+    fn borrow_at(&self, index: usize) -> Option<T> {
+        let inner = self.parent.borrow();
+        inner.as_ref().and_then(|values| values.get(index).cloned())
+    }
+
+    fn assign_at(&self, index: usize, value: Option<T>) {
+        if let Some(value) = value {
+            self.parent.with_mut(|values| {
+                values[index] = value;
+            });
+        }
+    }
+
+    fn identity_at(&self, index: usize) -> (*const (), usize) {
+        (self.parent.addr() as *const (), index)
+    }
+}
+
+#[derive(Clone)]
 pub struct GoArrayElemPtr<T: Clone + Send + Sync + 'static, const N: usize> {
     backing: Arc<dyn GoArrayElemBacking<T, N> + Send + Sync>,
     index: usize,
@@ -164,6 +188,13 @@ impl<T: Clone + Send + Sync + 'static, const N: usize> GoArrayElemPtr<T, N> {
     pub fn from_array_elem<const OUT: usize>(parent: GoArrayElemPtr<[T; N], OUT>, index: usize) -> Self {
         GoArrayElemPtr {
             backing: Arc::new(GoArrayElemFromElemBacking { parent }),
+            index,
+        }
+    }
+
+    pub fn from_go_ptr(parent: GoPtr<[T; N]>, index: usize) -> Self {
+        GoArrayElemPtr {
+            backing: Arc::new(GoArrayElemFromGoPtrBacking { parent }),
             index,
         }
     }
