@@ -169,6 +169,7 @@ use crate::vdso_in_none::*;
 use crate::vgetrandom_unsupported::*;
 use crate::write_err::*;
 
+use std::any::Any;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 

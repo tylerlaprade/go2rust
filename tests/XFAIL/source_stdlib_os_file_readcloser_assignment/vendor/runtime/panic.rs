@@ -2166,7 +2166,7 @@ pub fn dopanic_m(gp: Arc<Mutex<Option<g>>>, pc: Arc<Mutex<Option<usize>>>, sp: A
     }
         if !(*didothers.lock().unwrap().as_ref().unwrap()) && all {
         { let new_val = true; *didothers.lock().unwrap() = Some(new_val); };
-        tracebackothers(gp.clone());
+        tracebackothers(GoPtr::local(gp.clone()));
     }
     }
     unlock(GoPtr::local(paniclk.clone()));
@@ -2228,7 +2228,7 @@ pub fn canpanic() -> bool {
 /// left alone so that LR is used as sigpanic's return PC, effectively
 /// replacing the top-most frame with sigpanic. This is used by
 /// preparePanic.
-pub fn should_push_sigpanic(gp: Arc<Mutex<Option<g>>>, pc: Arc<Mutex<Option<usize>>>, lr: Arc<Mutex<Option<usize>>>) -> bool {
+pub fn should_push_sigpanic(gp: GoPtr<crate::runtime2::g>, pc: Arc<Mutex<Option<usize>>>, lr: Arc<Mutex<Option<usize>>>) -> bool {
     if { let __tmp_x = { let __v = (*pc.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
                 // Probably a call to a nil func. The old LR is more
                 // useful in the stack trace. Not pushing the frame
@@ -2252,7 +2252,7 @@ pub fn should_push_sigpanic(gp: Arc<Mutex<Option<g>>>, pc: Arc<Mutex<Option<usiz
         // Go function, so just assume it's good. Otherwise, traceback
         // may try to read a stale LR that looks like a Go code
         // pointer and wander into the woods.
-    if (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).incgo.lock().unwrap().as_ref().unwrap()) || { let __recv = findfunc(Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).valid(); __result } {
+    if (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).incgo.lock().unwrap().as_ref().unwrap()) || { let __recv = findfunc(Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).valid(); __result } {
                 // This wasn't a bad call, so use PC as sigpanic's
                 // return PC.
         return true;

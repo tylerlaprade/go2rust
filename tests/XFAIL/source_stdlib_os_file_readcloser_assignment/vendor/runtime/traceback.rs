@@ -2981,14 +2981,14 @@ pub fn traceback(pc: Arc<Mutex<Option<usize>>>, sp: Arc<Mutex<Option<usize>>>, l
 /// rewind it into the CALL instruction.)
 /// If gp.m.libcall{g,pc,sp} information is available, it uses that information in preference to
 /// the pc/sp/lr passed in.
-pub fn tracebacktrap(pc: Arc<Mutex<Option<usize>>>, sp: Arc<Mutex<Option<usize>>>, lr: Arc<Mutex<Option<usize>>>, gp: Arc<Mutex<Option<g>>>) {
-    if { let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).libcallsp.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
+pub fn tracebacktrap(pc: Arc<Mutex<Option<usize>>>, sp: Arc<Mutex<Option<usize>>>, lr: Arc<Mutex<Option<usize>>>, gp: GoPtr<crate::runtime2::g>) {
+    if { let __tmp_x = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).libcallsp.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
                 // We're in C code somewhere, traceback from the saved position.
-        traceback1(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).libcallpc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).libcallsp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(0 as usize))), crate::runtime2::guintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).libcallg.lock().unwrap().as_ref().unwrap())), Arc::new(Mutex::new(Some(unwindFlags(Arc::new(Mutex::new(Some(0 as u8))))))));
+        traceback1(Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).libcallpc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).libcallsp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(0 as usize))), crate::runtime2::guintptr::ptr(&(*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).libcallg.lock().unwrap().as_ref().unwrap())), Arc::new(Mutex::new(Some(unwindFlags(Arc::new(Mutex::new(Some(0 as u8))))))));
         return;
     }
         // We're in C code somewhere, traceback from the saved position.
-    traceback1(Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = sp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = lr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), GoPtr::local(gp.clone()), Arc::new(Mutex::new(Some(unwindFlags(Arc::new(Mutex::new(Some(UNWIND_TRAP as u8))))))));
+    traceback1(Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = sp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = lr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), gp.clone(), Arc::new(Mutex::new(Some(unwindFlags(Arc::new(Mutex::new(Some(UNWIND_TRAP as u8))))))));
 }
 
 pub fn traceback1(mut pc: Arc<Mutex<Option<usize>>>, mut sp: Arc<Mutex<Option<usize>>>, lr: Arc<Mutex<Option<usize>>>, gp: GoPtr<crate::runtime2::g>, mut flags: Arc<Mutex<Option<unwindFlags>>>) {
@@ -3449,12 +3449,12 @@ pub fn goroutineheader(gp: GoPtr<crate::runtime2::g>) {
     eprint!("{}", format!("{}", "]:\n".to_string()));
 }
 
-pub fn tracebackothers(me: Arc<Mutex<Option<g>>>) {
+pub fn tracebackothers(me: GoPtr<crate::runtime2::g>) {
     let (mut level, _, _) = gotraceback();
 
         // Show the current goroutine first, if we haven't already.
     let mut curgp: GoPtr<crate::runtime2::g> = (*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.clone();
-    if !curgp.is_nil() && { let __left_addr = curgp.addr(); let __right_addr = { let __ptr = GoPtr::local(me.clone()); __ptr.addr() }; let __eq = __left_addr == __right_addr; !__eq } {
+    if !curgp.is_nil() && { let __left_addr = curgp.addr(); let __right_addr = me.addr(); let __eq = __left_addr == __right_addr; !__eq } {
         eprint!("{}", format!("{}", "\n".to_string()));
         goroutineheader(curgp.clone());
         traceback(Arc::new(Mutex::new(Some(!(0 as usize) as usize))), Arc::new(Mutex::new(Some(!(0 as usize) as usize))), Arc::new(Mutex::new(Some(0 as usize))), curgp.clone());
@@ -3468,7 +3468,7 @@ pub fn tracebackothers(me: Arc<Mutex<Option<g>>>) {
         // against concurrent creation of new Gs, but even with allglock we may
         // miss Gs created after this loop.
     let curgp_closure_clone = curgp.clone(); let level_closure_clone = level.clone(); let me_closure_clone = me.clone(); for_each_g_race(Arc::new(Mutex::new(Some(Box::new(move |gp: Arc<Mutex<Option<g>>>| {
-        if { let __left = gp.clone(); let __right = me_closure_clone.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } || { let __left_addr = { let __ptr = GoPtr::local(gp.clone()); __ptr.addr() }; let __right_addr = curgp_closure_clone.addr(); let __eq = __left_addr == __right_addr; __eq } || { let __tmp_x = readgstatus(GoPtr::local(gp.clone())); let __tmp_y = __GDEAD as u32; __tmp_x == __tmp_y } || is_system_goroutine(GoPtr::local(gp.clone()), Arc::new(Mutex::new(Some(false)))) && { let __tmp_x = level_closure_clone; let __tmp_y = 2 as i32; __tmp_x < __tmp_y } {
+        if { let __left_addr = { let __ptr = GoPtr::local(gp.clone()); __ptr.addr() }; let __right_addr = me_closure_clone.addr(); let __eq = __left_addr == __right_addr; __eq } || { let __left_addr = { let __ptr = GoPtr::local(gp.clone()); __ptr.addr() }; let __right_addr = curgp_closure_clone.addr(); let __eq = __left_addr == __right_addr; __eq } || { let __tmp_x = readgstatus(GoPtr::local(gp.clone())); let __tmp_y = __GDEAD as u32; __tmp_x == __tmp_y } || is_system_goroutine(GoPtr::local(gp.clone()), Arc::new(Mutex::new(Some(false)))) && { let __tmp_x = level_closure_clone; let __tmp_y = 2 as i32; __tmp_x < __tmp_y } {
         return;
     }
         eprint!("{}", format!("{}", "\n".to_string()));

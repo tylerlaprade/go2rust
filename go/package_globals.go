@@ -597,6 +597,11 @@ func collectPackageGlobals(globalVars []*ast.GenDecl) []packageGlobal {
 				} else if valueSpec.Type != nil {
 					rustType = goTypeToRustBase(valueSpec.Type)
 				}
+				if valueSpec.Type != nil {
+					if functionRustType, ok := functionValueGoPtrAwareBoxTypeForNamedTypeExpr(name, valueSpec.Type); ok {
+						rustType = functionRustType
+					}
+				}
 				goPtrStorage := false
 				goPtrElemRust := ""
 				if info, ok := packageGlobalGoPtrInitializerInfo(valueSpec, name, typ); ok {

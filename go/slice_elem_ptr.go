@@ -1029,6 +1029,7 @@ func registerSliceElemPtrFieldsFromFiles(files []*ast.File) {
 	}
 	recordGeneratedGoPtrFieldsForRegisteredFieldInfos()
 	registerGoPtrParamsFromFiles(files)
+	registerFunctionValueGoPtrParamsFromFiles(files)
 }
 
 func registerSliceElemPtrFieldsFromFilesPass(files []*ast.File) bool {
@@ -2882,6 +2883,9 @@ func registerGoPtrParamsFromFiles(files []*ast.File) {
 				arrayCandidates := collectArrayElemPtrCandidatesForFunc(fnDecl)
 				goPtrCandidates := collectGoPtrCandidatesForFunc(fnDecl)
 				goPtrSlotCandidates := collectGoPtrSlotCandidatesForFunc(fnDecl)
+				if registerGoPtrParamsFromAssignments(currentFn, fnDecl, goPtrCandidates) {
+					changed = true
+				}
 				ast.Inspect(fnDecl.Body, func(node ast.Node) bool {
 					call, ok := node.(*ast.CallExpr)
 					if !ok {
@@ -2939,6 +2943,88 @@ func registerGoPtrParamsFromFiles(files []*ast.File) {
 			return
 		}
 	}
+}
+
+func registerGoPtrParamsFromAssignments(currentFn *types.Func, fnDecl *ast.FuncDecl, goPtrCandidates map[types.Object]goPtrResultInfo) bool {
+	typeInfo := GetTypeInfo()
+	if currentFn == nil || fnDecl == nil || fnDecl.Body == nil || typeInfo == nil {
+		return false
+	}
+	changed := false
+	goPtrCandidateStates := goPtrCandidatesAsStates(goPtrCandidates)
+	ast.Inspect(fnDecl.Body, func(node ast.Node) bool {
+		switch n := node.(type) {
+		case *ast.FuncLit:
+			return false
+		case *ast.AssignStmt:
+			if n.Tok != token.ASSIGN && n.Tok != token.DEFINE {
+				return true
+			}
+			for i, lhs := range n.Lhs {
+				ident, ok := unwrapParens(lhs).(*ast.Ident)
+				if !ok || ident.Name == "_" {
+					continue
+				}
+				obj := typeInfo.GetObject(ident)
+				paramIndex, ok := pointerParamIndexForObject(currentFn, obj)
+				if !ok {
+					continue
+				}
+				paramInfo, ok := goPtrParamInfoForSignatureIndex(currentFn, paramIndex)
+				if !ok {
+					continue
+				}
+				rhsInfo, rhsOK, sawGoPtr := goPtrAssignmentValueInfoForStmt(n, i, goPtrCandidateStates, typeInfo)
+				if !rhsOK || !sawGoPtr || !goPtrResultElemCompatible(rhsInfo, paramInfo) {
+					continue
+				}
+				elemRustType := goPtrResultElemRustType(paramInfo)
+				if registerGoPtrParam(currentFn, paramIndex, elemRustType, elemRustType) {
+					changed = true
+				}
+			}
+		}
+		return true
+	})
+	return changed
+}
+
+func goPtrCandidatesAsStates(candidates map[types.Object]goPtrResultInfo) map[types.Object]*goPtrCandidate {
+	if len(candidates) == 0 {
+		return nil
+	}
+	states := make(map[types.Object]*goPtrCandidate, len(candidates))
+	for obj, info := range candidates {
+		states[obj] = &goPtrCandidate{info: info, valid: true, sawGoPtr: true}
+	}
+	return states
+}
+
+func pointerParamIndexForObject(fn *types.Func, obj types.Object) (int, bool) {
+	if fn == nil || obj == nil {
+		return -1, false
+	}
+	sig, ok := signatureFromType(fn.Type())
+	if !ok || sig.Params() == nil {
+		return -1, false
+	}
+	for i := 0; i < sig.Params().Len(); i++ {
+		if sig.Params().At(i) == obj {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
+func goPtrParamInfoForSignatureIndex(fn *types.Func, paramIndex int) (goPtrResultInfo, bool) {
+	if fn == nil || paramIndex < 0 {
+		return goPtrResultInfo{}, false
+	}
+	sig, ok := signatureFromType(fn.Type())
+	if !ok || sig.Params() == nil || paramIndex >= sig.Params().Len() {
+		return goPtrResultInfo{}, false
+	}
+	return goPtrInfoForPointerType(sig.Params().At(paramIndex).Type())
 }
 
 func collectGoPtrSlotCandidatesForFunc(fn *ast.FuncDecl) map[types.Object]goPtrResultInfo {

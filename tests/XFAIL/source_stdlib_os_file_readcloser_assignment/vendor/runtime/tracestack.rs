@@ -1782,19 +1782,19 @@ impl traceStackTable {
 /// Avoid calling this function directly. gen needs to be the current generation
 /// that this stack trace is being written out for, which needs to be synchronized with
 /// generations moving forward. Prefer traceEventWriter.stack.
-pub fn trace_stack(skip: Arc<Mutex<Option<i32>>>, mut gp: Arc<Mutex<Option<g>>>, gen: Arc<Mutex<Option<usize>>>) -> u64 {
+pub fn trace_stack(skip: Arc<Mutex<Option<i32>>>, mut gp: GoPtr<crate::runtime2::g>, gen: Arc<Mutex<Option<usize>>>) -> u64 {
     let mut pcBuf: Arc<Mutex<Option<[usize; 128]>>> = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
 
         // Figure out gp and mp for the backtrace.
     let mut mp: GoPtr<crate::runtime2::m> = GoPtr::nil();
-    if { let __nil_result = (*gp.lock().unwrap()).is_none(); __nil_result } {
+    if gp.is_nil() {
         mp = GoPtr::local((*getg().lock().unwrap().as_ref().unwrap()).m.clone());
-        { let new_val = { let __ptr_value = mp.borrow(); let __field_value = __ptr_value.as_ref().unwrap().curg.clone(); __field_value }; gp = new_val; };
+        gp = { let __ptr_value = mp.borrow(); let __field_value = __ptr_value.as_ref().unwrap().curg.clone(); __field_value };
     }
 
         // Double-check that we own the stack we're about to trace.
-    if { let __tmp_x = (*{ let __field = (*debug.lock().unwrap().as_ref().unwrap()).trace_check_stack_ownership.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x != __tmp_y } && { let __nil_result = (*gp.lock().unwrap()).is_some(); __nil_result } {
-        let mut status = readgstatus(GoPtr::local(gp.clone()));
+    if { let __tmp_x = (*{ let __field = (*debug.lock().unwrap().as_ref().unwrap()).trace_check_stack_ownership.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x != __tmp_y } && !gp.is_nil() {
+        let mut status = readgstatus(gp.clone());
                 // If the scan bit is set, assume we're the ones that acquired it.
         if { let __tmp_x = { let __tmp_x = status; let __tmp_y = __GSCAN as u32; __tmp_x & __tmp_y }; let __tmp_y = 0 as u32; __tmp_x == __tmp_y } {
                 // Use the trace status to check this. There are a number of cases
@@ -1803,13 +1803,13 @@ pub fn trace_stack(skip: Arc<Mutex<Option<i32>>>, mut gp: Arc<Mutex<Option<g>>>,
                 // correctly in goStatusToTraceGoStatus.
         '__go_switch_1: loop {
         {
-        let _switch_val = { let __v = go_status_to_trace_go_status(Arc::new(Mutex::new(Some(status))), Arc::new(Mutex::new(Some({ let __selector_holder = (*gp.lock().unwrap().as_ref().unwrap()).waitreason.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
+        let _switch_val = { let __v = go_status_to_trace_go_status(Arc::new(Mutex::new(Some(status))), Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.waitreason.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
         let mut _fallthrough = false;
         let mut _matched = false;
         if !_matched && (_switch_val == crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8)))) || _switch_val == crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_SYSCALL as u8))))) || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            if { let __left = getg(); let __right = gp.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } || { let __left_addr = { let __ptr_value = mp.borrow(); let __field_value = __ptr_value.as_ref().unwrap().curg.clone(); __field_value }.addr(); let __right_addr = { let __ptr = GoPtr::local(gp.clone()); __ptr.addr() }; let __eq = __left_addr == __right_addr; __eq } {
+            if { let __left_addr = { let __ptr = GoPtr::local(getg()); __ptr.addr() }; let __right_addr = gp.addr(); let __eq = __left_addr == __right_addr; __eq } || { let __left_addr = { let __ptr_value = mp.borrow(); let __field_value = __ptr_value.as_ref().unwrap().curg.clone(); __field_value }.addr(); let __right_addr = gp.addr(); let __eq = __left_addr == __right_addr; __eq } {
         break '__go_switch_1
     }
             _fallthrough = true;
@@ -1817,7 +1817,7 @@ pub fn trace_stack(skip: Arc<Mutex<Option<i32>>>, mut gp: Arc<Mutex<Option<g>>>,
         if !_matched || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            eprint!("{}{}{}{}{}{}{}", format!("{}", "runtime: gp=".to_string()), format!("{}", (*Arc::new(Mutex::new(Some(Arc::as_ptr(&gp) as usize))).lock().unwrap().as_ref().unwrap())), format!("{}", " gp.goid=".to_string()), format!("{}", (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).goid.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", " status=".to_string()), format!("{}", { let __seq = { let __seq_holder = gStatusStrings.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(status) as usize].clone() }), format!("{}", "\n".to_string()));
+            eprint!("{}{}{}{}{}{}{}", format!("{}", "runtime: gp=".to_string()), format!("{}", (*Arc::new(Mutex::new(Some(gp.addr()))).lock().unwrap().as_ref().unwrap())), format!("{}", " gp.goid=".to_string()), format!("{}", (*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().goid.clone() }.lock().unwrap().as_ref().unwrap())), format!("{}", " status=".to_string()), format!("{}", { let __seq = { let __seq_holder = gStatusStrings.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(status) as usize].clone() }), format!("{}", "\n".to_string()));
             throw(Arc::new(Mutex::new(Some("attempted to trace stack of a goroutine this thread does not own".to_string()))));
         }
     };
@@ -1831,10 +1831,10 @@ pub fn trace_stack(skip: Arc<Mutex<Option<i32>>>, mut gp: Arc<Mutex<Option<g>>>,
         // where a running goroutine might be in _Gwaiting, and these cases
         // are totally fine for taking a stack trace. They're captured
         // correctly in goStatusToTraceGoStatus.
-    if { let __nil_result = (*gp.lock().unwrap()).is_some(); __nil_result } && mp.is_nil() {
+    if !gp.is_nil() && mp.is_nil() {
                 // We're getting the backtrace for a G that's not currently executing.
                 // It may still have an M, if it's locked to some M.
-        mp = crate::runtime2::muintptr::ptr(&(*(*gp.lock().unwrap().as_ref().unwrap()).lockedm.lock().unwrap().as_ref().unwrap()));
+        mp = crate::runtime2::muintptr::ptr(&(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.lockedm.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()));
     }
         // We're getting the backtrace for a G that's not currently executing.
         // It may still have an M, if it's locked to some M.
@@ -1847,23 +1847,23 @@ pub fn trace_stack(skip: Arc<Mutex<Option<i32>>>, mut gp: Arc<Mutex<Option<g>>>,
                 // motivation is to take advantage of a potentially registered cgo
                 // symbolizer.
         (*pcBuf.lock().unwrap().as_mut().unwrap())[(0) as usize] = LOGICAL_STACK_SENTINEL as usize;
-        if { let __left = getg(); let __right = gp.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if { let __left_addr = { let __ptr = GoPtr::local(getg()); __ptr.addr() }; let __right_addr = gp.addr(); let __eq = __left_addr == __right_addr; __eq } {
         { let __rhs = callers_1(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*skip.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }))), Arc::new(Mutex::new(Some({ let __seq_holder = pcBuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))); let mut guard = nstk.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-    } else if { let __nil_result = (*gp.lock().unwrap()).is_some(); __nil_result } {
-        { let __rhs = gcallers(GoPtr::local(gp.clone()), Arc::new(Mutex::new(Some({ let __arg_holder = skip.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __seq_holder = pcBuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))); let mut guard = nstk.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+    } else if !gp.is_nil() {
+        { let __rhs = gcallers(gp.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = skip.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __seq_holder = pcBuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))); let mut guard = nstk.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
     } else {
                 // Fast path: Unwind using frame pointers.
         (*pcBuf.lock().unwrap().as_mut().unwrap())[(0) as usize] = (*Arc::new(Mutex::new(Some((*skip.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()).clone();
-        if { let __left = getg(); let __right = gp.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if { let __left_addr = { let __ptr = GoPtr::local(getg()); __ptr.addr() }; let __right_addr = gp.addr(); let __eq = __left_addr == __right_addr; __eq } {
         { let __rhs = fp_traceback_p_cs(Arc::new(Mutex::new(Some(getfp()))), Arc::new(Mutex::new(Some({ let __seq_holder = pcBuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))); let mut guard = nstk.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-    } else if { let __nil_result = (*gp.lock().unwrap()).is_some(); __nil_result } {
-        if { let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).syscallsp.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
-        (*pcBuf.lock().unwrap().as_mut().unwrap())[(1) as usize] = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).syscallpc.clone(); __field }.lock().unwrap().as_ref().unwrap());
-        { let __rhs = { let __tmp_x = 1; let __tmp_y = fp_traceback_p_cs(Arc::new(Mutex::new(Some({ let __selector_holder = (*gp.lock().unwrap().as_ref().unwrap()).syscallbp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __seq_holder = pcBuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = (2) as usize; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))); __tmp_x + __tmp_y }; let mut guard = nstk.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+    } else if !gp.is_nil() {
+        if { let __tmp_x = (*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().syscallsp.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
+        (*pcBuf.lock().unwrap().as_mut().unwrap())[(1) as usize] = (*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().syscallpc.clone() }.lock().unwrap().as_ref().unwrap());
+        { let __rhs = { let __tmp_x = 1; let __tmp_y = fp_traceback_p_cs(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.syscallbp.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __seq_holder = pcBuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = (2) as usize; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))); __tmp_x + __tmp_y }; let mut guard = nstk.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } else {
-        (*pcBuf.lock().unwrap().as_mut().unwrap())[(1) as usize] = (*(*(*gp.lock().unwrap().as_ref().unwrap()).sched.lock().unwrap().as_ref().unwrap()).pc.lock().unwrap().as_ref().unwrap());
-        { let __rhs = { let __tmp_x = 1; let __tmp_y = fp_traceback_p_cs(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).sched.lock().unwrap().as_ref().unwrap()).bp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __seq_holder = pcBuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = (2) as usize; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))); __tmp_x + __tmp_y }; let mut guard = nstk.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        (*pcBuf.lock().unwrap().as_mut().unwrap())[(1) as usize] = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.sched.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).pc.lock().unwrap().as_ref().unwrap());
+        { let __rhs = { let __tmp_x = 1; let __tmp_y = fp_traceback_p_cs(Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.sched.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).bp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __seq_holder = pcBuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = (2) as usize; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))); __tmp_x + __tmp_y }; let mut guard = nstk.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
     }
     }
@@ -1894,7 +1894,7 @@ pub fn trace_stack(skip: Arc<Mutex<Option<i32>>>, mut gp: Arc<Mutex<Option<g>>>,
         { let mut guard = nstk.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
         // skip runtime.goexit
-    if { let __tmp_x = { let __v = (*nstk.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } && { let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).goid.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as u64; __tmp_x == __tmp_y } {
+    if { let __tmp_x = { let __v = (*nstk.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } && { let __tmp_x = (*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().goid.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as u64; __tmp_x == __tmp_y } {
         { let mut guard = nstk.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
         // skip runtime.main

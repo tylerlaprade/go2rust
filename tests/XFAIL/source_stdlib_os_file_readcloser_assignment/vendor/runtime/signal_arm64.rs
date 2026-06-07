@@ -1364,7 +1364,7 @@ impl crate::signal_darwin_arm64::sigctxt {
     }
 
     /// preparePanic sets up the stack to look like a call to sigpanic.
-    pub fn prepare_panic(&self, sig_local: Arc<Mutex<Option<u32>>>, gp: Arc<Mutex<Option<g>>>) {
+    pub fn prepare_panic(&self, sig_local: Arc<Mutex<Option<u32>>>, gp: GoPtr<crate::runtime2::g>) {
                 // We arrange lr, and pc to pretend the panicking
                 // function calls sigpanic directly.
                 // Always save LR to stack so that panics in leaf
@@ -1380,14 +1380,14 @@ impl crate::signal_darwin_arm64::sigctxt {
                 // sigpanic will save the same frame pointer before calling into a panic
                 // function.
         { unimplemented!("unsafe.Pointer dereference assignment"); };
-        let mut pc = Arc::new(Mutex::new(Some({ let __selector_holder = (*gp.lock().unwrap().as_ref().unwrap()).sigpc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+        let mut pc = Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.sigpc.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         if should_push_sigpanic(gp.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(self.lr() as usize)))) {
                 // Make it look the like faulting PC called sigpanic.
         self.set_lr(Arc::new(Mutex::new(Some((*pc.lock().unwrap().as_ref().unwrap()) as u64))));
     }
                 // Make it look the like faulting PC called sigpanic.
                 // In case we are panicking from external C code
-        self.set_r28(Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&gp) as usize))).lock().unwrap().as_ref().unwrap()) as usize as u64))));
+        self.set_r28(Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(gp.addr()))).lock().unwrap().as_ref().unwrap()) as usize as u64))));
         self.set_pc(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i_internal(Arc::new(Mutex::new(Some(Box::new(sigpanic.clone()) as Box<dyn Any + Send + Sync>)))) as u64))));
     }
 

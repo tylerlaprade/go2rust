@@ -2551,7 +2551,7 @@ impl crate::traceruntime::traceLocker {
     /// It then returns a traceArg representing that stack which may be
     /// passed to write.
     pub fn stack(&self, skip: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<traceArg>>> {
-        Arc::new(Mutex::new(Some(traceArg(Arc::new(Mutex::new(Some(trace_stack(Arc::new(Mutex::new(Some({ let __arg_holder = skip.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some({ let __selector_holder = self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) as u64)))))))
+        Arc::new(Mutex::new(Some(traceArg(Arc::new(Mutex::new(Some(trace_stack(Arc::new(Mutex::new(Some({ let __arg_holder = skip.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), GoPtr::nil(), Arc::new(Mutex::new(Some({ let __selector_holder = self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) as u64)))))))
     }
 
     /// startPC takes a start PC for a goroutine and produces a unique

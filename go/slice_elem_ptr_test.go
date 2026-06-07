@@ -1239,6 +1239,47 @@ func get(t *Type) *byte {
 	}
 }
 
+func TestGoPtrParamReassignedFromGoPtrFieldPromotesParam(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type g struct{}
+
+type m struct {
+	curg *g
+}
+
+func setCurrent(mp *m, values []g) {
+	mp.curg = &values[0]
+}
+
+func fatal(gp *g, mp *m, flag bool) *g {
+	if flag {
+		gp = mp.curg
+	}
+	return gp
+}
+`)
+
+	if !strings.Contains(rust, "pub curg: GoPtr<g>") {
+		t.Fatalf("test setup should promote curg to GoPtr storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn fatal(mut gp: GoPtr<g>") || !strings.Contains(rust, " -> GoPtr<g>") {
+		t.Fatalf("pointer parameter reassigned from a GoPtr field should use a GoPtr ABI:\n%s", rust)
+	}
+	if strings.Contains(rust, "gp: Rc<RefCell<Option<g>>>") ||
+		strings.Contains(rust, "gp: Arc<Mutex<Option<g>>>") {
+		t.Fatalf("pointer parameter reassigned from a GoPtr field should not keep old wrapper storage:\n%s", rust)
+	}
+	if strings.Contains(rust, "gp = GoPtr::local(") {
+		t.Fatalf("assignment from a GoPtr field to a promoted parameter should not rewrap the handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "gp = (*mp.borrow().as_ref().unwrap()).curg.clone();") &&
+		!strings.Contains(rust, "gp = (*mp.lock().unwrap().as_ref().unwrap()).curg.clone();") &&
+		!strings.Contains(rust, ".curg.clone(); gp = new_val;") {
+		t.Fatalf("assignment from a GoPtr field to a promoted parameter should clone the field handle:\n%s", rust)
+	}
+}
+
 func TestAnonymousNestedPointerFieldAssignedSliceElemAddressUsesGoPtrField(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
@@ -6353,6 +6394,47 @@ func runLiteral(addr uintptr) {
 	if strings.Contains(rust, "Box::new(move |p: Rc<RefCell<Option<node>>>|") ||
 		strings.Contains(rust, "Box::new(move |p: Arc<Mutex<Option<node>>>|") {
 		t.Fatalf("GoPtr-aware function value literal should not use old pointer-wrapper param ABI:\n%s", rust)
+	}
+}
+
+func TestFunctionValueCallSeesPromotedGoPtrParam(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type g struct{}
+
+type m struct {
+	curg *g
+}
+
+var hook func(*g) bool
+
+func setCurrent(mp *m, values []g) {
+	mp.curg = &values[0]
+}
+
+func fatal(gp *g, mp *m, flag bool) bool {
+	if flag {
+		gp = mp.curg
+	}
+	if hook != nil && hook(gp) {
+		return true
+	}
+	return false
+}
+`)
+
+	if !strings.Contains(rust, "pub fn fatal(mut gp: GoPtr<g>") {
+		t.Fatalf("test setup should promote fatal's pointer parameter to GoPtr:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box<dyn FnMut(GoPtr<g>) -> bool>") {
+		t.Fatalf("function value called with a promoted GoPtr parameter should use the GoPtr ABI:\n%s", rust)
+	}
+	if strings.Contains(rust, "Box<dyn FnMut(Rc<RefCell<Option<g>>>) -> bool>") ||
+		strings.Contains(rust, "Box<dyn FnMut(Arc<Mutex<Option<g>>>) -> bool>") {
+		t.Fatalf("function value called with a promoted GoPtr parameter should not keep the old pointer-wrapper ABI:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*__f)(gp.clone())") {
+		t.Fatalf("function value call should pass the existing GoPtr handle:\n%s", rust)
 	}
 }
 
