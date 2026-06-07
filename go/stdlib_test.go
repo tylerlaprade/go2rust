@@ -498,6 +498,78 @@ func build(s string) string {
 	}
 }
 
+func TestFmtFprintfSourceMappedBytesBufferUsesGeneratedWrite(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import (
+	"bytes"
+	"fmt"
+)
+
+func build(s string) string {
+	var buf bytes.Buffer
+	fmt.Fprintf(&buf, "%s", s)
+	return buf.String()
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"bytes": "bytes"})
+
+	if strings.Contains(rust, "__go_write_bytes") {
+		t.Fatalf("source-mapped fmt.Fprintf should not call the bytes bridge helper:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".write(") || !strings.Contains(rust, "__s.into_bytes()") {
+		t.Fatalf("source-mapped fmt.Fprintf should call generated Buffer.write with formatted bytes:\n%s", rust)
+	}
+}
+
+func TestSourceMappedBytesBufferAsIoWriterUsesWriteCallback(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import (
+	"bytes"
+	"fmt"
+	"io"
+)
+
+type printer struct {
+	output io.Writer
+}
+
+func build(s string) string {
+	var buf bytes.Buffer
+	p := printer{output: &buf}
+	fmt.Fprintf(p.output, "%s", s)
+	return buf.String()
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"bytes": "bytes"})
+
+	if !strings.Contains(rust, "io_Writer::__go_from_with_write") {
+		t.Fatalf("source-mapped bytes.Buffer assigned to io.Writer should carry a write callback:\n%s", rust)
+	}
+	if strings.Contains(rust, "bytes_Buffer") {
+		t.Fatalf("source-mapped bytes.Buffer io.Writer conversion should not route through bytes_Buffer:\n%s", rust)
+	}
+}
+
 func TestSourceMappedRegexpMustCompileCallsGeneratedFunction(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

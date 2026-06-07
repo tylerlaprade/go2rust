@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::alias::*;
 use crate::api::*;
@@ -154,7 +154,7 @@ impl Context {
     pub fn instance_hash(&mut self, orig: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, targs: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>>>>>) -> Arc<Mutex<Option<String>>> {
         assert(Arc::new(Mutex::new(Some(true))));
         assert(Arc::new(Mutex::new(Some({ let __nil_result = (*orig.lock().unwrap()).is_some(); __nil_result }))));
-        let mut buf: Arc<Mutex<Option<bytes_Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
+        let mut buf: Arc<Mutex<Option<bytes::buffer::Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
         let mut h = new_type_hasher(buf.clone(), Arc::new(Mutex::new(Some(self.clone()))));
         { let __recv = h.clone(); let __recv_ptr: *const crate::typestring::typeWriter = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::typestring::typeWriter }; let __result = unsafe { &*__recv_ptr }.string(strconv::itoa(Arc::new(Mutex::new(Some(self.get_i_d(orig.clone())))))); __result };
                 // Because we've already written the unique origin ID this call to h.typ is
@@ -168,7 +168,7 @@ impl Context {
     }
                 // TODO(rfindley): consider asserting on isGeneric(typ) here, if and when
                 // isGeneric handles *Signature types.
-        return Arc::new(Mutex::new(Some({ let __s = (*(*buf.lock().unwrap().as_mut().unwrap()).string().lock().unwrap().as_ref().unwrap()).clone(); let __old = " ".to_string(); let __new = "#".to_string(); __s.replace(&__old, &__new) })));
+        return Arc::new(Mutex::new(Some({ let __s = (*(*buf.lock().unwrap().as_ref().unwrap()).string().lock().unwrap().as_ref().unwrap()).clone(); let __old = " ".to_string(); let __new = "#".to_string(); __s.replace(&__old, &__new) })));
     }
 
     /// lookup returns an existing instantiation of orig with targs, if it exists.

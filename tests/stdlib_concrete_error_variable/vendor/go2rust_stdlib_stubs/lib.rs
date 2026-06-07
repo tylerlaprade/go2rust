@@ -179,6 +179,24 @@ pub fn go_any_type_metadata(value: &(dyn Any + Send + Sync)) -> Option<GoAnyType
         .or_else(|| go_any_type_metadata_registry().lock().unwrap().get(&value.type_id()).copied())
 }
 
+fn go_embedded_owner_registry() -> &'static std::sync::Mutex<std::collections::HashMap<usize, Box<dyn Any + Send + Sync>>> {
+    static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, Box<dyn Any + Send + Sync>>>> = std::sync::OnceLock::new();
+    REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+pub fn go_register_embedded_owner<T: Send + Sync + 'static>(embedded_key: usize, owner: Arc<Mutex<Option<T>>>) {
+    go_embedded_owner_registry().lock().unwrap().insert(embedded_key, Box::new(owner));
+}
+
+pub fn go_lookup_embedded_owner<T: Send + Sync + 'static>(embedded_key: usize, target: &str) -> Arc<Mutex<Option<T>>> {
+    let registry = go_embedded_owner_registry().lock().unwrap();
+    let owner = registry.get(&embedded_key).unwrap_or_else(|| panic!("embedded owner registry missing {}", target));
+    owner
+        .downcast_ref::<Arc<Mutex<Option<T>>>>()
+        .unwrap_or_else(|| panic!("embedded owner registry type mismatch for {}", target))
+        .clone()
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct GoRWMutex;
 
@@ -433,12 +451,6 @@ where
     }
 }
 
-impl GoJsonInputArg for bytes_Buffer {
-    fn into_go_json_bytes(self) -> Vec<u8> {
-        self.__go_bytes()
-    }
-}
-
 
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
@@ -457,200 +469,6 @@ impl bisect_Matcher {
     }
     pub fn stack<T0>(&self, _arg0: T0) -> bool {
         panic!("bisect_Matcher.stack bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
-
-
-#[derive(Debug, Clone)]
-pub struct bytes_Buffer {
-    pub __go_data: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
-}
-
-impl Default for bytes_Buffer {
-    fn default() -> Self {
-        Self { __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())) }
-    }
-}
-
-impl std::fmt::Display for bytes_Buffer {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.__go_string())
-    }
-}
-
-impl bytes_Buffer {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
-    }
-
-    pub fn __go_from_string(value: String) -> Self {
-        Self { __go_data: std::sync::Arc::new(std::sync::Mutex::new(value.into_bytes())) }
-    }
-
-    pub fn __go_write_bytes(&self, data: &[u8]) {
-        self.__go_data.lock().unwrap().extend_from_slice(data);
-    }
-
-    pub fn __go_bytes(&self) -> Vec<u8> {
-        self.__go_data.lock().unwrap().clone()
-    }
-
-    pub fn __go_string(&self) -> String {
-        String::from_utf8_lossy(&self.__go_data.lock().unwrap()).into_owned()
-    }
-
-    pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        Arc::new(Mutex::new(Some::<String>(self.__go_string())))
-    }
-
-    pub fn bytes(&self) -> Arc<Mutex<Option<Vec<u8>>>> {
-        Arc::new(Mutex::new(Some::<Vec<u8>>(self.__go_bytes())))
-    }
-
-    pub fn len(&self) -> i32 {
-        self.__go_data.lock().unwrap().len() as i32
-    }
-
-    pub fn reset(&self) {
-        self.__go_data.lock().unwrap().clear();
-    }
-
-    pub fn available(&self) -> i32 {
-        self.len()
-    }
-
-    pub fn available_buffer(&self) -> Arc<Mutex<Option<Vec<u8>>>> {
-        Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::new())))
-    }
-
-    pub fn cap(&self) -> i32 {
-        self.len()
-    }
-
-    pub fn grow<T0>(&self, _arg0: T0) {
-    }
-
-    pub fn next<T0>(&self, _arg0: T0) -> Arc<Mutex<Option<Vec<u8>>>> {
-        Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::new())))
-    }
-
-    pub fn read<T0>(&self, _arg0: T0) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (0 as i32, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
-    }
-
-    pub fn read_byte(&self) -> (u8, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (0 as u8, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
-    }
-
-    pub fn read_bytes<T0>(&self, _arg0: T0) -> (Arc<Mutex<Option<Vec<u8>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<Vec<u8>>(Vec::new()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
-    }
-
-    pub fn read_from<T0>(&self, _arg0: T0) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (0 as i64, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
-    }
-
-    pub fn read_rune(&self) -> (i32, i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (0 as i32, 0 as i32, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
-    }
-
-    pub fn read_string<T0>(&self, _arg0: T0) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (Arc::new(Mutex::new(Some::<String>(String::new()))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
-    }
-
-    pub fn truncate<T0>(&self, _arg0: T0) {
-        self.reset();
-    }
-
-    pub fn unread_byte(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
-    }
-
-    pub fn unread_rune(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
-    }
-
-    pub fn write<T0: 'static>(&self, arg0: T0) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
-            v.clone()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
-            v.lock().unwrap().as_ref().cloned().unwrap_or_default()
-        } else {
-            Vec::new()
-        };
-        let n = bytes.len() as i32;
-        self.__go_write_bytes(&bytes);
-        (n, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
-    }
-
-    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<String>() {
-            v.clone()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<&str>() {
-            (*v).to_string()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<String>>>>() {
-            v.lock().unwrap().as_ref().cloned().unwrap_or_default()
-        } else {
-            String::new()
-        };
-        let bytes = value.into_bytes();
-        let n = bytes.len() as i32;
-        self.__go_write_bytes(&bytes);
-        (n, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
-    }
-
-    pub fn write_byte<T0: 'static>(&self, arg0: T0) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<u8>() {
-            *v
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<i32>() {
-            *v as u8
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<u8>>>>() {
-            v.lock().unwrap().as_ref().copied().unwrap_or_default()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<i32>>>>() {
-            v.lock().unwrap().as_ref().copied().unwrap_or_default() as u8
-        } else {
-            0
-        };
-        self.__go_write_bytes(&[value]);
-        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
-    }
-
-    pub fn write_rune<T0: 'static>(&self, arg0: T0) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<char>() {
-            *v
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<i32>() {
-            char::from_u32(*v as u32).unwrap_or('\0')
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<i32>>>>() {
-            char::from_u32(v.lock().unwrap().as_ref().copied().unwrap_or_default() as u32).unwrap_or('\0')
-        } else {
-            '\0'
-        };
-        let mut encoded = [0u8; 4];
-        let bytes = value.encode_utf8(&mut encoded).as_bytes().to_vec();
-        let n = bytes.len() as i32;
-        self.__go_write_bytes(&bytes);
-        (n, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
-    }
-
-    pub fn write_to<T0>(&self, _arg0: T0) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
-        (self.__go_data.lock().unwrap().len() as i64, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
-    }
-}
-
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct bytes_Reader;
-
-impl std::fmt::Display for bytes_Reader {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "<bytes_Reader>")
-    }
-}
-
-
-impl bytes_Reader {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
     }
 }
 
@@ -991,14 +809,76 @@ impl Ord for io_ByteScanner {
 
 
 #[derive(Clone)]
-pub struct io_Writer {
+pub struct io_Reader {
     pub __go_id: usize,
     pub __go_value: Arc<dyn std::any::Any + Send + Sync>,
 }
 
-impl io_Writer {
+impl io_Reader {
     pub fn __go_from<T: 'static + Send + Sync>(value: T) -> Self {
         Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value) }
+    }
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.__go_value.as_ref().downcast_ref::<T>()
+    }
+    pub fn read<T0>(&self, _arg0: T0) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        panic!("io_Reader.read bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+impl Default for io_Reader {
+    fn default() -> Self {
+        Self { __go_id: 0, __go_value: Arc::new(()) }
+    }
+}
+
+impl std::fmt::Debug for io_Reader {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<io_Reader>")
+    }
+}
+
+impl std::fmt::Display for io_Reader {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<io_Reader>")
+    }
+}
+
+impl PartialEq for io_Reader {
+    fn eq(&self, other: &Self) -> bool {
+        self.__go_id == other.__go_id
+    }
+}
+
+impl Eq for io_Reader {}
+
+impl PartialOrd for io_Reader {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for io_Reader {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.__go_id.cmp(&other.__go_id)
+    }
+}
+
+
+#[derive(Clone)]
+pub struct io_Writer {
+    pub __go_id: usize,
+    pub __go_value: Arc<dyn std::any::Any + Send + Sync>,
+    pub __go_write: Option<Arc<dyn Fn(&[u8]) + Send + Sync>>,
+}
+
+impl io_Writer {
+    pub fn __go_from<T: 'static + Send + Sync>(value: T) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value), __go_write: None }
+    }
+
+    pub fn __go_from_with_write<T: 'static + Send + Sync, F: 'static + Fn(&[u8]) + Send + Sync>(value: T, write_fn: F) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_value: Arc::new(value), __go_write: Some(Arc::new(write_fn)) }
     }
 
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
@@ -1006,8 +886,9 @@ impl io_Writer {
     }
 
     pub fn __go_write_bytes(&self, data: &[u8]) {
-        if let Some(buffer) = self.downcast_ref::<bytes_Buffer>() {
-            buffer.__go_write_bytes(data);
+        if let Some(write_fn) = &self.__go_write {
+            write_fn(data);
+            return;
         }
         if let Some(file) = self.downcast_ref::<os_File>() {
             file.__go_write_bytes(data);
@@ -1034,7 +915,7 @@ impl io_Writer {
 
 impl Default for io_Writer {
     fn default() -> Self {
-        Self { __go_id: 0, __go_value: Arc::new(()) }
+        Self { __go_id: 0, __go_value: Arc::new(()), __go_write: None }
     }
 }
 
@@ -1543,13 +1424,6 @@ impl sync_Pool {
 }
 
 
-impl From<bytes_Reader> for io_ByteScanner {
-    fn from(_value: bytes_Reader) -> Self {
-        Self::__go_from(_value)
-    }
-}
-
-
 impl From<strings_Reader> for io_ByteScanner {
     fn from(_value: strings_Reader) -> Self {
         Self::__go_from(_value)
@@ -1577,22 +1451,6 @@ pub mod byteorder {
 
     pub fn b_e_uint64<T0>(_arg0: T0) -> u64 {
         panic!("b_e_uint64 bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
-
-
-pub mod bytes {
-    use super::*;
-    pub fn new_buffer_string<T0>(_arg0: T0) -> Arc<Mutex<Option<bytes_Buffer>>> {
-        panic!("new_buffer_string bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn new_reader<T0>(_arg0: T0) -> Arc<Mutex<Option<bytes_Reader>>> {
-        panic!("new_reader bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-
-    pub fn trim_right<T0, T1>(_arg0: T0, _arg1: T1) -> Arc<Mutex<Option<Vec<u8>>>> {
-        panic!("trim_right bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }
 
@@ -1643,7 +1501,15 @@ pub mod heap {
 
 pub mod io {
     use super::*;
+    pub const SEEK_CURRENT: i32 = 1;
+    pub const SEEK_END: i32 = 2;
+    pub const SEEK_START: i32 = 0;
+
     pub fn EOF() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+        Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
+    }
+
+    pub fn ErrShortWrite() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
         Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
     }
 }

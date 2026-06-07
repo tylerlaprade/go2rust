@@ -1378,7 +1378,8 @@ func fmtFprintfTargetIsSourceMappedStringsBuilder(expr ast.Expr) bool {
 
 func fmtFprintfTargetIsByteWriter(expr ast.Expr) bool {
 	typeInfo := GetTypeInfo()
-	return typeInfo != nil && isByteWriterReceiverType(typeInfo.GetType(expr))
+	return typeInfo != nil && isByteWriterReceiverType(typeInfo.GetType(expr)) &&
+		!isSourceMappedBytesBufferReceiverType(typeInfo.GetType(expr))
 }
 
 // fmtFprintfTargetHasUserWriteMethod reports whether the Fprintf target is a
@@ -1392,7 +1393,7 @@ func fmtFprintfTargetHasUserWriteMethod(expr ast.Expr) bool {
 		return false
 	}
 	typ := typeInfo.GetType(expr)
-	if typ == nil || isByteWriterReceiverType(typ) {
+	if typ == nil || (isByteWriterReceiverType(typ) && !isSourceMappedBytesBufferReceiverType(typ)) {
 		return false
 	}
 	if isOsStdoutOrStderr(expr) {

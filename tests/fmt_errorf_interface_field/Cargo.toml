@@ -1,3 +1,14 @@
+
+[workspace]
+members = [
+    ".",
+    "vendor/bytes",
+    "vendor/go2rust_stdlib_stubs",
+    "vendor/internal_bytealg",
+    "vendor/internal_cpu",
+    "vendor/unicode_utf8",
+]
+
 [package]
 name = "fmt_errorf_interface_field"
 version = "0.1.0"
@@ -6,3 +17,11 @@ edition = "2021"
 [[bin]]
 name = "fmt_errorf_interface_field"
 path = "main.rs"
+
+[dependencies]
+serde_json = "1"
+bytes = { path = "vendor/bytes" }
+go2rust_stdlib_stubs = { path = "vendor/go2rust_stdlib_stubs" }
+internal_bytealg = { path = "vendor/internal_bytealg" }
+internal_cpu = { path = "vendor/internal_cpu" }
+unicode_utf8 = { path = "vendor/unicode_utf8" }

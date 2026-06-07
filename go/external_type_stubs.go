@@ -596,12 +596,6 @@ func RegisterExternalPackageFunctionFallback(sel *ast.SelectorExpr, argCount int
 	trackWrapperImports()
 	fn := externalPackageStubFunction{ParamCount: argCount}
 	switch pkgPath {
-	case "bytes":
-		if sel.Sel.Name != "NewBuffer" {
-			return
-		}
-		RegisterExternalTypeStub("bytes_Buffer")
-		fn.ReturnTypes = []string{wrappedExternalStubType("bytes_Buffer")}
 	case "os/exec":
 		if sel.Sel.Name != "LookPath" {
 			return
@@ -1372,7 +1366,7 @@ func externalStubsNeedJsonSupport(stubs map[string]bool, packageStubs map[string
 
 // TEMPORARY: hand-written Rust shim for encoding/json marshal helpers.
 // Long-term fix: transpile encoding/json source (mostly pure Go reflection-driven code).
-func writeJsonSupportHelpers(out *strings.Builder, hasBytesBuffer bool) {
+func writeJsonSupportHelpers(out *strings.Builder) {
 	outerWrapper := GetOuterWrapperType()
 	innerWrapper := externalStubInnerWrapperType()
 	borrow := ".borrow()"
@@ -1586,15 +1580,6 @@ where
 }
 
 `, errorType, outerWrapper, innerWrapper, errorType, outerWrapper, innerWrapper, errorDynSuffix, outerWrapper, innerWrapper, borrow, outerWrapper, innerWrapper, outerWrapper, innerWrapper, outerWrapper, innerWrapper, outerWrapper, innerWrapper, borrowMut, borrowMut)
-	if hasBytesBuffer {
-		fmt.Fprintf(out, `impl GoJsonInputArg for bytes_Buffer {
-    fn into_go_json_bytes(self) -> Vec<u8> {
-        self.__go_bytes()
-    }
-}
-
-`)
-	}
 }
 
 // TEMPORARY: hand-written Rust shim for encoding/json.Decoder.
@@ -1707,7 +1692,7 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 		writeExternalInterfaceIdHelper(&out)
 	}
 	if needsJsonSupport {
-		writeJsonSupportHelpers(&out, stubs["bytes_Buffer"])
+		writeJsonSupportHelpers(&out)
 	}
 	if externalPackageStubsNeedGoTimer(packageStubs) {
 		generateGoTimerHelper(&out)
@@ -1720,12 +1705,8 @@ func generateExternalStubs(stubs map[string]bool, interfaceTypes map[string]bool
 			writeJsonDecoderStub(&out)
 			continue
 		}
-		if name == "bytes_Buffer" {
-			writeBytesBufferStub(&out)
-			continue
-		}
 		if name == "io_Writer" {
-			writeIoWriterStub(&out, stubs["bytes_Buffer"], stubs["os_File"])
+			writeIoWriterStub(&out, stubs["os_File"])
 			continue
 		}
 		if name == "os_File" {
@@ -1908,243 +1889,9 @@ func externalStubErrorInnerType() string {
 	return "Box<dyn StdError>"
 }
 
-// TEMPORARY: hand-written Rust shim for bytes.Buffer.
-// Long-term fix: transpile bytes package source (pure Go, no runtime ties).
-func writeBytesBufferStub(out *strings.Builder) {
-	vecType := wrappedExternalStubType("Vec<u8>")
-	stringType := wrappedExternalStubType("String")
-	// Predeclared Copy scalar return slots stay bare to match the widened
-	// signatures callers expect. `*Wrap` variants keep the legacy wrapped
-	// shape for argument downcast positions whose accessor logic still
-	// assumes a wrapped argument.
-	intType := "i32"
-	intWrap := wrappedExternalStubType("i32")
-	int64Type := "i64"
-	byteType := "u8"
-	byteWrap := wrappedExternalStubType("u8")
-	errorInnerType := externalStubErrorInnerType()
-	errorType := wrappedExternalStubType(errorInnerType)
-	noneError := wrappedExternalStubNoneExpr(errorInnerType)
-	zeroInt := "0 as i32"
-	zeroInt64 := "0 as i64"
-	zeroByte := "0 as u8"
-	emptyBytes := wrappedExternalStubExpr("Vec<u8>", "Vec::new()")
-	emptyString := wrappedExternalStubExpr("String", "String::new()")
-	vecBorrow := externalStubBorrowExpr("v")
-	stringBorrow := externalStubBorrowExpr("v")
-	byteBorrow := externalStubBorrowExpr("v")
-	intBorrow := externalStubBorrowExpr("v")
-	fmt.Fprintf(out, `#[derive(Debug, Clone)]
-pub struct bytes_Buffer {
-    pub __go_data: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
-}
-
-impl Default for bytes_Buffer {
-    fn default() -> Self {
-        Self { __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())) }
-    }
-}
-
-impl std::fmt::Display for bytes_Buffer {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.__go_string())
-    }
-}
-
-impl bytes_Buffer {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
-    }
-
-    pub fn __go_from_string(value: String) -> Self {
-        Self { __go_data: std::sync::Arc::new(std::sync::Mutex::new(value.into_bytes())) }
-    }
-
-    pub fn __go_write_bytes(&self, data: &[u8]) {
-        self.__go_data.lock().unwrap().extend_from_slice(data);
-    }
-
-    pub fn __go_bytes(&self) -> Vec<u8> {
-        self.__go_data.lock().unwrap().clone()
-    }
-
-    pub fn __go_string(&self) -> String {
-        String::from_utf8_lossy(&self.__go_data.lock().unwrap()).into_owned()
-    }
-
-    pub fn string(&self) -> %s {
-        %s
-    }
-
-    pub fn bytes(&self) -> %s {
-        %s
-    }
-
-    pub fn len(&self) -> %s {
-        %s
-    }
-
-    pub fn reset(&self) {
-        self.__go_data.lock().unwrap().clear();
-    }
-
-    pub fn available(&self) -> %s {
-        self.len()
-    }
-
-    pub fn available_buffer(&self) -> %s {
-        %s
-    }
-
-    pub fn cap(&self) -> %s {
-        self.len()
-    }
-
-    pub fn grow<T0>(&self, _arg0: T0) {
-    }
-
-    pub fn next<T0>(&self, _arg0: T0) -> %s {
-        %s
-    }
-
-    pub fn read<T0>(&self, _arg0: T0) -> (%s, %s) {
-        (%s, %s)
-    }
-
-    pub fn read_byte(&self) -> (%s, %s) {
-        (%s, %s)
-    }
-
-    pub fn read_bytes<T0>(&self, _arg0: T0) -> (%s, %s) {
-        (%s, %s)
-    }
-
-    pub fn read_from<T0>(&self, _arg0: T0) -> (%s, %s) {
-        (%s, %s)
-    }
-
-    pub fn read_rune(&self) -> (%s, %s, %s) {
-        (%s, %s, %s)
-    }
-
-    pub fn read_string<T0>(&self, _arg0: T0) -> (%s, %s) {
-        (%s, %s)
-    }
-
-    pub fn truncate<T0>(&self, _arg0: T0) {
-        self.reset();
-    }
-
-    pub fn unread_byte(&self) -> %s {
-        %s
-    }
-
-    pub fn unread_rune(&self) -> %s {
-        %s
-    }
-
-    pub fn write<T0: 'static>(&self, arg0: T0) -> (%s, %s) {
-        let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
-            v.clone()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
-            %s.as_ref().cloned().unwrap_or_default()
-        } else {
-            Vec::new()
-        };
-        let n = bytes.len() as i32;
-        self.__go_write_bytes(&bytes);
-        (%s, %s)
-    }
-
-    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (%s, %s) {
-        let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<String>() {
-            v.clone()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<&str>() {
-            (*v).to_string()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
-            %s.as_ref().cloned().unwrap_or_default()
-        } else {
-            String::new()
-        };
-        let bytes = value.into_bytes();
-        let n = bytes.len() as i32;
-        self.__go_write_bytes(&bytes);
-        (%s, %s)
-    }
-
-    pub fn write_byte<T0: 'static>(&self, arg0: T0) -> %s {
-        let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<u8>() {
-            *v
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<i32>() {
-            *v as u8
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
-            %s.as_ref().copied().unwrap_or_default()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
-            %s.as_ref().copied().unwrap_or_default() as u8
-        } else {
-            0
-        };
-        self.__go_write_bytes(&[value]);
-        %s
-    }
-
-    pub fn write_rune<T0: 'static>(&self, arg0: T0) -> (%s, %s) {
-        let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<char>() {
-            *v
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<i32>() {
-            char::from_u32(*v as u32).unwrap_or('\0')
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
-            char::from_u32(%s.as_ref().copied().unwrap_or_default() as u32).unwrap_or('\0')
-        } else {
-            '\0'
-        };
-        let mut encoded = [0u8; 4];
-        let bytes = value.encode_utf8(&mut encoded).as_bytes().to_vec();
-        let n = bytes.len() as i32;
-        self.__go_write_bytes(&bytes);
-        (%s, %s)
-    }
-
-    pub fn write_to<T0>(&self, _arg0: T0) -> (%s, %s) {
-        (%s, %s)
-    }
-}
-`,
-		stringType, wrappedExternalStubExpr("String", "self.__go_string()"),
-		vecType, wrappedExternalStubExpr("Vec<u8>", "self.__go_bytes()"),
-		intType, "self.__go_data.lock().unwrap().len() as i32",
-		intType,
-		vecType, emptyBytes,
-		intType,
-		vecType, emptyBytes,
-		intType, errorType, zeroInt, noneError,
-		byteType, errorType, zeroByte, noneError,
-		vecType, errorType, emptyBytes, noneError,
-		int64Type, errorType, zeroInt64, noneError,
-		intType, intType, errorType, zeroInt, zeroInt, noneError,
-		stringType, errorType, emptyString, noneError,
-		errorType, noneError,
-		errorType, noneError,
-		intType, errorType,
-		vecType, vecBorrow,
-		"n", noneError,
-		intType, errorType,
-		stringType, stringBorrow,
-		"n", noneError,
-		errorType,
-		byteWrap, byteBorrow,
-		intWrap, intBorrow,
-		noneError,
-		intType, errorType,
-		intWrap, intBorrow,
-		"n", noneError,
-		int64Type, errorType,
-		"self.__go_data.lock().unwrap().len() as i64", noneError)
-}
-
 // TEMPORARY: hand-written Rust shim for io.Writer trait bridging.
 // Long-term fix: transpile io package interfaces (pure Go).
-func writeIoWriterStub(out *strings.Builder, hasBytesBuffer bool, hasOsFile bool) {
+func writeIoWriterStub(out *strings.Builder, hasOsFile bool) {
 	holderType := "Rc<dyn std::any::Any>"
 	fromBound := "T: 'static"
 	newValue := "Rc::new(value)"
@@ -2169,6 +1916,13 @@ pub struct io_Writer {
     pub __go_value: `)
 	out.WriteString(holderType)
 	out.WriteString(`,
+    pub __go_write: Option<`)
+	if NeedsConcurrentWrapper() {
+		out.WriteString("Arc<dyn Fn(&[u8]) + Send + Sync>")
+	} else {
+		out.WriteString("Rc<dyn Fn(&[u8])>")
+	}
+	out.WriteString(`>,
 }
 
 impl io_Writer {
@@ -2177,21 +1931,39 @@ impl io_Writer {
 	out.WriteString(`>(value: T) -> Self {
         Self { __go_id: __go_next_external_interface_id(), __go_value: `)
 	out.WriteString(newValue)
-	out.WriteString(` }
+	out.WriteString(`, __go_write: None }
     }
 
+    pub fn __go_from_with_write<`)
+	out.WriteString(fromBound)
+	if NeedsConcurrentWrapper() {
+		out.WriteString(`, F: 'static + Fn(&[u8]) + Send + Sync`)
+	} else {
+		out.WriteString(`, F: 'static + Fn(&[u8])`)
+	}
+	out.WriteString(`>(value: T, write_fn: F) -> Self {
+        Self { __go_id: __go_next_external_interface_id(), __go_value: `)
+	out.WriteString(newValue)
+	if NeedsConcurrentWrapper() {
+		out.WriteString(`, __go_write: Some(Arc::new(write_fn)) }
+    }
+`)
+	} else {
+		out.WriteString(`, __go_write: Some(Rc::new(write_fn)) }
+    }
+`)
+	}
+	out.WriteString(`
     pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         self.__go_value.as_ref().downcast_ref::<T>()
     }
 
     pub fn __go_write_bytes(&self, data: &[u8]) {
-`)
-	if hasBytesBuffer {
-		out.WriteString(`        if let Some(buffer) = self.downcast_ref::<bytes_Buffer>() {
-            buffer.__go_write_bytes(data);
+        if let Some(write_fn) = &self.__go_write {
+            write_fn(data);
+            return;
         }
 `)
-	}
 	if hasOsFile {
 		out.WriteString(`        if let Some(file) = self.downcast_ref::<os_File>() {
             file.__go_write_bytes(data);
@@ -2231,7 +2003,7 @@ impl Default for io_Writer {
     fn default() -> Self {
         Self { __go_id: 0, __go_value: `, intType, errorType, vecType, vecBorrow, "n", noneError)
 	out.WriteString(defaultValue)
-	out.WriteString(` }
+	out.WriteString(`, __go_write: None }
     }
 }
 
@@ -4491,15 +4263,6 @@ func writeIoCopyStub(out *strings.Builder, fn externalPackageStubFunction, stubs
         };
 `, wrappedExternalStubType("os_File"), externalStubBorrowExpr("src"))
 	}
-	if stubs["bytes_Buffer"] {
-		fmt.Fprintf(out, `        if let Some(src) = (&_arg1 as &dyn std::any::Any).downcast_ref::<%s>() {
-            data = %s.as_ref().map(|buffer| buffer.__go_bytes()).unwrap_or_default();
-        }
-        if let Some(src) = (&_arg1 as &dyn std::any::Any).downcast_ref::<bytes_Buffer>() {
-            data = src.__go_bytes();
-        }
-`, wrappedExternalStubType("bytes_Buffer"), externalStubBorrowExpr("src"))
-	}
 	if stubs["io_Writer"] {
 		fmt.Fprintf(out, `        if let Some(dst) = (&_arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
             if let Some(writer) = %s.as_ref() {
@@ -4510,17 +4273,6 @@ func writeIoCopyStub(out *strings.Builder, fn externalPackageStubFunction, stubs
             dst.__go_write_bytes(&data);
         }
 `, wrappedExternalStubType("io_Writer"), externalStubBorrowExpr("dst"))
-	}
-	if stubs["bytes_Buffer"] {
-		fmt.Fprintf(out, `        if let Some(dst) = (&_arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
-            if let Some(buffer) = %s.as_ref() {
-                buffer.__go_write_bytes(&data);
-            }
-        }
-        if let Some(dst) = (&_arg0 as &dyn std::any::Any).downcast_ref::<bytes_Buffer>() {
-            dst.__go_write_bytes(&data);
-        }
-`, wrappedExternalStubType("bytes_Buffer"), externalStubBorrowExpr("dst"))
 	}
 	if stubs["os_File"] {
 		fmt.Fprintf(out, `        if let Some(dst) = (&_arg0 as &dyn std::any::Any).downcast_ref::<%s>() {

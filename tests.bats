@@ -2387,6 +2387,10 @@ run_xfail_test() {
     run_test "tests/slice_pointer_variable_literal"
 }
 
+@test "slice_reslice_within_capacity" {
+    run_test "tests/slice_reslice_within_capacity"
+}
+
 @test "slices_append" {
     run_test "tests/slices_append"
 }
@@ -2433,6 +2437,10 @@ run_xfail_test() {
 
 @test "sort_slice" {
     run_test "tests/sort_slice"
+}
+
+@test "source_stdlib_bytes_buffer_basic" {
+    run_test "tests/source_stdlib_bytes_buffer_basic"
 }
 
 @test "source_stdlib_go_ast_manual_decl_cross_package" {

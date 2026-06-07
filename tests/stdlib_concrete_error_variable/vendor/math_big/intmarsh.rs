@@ -42,7 +42,7 @@ impl crate::int::Int {
         { let __rhs = 1 as u8; let mut guard = b.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
     }
         (*buf.lock().unwrap().as_mut().unwrap())[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v };
-        return (Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..].to_vec() }))), Arc::new(Mutex::new(None)));
+        return (Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(None)));
     }
 
     /// GobDecode implements the [encoding/gob.GobDecoder] interface.
@@ -58,7 +58,7 @@ impl crate::int::Int {
         return Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(format!("Int.GobDecode: encoding version {} not supported", { let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x >> __tmp_y })))));
     }
         { let new_val = { let __tmp_x = { let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y }; *self.neg.lock().unwrap() = Some(new_val); };
-        { let new_val = (*self.abs.lock().unwrap().as_ref().unwrap()).set_bytes(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize..].to_vec() })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *self.abs.lock().unwrap() = __moved_val; };
+        { let new_val = (*self.abs.lock().unwrap().as_ref().unwrap()).set_bytes(Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *self.abs.lock().unwrap() = __moved_val; };
         return Arc::new(Mutex::new(None));
     }
 
@@ -81,7 +81,7 @@ impl crate::int::Int {
     /// UnmarshalText implements the [encoding.TextUnmarshaler] interface.
     pub fn unmarshal_text(&mut self, text: Arc<Mutex<Option<Vec<u8>>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
         {
-        let (_, mut ok) = self.set_from_scanner({ let __arg = bytes::new_reader(text.clone()); let __converted = { let __arg_guard = __arg.lock().unwrap(); let __converted: Option<io_ByteScanner> = __arg_guard.as_ref().map(|__v| (*__v).clone().into()); __converted }; Arc::new(Mutex::new(__converted)) }, Arc::new(Mutex::new(Some(0))));;
+        let (_, mut ok) = self.set_from_scanner(Arc::new(Mutex::new(Some(io_ByteScanner::__go_from(bytes::new_reader(text.clone()))))), Arc::new(Mutex::new(Some(0))));;
         if !ok {
             return Arc::new(Mutex::new(Some(Box::<dyn StdError + Send + Sync>::from(format!("math/big: cannot unmarshal {:?} into a *big.Int", format_slice(&text))))));;
         }

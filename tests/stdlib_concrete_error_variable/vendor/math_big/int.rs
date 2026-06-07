@@ -558,7 +558,7 @@ impl Int {
                 // anything but the Int's sign and bit size through side-channels. Any
                 // changes must be reviewed by a security expert.
         let mut buf = Arc::new(Mutex::new(Some(vec![0; ({ let __tmp_x = ({ let __slice_holder = { let __named_slice = (*self.abs.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 8; __tmp_x * __tmp_y }) as usize])));
-        return Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; let __low = ((*self.abs.lock().unwrap().as_ref().unwrap()).bytes(buf.clone())) as usize; __seq[__low..].to_vec() })));
+        return Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ((*self.abs.lock().unwrap().as_ref().unwrap()).bytes(buf.clone())) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })));
     }
 
     /// FillBytes sets buf to the absolute value of x, storing it as a zero-extended

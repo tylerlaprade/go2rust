@@ -10,6 +10,7 @@ path = "lib.rs"
 [dependencies]
 num = "0.4"
 serde_json = "1"
+bytes = { path = "../bytes" }
 cmp = { path = "../cmp" }
 go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
 go_ast = { path = "../go_ast" }

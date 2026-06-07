@@ -175,15 +175,6 @@ in the first place.
 - Removal trigger: transpiler can lower `encoding/json` Decoder paths; drop shim.
 - Added: 2026-05-27 (backfill)
 
-### bytes-buffer
-
-- Location: `go/external_type_stubs.go:1944`
-- Go symbol: `bytes.Buffer`
-- Transpiler gap: TODO: investigate
-- Fixture: TODO: add
-- Removal trigger: transpiler can lower `bytes` Buffer methods; drop shim.
-- Added: 2026-05-27 (backfill)
-
 ### io-writer-trait-bridging
 
 - Location: `go/external_type_stubs.go:2171`

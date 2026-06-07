@@ -5342,9 +5342,50 @@ func take(values []int, h *Header) []int {
 	if strings.Contains(rust, "h.count.clone()) - 0") {
 		t.Fatalf("three-index slice capacity should unwrap selector bounds before arithmetic:\n%s", rust)
 	}
-	if !strings.Contains(rust, "let __max = ") || !strings.Contains(rust, "let __max = ((*") || !strings.Contains(rust, " as usize;") ||
-		!strings.Contains(rust, "Vec::with_capacity(((__max) - 0) as usize)") {
+	if !strings.Contains(rust, "let __low = 0;") ||
+		!strings.Contains(rust, "let __max = ((*") ||
+		!strings.Contains(rust, " as usize;") ||
+		!strings.Contains(rust, "Vec::with_capacity((__max - __low) as usize)") {
 		t.Fatalf("three-index slice capacity should use usize bounds:\n%s", rust)
+	}
+}
+
+func TestTwoIndexSliceReslicePreservesSourceCapacity(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func grow() []byte {
+	s := make([]byte, 2, 4)
+	s = s[:3]
+	return s[1:3]
+}
+`)
+
+	if !strings.Contains(rust, "let __source_cap = ") {
+		t.Fatalf("two-index slice should capture source capacity before cloning:\n%s", rust)
+	}
+	if !strings.Contains(rust, "if __seq.len() < __high { __seq.resize_with(__high, Default::default); }") {
+		t.Fatalf("two-index slice should materialize zero values when reslicing within capacity:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Vec::with_capacity((__max - __low) as usize)") {
+		t.Fatalf("two-index slice should preserve Go cap(source)-low capacity:\n%s", rust)
+	}
+}
+
+func TestArraySliceDoesNotUseVecCapacityHelpers(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func cut() []byte {
+	var digits [65]byte
+	return digits[1:3]
+}
+`)
+
+	if strings.Contains(rust, ".capacity()") || strings.Contains(rust, "resize_with") {
+		t.Fatalf("array slicing should use array length, not Vec capacity helpers:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __max = __source_cap;") ||
+		!strings.Contains(rust, "Vec::with_capacity((__max - __low) as usize)") {
+		t.Fatalf("array slicing should preserve Go len(array)-low capacity:\n%s", rust)
 	}
 }
 

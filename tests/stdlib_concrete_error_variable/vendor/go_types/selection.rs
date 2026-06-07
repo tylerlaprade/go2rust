@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::alias::*;
 use crate::api::*;
@@ -771,15 +771,15 @@ pub fn selection_string(s: Arc<Mutex<Option<Selection>>>, qf: crate::typestring:
             std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
         }
     }
-    let mut buf: Arc<Mutex<Option<bytes_Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
-    (*buf.lock().unwrap().as_mut().unwrap()).write_string({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
-    (*buf.lock().unwrap().as_mut().unwrap()).write_byte(('(' as i32) as u8);
+    let mut buf: Arc<Mutex<Option<bytes::buffer::Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
+    (*buf.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    (*buf.lock().unwrap().as_mut().unwrap()).write_byte(Arc::new(Mutex::new(Some(('(' as i32) as u8))));
     write_type(buf.clone(), { let __recv = s.clone(); let __recv_ptr: *const Selection = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Selection }; let __result = unsafe { &*__recv_ptr }.recv(); __result }.clone(), qf.clone());
-    { let __s = format!(") {}", (*(*(*s.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap())); let __n = __s.len() as i32; (*buf.clone().lock().unwrap().as_ref().unwrap()).__go_write_bytes(__s.as_bytes()); (__n, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))) };
+    { let __s = format!(") {}", (*(*(*s.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap())); (*buf.clone().lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(__s.into_bytes())))) };
     {
         let mut T = { let __recv = s.clone(); let __recv_ptr: *const Selection = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Selection }; let __result = unsafe { &*__recv_ptr }.r#type(); __result };;
         if { let __tmp_x = { let __selector_holder = (*s.lock().unwrap().as_ref().unwrap()).kind.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = SelectionKind(Arc::new(Mutex::new(Some(FIELD_VAL as i32)))); __tmp_x == __tmp_y } {
-            (*buf.lock().unwrap().as_mut().unwrap()).write_byte((' ' as i32) as u8);;
+            (*buf.lock().unwrap().as_mut().unwrap()).write_byte(Arc::new(Mutex::new(Some((' ' as i32) as u8))));;
             write_type(buf.clone(), T.clone(), qf.clone());;
         } else {
             write_signature(buf.clone(), ({
@@ -797,7 +797,7 @@ pub fn selection_string(s: Arc<Mutex<Option<Selection>>>, qf: crate::typestring:
     }), qf.clone());;
         }
     }
-    return (*buf.lock().unwrap().as_mut().unwrap()).string();
+    return (*buf.lock().unwrap().as_ref().unwrap()).string();
 }
 
 impl GoValueClone for Selection {

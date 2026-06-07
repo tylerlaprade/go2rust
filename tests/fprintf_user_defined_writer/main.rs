@@ -1,234 +1,77 @@
-use std::cell::{RefCell};
+use go2rust_stdlib_stubs::*;
+use std::any::Any;
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
-use std::rc::{Rc};
+use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Clone)]
-pub struct bytes_Buffer {
-    pub __go_data: std::sync::Arc<std::sync::Mutex<Vec<u8>>>,
-}
-
-impl Default for bytes_Buffer {
-    fn default() -> Self {
-        Self { __go_data: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())) }
-    }
-}
-
-impl std::fmt::Display for bytes_Buffer {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.__go_string())
-    }
-}
-
-impl bytes_Buffer {
-    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
-        None
-    }
-
-    pub fn __go_from_string(value: String) -> Self {
-        Self { __go_data: std::sync::Arc::new(std::sync::Mutex::new(value.into_bytes())) }
-    }
-
-    pub fn __go_write_bytes(&self, data: &[u8]) {
-        self.__go_data.lock().unwrap().extend_from_slice(data);
-    }
-
-    pub fn __go_bytes(&self) -> Vec<u8> {
-        self.__go_data.lock().unwrap().clone()
-    }
-
-    pub fn __go_string(&self) -> String {
-        String::from_utf8_lossy(&self.__go_data.lock().unwrap()).into_owned()
-    }
-
-    pub fn string(&self) -> Rc<RefCell<Option<String>>> {
-        Rc::new(RefCell::new(Some::<String>(self.__go_string())))
-    }
-
-    pub fn bytes(&self) -> Rc<RefCell<Option<Vec<u8>>>> {
-        Rc::new(RefCell::new(Some::<Vec<u8>>(self.__go_bytes())))
-    }
-
-    pub fn len(&self) -> i32 {
-        self.__go_data.lock().unwrap().len() as i32
-    }
-
-    pub fn reset(&self) {
-        self.__go_data.lock().unwrap().clear();
-    }
-
-    pub fn available(&self) -> i32 {
-        self.len()
-    }
-
-    pub fn available_buffer(&self) -> Rc<RefCell<Option<Vec<u8>>>> {
-        Rc::new(RefCell::new(Some::<Vec<u8>>(Vec::new())))
-    }
-
-    pub fn cap(&self) -> i32 {
-        self.len()
-    }
-
-    pub fn grow<T0>(&self, _arg0: T0) {
-    }
-
-    pub fn next<T0>(&self, _arg0: T0) -> Rc<RefCell<Option<Vec<u8>>>> {
-        Rc::new(RefCell::new(Some::<Vec<u8>>(Vec::new())))
-    }
-
-    pub fn read<T0>(&self, _arg0: T0) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-        (0 as i32, Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
-    }
-
-    pub fn read_byte(&self) -> (u8, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-        (0 as u8, Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
-    }
-
-    pub fn read_bytes<T0>(&self, _arg0: T0) -> (Rc<RefCell<Option<Vec<u8>>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-        (Rc::new(RefCell::new(Some::<Vec<u8>>(Vec::new()))), Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
-    }
-
-    pub fn read_from<T0>(&self, _arg0: T0) -> (i64, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-        (0 as i64, Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
-    }
-
-    pub fn read_rune(&self) -> (i32, i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-        (0 as i32, 0 as i32, Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
-    }
-
-    pub fn read_string<T0>(&self, _arg0: T0) -> (Rc<RefCell<Option<String>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-        (Rc::new(RefCell::new(Some::<String>(String::new()))), Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
-    }
-
-    pub fn truncate<T0>(&self, _arg0: T0) {
-        self.reset();
-    }
-
-    pub fn unread_byte(&self) -> Rc<RefCell<Option<Box<dyn StdError>>>> {
-        Rc::new(RefCell::new(None::<Box<dyn StdError>>))
-    }
-
-    pub fn unread_rune(&self) -> Rc<RefCell<Option<Box<dyn StdError>>>> {
-        Rc::new(RefCell::new(None::<Box<dyn StdError>>))
-    }
-
-    pub fn write<T0: 'static>(&self, arg0: T0) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-        let bytes = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Vec<u8>>() {
-            v.clone()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
-            v.borrow().as_ref().cloned().unwrap_or_default()
-        } else {
-            Vec::new()
-        };
-        let n = bytes.len() as i32;
-        self.__go_write_bytes(&bytes);
-        (n, Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
-    }
-
-    pub fn write_string<T0: 'static>(&self, arg0: T0) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-        let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<String>() {
-            v.clone()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<&str>() {
-            (*v).to_string()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<String>>>>() {
-            v.borrow().as_ref().cloned().unwrap_or_default()
-        } else {
-            String::new()
-        };
-        let bytes = value.into_bytes();
-        let n = bytes.len() as i32;
-        self.__go_write_bytes(&bytes);
-        (n, Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
-    }
-
-    pub fn write_byte<T0: 'static>(&self, arg0: T0) -> Rc<RefCell<Option<Box<dyn StdError>>>> {
-        let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<u8>() {
-            *v
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<i32>() {
-            *v as u8
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<u8>>>>() {
-            v.borrow().as_ref().copied().unwrap_or_default()
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<i32>>>>() {
-            v.borrow().as_ref().copied().unwrap_or_default() as u8
-        } else {
-            0
-        };
-        self.__go_write_bytes(&[value]);
-        Rc::new(RefCell::new(None::<Box<dyn StdError>>))
-    }
-
-    pub fn write_rune<T0: 'static>(&self, arg0: T0) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-        let value = if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<char>() {
-            *v
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<i32>() {
-            char::from_u32(*v as u32).unwrap_or('\0')
-        } else if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<i32>>>>() {
-            char::from_u32(v.borrow().as_ref().copied().unwrap_or_default() as u32).unwrap_or('\0')
-        } else {
-            '\0'
-        };
-        let mut encoded = [0u8; 4];
-        let bytes = value.encode_utf8(&mut encoded).as_bytes().to_vec();
-        let n = bytes.len() as i32;
-        self.__go_write_bytes(&bytes);
-        (n, Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
-    }
-
-    pub fn write_to<T0>(&self, _arg0: T0) -> (i64, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-        (self.__go_data.lock().unwrap().len() as i64, Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
-    }
-}
-
-
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct userWriter {
-    pub count: Rc<RefCell<Option<i32>>>,
-    pub buf: Rc<RefCell<Option<bytes_Buffer>>>,
+    pub count: Arc<Mutex<Option<i32>>>,
+    pub buf: Arc<Mutex<Option<bytes::buffer::Buffer>>>,
 }
 
 impl userWriter {
     pub fn __go_value_clone(&self) -> Self {
-        Self { count: { let __guard = self.count.borrow(); Rc::new(RefCell::new((*__guard).clone())) }, buf: { let __guard = self.buf.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        Self { count: { let __guard = self.count.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, buf: { let __guard = self.buf.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
     }
 }
 
 
 impl Default for userWriter {
     fn default() -> Self {
-        Self { count: Rc::new(RefCell::new(Some(0))), buf: Rc::new(RefCell::new(Some(Default::default()))) }
+        Self { count: Arc::new(Mutex::new(Some(0))), buf: Arc::new(Mutex::new(Some(Default::default()))) }
     }
 }
 
 impl std::fmt::Display for userWriter {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {}}}", (*self.count.borrow().as_ref().unwrap()), (*self.buf.borrow().as_ref().unwrap()))
+        write!(f, "{{{} {}}}", (*self.count.lock().unwrap().as_ref().unwrap()), (*self.buf.lock().unwrap().as_ref().unwrap()))
+    }
+}
+
+impl GoJsonDecode for userWriter {
+    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
+        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
+        let mut out = Self::default();
+        Ok(out)
     }
 }
 
 
 impl userWriter {
-    pub fn write(&mut self, data: Rc<RefCell<Option<Vec<u8>>>>) -> (i32, Rc<RefCell<Option<Box<dyn StdError>>>>) {
-        { let __target = self.count.clone(); let mut guard = __target.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + 1); }
-        (*self.buf.borrow_mut().as_mut().unwrap()).write(data.clone())
+    pub fn write(&mut self, data: Arc<Mutex<Option<Vec<u8>>>>) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        { let __target = self.count.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
+        (*self.buf.lock().unwrap().as_mut().unwrap()).write(data.clone())
     }
 }
 
 fn main() {
-    let mut u = Rc::new(RefCell::new(Some(userWriter { count: Rc::new(RefCell::new(Some(0))), buf: Rc::new(RefCell::new(Some(Default::default()))) })));
+    bytes::__go_init_all();
+    internal_bytealg::__go_init_all();
+    internal_cpu::__go_init_all();
+    unicode_utf8::__go_init_all();
+
+    let mut u = Arc::new(Mutex::new(Some(userWriter { count: Arc::new(Mutex::new(Some(0))), buf: Arc::new(Mutex::new(Some(Default::default()))) })));
     {
-        let (_, mut err) = { let __s = format!("a={} b={}", 1, 2); (*u.borrow_mut().as_mut().unwrap()).write(Rc::new(RefCell::new(Some::<Vec<u8>>(__s.into_bytes())))) };;
-        if (*err.borrow()).is_some() {
-            println!("{} {}", format!("{}", "err:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));;
+        let (_, mut err) = { let __s = format!("a={} b={}", 1, 2); (*u.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(__s.into_bytes())))) };;
+        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
+            println!("{} {}", format!("{}", "err:".to_string()), format!("{}", format!("{}", (*err.lock().unwrap().as_ref().unwrap()))));;
             return;;
         }
     }
     {
-        let (_, mut err) = { let __s = format!(" c={}", 3); (*u.borrow_mut().as_mut().unwrap()).write(Rc::new(RefCell::new(Some::<Vec<u8>>(__s.into_bytes())))) };;
-        if (*err.borrow()).is_some() {
-            println!("{} {}", format!("{}", "err:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));;
+        let (_, mut err) = { let __s = format!(" c={}", 3); (*u.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(__s.into_bytes())))) };;
+        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
+            println!("{} {}", format!("{}", "err:".to_string()), format!("{}", format!("{}", (*err.lock().unwrap().as_ref().unwrap()))));;
             return;;
         }
     }
-    println!("{} {}", format!("{}", "count:".to_string()), format!("{}", (*(*u.borrow().as_ref().unwrap()).count.borrow().as_ref().unwrap())));
-    println!("{} {}", format!("{}", "buf:".to_string()), format!("{}", (*(*(*u.borrow().as_ref().unwrap()).buf.borrow_mut().as_mut().unwrap()).string().borrow().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "count:".to_string()), format!("{}", (*{ let __field = (*u.lock().unwrap().as_ref().unwrap()).count.clone(); __field }.lock().unwrap().as_ref().unwrap())));
+    println!("{} {}", format!("{}", "buf:".to_string()), format!("{}", (*(*(*u.lock().unwrap().as_ref().unwrap()).buf.lock().unwrap().as_ref().unwrap()).string().lock().unwrap().as_ref().unwrap())));
+}
+
+impl GoValueClone for userWriter {
+    fn go_value_clone(&self) -> Self {
+        self.__go_value_clone()
+    }
 }

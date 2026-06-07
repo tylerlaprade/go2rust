@@ -449,7 +449,7 @@ func TestFilepathPureFunctionsStayOffExternalBridge(t *testing.T) {
 
 func TestJsonSupportHelpersDecodeUnsignedAndFixedArrays(t *testing.T) {
 	var out strings.Builder
-	writeJsonSupportHelpers(&out, false)
+	writeJsonSupportHelpers(&out)
 	got := out.String()
 
 	for _, want := range []string{

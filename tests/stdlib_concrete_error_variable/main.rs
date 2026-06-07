@@ -9,6 +9,7 @@ pub fn accept(err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
 }
 
 fn main() {
+    bytes::__go_init_all();
     cmp::__go_init_all();
     go_ast::__go_init_all();
     go_constant::__go_init_all();

@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::alias::*;
 use crate::api::*;
@@ -2936,9 +2936,9 @@ impl Func {
     /// FullName returns the package- or receiver-type-qualified name of
     /// function or method obj.
     pub fn full_name(&self) -> Arc<Mutex<Option<String>>> {
-        let mut buf: Arc<Mutex<Option<bytes_Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
+        let mut buf: Arc<Mutex<Option<bytes::buffer::Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
         write_func_name(buf.clone(), Arc::new(Mutex::new(Some(self.clone()))), Arc::new(Mutex::new(None)));
-        return (*buf.lock().unwrap().as_mut().unwrap()).string();
+        return (*buf.lock().unwrap().as_ref().unwrap()).string();
     }
 
     /// Scope returns the scope of the function's body block.
@@ -4584,7 +4584,7 @@ pub fn new_builtin(id: Arc<Mutex<Option<builtinId>>>) -> Arc<Mutex<Option<Builti
     { let __owner = Arc::new(Mutex::new(Some(Builtin { object: Arc::new(Mutex::new(Some(object { name: Arc::new(Mutex::new(Some({ let __selector_holder = { let __seq = { let __seq_holder = predeclaredFuncs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), typ: Arc::new(Mutex::new(Some(Box::new(crate::basic::BasicPtr({ let __seq = { let __seq_holder = Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(INVALID as i32) as usize].clone() }.clone())) as Box<dyn Type + Send + Sync>))), color_: Arc::new(Mutex::new(Some(color(Arc::new(Mutex::new(Some(BLACK as u32))))))), ..Default::default() }))), id: Arc::new(Mutex::new(Some({ let __arg_holder = id.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().object.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner }
 }
 
-pub fn write_object(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut obj: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>, qf: crate::typestring::Qualifier) {
+pub fn write_object(buf: Arc<Mutex<Option<bytes::buffer::Buffer>>>, mut obj: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>, qf: crate::typestring::Qualifier) {
     let mut obj: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>> = Arc::new(Mutex::new(obj.lock().unwrap().as_ref().map(|__v| Object::__go_clone_box_object(__v.as_ref()))));
     let mut tname: Arc<Mutex<Option<TypeName>>> = Arc::new(Mutex::new(None));
     let mut typ = (*obj.lock().unwrap().as_ref().unwrap()).r#type();
@@ -4605,34 +4605,34 @@ pub fn write_object(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut obj: Arc<Mutex<Op
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<PkgNamePtr>()).is_some() {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<PkgNamePtr>()).unwrap().0.clone();
-        { let __s = format!("package {}", (*{ let __recv = obj.clone(); let __recv_ptr: *const PkgName = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const PkgName }; let __result = unsafe { &*__recv_ptr }.name(); __result }.lock().unwrap().as_ref().unwrap())); let __n = __s.len() as i32; (*buf.lock().unwrap().as_ref().unwrap()).__go_write_bytes(__s.as_bytes()); (__n, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))) };;
+        { let __s = format!("package {}", (*{ let __recv = obj.clone(); let __recv_ptr: *const PkgName = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const PkgName }; let __result = unsafe { &*__recv_ptr }.name(); __result }.lock().unwrap().as_ref().unwrap())); (*buf.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(__s.into_bytes())))) };;
         {
         let mut path = Arc::new(Mutex::new(Some({ let __selector_holder = (*(*obj.lock().unwrap().as_ref().unwrap()).imported.lock().unwrap().as_ref().unwrap()).path.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));;
         if { let __tmp_x = (*path.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } && { let __tmp_x = (*path.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = { let __selector_holder = (*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __tmp_x != __tmp_y } {
-            { let __s = format!(" ({:?})", { let __v = (*path.lock().unwrap().as_ref().unwrap()).clone(); __v }); let __n = __s.len() as i32; (*buf.lock().unwrap().as_ref().unwrap()).__go_write_bytes(__s.as_bytes()); (__n, Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))) };;
+            { let __s = format!(" ({:?})", { let __v = (*path.lock().unwrap().as_ref().unwrap()).clone(); __v }); (*buf.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some::<Vec<u8>>(__s.into_bytes())))) };;
         }
     };
         return;;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<ConstPtr>()).is_some() {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<ConstPtr>()).unwrap().0.clone();
-        { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("const".to_string()); __result };;
+        { let __recv = buf.clone(); let __recv_ptr: *mut bytes::buffer::Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes::buffer::Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(Arc::new(Mutex::new(Some("const".to_string())))); __result };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<TypeNamePtr>()).is_some() {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<TypeNamePtr>()).unwrap().0.clone();
         { let new_val = obj.clone(); tname = new_val; };;
-        { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("type".to_string()); __result };;
+        { let __recv = buf.clone(); let __recv_ptr: *mut bytes::buffer::Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes::buffer::Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(Arc::new(Mutex::new(Some("type".to_string())))); __result };;
         if is_type_param(typ.clone()) {
-        { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(" parameter".to_string()); __result };
+        { let __recv = buf.clone(); let __recv_ptr: *mut bytes::buffer::Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes::buffer::Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(Arc::new(Mutex::new(Some(" parameter".to_string())))); __result };
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<VarPtr>()).is_some() {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<VarPtr>()).unwrap().0.clone();
         if (*{ let __field = (*obj.lock().unwrap().as_ref().unwrap()).is_field.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
-        { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("field".to_string()); __result };
+        { let __recv = buf.clone(); let __recv_ptr: *mut bytes::buffer::Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes::buffer::Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(Arc::new(Mutex::new(Some("field".to_string())))); __result };
     } else {
-        { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("var".to_string()); __result };
+        { let __recv = buf.clone(); let __recv_ptr: *mut bytes::buffer::Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes::buffer::Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(Arc::new(Mutex::new(Some("var".to_string())))); __result };
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<FuncPtr>()).is_some() {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<FuncPtr>()).unwrap().0.clone();
-        { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("func ".to_string()); __result };;
+        { let __recv = buf.clone(); let __recv_ptr: *mut bytes::buffer::Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes::buffer::Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(Arc::new(Mutex::new(Some("func ".to_string())))); __result };;
         write_func_name(buf.clone(), obj.clone(), qf.clone());;
         if { let __nil_result = (*typ.lock().unwrap()).is_some(); __nil_result } {
         write_signature(buf.clone(), ({
@@ -4652,15 +4652,15 @@ pub fn write_object(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut obj: Arc<Mutex<Op
         return;;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<LabelPtr>()).is_some() {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<LabelPtr>()).unwrap().0.clone();
-        { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("label".to_string()); __result };;
+        { let __recv = buf.clone(); let __recv_ptr: *mut bytes::buffer::Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes::buffer::Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(Arc::new(Mutex::new(Some("label".to_string())))); __result };;
         *typ.lock().unwrap() = None;;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<BuiltinPtr>()).is_some() {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<BuiltinPtr>()).unwrap().0.clone();
-        { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("builtin".to_string()); __result };;
+        { let __recv = buf.clone(); let __recv_ptr: *mut bytes::buffer::Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes::buffer::Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(Arc::new(Mutex::new(Some("builtin".to_string())))); __result };;
         *typ.lock().unwrap() = None;;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<NilPtr>()).is_some() {
         let obj = _ts_val.and_then(|__v| __v.downcast_ref::<NilPtr>()).unwrap().0.clone();
-        { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("nil".to_string()); __result };;
+        { let __recv = buf.clone(); let __recv_ptr: *mut bytes::buffer::Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes::buffer::Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(Arc::new(Mutex::new(Some("nil".to_string())))); __result };;
         return;;
     } else {
         let obj = _ts_subject.clone();
@@ -4668,13 +4668,13 @@ pub fn write_object(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut obj: Arc<Mutex<Op
     }
     }
 
-    { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte((' ' as i32) as u8); __result };
+    { let __recv = buf.clone(); let __recv_ptr: *mut bytes::buffer::Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes::buffer::Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte(Arc::new(Mutex::new(Some((' ' as i32) as u8)))); __result };
 
         // For package-level objects, qualify the name.
     if { let __nil_result = (*(*obj.lock().unwrap().as_ref().unwrap()).pkg().lock().unwrap()).is_some(); __nil_result } && { let __left_holder = (*(*(*obj.lock().unwrap().as_ref().unwrap()).pkg().lock().unwrap().as_ref().unwrap()).scope.lock().unwrap().as_ref().unwrap()).lookup((*obj.lock().unwrap().as_ref().unwrap()).name()).clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Object + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_holder = obj.clone(); let __right_guard = __right_holder.lock().unwrap(); let __right_opt: Option<&(dyn Object + Send + Sync)> = __right_guard.as_ref().map(|__v| __v.as_ref()); let __eq = match (__left_opt, __right_opt) { (None, None) => true, (Some(__left), Some(__right)) => __left.__go_eq_object(__right), _ => false }; __eq } {
-        { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(package_prefix((*obj.lock().unwrap().as_ref().unwrap()).pkg(), qf.clone())); __result };
+        { let __recv = buf.clone(); let __recv_ptr: *mut bytes::buffer::Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes::buffer::Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(package_prefix((*obj.lock().unwrap().as_ref().unwrap()).pkg(), qf.clone())); __result };
     }
-    { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string((*obj.lock().unwrap().as_ref().unwrap()).name()); __result };
+    { let __recv = buf.clone(); let __recv_ptr: *mut bytes::buffer::Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes::buffer::Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string((*obj.lock().unwrap().as_ref().unwrap()).name()); __result };
 
     if { let __nil_result = (*typ.lock().unwrap()).is_none(); __nil_result } {
         return;
@@ -4708,7 +4708,7 @@ pub fn write_object(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut obj: Arc<Mutex<Op
                 // Don't print anything more for basic types since there's
                 // no more information.
         if { let __recv = tname.clone(); let __recv_ptr: *const TypeName = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const TypeName }; let __result = unsafe { &*__recv_ptr }.is_alias(); __result } {
-        { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(" =".to_string()); __result };
+        { let __recv = buf.clone(); let __recv_ptr: *mut bytes::buffer::Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes::buffer::Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(Arc::new(Mutex::new(Some(" =".to_string())))); __result };
         {
         let (mut alias, mut ok) = ({
         let val = typ.clone();
@@ -4762,7 +4762,7 @@ pub fn write_object(buf: Arc<Mutex<Option<bytes_Buffer>>>, mut obj: Arc<Mutex<Op
         { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(crate::interface::InterfacePtr(emptyInterface.clone().clone())) as Box<dyn Type + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };
     }
 
-    { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte((' ' as i32) as u8); __result };
+    { let __recv = buf.clone(); let __recv_ptr: *mut bytes::buffer::Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes::buffer::Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte(Arc::new(Mutex::new(Some((' ' as i32) as u8)))); __result };
     write_type(buf.clone(), typ.clone(), qf.clone());
 }
 
@@ -4786,12 +4786,12 @@ pub fn package_prefix(pkg: Arc<Mutex<Option<Package>>>, qf: crate::typestring::Q
 /// The Qualifier controls the printing of
 /// package-level objects, and may be nil.
 pub fn object_string(obj: Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>, qf: crate::typestring::Qualifier) -> Arc<Mutex<Option<String>>> {
-    let mut buf: Arc<Mutex<Option<bytes_Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
+    let mut buf: Arc<Mutex<Option<bytes::buffer::Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
     write_object(buf.clone(), obj.clone(), qf.clone());
-    return (*buf.lock().unwrap().as_mut().unwrap()).string();
+    return (*buf.lock().unwrap().as_ref().unwrap()).string();
 }
 
-pub fn write_func_name(buf: Arc<Mutex<Option<bytes_Buffer>>>, f: Arc<Mutex<Option<Func>>>, qf: crate::typestring::Qualifier) {
+pub fn write_func_name(buf: Arc<Mutex<Option<bytes::buffer::Buffer>>>, f: Arc<Mutex<Option<Func>>>, qf: crate::typestring::Qualifier) {
     if { let __iface_handle = { let __field = (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
         let mut sig = ({
         let val = (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone();
@@ -4809,7 +4809,7 @@ pub fn write_func_name(buf: Arc<Mutex<Option<bytes_Buffer>>>, f: Arc<Mutex<Optio
         {
         let mut recv = { let __recv = sig.clone(); let __recv_ptr: *const crate::signature::Signature = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signature::Signature }; let __result = unsafe { &*__recv_ptr }.recv(); __result };;
         if { let __nil_result = (*recv.lock().unwrap()).is_some(); __nil_result } {
-            { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte(('(' as i32) as u8); __result };;
+            { let __recv = buf.clone(); let __recv_ptr: *mut bytes::buffer::Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes::buffer::Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte(Arc::new(Mutex::new(Some(('(' as i32) as u8)))); __result };;
             {
         let (_, mut ok) = ({
         let val = { let __recv = recv.clone(); let __recv_ptr: *const Var = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Var }; let __result = unsafe { &*__recv_ptr }.r#type(); __result }.clone();
@@ -4825,15 +4825,15 @@ pub fn write_func_name(buf: Arc<Mutex<Option<bytes_Buffer>>>, f: Arc<Mutex<Optio
         }
     });;
         if ok {
-            { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string("interface".to_string()); __result };;
+            { let __recv = buf.clone(); let __recv_ptr: *mut bytes::buffer::Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes::buffer::Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(Arc::new(Mutex::new(Some("interface".to_string())))); __result };;
         } else {
             write_type(buf.clone(), { let __recv = recv.clone(); let __recv_ptr: *const Var = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const Var }; let __result = unsafe { &*__recv_ptr }.r#type(); __result }.clone(), qf.clone());;
         }
     };
-            { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte((')' as i32) as u8); __result };;
-            { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte(('.' as i32) as u8); __result };;
+            { let __recv = buf.clone(); let __recv_ptr: *mut bytes::buffer::Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes::buffer::Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte(Arc::new(Mutex::new(Some((')' as i32) as u8)))); __result };;
+            { let __recv = buf.clone(); let __recv_ptr: *mut bytes::buffer::Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes::buffer::Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_byte(Arc::new(Mutex::new(Some(('.' as i32) as u8)))); __result };;
         } else if { let __nil_target = (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).pkg.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
-        { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(package_prefix({ let __field = (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).pkg.clone(); __field }, qf.clone())); __result };
+        { let __recv = buf.clone(); let __recv_ptr: *mut bytes::buffer::Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes::buffer::Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(package_prefix({ let __field = (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).pkg.clone(); __field }, qf.clone())); __result };
     }
     }
     }
@@ -4841,7 +4841,7 @@ pub fn write_func_name(buf: Arc<Mutex<Option<bytes_Buffer>>>, f: Arc<Mutex<Optio
         // named interfaces using the interface type
         // (not the named type) as the receiver.
         // Don't print it in full.
-    { let __recv = buf.clone(); let __recv_ptr: *mut bytes_Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes_Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string({ let __selector_holder = (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }); __result };
+    { let __recv = buf.clone(); let __recv_ptr: *mut bytes::buffer::Buffer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut bytes::buffer::Buffer }; let __result = unsafe { &mut *__recv_ptr }.write_string(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*f.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); __result };
 }
 
 impl GoValueClone for object {

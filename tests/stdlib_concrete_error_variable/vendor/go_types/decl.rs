@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::alias::*;
 use crate::api::*;
@@ -546,7 +546,7 @@ impl crate::check::Checker {
                         // Count cycle objects.
             assert(Arc::new(Mutex::new(Some({ let __tmp_x = (*(*obj.lock().unwrap().as_ref().unwrap()).color().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::object::color(Arc::new(Mutex::new(Some(GREY as u32)))); __tmp_x >= __tmp_y }))));
             let mut start = Arc::new(Mutex::new(Some(crate::object::color(Arc::new(Mutex::new(Some(((*(*(*obj.lock().unwrap().as_ref().unwrap()).color().lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) - GREY as u32))))))));
-            let mut cycle = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.obj_path.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize..].to_vec() })));
+            let mut cycle = Arc::new(Mutex::new(Some({ let __seq_holder = self.obj_path.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (*{ let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })));
             let mut tparCycle = Arc::new(Mutex::new(Some(false)));
             let mut nval = Arc::new(Mutex::new(Some(0)));
             let mut ndef = Arc::new(Mutex::new(Some(0)));
@@ -1844,7 +1844,7 @@ pub fn path_string(path: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Object + 
 /// source position in path. path must not be empty.
 pub fn first_in_src(path: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn Object + Send + Sync>>>>>>>>) -> i32 {
     let (mut fst, mut pos) = (Arc::new(Mutex::new(Some(0))), { let __recv = { let __seq = { let __seq_holder = path.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).pos(); __result });
-    for (i, t) in { let __seq = { let __seq_holder = path.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize..].to_vec() }.iter().enumerate() {
+    for (i, t) in { let __seq_holder = path.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }.iter().enumerate() {
         if { let __tmp_x = cmp_pos((*t.lock().unwrap().as_ref().unwrap()).pos(), Arc::new(Mutex::new(Some({ let __arg_holder = pos.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __tmp_y = 0; __tmp_x < __tmp_y } {
         { let __tmp_0 = { let __tmp_x = i as i32; let __tmp_y = 1; __tmp_x + __tmp_y }; let __tmp_1 = (*t.lock().unwrap().as_ref().unwrap()).pos(); *fst.lock().unwrap() = Some(__tmp_0); *pos.lock().unwrap() = __tmp_1.lock().unwrap().take(); };
     }

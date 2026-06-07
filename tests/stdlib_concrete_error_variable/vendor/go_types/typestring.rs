@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::alias::*;
 use crate::api::*;
@@ -75,7 +75,6 @@ use crate::version::*;
 use std::any::Any;
 use std::cell::{RefCell};
 use std::collections::BTreeMap;
-use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
@@ -94,7 +93,7 @@ pub type Qualifier = Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<crate::pack
 
 #[derive(Clone)]
 pub struct typeWriter {
-    pub buf: Arc<Mutex<Option<bytes_Buffer>>>,
+    pub buf: Arc<Mutex<Option<bytes::buffer::Buffer>>>,
     pub seen: Arc<Mutex<Option<BTreeMap<GoTypeInterfaceKey, Arc<Mutex<Option<bool>>>>>>>,
     pub qf: Qualifier,
     pub ctxt: Arc<Mutex<Option<Context>>>,
@@ -172,24 +171,24 @@ impl typeWriter {
         if { let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (' ' as i32) as u8; __tmp_x == __tmp_y } {
         { let new_val = ('#' as i32) as u8; *b.lock().unwrap() = Some(new_val); };
     }
-        (*self.buf.lock().unwrap().as_mut().unwrap()).write_byte({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
+        (*self.buf.lock().unwrap().as_mut().unwrap()).write_byte(Arc::new(Mutex::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         return;
     }
-        (*self.buf.lock().unwrap().as_mut().unwrap()).write_byte({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
+        (*self.buf.lock().unwrap().as_mut().unwrap()).write_byte(Arc::new(Mutex::new(Some({ let __arg_holder = b.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         if { let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (',' as i32) as u8; __tmp_x == __tmp_y } || { let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (';' as i32) as u8; __tmp_x == __tmp_y } {
-        (*self.buf.lock().unwrap().as_mut().unwrap()).write_byte((' ' as i32) as u8);
+        (*self.buf.lock().unwrap().as_mut().unwrap()).write_byte(Arc::new(Mutex::new(Some((' ' as i32) as u8))));
     }
     }
 
     pub fn string(&self, s: Arc<Mutex<Option<String>>>) {
-        (*self.buf.lock().unwrap().as_mut().unwrap()).write_string({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
+        (*self.buf.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
 
     pub fn error(&self, msg: Arc<Mutex<Option<String>>>) {
         if { let __nil_target = self.ctxt.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
         std::panic::panic_any(Box::new({ let __arg_holder = msg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>);
     }
-        (*self.buf.lock().unwrap().as_mut().unwrap()).write_string({ let mut __s = String::new(); __s.push_str(&format!("{}", "<".to_string())); __s.push_str(&format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", ">".to_string())); __s });
+        (*self.buf.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "<".to_string())); __s.push_str(&format!("{}", { let __v = (*msg.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", ">".to_string())); __s }))));
     }
 
     pub fn typ(&mut self, typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) {
@@ -528,12 +527,12 @@ impl typeWriter {
             let mut termHashes: Arc<Mutex<Option<Vec<String>>>> = Arc::new(Mutex::new(None));
             { let __range_holder = { let __named_slice = (*(*s.lock().unwrap().as_ref().unwrap()).terms.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for term in __range_values.iter() {
                 // terms are not canonically sorted, so we sort their hashes instead.
-        let mut buf: Arc<Mutex<Option<bytes_Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
+        let mut buf: Arc<Mutex<Option<bytes::buffer::Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
         if (*{ let __field = (*term.lock().unwrap().as_ref().unwrap()).tilde.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
-        (*buf.lock().unwrap().as_mut().unwrap()).write_byte(('~' as i32) as u8);
+        (*buf.lock().unwrap().as_mut().unwrap()).write_byte(Arc::new(Mutex::new(Some(('~' as i32) as u8))));
     }
         { let __recv = new_type_hasher(buf.clone(), { let __field = self.ctxt.clone(); __field }); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).typ({ let __field = (*term.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }); __result };
-        { let new_val = { let __append_target = termHashes.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*(*buf.lock().unwrap().as_mut().unwrap()).string().lock().unwrap().as_ref().unwrap()).clone()); __append_target.clone() }; termHashes = new_val; };
+        { let new_val = { let __append_target = termHashes.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*(*buf.lock().unwrap().as_ref().unwrap()).string().lock().unwrap().as_ref().unwrap()).clone()); __append_target.clone() }; termHashes = new_val; };
     } }
                         // terms are not canonically sorted, so we sort their hashes instead.
             slices::sort::<Vec<String>, String>(termHashes.clone());
@@ -748,30 +747,30 @@ pub fn relative_to(pkg: Arc<Mutex<Option<Package>>>) -> Qualifier {
 /// The [Qualifier] controls the printing of
 /// package-level objects, and may be nil.
 pub fn type_string(typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, qf: Qualifier) -> Arc<Mutex<Option<String>>> {
-    let mut buf: Arc<Mutex<Option<bytes_Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
+    let mut buf: Arc<Mutex<Option<bytes::buffer::Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
     write_type(buf.clone(), typ.clone(), qf.clone());
-    return (*buf.lock().unwrap().as_mut().unwrap()).string();
+    return (*buf.lock().unwrap().as_ref().unwrap()).string();
 }
 
 /// WriteType writes the string representation of typ to buf.
 /// The [Qualifier] controls the printing of
 /// package-level objects, and may be nil.
-pub fn write_type(buf: Arc<Mutex<Option<bytes_Buffer>>>, typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, qf: Qualifier) {
+pub fn write_type(buf: Arc<Mutex<Option<bytes::buffer::Buffer>>>, typ: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>, qf: Qualifier) {
     { let __recv = new_type_writer(buf.clone(), qf.clone()); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).typ(typ.clone()); __result };
 }
 
 /// WriteSignature writes the representation of the signature sig to buf,
 /// without a leading "func" keyword. The [Qualifier] controls the printing
 /// of package-level objects, and may be nil.
-pub fn write_signature(buf: Arc<Mutex<Option<bytes_Buffer>>>, sig: Arc<Mutex<Option<Signature>>>, qf: Qualifier) {
+pub fn write_signature(buf: Arc<Mutex<Option<bytes::buffer::Buffer>>>, sig: Arc<Mutex<Option<Signature>>>, qf: Qualifier) {
     { let __recv = new_type_writer(buf.clone(), qf.clone()); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).signature(sig.clone()); __result };
 }
 
-pub fn new_type_writer(buf: Arc<Mutex<Option<bytes_Buffer>>>, qf: Qualifier) -> Arc<Mutex<Option<typeWriter>>> {
+pub fn new_type_writer(buf: Arc<Mutex<Option<bytes::buffer::Buffer>>>, qf: Qualifier) -> Arc<Mutex<Option<typeWriter>>> {
     Arc::new(Mutex::new(Some(typeWriter { buf: buf.clone(), seen: Arc::new(Mutex::new(Some(BTreeMap::<GoTypeInterfaceKey, Arc<Mutex<Option<bool>>>>::new()))), qf: qf.clone(), ctxt: Default::default(), tparams: Default::default(), param_names: Arc::new(Mutex::new(Some(true))), tp_subscripts: Arc::new(Mutex::new(Some(false))), pkg_info: Arc::new(Mutex::new(Some(false))), ..Default::default() })))
 }
 
-pub fn new_type_hasher(buf: Arc<Mutex<Option<bytes_Buffer>>>, ctxt: Arc<Mutex<Option<Context>>>) -> Arc<Mutex<Option<typeWriter>>> {
+pub fn new_type_hasher(buf: Arc<Mutex<Option<bytes::buffer::Buffer>>>, ctxt: Arc<Mutex<Option<Context>>>) -> Arc<Mutex<Option<typeWriter>>> {
     assert(Arc::new(Mutex::new(Some({ let __nil_result = (*ctxt.lock().unwrap()).is_some(); __nil_result }))));
     Arc::new(Mutex::new(Some(typeWriter { buf: buf.clone(), seen: Arc::new(Mutex::new(Some(BTreeMap::<GoTypeInterfaceKey, Arc<Mutex<Option<bool>>>>::new()))), qf: Default::default(), ctxt: ctxt.clone(), tparams: Default::default(), param_names: Arc::new(Mutex::new(Some(false))), tp_subscripts: Arc::new(Mutex::new(Some(false))), pkg_info: Arc::new(Mutex::new(Some(false))), ..Default::default() })))
 }
@@ -784,14 +783,14 @@ pub fn subscript(mut x: Arc<Mutex<Option<u64>>>) -> Arc<Mutex<Option<String>>> {
     let mut i = Arc::new(Mutex::new(Some((*buf.lock().unwrap().as_ref().unwrap()).len() as i32)));
     loop {
         { let __rhs = 3; let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
-        unicode_utf8::encode_rune(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..].to_vec() }))), Arc::new(Mutex::new(Some({ let __tmp_x = ('\u{2080}' as i32); let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10 as u64; __tmp_x % __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }))));
+        unicode_utf8::encode_rune(Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(Some({ let __tmp_x = ('\u{2080}' as i32); let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10 as u64; __tmp_x % __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }))));
         { let __rhs = 10 as u64; let mut guard = x.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() / __rhs); };
         if { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u64; __tmp_x == __tmp_y } {
         break
     }
     }
         // '₀' == U+2080
-    return Arc::new(Mutex::new(Some(String::from_utf8((*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize..].to_vec() }))).lock().unwrap().as_ref().unwrap()).clone()).unwrap())));
+    return Arc::new(Mutex::new(Some(String::from_utf8((*Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone()).unwrap())));
 }
 
 impl GoValueClone for typeWriter {

@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::alias::*;
 use crate::api::*;
@@ -75,7 +75,6 @@ use crate::version::*;
 use internal_types_errors::*;
 
 use std::any::Any;
-use std::error::Error as StdError;
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
@@ -945,7 +944,7 @@ pub fn operand_string(x: Arc<Mutex<Option<operand>>>, qf: crate::typestring::Qua
     }
 
         // go/types
-    let mut buf: Arc<Mutex<Option<bytes_Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
+    let mut buf: Arc<Mutex<Option<bytes::buffer::Buffer>>> = Arc::new(Mutex::new(Some(Default::default())));
 
     let mut expr: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
     if { let __iface_handle = { let __field = (*x.lock().unwrap().as_ref().unwrap()).expr.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
@@ -964,8 +963,8 @@ pub fn operand_string(x: Arc<Mutex<Option<operand>>>, qf: crate::typestring::Qua
 
         // <expr> (
     if { let __tmp_x = (*expr.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
-        (*buf.lock().unwrap().as_mut().unwrap()).write_string({ let __arg_holder = expr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
-        (*buf.lock().unwrap().as_mut().unwrap()).write_string(" (".to_string());
+        (*buf.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some({ let __arg_holder = expr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        (*buf.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(" (".to_string()))));
     }
 
         // <untyped kind>
@@ -977,7 +976,7 @@ pub fn operand_string(x: Arc<Mutex<Option<operand>>>, qf: crate::typestring::Qua
                         // should have a type, but be cautious (don't crash during printing)
             if { let __iface_handle = { let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
         if is_untyped({ let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }) {
-        (*buf.lock().unwrap().as_mut().unwrap()).write_string({ let __selector_holder = (*({
+        (*buf.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some({ let __selector_holder = (*({
         let val = (*x.lock().unwrap().as_ref().unwrap()).typ.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
@@ -989,8 +988,8 @@ pub fn operand_string(x: Arc<Mutex<Option<operand>>>, qf: crate::typestring::Qua
         } else {
             panic!("type assertion on nil interface")
         }
-    }).lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned });
-        (*buf.lock().unwrap().as_mut().unwrap()).write_byte((' ' as i32) as u8);
+    }).lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+        (*buf.lock().unwrap().as_mut().unwrap()).write_byte(Arc::new(Mutex::new(Some((' ' as i32) as u8))));
         break '__go_switch_1
     }
         { let new_val = true; *hasType.lock().unwrap() = Some(new_val); };
@@ -1003,15 +1002,15 @@ pub fn operand_string(x: Arc<Mutex<Option<operand>>>, qf: crate::typestring::Qua
         // no type
         // should have a type, but be cautious (don't crash during printing)
         // <mode>
-    (*buf.lock().unwrap().as_mut().unwrap()).write_string({ let __seq = { let __seq_holder = operandModeString.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*(*(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) as usize].clone() });
+    (*buf.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = operandModeString.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*(*(*x.lock().unwrap().as_ref().unwrap()).mode.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) as usize].clone() }))));
 
         // <val>
     if { let __tmp_x = { let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mode.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = operandMode(Arc::new(Mutex::new(Some(CONSTANT_ as u8)))); __tmp_x == __tmp_y } {
         {
         let mut s = (*(*x.lock().unwrap().as_ref().unwrap()).val.lock().unwrap().as_mut().unwrap()).string();;
         if { let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*expr.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } {
-            (*buf.lock().unwrap().as_mut().unwrap()).write_byte((' ' as i32) as u8);;
-            (*buf.lock().unwrap().as_mut().unwrap()).write_string({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });;
+            (*buf.lock().unwrap().as_mut().unwrap()).write_byte(Arc::new(Mutex::new(Some((' ' as i32) as u8))));;
+            (*buf.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
         }
     }
     }
@@ -1078,18 +1077,18 @@ pub fn operand_string(x: Arc<Mutex<Option<operand>>>, qf: crate::typestring::Qua
     }
                 // x.typ must be basic type
                 // desc is "" or has a trailing space at the end
-        (*buf.lock().unwrap().as_mut().unwrap()).write_string({ let mut __s = String::new(); __s.push_str(&format!("{}", " of ".to_string())); __s.push_str(&format!("{}", { let __v = (*desc.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", "type ".to_string())); __s });
+        (*buf.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", " of ".to_string())); __s.push_str(&format!("{}", { let __v = (*desc.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", "type ".to_string())); __s }))));
         write_type(buf.clone(), { let __field = (*x.lock().unwrap().as_ref().unwrap()).typ.clone(); __field }, qf.clone());
         if { let __nil_result = (*tpar.lock().unwrap()).is_some(); __nil_result } {
-        (*buf.lock().unwrap().as_mut().unwrap()).write_string(" constrained by ".to_string());
+        (*buf.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(" constrained by ".to_string()))));
         write_type(buf.clone(), { let __field = (*tpar.lock().unwrap().as_ref().unwrap()).bound.clone(); __field }, qf.clone());
                 // If we have the type set and it's empty, say so for better error messages.
         if has_empty_typeset(Arc::new(Mutex::new(Some(Box::new(crate::typeparam::TypeParamPtr(tpar.clone())) as Box<dyn Type + Send + Sync>)))) {
-        (*buf.lock().unwrap().as_mut().unwrap()).write_string(" with empty type set".to_string());
+        (*buf.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(" with empty type set".to_string()))));
     }
     }
     } else {
-        (*buf.lock().unwrap().as_mut().unwrap()).write_string(" with invalid type".to_string());
+        (*buf.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some(" with invalid type".to_string()))));
     }
     }
 
@@ -1103,10 +1102,10 @@ pub fn operand_string(x: Arc<Mutex<Option<operand>>>, qf: crate::typestring::Qua
         // If we have the type set and it's empty, say so for better error messages.
         // )
     if { let __tmp_x = (*expr.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
-        (*buf.lock().unwrap().as_mut().unwrap()).write_byte((')' as i32) as u8);
+        (*buf.lock().unwrap().as_mut().unwrap()).write_byte(Arc::new(Mutex::new(Some((')' as i32) as u8))));
     }
 
-    return (*buf.lock().unwrap().as_mut().unwrap()).string();
+    return (*buf.lock().unwrap().as_ref().unwrap()).string();
 }
 
 /// compositeKind returns the kind of the given composite type

@@ -23,6 +23,7 @@ static __GO_INIT_ONCE: std::sync::Once = std::sync::Once::new();
 
 pub fn __go_init_all() {
     __GO_INIT_ONCE.call_once(|| {
+        bytes::__go_init_all();
         cmp::__go_init_all();
         go_token::__go_init_all();
         slices::__go_init_all();

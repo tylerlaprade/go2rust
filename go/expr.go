@@ -1218,18 +1218,13 @@ func writePointerDerefSequenceSliceExpression(out *strings.Builder, slice *ast.S
 	TranspileExpressionContext(out, star.X, LValue)
 	out.WriteString(".clone(); let __slice_guard = __slice_holder")
 	WriteBorrowMethod(out, false)
-	out.WriteString("; let __seq = __slice_guard.as_ref().cloned().unwrap_or_default()")
-	lowTemp := writeOptionalSliceBoundTemp(out, "__low", slice.Low)
-	highTemp := writeOptionalSliceBoundTemp(out, "__high", slice.High)
-	out.WriteString("; __seq[")
-	if slice.Low != nil {
-		writeSliceBound(out, slice.Low, "__low", lowTemp)
+	if sequenceTypeIsArray(starType) {
+		out.WriteString("; let __source_cap = __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); drop(__slice_guard)")
+		writeSliceVecFromSeq(out, slice.Low, slice.High, nil, "__source_cap", false)
+	} else {
+		out.WriteString("; let __source_cap = __slice_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); drop(__slice_guard)")
+		writeSliceVecFromSeq(out, slice.Low, slice.High, nil, "__source_cap", true)
 	}
-	out.WriteString("..")
-	if slice.High != nil {
-		writeSliceBound(out, slice.High, "__high", highTemp)
-	}
-	out.WriteString("].to_vec() }")
 	WriteWrapperSuffix(out)
 	return true
 }
@@ -1314,6 +1309,43 @@ func writeSliceBound(out *strings.Builder, expr ast.Expr, tempName string, useTe
 		return
 	}
 	writeExpressionAsUsize(out, expr)
+}
+
+func writeSliceBoundValue(out *strings.Builder, expr ast.Expr, fallback string) {
+	if expr == nil {
+		out.WriteString(fallback)
+		return
+	}
+	writeExpressionAsUsize(out, expr)
+}
+
+func writeSliceVecFromSeq(out *strings.Builder, low ast.Expr, high ast.Expr, max ast.Expr, defaultMax string, canExtendWithinCapacity bool) {
+	out.WriteString("; let __low = ")
+	writeSliceBoundValue(out, low, "0")
+	out.WriteString("; let __high = ")
+	writeSliceBoundValue(out, high, "__seq.len()")
+	out.WriteString("; let __max = ")
+	writeSliceBoundValue(out, max, defaultMax)
+	if canExtendWithinCapacity {
+		out.WriteString("; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }")
+	}
+	out.WriteString("; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }")
+}
+
+func sequenceTypeIsArray(typ types.Type) bool {
+	if typ == nil {
+		return false
+	}
+	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
+		return sequenceTypeIsArray(ptr.Elem())
+	}
+	_, ok := types.Unalias(typ).Underlying().(*types.Array)
+	return ok
+}
+
+func sliceExpressionSubjectIsArray(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	return typeInfo != nil && sequenceTypeIsArray(typeInfo.GetType(expr))
 }
 
 func methodReceiverExpressionNeedsUnwrap(expr ast.Expr) bool {
@@ -5227,8 +5259,53 @@ func writeStringsBuilderIoWriterCallArgument(out *strings.Builder, arg ast.Expr,
 	return true
 }
 
+func writeSourceMappedBytesBufferIoWriterConversionValue(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
+	if !isStdlibIoWriterType(expectedType) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !isSourceMappedBytesBufferReceiverType(typeInfo.GetType(arg)) {
+		return false
+	}
+	targetInterface, ok := types.Unalias(expectedType).Underlying().(*types.Interface)
+	if !ok {
+		return false
+	}
+	targetInterface.Complete()
+	if !types.Implements(typeInfo.GetType(arg), targetInterface) {
+		return false
+	}
+	out.WriteString("{ let __writer = ")
+	writeStdlibInterfaceSourceHandle(out, arg, expectedType)
+	out.WriteString("; io_Writer::__go_from_with_write(__writer.clone(), move |__data| { let mut __guard = __writer")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; if let Some(__target) = __guard.as_mut() { let _ = __target.write(")
+	WriteWrapperPrefix(out)
+	out.WriteString("__data.to_vec()")
+	WriteWrapperSuffix(out)
+	out.WriteString("); } }) }")
+	return true
+}
+
+func writeSourceMappedBytesBufferIoWriterCallArgument(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
+	if !isStdlibIoWriterType(expectedType) {
+		return false
+	}
+	var converted strings.Builder
+	if !writeSourceMappedBytesBufferIoWriterConversionValue(&converted, arg, expectedType) {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString(converted.String())
+	WriteWrapperSuffix(out)
+	return true
+}
+
 func writeStdlibInterfaceCallArgumentConversion(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
 	if writeStringsBuilderIoWriterCallArgument(out, arg, expectedType) {
+		return true
+	}
+	if writeSourceMappedBytesBufferIoWriterCallArgument(out, arg, expectedType) {
 		return true
 	}
 	targetRust, _, ok := stdlibInterfaceArgumentConversion(arg, expectedType)
@@ -5266,6 +5343,9 @@ func writeStdlibInterfaceCallArgumentConversion(out *strings.Builder, arg ast.Ex
 }
 
 func writeStdlibInterfaceBareConversion(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
+	if writeSourceMappedBytesBufferIoWriterConversionValue(out, arg, expectedType) {
+		return true
+	}
 	if _, _, ok := stdlibInterfaceArgumentConversion(arg, expectedType); !ok {
 		if targetRust, ok := localConcreteToStdlibInterfaceConversion(arg, expectedType); ok {
 			writeLocalConcreteStdlibInterfaceConversion(out, arg, targetRust)
@@ -5334,6 +5414,9 @@ func selectorFieldCanProvideStdlibInterfaceHandle(sel *ast.SelectorExpr, expecte
 }
 
 func writeStdlibInterfaceComparableConversion(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
+	if writeSourceMappedBytesBufferIoWriterConversionValue(out, arg, expectedType) {
+		return true
+	}
 	targetRust, _, ok := stdlibInterfaceArgumentConversion(arg, expectedType)
 	if !ok {
 		if targetRust, ok := localConcreteToStdlibInterfaceConversion(arg, expectedType); ok {
@@ -10237,6 +10320,13 @@ func writeClonedWrappedExpression(out *strings.Builder, expr ast.Expr, holderNam
 	out.WriteString(holderName)
 	WriteBorrowMethod(out, false)
 	out.WriteString("; let __cloned = ")
+	writeClonedValueFromGuard(out, expr, guardName)
+	out.WriteString("; drop(")
+	out.WriteString(guardName)
+	out.WriteString("); __cloned }")
+}
+
+func writeClonedValueFromGuard(out *strings.Builder, expr ast.Expr, guardName string) {
 	if unnamedSliceExpression(expr) {
 		if rangeSliceElementIsEmptyInterface(expr) {
 			NeedAnyClone()
@@ -10254,9 +10344,6 @@ func writeClonedWrappedExpression(out *strings.Builder, expr ast.Expr, holderNam
 		out.WriteString(guardName)
 		out.WriteString(".as_ref().unwrap()).clone()")
 	}
-	out.WriteString("; drop(")
-	out.WriteString(guardName)
-	out.WriteString("); __cloned }")
 }
 
 func unnamedSliceExpression(expr ast.Expr) bool {
@@ -12360,6 +12447,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		if !isStringSlice && (isSyntaxStringValue(e.X) || isStringConstExpr(e.X)) {
 			isStringSlice = true
 		}
+		subjectIsArray := sliceExpressionSubjectIsArray(e.X)
 
 		if isGoByteSequenceSlice {
 			WriteWrapperPrefix(out)
@@ -12368,33 +12456,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		} else if e.Slice3 && e.Max != nil && !isStringSlice {
 			// Three-index slice: s[low:high:max] → cap = max - low
 			WriteWrapperPrefix(out)
-			out.WriteString("{ let __seq = ")
+			out.WriteString("{ let mut __seq = ")
 			writeClonedWrappedExpression(out, e.X, "__seq_holder", "__seq_guard")
-			lowTemp := writeOptionalSliceBoundTemp(out, "__low", e.Low)
-			highTemp := writeOptionalSliceBoundTemp(out, "__high", e.High)
-			maxTemp := writeOptionalSliceBoundTemp(out, "__max", e.Max)
-			out.WriteString("; let _slice = &__seq[")
-			if e.Low != nil {
-				writeSliceBound(out, e.Low, "__low", lowTemp)
-			} else {
-				out.WriteString("0")
-			}
-			out.WriteString("..")
-			if e.High != nil {
-				writeSliceBound(out, e.High, "__high", highTemp)
-			}
-			out.WriteString("]; let mut _v = Vec::with_capacity((")
-			out.WriteString("(")
-			writeSliceBound(out, e.Max, "__max", maxTemp)
-			out.WriteString(") - ")
-			if e.Low != nil {
-				out.WriteString("(")
-				writeSliceBound(out, e.Low, "__low", lowTemp)
-				out.WriteString(")")
-			} else {
-				out.WriteString("0")
-			}
-			out.WriteString(") as usize); _v.extend_from_slice(_slice); _v }")
+			writeSliceVecFromSeq(out, e.Low, e.High, e.Max, "__seq.capacity()", !subjectIsArray)
 			WriteWrapperSuffix(out)
 		} else if isStringSlice {
 			WriteWrapperPrefix(out)
@@ -12410,55 +12474,36 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			writeNamedSliceInnerHandleClone(out, sliceSubject)
 			out.WriteString("; let __slice_guard = __slice_holder")
 			WriteBorrowMethod(out, false)
-			out.WriteString("; let __seq = __slice_guard.as_ref().cloned().unwrap_or_default()")
-			lowTemp := writeOptionalSliceBoundTemp(out, "__low", e.Low)
-			highTemp := writeOptionalSliceBoundTemp(out, "__high", e.High)
-			out.WriteString("; __seq[")
-			if e.Low != nil {
-				writeSliceBound(out, e.Low, "__low", lowTemp)
-			}
-			out.WriteString("..")
-			if e.High != nil {
-				writeSliceBound(out, e.High, "__high", highTemp)
-			}
-			out.WriteString("].to_vec() }")
+			out.WriteString("; let __source_cap = __slice_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __slice_guard.as_ref().cloned().unwrap_or_default(); drop(__slice_guard)")
+			writeSliceVecFromSeq(out, e.Low, e.High, nil, "__source_cap", true)
 			WriteWrapperSuffix(out)
 			out.WriteString(")")
 		} else if writePointerDerefSequenceSliceExpression(out, e) {
 			// Pointer-to-slice/array dereference is represented by the pointee sequence handle.
 		} else if isExpressionResultBare(e.X) {
 			WriteWrapperPrefix(out)
-			out.WriteString("{ let __seq = ")
+			out.WriteString("{ let mut __seq = ")
 			TranspileExpressionContext(out, e.X, LValue)
-			lowTemp := writeOptionalSliceBoundTemp(out, "__low", e.Low)
-			highTemp := writeOptionalSliceBoundTemp(out, "__high", e.High)
-			out.WriteString("; __seq[")
-			if e.Low != nil {
-				writeSliceBound(out, e.Low, "__low", lowTemp)
+			if subjectIsArray {
+				writeSliceVecFromSeq(out, e.Low, e.High, nil, "__seq.len()", false)
+			} else {
+				writeSliceVecFromSeq(out, e.Low, e.High, nil, "__seq.capacity()", true)
 			}
-			out.WriteString("..")
-			if e.High != nil {
-				writeSliceBound(out, e.High, "__high", highTemp)
-			}
-			out.WriteString("].to_vec() }")
 			WriteWrapperSuffix(out)
 		} else {
 			WriteWrapperPrefix(out)
-			out.WriteString("{ let __seq = ")
-			writeClonedWrappedExpression(out, e.X, "__seq_holder", "__seq_guard")
-			lowTemp := writeOptionalSliceBoundTemp(out, "__low", e.Low)
-			highTemp := writeOptionalSliceBoundTemp(out, "__high", e.High)
-			out.WriteString("; __seq[")
-			if e.Low != nil {
-				// Indices will unwrap themselves in RValue context if needed
-				writeSliceBound(out, e.Low, "__low", lowTemp)
+			out.WriteString("{ let __seq_holder = ")
+			TranspileExpressionContext(out, e.X, LValue)
+			out.WriteString(".clone(); let __seq_guard = __seq_holder")
+			WriteBorrowMethod(out, false)
+			if subjectIsArray {
+				out.WriteString("; let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = ")
+			} else {
+				out.WriteString("; let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = ")
 			}
-			out.WriteString("..")
-			if e.High != nil {
-				// Indices will unwrap themselves in RValue context if needed
-				writeSliceBound(out, e.High, "__high", highTemp)
-			}
-			out.WriteString("].to_vec() }")
+			writeClonedValueFromGuard(out, e.X, "__seq_guard")
+			out.WriteString("; drop(__seq_guard)")
+			writeSliceVecFromSeq(out, e.Low, e.High, nil, "__source_cap", !subjectIsArray)
 			WriteWrapperSuffix(out)
 		}
 
@@ -18408,6 +18453,28 @@ func isByteWriterReceiverType(typ types.Type) bool {
 		return true
 	}
 	return false
+}
+
+func isSourceMappedBytesBufferReceiverType(typ types.Type) bool {
+	named, ok := bytesBufferReceiverNamedType(typ)
+	return ok && isSourceMappedPackagePath(named.Obj().Pkg().Path())
+}
+
+func bytesBufferReceiverNamedType(typ types.Type) (*types.Named, bool) {
+	if typ == nil {
+		return nil, false
+	}
+	if ptr, ok := types.Unalias(typ).(*types.Pointer); ok {
+		return bytesBufferReceiverNamedType(ptr.Elem())
+	}
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || named.Obj() == nil || named.Obj().Pkg() == nil {
+		return nil, false
+	}
+	if named.Obj().Pkg().Path() != "bytes" || named.Obj().Name() != "Buffer" {
+		return nil, false
+	}
+	return named, true
 }
 
 // hasByteSliceWriteMethod reports whether typ's method set contains a method
