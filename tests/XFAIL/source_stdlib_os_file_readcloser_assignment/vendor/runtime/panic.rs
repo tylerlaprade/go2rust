@@ -1797,7 +1797,7 @@ pub fn pop_defer(gp: Arc<Mutex<Option<g>>>) {
     { let new_val = { let __append_target = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.deferpool.clone()); __ptr_value }.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(d.clone()); __append_target.clone() }; pp.with_mut(|__ptr_value| { __ptr_value.deferpool = new_val; }); };
 
     releasem(GoPtr::local(mp.clone()));
-    { let __tmp_0 = None; let __tmp_1 = None; *mp.lock().unwrap() = __tmp_0; *pp.lock().unwrap() = __tmp_1; };
+    { let __tmp_0 = None; let __tmp_1 = GoPtr::nil(); *mp.lock().unwrap() = __tmp_0; pp = __tmp_1.clone(); };
 }
 
 /// readvarintUnsafe reads the uint32 in varint format starting at fd, and returns the

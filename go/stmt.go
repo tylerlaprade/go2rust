@@ -8129,6 +8129,14 @@ func writeParallelNilAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpNam
 		writePointerHandleAssignmentTargetFromValueName(out, sel, tmpName+".clone()")
 		return true
 	}
+	if target, ok := parallelNilGoPtrIdentAssignmentTarget(lhs, rhs); ok {
+		out.WriteString(" ")
+		out.WriteString(rustIdentForUseWithCapture(target))
+		out.WriteString(" = ")
+		out.WriteString(tmpName)
+		out.WriteString(".clone();")
+		return true
+	}
 	if !tupleTempAssignsHandleToElement(lhsType) {
 		return false
 	}
@@ -8167,6 +8175,10 @@ func writeParallelAssignmentTempValueForTarget(out *strings.Builder, lhs ast.Exp
 		out.WriteString("GoPtr::nil()")
 		return
 	}
+	if _, ok := parallelNilGoPtrIdentAssignmentTarget(lhs, rhs); ok {
+		out.WriteString("GoPtr::nil()")
+		return
+	}
 	writeParallelAssignmentTempValue(out, rhs)
 }
 
@@ -8201,6 +8213,31 @@ func parallelNilGoPtrFieldAssignmentTarget(lhs ast.Expr, rhs ast.Expr) (*ast.Sel
 		return nil, false
 	}
 	return sel, true
+}
+
+func parallelNilGoPtrIdentAssignmentTarget(lhs ast.Expr, rhs ast.Expr) (*ast.Ident, bool) {
+	rhsIdent, ok := unwrapParens(rhs).(*ast.Ident)
+	if !ok || rhsIdent.Name != "nil" {
+		return nil, false
+	}
+	lhsIdent, ok := unwrapParens(lhs).(*ast.Ident)
+	if !ok || lhsIdent.Name == "_" || !isGoPtrVar(lhsIdent.Name) {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, false
+	}
+	lhsType := typeInfo.GetType(lhs)
+	if lhsType == nil {
+		if info, ok := goPtrVarInfo(lhsIdent.Name); ok {
+			lhsType = info.GoType
+		}
+	}
+	if lhsType == nil || !tupleTempAssignsHandleToElement(lhsType) {
+		return nil, false
+	}
+	return lhsIdent, true
 }
 
 func writeParallelInterfaceHandleTempValue(out *strings.Builder, rhs ast.Expr) bool {

@@ -5329,6 +5329,43 @@ func reset(addr uintptr) {
 	}
 }
 
+func TestParallelGoPtrLocalNilAssignmentClearsHandle(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct {
+	next *node
+}
+
+func rawNode(addr uintptr) *node {
+	return (*node)(unsafe.Pointer(addr))
+}
+
+func reset(addr uintptr) bool {
+	first := rawNode(addr)
+	last := rawNode(addr + 1)
+	first, last = nil, nil
+	return first == nil && last == nil
+}
+`)
+
+	if !strings.Contains(rust, "let mut first: GoPtr<node>") ||
+		!strings.Contains(rust, "let mut last: GoPtr<node>") {
+		t.Fatalf("test setup should promote pointer locals to GoPtr storage:\n%s", rust)
+	}
+	if strings.Contains(rust, "*first.lock().unwrap()") ||
+		strings.Contains(rust, "*last.lock().unwrap()") {
+		t.Fatalf("parallel nil assignment should not treat GoPtr locals as old pointer wrappers:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __tmp_0 = GoPtr::nil();") ||
+		!strings.Contains(rust, "let __tmp_1 = GoPtr::nil();") ||
+		!strings.Contains(rust, "first = __tmp_0.clone();") ||
+		!strings.Contains(rust, "last = __tmp_1.clone();") {
+		t.Fatalf("parallel nil assignment should clear GoPtr local handles:\n%s", rust)
+	}
+}
+
 func TestCrossFileParallelGoPtrFieldAssignmentConvergesFieldFacts(t *testing.T) {
 	fset := token.NewFileSet()
 	typesFile, err := parser.ParseFile(fset, "types.go", `package main
