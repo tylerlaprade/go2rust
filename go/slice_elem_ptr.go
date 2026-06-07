@@ -6568,8 +6568,7 @@ func writeGoPtrDerefCompoundAssign(out *strings.Builder, lhs ast.Expr, tok token
 	if !ok {
 		return false
 	}
-	ident, ok := unwrapParens(star.X).(*ast.Ident)
-	if !ok || !isGoPtrVar(ident.Name) {
+	if !goPtrDerefTargetHandleExists(star.X) {
 		return false
 	}
 
@@ -6581,11 +6580,34 @@ func writeGoPtrDerefCompoundAssign(out *strings.Builder, lhs ast.Expr, tok token
 	expected = compoundAssignRHSExpectedType(star, expected)
 	writeBareCompoundAssignValueForOp(out, rhs, expected, tok)
 	out.WriteString("; ")
-	out.WriteString(rustIdentForUseWithCapture(ident))
+	writeGoPtrDerefTargetHandle(out, star.X)
 	out.WriteString(".with_mut(|__ptr_value| { *__ptr_value = __ptr_value.clone() ")
 	writeGoPtrCompoundAssignOperator(out, tok)
 	out.WriteString(" __rhs; }); }")
 	return true
+}
+
+func goPtrDerefTargetHandleExists(expr ast.Expr) bool {
+	switch e := unwrapParens(expr).(type) {
+	case *ast.Ident:
+		return isGoPtrVar(e.Name)
+	case *ast.SelectorExpr:
+		return generatedGoPtrFieldForSelector(e)
+	default:
+		return false
+	}
+}
+
+func writeGoPtrDerefTargetHandle(out *strings.Builder, expr ast.Expr) {
+	switch e := unwrapParens(expr).(type) {
+	case *ast.Ident:
+		out.WriteString(rustIdentForUseWithCapture(e))
+	case *ast.SelectorExpr:
+		TranspileExpressionContext(out, e, LValue)
+		out.WriteString(".clone()")
+	default:
+		out.WriteString(`unimplemented!("GoPtr dereference target requires handle expression")`)
+	}
 }
 
 func writeGoPtrCompoundAssignOperator(out *strings.Builder, tok token.Token) {

@@ -1073,7 +1073,7 @@ impl markBits {
 
     /// setMarkedNonAtomic sets the marked bit in the markbits, non-atomically.
     pub fn set_marked_non_atomic(&self) {
-        { let __rhs = { let __v = self.mask.clone(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }; let mut guard = self.bytep.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
+        { let __rhs = { let __v = self.mask.clone(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }; self.bytep.clone().with_mut(|__ptr_value| { *__ptr_value = __ptr_value.clone() | __rhs; }); };
     }
 
     /// clearMarked clears the marked bit in the markbits, atomically.

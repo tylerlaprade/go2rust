@@ -1919,6 +1919,31 @@ func edit(h *holder, mask byte) {
 	}
 }
 
+func TestGoPtrFieldDerefCompoundAssignUsesGoPtrMutation(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type bits struct {
+	bytep *byte
+	mask byte
+}
+
+func makeBits(buf []byte) bits {
+	return bits{bytep: &buf[0], mask: 1}
+}
+
+func set(m bits) {
+	*m.bytep |= m.mask
+}
+`)
+
+	if strings.Contains(rust, "bytep.lock()") || strings.Contains(rust, "bytep.borrow_mut()") {
+		t.Fatalf("compound assignment through a GoPtr field should not use wrapper mutation:\n%s", rust)
+	}
+	if !strings.Contains(rust, "bytep.clone().with_mut(") {
+		t.Fatalf("compound assignment through a GoPtr field should mutate through GoPtr::with_mut:\n%s", rust)
+	}
+}
+
 func TestGoPtrCompositeLiteralFieldFromCapturedLocalUsesGoPtrField(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
