@@ -5474,6 +5474,24 @@ func writeSliceElemPtrFieldValueWithInfo(out *strings.Builder, rhs ast.Expr, fie
 			out.WriteString(".clone())")
 			return true
 		}
+		if elemRustType, ok := packageGlobalGoPtrElemRustType(ident); ok {
+			typeInfo := GetTypeInfo()
+			var elemType types.Type
+			if typeInfo != nil {
+				elemType, _ = sliceElemPtrPointerElemType(typeInfo.GetType(ident))
+			}
+			if !sliceElemPtrElemCompatible(elemType, elemRustType, fieldInfo) {
+				return false
+			}
+			if helperPrefix != "" {
+				writeGoPtrConversion(out, "", helperPrefix, func() {
+					writePackageGlobalPointerHandleClone(out, ident)
+				})
+			} else {
+				writePackageGlobalPointerHandleClone(out, ident)
+			}
+			return true
+		}
 		if elemRustType, ok := goPtrVarElemRustType(ident.Name); ok {
 			typeInfo := GetTypeInfo()
 			var elemType types.Type

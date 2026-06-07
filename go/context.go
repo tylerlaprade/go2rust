@@ -54,6 +54,7 @@ type PackageState struct {
 	SliceElemPtrSliceFields       map[string]sliceElemPtrSliceFieldInfo
 	GoPtrArrayFields              map[string]goPtrArrayFieldInfo
 	GeneratedGoPtrFields          map[string]bool
+	PackageGlobalGoPtrElemRust    map[string]string
 	ArrayElemPtrResultFuncs       map[*types.Func]map[int]arrayElemPtrInfo
 	ArrayElemPtrResultFuncNames   map[string]map[int]arrayElemPtrInfo
 	MapKeyStructTypes             map[string]bool
@@ -183,6 +184,7 @@ func NewPackageState() *PackageState {
 		SliceElemPtrSliceFields:       make(map[string]sliceElemPtrSliceFieldInfo),
 		GoPtrArrayFields:              make(map[string]goPtrArrayFieldInfo),
 		GeneratedGoPtrFields:          make(map[string]bool),
+		PackageGlobalGoPtrElemRust:    make(map[string]string),
 		ArrayElemPtrResultFuncs:       make(map[*types.Func]map[int]arrayElemPtrInfo),
 		ArrayElemPtrResultFuncNames:   make(map[string]map[int]arrayElemPtrInfo),
 		MapKeyStructTypes:             make(map[string]bool),
@@ -589,6 +591,7 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 		}
 		ctx.Package.PackageConstants = packageConstants
 		ctx.Package.PackageConstantTypeNames = packageConstantTypeNames
+		ctx.Package.PackageGlobalGoPtrElemRust = packageGlobalGoPtrElemRust
 		ctx.Package.GoPackageImports = goPackageImports
 		ctx.Package.ExternalPackages = externalPackages
 		ctx.Package.StructDefs = structDefs
@@ -657,6 +660,7 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 		functionTypeAliasBoxTypes = ctx.Package.FunctionTypeAliasBoxTypes
 		packageConstants = ctx.Package.PackageConstants
 		packageConstantTypeNames = ctx.Package.PackageConstantTypeNames
+		packageGlobalGoPtrElemRust = ctx.Package.PackageGlobalGoPtrElemRust
 		goPackageImports = ctx.Package.GoPackageImports
 		externalPackages = ctx.Package.ExternalPackages
 		structDefs = ctx.Package.StructDefs

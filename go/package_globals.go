@@ -16,6 +16,7 @@ var packageFunctionNameOverrides map[string]string
 var packageMethodNameOverrides map[string]string
 var packageGlobalNameOverrides map[string]string
 var packageGlobalNames = make(map[string]bool)
+var packageGlobalGoPtrElemRust = make(map[string]string)
 
 func SetFunctionNameOverrides(overrides map[*ast.FuncDecl]string) {
 	functionNameOverrides = overrides
@@ -480,6 +481,24 @@ func packageGlobalPointerIdent(expr ast.Expr) (*ast.Ident, bool) {
 	return ident, true
 }
 
+func registerPackageGlobalGoPtrStorage(name string, elemRustType string) {
+	if name == "" || elemRustType == "" {
+		return
+	}
+	if packageGlobalGoPtrElemRust == nil {
+		packageGlobalGoPtrElemRust = make(map[string]string)
+	}
+	packageGlobalGoPtrElemRust[name] = elemRustType
+}
+
+func packageGlobalGoPtrElemRustType(ident *ast.Ident) (string, bool) {
+	if ident == nil || !isPackageGlobalIdent(ident) {
+		return "", false
+	}
+	elemRustType, ok := packageGlobalGoPtrElemRust[ident.Name]
+	return elemRustType, ok
+}
+
 func sourceMappedPackageGlobalPointerSelector(expr ast.Expr) (string, string, bool) {
 	sel, ok := expr.(*ast.SelectorExpr)
 	if !ok {
@@ -584,6 +603,7 @@ func collectPackageGlobals(globalVars []*ast.GenDecl) []packageGlobal {
 					goPtrStorage = true
 					goPtrElemRust = goPtrResultElemRustType(info)
 					rustType = "GoPtr<" + goPtrElemRust + ">"
+					registerPackageGlobalGoPtrStorage(name.Name, goPtrElemRust)
 					NeedSliceElemPtr()
 				}
 				globals = append(globals, packageGlobal{

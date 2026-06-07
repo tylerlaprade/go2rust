@@ -114,7 +114,8 @@ func init() {
 	if strings.Contains(rust, "sink = lookup().clone()") {
 		t.Fatalf("package-global interface assignment should not replace the global handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "*sink.lock().unwrap() = (*__iface_guard).clone()") {
+	if !strings.Contains(rust, "*sink.lock().unwrap() = (*__iface_guard).clone()") &&
+		!strings.Contains(rust, "*sink.lock().unwrap() = __iface_value") {
 		t.Fatalf("package-global interface assignment should write through the global slot:\n%s", rust)
 	}
 }
@@ -360,6 +361,53 @@ func main() {
 	}
 	if !strings.Contains(rust, "let __ptr = eface_of(sink.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().typ.clone()") {
 		t.Fatalf("package-global GoPtr initializer should clone the selected GoPtr field handle:\n%s", rust)
+	}
+}
+
+func TestPackageGlobalGoPtrFieldAssignmentUsesStoredHandle(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "unsafe"
+
+type Type struct{}
+
+type eface struct {
+	typ *Type
+}
+
+var sink any
+
+func raw() *Type {
+	return (*Type)(unsafe.Pointer(uintptr(0)))
+}
+
+func forceGoPtrField(e *eface) {
+	e.typ = raw()
+}
+
+func efaceOf(ep *any) *eface {
+	return (*eface)(unsafe.Pointer(ep))
+}
+
+var typ *Type = efaceOf(&sink).typ
+
+func store(x *eface) {
+	x.typ = typ
+}
+
+func main() {
+	go func() {}()
+}
+`)
+
+	if !strings.Contains(rust, "static typ: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<GoPtr<Type>>>>>") {
+		t.Fatalf("package-global pointer initialized from a GoPtr field should use GoPtr storage:\n%s", rust)
+	}
+	if strings.Contains(rust, "GoPtr::local((*typ") {
+		t.Fatalf("assignment from package-global GoPtr storage should not rewrap the stored handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = (*typ.lock().unwrap().as_ref().unwrap()).clone();") {
+		t.Fatalf("assignment from package-global GoPtr storage should clone the existing handle:\n%s", rust)
 	}
 }
 

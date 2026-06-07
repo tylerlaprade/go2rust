@@ -3149,6 +3149,14 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	var body strings.Builder
 	fileAnalysis := analyzeTranspileFile(file, typeInfo)
 	packageGlobalNames = make(map[string]bool)
+	if currentContext != nil && currentContext.Package != nil {
+		if currentContext.Package.PackageGlobalGoPtrElemRust == nil {
+			currentContext.Package.PackageGlobalGoPtrElemRust = make(map[string]string)
+		}
+		packageGlobalGoPtrElemRust = currentContext.Package.PackageGlobalGoPtrElemRust
+	} else {
+		packageGlobalGoPtrElemRust = make(map[string]string)
+	}
 	prevComparableStructTypes := comparableStructTypes
 	prevLocalInterfaceEqualityTypes := localInterfaceEqualityTypes
 	prevAnonymousInterfaceAssertionTraits := anonymousInterfaceAssertionTraits

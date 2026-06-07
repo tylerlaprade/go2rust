@@ -1579,7 +1579,7 @@ impl pollDesc {
     let mut i: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
         let mut x: GoPtr<crate::runtime2::eface> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&i.clone()) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
-        { let new_val = GoPtr::local((*pdType.lock().unwrap().as_ref().unwrap()).clone()); x.with_mut(|__ptr_value| { __ptr_value._type = new_val; }); };
+        { let new_val = (*pdType.lock().unwrap().as_ref().unwrap()).clone(); x.with_mut(|__ptr_value| { __ptr_value._type = new_val; }); };
         { let new_val = Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(self.self_.clone())))) as usize))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *{ let __ptr_value = x.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.lock().unwrap() = __moved_val; };
         i.clone()
     }
