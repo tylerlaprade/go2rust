@@ -12,5 +12,6 @@ serde_json = "1"
 cmp = { path = "../cmp" }
 go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
 slices = { path = "../slices" }
+strconv = { path = "../strconv" }
 unicode = { path = "../unicode" }
 unicode_utf8 = { path = "../unicode_utf8" }

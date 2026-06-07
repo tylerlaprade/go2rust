@@ -13176,6 +13176,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				writeTraitObjectPointerAssertionValue(out, e, wrapperType)
 				return
 			}
+			if star, ok := e.Type.(*ast.StarExpr); ok && typeAssertionSourceIsGoError(e.X) {
+				writeGoErrorPointerTypeAssertionValue(out, e, pointerAssertionPointeeRustType(star))
+				return
+			}
 			if star, ok := e.Type.(*ast.StarExpr); ok {
 				writePointerHandleTypeAssertionValue(out, e, pointerAssertionHandleRustType(star))
 				return
@@ -17017,6 +17021,72 @@ func writeTypeAssertionExpectBareValue(out *strings.Builder, receiver string, ru
 	out.WriteString(">().expect(\"type assertion failed\").clone()")
 }
 
+func typeAssertionSourceIsGoError(expr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	return isGoErrorType(typeInfo.GetType(expr))
+}
+
+func writeGoErrorPointerAssertionSuccess(out *strings.Builder) {
+	WriteWrapperPrefix(out)
+	out.WriteString("typed_val.clone()")
+	WriteWrapperSuffix(out)
+}
+
+func writeGoErrorPointerTypeAssertionValue(out *strings.Builder, e *ast.TypeAssertExpr, pointeeRustType string) {
+	out.WriteString("({\n")
+	out.WriteString("        let val = ")
+	writeTypeAssertionInputClone(out, e.X)
+	out.WriteString(";\n")
+	out.WriteString("        let guard = val")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString("        if let Some(ref any_val) = *guard {\n")
+	out.WriteString("            if let Some(typed_val) = any_val.downcast_ref::<")
+	out.WriteString(pointeeRustType)
+	out.WriteString(">() {\n")
+	out.WriteString("                ")
+	writeGoErrorPointerAssertionSuccess(out)
+	out.WriteString("\n")
+	out.WriteString("            } else {\n")
+	out.WriteString("                panic!(\"type assertion failed\")\n")
+	out.WriteString("            }\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            panic!(\"type assertion on nil interface\")\n")
+	out.WriteString("        }\n")
+	out.WriteString("    })")
+}
+
+func writeGoErrorPointerTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, pointeeRustType string) {
+	out.WriteString("({\n")
+	out.WriteString("        let val = ")
+	writeTypeAssertionInputClone(out, e.X)
+	out.WriteString(";\n")
+	out.WriteString("        let guard = val")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString("        if let Some(ref any_val) = *guard {\n")
+	out.WriteString("            if let Some(typed_val) = any_val.downcast_ref::<")
+	out.WriteString(pointeeRustType)
+	out.WriteString(">() {\n")
+	out.WriteString("                (")
+	writeGoErrorPointerAssertionSuccess(out)
+	out.WriteString(", true)\n")
+	out.WriteString("            } else {\n")
+	out.WriteString("                (")
+	writeTypedWrappedNone(out, pointeeRustType)
+	out.WriteString(", false)\n")
+	out.WriteString("            }\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            (")
+	writeTypedWrappedNone(out, pointeeRustType)
+	out.WriteString(", false)\n")
+	out.WriteString("        }\n")
+	out.WriteString("    })")
+}
+
 func writePointerHandleAssertionExpectValue(out *strings.Builder, receiver string, handleType string) {
 	out.WriteString(receiver)
 	out.WriteString(".downcast_ref::<")
@@ -17852,6 +17922,10 @@ func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) 
 	}
 	if wrapperType, pointeeRustType, ok := sourceMappedPointerInterfaceAssertionWrapperForAssert(e); ok {
 		writeTraitObjectPointerAssertionCommaOk(out, e, wrapperType, pointeeRustType)
+		return
+	}
+	if star, ok := e.Type.(*ast.StarExpr); ok && typeAssertionSourceIsGoError(e.X) {
+		writeGoErrorPointerTypeAssertionCommaOk(out, e, pointerAssertionPointeeRustType(star))
 		return
 	}
 	if star, ok := e.Type.(*ast.StarExpr); ok {

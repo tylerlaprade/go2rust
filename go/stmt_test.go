@@ -8110,6 +8110,41 @@ func underlyingErrorIs(err, target error) bool {
 	}
 }
 
+func TestPointerErrorAssertionDowncastsConcretePayload(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type parseError struct {
+	code int
+}
+
+func (e *parseError) Error() string { return "" }
+
+func makeErr() error {
+	return &parseError{code: 7}
+}
+
+func code() int {
+	err := makeErr()
+	if err != nil && err.(*parseError).code != 0 {
+		return err.(*parseError).code
+	}
+	return 0
+}
+`)
+
+	if strings.Contains(rust, "downcast_ref::<Arc<Mutex<Option<parseError>>>>") ||
+		strings.Contains(rust, "downcast_ref::<Rc<RefCell<Option<parseError>>>>") {
+		t.Fatalf("error assertion to *parseError should not downcast to the wrapper handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "downcast_ref::<parseError>()") {
+		t.Fatalf("error assertion to *parseError should downcast the concrete error payload:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Arc::new(Mutex::new(Some(typed_val.clone())))") &&
+		!strings.Contains(rust, "Rc::new(RefCell::new(Some(typed_val.clone())))") {
+		t.Fatalf("error assertion to *parseError should rebuild the pointer handle from the payload:\n%s", rust)
+	}
+}
+
 func TestAnyAssignedErrorThenAssertedErrorUsesAnyBox(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

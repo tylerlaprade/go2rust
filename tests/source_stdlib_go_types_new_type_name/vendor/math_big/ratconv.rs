@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_any_clone, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_any_clone};
 
 use crate::accuracy_string::*;
 use crate::arith::*;
@@ -590,7 +590,7 @@ pub fn scan_exponent(r: Arc<Mutex<Option<io_ByteScanner>>>, base2ok: Arc<Mutex<O
         { let __rhs_holder = errNoDigits.clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };
     }
     if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } {
-        { let (__tmp_0, __tmp_1) = strconv::parse_int(Arc::new(Mutex::new(Some(String::from_utf8((*digits.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))), 10, 64); *exp.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+        { let (__tmp_0, __tmp_1) = strconv::parse_int(Arc::new(Mutex::new(Some(String::from_utf8((*digits.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))), Arc::new(Mutex::new(Some(10))), Arc::new(Mutex::new(Some(64)))); *exp.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
     }
 
         // other errors take precedence over invalid separators
