@@ -14083,7 +14083,7 @@ const (
 	multiResultReturnSlotBoxTranspiledInterface
 	multiResultReturnSlotBoxSourceMappedPointerInterface
 	multiResultReturnSlotBoxStdlibInterface
-	multiResultReturnSlotBoxSourceMappedStdlibInterface
+	multiResultReturnSlotUnsupportedStdlibInterface
 )
 
 type multiResultReturnSlotPlan struct {
@@ -14091,6 +14091,7 @@ type multiResultReturnSlotPlan struct {
 	ifaceName  string
 	targetRust string
 	sourceRust string
+	message    string
 }
 
 func writeMultiResultCallReturnWithSlotConversions(out *strings.Builder, call *ast.CallExpr, fnType *ast.FuncType) bool {
@@ -14128,10 +14129,11 @@ func writeMultiResultCallReturnWithSlotConversions(out *strings.Builder, call *a
 			needsConversion = true
 			continue
 		}
-		if targetRust, ok := multiResultReturnSlotSourceMappedStdlibInterfaceConversion(returnResultTypeExpr(fnType, i), actualType); ok {
+		if targetRust, message, ok := multiResultReturnSlotSourceMappedExternalStdlibInterfaceUnsupported(returnResultTypeExpr(fnType, i), actualType); ok {
 			plans[i] = multiResultReturnSlotPlan{
-				conversion: multiResultReturnSlotBoxSourceMappedStdlibInterface,
+				conversion: multiResultReturnSlotUnsupportedStdlibInterface,
 				targetRust: targetRust,
+				message:    message,
 			}
 			needsConversion = true
 			continue
@@ -14190,8 +14192,8 @@ func writeMultiResultReturnSlotConversion(out *strings.Builder, tmpName string, 
 		writeSourceMappedPointerInterfaceBoxedReturnTemp(out, tmpName, plan.sourceRust, plan.ifaceName)
 	case multiResultReturnSlotBoxStdlibInterface:
 		writeStdlibInterfaceBoxedReturnTemp(out, tmpName, plan.targetRust)
-	case multiResultReturnSlotBoxSourceMappedStdlibInterface:
-		writeSourceMappedStdlibInterfaceBoxedReturnTemp(out, tmpName, plan.targetRust)
+	case multiResultReturnSlotUnsupportedStdlibInterface:
+		writeUnsupportedStdlibInterfaceBoxedReturnTemp(out, plan.targetRust, plan.message)
 	default:
 		out.WriteString(tmpName)
 	}
@@ -14250,38 +14252,49 @@ func multiResultReturnSlotStdlibInterfaceConversion(expected ast.Expr, actualTyp
 	return targetRust, ok
 }
 
-func multiResultReturnSlotSourceMappedStdlibInterfaceConversion(expected ast.Expr, actualType types.Type) (string, bool) {
+func multiResultReturnSlotSourceMappedExternalStdlibInterfaceUnsupported(expected ast.Expr, actualType types.Type) (string, string, bool) {
 	expectedType := expectedTypeFromParamExpr(expected)
 	if expectedType == nil || actualType == nil {
-		return "", false
+		return "", "", false
 	}
-	targetNamed, ok := expectedType.(*types.Named)
+	targetNamed, ok := types.Unalias(expectedType).(*types.Named)
 	if !ok || targetNamed.Obj() == nil || targetNamed.Obj().Pkg() == nil {
-		return "", false
+		return "", "", false
 	}
-	if !isStubBackedStdlibPackagePath(targetNamed.Obj().Pkg().Path()) {
-		return "", false
+	targetPkgPath := targetNamed.Obj().Pkg().Path()
+	if !isStubBackedStdlibPackagePath(targetPkgPath) {
+		return "", "", false
 	}
 	targetInterface, ok := targetNamed.Underlying().(*types.Interface)
 	if !ok {
-		return "", false
+		return "", "", false
 	}
 	sourceType := actualType
-	if ptr, ok := sourceType.(*types.Pointer); ok {
+	if ptr, ok := types.Unalias(sourceType).(*types.Pointer); ok {
 		sourceType = ptr.Elem()
 	}
 	sourceNamed, ok := types.Unalias(sourceType).(*types.Named)
 	if !ok || sourceNamed.Obj() == nil || sourceNamed.Obj().Pkg() == nil {
-		return "", false
+		return "", "", false
 	}
-	if !isSourceMappedPackagePath(sourceNamed.Obj().Pkg().Path()) {
-		return "", false
+	sourcePkgPath := sourceNamed.Obj().Pkg().Path()
+	if !isSourceMappedPackagePath(sourcePkgPath) || !isStdlibPackage(sourcePkgPath) {
+		return "", "", false
 	}
 	targetInterface.Complete()
 	if !types.Implements(actualType, targetInterface) {
-		return "", false
+		return "", "", false
 	}
-	return goTypesNamedTypeToRust(targetNamed), true
+	message := fmt.Sprintf(
+		"source-mapped %s.%s to external %s.%s requires source-mapped %s; transpile %s instead",
+		sourcePkgPath,
+		sourceNamed.Obj().Name(),
+		targetPkgPath,
+		targetNamed.Obj().Name(),
+		targetPkgPath,
+		targetPkgPath,
+	)
+	return goTypesNamedTypeToRust(targetNamed), message, true
 }
 
 func writeTranspiledInterfaceBoxedReturnTemp(out *strings.Builder, tmpName string, ifaceName string) {
@@ -14318,15 +14331,12 @@ func writeStdlibInterfaceBoxedReturnTemp(out *strings.Builder, tmpName string, t
 	out.WriteString(" }")
 }
 
-func writeSourceMappedStdlibInterfaceBoxedReturnTemp(out *strings.Builder, tmpName string, targetRust string) {
-	out.WriteString("{ let __arg_guard = ")
-	out.WriteString(tmpName)
-	WriteBorrowMethod(out, false)
-	out.WriteString("; let __converted: Option<")
+func writeUnsupportedStdlibInterfaceBoxedReturnTemp(out *strings.Builder, targetRust string, message string) {
+	out.WriteString("{ let __converted: Option<")
 	out.WriteString(targetRust)
-	out.WriteString("> = __arg_guard.as_ref().map(|__v| ")
-	out.WriteString(targetRust)
-	out.WriteString("::__go_from((*__v).clone())); ")
+	out.WriteString("> = Some(unimplemented!(\"")
+	out.WriteString(message)
+	out.WriteString("\")); ")
 	WriteWrapperOptionPrefix(out)
 	out.WriteString("__converted")
 	WriteWrapperOptionSuffix(out)

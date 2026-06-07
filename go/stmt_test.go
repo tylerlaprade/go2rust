@@ -1001,7 +1001,7 @@ func openFile(name string) (io.ReadCloser, error) {
 	}
 }
 
-func TestMultiResultCallReturnConvertsSourceMappedStdlibInterfaceSlot(t *testing.T) {
+func TestMultiResultCallReturnSourceMappedOsToExternalReadCloserIsLoud(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
 
@@ -1027,10 +1027,14 @@ func openFile(name string) (io.ReadCloser, error) {
 	if strings.Contains(rust, "return os::open(") && !strings.Contains(rust, "__return_slot_0") {
 		t.Fatalf("source-mapped multi-result return should not return the concrete os.File slot directly:\n%s", rust)
 	}
+	if strings.Contains(rust, "io_ReadCloser::__go_from") {
+		t.Fatalf("source-mapped os.File returned as external io.ReadCloser should not synthesize a bridge conversion:\n%s", rust)
+	}
 	if !strings.Contains(rust, "let (__return_tmp_0, __return_tmp_1) = os::open") ||
 		!strings.Contains(rust, "let __return_slot_0") ||
-		!strings.Contains(rust, "io_ReadCloser::__go_from") {
-		t.Fatalf("source-mapped multi-result return should box os.File into io.ReadCloser:\n%s", rust)
+		!strings.Contains(rust, "unimplemented!") ||
+		!strings.Contains(rust, "source-mapped os.File to external io.ReadCloser requires source-mapped io") {
+		t.Fatalf("source-mapped os.File returned as external io.ReadCloser should be loud:\n%s", rust)
 	}
 }
 
