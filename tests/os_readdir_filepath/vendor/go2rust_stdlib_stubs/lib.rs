@@ -455,14 +455,6 @@ impl os_File {
 }
 
 
-pub mod bytealg {
-    use super::*;
-    pub fn index_byte_string<T0, T1>(_arg0: T0, _arg1: T1) -> i32 {
-        panic!("index_byte_string bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
-    }
-}
-
-
 pub mod fs {
     use super::*;
     pub fn SkipAll() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
