@@ -7020,6 +7020,29 @@ func writeGoPtrDerefAssignment(out *strings.Builder, ident *ast.Ident, target *a
 	out.WriteString(".assign(Some(new_val)); }")
 }
 
+func writeGoPtrFieldDerefAssignment(out *strings.Builder, target *ast.StarExpr, rhs ast.Expr) bool {
+	sel, ok := unwrapParens(target.X).(*ast.SelectorExpr)
+	if !ok || !generatedGoPtrFieldForSelector(sel) {
+		return false
+	}
+	var targetHandle strings.Builder
+	if !writeGeneratedGoPtrFieldHandleClone(&targetHandle, sel) {
+		return false
+	}
+	out.WriteString("{ let new_val = ")
+	var expected types.Type
+	if typeInfo := GetTypeInfo(); typeInfo != nil {
+		expected = typeInfo.GetType(target)
+	}
+	if !writePointerDerefAssignmentValue(out, rhs, expected) {
+		TranspileExpression(out, rhs)
+	}
+	out.WriteString("; let __ptr_target = ")
+	out.WriteString(targetHandle.String())
+	out.WriteString("; __ptr_target.assign(Some(new_val)); }")
+	return true
+}
+
 func writeGoPtrSlotDerefAssignment(out *strings.Builder, target *ast.StarExpr, rhs ast.Expr) bool {
 	ident, slotInfo, ok := goPtrSlotDerefInfo(target)
 	if ok {

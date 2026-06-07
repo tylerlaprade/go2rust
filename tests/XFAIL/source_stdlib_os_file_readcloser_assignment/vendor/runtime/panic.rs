@@ -1562,7 +1562,7 @@ impl crate::runtime2::_panic {
 
                 // Clear bit and store it back.
         { let __rhs = { let __tmp_x = (1 as u8); let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }; let mut guard = bits.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() & ! __rhs); };
-        { let new_val = { let __v = (*bits.lock().unwrap().as_ref().unwrap()).clone(); __v }; *self.defer_bits_ptr.lock().unwrap() = Some(new_val); };
+        { let new_val = { let __v = (*bits.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __ptr_target = self.defer_bits_ptr.clone(); __ptr_target.assign(Some(new_val)); };
 
         return (Arc::new(Mutex::new(Some(unimplemented!("unsafe.Pointer conversion to function value")))), true);
     }

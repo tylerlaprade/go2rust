@@ -1887,6 +1887,41 @@ func store(slotAddr uintptr, nodeAddr uintptr) {
 	}
 }
 
+func TestGoPtrFieldDerefAssignmentAssignsThroughFieldHandle(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type frame struct {
+	ptr *byte
+}
+
+func raw(addr uintptr) *byte {
+	return (*byte)(unsafe.Pointer(addr))
+}
+
+func initFrame(f *frame, addr uintptr) {
+	f.ptr = raw(addr)
+}
+
+func store(f *frame, value byte) {
+	*f.ptr = value
+}
+`)
+
+	if !strings.Contains(rust, "pub ptr: GoPtr<u8>") {
+		t.Fatalf("test setup should promote pointer field to GoPtr storage:\n%s", rust)
+	}
+	if strings.Contains(rust, ".ptr.lock()") || strings.Contains(rust, ".ptr.lock().unwrap()") {
+		t.Fatalf("dereference assignment through GoPtr field should not treat the field as an old wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __ptr_target = (*f.lock().unwrap().as_ref().unwrap()).ptr.clone(); __ptr_target.assign(Some(new_val));") &&
+		!strings.Contains(rust, "let __ptr_target = (*f.borrow().as_ref().unwrap()).ptr.clone(); __ptr_target.assign(Some(new_val));") &&
+		!strings.Contains(rust, "let __ptr_target = { let __ptr_value = f.borrow(); let __field_value = __ptr_value.as_ref().unwrap().ptr.clone(); __field_value }; __ptr_target.assign(Some(new_val));") {
+		t.Fatalf("dereference assignment through GoPtr field should assign through the selected GoPtr handle:\n%s", rust)
+	}
+}
+
 func TestGoPtrPointerSlotParamForwardingPromotesCallee(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
