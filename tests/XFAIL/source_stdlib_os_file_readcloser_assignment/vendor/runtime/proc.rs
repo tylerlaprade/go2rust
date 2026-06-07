@@ -3246,19 +3246,19 @@ pub fn start_the_world_with_sema(mut now: Arc<Mutex<Option<i64>>>, w: Arc<Mutex<
     world_started();
 
     while !p1.is_nil() {
-        let mut p = p1.clone();
+        let mut p: GoPtr<crate::runtime2::p> = p1.clone();
         p1 = crate::runtime2::puintptr::ptr(&(*{ let __ptr_value = p1.with_mut(|__ptr_value| __ptr_value.link.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()));
-        if { let __tmp_x = { let __selector_holder = (*p.lock().unwrap().as_ref().unwrap()).m.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
-        let mut mp: GoPtr<crate::runtime2::m> = crate::runtime2::muintptr::ptr(&(*(*p.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()));
-        { let new_val = crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0 as usize)))); *(*p.lock().unwrap().as_ref().unwrap()).m.lock().unwrap() = Some(new_val); };
+        if { let __tmp_x = { let __selector_holder = { let __ptr_value = p.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
+        let mut mp: GoPtr<crate::runtime2::m> = crate::runtime2::muintptr::ptr(&(*{ let __ptr_value = p.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()));
+        { let new_val = crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0 as usize)))); *{ let __ptr_value = p.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = { let __selector_holder = { let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.nextp.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
         throw(Arc::new(Mutex::new(Some("startTheWorld: inconsistent mp->nextp".to_string()))));
     }
-        (*{ let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.nextp.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).set(GoPtr::local(p.clone()));
+        (*{ let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.nextp.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).set(p.clone());
         notewakeup({ let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.park.clone()); __ptr_value }.clone());
     } else {
                 // Start M to run P.  Do not start another M below.
-        newm(Arc::new(Mutex::new(None)), GoPtr::local(p.clone()), Arc::new(Mutex::new(Some(-1 as i64))));
+        newm(Arc::new(Mutex::new(None)), p.clone(), Arc::new(Mutex::new(Some(-1 as i64))));
     }
     }
 

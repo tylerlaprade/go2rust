@@ -4315,6 +4315,39 @@ func use(items []pair) {
 	}
 }
 
+func TestGoPtrShortDeclFromGoPtrIdentRegistersLocal(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct {
+	value int
+}
+
+func raw(addr uintptr) *node {
+	return (*node)(unsafe.Pointer(addr))
+}
+
+func use(addr uintptr) int {
+	p1 := raw(addr)
+	p := p1
+	old := p.value
+	p.value = old + 1
+	return p.value
+}
+`)
+
+	if !strings.Contains(rust, "let mut p: GoPtr<node> = p1.clone();") {
+		t.Fatalf("short declaration from a GoPtr local should register the new local as GoPtr:\n%s", rust)
+	}
+	if strings.Contains(rust, "p.lock()") {
+		t.Fatalf("selectors on GoPtr short-decl locals should not use ordinary wrapper locks:\n%s", rust)
+	}
+	if !strings.Contains(rust, "p.with_mut(") {
+		t.Fatalf("GoPtr short-decl local selectors should mutate through GoPtr:\n%s", rust)
+	}
+}
+
 func TestGoPtrPromotedMethodForwardingUsesGoPtrParam(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

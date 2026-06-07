@@ -11314,6 +11314,20 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 												}
 											}
 										}
+										if !isSliceElemPtrShortDecl && !isGoPtrShortDecl {
+											if rhsIdent, ok := unwrapParens(s.Rhs[0]).(*ast.Ident); ok && isGoPtrVar(rhsIdent.Name) {
+												if elemRustType, ok := goPtrVarElemRustType(rhsIdent.Name); ok {
+													isGoPtrShortDecl = true
+													goPtrShortDeclInfo = goPtrInfoForLocalIdent(rhsIdent, elemRustType)
+													goPtrShortDeclElemRustType = goPtrResultElemRustType(goPtrShortDeclInfo)
+													var goType types.Type
+													if typeInfo := GetTypeInfo(); typeInfo != nil {
+														goType = typeInfo.GetType(s.Rhs[0])
+													}
+													registerGoPtrVar(lhsIdent.Name, goPtrShortDeclElemRustType, goType)
+												}
+											}
+										}
 										if !isSliceElemPtrShortDecl {
 											if sel, ok := unwrapParens(s.Rhs[0]).(*ast.SelectorExpr); ok {
 												if info, ok := sliceElemPtrFieldInfoForSelector(sel); ok {
