@@ -72,6 +72,12 @@ type goPtrArrayFieldInfo struct {
 	arrayLen     int64
 }
 
+type sliceElemPtrSliceFieldInfo struct {
+	elemRustType string
+	ownerPkgPath string
+	elemType     types.Type
+}
+
 type sliceElemPtrSliceReturnInfo struct {
 	resultElemRustTypes map[int]string
 }
@@ -1033,6 +1039,9 @@ func registerSliceElemPtrFieldsFromFilesPass(files []*ast.File) bool {
 	if ctx.Package.SliceElemPtrFields == nil {
 		ctx.Package.SliceElemPtrFields = make(map[string]sliceElemPtrFieldInfo)
 	}
+	if ctx.Package.SliceElemPtrSliceFields == nil {
+		ctx.Package.SliceElemPtrSliceFields = make(map[string]sliceElemPtrSliceFieldInfo)
+	}
 	changed := false
 	for _, file := range files {
 		if file == nil {
@@ -1057,6 +1066,9 @@ func registerSliceElemPtrFieldsFromFilesPass(files []*ast.File) bool {
 							rhs := assignmentRHSForLHS(n, i)
 							if rhs != nil {
 								if registerGoPtrArrayFieldAssignment(indexExpr, rhs, currentFn, localCandidates, arrayCandidates, goPtrCandidates) {
+									changed = true
+								}
+								if registerSliceElemPtrSliceFieldAssignment(indexExpr, rhs, currentFn, localCandidates, arrayCandidates, goPtrCandidates) {
 									changed = true
 								}
 							}
@@ -1242,6 +1254,18 @@ func registerGoPtrArrayFieldAssignment(indexExpr *ast.IndexExpr, rhs ast.Expr, c
 	return registerGoPtrArrayFieldInfoForKey(key, fieldInfo)
 }
 
+func registerSliceElemPtrSliceFieldAssignment(indexExpr *ast.IndexExpr, rhs ast.Expr, currentFn *types.Func, localCandidates map[types.Object]string, arrayCandidates map[types.Object]arrayElemPtrInfo, goPtrCandidates map[types.Object]goPtrResultInfo) bool {
+	key, fieldInfo, ok := sliceElemPtrSliceFieldKeyForIndexExpr(indexExpr)
+	if !ok {
+		return false
+	}
+	rhsElemType, rhsElemRustType, ok := sliceElemPtrValueElemType(rhs, currentFn, localCandidates, arrayCandidates, goPtrCandidates)
+	if !ok || !sliceElemPtrSliceFieldElemCompatible(rhsElemType, rhsElemRustType, fieldInfo) {
+		return false
+	}
+	return registerSliceElemPtrSliceFieldInfoForKey(key, fieldInfo)
+}
+
 func registerGoPtrArrayFieldInfoForKey(key string, fieldInfo goPtrArrayFieldInfo) bool {
 	ctx := GetTranspileContext()
 	if key == "" || ctx == nil || ctx.Package == nil {
@@ -1254,6 +1278,22 @@ func registerGoPtrArrayFieldInfoForKey(key string, fieldInfo goPtrArrayFieldInfo
 			ctx.Session.GoPtrArrayFields = make(map[string]goPtrArrayFieldInfo)
 		}
 		ctx.Session.GoPtrArrayFields[key] = fieldInfo
+	}
+	return !existed
+}
+
+func registerSliceElemPtrSliceFieldInfoForKey(key string, fieldInfo sliceElemPtrSliceFieldInfo) bool {
+	ctx := GetTranspileContext()
+	if key == "" || ctx == nil || ctx.Package == nil {
+		return false
+	}
+	_, existed := ctx.Package.SliceElemPtrSliceFields[key]
+	ctx.Package.SliceElemPtrSliceFields[key] = fieldInfo
+	if ctx.Session != nil {
+		if ctx.Session.SliceElemPtrSliceFields == nil {
+			ctx.Session.SliceElemPtrSliceFields = make(map[string]sliceElemPtrSliceFieldInfo)
+		}
+		ctx.Session.SliceElemPtrSliceFields[key] = fieldInfo
 	}
 	return !existed
 }
@@ -1349,9 +1389,25 @@ func goPtrArrayFieldElemCompatible(rhsElemType types.Type, rhsElemRustType strin
 	return rhsElemRustType != "" && rhsElemRustType == fieldInfo.elemRustType
 }
 
+func sliceElemPtrSliceFieldElemCompatible(rhsElemType types.Type, rhsElemRustType string, fieldInfo sliceElemPtrSliceFieldInfo) bool {
+	if rhsElemType != nil && fieldInfo.elemType != nil && types.Identical(coreType(rhsElemType), coreType(fieldInfo.elemType)) {
+		return true
+	}
+	return rhsElemRustType != "" && rhsElemRustType == fieldInfo.elemRustType
+}
+
 func sliceElemPtrFieldElemRustType(fieldInfo sliceElemPtrFieldInfo) string {
 	if fieldInfo.elemType != nil {
 		if rustType := goTypesCollectionElemTypeToRust(fieldInfo.elemType); rustType != "" {
+			return rustType
+		}
+	}
+	return fieldInfo.elemRustType
+}
+
+func sliceElemPtrSliceFieldElemRustType(fieldInfo sliceElemPtrSliceFieldInfo) string {
+	if fieldInfo.elemType != nil {
+		if rustType := goTypesTypeToRust(fieldInfo.elemType); rustType != "" {
 			return rustType
 		}
 	}
@@ -1414,6 +1470,17 @@ func goPtrArrayFieldKeyForIndexExpr(indexExpr *ast.IndexExpr) (string, goPtrArra
 	return goPtrArrayFieldKeyForSelector(sel)
 }
 
+func sliceElemPtrSliceFieldKeyForIndexExpr(indexExpr *ast.IndexExpr) (string, sliceElemPtrSliceFieldInfo, bool) {
+	if indexExpr == nil {
+		return "", sliceElemPtrSliceFieldInfo{}, false
+	}
+	sel, ok := unwrapParens(indexExpr.X).(*ast.SelectorExpr)
+	if !ok {
+		return "", sliceElemPtrSliceFieldInfo{}, false
+	}
+	return sliceElemPtrSliceFieldKeyForSelector(sel)
+}
+
 func goPtrArrayFieldKeyForSelector(sel *ast.SelectorExpr) (string, goPtrArrayFieldInfo, bool) {
 	typeInfo := GetTypeInfo()
 	if sel == nil || typeInfo == nil || typeInfo.info == nil {
@@ -1450,6 +1517,44 @@ func goPtrArrayFieldKeyForSelector(sel *ast.SelectorExpr) (string, goPtrArrayFie
 	}
 	ownerPkgPath := sliceElemPtrFieldOwnerPkgPath(owner)
 	return key, goPtrArrayFieldInfo{elemRustType: elemRustType, ownerPkgPath: ownerPkgPath, elemType: elemType, arrayLen: array.Len()}, true
+}
+
+func sliceElemPtrSliceFieldKeyForSelector(sel *ast.SelectorExpr) (string, sliceElemPtrSliceFieldInfo, bool) {
+	typeInfo := GetTypeInfo()
+	if sel == nil || typeInfo == nil || typeInfo.info == nil {
+		return "", sliceElemPtrSliceFieldInfo{}, false
+	}
+	selection := typeInfo.info.Selections[sel]
+	if selection == nil || selection.Kind() != types.FieldVal || len(selection.Index()) == 0 {
+		return "", sliceElemPtrSliceFieldInfo{}, false
+	}
+	field, ok := selection.Obj().(*types.Var)
+	if !ok || field == nil {
+		return "", sliceElemPtrSliceFieldInfo{}, false
+	}
+	owner, ok := sliceElemPtrFieldOwnerType(selection)
+	if !ok {
+		return "", sliceElemPtrSliceFieldInfo{}, false
+	}
+	slice, ok := types.Unalias(field.Type()).Underlying().(*types.Slice)
+	if !ok {
+		return "", sliceElemPtrSliceFieldInfo{}, false
+	}
+	ptr, ok := types.Unalias(slice.Elem()).Underlying().(*types.Pointer)
+	if !ok {
+		return "", sliceElemPtrSliceFieldInfo{}, false
+	}
+	key := sliceElemPtrFieldKeyForOwnerType(owner, field.Name())
+	if key == "" {
+		return "", sliceElemPtrSliceFieldInfo{}, false
+	}
+	elemType := coreType(ptr.Elem())
+	elemRustType := goTypesTypeToRust(elemType)
+	if elemRustType == "" {
+		return "", sliceElemPtrSliceFieldInfo{}, false
+	}
+	ownerPkgPath := sliceElemPtrFieldOwnerPkgPath(owner)
+	return key, sliceElemPtrSliceFieldInfo{elemRustType: elemRustType, ownerPkgPath: ownerPkgPath, elemType: elemType}, true
 }
 
 func sliceElemPtrFieldOwnerType(selection *types.Selection) (types.Type, bool) {
@@ -1605,6 +1710,14 @@ func goPtrArrayFieldInfoForStructField(typeSpec *ast.TypeSpec, structType *ast.S
 	return goPtrArrayFieldInfoForKey(key)
 }
 
+func sliceElemPtrSliceFieldInfoForStructField(typeSpec *ast.TypeSpec, structType *ast.StructType, structName string, fieldName string) (sliceElemPtrSliceFieldInfo, bool) {
+	key := sliceElemPtrSliceFieldKeyForStructField(typeSpec, structType, structName, fieldName)
+	if key == "" {
+		return sliceElemPtrSliceFieldInfo{}, false
+	}
+	return sliceElemPtrSliceFieldInfoForKey(key)
+}
+
 func goPtrArrayFieldKeyForStructField(typeSpec *ast.TypeSpec, structType *ast.StructType, structName string, fieldName string) string {
 	keys := []string{
 		sliceElemPtrFieldKeyForTypeSpecField(typeSpec, fieldName),
@@ -1616,6 +1729,23 @@ func goPtrArrayFieldKeyForStructField(typeSpec *ast.TypeSpec, structType *ast.St
 			continue
 		}
 		if _, ok := goPtrArrayFieldInfoForKey(key); ok {
+			return key
+		}
+	}
+	return ""
+}
+
+func sliceElemPtrSliceFieldKeyForStructField(typeSpec *ast.TypeSpec, structType *ast.StructType, structName string, fieldName string) string {
+	keys := []string{
+		sliceElemPtrFieldKeyForTypeSpecField(typeSpec, fieldName),
+		sliceElemPtrFieldKeyForAnonymousStructField(structType, fieldName),
+		sliceElemPtrFieldKeyForStructNameField(structName, fieldName),
+	}
+	for _, key := range keys {
+		if key == "" {
+			continue
+		}
+		if _, ok := sliceElemPtrSliceFieldInfoForKey(key); ok {
 			return key
 		}
 	}
@@ -1690,6 +1820,14 @@ func sliceElemPtrFieldInfoForSelector(sel *ast.SelectorExpr) (sliceElemPtrFieldI
 	return sliceElemPtrFieldInfoForKey(key)
 }
 
+func sliceElemPtrSliceFieldInfoForSelector(sel *ast.SelectorExpr) (sliceElemPtrSliceFieldInfo, bool) {
+	key, _, ok := sliceElemPtrSliceFieldKeyForSelector(sel)
+	if !ok {
+		return sliceElemPtrSliceFieldInfo{}, false
+	}
+	return sliceElemPtrSliceFieldInfoForKey(key)
+}
+
 func sliceElemPtrFieldInfoForKey(key string) (sliceElemPtrFieldInfo, bool) {
 	ctx := GetTranspileContext()
 	if key == "" || ctx == nil {
@@ -1724,12 +1862,37 @@ func goPtrArrayFieldInfoForKey(key string) (goPtrArrayFieldInfo, bool) {
 	return goPtrArrayFieldInfo{}, false
 }
 
+func sliceElemPtrSliceFieldInfoForKey(key string) (sliceElemPtrSliceFieldInfo, bool) {
+	ctx := GetTranspileContext()
+	if key == "" || ctx == nil {
+		return sliceElemPtrSliceFieldInfo{}, false
+	}
+	if ctx.Package != nil {
+		if info, ok := ctx.Package.SliceElemPtrSliceFields[key]; ok {
+			return info, true
+		}
+	}
+	if ctx.Session != nil {
+		info, ok := ctx.Session.SliceElemPtrSliceFields[key]
+		return info, ok
+	}
+	return sliceElemPtrSliceFieldInfo{}, false
+}
+
 func goPtrArrayFieldInfoForIndexExpr(indexExpr *ast.IndexExpr) (goPtrArrayFieldInfo, bool) {
 	key, _, ok := goPtrArrayFieldKeyForIndexExpr(indexExpr)
 	if !ok {
 		return goPtrArrayFieldInfo{}, false
 	}
 	return goPtrArrayFieldInfoForKey(key)
+}
+
+func sliceElemPtrSliceFieldInfoForIndexExpr(indexExpr *ast.IndexExpr) (sliceElemPtrSliceFieldInfo, bool) {
+	key, _, ok := sliceElemPtrSliceFieldKeyForIndexExpr(indexExpr)
+	if !ok {
+		return sliceElemPtrSliceFieldInfo{}, false
+	}
+	return sliceElemPtrSliceFieldInfoForKey(key)
 }
 
 func recordGeneratedGoPtrFieldForStructField(typeSpec *ast.TypeSpec, structType *ast.StructType, structName string, fieldName string) {
@@ -4280,11 +4443,54 @@ func collectSliceElemPtrSliceCandidates(body *ast.BlockStmt) map[types.Object]st
 		sawSliceAddr bool
 	}
 	candidates := map[types.Object]*state{}
+	sourceElemRustType := func(expr ast.Expr) (string, bool) {
+		if sel, ok := unwrapParens(expr).(*ast.SelectorExpr); ok {
+			if info, ok := sliceElemPtrSliceFieldInfoForSelector(sel); ok {
+				return sliceElemPtrSliceFieldElemRustType(info), true
+			}
+		}
+		if ident, ok := unwrapParens(expr).(*ast.Ident); ok {
+			obj := typeInfo.GetObject(ident)
+			if obj == nil {
+				return "", false
+			}
+			if st := candidates[obj]; st != nil && st.valid && st.elemRustType != "" {
+				return st.elemRustType, true
+			}
+		}
+		return "", false
+	}
 
 	ast.Inspect(body, func(node ast.Node) bool {
 		switch n := node.(type) {
 		case *ast.FuncLit:
 			return false
+		case *ast.CallExpr:
+			if !isBuiltinCallNamed(n, "copy") || len(n.Args) < 2 {
+				return true
+			}
+			ident, ok := unwrapParens(n.Args[0]).(*ast.Ident)
+			if !ok || ident.Name == "_" {
+				return true
+			}
+			obj := typeInfo.GetObject(ident)
+			if obj == nil {
+				return true
+			}
+			elemRustType, ok := sliceElemPtrSliceElemRustTypeForType(obj.Type())
+			if !ok {
+				return true
+			}
+			srcElemRustType, ok := sourceElemRustType(n.Args[1])
+			if !ok || srcElemRustType != elemRustType {
+				return true
+			}
+			st := candidates[obj]
+			if st == nil {
+				st = &state{elemRustType: elemRustType, valid: true}
+				candidates[obj] = st
+			}
+			st.sawSliceAddr = true
 		case *ast.AssignStmt:
 			if len(n.Rhs) == 1 {
 				if call, ok := unwrapParens(n.Rhs[0]).(*ast.CallExpr); ok {
@@ -4999,6 +5205,10 @@ func writeSliceElemPtrSliceMake(out *strings.Builder, call *ast.CallExpr, elemRu
 
 func writeSliceElemPtrSliceSlotValue(out *strings.Builder, rhs ast.Expr, elemRustType string) bool {
 	if call, ok := unwrapParens(rhs).(*ast.CallExpr); ok {
+		if info, ok := goPtrResultInfoForCall(call, 0); ok && goPtrResultElemCompatible(info, goPtrResultInfo{elemRustType: elemRustType}) {
+			TranspileExpression(out, rhs)
+			return true
+		}
 		if info, ok := sliceElemPtrReturnInfoForCall(call); ok {
 			if info.elemRustType != elemRustType {
 				return false
@@ -5007,6 +5217,13 @@ func writeSliceElemPtrSliceSlotValue(out *strings.Builder, rhs ast.Expr, elemRus
 			out.WriteString("GoPtr::slice_elem_opt(")
 			TranspileExpression(out, rhs)
 			out.WriteString(")")
+			return true
+		}
+	}
+	if ident, ok := unwrapParens(rhs).(*ast.Ident); ok && isGoPtrVar(ident.Name) {
+		if rhsElemRustType, ok := goPtrVarElemRustType(ident.Name); ok && rhsElemRustType == elemRustType {
+			out.WriteString(rustIdentForUseWithCapture(ident))
+			out.WriteString(".clone()")
 			return true
 		}
 	}

@@ -5918,6 +5918,77 @@ func collect(parts []string) []*byte {
 	}
 }
 
+func TestPointerSliceFieldStoresGoPtrSlots(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct {
+	value int
+}
+
+type heap struct {
+	all []*node
+}
+
+func raw(addr uintptr) *node {
+	return (*node)(unsafe.Pointer(addr))
+}
+
+func record(h *heap, addr uintptr) {
+	s := raw(addr)
+	if len(h.all) == 0 {
+		h.all = make([]*node, 1)
+	}
+	h.all[0] = s
+}
+`)
+
+	if strings.Contains(rust, "pub all: Rc<RefCell<Option<Vec<Rc<RefCell<Option<node") ||
+		strings.Contains(rust, "pub all: Arc<Mutex<Option<Vec<Arc<Mutex<Option<node") {
+		t.Fatalf("pointer slice field storing GoPtr values should not use ordinary pointer handles:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub all: Rc<RefCell<Option<Vec<GoPtr<node>>>>") &&
+		!strings.Contains(rust, "pub all: Arc<Mutex<Option<Vec<GoPtr<node>>>>") {
+		t.Fatalf("pointer slice field storing GoPtr values should use GoPtr slots:\n%s", rust)
+	}
+}
+
+func TestPointerSliceCopiedFromFieldKeepsGoPtrSlots(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct {
+	value int
+}
+
+type heap struct {
+	all []*node
+}
+
+func raw(addr uintptr) *node {
+	return (*node)(unsafe.Pointer(addr))
+}
+
+func record(h *heap, addr uintptr) {
+	h.all[0] = raw(addr)
+	newAll := make([]*node, len(h.all))
+	copy(newAll, h.all)
+	h.all = newAll
+}
+`)
+
+	if strings.Contains(rust, "let mut newAll: Rc<RefCell<Option<Vec<Rc<RefCell<Option<node") ||
+		strings.Contains(rust, "let mut newAll: Arc<Mutex<Option<Vec<Arc<Mutex<Option<node") {
+		t.Fatalf("local pointer slice copied from a GoPtr-slot field should not use ordinary pointer handles:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut newAll: Rc<RefCell<Option<Vec<GoPtr<node>>>>") &&
+		!strings.Contains(rust, "let mut newAll: Arc<Mutex<Option<Vec<GoPtr<node>>>>") {
+		t.Fatalf("local pointer slice copied from a GoPtr-slot field should use GoPtr slots:\n%s", rust)
+	}
+}
+
 func TestPointerSliceFromSpecializedReturnKeepsSlotRepresentation(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

@@ -104,6 +104,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		ptrToPtrSlice             bool
 		isPointer                 bool
 		goPtr                     bool
+		goPtrSlice                bool
 		goPtrArray                bool
 		interfaceSlice            bool
 		zeroLenArray              bool
@@ -139,6 +140,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		if len(field.Names) > 0 {
 			for nameIndex, name := range field.Names {
 				_, goPtrField := sliceElemPtrFieldInfoForStructField(nil, structType, structName, name.Name)
+				_, goPtrSliceField := sliceElemPtrSliceFieldInfoForStructField(nil, structType, structName, name.Name)
 				_, goPtrArrayField := goPtrArrayFieldInfoForStructField(nil, structType, structName, name.Name)
 				fields = append(fields, fieldEntry{
 					name:                      rustStructFieldName(name, fieldIndex, nameIndex),
@@ -160,6 +162,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 					ptrToPtrSlice:             ptrToPtrSlice,
 					isPointer:                 isPointer || syncAtomicPointerDisplayField(structName, field, name),
 					goPtr:                     goPtrField,
+					goPtrSlice:                goPtrSliceField,
 					goPtrArray:                goPtrArrayField,
 					interfaceSlice:            interfaceSlice,
 					zeroLenArray:              zeroLenArray,
@@ -169,6 +172,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			// Embedded field
 			typeName := getEmbeddedFieldName(field.Type)
 			_, goPtrField := sliceElemPtrFieldInfoForStructField(nil, structType, structName, typeName)
+			_, goPtrSliceField := sliceElemPtrSliceFieldInfoForStructField(nil, structType, structName, typeName)
 			_, goPtrArrayField := goPtrArrayFieldInfoForStructField(nil, structType, structName, typeName)
 			fields = append(fields, fieldEntry{
 				name:                      typeName,
@@ -190,6 +194,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 				ptrToPtrSlice:             ptrToPtrSlice,
 				isPointer:                 isPointer,
 				goPtr:                     goPtrField,
+				goPtrSlice:                goPtrSliceField,
 				goPtrArray:                goPtrArrayField,
 				interfaceSlice:            interfaceSlice,
 				zeroLenArray:              zeroLenArray,
@@ -251,7 +256,7 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 			out.WriteString("format_nested_slice(&self.")
 			out.WriteString(ToSnakeCase(f.name))
 			out.WriteString(")")
-		} else if f.goPtrArray {
+		} else if f.goPtrSlice || f.goPtrArray {
 			out.WriteString("{ let __guard = self.")
 			out.WriteString(ToSnakeCase(f.name))
 			WriteBorrowMethod(out, false)
@@ -1227,6 +1232,8 @@ func generateStructDefault(out *strings.Builder, typeSpec *ast.TypeSpec, structN
 				out.WriteString(": ")
 				if fieldInfo, ok := goPtrArrayFieldInfoForStructField(typeSpec, structType, structName, name.Name); ok {
 					writeGoPtrArrayFieldDefaultValue(out, fieldInfo)
+				} else if _, ok := sliceElemPtrSliceFieldInfoForStructField(typeSpec, structType, structName, name.Name); ok {
+					WriteWrappedNone(out)
 				} else if _, ok := sliceElemPtrFieldInfoForStructField(typeSpec, structType, structName, name.Name); ok {
 					NeedSliceElemPtr()
 					out.WriteString("GoPtr::nil()")
@@ -1246,6 +1253,8 @@ func generateStructDefault(out *strings.Builder, typeSpec *ast.TypeSpec, structN
 			out.WriteString(": ")
 			if fieldInfo, ok := goPtrArrayFieldInfoForStructField(typeSpec, structType, structName, fieldName); ok {
 				writeGoPtrArrayFieldDefaultValue(out, fieldInfo)
+			} else if _, ok := sliceElemPtrSliceFieldInfoForStructField(typeSpec, structType, structName, fieldName); ok {
+				WriteWrappedNone(out)
 			} else if _, ok := sliceElemPtrFieldInfoForStructField(typeSpec, structType, structName, fieldName); ok {
 				NeedSliceElemPtr()
 				out.WriteString("GoPtr::nil()")
@@ -5283,6 +5292,8 @@ func emitStructTypeDeclBody(out *strings.Builder, typeSpec *ast.TypeSpec, t *ast
 				out.WriteString(": ")
 				if fieldInfo, ok := goPtrArrayFieldInfoForStructField(typeSpec, t, structName, name.Name); ok {
 					out.WriteString(goPtrArrayFieldRustType(fieldInfo))
+				} else if fieldInfo, ok := sliceElemPtrSliceFieldInfoForStructField(typeSpec, t, structName, name.Name); ok {
+					out.WriteString(sliceElemPtrSliceRustType(sliceElemPtrSliceFieldElemRustType(fieldInfo)))
 				} else if fieldInfo, ok := sliceElemPtrFieldInfoForStructField(typeSpec, t, structName, name.Name); ok {
 					recordGeneratedGoPtrFieldForStructField(typeSpec, t, structName, name.Name)
 					NeedSliceElemPtr()
@@ -5304,6 +5315,8 @@ func emitStructTypeDeclBody(out *strings.Builder, typeSpec *ast.TypeSpec, t *ast
 			out.WriteString(": ")
 			if fieldInfo, ok := goPtrArrayFieldInfoForStructField(typeSpec, t, structName, fieldName); ok {
 				out.WriteString(goPtrArrayFieldRustType(fieldInfo))
+			} else if fieldInfo, ok := sliceElemPtrSliceFieldInfoForStructField(typeSpec, t, structName, fieldName); ok {
+				out.WriteString(sliceElemPtrSliceRustType(sliceElemPtrSliceFieldElemRustType(fieldInfo)))
 			} else if fieldInfo, ok := sliceElemPtrFieldInfoForStructField(typeSpec, t, structName, fieldName); ok {
 				recordGeneratedGoPtrFieldForStructField(typeSpec, t, structName, fieldName)
 				NeedSliceElemPtr()

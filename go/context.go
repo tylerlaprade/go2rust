@@ -17,6 +17,7 @@ type TranspileSession struct {
 	GoPtrSlotParamFuncNames     map[string]map[int]string
 	GoPtrReturnFuncNames        map[string]map[int]goPtrResultInfo
 	SliceElemPtrFields          map[string]sliceElemPtrFieldInfo
+	SliceElemPtrSliceFields     map[string]sliceElemPtrSliceFieldInfo
 	GoPtrArrayFields            map[string]goPtrArrayFieldInfo
 	GeneratedGoPtrFields        map[string]bool
 }
@@ -50,6 +51,7 @@ type PackageState struct {
 	GoPtrReturnFuncs              map[*types.Func]map[int]goPtrResultInfo
 	GoPtrReturnFuncNames          map[string]map[int]goPtrResultInfo
 	SliceElemPtrFields            map[string]sliceElemPtrFieldInfo
+	SliceElemPtrSliceFields       map[string]sliceElemPtrSliceFieldInfo
 	GoPtrArrayFields              map[string]goPtrArrayFieldInfo
 	GeneratedGoPtrFields          map[string]bool
 	ArrayElemPtrResultFuncs       map[*types.Func]map[int]arrayElemPtrInfo
@@ -143,6 +145,7 @@ func NewTranspileSession(typeInfo *TypeInfo, packageMapping map[string]string) *
 		GoPtrSlotParamFuncNames:     make(map[string]map[int]string),
 		GoPtrReturnFuncNames:        make(map[string]map[int]goPtrResultInfo),
 		SliceElemPtrFields:          make(map[string]sliceElemPtrFieldInfo),
+		SliceElemPtrSliceFields:     make(map[string]sliceElemPtrSliceFieldInfo),
 		GoPtrArrayFields:            make(map[string]goPtrArrayFieldInfo),
 		GeneratedGoPtrFields:        make(map[string]bool),
 	}
@@ -177,6 +180,7 @@ func NewPackageState() *PackageState {
 		GoPtrReturnFuncs:              make(map[*types.Func]map[int]goPtrResultInfo),
 		GoPtrReturnFuncNames:          make(map[string]map[int]goPtrResultInfo),
 		SliceElemPtrFields:            make(map[string]sliceElemPtrFieldInfo),
+		SliceElemPtrSliceFields:       make(map[string]sliceElemPtrSliceFieldInfo),
 		GoPtrArrayFields:              make(map[string]goPtrArrayFieldInfo),
 		GeneratedGoPtrFields:          make(map[string]bool),
 		ArrayElemPtrResultFuncs:       make(map[*types.Func]map[int]arrayElemPtrInfo),
@@ -314,6 +318,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		if ctx.Session.SliceElemPtrFields == nil {
 			ctx.Session.SliceElemPtrFields = make(map[string]sliceElemPtrFieldInfo)
 		}
+		if ctx.Session.SliceElemPtrSliceFields == nil {
+			ctx.Session.SliceElemPtrSliceFields = make(map[string]sliceElemPtrSliceFieldInfo)
+		}
 		if ctx.Session.GoPtrArrayFields == nil {
 			ctx.Session.GoPtrArrayFields = make(map[string]goPtrArrayFieldInfo)
 		}
@@ -372,6 +379,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		}
 		if ctx.Package.SliceElemPtrFields == nil {
 			ctx.Package.SliceElemPtrFields = make(map[string]sliceElemPtrFieldInfo)
+		}
+		if ctx.Package.SliceElemPtrSliceFields == nil {
+			ctx.Package.SliceElemPtrSliceFields = make(map[string]sliceElemPtrSliceFieldInfo)
 		}
 		if ctx.Package.GoPtrArrayFields == nil {
 			ctx.Package.GoPtrArrayFields = make(map[string]goPtrArrayFieldInfo)

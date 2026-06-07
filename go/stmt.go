@@ -10879,6 +10879,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										if !writeSliceElemPtrSliceSlotValue(out, s.Rhs[0], elemRustType) {
 											out.WriteString(`unimplemented!("type info required to lower pointer slice assignment")`)
 										}
+									} else if fieldInfo, ok := sliceElemPtrSliceFieldInfoForIndexExpr(indexExpr); ok {
+										if !writeSliceElemPtrSliceSlotValue(out, s.Rhs[0], sliceElemPtrSliceFieldElemRustType(fieldInfo)) {
+											out.WriteString(`unimplemented!("type info required to lower pointer slice field assignment")`)
+										}
 									} else if info, ok := goPtrArrayFieldInfoForIndexExpr(indexExpr); ok {
 										if !writeGoPtrCallArgumentForInfo(out, s.Rhs[0], goPtrResultInfo{elemRustType: info.elemRustType, elemType: info.elemType}) {
 											out.WriteString(`unimplemented!("type info required to lower GoPtr array field assignment")`)
