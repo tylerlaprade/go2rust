@@ -113,7 +113,7 @@ fn go_any_clone(value: &(dyn Any + Send + Sync)) -> Box<dyn Any + Send + Sync> {
     if let Some(v) = value.downcast_ref::<&'static str>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
     if let Some(v) = value.downcast_ref::<bool>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
     if let Some(v) = value.downcast_ref::<char>() { return Box::new(*v) as Box<dyn Any + Send + Sync>; }
-    if let Some(v) = value.downcast_ref::<std::time::Duration>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
+    if let Some(v) = value.downcast_ref::<time_Duration>() { return Box::new(v.clone()) as Box<dyn Any + Send + Sync>; }
 
     panic!("go_any_clone: unsupported dynamic type; add typed lowering instead of cloning Box<dyn Any>")
 }
@@ -2087,7 +2087,7 @@ impl std::ops::Neg for float64Value {
 
 /// -- time.Duration Value
 #[derive(Debug, Clone, Default)]
-pub struct durationValue(pub Arc<Mutex<Option<std::time::Duration>>>);
+pub struct durationValue(pub Arc<Mutex<Option<time_Duration>>>);
 
 impl Display for durationValue {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -3343,11 +3343,11 @@ impl durationValue {
     }
 
     pub fn get(&self) -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
-        Arc::new(Mutex::new(Some(Box::new(std::time::Duration::from_nanos((*self.0.lock().unwrap().as_ref().unwrap()) as u64)) as Box<dyn Any + Send + Sync>)))
+        Arc::new(Mutex::new(Some(Box::new((*self.0.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>)))
     }
 
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        std::time::Duration::string(&(*Arc::new(Mutex::new(Some(std::time::Duration::default()))).lock().unwrap().as_ref().unwrap()))
+        time_Duration::string(&(*Arc::new(Mutex::new(Some(time_Duration::default()))).lock().unwrap().as_ref().unwrap()))
     }
 }
 
@@ -3839,15 +3839,15 @@ impl FlagSet {
     /// DurationVar defines a time.Duration flag with specified name, default value, and usage string.
     /// The argument p points to a time.Duration variable in which to store the value of the flag.
     /// The flag accepts a value acceptable to time.ParseDuration.
-    pub fn duration_var(&mut self, p: Arc<Mutex<Option<std::time::Duration>>>, name: Arc<Mutex<Option<String>>>, value: Arc<Mutex<Option<std::time::Duration>>>, usage: Arc<Mutex<Option<String>>>) {
+    pub fn duration_var(&mut self, p: Arc<Mutex<Option<time_Duration>>>, name: Arc<Mutex<Option<String>>>, value: Arc<Mutex<Option<time_Duration>>>, usage: Arc<Mutex<Option<String>>>) {
         self.var(Arc::new(Mutex::new(Some(Box::new(durationValuePtr(new_duration_value(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), p.clone()).clone())) as Box<dyn Value + Send + Sync>))), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
 
     /// Duration defines a time.Duration flag with specified name, default value, and usage string.
     /// The return value is the address of a time.Duration variable that stores the value of the flag.
     /// The flag accepts a value acceptable to time.ParseDuration.
-    pub fn duration(&mut self, name: Arc<Mutex<Option<String>>>, value: Arc<Mutex<Option<std::time::Duration>>>, usage: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<std::time::Duration>>> {
-        let mut p = Arc::new(Mutex::new(Some(std::time::Duration::default())));
+    pub fn duration(&mut self, name: Arc<Mutex<Option<String>>>, value: Arc<Mutex<Option<time_Duration>>>, usage: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<time_Duration>>> {
+        let mut p = Arc::new(Mutex::new(Some(time_Duration::default())));
         self.duration_var(p.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = usage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         return p.clone();
     }
@@ -4146,7 +4146,7 @@ pub fn new_float64_value(val: Arc<Mutex<Option<f64>>>, p: Arc<Mutex<Option<f64>>
     Arc::new(Mutex::new(Some(float64Value::default())))
 }
 
-pub fn new_duration_value(val: Arc<Mutex<Option<std::time::Duration>>>, p: Arc<Mutex<Option<std::time::Duration>>>) -> Arc<Mutex<Option<durationValue>>> {
+pub fn new_duration_value(val: Arc<Mutex<Option<time_Duration>>>, p: Arc<Mutex<Option<time_Duration>>>) -> Arc<Mutex<Option<durationValue>>> {
     { let new_val = { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v }; *p.lock().unwrap() = Some(new_val); };
     Arc::new(Mutex::new(Some(durationValue::default())))
 }

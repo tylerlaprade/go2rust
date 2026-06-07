@@ -1108,6 +1108,11 @@ func goTypeToRustBase(expr ast.Expr) string {
 					NeedGoTime()
 					return "GoTime"
 				case "Duration":
+					if named, ok := namedTypeForTypeExpr(t); ok {
+						if rustType, ok := sourceMappedStdlibStubBackedNamedIntegerRustType(named); ok {
+							return rustType
+						}
+					}
 					return "std::time::Duration"
 				case "Timer":
 					return "GoTimer"
@@ -1342,7 +1347,7 @@ func zeroValueForTypesType(typ types.Type) string {
 		if zeroValue, ok := zeroValueForNamedOverNamedScalar(named); ok {
 			return zeroValue
 		}
-		if isTimeDurationType(named) {
+		if timeDurationUsesStdTimeDuration(named) {
 			return "std::time::Duration::from_nanos(0)"
 		}
 		if _, isSlice := types.Unalias(named.Underlying()).(*types.Slice); isSlice {
@@ -1878,6 +1883,9 @@ func goTypesKnownStdlibNamedTypeToRust(t types.Type) (string, bool) {
 		return "", false
 	}
 	obj := named.Obj()
+	if rustType, ok := sourceMappedStdlibStubBackedNamedIntegerRustType(named); ok {
+		return rustType, true
+	}
 	if isSourceMappedPackagePath(obj.Pkg().Path()) {
 		return "", false
 	}
@@ -1943,6 +1951,35 @@ func goTypesKnownStdlibNamedTypeToRust(t types.Type) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+func sourceMappedStdlibStubBackedNamedIntegerRustType(named *types.Named) (string, bool) {
+	if !useStubBackedStdlibNamedIntegerInSourceMappedStdlib(named) {
+		return "", false
+	}
+	obj := named.Obj()
+	rustName := obj.Pkg().Name() + "_" + RustTypeNameForUse(obj.Name())
+	RegisterExternalTypeStubNamed(named, rustName)
+	return rustNamedTypeWithArgs(named, rustName), true
+}
+
+func useStubBackedStdlibNamedIntegerInSourceMappedStdlib(named *types.Named) bool {
+	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil || !isNamedIntegerType(named) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || typeInfo.pkg == nil {
+		return false
+	}
+	currentPkgPath := typeInfo.pkg.Path()
+	if !isStdlibPackage(currentPkgPath) || !isSourceMappedPackagePath(currentPkgPath) {
+		return false
+	}
+	if !isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
+		return false
+	}
+	_, ok := externalIntegerRustTypeForNamed(named)
+	return ok
 }
 
 func rustTypeNameForImportedPackagePath(pkgPath, name string) (string, bool) {

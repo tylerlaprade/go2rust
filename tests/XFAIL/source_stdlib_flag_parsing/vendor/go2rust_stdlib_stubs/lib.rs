@@ -1265,6 +1265,52 @@ impl syscall_Errno {
 
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct time_Duration(pub i64);
+
+impl PartialEq<i64> for time_Duration {
+    fn eq(&self, other: &i64) -> bool {
+        self.0 == *other
+    }
+}
+
+impl PartialEq<time_Duration> for i64 {
+    fn eq(&self, other: &time_Duration) -> bool {
+        *self == other.0
+    }
+}
+
+impl std::ops::BitAnd for time_Duration {
+    type Output = time_Duration;
+    fn bitand(self, other: Self) -> time_Duration {
+        time_Duration(self.0 & other.0)
+    }
+}
+
+impl std::ops::BitOr for time_Duration {
+    type Output = time_Duration;
+    fn bitor(self, other: Self) -> time_Duration {
+        time_Duration(self.0 | other.0)
+    }
+}
+
+impl std::fmt::Display for time_Duration {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "<time_Duration>")
+    }
+}
+
+
+impl time_Duration {
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        None
+    }
+    pub fn string(&self) -> Arc<Mutex<Option<String>>> {
+        panic!("time_Duration.string bridge: generic stub method body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct time_ParseError;
 
 impl std::fmt::Display for time_ParseError {
@@ -1395,7 +1441,7 @@ pub mod strconv {
 
 pub mod time {
     use super::*;
-    pub fn parse_duration<T0>(_arg0: T0) -> (Arc<Mutex<Option<std::time::Duration>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn parse_duration<T0>(_arg0: T0) -> (Arc<Mutex<Option<time_Duration>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         panic!("parse_duration bridge: generic stub function body has no implementation; add a custom emitter or remove the call — see AGENTS.md 'Strategy: Transpile stdlib, don't bridge it' and docs/bridge_debt.md")
     }
 }

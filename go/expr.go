@@ -289,8 +289,14 @@ func writeNamedIntegerValueForExpected(out *strings.Builder, expr ast.Expr, name
 		TranspileExpression(out, expr)
 		return true
 	}
-	if isTimeDurationType(named) {
+	if timeDurationUsesStdTimeDuration(named) {
 		writeTimeDurationValue(out, expr)
+		return true
+	}
+	if expressionHasSameExternalNamedIntegerType(expr, named) {
+		if !writeOwnedExpressionValue(out, expr) {
+			TranspileExpression(out, expr)
+		}
 		return true
 	}
 	if binary, ok := expr.(*ast.BinaryExpr); ok && (binary.Op == token.SHL || binary.Op == token.SHR) {
@@ -328,6 +334,22 @@ func writeNamedIntegerValueForExpected(out *strings.Builder, expr ast.Expr, name
 	return true
 }
 
+func expressionHasSameExternalNamedIntegerType(expr ast.Expr, named *types.Named) bool {
+	if _, ok := externalIntegerRustTypeForNamed(named); !ok {
+		return false
+	}
+	switch expr.(type) {
+	case *ast.BasicLit, *ast.BinaryExpr, *ast.UnaryExpr:
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	valueNamed, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
+	return ok && sameNamedTypeDefinition(valueNamed, named)
+}
+
 func writeNamedIntegerDefinedNamedValueForExpected(out *strings.Builder, expr ast.Expr, expected *types.Named) bool {
 	if !namedIntegerTypeDefinitionStoresNamedValue(expected) {
 		return false
@@ -354,6 +376,24 @@ func writeNamedIntegerDefinedNamedValueForExpected(out *strings.Builder, expr as
 }
 
 func writeNamedIntegerNamedStorageValue(out *strings.Builder, expr ast.Expr, typeInfo *TypeInfo) {
+	if ident, ok := expr.(*ast.Ident); ok && isCurrentReceiverIdent(ident) && (currentReceiverScalarTypeDefinition() || expressionNamedIntegerTypeDefinitionStoresNamedValue(expr, typeInfo)) {
+		out.WriteString("(*")
+		out.WriteString(currentReceiverRustName())
+		out.WriteString(".0")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()")
+		return
+	}
+	if _, ok := expr.(*ast.StarExpr); ok {
+		if actual, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named); ok {
+			var value strings.Builder
+			if writeNamedScalarCurrentReceiverDerefUnderlyingValue(&value, expr, actual) {
+				out.WriteString(value.String())
+				out.WriteString(".clone()")
+				return
+			}
+		}
+	}
 	if ident, ok := expr.(*ast.Ident); ok && ident.Name != "nil" && !isVarBare(ident.Name) {
 		varName := RustIdentForUse(ident)
 		if renamed, exists := captureRenameForIdent(ident); exists {
@@ -377,6 +417,14 @@ func writeNamedIntegerNamedStorageValue(out *strings.Builder, expr ast.Expr, typ
 		return
 	}
 	TranspileExpression(out, expr)
+}
+
+func expressionNamedIntegerTypeDefinitionStoresNamedValue(expr ast.Expr, typeInfo *TypeInfo) bool {
+	if typeInfo == nil || expr == nil {
+		return false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
+	return ok && namedIntegerTypeDefinitionStoresNamedValue(named)
 }
 
 func namedIntegerTypeDefinitionStoresNamedValue(named *types.Named) bool {
@@ -7669,6 +7717,9 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 	if writeStdlibInterfaceTypeConversionAnyBox(out, expr) {
 		return
 	}
+	if writeExternalNamedIntegerAnyBox(out, expr) {
+		return
+	}
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		RegisterAnyCloneType(typeInfo.GetType(expr))
 	}
@@ -7700,6 +7751,59 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 	}
 	out.WriteString(") as ")
 	out.WriteString(rustAnyTraitObject())
+}
+
+func writeExternalNamedIntegerAnyBox(out *strings.Builder, expr ast.Expr) bool {
+	named, ok := externalNamedIntegerExpressionType(expr)
+	if !ok {
+		return false
+	}
+	RegisterAnyCloneType(named)
+	out.WriteString("Box::new(")
+	writeExternalNamedIntegerOwnedValue(out, expr)
+	out.WriteString(") as ")
+	out.WriteString(rustAnyTraitObject())
+	return true
+}
+
+func externalNamedIntegerExpressionType(expr ast.Expr) (*types.Named, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || expr == nil {
+		return nil, false
+	}
+	named, ok := types.Unalias(typeInfo.GetType(expr)).(*types.Named)
+	if !ok || !isNamedIntegerType(named) {
+		return nil, false
+	}
+	if _, ok := externalIntegerRustTypeForNamed(named); !ok {
+		return nil, false
+	}
+	return named, true
+}
+
+func writeExternalNamedIntegerOwnedValue(out *strings.Builder, expr ast.Expr) {
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil {
+		if call, ok := expr.(*ast.CallExpr); ok && typeInfo.ReturnsWrappedValue(call) && !isBareBuiltinReturn(call) && !callReturnsBareChannelValue(call) {
+			out.WriteString("(*")
+			TranspileExpression(out, expr)
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).clone()")
+			return
+		}
+	}
+	if ident, ok := expr.(*ast.Ident); ok && isWrappedValueIdent(ident) {
+		writeIdentValueClone(out, ident)
+		return
+	}
+	if _, ok := expr.(*ast.SelectorExpr); ok && !isExpressionResultBare(expr) {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, expr, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()")
+		return
+	}
+	TranspileExpression(out, expr)
 }
 
 func writeBareInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
@@ -9096,12 +9200,18 @@ func writeExpressionForExpectedTypesType(out *strings.Builder, value ast.Expr, e
 			}
 		}
 	}
-	if isTimeDurationType(named) {
+	if timeDurationUsesStdTimeDuration(named) {
 		writeTimeDurationValue(out, value)
 		return true
 	}
 	if stdlibStubSelectorConstHasNamedType(value, named) {
 		TranspileExpression(out, value)
+		return true
+	}
+	if expressionHasSameExternalNamedIntegerType(value, named) {
+		if !writeOwnedExpressionValue(out, value) {
+			TranspileExpression(out, value)
+		}
 		return true
 	}
 	if rustType, ok := externalIntegerRustTypeForNamed(named); ok {
@@ -14594,6 +14704,9 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 	}
 
 	if named, rustType, ok := externalIntegerConversionTarget(call); ok {
+		if writeExternalIntegerConversionFromStoredNamedValue(out, call.Args[0], named) {
+			return
+		}
 		out.WriteString(goTypesNamedTypeToRust(named))
 		out.WriteString("(")
 		writeNumericConversionValueForRustType(out, call.Args[0], rustType)
@@ -14948,7 +15061,7 @@ func isTimeDurationConversionCall(call *ast.CallExpr) bool {
 	if typeInfo == nil || call == nil || len(call.Args) != 1 || !typeInfo.IsTypeConversion(call) {
 		return false
 	}
-	return isTimeDurationType(typeInfo.GetType(call))
+	return timeDurationUsesStdTimeDuration(typeInfo.GetType(call))
 }
 
 func writeTimeDurationFromIntegerConversion(out *strings.Builder, arg ast.Expr) {
@@ -15861,6 +15974,48 @@ func namedIntegerDefinedNamedConversionTarget(call *ast.CallExpr) (*types.Named,
 	return named, true
 }
 
+func writeExternalIntegerConversionFromStoredNamedValue(out *strings.Builder, arg ast.Expr, target *types.Named) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || target == nil {
+		return false
+	}
+	actual, ok := types.Unalias(typeInfo.GetType(arg)).(*types.Named)
+	if !ok || !namedIntegerTypeDefinitionStoresTargetNamedValue(actual, target) {
+		return false
+	}
+	writeNamedIntegerNamedStorageValue(out, arg, typeInfo)
+	return true
+}
+
+func namedIntegerTypeDefinitionStoresTargetNamedValue(actual *types.Named, target *types.Named) bool {
+	if actual == nil || actual.Obj() == nil || target == nil || !namedIntegerTypeDefinitionStoresNamedValue(actual) {
+		return false
+	}
+	if underlying, ok := LookupTypeDefinitionUnderlyingType(actual.Obj().Name()); ok {
+		if storedNamed, ok := types.Unalias(underlying).(*types.Named); ok {
+			return sameNamedTypeDefinition(storedNamed, target)
+		}
+	}
+	storedRustType, ok := LookupTypeDefinition(actual.Obj().Name())
+	return ok && storedRustType == goTypesNamedTypeToRust(target)
+}
+
+func namedIntegerTypeDefinitionStoresExternalIntegerValue(named *types.Named) bool {
+	if named == nil || named.Obj() == nil || !namedIntegerTypeDefinitionStoresNamedValue(named) {
+		return false
+	}
+	underlying, ok := LookupTypeDefinitionUnderlyingType(named.Obj().Name())
+	if !ok {
+		return false
+	}
+	storedNamed, ok := types.Unalias(underlying).(*types.Named)
+	if !ok {
+		return false
+	}
+	_, ok = externalIntegerRustTypeForNamed(storedNamed)
+	return ok
+}
+
 func writeUnwrappedSliceClone(out *strings.Builder, arg ast.Expr) {
 	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
 		out.WriteString("(*")
@@ -16288,7 +16443,7 @@ func writeBareBasicNumericConversionValue(out *strings.Builder, call *ast.CallEx
 
 func writeTimeDurationNumericConversionValue(out *strings.Builder, arg ast.Expr) bool {
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !isTimeDurationType(typeInfo.GetType(arg)) {
+	if typeInfo == nil || !timeDurationUsesStdTimeDuration(typeInfo.GetType(arg)) {
 		return false
 	}
 	if typeInfo.ReturnsWrappedValue(arg) {
@@ -16804,6 +16959,11 @@ func writeExternalIntegerTupleField(out *strings.Builder, typ types.Type) {
 	if named, ok := typ.(*types.Named); ok {
 		if _, ok := externalIntegerRustTypeForNamed(named); ok {
 			out.WriteString(".0")
+			return
+		}
+		if namedIntegerTypeDefinitionStoresExternalIntegerValue(named) {
+			out.WriteString(".0")
+			return
 		}
 	}
 }

@@ -4173,6 +4173,44 @@ func tagString(field StructField) string {
 	}
 }
 
+func TestSourceMappedStdlibTimeDurationUsesNamedIntegerStub(t *testing.T) {
+	rust := transpileTypedConcurrentPackageWithMapping(t, "flag", `package flag
+
+import "time"
+
+type durationValue struct {
+	value time.Duration
+}
+
+type durationAlias time.Duration
+
+func get(v durationValue) any {
+	return v.value
+}
+
+func (v durationAlias) get() any {
+	return time.Duration(v)
+}
+
+func text(v time.Duration) string {
+	return v.String()
+}
+`, map[string]string{"flag": "flag"})
+
+	if strings.Contains(rust, "std::time::Duration") {
+		t.Fatalf("source-mapped stdlib package should not lower time.Duration through Rust std duration:\n%s", rust)
+	}
+	if !strings.Contains(rust, "time_Duration") {
+		t.Fatalf("source-mapped stdlib package should keep stub-backed time.Duration as a named integer stub:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn string") {
+		t.Fatalf("time.Duration selector call should register a loud external method stub:\n%s", rust)
+	}
+	if strings.Contains(rust, "time_Duration((*") && strings.Contains(rust, " as i64") {
+		t.Fatalf("same-typed external named integer value should be cloned, not reconstructed through a cast:\n%s", rust)
+	}
+}
+
 func TestRuneSliceSelectorStringConversionBorrowsFieldHandle(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

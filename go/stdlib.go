@@ -6502,7 +6502,7 @@ func writeTimeDurationValue(out *strings.Builder, value ast.Expr) {
 
 func writeTimeDurationRawValue(out *strings.Builder, value ast.Expr) bool {
 	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !isTimeDurationType(typeInfo.GetType(value)) {
+	if typeInfo == nil || !timeDurationUsesStdTimeDuration(typeInfo.GetType(value)) {
 		return false
 	}
 	if hasStdlibSelectorMapping(value) {
@@ -6532,6 +6532,14 @@ func isTimeDurationType(typ types.Type) bool {
 		return false
 	}
 	return named.Obj().Pkg().Path() == "time" && named.Obj().Name() == "Duration"
+}
+
+func timeDurationUsesStdTimeDuration(typ types.Type) bool {
+	named, ok := types.Unalias(typ).(*types.Named)
+	if !ok || !isTimeDurationType(named) {
+		return false
+	}
+	return !useStubBackedStdlibNamedIntegerInSourceMappedStdlib(named)
 }
 
 func durationBinaryParts(expr *ast.BinaryExpr) (ast.Expr, string, bool) {

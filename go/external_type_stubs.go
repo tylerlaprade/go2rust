@@ -341,7 +341,9 @@ func RegisterExternalSelectorMethod(sel *ast.SelectorExpr) {
 	if !isStubBackedStdlibPackagePath(named.Obj().Pkg().Path()) {
 		return
 	}
-	if isKnownStdlibHelperType(named.Obj().Pkg().Path(), named.Obj().Name()) && !knownStdlibHelperNeedsExternalMethodStub(named.Obj().Pkg().Path(), named.Obj().Name()) {
+	if isKnownStdlibHelperType(named.Obj().Pkg().Path(), named.Obj().Name()) &&
+		!knownStdlibHelperNeedsExternalMethodStub(named.Obj().Pkg().Path(), named.Obj().Name()) &&
+		!useStubBackedStdlibNamedIntegerInSourceMappedStdlib(named) {
 		return
 	}
 	fn, ok := selection.Obj().(*types.Func)
