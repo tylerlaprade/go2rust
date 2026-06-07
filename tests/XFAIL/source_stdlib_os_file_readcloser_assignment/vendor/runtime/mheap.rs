@@ -4362,12 +4362,12 @@ impl mSpanList {
         if { let __left_addr = self.first.addr(); let __right_addr = span.addr(); let __eq = __left_addr == __right_addr; __eq } {
         { let new_val = { let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.clone(); self.first = new_val; };
     } else {
-        { let new_val = { let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.clone(); (*{ let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.prev.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).next = new_val; };
+        { let new_val = { let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.clone(); { let __ptr_target = { let __ptr_value = span.borrow(); let __field_value = __ptr_value.as_ref().unwrap().prev.clone(); __field_value }; __ptr_target.with_mut(|__ptr_value| { __ptr_value.next = new_val; }); } };
     }
         if { let __left_addr = self.last.addr(); let __right_addr = span.addr(); let __eq = __left_addr == __right_addr; __eq } {
         { let new_val = { let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.prev.clone()); __ptr_value }.clone(); self.last = new_val; };
     } else {
-        { let new_val = { let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.prev.clone()); __ptr_value }.clone(); (*{ let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).prev = new_val; };
+        { let new_val = { let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.prev.clone()); __ptr_value }.clone(); { let __ptr_target = { let __ptr_value = span.borrow(); let __field_value = __ptr_value.as_ref().unwrap().next.clone(); __field_value }; __ptr_target.with_mut(|__ptr_value| { __ptr_value.prev = new_val; }); } };
     }
         { let new_val = GoPtr::nil(); span.with_mut(|__ptr_value| { __ptr_value.next = new_val; }); };
         { let new_val = GoPtr::nil(); span.with_mut(|__ptr_value| { __ptr_value.prev = new_val; }); };
@@ -4387,7 +4387,7 @@ impl mSpanList {
         if { let __ptr_field = self.first.clone(); !__ptr_field.is_nil() } {
                 // The list contains at least one span; link it in.
                 // The last span in the list doesn't change.
-        { let new_val = span.clone(); (*self.first.lock().unwrap().as_mut().unwrap()).prev = new_val; };
+        { let new_val = span.clone(); { let __ptr_target = self.first.clone(); __ptr_target.with_mut(|__ptr_value| { __ptr_value.prev = new_val; }); } };
     } else {
                 // The list contains no spans, so this is also the last span.
         { let new_val = span.clone(); self.last = new_val; };
@@ -4407,7 +4407,7 @@ impl mSpanList {
         { let new_val = self.last.clone(); span.with_mut(|__ptr_value| { __ptr_value.prev = new_val; }); };
         if { let __ptr_field = self.last.clone(); !__ptr_field.is_nil() } {
                 // The list contains at least one span.
-        { let new_val = span.clone(); (*self.last.lock().unwrap().as_mut().unwrap()).next = new_val; };
+        { let new_val = span.clone(); { let __ptr_target = self.last.clone(); __ptr_target.with_mut(|__ptr_value| { __ptr_value.next = new_val; }); } };
     } else {
                 // The list contains no spans, so this is also the first span.
         { let new_val = span.clone(); self.first = new_val; };
@@ -4435,8 +4435,8 @@ impl mSpanList {
         { let new_val = { let __v = (*other.lock().unwrap().as_ref().unwrap()).clone(); __v }; *self = new_val; };
     } else {
                 // Neither list is empty. Put other before list.
-        { let new_val = self.first.clone(); (*(*other.lock().unwrap().as_ref().unwrap()).last.lock().unwrap().as_mut().unwrap()).next = new_val; };
-        { let new_val = (*other.lock().unwrap().as_ref().unwrap()).last.clone(); (*self.first.lock().unwrap().as_mut().unwrap()).prev = new_val; };
+        { let new_val = self.first.clone(); { let __ptr_target = (*other.lock().unwrap().as_ref().unwrap()).last.clone(); __ptr_target.with_mut(|__ptr_value| { __ptr_value.next = new_val; }); } };
+        { let new_val = (*other.lock().unwrap().as_ref().unwrap()).last.clone(); { let __ptr_target = self.first.clone(); __ptr_target.with_mut(|__ptr_value| { __ptr_value.prev = new_val; }); } };
         { let new_val = (*other.lock().unwrap().as_ref().unwrap()).first.clone(); self.first = new_val; };
     }
                 // Neither list is empty. Put other before list.

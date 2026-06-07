@@ -5063,23 +5063,9 @@ func writeSliceElemPtrFieldAssignment(out *strings.Builder, lhs ast.Expr, rhs as
 		out.WriteString(`unimplemented!("slice element pointer field assignment requires compatible pointer value")`)
 	}
 	out.WriteString("; ")
-	if writeGoPtrLocalFieldAssignment(out, sel) {
-		out.WriteString(" }")
-		return true
-	}
-	if !writePointerHandleSelectorTarget(out, sel) {
-		TranspileExpressionContext(out, sel, LValue)
-	}
-	out.WriteString(" = new_val; }")
+	writePointerHandleAssignmentTargetFromValueName(out, sel, "new_val")
+	out.WriteString(" }")
 	return true
-}
-
-func writeGoPtrLocalFieldAssignment(out *strings.Builder, sel *ast.SelectorExpr) bool {
-	ident, ok := unwrapParens(sel.X).(*ast.Ident)
-	if !ok || !isGoPtrVar(ident.Name) {
-		return false
-	}
-	return writeGoPtrLocalSelectorHandleReplacement(out, sel, "new_val")
 }
 
 func writeGoPtrAssignment(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
@@ -5121,10 +5107,8 @@ func writeTupleSliceElemPtrFieldAssignmentFromTemp(out *strings.Builder, lhs ast
 			out.WriteString("GoPtr::slice_elem_opt(")
 			out.WriteString(tmpName)
 			out.WriteString(".clone()); ")
-			if !writePointerHandleSelectorTarget(out, sel) {
-				TranspileExpressionContext(out, sel, LValue)
-			}
-			out.WriteString(" = new_val; }")
+			writePointerHandleAssignmentTargetFromValueName(out, sel, "new_val")
+			out.WriteString(" }")
 			return true
 		}
 	}
@@ -5138,10 +5122,8 @@ func writeTupleSliceElemPtrFieldAssignmentFromTemp(out *strings.Builder, lhs ast
 		out.WriteString("GoPtr::array_elem_opt(")
 		out.WriteString(tmpName)
 		out.WriteString(".clone()); ")
-		if !writePointerHandleSelectorTarget(out, sel) {
-			TranspileExpressionContext(out, sel, LValue)
-		}
-		out.WriteString(" = new_val; }")
+		writePointerHandleAssignmentTargetFromValueName(out, sel, "new_val")
+		out.WriteString(" }")
 		return true
 	}
 	return false
@@ -6160,6 +6142,18 @@ func writeGoPtrSelectorReadHandle(out *strings.Builder, sel *ast.SelectorExpr) b
 		return true
 	}
 	return false
+}
+
+func writeGeneratedGoPtrFieldHandleClone(out *strings.Builder, sel *ast.SelectorExpr) bool {
+	if sel == nil || !generatedGoPtrFieldForSelector(sel) {
+		return false
+	}
+	if writeGoPtrSelectorReadHandle(out, sel) {
+		return true
+	}
+	TranspileExpressionContext(out, sel, LValue)
+	out.WriteString(".clone()")
+	return true
 }
 
 func writeGoPtrCurrentReceiverFieldHandle(out *strings.Builder, fieldInfo FieldAccessInfo) {

@@ -6705,11 +6705,35 @@ func writePointerHandleAssignmentTargetFromValueName(out *strings.Builder, lhs a
 		if writeGoPtrLocalSelectorHandleReplacement(out, sel, valueName) {
 			return
 		}
+		if writeGoPtrFieldSelectorHandleReplacement(out, sel, valueName) {
+			return
+		}
 	}
 	writePointerHandleAssignmentTarget(out, lhs)
 	out.WriteString(" = ")
 	out.WriteString(valueName)
 	out.WriteString(";")
+}
+
+func writeGoPtrFieldSelectorHandleReplacement(out *strings.Builder, sel *ast.SelectorExpr, valueName string) bool {
+	base, ok := unwrapParens(sel.X).(*ast.SelectorExpr)
+	if !ok || !generatedGoPtrFieldForSelector(base) {
+		return false
+	}
+	fieldInfo := selectorFieldAccessInfo(sel)
+	out.WriteString("{ let __ptr_target = ")
+	writeGeneratedGoPtrFieldHandleClone(out, base)
+	out.WriteString("; __ptr_target.with_mut(|__ptr_value| { ")
+	if fieldInfo.IsPromoted {
+		writePromotedHandleAssignmentTarget(out, "__ptr_value", fieldInfo, false)
+	} else {
+		out.WriteString("__ptr_value.")
+		out.WriteString(fieldInfo.FieldName)
+	}
+	out.WriteString(" = ")
+	out.WriteString(valueName)
+	out.WriteString("; }); }")
+	return true
 }
 
 func selectorFieldAccessInfo(sel *ast.SelectorExpr) FieldAccessInfo {
@@ -8026,6 +8050,9 @@ func writePointerHandleAssignmentTempTarget(out *strings.Builder, lhs ast.Expr, 
 	if sel, ok := unwrapParens(lhs).(*ast.SelectorExpr); ok {
 		valueName := tmpName + ".clone()"
 		if writeGoPtrLocalSelectorHandleReplacement(out, sel, valueName) {
+			return
+		}
+		if writeGoPtrFieldSelectorHandleReplacement(out, sel, valueName) {
 			return
 		}
 	}

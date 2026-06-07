@@ -1229,6 +1229,60 @@ func (p *pool) put(value any) {
 	}
 }
 
+func TestGoPtrFieldSelectorAssignmentMutatesSelectedPointee(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct {
+	next *node
+	prev *node
+}
+
+type list struct {
+	first *node
+	last *node
+}
+
+func raw(addr uintptr) *node {
+	return (*node)(unsafe.Pointer(addr))
+}
+
+func initNode(n *node, addr uintptr) {
+	n.next = raw(addr)
+	n.prev = raw(addr)
+}
+
+func (l *list) seed(addr uintptr) {
+	l.first = raw(addr)
+}
+
+func (l *list) link(span *node) {
+	l.first.prev = span
+	span.prev.next = span.next
+}
+`)
+
+	if !strings.Contains(rust, "pub first: GoPtr<node>") ||
+		!strings.Contains(rust, "pub next: GoPtr<node>") ||
+		!strings.Contains(rust, "pub prev: GoPtr<node>") {
+		t.Fatalf("test setup should promote list/node pointer fields to GoPtr storage:\n%s", rust)
+	}
+	if strings.Contains(rust, "self.first.borrow") ||
+		strings.Contains(rust, "self.first.lock") ||
+		strings.Contains(rust, ".prev.borrow().as_mut()") ||
+		strings.Contains(rust, ".prev.borrow().as_ref()") ||
+		strings.Contains(rust, ".prev.lock().unwrap().as_mut()") {
+		t.Fatalf("assignment through a GoPtr field selector should not treat the GoPtr handle as an old wrapper:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __ptr_target = self.first.clone(); __ptr_target.with_mut(|__ptr_value| { __ptr_value.prev = new_val; });") {
+		t.Fatalf("current receiver GoPtr field selector assignment should mutate the selected pointee:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __ptr_target = (*span.borrow().as_ref().unwrap()).prev.clone(); __ptr_target.with_mut(|__ptr_value| { __ptr_value.next = new_val; });") {
+		t.Fatalf("GoPtr local field selector assignment should mutate the selected pointee:\n%s", rust)
+	}
+}
+
 func TestGoPtrCallResultDerefReadUsesGoPtrBorrow(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
