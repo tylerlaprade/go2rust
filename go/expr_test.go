@@ -3745,36 +3745,50 @@ func main() {
 	}
 }
 
-func TestNoTypeInfoExternalStdlibVariadicRegistersStubs(t *testing.T) {
+func TestNoTypeInfoIoMultiWriterRequiresTypeInfo(t *testing.T) {
 	rust := transpileNoTypeInfoRegression(t, `package main
 
-import (
-	"crypto/md5"
-	"fmt"
-	"io"
-)
+	import (
+		"fmt"
+		"io"
+	)
 
-func main() {
-	io.MultiWriter(io.Discard, md5.New())
-	fmt.Println("ok")
-}`)
+	func main() {
+		io.MultiWriter(io.Discard)
+		fmt.Println("ok")
+	}`)
 
-	for _, want := range []string{"pub mod io", "pub fn Discard()", "pub fn multi_writer", "pub mod md5", "pub fn new()"} {
+	want := `unimplemented!("type info required for io.MultiWriter")`
+	if !strings.Contains(rust, want) {
+		t.Fatalf("io.MultiWriter without type info must emit %q per AGENTS.md \"Type Info Is Authoritative\":\n%s", want, rust)
+	}
+	for _, forbidden := range []string{"pub mod io", "pub fn Discard()", "pub fn multi_writer", "io_Writer"} {
+		if strings.Contains(rust, forbidden) {
+			t.Fatalf("io.MultiWriter without type info should not emit bridge fallback %q:\n%s", forbidden, rust)
+		}
+	}
+}
+
+func TestNoTypeInfoExternalMd5NewRegistersHashStub(t *testing.T) {
+	rust := transpileNoTypeInfoRegression(t, `package main
+
+	import (
+		"crypto/md5"
+		"fmt"
+	)
+
+	func main() {
+		md5.New()
+		fmt.Println("ok")
+	}`)
+
+	for _, want := range []string{"pub mod md5", "pub fn new()"} {
 		if !strings.Contains(rust, want) {
 			t.Fatalf("missing %q in external stdlib fallback output:\n%s", want, rust)
 		}
 	}
-	if !strings.Contains(rust, "fn __go_next_external_interface_id()") {
-		t.Fatalf("external stdlib interface fallback should emit the interface id helper:\n%s", rust)
-	}
 	if !strings.Contains(rust, "pub struct hash_Hash {\n    pub __go_id: usize,") {
 		t.Fatalf("md5.New fallback should register hash.Hash as an interface stub:\n%s", rust)
-	}
-	if strings.Contains(rust, "io::discard") {
-		t.Fatalf("io.Discard should call the generated package variable accessor:\n%s", rust)
-	}
-	if !strings.Contains(rust, "io::Discard()") {
-		t.Fatalf("io.Discard should use the generated package variable accessor:\n%s", rust)
 	}
 }
 

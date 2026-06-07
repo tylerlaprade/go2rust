@@ -182,15 +182,18 @@ in the first place.
 - Transpiler gap: Source-transpiled `io` now handles `io.Discard`,
   `io.MultiWriter`, direct `Writer.Write`, and promoted `bytes.Buffer`
   method signatures in focused fixtures. No runtime fixture snapshot requires
-  `io_Writer`; the remaining debt is the no-type-info/non-source-mapped
-  external fallback that still emits `io_Writer`.
+  `io_Writer`, and no-type-info `io.MultiWriter` now emits a loud type-info
+  boundary instead of registering a bridge. The remaining debt is the
+  no-type-info `io.Discard` selector fallback plus typed non-source-mapped
+  interface conversions that still emit `io_Writer`.
 - Fixture: `tests/external_stdlib_variadic/`,
   `tests/external_stub_closure_capture/`,
   `tests/embedded_external_method_promotion/`,
-  `go/expr_test.go:TestNoTypeInfoExternalStdlibVariadicRegistersStubs`
-- Removal trigger: the no-type-info/non-source-mapped fallback either
-  source-maps the stdlib path or emits a loud unsupported path without
-  hand-written writer behavior; then delete `writeIoWriterStub`.
+  `go/expr_test.go:TestNoTypeInfoIoMultiWriterRequiresTypeInfo`
+- Removal trigger: no-type-info `io.Discard` and typed non-source-mapped
+  `io.Writer` conversions either source-map the stdlib path or emit loud
+  unsupported paths without hand-written writer behavior; then delete
+  `writeIoWriterStub`.
 - Added: 2026-05-27 (backfill)
 
 ### json-package

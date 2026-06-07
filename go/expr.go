@@ -3532,6 +3532,30 @@ func externalVariadicStubAcceptsSlice(call *ast.CallExpr) bool {
 	}
 }
 
+func writeNoTypeInfoExternalStdlibCallBoundary(out *strings.Builder, sel *ast.SelectorExpr) bool {
+	if GetTypeInfo() != nil {
+		return false
+	}
+	_, pkgPath, ok := externalStdlibPackageSelector(sel)
+	if !ok {
+		return false
+	}
+	var callName string
+	switch pkgPath {
+	case "io":
+		if sel.Sel.Name == "MultiWriter" {
+			callName = "io.MultiWriter"
+		}
+	}
+	if callName == "" {
+		return false
+	}
+	out.WriteString("unimplemented!(\"type info required for ")
+	out.WriteString(callName)
+	out.WriteString("\")")
+	return true
+}
+
 func writeAlreadyWrappedCallArgument(out *strings.Builder, arg ast.Expr) bool {
 	if unary, ok := arg.(*ast.UnaryExpr); ok && unary.Op == token.AND {
 		if ident, ok := unary.X.(*ast.Ident); ok && ident.Name != "_" && ident.Name != "nil" {
@@ -19523,6 +19547,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			// This is a package function call, not a method call
 			// Just transpile the selector expression and add the arguments
 			_, _, isExternalStdlibStubCall := externalStdlibPackageSelector(sel)
+			if isExternalStdlibStubCall && writeNoTypeInfoExternalStdlibCallBoundary(out, sel) {
+				return
+			}
 			RegisterExternalPackageFunctionFallback(sel, len(call.Args))
 			TranspileExpression(out, sel)
 			if !isExternalStdlibStubCall {
