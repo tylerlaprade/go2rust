@@ -9,5 +9,6 @@ path = "lib.rs"
 
 [dependencies]
 go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
+internal_bytealg = { path = "../internal_bytealg" }
 internal_stringslite = { path = "../internal_stringslite" }
 slices = { path = "../slices" }
