@@ -3,11 +3,11 @@ set -euo pipefail
 
 usage() {
     cat <<'EOF'
-Usage: ./cleanup.sh [--dry-run] [--sizes] [--summary] [--pressure] [--show-active] [--age-minutes N] [--top-temp N] [--top-code N] [--keep-repo-artifacts]
+Usage: ./cleanup.sh [--dry-run] [--sizes] [--summary] [--pressure] [--quick] [--show-active] [--age-minutes N] [--top-temp N] [--top-code N] [--keep-repo-artifacts]
 
 Remove stale go2rust temporary roots and ignored local build artifacts.
-With no arguments, print pressure diagnostics and cleanup candidates without
-removing anything.
+With no arguments, print quick pressure diagnostics and cleanup candidates
+without removing anything.
 
 Options:
   --dry-run             Print paths that would be removed.
@@ -18,6 +18,7 @@ Options:
                         candidates.
                         Does not remove anything. Defaults to --age-minutes 0
                         unless --age-minutes is also passed.
+  --quick               Skip wider home and Code directory size scans.
   --show-active         With --summary or --dry-run, print active marked temp
                         roots that cleanup skips.
   --age-minutes N       Only remove temp paths older than N minutes (default: 60).
@@ -35,6 +36,7 @@ dry_run=false
 show_sizes=false
 summary=false
 pressure=false
+quick=false
 show_active=false
 age_minutes="${GO2RUST_CLEANUP_AGE_MINUTES:-60}"
 age_minutes_explicit=false
@@ -73,6 +75,12 @@ while [ "$#" -gt 0 ]; do
             dry_run=true
             show_sizes=true
             show_active=true
+            shift
+            ;;
+        --quick)
+            quick=true
+            top_temp_count=0
+            top_code_count=0
             shift
             ;;
         --show-active)
@@ -148,11 +156,14 @@ fi
 
 if [ "$invoked_without_args" = true ]; then
 	pressure=true
+	quick=true
 	summary=true
 	dry_run=true
 	show_sizes=true
 	show_active=true
 	age_minutes=0
+	top_temp_count=0
+	top_code_count=0
 fi
 
 path_size_kib() {
@@ -265,6 +276,10 @@ print_disk_hotspots() {
     print_size_row "repo" "$repo_root"
     print_size_row "TMPDIR" "${TMPDIR:-/tmp}"
     print_size_row "/private/tmp" "/private/tmp"
+    if [ "$quick" = true ]; then
+        echo "Skipped wider home and Code scans in quick mode."
+        return
+    fi
     print_size_row "~/Code" "${HOME:-}/Code"
     print_size_row "~/Library/Caches" "${HOME:-}/Library/Caches"
     print_size_row "~/Library/Developer" "${HOME:-}/Library/Developer"
@@ -392,6 +407,11 @@ pid_command() {
 
 print_pressure_report() {
     echo "Cleanup script: $repo_root/cleanup.sh"
+    if [ "$quick" = true ]; then
+        echo "Mode: quick pressure summary; no files will be removed."
+    else
+        echo "Mode: pressure summary; no files will be removed."
+    fi
     echo
     echo "Filesystem:"
     df -h "$repo_root" /private/tmp "${TMPDIR:-/tmp}" 2>/dev/null | awk 'NR == 1 || !seen[$1, $9]++'

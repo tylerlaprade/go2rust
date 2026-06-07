@@ -518,11 +518,14 @@ func TestCleanupScriptDefaultsToPressureSummary(t *testing.T) {
 	}
 	script := string(data)
 	for _, want := range []string{
-		`With no arguments, print pressure diagnostics and cleanup candidates without`,
+		`With no arguments, print quick pressure diagnostics and cleanup candidates`,
 		`if [ "$invoked_without_args" = true ]; then`,
 		`pressure=true`,
+		`quick=true`,
 		`dry_run=true`,
 		`age_minutes=0`,
+		`top_temp_count=0`,
+		`top_code_count=0`,
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("cleanup.sh should make no-arg runs diagnostic-only; missing %q", want)
@@ -551,6 +554,7 @@ func TestCleanupScriptNoArgsPrintsDiagnosticReport(t *testing.T) {
 	report := string(output)
 	for _, want := range []string{
 		"Cleanup script:",
+		"Mode: quick pressure summary; no files will be removed.",
 		"Filesystem:",
 		"Memory:",
 		"Cleanup candidates:",
@@ -570,10 +574,12 @@ func TestCleanupPressureReportShowsProcessAndDiskPressure(t *testing.T) {
 	script := string(data)
 	for _, want := range []string{
 		`--pressure`,
+		`--quick`,
 		`--top-temp`,
 		`--top-code`,
 		`GO2RUST_CLEANUP_TOP_TEMP_COUNT`,
 		`GO2RUST_CLEANUP_TOP_CODE_COUNT`,
+		`quick=false`,
 		`print_pressure_report()`,
 		`print_disk_hotspots()`,
 		`print_top_code_paths()`,
@@ -582,6 +588,8 @@ func TestCleanupPressureReportShowsProcessAndDiskPressure(t *testing.T) {
 		`process_listing_error_suffix()`,
 		`echo "Cleanup script: $repo_root/cleanup.sh"`,
 		`echo "Filesystem:"`,
+		`echo "Mode: quick pressure summary; no files will be removed."`,
+		`echo "Skipped wider home and Code scans in quick mode."`,
 		`echo "Memory:"`,
 		`vm_stat`,
 		`vm_stat_pages_for_label()`,
