@@ -15,6 +15,8 @@ pub fn __go_init_all() {
     __GO_INIT_ONCE.call_once(|| {
         cmp::__go_init_all();
         slices::__go_init_all();
+        strconv::__go_init_all();
+        unicode_utf8::__go_init_all();
         r#mod::__go_zero_globals();
         r#mod::__go_init_order_0();
         r#mod::__go_init_functions();

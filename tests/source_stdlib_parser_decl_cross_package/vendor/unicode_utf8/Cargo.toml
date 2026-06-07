@@ -1,13 +1,12 @@
 [package]
-name = "slices"
+name = "unicode_utf8"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "slices"
+name = "unicode_utf8"
 path = "lib.rs"
 
 [dependencies]
-cmp = { path = "../cmp" }
+serde_json = "1"
 go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
-math_bits = { path = "../math_bits" }

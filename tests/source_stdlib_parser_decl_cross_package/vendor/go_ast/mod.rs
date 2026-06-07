@@ -40,6 +40,56 @@ impl GoValueClone for Box<dyn Node + Send + Sync> {
     }
 }
 
+#[derive(Clone)]
+pub struct GoNodeInterfaceKey(pub Arc<Mutex<Option<Box<dyn Node + Send + Sync>>>>);
+
+impl GoNodeInterfaceKey {
+    pub fn new(value: Arc<Mutex<Option<Box<dyn Node + Send + Sync>>>>) -> Self { GoNodeInterfaceKey(value) }
+    pub fn value(&self) -> Arc<Mutex<Option<Box<dyn Node + Send + Sync>>>> { self.0.clone() }
+    fn addr(&self) -> usize { Arc::as_ptr(&self.0) as usize }
+    fn identity(&self) -> (u64, String) {
+        let __guard = self.0.lock().unwrap();
+        match __guard.as_ref() {
+            None => (0, String::new()),
+            Some(__v) => {
+                let mut __hasher = std::collections::hash_map::DefaultHasher::new();
+                std::hash::Hash::hash(&__v.as_ref().__go_as_any().type_id(), &mut __hasher);
+                (std::hash::Hasher::finish(&__hasher), format!("{}", __v))
+            }
+        }
+    }
+}
+impl PartialEq for GoNodeInterfaceKey {
+    fn eq(&self, other: &Self) -> bool {
+        let __left_guard = self.0.lock().unwrap();
+        let __right_guard = other.0.lock().unwrap();
+        match (__left_guard.as_ref(), __right_guard.as_ref()) {
+            (None, None) => true,
+            (Some(__left), Some(__right)) => __left.as_ref().__go_eq_node(__right.as_ref()),
+            _ => false,
+        }
+    }
+}
+impl Eq for GoNodeInterfaceKey {}
+impl PartialOrd for GoNodeInterfaceKey {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }
+}
+impl Ord for GoNodeInterfaceKey {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        if self == other { return std::cmp::Ordering::Equal; }
+        match self.identity().cmp(&other.identity()) {
+            std::cmp::Ordering::Equal => self.addr().cmp(&other.addr()),
+            ordering => ordering,
+        }
+    }
+}
+impl std::fmt::Debug for GoNodeInterfaceKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "{}", self.identity().1) }
+}
+impl std::fmt::Display for GoNodeInterfaceKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "{}", self.identity().1) }
+}
+
 /// All expression nodes implement the Expr interface.
 pub trait Expr: Node + std::fmt::Display + Any {
     fn __go_clone_box_expr(&self) -> Box<dyn Expr + Send + Sync>;
@@ -8707,7 +8757,7 @@ pub fn unparen(mut e: Arc<Mutex<Option<Box<dyn Expr + Send + Sync>>>>) -> Arc<Mu
         if !ok {
         return e.clone();
     }
-        { let __iface_handle = (*paren.lock().unwrap().as_ref().unwrap()).x.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *e.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = { let __field = (*paren.lock().unwrap().as_ref().unwrap()).x.clone(); __field }; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *e.lock().unwrap() = __iface_value; };
     }
 }
 

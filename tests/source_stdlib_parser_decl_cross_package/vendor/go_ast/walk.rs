@@ -44,8 +44,8 @@ pub fn walk_list<N: crate::r#mod::Node + Clone + Send + Sync + 'static>(v: Arc<M
 pub fn walk(mut v: Arc<Mutex<Option<Box<dyn Visitor + Send + Sync>>>>, node: Arc<Mutex<Option<Box<dyn Node + Send + Sync>>>>) {
     let mut v: Arc<Mutex<Option<Box<dyn Visitor + Send + Sync>>>> = Arc::new(Mutex::new(v.lock().unwrap().as_ref().map(|__v| Visitor::__go_clone_box_visitor(__v.as_ref()))));
     {
-        { let __iface_handle = { let __recv = v.clone(); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).visit(node.clone()).clone(); __result }; let __iface_guard = __iface_handle.lock().unwrap(); *v.lock().unwrap() = (*__iface_guard).clone(); };;
-        if (*v.lock().unwrap()).is_none() {
+        { let __iface_handle = { let __recv = v.clone(); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).visit(node.clone()).clone(); __result }; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *v.lock().unwrap() = __iface_value; };;
+        if { let __nil_result = (*v.lock().unwrap()).is_none(); __nil_result } {
             return;;
         }
     }
@@ -60,9 +60,9 @@ pub fn walk(mut v: Arc<Mutex<Option<Box<dyn Visitor + Send + Sync>>>>, node: Arc
     let _ts_owned = _ts_guard.as_ref().cloned();
     drop(_ts_guard);
     let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {
-        let __any = __v.__go_as_any();
+        let __any = __v.as_ref().__go_as_any();
         if let Some(__boxed) = __any.downcast_ref::<Box<dyn Node + Send + Sync>>() {
-            __boxed.__go_as_any()
+            __boxed.as_ref().__go_as_any()
         } else {
             __any
         }

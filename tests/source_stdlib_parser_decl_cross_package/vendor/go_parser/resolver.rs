@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_any_slice, format_any_variadic, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_any_slice, format_any_variadic, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::interface::*;
 use crate::r#mod::*;
@@ -184,8 +184,8 @@ impl resolver {
         let val = decl.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = any_val.downcast_ref::<go_ast::r#mod::Ident>() {
-                (Arc::new(Mutex::new(Some(typed_val.clone()))), true)
+            if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<go_ast::r#mod::Ident>>>>() {
+                (typed_val.clone(), true)
             } else {
                 (Arc::new(Mutex::new(None::<go_ast::r#mod::Ident>)), false)
             }
@@ -203,7 +203,7 @@ impl resolver {
     }
         {
         let mut alt = { let __recv = scope.clone(); let __recv_ptr: *mut go_ast::scope::Scope = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut go_ast::scope::Scope }; let __result = unsafe { &mut *__recv_ptr }.insert(obj.clone()); __result };;
-        if (*alt.lock().unwrap()).is_some() && { let __nil_target = self.decl_err.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
+        if { let __nil_result = (*alt.lock().unwrap()).is_some(); __nil_result } && { let __nil_target = self.decl_err.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
             let mut prevDecl = Arc::new(Mutex::new(Some("".to_string())));;
             {
         let mut pos = { let __recv = alt.clone(); let __recv_ptr: *const go_ast::scope::Object = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_ast::scope::Object }; let __result = unsafe { &*__recv_ptr }.pos(); __result };;
@@ -249,7 +249,7 @@ impl resolver {
     }
         {
         let mut alt = (*self.top_scope.lock().unwrap().as_mut().unwrap()).insert(obj.clone());;
-        if (*alt.lock().unwrap()).is_some() {
+        if { let __nil_result = (*alt.lock().unwrap()).is_some(); __nil_result } {
             { let new_val = alt.clone(); (*ident.lock().unwrap().as_mut().unwrap()).obj = new_val; };;
         } else {
             { let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); };
@@ -281,10 +281,10 @@ impl resolver {
         return;
     }
         let mut s = self.top_scope.clone();
-    while (*s.lock().unwrap()).is_some() {
+    while { let __nil_result = (*s.lock().unwrap()).is_some(); __nil_result } {
         {
         let mut obj = { let __recv = s.clone(); let __recv_ptr: *const go_ast::scope::Scope = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_ast::scope::Scope }; let __result = unsafe { &*__recv_ptr }.lookup(Arc::new(Mutex::new(Some({ let __selector_holder = (*ident.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); __result };;
-        if (*obj.lock().unwrap()).is_some() {
+        if { let __nil_result = (*obj.lock().unwrap()).is_some(); __nil_result } {
             if DEBUG_RESOLVE {
         self.trace(Arc::new(Mutex::new(Some("resolved %v:%s to %v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __v = { let __recv = ident.clone(); let __recv_ptr: *const go_ast::r#mod::Ident = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_ast::r#mod::Ident }; let __result = unsafe { &*__recv_ptr }.pos(); __result }; let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>, Box::new({ let __selector_holder = (*ident.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }) as Box<dyn Any + Send + Sync>, Box::new(obj.clone()) as Box<dyn Any + Send + Sync>]))));
     };
@@ -294,8 +294,8 @@ impl resolver {
         let val = (*obj.lock().unwrap().as_ref().unwrap()).decl.clone();
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
-            if let Some(typed_val) = any_val.downcast_ref::<go_ast::r#mod::Ident>() {
-                (Arc::new(Mutex::new(Some(typed_val.clone()))), true)
+            if let Some(typed_val) = any_val.downcast_ref::<Arc<Mutex<Option<go_ast::r#mod::Ident>>>>() {
+                (typed_val.clone(), true)
             } else {
                 (Arc::new(Mutex::new(None::<go_ast::r#mod::Ident>)), false)
             }
@@ -347,7 +347,7 @@ impl resolver {
             (Arc::new(Mutex::new(None::<go_ast::r#mod::Ident>)), false)
         }
     });;
-        if !ok && (*expr.lock().unwrap()).is_some() {
+        if !ok && { let __nil_result = (*expr.lock().unwrap()).is_some(); __nil_result } {
             go_ast::walk(Arc::new(Mutex::new(Some(Box::new(resolverPtr(Arc::new(Mutex::new(Some(self.clone()))))) as Box<dyn go_ast::walk::Visitor + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new((*expr.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn go_ast::r#mod::Node + Send + Sync>))));;
         }
     }
@@ -366,7 +366,7 @@ impl resolver {
         let __go_previous_panic_hook = std::panic::take_hook();
         std::panic::set_hook(Box::new(|_| {}));
         let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            if DEBUG_RESOLVE && (*node.lock().unwrap()).is_some() {
+            if DEBUG_RESOLVE && { let __nil_result = (*node.lock().unwrap()).is_some(); __nil_result } {
         self.trace(Arc::new(Mutex::new(Some("node %T@%v".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __arg_holder = node.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>, Box::new({ let __v = (*node.lock().unwrap().as_ref().unwrap()).pos(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>]))));
     }
             {
@@ -376,9 +376,9 @@ impl resolver {
     let _ts_owned = _ts_guard.as_ref().cloned();
     drop(_ts_guard);
     let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {
-        let __any = __v.__go_as_any();
+        let __any = __v.as_ref().__go_as_any();
         if let Some(__boxed) = __any.downcast_ref::<Box<dyn go_ast::r#mod::Node + Send + Sync>>() {
-            __boxed.__go_as_any()
+            __boxed.as_ref().__go_as_any()
         } else {
             __any
         }
@@ -431,7 +431,7 @@ impl resolver {
             (Arc::new(Mutex::new(None::<go_ast::r#mod::KeyValueExpr>)), false)
         }
     });;
-        if (*kv.lock().unwrap()).is_some() {
+        if { let __nil_result = (*kv.lock().unwrap()).is_some(); __nil_result } {
             {
         let (mut ident, _) = ({
         let val = (*kv.lock().unwrap().as_ref().unwrap()).key.clone();
@@ -446,7 +446,7 @@ impl resolver {
             (Arc::new(Mutex::new(None::<go_ast::r#mod::Ident>)), false)
         }
     });;
-        if (*ident.lock().unwrap()).is_some() {
+        if { let __nil_result = (*ident.lock().unwrap()).is_some(); __nil_result } {
             self.resolve(ident.clone(), Arc::new(Mutex::new(Some(false))));;
         } else {
             go_ast::walk(Arc::new(Mutex::new(Some(Box::new(resolverPtr(Arc::new(Mutex::new(Some(self.clone()))))) as Box<dyn go_ast::walk::Visitor + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new((*(*kv.lock().unwrap().as_ref().unwrap()).key.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn go_ast::r#mod::Node + Send + Sync>))));;
@@ -754,7 +754,7 @@ impl resolver {
     }
 
     pub fn resolve_list(&self, list: Arc<Mutex<Option<go_ast::r#mod::FieldList>>>) {
-        if (*list.lock().unwrap()).is_none() {
+        if { let __nil_result = (*list.lock().unwrap()).is_none(); __nil_result } {
         return;
     }
         { let __range_holder = (*list.lock().unwrap().as_ref().unwrap()).list.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter() {
@@ -765,7 +765,7 @@ impl resolver {
     }
 
     pub fn declare_list(&self, list: Arc<Mutex<Option<go_ast::r#mod::FieldList>>>, kind: Arc<Mutex<Option<go_ast::scope::ObjKind>>>) {
-        if (*list.lock().unwrap()).is_none() {
+        if { let __nil_result = (*list.lock().unwrap()).is_none(); __nil_result } {
         return;
     }
         { let __range_holder = (*list.lock().unwrap().as_ref().unwrap()).list.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for f in __range_values.iter() {
@@ -777,7 +777,7 @@ impl resolver {
                 // If our receiver has receiver type parameters, we must declare them before
                 // trying to resolve the rest of the receiver, and avoid re-resolving the
                 // type parameter identifiers.
-        if (*recv.lock().unwrap()).is_none() || { let __tmp_x = (({ let __len_target = { let __field = (*recv.lock().unwrap().as_ref().unwrap()).list.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
+        if { let __nil_result = (*recv.lock().unwrap()).is_none(); __nil_result } || { let __tmp_x = (({ let __len_target = { let __field = (*recv.lock().unwrap().as_ref().unwrap()).list.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
         return;
     }
                 // nothing to do
@@ -797,7 +797,7 @@ impl resolver {
         }
     });;
         if ok {
-            { let __iface_handle = (*ptr.lock().unwrap().as_ref().unwrap()).x.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *typ.lock().unwrap() = (*__iface_guard).clone(); };;
+            { let __iface_handle = { let __field = (*ptr.lock().unwrap().as_ref().unwrap()).x.clone(); __field }; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *typ.lock().unwrap() = __iface_value; };;
         }
     }
         let mut declareExprs: Arc<Mutex<Option<Vec<Arc<Mutex<Option<Box<dyn go_ast::r#mod::Expr + Send + Sync>>>>>>>> = Arc::new(Mutex::new(None));
@@ -809,16 +809,16 @@ impl resolver {
     let _ts_owned = _ts_guard.as_ref().cloned();
     drop(_ts_guard);
     let _ts_val: Option<&dyn Any> = _ts_owned.as_ref().map(|__v| {
-        let __any = __v.__go_as_any();
+        let __any = __v.as_ref().__go_as_any();
         if let Some(__boxed) = __any.downcast_ref::<Box<dyn go_ast::r#mod::Expr + Send + Sync>>() {
-            __boxed.__go_as_any()
+            __boxed.as_ref().__go_as_any()
         } else {
             __any
         }
     });
     if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IndexExprPtr>()).is_some() {
         let typ = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IndexExprPtr>()).unwrap().0.clone();
-        { let new_val = Arc::new(Mutex::new(Some(vec![(*typ.lock().unwrap().as_ref().unwrap()).index.clone()]))); declareExprs = new_val; };;
+        { let new_val = Arc::new(Mutex::new(Some(vec![{ let __field = (*typ.lock().unwrap().as_ref().unwrap()).index.clone(); __field }]))); declareExprs = new_val; };;
         { let new_val = { let __append_target = resolveExprs.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*typ.lock().unwrap().as_ref().unwrap()).x.clone()); __append_target.clone() }; resolveExprs = new_val; };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IndexListExprPtr>()).is_some() {
         let typ = _ts_val.and_then(|__v| __v.downcast_ref::<go_ast::r#mod::IndexListExprPtr>()).unwrap().0.clone();
@@ -844,7 +844,7 @@ impl resolver {
             (Arc::new(Mutex::new(None::<go_ast::r#mod::Ident>)), false)
         }
     });;
-        if (*id.lock().unwrap()).is_some() {
+        if { let __nil_result = (*id.lock().unwrap()).is_some(); __nil_result } {
             { let __method_arg0 = Arc::new(Mutex::new(Some(Box::new(expr.clone()) as Box<dyn Any + Send + Sync>))); let __method_arg1 = Arc::new(Mutex::new(None)); let __method_arg2 = { let __field = self.top_scope.clone(); __field }; let __method_arg3 = Arc::new(Mutex::new(Some(go_ast::scope::ObjKind(Arc::new(Mutex::new(Some(go_ast::TYP as i32))))))); self.declare(__method_arg0, __method_arg1, __method_arg2, __method_arg3, Arc::new(Mutex::new(Some(vec![id.clone()])))) };;
         } else {
             { let new_val = { let __append_target = resolveExprs.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*expr).clone()); __append_target.clone() }; resolveExprs = new_val; };;
@@ -854,7 +854,7 @@ impl resolver {
                 // The receiver type parameter expression is invalid, but try to resolve
                 // it anyway for consistency.
         { let __range_holder = resolveExprs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for expr in __range_values.iter() {
-        if (*expr.lock().unwrap()).is_some() {
+        if { let __nil_result = (*expr.lock().unwrap()).is_some(); __nil_result } {
         go_ast::walk(Arc::new(Mutex::new(Some(Box::new(resolverPtr(Arc::new(Mutex::new(Some(self.clone()))))) as Box<dyn go_ast::walk::Visitor + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new((*expr.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn go_ast::r#mod::Node + Send + Sync>))));
     }
     } }
@@ -867,7 +867,7 @@ impl resolver {
     }
 
     pub fn walk_field_list(&self, list: Arc<Mutex<Option<go_ast::r#mod::FieldList>>>, kind: Arc<Mutex<Option<go_ast::scope::ObjKind>>>) {
-        if (*list.lock().unwrap()).is_none() {
+        if { let __nil_result = (*list.lock().unwrap()).is_none(); __nil_result } {
         return;
     }
         self.resolve_list(list.clone());
@@ -888,7 +888,7 @@ impl resolver {
         let __go_previous_panic_hook = std::panic::take_hook();
         std::panic::set_hook(Box::new(|_| {}));
         let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            if (*body.lock().unwrap()).is_none() {
+            if { let __nil_result = (*body.lock().unwrap()).is_none(); __nil_result } {
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {

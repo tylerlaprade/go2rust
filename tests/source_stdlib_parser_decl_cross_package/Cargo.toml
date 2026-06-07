@@ -13,9 +13,12 @@ members = [
     "vendor/internal_cpu",
     "vendor/internal_filepathlite",
     "vendor/internal_stringslite",
+    "vendor/math_bits",
     "vendor/path_filepath",
     "vendor/slices",
+    "vendor/strconv",
     "vendor/strings",
+    "vendor/unicode_utf8",
 ]
 
 [package]
@@ -39,6 +42,9 @@ internal_bytealg = { path = "vendor/internal_bytealg" }
 internal_cpu = { path = "vendor/internal_cpu" }
 internal_filepathlite = { path = "vendor/internal_filepathlite" }
 internal_stringslite = { path = "vendor/internal_stringslite" }
+math_bits = { path = "vendor/math_bits" }
 path_filepath = { path = "vendor/path_filepath" }
 slices = { path = "vendor/slices" }
+strconv = { path = "vendor/strconv" }
 strings = { path = "vendor/strings" }
+unicode_utf8 = { path = "vendor/unicode_utf8" }

@@ -1,13 +1,11 @@
 [package]
-name = "slices"
+name = "math_bits"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "slices"
+name = "math_bits"
 path = "lib.rs"
 
 [dependencies]
-cmp = { path = "../cmp" }
 go2rust_stdlib_stubs = { path = "../go2rust_stdlib_stubs" }
-math_bits = { path = "../math_bits" }

@@ -115,7 +115,7 @@ impl Builder {
     pub fn write_rune(&mut self, r: Arc<Mutex<Option<i32>>>) -> (i32, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         self.copy_check();
         let mut n = Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.buf.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32)));
-        { let new_val = utf8::append_rune({ let __go_arg = { let __selector_holder = self.buf.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = __selector_guard.as_ref().cloned().unwrap_or_default(); drop(__selector_guard); __cloned }; __go_arg }, { let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }); self.buf = new_val; };
+        { let new_val = unicode_utf8::append_rune({ let __field = self.buf.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); self.buf = new_val; };
         return ({ let __tmp_x = (({ let __len_target = { let __field = self.buf.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); __tmp_x - __tmp_y }, Arc::new(Mutex::new(None)));
     }
 
