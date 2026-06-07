@@ -209,14 +209,16 @@ in the first place.
 - Transpiler gap: source-transpiled `strconv.Unquote` now passes with
   `strconv`, `internal/bytealg`, `internal/cpu`, and the default
   `internal/stringslite` source dependency opted into the pipeline.
-  `tests/source_stdlib_go_types_new_type_name/` also source-maps `strconv`
+  `tests/source_stdlib_go_types_new_type_name/` and
+  `tests/source_stdlib_go_token_types_bridge_arg/` also source-map `strconv`
   for `go/types`/`go/constant` callers after error-interface assertions to
   pointer concrete errors learned to rebuild the pointer handle from the
   concrete error payload. Other source-stdlib fixtures still emit calls
   through the external `strconv` module when their configs do not source-map
   `strconv`.
 - Fixture: `tests/source_stdlib_strconv_unquote/`,
-  `tests/source_stdlib_go_types_new_type_name/`
+  `tests/source_stdlib_go_types_new_type_name/`,
+  `tests/source_stdlib_go_token_types_bridge_arg/`
 - Removal trigger: all existing source-stdlib callers that need `strconv`
   source-map it and no generated fixture still requires the external
   `strconv` package bridge.
@@ -229,11 +231,13 @@ in the first place.
 - Transpiler gap: source-transpiled `strconv.Unquote` no longer needs the
   hand-written unquote helper path when `strconv`, `internal/bytealg`,
   `internal/cpu`, and the default `internal/stringslite` dependency are
-  source-mapped. `tests/source_stdlib_go_types_new_type_name/` now exercises
-  source `strconv::unquote`/`unquote_char` through `go/constant`, but
+  source-mapped. `tests/source_stdlib_go_types_new_type_name/` and
+  `tests/source_stdlib_go_token_types_bridge_arg/` now exercise source
+  `strconv::unquote`/`unquote_char` through `go/constant`, but
   non-source-mapped callers still route through the helper bridge.
 - Fixture: `tests/source_stdlib_strconv_unquote/`,
-  `tests/source_stdlib_go_types_new_type_name/`
+  `tests/source_stdlib_go_types_new_type_name/`,
+  `tests/source_stdlib_go_token_types_bridge_arg/`
 - Removal trigger: generated source-stdlib snapshots no longer call the
   external `strconv::unquote`/`strconv::unquote_char` helper module.
 - Added: 2026-05-27 (backfill)
@@ -243,14 +247,16 @@ in the first place.
 - Location: `go/external_type_stubs.go:5542`
 - Go symbol: `strconv.Unquote`
 - Transpiler gap: source-transpiled `strconv.Unquote` itself passes, and
-  `tests/source_stdlib_go_types_new_type_name/` now exercises source
-  `strconv::unquote`/`unquote_char` through `go/constant`, but other
-  committed `go/types`/`go/constant` source-stdlib fixtures still depend on
-  the external `strconv::unquote` bridge until their source package lists
-  include `strconv`, `internal/bytealg`, and `internal/cpu` alongside the
-  default `internal/stringslite` dependency.
+  `tests/source_stdlib_go_types_new_type_name/` and
+  `tests/source_stdlib_go_token_types_bridge_arg/` now exercise source
+  `strconv::unquote`/`unquote_char` through `go/constant`, but other committed
+  `go/types`/`go/constant` source-stdlib fixtures still depend on the external
+  `strconv::unquote` bridge until their source package lists include
+  `strconv`, `internal/bytealg`, and `internal/cpu` alongside the default
+  `internal/stringslite` dependency.
 - Fixture: `tests/source_stdlib_strconv_unquote/`,
-  `tests/source_stdlib_go_types_new_type_name/`
+  `tests/source_stdlib_go_types_new_type_name/`,
+  `tests/source_stdlib_go_token_types_bridge_arg/`
 - Removal trigger: reroute the remaining source-stdlib fixtures that emit
   `strconv::unquote` or `strconv::unquote_char` to source-transpiled
   `strconv`, then delete `writeStrconvUnquoteFunction` and this row.

@@ -159,6 +159,7 @@ pub fn __go_init_all() {
         math::__go_init_all();
         path_filepath::__go_init_all();
         slices::__go_init_all();
+        strconv::__go_init_all();
         sync_atomic::__go_init_all();
         unicode::__go_init_all();
         unicode_utf8::__go_init_all();
