@@ -5334,30 +5334,6 @@ func isStdlibIoWriterType(typ types.Type) bool {
 		named.Obj().Pkg().Path() == "io" && named.Obj().Name() == "Writer"
 }
 
-func writeStringsBuilderIoWriterCallArgument(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
-	if !isStdlibIoWriterType(expectedType) {
-		return false
-	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil || !isStringsBuilderReceiverType(typeInfo.GetType(arg)) {
-		return false
-	}
-	targetInterface, ok := types.Unalias(expectedType).Underlying().(*types.Interface)
-	if !ok {
-		return false
-	}
-	targetInterface.Complete()
-	if !types.Implements(typeInfo.GetType(arg), targetInterface) {
-		return false
-	}
-	WriteWrapperPrefix(out)
-	out.WriteString("io_Writer::__go_from(")
-	TranspileExpression(out, arg)
-	out.WriteString(")")
-	WriteWrapperSuffix(out)
-	return true
-}
-
 func writeSourceMappedBytesBufferIoWriterConversionValue(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
 	if !isStdlibIoWriterType(expectedType) {
 		return false
@@ -5401,9 +5377,6 @@ func writeSourceMappedBytesBufferIoWriterCallArgument(out *strings.Builder, arg 
 }
 
 func writeStdlibInterfaceCallArgumentConversion(out *strings.Builder, arg ast.Expr, expectedType types.Type) bool {
-	if writeStringsBuilderIoWriterCallArgument(out, arg, expectedType) {
-		return true
-	}
 	if writeSourceMappedBytesBufferIoWriterCallArgument(out, arg, expectedType) {
 		return true
 	}

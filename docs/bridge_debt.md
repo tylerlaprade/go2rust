@@ -180,17 +180,19 @@ in the first place.
 - Location: `go/external_type_stubs.go:1885`
 - Go symbol: `io.Writer` trait bridging
 - Transpiler gap: Source-transpiled `io` now handles `io.Discard`,
-  `io.MultiWriter`, direct `Writer.Write`, and promoted `bytes.Buffer`
-  method signatures in focused fixtures. No runtime fixture snapshot requires
-  `io_Writer`, and no-type-info `io.MultiWriter` now emits a loud type-info
-  boundary instead of registering a bridge. No-type-info `io.Discard` does the
-  same. The remaining debt is typed non-source-mapped interface conversions
-  that still emit `io_Writer`.
+  `io.MultiWriter`, direct `Writer.Write`, promoted `bytes.Buffer`
+  method signatures, and `strings.Builder` call arguments in focused fixtures.
+  No runtime fixture snapshot requires `io_Writer`, and no-type-info
+  `io.MultiWriter` now emits a loud type-info boundary instead of registering a
+  bridge. No-type-info `io.Discard` does the same. The remaining debt is typed
+  non-source-mapped interface conversions that still emit `io_Writer`.
 - Fixture: `tests/external_stdlib_variadic/`,
   `tests/external_stub_closure_capture/`,
   `tests/embedded_external_method_promotion/`,
   `go/expr_test.go:TestNoTypeInfoIoMultiWriterRequiresTypeInfo`,
-  `go/expr_test.go:TestNoTypeInfoIoDiscardRequiresTypeInfo`
+  `go/expr_test.go:TestNoTypeInfoIoDiscardRequiresTypeInfo`,
+  `go/stmt_test.go:TestAddressOfStringsBuilderPassedToStdlibWriterMethod`,
+  `go/stdlib_test.go:TestSourceMappedStringsBuilderAsSourceMappedIoWriterBoxesPointerWrapper`
 - Removal trigger: typed non-source-mapped `io.Writer` conversions either
   source-map the stdlib path or emit loud unsupported paths without
   hand-written writer behavior; then delete `writeIoWriterStub`.

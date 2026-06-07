@@ -738,6 +738,50 @@ func build() printer {
 	}
 }
 
+func TestSourceMappedStringsBuilderAsSourceMappedIoWriterBoxesPointerWrapper(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import (
+	"io"
+	"strings"
+)
+
+func writeTo(w io.Writer) {}
+
+func build() {
+	var buf strings.Builder
+	writeTo(&buf)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile() error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{
+		"io":      "io",
+		"strings": "strings",
+	})
+
+	if strings.Contains(rust, "io_Writer") {
+		t.Fatalf("source-mapped strings.Builder as io.Writer should not use the external io_Writer bridge:\n%s", rust)
+	}
+	if strings.Contains(rust, "Box::new((*buf.") {
+		t.Fatalf("source-mapped strings.Builder as io.Writer should not box the cloned pointee:\n%s", rust)
+	}
+	if strings.Contains(rust, "write_to(buf.clone()") {
+		t.Fatalf("source-mapped strings.Builder as io.Writer should not use the raw builder handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(strings::BuilderPtr(buf.clone().clone())) as Box<dyn io::Writer") &&
+		!strings.Contains(rust, "Box::new(strings::r#mod::BuilderPtr(buf.clone().clone())) as Box<dyn io::r#mod::Writer") {
+		t.Fatalf("source-mapped strings.Builder as io.Writer should box the pointer wrapper:\n%s", rust)
+	}
+}
+
 func TestSourceMappedRegexpMustCompileCallsGeneratedFunction(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
