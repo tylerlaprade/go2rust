@@ -5115,6 +5115,52 @@ func rotate(addr uintptr) {
 	}
 }
 
+func TestParallelGoPtrFieldNilAssignmentClearsHandle(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct {
+	next *node
+}
+
+type list struct {
+	first *node
+	last *node
+}
+
+func rawNode(addr uintptr) *node {
+	return (*node)(unsafe.Pointer(addr))
+}
+
+func rawList(addr uintptr) *list {
+	return (*list)(unsafe.Pointer(addr))
+}
+
+func reset(addr uintptr) {
+	l := rawList(addr)
+	l.first = rawNode(addr + 1)
+	l.last = rawNode(addr + 2)
+	l.first, l.last = nil, nil
+}
+`)
+
+	if !strings.Contains(rust, "pub first: GoPtr<node>") ||
+		!strings.Contains(rust, "pub last: GoPtr<node>") {
+		t.Fatalf("test setup should promote list pointer fields to GoPtr storage:\n%s", rust)
+	}
+	if strings.Contains(rust, ".first.clone()); __ptr_value }.lock()") ||
+		strings.Contains(rust, ".last.clone()); __ptr_value }.lock()") {
+		t.Fatalf("parallel nil assignment should not treat GoPtr fields as old pointer wrappers:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __tmp_0 = GoPtr::nil();") ||
+		!strings.Contains(rust, "let __tmp_1 = GoPtr::nil();") ||
+		!strings.Contains(rust, "l.with_mut(|__ptr_value| { __ptr_value.first = __tmp_0.clone(); });") ||
+		!strings.Contains(rust, "l.with_mut(|__ptr_value| { __ptr_value.last = __tmp_1.clone(); });") {
+		t.Fatalf("parallel nil assignment should clear GoPtr field handles:\n%s", rust)
+	}
+}
+
 func TestCrossFileParallelGoPtrFieldAssignmentConvergesFieldFacts(t *testing.T) {
 	fset := token.NewFileSet()
 	typesFile, err := parser.ParseFile(fset, "types.go", `package main

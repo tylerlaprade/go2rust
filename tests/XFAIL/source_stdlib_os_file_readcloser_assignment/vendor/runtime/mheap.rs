@@ -4440,7 +4440,7 @@ impl mSpanList {
         { let new_val = (*other.lock().unwrap().as_ref().unwrap()).first.clone(); self.first = new_val; };
     }
                 // Neither list is empty. Put other before list.
-        { let __tmp_0 = None; let __tmp_1 = None; *(*other.lock().unwrap().as_ref().unwrap()).first.lock().unwrap() = __tmp_0; *(*other.lock().unwrap().as_ref().unwrap()).last.lock().unwrap() = __tmp_1; };
+        { let __tmp_0 = GoPtr::nil(); let __tmp_1 = GoPtr::nil(); (*other.lock().unwrap().as_mut().unwrap()).first = __tmp_0.clone(); (*other.lock().unwrap().as_mut().unwrap()).last = __tmp_1.clone(); };
     }
 }
 

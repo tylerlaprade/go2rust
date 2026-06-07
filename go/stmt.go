@@ -8124,6 +8124,11 @@ func writeParallelNilAssignmentTarget(out *strings.Builder, lhs ast.Expr, tmpNam
 		out.WriteString(" /* ERROR: Type information required for parallel nil assignment target */ unimplemented!(\"type info required for parallel nil assignment target\");")
 		return true
 	}
+	if sel, ok := parallelNilGoPtrFieldAssignmentTarget(lhs, rhs); ok {
+		out.WriteString(" ")
+		writePointerHandleAssignmentTargetFromValueName(out, sel, tmpName+".clone()")
+		return true
+	}
 	if !tupleTempAssignsHandleToElement(lhsType) {
 		return false
 	}
@@ -8157,6 +8162,14 @@ func writeParallelCurrentReceiverAssignmentTarget(out *strings.Builder, lhs ast.
 	return true
 }
 
+func writeParallelAssignmentTempValueForTarget(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) {
+	if _, ok := parallelNilGoPtrFieldAssignmentTarget(lhs, rhs); ok {
+		out.WriteString("GoPtr::nil()")
+		return
+	}
+	writeParallelAssignmentTempValue(out, rhs)
+}
+
 func writeParallelAssignmentTempValue(out *strings.Builder, rhs ast.Expr) {
 	if writeParallelInterfaceHandleTempValue(out, rhs) {
 		return
@@ -8168,6 +8181,26 @@ func writeParallelAssignmentTempValue(out *strings.Builder, rhs ast.Expr) {
 		return
 	}
 	TranspileExpression(out, rhs)
+}
+
+func parallelNilGoPtrFieldAssignmentTarget(lhs ast.Expr, rhs ast.Expr) (*ast.SelectorExpr, bool) {
+	ident, ok := unwrapParens(rhs).(*ast.Ident)
+	if !ok || ident.Name != "nil" {
+		return nil, false
+	}
+	sel, ok := unwrapParens(lhs).(*ast.SelectorExpr)
+	if !ok || !generatedGoPtrFieldForSelector(sel) {
+		return nil, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return nil, false
+	}
+	lhsType := typeInfo.GetType(lhs)
+	if lhsType == nil || !tupleTempAssignsHandleToElement(lhsType) {
+		return nil, false
+	}
+	return sel, true
 }
 
 func writeParallelInterfaceHandleTempValue(out *strings.Builder, rhs ast.Expr) bool {
@@ -10701,7 +10734,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 							out.WriteString(" ")
 						}
 						out.WriteString(fmt.Sprintf("let __tmp_%d = ", i))
-						writeParallelAssignmentTempValue(out, rhs)
+						writeParallelAssignmentTempValueForTarget(out, s.Lhs[i], rhs)
 						out.WriteString(";")
 					}
 					// Then assign all LHS from temporaries
