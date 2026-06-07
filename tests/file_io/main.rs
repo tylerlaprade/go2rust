@@ -85,13 +85,6 @@ impl os_File {
         self.__go_data.lock().unwrap().clone()
     }
 
-    pub fn __go_read_all_for_copy(&self) -> Vec<u8> {
-        while self.__go_wait_for_close && !self.__go_closed.load(std::sync::atomic::Ordering::SeqCst) {
-            std::thread::sleep(std::time::Duration::from_millis(1));
-        }
-        self.__go_read_all()
-    }
-
     pub fn close(&self) -> Rc<RefCell<Option<Box<dyn StdError>>>> {
         self.__go_closed.store(true, std::sync::atomic::Ordering::SeqCst);
         Rc::new(RefCell::new(None::<Box<dyn StdError>>))
@@ -129,6 +122,32 @@ impl os_File {
     pub fn read<T0>(&self, _arg0: T0) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
         (Rc::new(RefCell::new(Some::<i32>(0))), Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
     }
+
+    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (Rc<RefCell<Option<i32>>>, Rc<RefCell<Option<Box<dyn StdError>>>>) {
+        let offset = if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<i64>() {
+            *v
+        } else if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<i64>>>>() {
+            v.borrow().as_ref().copied().unwrap_or_default()
+        } else {
+            0
+        };
+        let data = self.__go_read_all();
+        let mut n = 0i32;
+        if offset >= 0 {
+            let start = offset as usize;
+            if start < data.len() {
+                if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Rc<RefCell<Option<Vec<u8>>>>>() {
+                    let mut guard = v.borrow_mut();
+                    if let Some(target) = guard.as_mut() {
+                        let count = std::cmp::min(target.len(), data.len() - start);
+                        target[..count].copy_from_slice(&data[start..start + count]);
+                        n = count as i32;
+                    }
+                }
+            }
+        }
+        (Rc::new(RefCell::new(Some::<i32>(n))), Rc::new(RefCell::new(None::<Box<dyn StdError>>)))
+    }
 }
 
 
@@ -140,7 +159,7 @@ fn main() {
     }));
 
     let (mut file, mut err) = { let __path = "test.txt".to_string(); match GoFile::create(&__path) { Ok(file) => (Rc::new(RefCell::new(Some(file))), Rc::new(RefCell::new(None::<Box<dyn StdError>>))), Err(e) => (Rc::new(RefCell::new(Some(GoFile::empty()))), Rc::new(RefCell::new(Some(Box::<dyn StdError>::from(e))))) } };
-    if (*err.borrow()).is_some() {
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
         println!("{} {}", format!("{}", "Error:".to_string()), format!("{}", format!("{}", (*err.borrow().as_ref().unwrap()))));
         {
         // Execute deferred functions

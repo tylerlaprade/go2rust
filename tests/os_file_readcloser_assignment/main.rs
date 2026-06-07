@@ -123,13 +123,6 @@ impl os_File {
         self.__go_data.lock().unwrap().clone()
     }
 
-    pub fn __go_read_all_for_copy(&self) -> Vec<u8> {
-        while self.__go_wait_for_close && !self.__go_closed.load(std::sync::atomic::Ordering::SeqCst) {
-            std::thread::sleep(std::time::Duration::from_millis(1));
-        }
-        self.__go_read_all()
-    }
-
     pub fn close(&self) -> Rc<RefCell<Option<Box<dyn StdError>>>> {
         self.__go_closed.store(true, std::sync::atomic::Ordering::SeqCst);
         Rc::new(RefCell::new(None::<Box<dyn StdError>>))
@@ -260,7 +253,7 @@ pub mod os {
 
 fn main() {
     let (mut file, mut err) = os::open((*go_os_args().borrow().as_ref().unwrap())[(0) as usize].clone());
-    if (*err.borrow()).is_some() {
+    if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
         panic!("{}", (*err.borrow().as_ref().unwrap()));
     }
 
@@ -268,7 +261,7 @@ fn main() {
     { let new_val = { let __arg = file.clone(); let __arg_guard = __arg.borrow(); __arg_guard.as_ref().map(|__v| (*__v).clone().into()).unwrap_or_else(io_ReadCloser::default) }; *rc.borrow_mut() = Some(new_val); };
     {
         let mut err = (*rc.borrow().as_ref().unwrap()).close();;
-        if (*err.borrow()).is_some() {
+        if { let __nil_result = (*err.borrow()).is_some(); __nil_result } {
             panic!("{}", (*err.borrow().as_ref().unwrap()));;
         }
     }

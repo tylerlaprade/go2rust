@@ -2479,6 +2479,10 @@ run_xfail_test() {
     run_test "tests/source_stdlib_go_types_new_type_name"
 }
 
+@test "source_stdlib_io_copy" {
+    run_test "tests/source_stdlib_io_copy"
+}
+
 @test "source_stdlib_parser_decl_cross_package" {
     run_test "tests/source_stdlib_parser_decl_cross_package"
 }

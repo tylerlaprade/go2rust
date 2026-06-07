@@ -45,13 +45,6 @@ impl os_File {
         self.__go_data.lock().unwrap().clone()
     }
 
-    pub fn __go_read_all_for_copy(&self) -> Vec<u8> {
-        while self.__go_wait_for_close && !self.__go_closed.load(std::sync::atomic::Ordering::SeqCst) {
-            std::thread::sleep(std::time::Duration::from_millis(1));
-        }
-        self.__go_read_all()
-    }
-
     pub fn close(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
         self.__go_closed.store(true, std::sync::atomic::Ordering::SeqCst);
         Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>))
@@ -89,6 +82,32 @@ impl os_File {
     pub fn read<T0>(&self, _arg0: T0) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         (Arc::new(Mutex::new(Some::<i32>(0))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
     }
+
+    pub fn read_at<T0: 'static, T1: 'static>(&self, arg0: T0, arg1: T1) -> (Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+        let offset = if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<i64>() {
+            *v
+        } else if let Some(v) = (&arg1 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<i64>>>>() {
+            v.lock().unwrap().as_ref().copied().unwrap_or_default()
+        } else {
+            0
+        };
+        let data = self.__go_read_all();
+        let mut n = 0i32;
+        if offset >= 0 {
+            let start = offset as usize;
+            if start < data.len() {
+                if let Some(v) = (&arg0 as &dyn std::any::Any).downcast_ref::<Arc<Mutex<Option<Vec<u8>>>>>() {
+                    let mut guard = v.lock().unwrap();
+                    if let Some(target) = guard.as_mut() {
+                        let count = std::cmp::min(target.len(), data.len() - start);
+                        target[..count].copy_from_slice(&data[start..start + count]);
+                        n = count as i32;
+                    }
+                }
+            }
+        }
+        (Arc::new(Mutex::new(Some::<i32>(n))), Arc::new(Mutex::new(None::<Box<dyn StdError + Send + Sync>>)))
+    }
 }
 
 
@@ -106,20 +125,20 @@ pub mod os {
 
 fn main() {
     let (mut read, mut write, mut err) = os::pipe();
-    if (*err.lock().unwrap()).is_some() {
+    if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         println!("{}", format!("{}", "pipe error".to_string()));
         return;
     }
     {
         let mut err = { let __recv = read.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };;
-        if (*err.lock().unwrap()).is_some() {
+        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
             println!("{}", format!("{}", "read close error".to_string()));;
             return;;
         }
     }
     {
         let mut err = { let __recv = write.clone(); let __recv_ptr: *mut os_File = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut os_File }; let __result = unsafe { &mut *__recv_ptr }.close(); __result };;
-        if (*err.lock().unwrap()).is_some() {
+        if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
             println!("{}", format!("{}", "write close error".to_string()));;
             return;;
         }

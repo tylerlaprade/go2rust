@@ -4754,6 +4754,35 @@ var gammaValue = 4
 	}
 }
 
+func TestExternalPackageInitCallsUseAbsoluteCratePaths(t *testing.T) {
+	rust := "mod iter;\nfn main() {}\n"
+	got := injectExternalPackageInitCalls(rust, []string{"", sharedStdlibStubCrateName, "iter"})
+	if !strings.Contains(got, "\n    ::iter::__go_init_all();\n") {
+		t.Fatalf("external crate init should use absolute crate path, got:\n%s", got)
+	}
+	if strings.Contains(got, "\n    iter::__go_init_all();\n") {
+		t.Fatalf("external crate init should not be shadowable by local modules, got:\n%s", got)
+	}
+	if strings.Contains(got, sharedStdlibStubCrateName+"::__go_init_all") {
+		t.Fatalf("shared stdlib stub crate should not get an init call, got:\n%s", got)
+	}
+}
+
+func TestLibraryPackageInitAllUsesAbsoluteDependencyCratePaths(t *testing.T) {
+	var out strings.Builder
+	writeLibraryPackageInitAll(&out, []string{"", sharedStdlibStubCrateName, "iter"}, nil, generatedPackageInitPlan{})
+	got := out.String()
+	if !strings.Contains(got, "\n        ::iter::__go_init_all();\n") {
+		t.Fatalf("library dependency init should use absolute crate path, got:\n%s", got)
+	}
+	if strings.Contains(got, "\n        iter::__go_init_all();\n") {
+		t.Fatalf("library dependency init should not be shadowable by local modules, got:\n%s", got)
+	}
+	if strings.Contains(got, sharedStdlibStubCrateName+"::__go_init_all") {
+		t.Fatalf("shared stdlib stub crate should not get an init call, got:\n%s", got)
+	}
+}
+
 func TestCrossFilePackageGlobalInitUsesGoTypesInitOrder(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

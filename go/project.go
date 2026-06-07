@@ -890,7 +890,7 @@ func injectExternalPackageInitCalls(rustCode string, crateNames []string) string
 		if crateName == "" || crateName == sharedStdlibStubCrateName {
 			continue
 		}
-		initCalls.WriteString("    ")
+		initCalls.WriteString("    ::")
 		initCalls.WriteString(crateName)
 		initCalls.WriteString("::__go_init_all();\n")
 	}
@@ -1273,7 +1273,7 @@ func writeLibraryPackageInitAll(out *strings.Builder, dependencyCrates []string,
 		if crateName == "" || crateName == sharedStdlibStubCrateName {
 			continue
 		}
-		out.WriteString("        ")
+		out.WriteString("        ::")
 		out.WriteString(crateName)
 		out.WriteString("::__go_init_all();\n")
 	}

@@ -2257,13 +2257,6 @@ impl os_File {
         self.__go_data.lock().unwrap().clone()
     }
 
-    pub fn __go_read_all_for_copy(&self) -> Vec<u8> {
-        while self.__go_wait_for_close && !self.__go_closed.load(std::sync::atomic::Ordering::SeqCst) {
-            std::thread::sleep(std::time::Duration::from_millis(1));
-        }
-        self.__go_read_all()
-    }
-
     pub fn close(&self) -> %s {
         self.__go_closed.store(true, std::sync::atomic::Ordering::SeqCst);
         %s
@@ -2950,7 +2943,7 @@ func writeExternalPackageStubs(out *strings.Builder, packageStubs map[string]*ex
 			if i > 0 {
 				out.WriteString("\n")
 			}
-			writeExternalPackageStubFunction(out, pkgName, funcName, pkg.Functions[funcName], stubs)
+			writeExternalPackageStubFunction(out, pkgName, funcName, pkg.Functions[funcName])
 		}
 		out.WriteString("}\n")
 	}
@@ -3171,7 +3164,7 @@ func writeBuildPackageStub(out *strings.Builder, pkg *externalPackageStub, integ
 		} else if funcName == "is_local_import" {
 			writeBuildIsLocalImportFunction(out)
 		} else {
-			writeExternalPackageStubFunction(out, "build", funcName, pkg.Functions[funcName], nil)
+			writeExternalPackageStubFunction(out, "build", funcName, pkg.Functions[funcName])
 		}
 	}
 	out.WriteString("}\n")
@@ -3341,7 +3334,7 @@ func writeJsonPackageStub(out *strings.Builder, pkg *externalPackageStub) {
 			out.WriteString("        }\n")
 			out.WriteString("    }\n")
 		default:
-			writeExternalPackageStubFunction(out, "json", funcName, pkg.Functions[funcName], nil)
+			writeExternalPackageStubFunction(out, "json", funcName, pkg.Functions[funcName])
 		}
 	}
 	out.WriteString("}\n")
@@ -3421,7 +3414,7 @@ func writeOsPackageStub(out *strings.Builder, pkg *externalPackageStub, integerT
 		} else if funcName == "write_file" {
 			writeOsWriteFileFunction(out, pkg.Functions[funcName])
 		} else {
-			writeExternalPackageStubFunction(out, "os", funcName, pkg.Functions[funcName], nil)
+			writeExternalPackageStubFunction(out, "os", funcName, pkg.Functions[funcName])
 		}
 	}
 	out.WriteString("}\n")
@@ -3734,7 +3727,7 @@ func writeFilepathPackageStub(out *strings.Builder, pkg *externalPackageStub, in
 		} else if funcName == "eval_symlinks" {
 			writeFilepathEvalSymlinksFunction(out, pkg.Functions[funcName])
 		} else {
-			writeExternalPackageStubFunction(out, "filepath", funcName, pkg.Functions[funcName], nil)
+			writeExternalPackageStubFunction(out, "filepath", funcName, pkg.Functions[funcName])
 		}
 	}
 	out.WriteString("}\n")
@@ -3953,7 +3946,7 @@ func writeExecPackageStub(out *strings.Builder, pkg *externalPackageStub, intege
 		if i > 0 {
 			out.WriteString("\n")
 		}
-		writeExternalPackageStubFunction(out, "exec", funcName, pkg.Functions[funcName], nil)
+		writeExternalPackageStubFunction(out, "exec", funcName, pkg.Functions[funcName])
 	}
 	out.WriteString("}\n")
 }
@@ -3962,11 +3955,11 @@ func writeExecPackageStub(out *strings.Builder, pkg *externalPackageStub, intege
 //
 // Per AGENTS.md "Strategy: Transpile stdlib, don't bridge it", the
 // generic body emits a panic instead of returning defaults. Functions
-// whose stubs need real behavior (exec.Command, io.Copy, os.Pipe, etc.)
+// whose stubs need real behavior (exec.Command, os.Pipe, etc.)
 // have custom emitters dispatched above. Anything routing through the
 // generic body has no implementation — calling it at runtime is a bug
 // to be fixed at the call site or by adding a custom emitter.
-func writeExternalPackageStubFunction(out *strings.Builder, pkgName string, funcName string, fn externalPackageStubFunction, stubs map[string]bool) {
+func writeExternalPackageStubFunction(out *strings.Builder, pkgName string, funcName string, fn externalPackageStubFunction) {
 	if funcName == "command" && len(fn.ReturnTypes) == 1 {
 		writeExecCommandStub(out, fn, false)
 		return
@@ -3977,10 +3970,6 @@ func writeExternalPackageStubFunction(out *strings.Builder, pkgName string, func
 	}
 	if funcName == "look_path" && len(fn.ReturnTypes) == 2 {
 		writeExecLookPathStub(out, fn)
-		return
-	}
-	if funcName == "copy" && len(fn.ReturnTypes) == 2 {
-		writeIoCopyStub(out, fn, stubs)
 		return
 	}
 	if funcName == "pipe" && len(fn.ReturnTypes) == 3 {
@@ -4111,51 +4100,6 @@ func writeRuntimeGOROOTStub(out *strings.Builder, fn externalPackageStubFunction
             }).clone()
         }`)
 	out.WriteString("\n    }\n")
-}
-
-// TEMPORARY: hand-written Rust shim for io.Copy.
-// Long-term fix: transpile io source (pure-Go algorithm over Reader/Writer interfaces).
-func writeIoCopyStub(out *strings.Builder, fn externalPackageStubFunction, stubs map[string]bool) {
-	out.WriteString("    pub fn copy<T0: 'static, T1: 'static>(_arg0: T0, _arg1: T1) -> ")
-	writeExternalStubReturnType(out, fn.ReturnTypes)
-	out.WriteString(" {\n")
-	out.WriteString("        let mut data = Vec::new();\n")
-	if stubs["os_File"] {
-		fmt.Fprintf(out, `        if let Some(src) = (&_arg1 as &dyn std::any::Any).downcast_ref::<%s>() {
-            data = %s.as_ref().map(|file| file.__go_read_all_for_copy()).unwrap_or_default();
-        }
-        if let Some(src) = (&_arg1 as &dyn std::any::Any).downcast_ref::<os_File>() {
-            data = src.__go_read_all_for_copy();
-        };
-`, wrappedExternalStubType("os_File"), externalStubBorrowExpr("src"))
-	}
-	if stubs["io_Writer"] {
-		fmt.Fprintf(out, `        if let Some(dst) = (&_arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
-            if let Some(writer) = %s.as_ref() {
-                writer.__go_write_bytes(&data);
-            }
-        }
-        if let Some(dst) = (&_arg0 as &dyn std::any::Any).downcast_ref::<io_Writer>() {
-            dst.__go_write_bytes(&data);
-        }
-`, wrappedExternalStubType("io_Writer"), externalStubBorrowExpr("dst"))
-	}
-	if stubs["os_File"] {
-		fmt.Fprintf(out, `        if let Some(dst) = (&_arg0 as &dyn std::any::Any).downcast_ref::<%s>() {
-            if let Some(file) = %s.as_ref() {
-                file.__go_write_bytes(&data);
-            }
-        }
-        if let Some(dst) = (&_arg0 as &dyn std::any::Any).downcast_ref::<os_File>() {
-            dst.__go_write_bytes(&data);
-        }
-`, wrappedExternalStubType("os_File"), externalStubBorrowExpr("dst"))
-	}
-	out.WriteString("        (")
-	writeExternalStubReturnValue(out, fn.ReturnTypes[0], "i64", "data.len() as i64")
-	out.WriteString(", ")
-	writeExternalStubDefaultValue(out, fn.ReturnTypes[1])
-	out.WriteString(")\n    }\n")
 }
 
 // PERMANENT: not scaffold — os.Pipe maps to OS pipe syscalls, runtime-tied.

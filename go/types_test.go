@@ -530,6 +530,76 @@ func TestCollectImportedInterfaceImplsRecordsCurrentConcreteArgs(t *testing.T) {
 	}
 }
 
+func TestCollectImportedInterfaceImplsFromPackageImports(t *testing.T) {
+	ioPkg := types.NewPackage("io", "io")
+	bytesPkg := types.NewPackage("bytes", "bytes")
+	bytesPkg.SetImports([]*types.Package{ioPkg})
+	byteSlice := types.NewSlice(types.Typ[types.Byte])
+	errorType := types.Universe.Lookup("error").Type()
+
+	writeMethod := types.NewFunc(
+		token.NoPos,
+		ioPkg,
+		"Write",
+		types.NewSignatureType(
+			nil,
+			nil,
+			nil,
+			types.NewTuple(types.NewVar(token.NoPos, nil, "p", byteSlice)),
+			types.NewTuple(
+				types.NewVar(token.NoPos, nil, "n", types.Typ[types.Int]),
+				types.NewVar(token.NoPos, nil, "err", errorType),
+			),
+			false,
+		),
+	)
+	writerIface := types.NewInterfaceType([]*types.Func{writeMethod}, nil).Complete()
+	writerName := types.NewTypeName(token.NoPos, ioPkg, "Writer", nil)
+	writerNamed := types.NewNamed(writerName, writerIface, nil)
+	ioPkg.Scope().Insert(writerName)
+
+	bufferName := types.NewTypeName(token.NoPos, bytesPkg, "Buffer", nil)
+	bufferNamed := types.NewNamed(bufferName, types.NewStruct(nil, nil), nil)
+	bytesPkg.Scope().Insert(bufferName)
+	bufferPtr := types.NewPointer(bufferNamed)
+	bufferNamed.AddMethod(types.NewFunc(
+		token.NoPos,
+		bytesPkg,
+		"Write",
+		types.NewSignatureType(
+			types.NewVar(token.NoPos, bytesPkg, "", bufferPtr),
+			nil,
+			nil,
+			types.NewTuple(types.NewVar(token.NoPos, nil, "p", byteSlice)),
+			types.NewTuple(
+				types.NewVar(token.NoPos, nil, "n", types.Typ[types.Int]),
+				types.NewVar(token.NoPos, nil, "err", errorType),
+			),
+			false,
+		),
+	))
+
+	typeInfo := &TypeInfo{pkg: bytesPkg, info: &types.Info{}}
+	SetTypeInfo(typeInfo)
+	SetTranspileContext(&TranspileContext{PackageMapping: map[string]string{
+		"bytes": "bytes",
+		"io":    "io",
+	}})
+	defer SetTypeInfo(nil)
+	defer SetTranspileContext(nil)
+
+	analysis := analyzeTranspileFiles(nil, typeInfo)
+	if _, ok := analysis.importedInterfaceImpls["Buffer"]["io::Writer"]; ok {
+		t.Fatalf("imported interface value impls = %#v, did not want Buffer value to implement io.Writer", analysis.importedInterfaceImpls)
+	}
+	if _, ok := analysis.importedPointerInterfaceImpls["Buffer"]["io::Writer"]; !ok {
+		t.Fatalf("imported interface pointer impls = %#v, want *Buffer to implement io.Writer", analysis.importedPointerInterfaceImpls)
+	}
+	if !sourceMappedPointerWrapperAvailableForInterface(bufferNamed, writerNamed) {
+		t.Fatalf("source-mapped pointer wrapper should be available for bytes.Buffer as io.Writer")
+	}
+}
+
 func TestCollectImportedInterfaceImplsRecordsStructLiteralInterfaceFields(t *testing.T) {
 	depPkg := types.NewPackage("example.com/dep", "dep")
 	mainPkg := types.NewPackage("example.com/main", "main")

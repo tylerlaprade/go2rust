@@ -221,6 +221,7 @@ func analyzeTranspileFiles(files []*ast.File, mapKeyTypeInfo *TypeInfo) *transpi
 	}
 	analysis.recordPointerComparablePointees(typeInfo)
 	analysis.recordImportedOrderedConstraintImpls(typeInfo)
+	analysis.recordImportedInterfaceImplsFromPackageImports(typeInfo)
 	return analysis
 }
 
@@ -483,6 +484,66 @@ func (analysis *transpileFileAnalysis) recordImportedInterfaceImplForType(expect
 	analysis.recordImportedEmbeddedInterfaceImplsForConcrete(typeName, named, ifaceType)
 	analysis.recordImportedPointerInterfaceImplByName(typeName, ifaceName, ifaceType)
 	analysis.recordImportedPointerEmbeddedInterfaceImpls(typeName, ifaceType)
+}
+
+func (analysis *transpileFileAnalysis) recordImportedInterfaceImplsFromPackageImports(typeInfo *TypeInfo) {
+	if analysis == nil || typeInfo == nil || typeInfo.pkg == nil || typeInfo.pkg.Scope() == nil {
+		return
+	}
+	var concreteTypes []*types.Named
+	scope := typeInfo.pkg.Scope()
+	for _, name := range scope.Names() {
+		obj, ok := scope.Lookup(name).(*types.TypeName)
+		if !ok {
+			continue
+		}
+		named, ok := types.Unalias(obj.Type()).(*types.Named)
+		if !ok || named.Obj() == nil {
+			continue
+		}
+		if _, ok := named.Underlying().(*types.Interface); ok {
+			continue
+		}
+		if sourceMappedDeclIsPruned(named.Obj()) {
+			continue
+		}
+		concreteTypes = append(concreteTypes, named)
+	}
+	if len(concreteTypes) == 0 {
+		return
+	}
+	for _, importedPkg := range typeInfo.pkg.Imports() {
+		if importedPkg == nil || importedPkg.Scope() == nil {
+			continue
+		}
+		for _, name := range importedPkg.Scope().Names() {
+			obj, ok := importedPkg.Scope().Lookup(name).(*types.TypeName)
+			if !ok {
+				continue
+			}
+			ifaceNamed, ok := types.Unalias(obj.Type()).(*types.Named)
+			if !ok {
+				continue
+			}
+			ifaceName, ifaceType, ok := importedTranspiledInterfaceFromType(ifaceNamed)
+			if !ok {
+				continue
+			}
+			ifaceType.Complete()
+			for _, concrete := range concreteTypes {
+				typeName := concrete.Obj().Name()
+				if types.Implements(concrete, ifaceType) {
+					analysis.recordImportedInterfaceImplByName(typeName, ifaceName, ifaceType)
+					analysis.recordImportedEmbeddedInterfaceImpls(typeName, ifaceType)
+				}
+				if types.Implements(types.NewPointer(concrete), ifaceType) {
+					analysis.recordImportedEmbeddedInterfaceImplsForConcrete(typeName, concrete, ifaceType)
+					analysis.recordImportedPointerInterfaceImplByName(typeName, ifaceName, ifaceType)
+					analysis.recordImportedPointerEmbeddedInterfaceImpls(typeName, ifaceType)
+				}
+			}
+		}
+	}
 }
 
 func (analysis *transpileFileAnalysis) recordImportedInterfaceImplByName(typeName, ifaceName string, ifaceType *types.Interface) {
@@ -1447,14 +1508,26 @@ func sourceMappedPointerWrapperAvailableForInterface(named *types.Named, expecte
 	if named == nil || named.Obj() == nil || named.Obj().Pkg() == nil || expected == nil {
 		return false
 	}
-	if !isSourceMappedPackagePath(named.Obj().Pkg().Path()) {
-		return false
-	}
-	if !sourceMappedPointerWrapperAvailable(named) {
+	concretePkg := named.Obj().Pkg()
+	if !isSourceMappedPackagePath(concretePkg.Path()) {
 		return false
 	}
 	iface, ok := types.Unalias(expected).Underlying().(*types.Interface)
 	if !ok || iface.NumMethods() == 0 {
+		return false
+	}
+	expectedNamed, ok := types.Unalias(expected).(*types.Named)
+	if !ok || expectedNamed.Obj() == nil || expectedNamed.Obj().Pkg() == nil {
+		return false
+	}
+	importsInterfacePackage := expectedNamed.Obj().Pkg() == concretePkg
+	for _, importedPkg := range concretePkg.Imports() {
+		if importedPkg == expectedNamed.Obj().Pkg() {
+			importsInterfacePackage = true
+			break
+		}
+	}
+	if !importsInterfacePackage {
 		return false
 	}
 	iface.Complete()
