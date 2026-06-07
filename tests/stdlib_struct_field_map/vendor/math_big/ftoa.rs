@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_any_clone, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_slice, format_slice_values, format_slice_wrapped, go_any_clone};
 
 use crate::accuracy_string::*;
 use crate::arith::*;
@@ -216,7 +216,7 @@ impl crate::float::Float {
         if { let __tmp_x = { let __v = (*e.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x >= __tmp_y } {
         { let new_val = { let __append_target = buf.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(('+' as i32) as u8); __append_target.clone() }; buf = new_val; };
     }
-        return strconv::append_int(buf.clone(), { let __arg_holder = e.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }, 10);
+        return strconv::append_int(buf.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = e.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(10))));
     }
 
     /// fmtX appends the string of x in the format "0x1." mantissa "p" exponent
@@ -282,7 +282,7 @@ impl crate::float::Float {
         if { let __tmp_x = { let __v = (*exp64.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10 as i64; __tmp_x < __tmp_y } {
         { let new_val = { let __append_target = buf.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(('0' as i32) as u8); __append_target.clone() }; buf = new_val; };
     }
-        return strconv::append_int(buf.clone(), { let __arg_holder = exp64.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }, 10);
+        return strconv::append_int(buf.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = exp64.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(10))));
     }
 
     /// fmtP appends the string of x in the format "0x." mantissa "p" exponent
@@ -313,7 +313,7 @@ impl crate::float::Float {
         if { let __tmp_x = (*self.exp.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x >= __tmp_y } {
         { let new_val = { let __append_target = buf.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(('+' as i32) as u8); __append_target.clone() }; buf = new_val; };
     }
-        strconv::append_int(buf.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = self.exp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))), 10)
+        strconv::append_int(buf.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = self.exp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))), Arc::new(Mutex::new(Some(10))))
     }
 
     /// Format implements [fmt.Formatter]. It accepts all the regular
@@ -531,7 +531,7 @@ pub fn fmt_e(mut buf: Arc<Mutex<Option<Vec<u8>>>>, fmt: Arc<Mutex<Option<u8>>>, 
         { let new_val = { let __append_target = buf.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(('0' as i32) as u8); __append_target.clone() }; buf = new_val; };
     }
         // at least 2 exponent digits
-    return strconv::append_int(buf.clone(), { let __arg_holder = exp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }, 10);
+    return strconv::append_int(buf.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = exp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(10))));
 }
 
 /// %f: ddddddd.ddddd

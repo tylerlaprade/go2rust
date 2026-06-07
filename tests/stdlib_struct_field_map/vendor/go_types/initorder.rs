@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::alias::*;
 use crate::api::*;
@@ -246,7 +246,7 @@ impl graphNode {
 
 impl Default for graphNode {
     fn default() -> Self {
-        Self { obj: Arc::new(Mutex::new(None)), pred: Arc::new(Mutex::new(None)), succ: Arc::new(Mutex::new(None)), index: Arc::new(Mutex::new(Some(0))), ndeps: Arc::new(Mutex::new(Some(0))) }
+        Self { obj: Arc::new(Mutex::new(None)), pred: Arc::new(Mutex::new(Some(nodeSet::default()))), succ: Arc::new(Mutex::new(Some(nodeSet::default()))), index: Arc::new(Mutex::new(Some(0))), ndeps: Arc::new(Mutex::new(Some(0))) }
     }
 }
 
@@ -334,7 +334,7 @@ impl crate::check::Checker {
             (Arc::new(Mutex::new(None::<Box<dyn dependency + Send + Sync>>)), false)
         }
     });;
-        if (*obj.lock().unwrap()).is_some() {
+        if { let __nil_result = (*obj.lock().unwrap()).is_some(); __nil_result } {
             if { let __tmp_x = (({ let __len_target = { let __field = (*d.lock().unwrap().as_ref().unwrap()).deps.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
         print!("\t{} depends on\n", (*(*obj.lock().unwrap().as_ref().unwrap()).name().lock().unwrap().as_ref().unwrap()));
         for (__range_key, _) in { let __range_holder = (*d.lock().unwrap().as_ref().unwrap()).deps.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_map = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); __range_map } {
@@ -395,7 +395,7 @@ impl crate::check::Checker {
                 // the cycle will be broken (dependency count will be reduced
                 // below), and so the remaining nodes in the cycle don't trigger
                 // another error (unless they are part of multiple cycles).
-        if (*cycle.lock().unwrap()).is_some() {
+        if { let __nil_result = (*cycle.lock().unwrap()).is_some(); __nil_result } {
         self.report_cycle(cycle.clone());
     }
     }
@@ -434,7 +434,7 @@ impl crate::check::Checker {
         }
     });
         let mut info = { let __map = { let __map_holder = self.obj_map.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GoObjectInterfaceKey::new(Arc::new(Mutex::new(Some(Box::new(crate::object::VarPtr(v.clone())) as Box<dyn Object + Send + Sync>)))))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };
-        if (*v.lock().unwrap()).is_none() || !{ let __recv = info.clone(); let __recv_ptr: *const crate::resolver::declInfo = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::resolver::declInfo }; let __result = unsafe { &*__recv_ptr }.has_initializer(); __result } {
+        if { let __nil_result = (*v.lock().unwrap()).is_none(); __nil_result } || !{ let __recv = info.clone(); let __recv_ptr: *const crate::resolver::declInfo = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::resolver::declInfo }; let __result = unsafe { &*__recv_ptr }.has_initializer(); __result } {
         continue
     }
 
@@ -449,7 +449,7 @@ impl crate::check::Checker {
         { let __map_key = GoLocalPtrKey::new(info.clone()); let __map_value = Arc::new(Mutex::new(Some(true))); (*emitted.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };
 
         let mut infoLhs = (*info.lock().unwrap().as_ref().unwrap()).lhs.clone();
-        if (*infoLhs.lock().unwrap()).is_none() {
+        if { let __nil_result = (*infoLhs.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = Arc::new(Mutex::new(Some(vec![v.clone()]))); infoLhs = new_val; };
     }
         let mut init = Arc::new(Mutex::new(Some(Initializer { lhs: infoLhs.clone(), rhs: { let __field = (*info.lock().unwrap().as_ref().unwrap()).init.clone(); __field }, ..Default::default() })));
@@ -502,7 +502,7 @@ impl crate::check::Checker {
     while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } {
         let mut next = { let __seq = { let __seq_holder = cycle.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
         { let __recv = err.clone(); let __recv_ptr: *mut crate::errors::error_ = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::errors::error_ }; let __result = unsafe { &mut *__recv_ptr }.addf(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = obj.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn positioner + Send + Sync>))), Arc::new(Mutex::new(Some("%s refers to %s".to_string()))), Arc::new(Mutex::new(Some(vec![Box::new({ let __v = (*obj.lock().unwrap().as_ref().unwrap()).name(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>, Box::new({ let __v = (*next.lock().unwrap().as_ref().unwrap()).name(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>])))); __result };
-        { let __iface_handle = next.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *obj.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = next.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *obj.lock().unwrap() = __iface_value; };
         { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
         { let __recv = err.clone(); let __recv_ptr: *mut crate::errors::error_ = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::errors::error_ }; let __result = unsafe { &mut *__recv_ptr }.report(); __result };
@@ -612,7 +612,7 @@ pub fn find_path(objMap: Arc<Mutex<Option<BTreeMap<GoObjectInterfaceKey, Arc<Mut
     }
         {
         let mut P = find_path(objMap.clone(), d.clone(), to.clone(), seen.clone());;
-        if (*P.lock().unwrap()).is_some() {
+        if { let __nil_result = (*P.lock().unwrap()).is_some(); __nil_result } {
             return { let __append_target = P.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*d).clone()); __append_target.clone() };;
         }
     }
@@ -648,7 +648,7 @@ pub fn dependency_graph(objMap: Arc<Mutex<Option<BTreeMap<GoObjectInterfaceKey, 
             (Arc::new(Mutex::new(None::<Box<dyn dependency + Send + Sync>>)), false)
         }
     });;
-        if (*obj.lock().unwrap()).is_some() {
+        if { let __nil_result = (*obj.lock().unwrap()).is_some(); __nil_result } {
             { let __map_key = GodependencyInterfaceKey::new(obj.clone()); let __map_value = Arc::new(Mutex::new(Some(graphNode { obj: obj.clone(), ..Default::default() }))); (*M.lock().unwrap().as_mut().unwrap()).insert(__map_key, __map_value); };;
         }
     }
@@ -682,7 +682,7 @@ pub fn dependency_graph(objMap: Arc<Mutex<Option<BTreeMap<GoObjectInterfaceKey, 
             (Arc::new(Mutex::new(None::<Box<dyn dependency + Send + Sync>>)), false)
         }
     });;
-        if (*d.lock().unwrap()).is_some() {
+        if { let __nil_result = (*d.lock().unwrap()).is_some(); __nil_result } {
             let mut d = { let __map = { let __map_holder = M.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&GodependencyInterfaceKey::new(d.clone()))).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) };;
             (*(*n.lock().unwrap().as_ref().unwrap()).succ.lock().unwrap().as_mut().unwrap()).add(d.clone());;
             (*(*d.lock().unwrap().as_ref().unwrap()).pred.lock().unwrap().as_mut().unwrap()).add(n.clone());;

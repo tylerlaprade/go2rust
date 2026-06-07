@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::api::*;
 use crate::api_predicates::*;
@@ -196,7 +196,7 @@ impl Alias {
         if { let __left_holder = actual.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_wrapper = crate::basic::BasicPtr({ let __seq = { let __seq_holder = Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(INVALID as i32) as usize].clone() }.clone()); let __right_opt: Option<&(dyn Type + Send + Sync)> = Some(&__right_wrapper as &(dyn Type + Send + Sync)); let __eq = match (__left_opt, __right_opt) { (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; __eq } {
                 // We don't set a.actual to Typ[Invalid] during type checking,
                 // as it may indicate that the RHS is not fully set up.
-        { let __iface_handle = actual.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *self.actual.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = actual.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *self.actual.lock().unwrap() = __iface_value; };
     }
     }
 }
@@ -337,13 +337,13 @@ impl crate::check::Checker {
     /// newAlias creates a new Alias type with the given type name and rhs.
     /// rhs must not be nil.
     pub fn new_alias(&mut self, obj: Arc<Mutex<Option<TypeName>>>, rhs: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc<Mutex<Option<Alias>>> {
-        assert(Arc::new(Mutex::new(Some((*rhs.lock().unwrap()).is_some()))));
+        assert(Arc::new(Mutex::new(Some({ let __nil_result = (*rhs.lock().unwrap()).is_some(); __nil_result }))));
         let mut a = Arc::new(Mutex::new(Some(Alias::default())));
         { let new_val = obj.clone(); (*a.lock().unwrap().as_mut().unwrap()).obj = new_val; };
         { let new_val = a.clone(); (*a.lock().unwrap().as_mut().unwrap()).orig = new_val; };
-        { let __iface_handle = rhs.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*a.lock().unwrap().as_mut().unwrap()).from_r_h_s.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = rhs.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*a.lock().unwrap().as_mut().unwrap()).from_r_h_s.lock().unwrap() = __iface_value; };
         if { let __iface_handle = { let __field = (*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
-        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(AliasPtr(a.clone())) as Box<dyn Type + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(AliasPtr(a.clone())) as Box<dyn Type + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = __iface_value; };
     }
                 // Ensure that a.actual is set at the end of type checking.
         if true {
@@ -396,7 +396,7 @@ pub fn unalias(t: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc<Mutex<
             (Arc::new(Mutex::new(None::<Alias>)), false)
         }
     });;
-        if (*a0.lock().unwrap()).is_some() {
+        if { let __nil_result = (*a0.lock().unwrap()).is_some(); __nil_result } {
             return unalias_1(a0.clone()).clone();;
         }
     }
@@ -409,8 +409,8 @@ pub fn unalias_1(a0: Arc<Mutex<Option<Alias>>>) -> Arc<Mutex<Option<Box<dyn Type
     }
     let mut t: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>> = Arc::new(Mutex::new(None));
     let mut a = a0.clone();
-    while (*a.lock().unwrap()).is_some() {
-        { let __iface_handle = { let __field = (*a.lock().unwrap().as_ref().unwrap()).from_r_h_s.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); *t.lock().unwrap() = (*__iface_guard).clone(); };
+    while { let __nil_result = (*a.lock().unwrap()).is_some(); __nil_result } {
+        { let __iface_handle = { let __field = (*a.lock().unwrap().as_ref().unwrap()).from_r_h_s.clone(); __field }; let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *t.lock().unwrap() = __iface_value; };
         { let (__tmp_0, __tmp_1) = ({
         let val = t.clone();
         let guard = val.lock().unwrap();
@@ -425,7 +425,7 @@ pub fn unalias_1(a0: Arc<Mutex<Option<Alias>>>) -> Arc<Mutex<Option<Box<dyn Type
         }
     }); a = __tmp_0.clone(); };
     }
-    if (*t.lock().unwrap()).is_none() {
+    if { let __nil_result = (*t.lock().unwrap()).is_none(); __nil_result } {
         std::panic::panic_any(Box::new({ let __v = Arc::new(Mutex::new(Some(format!("non-terminated alias {}", (*(*(*a0.lock().unwrap().as_ref().unwrap()).obj.lock().unwrap().as_ref().unwrap()).object.lock().unwrap().as_ref().unwrap().name.lock().unwrap().as_ref().unwrap()).clone())))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>);
     }
 
@@ -435,7 +435,7 @@ pub fn unalias_1(a0: Arc<Mutex<Option<Alias>>>) -> Arc<Mutex<Option<Box<dyn Type
         // TODO(adonovan): rethink, along with checker.typeDecl's use
         // of Invalid to mark unfinished aliases.
     if { let __left_holder = t.clone(); let __left_guard = __left_holder.lock().unwrap(); let __left_opt: Option<&(dyn Type + Send + Sync)> = __left_guard.as_ref().map(|__v| __v.as_ref()); let __right_wrapper = crate::basic::BasicPtr({ let __seq = { let __seq_holder = Typ.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(INVALID as i32) as usize].clone() }.clone()); let __right_opt: Option<&(dyn Type + Send + Sync)> = Some(&__right_wrapper as &(dyn Type + Send + Sync)); let __eq = match (__left_opt, __right_opt) { (Some(__left), Some(__right)) => __left.__go_eq_type_(__right), _ => false }; !__eq } {
-        { let __iface_handle = t.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*a0.lock().unwrap().as_mut().unwrap()).actual.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = t.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*a0.lock().unwrap().as_mut().unwrap()).actual.lock().unwrap() = __iface_value; };
     }
 
     return t.clone();
@@ -461,17 +461,17 @@ pub fn as_named(t: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc<Mutex
 }
 
 pub fn __go_nil_recv_crate__check___checker_new_alias(check: Arc<Mutex<Option<Checker>>>, obj: Arc<Mutex<Option<TypeName>>>, rhs: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> Arc<Mutex<Option<Alias>>> {
-    assert(Arc::new(Mutex::new(Some((*rhs.lock().unwrap()).is_some()))));
+    assert(Arc::new(Mutex::new(Some({ let __nil_result = (*rhs.lock().unwrap()).is_some(); __nil_result }))));
     let mut a = Arc::new(Mutex::new(Some(Alias::default())));
     { let new_val = obj.clone(); (*a.lock().unwrap().as_mut().unwrap()).obj = new_val; };
     { let new_val = a.clone(); (*a.lock().unwrap().as_mut().unwrap()).orig = new_val; };
-    { let __iface_handle = rhs.clone(); let __iface_guard = __iface_handle.lock().unwrap(); *(*a.lock().unwrap().as_mut().unwrap()).from_r_h_s.lock().unwrap() = (*__iface_guard).clone(); };
+    { let __iface_handle = rhs.clone(); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*a.lock().unwrap().as_mut().unwrap()).from_r_h_s.lock().unwrap() = __iface_value; };
     if { let __iface_handle = { let __field = (*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_none() } {
-        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(AliasPtr(a.clone())) as Box<dyn Type + Send + Sync>))); let __iface_guard = __iface_handle.lock().unwrap(); *(*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = (*__iface_guard).clone(); };
+        { let __iface_handle = Arc::new(Mutex::new(Some(Box::new(AliasPtr(a.clone())) as Box<dyn Type + Send + Sync>))); let __iface_value = { let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).clone() }; *(*(*obj.lock().unwrap().as_mut().unwrap()).object.lock().unwrap().as_mut().unwrap()).typ.lock().unwrap() = __iface_value; };
     }
 
         // Ensure that a.actual is set at the end of type checking.
-    if (*check.lock().unwrap()).is_some() {
+    if { let __nil_result = (*check.lock().unwrap()).is_some(); __nil_result } {
         { let __recv = check.clone(); let __recv_ptr: *mut crate::check::Checker = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::check::Checker }; let __result = unsafe { &mut *__recv_ptr }.needs_cleanup(Arc::new(Mutex::new(Some(Box::new(AliasPtr(a.clone())) as Box<dyn cleaner + Send + Sync>)))); __result };
     }
 

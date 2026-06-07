@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload, go_strconv_format_float, go_strconv_format_int};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoLocalPtrKey, GoMutex, GoOnce, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, __go_type_name, format_any, format_any_slice, format_any_variadic, format_map, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_stringer, format_slice_wrapped_stringer_values, go_any_clone, go_lookup_embedded_owner, go_recover, go_register_embedded_owner, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::alias::*;
 use crate::api::*;
@@ -108,7 +108,7 @@ impl crate::check::Checker {
     }
                 // If the same package name was used by multiple packages, display the full path.
         if { let __tmp_x = ((*{ let __map = { let __map_holder = self.pkg_path_map.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&{ let __selector_holder = (*pkg.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })).map(|__v| __v.clone()).unwrap_or_else(|| Default::default()) }.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x > __tmp_y } {
-        return Arc::new(Mutex::new(Some(format!("{:?}", (*(*pkg.lock().unwrap().as_ref().unwrap()).path.lock().unwrap().as_ref().unwrap()).clone()))));
+        return strconv::quote(Arc::new(Mutex::new(Some({ let __selector_holder = (*pkg.lock().unwrap().as_ref().unwrap()).path.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
     }
         return Arc::new(Mutex::new(Some({ let __selector_holder = (*pkg.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     }
@@ -152,7 +152,7 @@ pub fn sprintf(fset: Arc<Mutex<Option<go_token::position::FileSet>>>, qf: crate:
         { let new_val = Box::new((*operand_string(a.clone(), qf.clone()).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>; arg = new_val; };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<go_token::position::Pos>()).is_some() {
         let a = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<go_token::position::Pos>()).unwrap().clone())));
-        if (*fset.lock().unwrap()).is_some() {
+        if { let __nil_result = (*fset.lock().unwrap()).is_some(); __nil_result } {
         { let new_val = Box::new((*{ let __recv = { let __recv = fset.clone(); let __recv_ptr: *const go_token::position::FileSet = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const go_token::position::FileSet }; let __result = unsafe { &*__recv_ptr }.position(Arc::new(Mutex::new(Some({ let __arg_holder = a.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn Any + Send + Sync>; arg = new_val; };
     };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Box<dyn go_ast::r#mod::Expr + Send + Sync>>()).is_some() {
