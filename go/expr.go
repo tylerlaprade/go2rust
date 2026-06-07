@@ -14035,6 +14035,9 @@ func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Si
 		if i > 0 {
 			out.WriteString(", ")
 		}
+		if writeFunctionValueBoxArgument(out, ident, i) {
+			continue
+		}
 		out.WriteString(fmt.Sprintf("__arg%d", i))
 	}
 	out.WriteString(")")
@@ -14043,6 +14046,31 @@ func writeFunctionValueBox(out *strings.Builder, ident *ast.Ident, sig *types.Si
 	}
 	out.WriteString(" }) as ")
 	out.WriteString(boxType)
+}
+
+func writeFunctionValueBoxArgument(out *strings.Builder, ident *ast.Ident, paramIndex int) bool {
+	if _, ok := functionValueGoPtrParamInfo(ident, paramIndex); !ok {
+		return false
+	}
+	out.WriteString("GoPtr::local(")
+	out.WriteString(fmt.Sprintf("__arg%d.clone()", paramIndex))
+	out.WriteString(")")
+	return true
+}
+
+func functionValueGoPtrParamInfo(ident *ast.Ident, paramIndex int) (goPtrResultInfo, bool) {
+	if ident == nil {
+		return goPtrResultInfo{}, false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return goPtrResultInfo{}, false
+	}
+	fn, ok := typeInfo.GetObject(ident).(*types.Func)
+	if !ok {
+		return goPtrResultInfo{}, false
+	}
+	return goPtrParamResultInfoForFunc(fn, paramIndex)
 }
 
 func writeFunctionValueExpressionBox(out *strings.Builder, expr ast.Expr, sig *types.Signature) {

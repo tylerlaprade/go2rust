@@ -1317,9 +1317,9 @@ pub fn async_preempt2() {
     let mut gp = getg();
     { let new_val = true; *(*gp.lock().unwrap().as_ref().unwrap()).async_safe_point.lock().unwrap() = Some(new_val); };
     if (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).preempt_stop.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
-        mcall(Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<crate::runtime2::g>>>| { preempt_park(__arg0) }) as Box<dyn FnMut(Arc<Mutex<Option<crate::runtime2::g>>>) -> () + Send + Sync>))));
+        mcall(Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<crate::runtime2::g>>>| { preempt_park(GoPtr::local(__arg0.clone())) }) as Box<dyn FnMut(Arc<Mutex<Option<crate::runtime2::g>>>) -> () + Send + Sync>))));
     } else {
-        mcall(Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<crate::runtime2::g>>>| { gopreempt_m(__arg0) }) as Box<dyn FnMut(Arc<Mutex<Option<crate::runtime2::g>>>) -> () + Send + Sync>))));
+        mcall(Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<crate::runtime2::g>>>| { gopreempt_m(GoPtr::local(__arg0.clone())) }) as Box<dyn FnMut(Arc<Mutex<Option<crate::runtime2::g>>>) -> () + Send + Sync>))));
     }
     { let new_val = false; *(*gp.lock().unwrap().as_ref().unwrap()).async_safe_point.lock().unwrap() = Some(new_val); };
 }

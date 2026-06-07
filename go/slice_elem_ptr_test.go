@@ -5986,6 +5986,46 @@ func use(chunks [][]int) int {
 	}
 }
 
+func TestFunctionValueBoxAdaptsGoPtrParamFunctionIdentifier(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct {
+	flag bool
+}
+
+func raw(addr uintptr) *node {
+	return (*node)(unsafe.Pointer(addr))
+}
+
+func handle(p *node) {
+	p.flag = true
+}
+
+func run(fn func(*node)) {
+}
+
+func direct(addr uintptr) {
+	handle(raw(addr))
+}
+
+func via() {
+	run(handle)
+}
+`)
+
+	if !strings.Contains(rust, "pub fn handle(p: GoPtr<node>)") {
+		t.Fatalf("direct call should promote handle's pointer parameter to GoPtr:\n%s", rust)
+	}
+	if strings.Contains(rust, "{ handle(__arg0) }) as Box<dyn FnMut") {
+		t.Fatalf("function value adapter should not forward the old pointer wrapper into a GoPtr parameter:\n%s", rust)
+	}
+	if !strings.Contains(rust, "handle(GoPtr::local(__arg0.clone()))") {
+		t.Fatalf("function value adapter should convert boxed function arguments for GoPtr callee params:\n%s", rust)
+	}
+}
+
 func TestReadOnlyMethodPointerParamAcceptsSliceElemPointerLocal(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
