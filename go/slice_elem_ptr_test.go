@@ -1738,11 +1738,87 @@ func load(addr uintptr) *node {
 	if !strings.Contains(rust, "let mut n: GoPtr<node>") {
 		t.Fatalf("dereferencing a GoPtr pointer slot should initialize a GoPtr pointee handle:\n%s", rust)
 	}
-	if !strings.Contains(rust, "GoPtr::local(__ptr_slot.as_ref().unwrap().clone())") {
+	if !strings.Contains(rust, "__ptr_slot.as_ref().unwrap().clone()") {
 		t.Fatalf("dereferencing a GoPtr pointer slot should preserve the stored pointer handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "GoPtr::local(__ptr_slot.as_ref().unwrap().clone())") {
+		t.Fatalf("dereferencing a GoPtr pointer slot should not rewrap the stored pointer handle:\n%s", rust)
 	}
 	if strings.Contains(rust, `unimplemented!("GoPtr dereference assignment should be lowered by statement assignment")`) {
 		t.Fatalf("pointer slot dereference short declaration should not fall back to unimplemented lowering:\n%s", rust)
+	}
+}
+
+func TestGoPtrPointerSlotDerefAssignmentStoresGoPtrHandle(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct{}
+
+func rawSlot(addr uintptr) **node {
+	return (**node)(unsafe.Pointer(addr))
+}
+
+func rawNode(addr uintptr) *node {
+	return (*node)(unsafe.Pointer(addr))
+}
+
+func store(slotAddr uintptr, nodeAddr uintptr) {
+	p := rawSlot(slotAddr)
+	n := rawNode(nodeAddr)
+	*p = n
+}
+`)
+
+	if !strings.Contains(rust, "let mut p: GoPtr<GoPtr<node>>") {
+		t.Fatalf("raw pointer-to-pointer unsafe conversion should use a GoPtr slot of GoPtr handles:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let new_val = n.clone(); p.assign(Some(new_val));") {
+		t.Fatalf("dereference assignment through a raw pointer-to-pointer should store the GoPtr handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "let new_val = n.clone(); p.assign(Some(Some(new_val)))") {
+		t.Fatalf("dereference assignment through a raw pointer-to-pointer should not double-wrap the GoPtr handle:\n%s", rust)
+	}
+}
+
+func TestGoPtrPointerSlotParamForwardingPromotesCallee(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct{}
+
+func rawSlot(addr uintptr) **node {
+	return (**node)(unsafe.Pointer(addr))
+}
+
+func rawNode(addr uintptr) *node {
+	return (*node)(unsafe.Pointer(addr))
+}
+
+func set(slot **node, n *node) {
+	*slot = n
+	forward(slot)
+}
+
+func forward(slot **node) bool {
+	return *slot != nil
+}
+
+func use(slotAddr uintptr, nodeAddr uintptr) {
+	set(rawSlot(slotAddr), rawNode(nodeAddr))
+}
+`)
+
+	if !strings.Contains(rust, "pub fn set(slot: GoPtr<GoPtr<node>>, n: GoPtr<node>)") {
+		t.Fatalf("pointer-to-pointer setter should use a GoPtr slot parameter:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub fn forward(slot: GoPtr<GoPtr<node>>) -> bool") {
+		t.Fatalf("forwarded pointer-to-pointer parameter should promote the callee slot parameter:\n%s", rust)
+	}
+	if !strings.Contains(rust, "forward(slot.clone())") {
+		t.Fatalf("forwarded pointer-to-pointer slot argument should pass the GoPtr slot handle:\n%s", rust)
 	}
 }
 
@@ -2775,14 +2851,14 @@ func (h *heap) alloc() {
 	if !strings.Contains(rust, "pub arena_hints: GoPtr<arenaHint>") {
 		t.Fatalf("field assigned from a GoPtr source should use GoPtr storage:\n%s", rust)
 	}
-	if !strings.Contains(rust, "hintList: Rc<RefCell<Option<GoPtr<arenaHint>>>>") {
+	if !strings.Contains(rust, "hintList: GoPtr<GoPtr<arenaHint>>") {
 		t.Fatalf("pointer-to-pointer param targeting a GoPtr field slot should receive a GoPtr value slot:\n%s", rust)
 	}
 	if strings.Contains(rust, "pub fn sys_alloc(&mut self, hintList: Rc<RefCell<Option<Rc<RefCell<Option<arenaHint>>>>>>)") ||
 		strings.Contains(rust, "pub fn sys_alloc(&mut self, hintList: Arc<Mutex<Option<Arc<Mutex<Option<arenaHint>>>>>>)") {
 		t.Fatalf("pointer-to-pointer param targeting a GoPtr field slot must not use the old pointer wrapper slot:\n%s", rust)
 	}
-	if !strings.Contains(rust, "*hintList.borrow_mut() = Some(new_val);") {
+	if !strings.Contains(rust, "hintList.assign(Some(new_val));") {
 		t.Fatalf("assignment through a pointer-to-GoPtr slot should replace the stored GoPtr handle:\n%s", rust)
 	}
 	if !strings.Contains(rust, "__ptr_slot.as_ref().unwrap().is_nil()") {
@@ -2790,6 +2866,9 @@ func (h *heap) alloc() {
 	}
 	if !strings.Contains(rust, "let mut hint: GoPtr<arenaHint> = { let __ptr_slot = hintList.borrow(); __ptr_slot.as_ref().unwrap().clone() }") {
 		t.Fatalf("short declarations from a pointer-to-GoPtr slot should create GoPtr locals:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut hintList: GoPtr<GoPtr<arenaHint>> = GoPtr::local(") {
+		t.Fatalf("addressing a GoPtr field should create a local GoPtr slot handle:\n%s", rust)
 	}
 	if strings.Contains(rust, "__dst_guard.as_ref().unwrap().borrow_mut()") {
 		t.Fatalf("assignment through a pointer-to-GoPtr slot must not borrow through the old pointer wrapper shape:\n%s", rust)
@@ -4880,6 +4959,104 @@ func link(h *heap, addr uintptr) {
 	rust, _, _ = TranspileWithMapping(useFile, fset, typeInfo, nil)
 	if !strings.Contains(rust, "n.with_mut(|__ptr_value| { __ptr_value.next = __tmp_0.clone(); });") {
 		t.Fatalf("cross-file parallel GoPtr field assignment should store the GoPtr handle:\n%s", rust)
+	}
+}
+
+func TestCrossFileGoPtrParamFieldAssignmentAndAddressPromotesField(t *testing.T) {
+	fset := token.NewFileSet()
+	typesFile, err := parser.ParseFile(fset, "types.go", `package main
+
+type abiType struct {
+	ptrBytes uintptr
+}
+
+type mspan struct {
+	largeType *abiType
+}
+`, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("ParseFile(types.go) error = %v", err)
+	}
+	useFile, err := parser.ParseFile(fset, "use.go", `package main
+
+import "unsafe"
+
+func raw(addr uintptr) *abiType {
+	return (*abiType)(unsafe.Pointer(addr))
+}
+
+func rawSpan(addr uintptr) *mspan {
+	return (*mspan)(unsafe.Pointer(addr))
+}
+
+func set(span *mspan, typ *abiType) {
+	gctyp := typ
+	span.largeType = gctyp
+	check(&span.largeType)
+}
+
+func check(slot **abiType) bool {
+	return *slot != nil
+}
+
+func call(spanAddr uintptr, typAddr uintptr) {
+	set(rawSpan(spanAddr), raw(typAddr))
+}
+`, parser.ParseComments)
+	if err != nil {
+		t.Fatalf("ParseFile(use.go) error = %v", err)
+	}
+	files := []*ast.File{typesFile, useFile}
+	typeInfo, err := NewTypeInfo(files, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	prevTypeInfo := currentTypeInfo
+	prevContext := currentContext
+	prevVarTable := currentVarTable
+	prevSourceFunctionDecls := sourceFunctionDeclsByFunc
+	t.Cleanup(func() {
+		SetTypeInfo(prevTypeInfo)
+		SetTranspileContext(prevContext)
+		SetVarTable(prevVarTable)
+		SetSourceFunctionDeclsByFunc(prevSourceFunctionDecls)
+	})
+
+	sourceDecls := make(map[*types.Func]sourceFunctionDeclInfo)
+	for _, decl := range useFile.Decls {
+		fnDecl, ok := decl.(*ast.FuncDecl)
+		if !ok {
+			continue
+		}
+		fn, ok := typeInfo.info.Defs[fnDecl.Name].(*types.Func)
+		if ok && fn != nil {
+			sourceDecls[fn] = sourceFunctionDeclInfo{decl: fnDecl, info: typeInfo.info}
+		}
+	}
+	SetSourceFunctionDeclsByFunc(sourceDecls)
+	SetTypeInfo(typeInfo)
+	ctx := &TranspileContext{
+		Session: NewTranspileSession(typeInfo, nil),
+		Package: NewPackageState(),
+	}
+	SetTranspileContext(ctx)
+	registerSliceElemPtrFactsFromFiles(files)
+
+	rust, _, _ := TranspileWithMapping(typesFile, fset, typeInfo, nil)
+	if !strings.Contains(rust, "pub large_type: GoPtr<abiType>") {
+		t.Fatalf("cross-file field assigned from a GoPtr parameter should use GoPtr storage before struct emission:\n%s", rust)
+	}
+
+	rust, _, _ = TranspileWithMapping(useFile, fset, typeInfo, nil)
+	if !strings.Contains(rust, "pub fn set(span: GoPtr<mspan>, typ: GoPtr<abiType>)") {
+		t.Fatalf("callee receiving a raw GoPtr result should promote the pointer parameter:\n%s", rust)
+	}
+	if !strings.Contains(rust, "span.with_mut(|__ptr_value| { __ptr_value.large_type = new_val; });") {
+		t.Fatalf("field assignment from a promoted GoPtr parameter should store the pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "check(GoPtr::local(") || !strings.Contains(rust, ".large_type.clone()") {
+		t.Fatalf("addressing the promoted field should pass a local GoPtr slot handle:\n%s", rust)
 	}
 }
 

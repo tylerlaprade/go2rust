@@ -2200,7 +2200,7 @@ impl traceWriter {
         embedded_ref.heap_object_alloc(addr, typ)
     }
 
-    pub fn heap_object_exists(&self, addr: Arc<Mutex<Option<usize>>>, typ: Arc<Mutex<Option<internal_abi::r#type::Type>>>) {
+    pub fn heap_object_exists(&self, addr: Arc<Mutex<Option<usize>>>, typ: GoPtr<internal_abi::r#type::Type>) {
         // Forward to embedded type's method
         let embedded = self.trace_locker.clone();
         let guard = embedded.lock().unwrap();

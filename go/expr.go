@@ -19746,6 +19746,13 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					if writeStdlibInterfaceCallArgumentConversion(out, arg, expectedArgType) {
 						continue
 					}
+					if info, ok := goPtrSlotParamGoPtrResultInfoForCall(call, i); ok {
+						if writeGoPtrCallArgumentWithQualifierForInfo(out, arg, info, goPtrHelperQualifier) {
+							continue
+						}
+						out.WriteString(`unimplemented!("GoPtr slot parameter argument requires pointer-compatible value")`)
+						continue
+					}
 					if info, ok := goPtrParamResultInfoForCall(call, i); ok {
 						if writeGoPtrCallArgumentWithQualifierForInfo(out, arg, info, goPtrHelperQualifier) {
 							continue
@@ -20484,6 +20491,14 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 
 				if writeReadOnlyTypeParamSliceCallArgument(out, call, i, arg, expectedArgType) {
+					continue
+				}
+
+				if info, ok := goPtrSlotParamGoPtrResultInfoForCall(call, i); ok {
+					if writeGoPtrCallArgumentWithQualifierForInfo(out, arg, info, goPtrHelperQualifierForCall(call)) {
+						continue
+					}
+					out.WriteString(`unimplemented!("GoPtr slot parameter argument requires pointer-compatible value")`)
 					continue
 				}
 

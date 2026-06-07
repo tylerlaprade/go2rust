@@ -567,12 +567,12 @@ impl crate::mheap::mheap {
         { let new_val = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result }; *base.lock().unwrap() = Some(new_val); };
     } else {
                 // Free list was empty, so allocate a new arena.
-        let mut hintList = Arc::new(Mutex::new(Some((*self.user_arena.lock().unwrap().as_ref().unwrap()).arena_hints.clone())));
+        let mut hintList: GoPtr<GoPtr<crate::mheap::arenaHint>> = GoPtr::local(Arc::new(Mutex::new(Some((*self.user_arena.lock().unwrap().as_ref().unwrap()).arena_hints.clone()))));
         if RACEENABLED {
                 // In race mode just use the regular heap hints. We might fragment
                 // the address space, but the race detector requires that the heap
                 // is mapped contiguously.
-        { let new_val = Arc::new(Mutex::new(Some(self.arena_hints.clone()))).clone(); hintList = new_val; };
+        hintList = GoPtr::local(Arc::new(Mutex::new(Some(self.arena_hints.clone()))));
     }
                 // In race mode just use the regular heap hints. We might fragment
                 // the address space, but the race detector requires that the heap
@@ -686,8 +686,8 @@ impl crate::mheap::mheap {
                 // is not a real type, and it exists in an invalid location.
         { unimplemented!("unsafe.Pointer dereference assignment"); };
         { unimplemented!("unsafe.Pointer dereference assignment"); };
-        { let new_val = 0 as usize; *(*{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.large_type.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).ptr_bytes.lock().unwrap() = Some(new_val); };
-        { let new_val = { let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.elemsize.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *(*{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.large_type.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).size_.lock().unwrap() = Some(new_val); };
+        { let new_val = 0 as usize; *{ let __ptr_value = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.large_type.clone()); __ptr_value }.with_mut(|__ptr_value| __ptr_value.ptr_bytes.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
+        { let new_val = { let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.elemsize.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *{ let __ptr_value = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.large_type.clone()); __ptr_value }.with_mut(|__ptr_value| __ptr_value.size_.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
         s.clone()
     }
 }
@@ -993,7 +993,7 @@ pub fn user_arena_heap_bits_set_type(typ: GoPtr<internal_abi::r#type::Type>, ptr
 
         // Update the PtrBytes value in the type information. After this
         // point, the GC will observe the new bitmap.
-    { let new_val = { let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*ptr.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = base; __tmp_x - __tmp_y }; let __tmp_y = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; *(*(*s.lock().unwrap().as_ref().unwrap()).large_type.lock().unwrap().as_ref().unwrap()).ptr_bytes.lock().unwrap() = Some(new_val); };
+    { let new_val = { let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*ptr.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = base; __tmp_x - __tmp_y }; let __tmp_y = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; *{ let __ptr_value = (*s.lock().unwrap().as_ref().unwrap()).large_type.with_mut(|__ptr_value| __ptr_value.ptr_bytes.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
 
         // Double-check that the bitmap was written out correctly.
     const doubleCheck: bool = false;

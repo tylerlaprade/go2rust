@@ -3660,10 +3660,10 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 							goType = typeInfo.GetType(field.Type)
 						}
 						vt.Register(name.Name, &VarInfo{
-							WrapLevel:   WrapFull,
+							WrapLevel:   WrapNone,
 							RustType:    goPtrSlotParamRustType(elemRustType),
 							Source:      SourceParam,
-							PointerKind: PointerGoPtrSlot,
+							PointerKind: PointerGoPtr,
 							GoType:      goType,
 						})
 					} else if elemRustType, ok := goPtrParamDeclElemRustType(fn, paramIndex); ok {
@@ -8812,10 +8812,10 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 							goType = typeInfo.GetType(field.Type)
 						}
 						vt.Register(name.Name, &VarInfo{
-							WrapLevel:   WrapFull,
+							WrapLevel:   WrapNone,
 							RustType:    goPtrSlotParamRustType(elemRustType),
 							Source:      SourceParam,
-							PointerKind: PointerGoPtrSlot,
+							PointerKind: PointerGoPtr,
 							GoType:      goType,
 						})
 					} else if elemRustType, ok := goPtrParamDeclElemRustType(fn, paramIndex); ok {

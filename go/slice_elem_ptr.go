@@ -614,11 +614,11 @@ func goPtrPointerResultElemTypes(sig *types.Signature) map[int]string {
 	}
 	result := map[int]string{}
 	for i := 0; i < sig.Results().Len(); i++ {
-		ptr, ok := types.Unalias(sig.Results().At(i).Type()).Underlying().(*types.Pointer)
+		info, ok := goPtrInfoForPointerType(sig.Results().At(i).Type())
 		if !ok {
 			continue
 		}
-		result[i] = goTypesCollectionElemTypeToRust(coreType(ptr.Elem()))
+		result[i] = goPtrResultElemRustType(info)
 	}
 	return result
 }
@@ -860,9 +860,9 @@ func refineGoPtrResultInfoFromCallType(call *ast.CallExpr, resultIndex int, info
 	if !ok {
 		return info
 	}
-	elem := coreType(ptr.Elem())
-	info.elemType = elem
-	info.elemRustType = goTypesCollectionElemTypeToRust(elem)
+	if refined, ok := goPtrInfoForPointerType(ptr); ok {
+		return refined
+	}
 	return info
 }
 
@@ -2170,6 +2170,23 @@ func goPtrSlotParamResultInfoForFunc(fn *types.Func, paramIndex int) (goPtrResul
 	return result, true
 }
 
+func goPtrSlotParamGoPtrResultInfoForFunc(fn *types.Func, paramIndex int) (goPtrResultInfo, bool) {
+	info, ok := goPtrSlotParamResultInfoForFunc(fn, paramIndex)
+	if !ok {
+		return goPtrResultInfo{}, false
+	}
+	return goPtrResultInfo{elemRustType: "GoPtr<" + goPtrResultElemRustType(info) + ">"}, true
+}
+
+func goPtrSlotParamGoPtrResultInfoForCall(call *ast.CallExpr, paramIndex int) (goPtrResultInfo, bool) {
+	typeInfo := GetTypeInfo()
+	fn, ok := callFunctionObjectFromTypeInfo(typeInfo, call)
+	if !ok {
+		return goPtrResultInfo{}, false
+	}
+	return goPtrSlotParamGoPtrResultInfoForFunc(fn, paramIndex)
+}
+
 func goPtrParamInfoForDeclObject(fn *ast.FuncDecl, paramIndex int) (string, bool) {
 	fnObj, ok := sliceElemPtrReturnFuncObject(fn)
 	if !ok {
@@ -2207,7 +2224,7 @@ func goPtrSlotParamDeclElemRustType(fn *ast.FuncDecl, paramIndex int) (string, b
 
 func goPtrSlotParamRustType(elemRustType string) string {
 	NeedSliceElemPtr()
-	return GetOuterWrapperType() + "<" + GetInnerWrapperType() + "<Option<GoPtr<" + elemRustType + ">>>>"
+	return "GoPtr<GoPtr<" + elemRustType + ">>"
 }
 
 func goPtrDeclElemTypeToRust(fn *types.Func, elemType types.Type) string {
@@ -2607,7 +2624,7 @@ func registerGoPtrParamsFromFiles(files []*ast.File) {
 					}
 					calleeHasBody := sourceFunctionHasBody(callee)
 					for i, arg := range call.Args {
-						if argElemRustType, ok := goPtrSlotArgElemRustType(arg, goPtrSlotCandidates); ok {
+						if argElemRustType, ok := goPtrSlotArgElemRustType(arg, currentFn, goPtrSlotCandidates, goPtrCandidates); ok {
 							paramElemRustType, ok := goPtrSlotCallParamElemRustType(callee, i)
 							if ok && paramElemRustType == argElemRustType {
 								declElemRustType := paramElemRustType
@@ -3041,9 +3058,14 @@ func goPtrSlotInfoForPointerToPointerType(typ types.Type) (goPtrResultInfo, bool
 	return goPtrInfoForPointerType(innerPtr)
 }
 
-func goPtrSlotArgElemRustType(arg ast.Expr, goPtrSlotCandidates map[types.Object]goPtrResultInfo) (string, bool) {
+func goPtrSlotArgElemRustType(arg ast.Expr, currentFn *types.Func, goPtrSlotCandidates map[types.Object]goPtrResultInfo, goPtrCandidates map[types.Object]goPtrResultInfo) (string, bool) {
 	if info, ok := goPtrSlotValueInfo(arg); ok {
 		return goPtrResultElemRustType(info), true
+	}
+	if call, ok := unwrapParens(arg).(*ast.CallExpr); ok {
+		if info, ok := goPtrResultInfoForCall(call, 0); ok {
+			return goPtrSlotElemRustTypeFromGoPtrInfo(info)
+		}
 	}
 	ident, ok := unwrapParens(arg).(*ast.Ident)
 	if !ok || ident.Name == "nil" || ident.Name == "_" {
@@ -3058,10 +3080,33 @@ func goPtrSlotArgElemRustType(arg ast.Expr, goPtrSlotCandidates map[types.Object
 		return "", false
 	}
 	info, ok := goPtrSlotCandidates[obj]
-	if !ok {
+	if ok {
+		return goPtrResultElemRustType(info), true
+	}
+	if info, ok := goPtrCandidates[obj]; ok {
+		return goPtrSlotElemRustTypeFromGoPtrInfo(info)
+	}
+	if elemRustType, ok := goPtrSlotParamElemRustTypeForObject(currentFn, obj); ok {
+		return elemRustType, true
+	}
+	if elemRustType, ok := goPtrParamElemRustTypeForObject(currentFn, obj); ok {
+		return goPtrSlotElemRustTypeFromGoPtrElemRustType(elemRustType)
+	}
+	if elemRustType, ok := goPtrVarElemRustType(ident.Name); ok {
+		return goPtrSlotElemRustTypeFromGoPtrElemRustType(elemRustType)
+	}
+	return "", false
+}
+
+func goPtrSlotElemRustTypeFromGoPtrInfo(info goPtrResultInfo) (string, bool) {
+	return goPtrSlotElemRustTypeFromGoPtrElemRustType(goPtrResultElemRustType(info))
+}
+
+func goPtrSlotElemRustTypeFromGoPtrElemRustType(elemRustType string) (string, bool) {
+	if !strings.HasPrefix(elemRustType, "GoPtr<") || !strings.HasSuffix(elemRustType, ">") {
 		return "", false
 	}
-	return goPtrResultElemRustType(info), true
+	return strings.TrimSuffix(strings.TrimPrefix(elemRustType, "GoPtr<"), ">"), true
 }
 
 func goPtrArgElemRustType(arg ast.Expr, currentFn *types.Func, sliceCandidates map[types.Object]string, arrayCandidates map[types.Object]arrayElemPtrInfo, goPtrCandidates map[types.Object]goPtrResultInfo) (string, bool) {
@@ -3176,6 +3221,29 @@ func goPtrParamElemRustTypeForObject(fn *types.Func, obj types.Object) (string, 
 	}
 	params, ok := goPtrParamInfosForFunc(fn)
 	if !ok || len(params) == 0 {
+		return "", false
+	}
+	sig, ok := signatureFromType(fn.Type())
+	if !ok || sig.Params() == nil {
+		return "", false
+	}
+	for index, elemRustType := range params {
+		if index < 0 || index >= sig.Params().Len() {
+			continue
+		}
+		if sig.Params().At(index) == obj {
+			return elemRustType, true
+		}
+	}
+	return "", false
+}
+
+func goPtrSlotParamElemRustTypeForObject(fn *types.Func, obj types.Object) (string, bool) {
+	if fn == nil || obj == nil {
+		return "", false
+	}
+	params, ok := goPtrSlotParamInfosForFunc(fn)
+	if !ok {
 		return "", false
 	}
 	sig, ok := signatureFromType(fn.Type())
@@ -3703,6 +3771,26 @@ func collectGoPtrCandidatesForFunc(fn *ast.FuncDecl) map[types.Object]goPtrResul
 			}
 		}
 	}
+	if fnObj, ok := sliceElemPtrReturnFuncObject(fn); ok {
+		if params, ok := goPtrParamInfosForFunc(fnObj); ok && len(params) > 0 {
+			if sig, ok := signatureFromType(fnObj.Type()); ok && sig.Params() != nil {
+				for index, elemRustType := range params {
+					if index < 0 || index >= sig.Params().Len() || elemRustType == "" {
+						continue
+					}
+					param := sig.Params().At(index)
+					if param == nil {
+						continue
+					}
+					info, ok := goPtrParamResultInfoForFunc(fnObj, index)
+					if !ok {
+						info = goPtrResultInfo{elemRustType: elemRustType}
+					}
+					candidates[param] = &goPtrCandidate{info: info, valid: true, sawGoPtr: true}
+				}
+			}
+		}
+	}
 
 	ast.Inspect(fn.Body, func(node ast.Node) bool {
 		switch n := node.(type) {
@@ -3840,6 +3928,13 @@ func goPtrInfoForPointerType(typ types.Type) (goPtrResultInfo, bool) {
 	}
 	if elemRust, ok := goTypesNamedFunctionTypeToRust(ptr.Elem()); ok {
 		return goPtrResultInfo{elemRustType: elemRust, elemType: ptr.Elem()}, true
+	}
+	if _, ok := types.Unalias(ptr.Elem()).Underlying().(*types.Pointer); ok {
+		inner, ok := goPtrInfoForPointerType(ptr.Elem())
+		if !ok {
+			return goPtrResultInfo{}, false
+		}
+		return goPtrResultInfo{elemRustType: "GoPtr<" + goPtrResultElemRustType(inner) + ">"}, true
 	}
 	elem := coreType(ptr.Elem())
 	return goPtrResultInfo{elemRustType: goTypesCollectionElemTypeToRust(elem), elemType: elem}, true
@@ -3992,6 +4087,9 @@ func goPtrAssignmentValueInfo(expr ast.Expr, resultIndex int, candidates map[typ
 		}
 		return goPtrResultInfo{}, false, false
 	}
+	if slotInfo, ok := goPtrSlotValueInfo(expr); ok {
+		return goPtrResultInfo{elemRustType: "GoPtr<" + goPtrResultElemRustType(slotInfo) + ">"}, true, true
+	}
 	if elemType, elemRustType, ok := sliceElemPtrAddressElemType(expr); ok {
 		return goPtrResultInfo{elemRustType: elemRustType, elemType: elemType}, true, true
 	}
@@ -4063,6 +4161,9 @@ func goPtrReturnExprInfo(expr ast.Expr, resultIndex int, candidates map[types.Ob
 		if info, ok := goPtrRawPointerValueInfo(call, typeInfo); ok {
 			return info, true, true
 		}
+	}
+	if slotInfo, ok := goPtrSlotValueInfo(expr); ok {
+		return goPtrResultInfo{elemRustType: "GoPtr<" + goPtrResultElemRustType(slotInfo) + ">"}, true, true
 	}
 	if info, ok := goPtrLocalAddressReturnInfo(expr, typeInfo); ok {
 		return info, false, true
@@ -5291,12 +5392,24 @@ func writeGoPtrSlotDerefNilComparison(out *strings.Builder, expr ast.Expr, op to
 		return false
 	}
 	ident, _, ok := goPtrSlotDerefInfo(star)
+	if ok {
+		out.WriteString("{ let __ptr_slot = ")
+		out.WriteString(rustIdentForUseWithCapture(ident))
+		WriteBorrowMethod(out, false)
+		out.WriteString("; ")
+		if op == token.NEQ {
+			out.WriteString("!")
+		}
+		out.WriteString("__ptr_slot.as_ref().unwrap().is_nil() }")
+		return true
+	}
+	ident, _, ok = goPtrPointerSlotDerefInfo(star)
 	if !ok {
 		return false
 	}
 	out.WriteString("{ let __ptr_slot = ")
 	out.WriteString(rustIdentForUseWithCapture(ident))
-	WriteBorrowMethod(out, false)
+	out.WriteString(".borrow()")
 	out.WriteString("; ")
 	if op == token.NEQ {
 		out.WriteString("!")
@@ -6403,6 +6516,11 @@ func goPtrCallArgumentIsLocalPointerForInfo(arg ast.Expr, info goPtrResultInfo) 
 	if info.elemType != nil && types.Identical(types.Unalias(ptr.Elem()), types.Unalias(info.elemType)) {
 		return true
 	}
+	if _, ok := types.Unalias(ptr.Elem()).Underlying().(*types.Pointer); ok {
+		if inner, ok := goPtrInfoForPointerType(ptr.Elem()); ok {
+			return "GoPtr<"+goPtrResultElemRustType(inner)+">" == goPtrResultElemRustType(info)
+		}
+	}
 	return goTypesTypeToRust(ptr.Elem()) == info.elemRustType
 }
 
@@ -6528,7 +6646,7 @@ func writeGoPtrSlotDerefRead(out *strings.Builder, star *ast.StarExpr) bool {
 	NeedSliceElemPtr()
 	out.WriteString("{ let __ptr_slot = ")
 	out.WriteString(rustIdentForUseWithCapture(ident))
-	out.WriteString(".borrow(); GoPtr::local(__ptr_slot.as_ref().unwrap().clone()) }")
+	out.WriteString(".borrow(); __ptr_slot.as_ref().unwrap().clone() }")
 	return true
 }
 
@@ -6548,18 +6666,29 @@ func writeGoPtrDerefAssignment(out *strings.Builder, ident *ast.Ident, target *a
 
 func writeGoPtrSlotDerefAssignment(out *strings.Builder, target *ast.StarExpr, rhs ast.Expr) bool {
 	ident, slotInfo, ok := goPtrSlotDerefInfo(target)
+	if ok {
+		out.WriteString("{ let new_val = ")
+		if !writeGoPtrCallArgumentForInfo(out, rhs, slotInfo) {
+			out.WriteString(`unimplemented!("GoPtr slot dereference assignment requires compatible pointer value")`)
+		}
+		out.WriteString("; *")
+		out.WriteString(rustIdentForUseWithCapture(ident))
+		WriteBorrowMethod(out, true)
+		out.WriteString(" = Some(new_val); }")
+		return true
+	}
+
+	ident, slotInfo, ok = goPtrPointerSlotDerefInfo(target)
 	if !ok {
 		return false
 	}
-
 	out.WriteString("{ let new_val = ")
 	if !writeGoPtrCallArgumentForInfo(out, rhs, slotInfo) {
 		out.WriteString(`unimplemented!("GoPtr slot dereference assignment requires compatible pointer value")`)
 	}
-	out.WriteString("; *")
+	out.WriteString("; ")
 	out.WriteString(rustIdentForUseWithCapture(ident))
-	WriteBorrowMethod(out, true)
-	out.WriteString(" = Some(new_val); }")
+	out.WriteString(".assign(Some(new_val)); }")
 	return true
 }
 

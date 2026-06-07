@@ -2457,14 +2457,14 @@ pub fn all_gs_snapshot() -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<crate::runtime
 }
 
 /// atomicAllG returns &allgs[0] and len(allgs) for use with atomicAllGIndex.
-pub fn atomic_all_g() -> (GoPtr<Arc<Mutex<Option<crate::runtime2::g>>>>, usize) {
+pub fn atomic_all_g() -> (GoPtr<GoPtr<crate::runtime2::g>>, usize) {
     let mut length = internal_runtime_atomic::loaduintptr(internal_runtime_atomic::GoPtr::local(allglen.clone()));
-    let mut ptr: GoPtr<Arc<Mutex<Option<crate::runtime2::g>>>> = GoPtr::raw({ let __ptr = internal_runtime_atomic::loadp(Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(allgptr.clone())))) as usize)))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
+    let mut ptr: GoPtr<GoPtr<crate::runtime2::g>> = GoPtr::raw({ let __ptr = internal_runtime_atomic::loadp(Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(allgptr.clone())))) as usize)))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
     (ptr.clone(), length)
 }
 
 /// atomicAllGIndex returns ptr[i] with the allgptr returned from atomicAllG.
-pub fn atomic_all_g_index(ptr: GoPtr<Arc<Mutex<Option<crate::runtime2::g>>>>, i: Arc<Mutex<Option<usize>>>) -> Arc<Mutex<Option<crate::runtime2::g>>> {
+pub fn atomic_all_g_index(ptr: GoPtr<GoPtr<crate::runtime2::g>>, i: Arc<Mutex<Option<usize>>>) -> Arc<Mutex<Option<crate::runtime2::g>>> {
     { let __v = (*Arc::new(Mutex::new({ let __ptr = add(Arc::new(Mutex::new(Some(ptr.addr()))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y })))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<Arc<Mutex<Option<g>>>>(unimplemented!("unsafe.Pointer conversion to Arc<Mutex<Option<g>>>")) } })).lock().unwrap().as_ref().unwrap()).clone(); __v }
 }
 
@@ -5358,7 +5358,7 @@ pub fn dropg() {
     let mut gp = getg();
 
     set_m_no_w_b(Arc::new(Mutex::new(Some({ let __ptr_value = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.clone()))), Arc::new(Mutex::new(None)));
-    set_g_no_w_b(Arc::new(Mutex::new(Some((*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.clone()))), GoPtr::nil());
+    set_g_no_w_b(GoPtr::local(Arc::new(Mutex::new(Some((*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.clone())))), GoPtr::nil());
 }
 
 pub fn parkunlock_c(gp: Arc<Mutex<Option<g>>>, lock: Arc<Mutex<Option<usize>>>) -> bool {

@@ -10699,10 +10699,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString("; *")
 									out.WriteString(RustIdentForUse(ident))
 									out.WriteString(".as_ref().unwrap().borrow_mut() = Some(new_val); }")
-								} else if ident, ok := star.X.(*ast.Ident); ok && isGoPtrVar(ident.Name) {
-									writeGoPtrDerefAssignment(out, ident, star, s.Rhs[0])
 								} else if writeGoPtrSlotDerefAssignment(out, star, s.Rhs[0]) {
 									// Pointer-to-GoPtr-slot assignment replaces the GoPtr stored in the slot.
+								} else if ident, ok := star.X.(*ast.Ident); ok && isGoPtrVar(ident.Name) {
+									writeGoPtrDerefAssignment(out, ident, star, s.Rhs[0])
 								} else if writePointerDerefSequenceHandleAssignment(out, star, s.Rhs[0]) {
 									// Pointer-to-slice assignment writes the RHS slice option into the pointee handle.
 								} else if writePointerDerefPointerHandleAssignment(out, star, s.Rhs[0]) {

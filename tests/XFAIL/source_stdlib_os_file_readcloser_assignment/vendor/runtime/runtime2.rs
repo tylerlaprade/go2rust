@@ -4188,8 +4188,8 @@ pub fn eface_of(ep: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> GoPtr<efa
 ///
 ///go:nosplit
 ///go:nowritebarrier
-pub fn set_g_no_w_b(gp: Arc<Mutex<Option<GoPtr<g>>>>, new: GoPtr<g>) {
-    { let __recv = Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&gp) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<guintptr>(unimplemented!("unsafe.Pointer conversion to guintptr")) } })); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).set(new.clone()); __result };
+pub fn set_g_no_w_b(gp: GoPtr<GoPtr<g>>, new: GoPtr<g>) {
+    { let __recv = Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some(gp.addr()))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<guintptr>(unimplemented!("unsafe.Pointer conversion to guintptr")) } })); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).set(new.clone()); __result };
 }
 
 /// setMNoWB performs *mp = new without a write barrier.

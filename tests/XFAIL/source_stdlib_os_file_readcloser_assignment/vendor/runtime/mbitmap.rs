@@ -194,7 +194,7 @@ pub struct typePointers {
     pub elem: Arc<Mutex<Option<usize>>>,
     pub addr: Arc<Mutex<Option<usize>>>,
     pub mask: Arc<Mutex<Option<usize>>>,
-    pub typ: Arc<Mutex<Option<internal_abi::r#type::Type>>>,
+    pub typ: GoPtr<internal_abi::r#type::Type>,
 }
 
 impl typePointers {
@@ -206,13 +206,13 @@ impl typePointers {
 
 impl Default for typePointers {
     fn default() -> Self {
-        Self { elem: Arc::new(Mutex::new(Some(0))), addr: Arc::new(Mutex::new(Some(0))), mask: Arc::new(Mutex::new(Some(0))), typ: Arc::new(Mutex::new(None)) }
+        Self { elem: Arc::new(Mutex::new(Some(0))), addr: Arc::new(Mutex::new(Some(0))), mask: Arc::new(Mutex::new(Some(0))), typ: GoPtr::nil() }
     }
 }
 
 impl std::fmt::Display for typePointers {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.elem.lock().unwrap().as_ref().unwrap()), (*self.addr.lock().unwrap().as_ref().unwrap()), (*self.mask.lock().unwrap().as_ref().unwrap()), { let __guard = self.typ.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } })
+        write!(f, "{{{} {} {} {}}}", (*self.elem.lock().unwrap().as_ref().unwrap()), (*self.addr.lock().unwrap().as_ref().unwrap()), (*self.mask.lock().unwrap().as_ref().unwrap()), { if self.typ.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } })
     }
 }
 
@@ -527,7 +527,7 @@ impl crate::mheap::mspan {
     }
         let mut spc = Arc::new(Mutex::new(Some({ let __selector_holder = self.spanclass.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         if crate::mheap::spanClass::noscan(&(*spc.lock().unwrap().as_ref().unwrap())) {
-        return Arc::new(Mutex::new(Some(typePointers { elem: Arc::new(Mutex::new(Some(0))), addr: Arc::new(Mutex::new(Some(0))), mask: Arc::new(Mutex::new(Some(0))), typ: Default::default() })));
+        return Arc::new(Mutex::new(Some(typePointers { ..Default::default() })));
     }
         if heap_bits_in_span(Arc::new(Mutex::new(Some({ let __selector_holder = self.elemsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) {
                 // Handle header-less objects.
@@ -535,22 +535,22 @@ impl crate::mheap::mspan {
     }
                 // Handle header-less objects.
                 // All of these objects have a header.
-        let mut typ: Arc<Mutex<Option<internal_abi::r#type::Type>>> = Arc::new(Mutex::new(None));
+        let mut typ: GoPtr<internal_abi::r#type::Type> = GoPtr::nil();
         if { let __tmp_x = crate::mheap::spanClass::sizeclass(&(*spc.lock().unwrap().as_ref().unwrap())); let __tmp_y = 0 as i8; __tmp_x != __tmp_y } {
                 // Pull the allocation header from the first word of the object.
-        { let new_val = (*Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some((*addr.lock().unwrap().as_ref().unwrap())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<Arc<Mutex<Option<internal_abi::r#type::Type>>>>(unimplemented!("unsafe.Pointer conversion to Arc<Mutex<Option<internal_abi::r#type::Type>>>")) } })).lock().unwrap().as_mut().unwrap()).clone(); typ = new_val; };
+        typ = GoPtr::local({ let __v = (*Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some((*addr.lock().unwrap().as_ref().unwrap())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<Arc<Mutex<Option<internal_abi::r#type::Type>>>>(unimplemented!("unsafe.Pointer conversion to Arc<Mutex<Option<internal_abi::r#type::Type>>>")) } })).lock().unwrap().as_ref().unwrap()).clone(); __v });
         { let __rhs = MALLOC_HEADER_SIZE as usize; let mut guard = addr.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } else {
-        { let new_val = self.large_type.clone(); typ = new_val; };
-        if { let __nil_result = (*typ.lock().unwrap()).is_none(); __nil_result } {
+        typ = self.large_type.clone();
+        if typ.is_nil() {
                 // Allow a nil type here for delayed zeroing. See mallocgc.
-        return Arc::new(Mutex::new(Some(typePointers { elem: Arc::new(Mutex::new(Some(0))), addr: Arc::new(Mutex::new(Some(0))), mask: Arc::new(Mutex::new(Some(0))), typ: Default::default() })));
+        return Arc::new(Mutex::new(Some(typePointers { ..Default::default() })));
     }
     }
                 // Pull the allocation header from the first word of the object.
                 // Allow a nil type here for delayed zeroing. See mallocgc.
-        let mut gcmask: GoPtr<u8> = get_g_c_mask(GoPtr::local(typ.clone()));
-        return Arc::new(Mutex::new(Some(typePointers { elem: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), addr: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), mask: Arc::new(Mutex::new(Some(read_uintptr(gcmask.clone())))), typ: typ.clone(), ..Default::default() })));
+        let mut gcmask: GoPtr<u8> = get_g_c_mask(typ.clone());
+        Arc::new(Mutex::new(Some(typePointers { elem: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), addr: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), mask: Arc::new(Mutex::new(Some(read_uintptr(gcmask.clone())))), typ: typ.clone(), ..Default::default() })))
     }
 
     /// typePointersOfType is like typePointersOf, but assumes addr points to one or more
@@ -569,11 +569,11 @@ impl crate::mheap::mspan {
         throw(Arc::new(Mutex::new(Some("bad type passed to typePointersOfType".to_string()))));
     }
         if crate::mheap::spanClass::noscan(&(*self.spanclass.lock().unwrap().as_ref().unwrap())) {
-        return Arc::new(Mutex::new(Some(typePointers { elem: Arc::new(Mutex::new(Some(0))), addr: Arc::new(Mutex::new(Some(0))), mask: Arc::new(Mutex::new(Some(0))), typ: Default::default() })));
+        return Arc::new(Mutex::new(Some(typePointers { ..Default::default() })));
     }
                 // Since we have the type, pretend we have a header.
         let mut gcmask: GoPtr<u8> = get_g_c_mask(GoPtr::local(typ.clone()));
-        Arc::new(Mutex::new(Some(typePointers { elem: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), addr: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), mask: Arc::new(Mutex::new(Some(read_uintptr(gcmask.clone())))), typ: typ.clone(), ..Default::default() })))
+        Arc::new(Mutex::new(Some(typePointers { elem: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), addr: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), mask: Arc::new(Mutex::new(Some(read_uintptr(gcmask.clone())))), typ: GoPtr::local(typ.clone()), ..Default::default() })))
     }
 
     /// objBase returns the base pointer for the object containing addr in span.
@@ -962,13 +962,13 @@ impl typePointers {
     }
 
                 // Stop if we don't actually have type information.
-        if { let __nil_target = self.typ.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
-        return (Arc::new(Mutex::new(Some(typePointers { elem: Arc::new(Mutex::new(Some(0))), addr: Arc::new(Mutex::new(Some(0))), mask: Arc::new(Mutex::new(Some(0))), typ: Default::default() }))), 0);
+        if { let __ptr_field = self.typ.clone(); __ptr_field.is_nil() } {
+        return (Arc::new(Mutex::new(Some(typePointers { ..Default::default() }))), 0);
     }
 
                 // Advance to the next element if necessary.
-        if { let __tmp_x = { let __tmp_x = (*self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((internal_goarch::PTR_SIZE as usize) * (PTR_BITS as usize)) as usize; __tmp_x + __tmp_y }; let __tmp_y = { let __tmp_x = (*self.elem.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*self.typ.lock().unwrap().as_ref().unwrap()).ptr_bytes.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; __tmp_x >= __tmp_y } {
-        { let __target = self.elem.clone(); let __rhs = (*(*self.typ.lock().unwrap().as_ref().unwrap()).size_.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        if { let __tmp_x = { let __tmp_x = (*self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((internal_goarch::PTR_SIZE as usize) * (PTR_BITS as usize)) as usize; __tmp_x + __tmp_y }; let __tmp_y = { let __tmp_x = (*self.elem.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = self.typ.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; __tmp_x >= __tmp_y } {
+        { let __target = self.elem.clone(); let __rhs = (*{ let __ptr_value = self.typ.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let new_val = { let __selector_holder = self.elem.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *self.addr.lock().unwrap() = Some(new_val); };
     } else {
         { let __target = self.addr.clone(); let __rhs = ((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
@@ -976,11 +976,11 @@ impl typePointers {
 
                 // Check if we've exceeded the limit with the last update.
         if { let __tmp_x = (*self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*limit.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x >= __tmp_y } {
-        return (Arc::new(Mutex::new(Some(typePointers { elem: Arc::new(Mutex::new(Some(0))), addr: Arc::new(Mutex::new(Some(0))), mask: Arc::new(Mutex::new(Some(0))), typ: Default::default() }))), 0);
+        return (Arc::new(Mutex::new(Some(typePointers { ..Default::default() }))), 0);
     }
 
                 // Grab more bits and try again.
-        { let new_val = read_uintptr(addb(get_g_c_mask(GoPtr::local(self.typ.clone())), Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = ({ let __tmp_x = (*self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.elem.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y }))))); *self.mask.lock().unwrap() = Some(new_val); };
+        { let new_val = read_uintptr(addb(get_g_c_mask(self.typ.clone()), Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = ({ let __tmp_x = (*self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.elem.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y }))))); *self.mask.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = { let __tmp_x = (*self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((internal_goarch::PTR_SIZE as usize) * (PTR_BITS as usize)) as usize; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*limit.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y } {
         let mut bits = Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __tmp_x = (*self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((internal_goarch::PTR_SIZE as usize) * (PTR_BITS as usize)) as usize; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*limit.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y })));
         { let __target = self.mask.clone(); let __rhs = { let __tmp_x = ({ let __tmp_x = ({ let __tmp_x = (1 as usize); let __tmp_y = ({ let __v = (*bits.lock().unwrap().as_ref().unwrap()).clone(); __v }); __tmp_x << __tmp_y }); let __tmp_y = 1 as usize; __tmp_x - __tmp_y }); let __tmp_y = ({ let __tmp_x = PTR_BITS as usize; let __tmp_y = { let __v = (*bits.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); __tmp_x << __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() & ! __rhs); };
@@ -999,9 +999,9 @@ impl typePointers {
                 // Basic bounds check.
         let mut target = Arc::new(Mutex::new(Some({ let __tmp_x = (*self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })));
         if { let __tmp_x = { let __v = (*target.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*limit.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x >= __tmp_y } {
-        return Arc::new(Mutex::new(Some(typePointers { elem: Arc::new(Mutex::new(Some(0))), addr: Arc::new(Mutex::new(Some(0))), mask: Arc::new(Mutex::new(Some(0))), typ: Default::default() })));
+        return Arc::new(Mutex::new(Some(typePointers { ..Default::default() })));
     }
-        if { let __nil_target = self.typ.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
+        if { let __ptr_field = self.typ.clone(); __ptr_field.is_nil() } {
                 // Handle small objects.
                 // Clear any bits before the target address.
         { let __target = self.mask.clone(); let __rhs = { let __tmp_x = ({ let __tmp_x = (1 as usize); let __tmp_y = ({ let __tmp_x = ({ let __tmp_x = { let __v = (*target.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.addr.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }); __tmp_x << __tmp_y }); let __tmp_y = 1 as usize; __tmp_x - __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() & ! __rhs); };
@@ -1017,31 +1017,31 @@ impl typePointers {
                 // Clear any bits past the limit.
                 // Move up elem and addr.
                 // Offsets within an element are always at a ptrBits*goarch.PtrSize boundary.
-        if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*(*self.typ.lock().unwrap().as_ref().unwrap()).size_.lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y } {
+        if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __ptr_value = self.typ.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y } {
                 // elem needs to be moved to the element containing
                 // tp.addr + n.
         let mut oldelem = Arc::new(Mutex::new(Some({ let __selector_holder = self.elem.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        { let __target = self.elem.clone(); let __rhs = { let __tmp_x = { let __tmp_x = ({ let __tmp_x = { let __tmp_x = (*self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.elem.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }); let __tmp_y = (*(*self.typ.lock().unwrap().as_ref().unwrap()).size_.lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y }; let __tmp_y = (*(*self.typ.lock().unwrap().as_ref().unwrap()).size_.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __target = self.elem.clone(); let __rhs = { let __tmp_x = { let __tmp_x = ({ let __tmp_x = { let __tmp_x = (*self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.elem.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }); let __tmp_y = (*{ let __ptr_value = self.typ.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y }; let __tmp_y = (*{ let __ptr_value = self.typ.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let new_val = { let __tmp_x = (*self.elem.lock().unwrap().as_ref().unwrap()); let __tmp_y = align_down(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = (*self.elem.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*oldelem.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); __tmp_x - __tmp_y }))), Arc::new(Mutex::new(Some(((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize)))); __tmp_x + __tmp_y }; *self.addr.lock().unwrap() = Some(new_val); };
     } else {
         { let __target = self.addr.clone(); let __rhs = align_down(Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize)))); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
                 // elem needs to be moved to the element containing
                 // tp.addr + n.
-        if { let __tmp_x = { let __tmp_x = (*self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.elem.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }; let __tmp_y = (*(*self.typ.lock().unwrap().as_ref().unwrap()).ptr_bytes.lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y } {
+        if { let __tmp_x = { let __tmp_x = (*self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.elem.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }; let __tmp_y = (*{ let __ptr_value = self.typ.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y } {
                 // We're starting in the non-pointer area of an array.
                 // Move up to the next element.
-        { let __target = self.elem.clone(); let __rhs = (*(*self.typ.lock().unwrap().as_ref().unwrap()).size_.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __target = self.elem.clone(); let __rhs = (*{ let __ptr_value = self.typ.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let new_val = { let __selector_holder = self.elem.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *self.addr.lock().unwrap() = Some(new_val); };
-        { let new_val = read_uintptr(get_g_c_mask(GoPtr::local(self.typ.clone()))); *self.mask.lock().unwrap() = Some(new_val); };
+        { let new_val = read_uintptr(get_g_c_mask(self.typ.clone())); *self.mask.lock().unwrap() = Some(new_val); };
                 // We may have exceeded the limit after this. Bail just like next does.
         if { let __tmp_x = (*self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*limit.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x >= __tmp_y } {
-        return Arc::new(Mutex::new(Some(typePointers { elem: Arc::new(Mutex::new(Some(0))), addr: Arc::new(Mutex::new(Some(0))), mask: Arc::new(Mutex::new(Some(0))), typ: Default::default() })));
+        return Arc::new(Mutex::new(Some(typePointers { ..Default::default() })));
     }
     } else {
                 // Grab the mask, but then clear any bits before the target address and any
                 // bits over the limit.
-        { let new_val = read_uintptr(addb(get_g_c_mask(GoPtr::local(self.typ.clone())), Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = ({ let __tmp_x = (*self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.elem.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y }))))); *self.mask.lock().unwrap() = Some(new_val); };
+        { let new_val = read_uintptr(addb(get_g_c_mask(self.typ.clone()), Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = ({ let __tmp_x = (*self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.elem.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y }))))); *self.mask.lock().unwrap() = Some(new_val); };
         { let __target = self.mask.clone(); let __rhs = { let __tmp_x = ({ let __tmp_x = (1 as usize); let __tmp_y = ({ let __tmp_x = ({ let __tmp_x = { let __v = (*target.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.addr.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }); __tmp_x << __tmp_y }); let __tmp_y = 1 as usize; __tmp_x - __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() & ! __rhs); };
     }
                 // We're starting in the non-pointer area of an array.
@@ -1255,8 +1255,8 @@ pub fn heap_set_type_no_header(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mutex
     scanSize
 }
 
-pub fn heap_set_type_small_header(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mutex<Option<usize>>>, typ: GoPtr<internal_abi::r#type::Type>, header: GoPtr<Arc<Mutex<Option<internal_abi::r#type::Type>>>>, span: GoPtr<crate::mheap::mspan>) -> usize {
-    { let new_val = typ; header.assign(Some(new_val)); };
+pub fn heap_set_type_small_header(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mutex<Option<usize>>>, typ: GoPtr<internal_abi::r#type::Type>, header: GoPtr<GoPtr<internal_abi::r#type::Type>>, span: GoPtr<crate::mheap::mspan>) -> usize {
+    { let new_val = typ.clone(); header.assign(Some(new_val)); };
     if DOUBLE_CHECK_HEAP_SET_TYPE {
         double_check_heap_type(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = dataSize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), typ.clone(), header.clone(), span.clone());
     }
@@ -1274,7 +1274,7 @@ pub fn heap_set_type_large(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mutex<Opt
     return (*{ let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.elemsize.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap());
 }
 
-pub fn double_check_heap_type(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mutex<Option<usize>>>, gctyp: GoPtr<internal_abi::r#type::Type>, header: GoPtr<Arc<Mutex<Option<internal_abi::r#type::Type>>>>, span: GoPtr<crate::mheap::mspan>) {
+pub fn double_check_heap_type(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mutex<Option<usize>>>, gctyp: GoPtr<internal_abi::r#type::Type>, header: GoPtr<GoPtr<internal_abi::r#type::Type>>, span: GoPtr<crate::mheap::mspan>) {
     double_check_heap_pointers(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = dataSize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), gctyp.clone(), header.clone(), span.clone());
 
         // To exercise the less common path more often, generate
@@ -1304,7 +1304,7 @@ pub fn double_check_heap_type(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mutex<
     double_check_heap_pointers_interior(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = interior.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = dataSize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), gctyp.clone(), header.clone(), span.clone());
 }
 
-pub fn double_check_heap_pointers(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mutex<Option<usize>>>, typ: GoPtr<internal_abi::r#type::Type>, header: GoPtr<Arc<Mutex<Option<internal_abi::r#type::Type>>>>, span: GoPtr<crate::mheap::mspan>) {
+pub fn double_check_heap_pointers(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mutex<Option<usize>>>, typ: GoPtr<internal_abi::r#type::Type>, header: GoPtr<GoPtr<internal_abi::r#type::Type>>, span: GoPtr<crate::mheap::mspan>) {
         // Check that scanning the full object works.
     let mut tp = { let __recv_value = span.borrow(); let __result = (*__recv_value.as_ref().unwrap()).type_pointers_of_unchecked(Arc::new(Mutex::new(Some({ let __recv_value = span.borrow(); let __result = (*__recv_value.as_ref().unwrap()).obj_base(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result })))); __result };
     let mut maxIterBytes = Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.elemsize.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
@@ -1367,7 +1367,7 @@ pub fn double_check_heap_pointers(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mu
     throw(Arc::new(Mutex::new(Some("heapSetType: pointer entry not correct".to_string()))));
 }
 
-pub fn double_check_heap_pointers_interior(x: Arc<Mutex<Option<usize>>>, interior: Arc<Mutex<Option<usize>>>, size: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mutex<Option<usize>>>, typ: GoPtr<internal_abi::r#type::Type>, header: GoPtr<Arc<Mutex<Option<internal_abi::r#type::Type>>>>, span: GoPtr<crate::mheap::mspan>) {
+pub fn double_check_heap_pointers_interior(x: Arc<Mutex<Option<usize>>>, interior: Arc<Mutex<Option<usize>>>, size: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mutex<Option<usize>>>, typ: GoPtr<internal_abi::r#type::Type>, header: GoPtr<GoPtr<internal_abi::r#type::Type>>, span: GoPtr<crate::mheap::mspan>) {
     let mut bad = Arc::new(Mutex::new(Some(false)));
     if { let __tmp_x = { let __v = (*interior.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
         eprint!("{}{}{}{}{}", format!("{}", "runtime: interior=".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*interior.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", " x=".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", "\n".to_string()));
@@ -1503,7 +1503,7 @@ pub fn double_check_type_pointers_of_type(s: GoPtr<crate::mheap::mspan>, typ: Ar
 }
 
 pub fn dump_type_pointers(tp: Arc<Mutex<Option<typePointers>>>) {
-    eprint!("{}{}{}{}{}", format!("{}", "runtime: tp.elem=".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*tp.lock().unwrap().as_ref().unwrap()).elem.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", " tp.typ=".to_string()), format!("{}", (*Arc::new(Mutex::new(Some(Arc::as_ptr(&(*tp.lock().unwrap().as_ref().unwrap()).typ.clone()) as usize))).lock().unwrap().as_ref().unwrap())), format!("{}", "\n".to_string()));
+    eprint!("{}{}{}{}{}", format!("{}", "runtime: tp.elem=".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*tp.lock().unwrap().as_ref().unwrap()).elem.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", " tp.typ=".to_string()), format!("{}", (*Arc::new(Mutex::new(Some((*tp.lock().unwrap().as_ref().unwrap()).typ.addr()))).lock().unwrap().as_ref().unwrap())), format!("{}", "\n".to_string()));
     eprint!("{}{}{}", format!("{}", "runtime: tp.addr=".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*tp.lock().unwrap().as_ref().unwrap()).addr.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", " tp.mask=".to_string()));
     let mut i = Arc::new(Mutex::new(Some(0 as usize)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PTR_BITS as usize; __tmp_x < __tmp_y } {
