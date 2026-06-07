@@ -895,9 +895,7 @@ impl<T: Any + Send + Sync + 'static> Pointer<T> {
     pub fn load(&self) -> Arc<Mutex<Option<T>>> {
         Arc::new(Mutex::new({ let __ptr = (*self.u.lock().unwrap().as_mut().unwrap()).load().clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<T>(unimplemented!("unsafe.Pointer conversion to T")) } }))
     }
-}
 
-impl<T: Any + Clone + Send + Sync + 'static> Pointer<T> {
     /// StoreNoWB updates the value atomically.
     ///
     /// WARNING: As the name implies this operation does *not*
@@ -910,9 +908,7 @@ impl<T: Any + Clone + Send + Sync + 'static> Pointer<T> {
     pub fn store_no_w_b(&self, value: GoPtr<T>) {
         (*self.u.lock().unwrap().as_mut().unwrap()).store_no_w_b(Arc::new(Mutex::new(Some(value.addr()))));
     }
-}
 
-impl<T: Any + Send + Sync + 'static> Pointer<T> {
     /// Store updates the value atomically.
     ///
     ///go:nosplit
@@ -935,9 +931,7 @@ impl<T: Any + Send + Sync + 'static> Pointer<T> {
     pub fn compare_and_swap_no_w_b(&self, old: Arc<Mutex<Option<T>>>, new: Arc<Mutex<Option<T>>>) -> bool {
         (*self.u.lock().unwrap().as_mut().unwrap()).compare_and_swap_no_w_b(Arc::new(Mutex::new(Some(Arc::as_ptr(&old) as usize))), Arc::new(Mutex::new(Some(Arc::as_ptr(&new) as usize))))
     }
-}
 
-impl<T: Any + Clone + Send + Sync + 'static> Pointer<T> {
     /// CompareAndSwap atomically (with respect to other methods)
     /// compares u's value with old, and if they're equal,
     /// swaps u's value with new.

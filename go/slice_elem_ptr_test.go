@@ -3102,8 +3102,11 @@ func use[T any](slot *Pointer[entry[T]], n *node[T]) {
 	if !strings.Contains(rust, "pub fn store(&mut self, value: GoPtr<T>)") {
 		t.Fatalf("generic *T method param receiving a concrete GoPtr should use GoPtr<T> in the declaration:\n%s", rust)
 	}
-	if !strings.Contains(rust, "impl<T: Any + Clone + 'static> Pointer<T>") {
-		t.Fatalf("generic method impl containing a GoPtr<T> parameter should add the Clone bound required by GoPtr<T>:\n%s", rust)
+	if strings.Contains(rust, "impl<T: Any + Clone + 'static> Pointer<T>") {
+		t.Fatalf("generic method impl containing a GoPtr<T> parameter should not require cloneable pointees:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl<T: Any + 'static> Pointer<T>") {
+		t.Fatalf("generic method impl containing a GoPtr<T> parameter should keep ordinary declaration bounds:\n%s", rust)
 	}
 	if strings.Contains(rust, "pub fn store(&mut self, value: Rc<RefCell<Option<T>>>)") ||
 		strings.Contains(rust, "pub fn store(&mut self, value: Arc<Mutex<Option<T>>>)") {

@@ -1755,9 +1755,6 @@ func rustTypeGenericsForTypeSpecWithParam(typeSpec *ast.TypeSpec, paramFunc func
 
 func rustTypeGenericsForStructTypeSpec(typeSpec *ast.TypeSpec, structType *ast.StructType) rustTypeGenerics {
 	generics := rustTypeGenericsForDeclarationTypeSpec(typeSpec)
-	if typeSpecIsSyncAtomicPointer(typeSpec) {
-		generics = rustTypeGenericsForTypeSpec(typeSpec)
-	}
 	generics.Phantom = rustUnusedTypeParamsForStruct(typeSpec, structType)
 	return generics
 }

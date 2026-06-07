@@ -435,6 +435,7 @@ func (x *Pointer[T]) CompareAndSwap(old, new *T) (swapped bool) {
 		"val.lock().unwrap().is_some()",
 		"new.lock().unwrap().is_some()",
 		"Arc::ptr_eq(__current, &old)",
+		"pub struct Pointer<T: Any + Clone + Send + Sync + 'static>",
 		"pub fn load(&self) -> Arc<Mutex<Option<T>>>",
 		"pub fn swap(&self, new: Arc<Mutex<Option<T>>>) -> Arc<Mutex<Option<T>>>",
 		"pub fn compare_and_swap(&self, old: Arc<Mutex<Option<T>>>, new: Arc<Mutex<Option<T>>>) -> bool",
@@ -444,7 +445,7 @@ func (x *Pointer[T]) CompareAndSwap(old, new *T) (swapped bool) {
 		}
 	}
 	for _, want := range []string{
-		"pub struct Pointer<T: Any + Clone + Send + Sync + 'static>",
+		"pub struct Pointer<T: Any + Send + Sync + 'static>",
 		"pub v: Arc<Mutex<Option<GoPtr<T>>>>",
 		"v: Arc::new(Mutex::new(None))",
 		"__guard.as_ref().cloned().unwrap_or_else(|| GoPtr::nil())",

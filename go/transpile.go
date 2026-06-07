@@ -2524,9 +2524,6 @@ func genericMethodBoundKinds(typeMethods []*ast.FuncDecl) map[*ast.FuncDecl]gene
 		if genericMethodUsesDirectTypeParamValue(method) {
 			boundKind |= genericMethodBoundGoValueClone
 		}
-		if genericSignatureUsesGoPtrDirectTypeParam(method) {
-			boundKind |= genericMethodBoundRustClone
-		}
 		boundKinds[method] = boundKind
 	}
 	if len(methodByObject) == 0 {
@@ -2600,9 +2597,6 @@ func genericFunctionBoundKinds(functions []*ast.FuncDecl) map[*ast.FuncDecl]gene
 		var boundKind genericMethodBoundKind
 		if genericFunctionUsesDirectTypeParamValue(fn) {
 			boundKind |= genericMethodBoundGoValueClone
-		}
-		if genericSignatureUsesGoPtrDirectTypeParam(fn) {
-			boundKind |= genericMethodBoundRustClone
 		}
 		boundKinds[fn] = boundKind
 	}

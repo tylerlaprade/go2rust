@@ -92,6 +92,59 @@ func TestGoPtrKeyHelperModuleImportsWrapperTypes(t *testing.T) {
 	}
 }
 
+func TestGoPtrHelperCloneDoesNotRequireCloneablePointee(t *testing.T) {
+	prevConcurrencyDetector := GetConcurrencyDetector()
+	t.Cleanup(func() {
+		SetConcurrencyDetector(prevConcurrencyDetector)
+	})
+
+	SetConcurrencyDetector(nil)
+	helper := (&HelperTracker{needsSliceElemPtr: true, needsGoAtomicPointer: true}).GenerateHelperModule()
+	for _, forbidden := range []string{
+		"pub enum GoPtr<T: Clone + 'static>",
+		"impl<T: Clone + 'static> Clone for GoPtr<T>",
+		"struct GoAtomicPointer<T: Clone + 'static>",
+	} {
+		if strings.Contains(helper, forbidden) {
+			t.Fatalf("single-threaded GoPtr helper should clone pointer handles without requiring cloned pointees, found %q:\n%s", forbidden, helper)
+		}
+	}
+	for _, want := range []string{
+		"pub enum GoPtr<T: 'static>",
+		"impl<T: 'static> Clone for GoPtr<T>",
+		"impl<T: Clone + 'static> GoPtr<T>",
+		"struct GoAtomicPointer<T: 'static>",
+	} {
+		if !strings.Contains(helper, want) {
+			t.Fatalf("single-threaded GoPtr helper missing %q:\n%s", want, helper)
+		}
+	}
+
+	cd := NewConcurrencyDetector()
+	cd.hasChannels = true
+	SetConcurrencyDetector(cd)
+	helper = (&HelperTracker{needsSliceElemPtr: true, needsGoAtomicPointer: true}).GenerateHelperModule()
+	for _, forbidden := range []string{
+		"pub enum GoPtr<T: Clone + Send + Sync + 'static>",
+		"impl<T: Clone + Send + Sync + 'static> Clone for GoPtr<T>",
+		"struct GoAtomicPointer<T: Clone + Send + Sync + 'static>",
+	} {
+		if strings.Contains(helper, forbidden) {
+			t.Fatalf("concurrent GoPtr helper should clone pointer handles without requiring cloned pointees, found %q:\n%s", forbidden, helper)
+		}
+	}
+	for _, want := range []string{
+		"pub enum GoPtr<T: Send + Sync + 'static>",
+		"impl<T: Send + Sync + 'static> Clone for GoPtr<T>",
+		"impl<T: Clone + Send + Sync + 'static> GoPtr<T>",
+		"struct GoAtomicPointer<T: Send + Sync + 'static>",
+	} {
+		if !strings.Contains(helper, want) {
+			t.Fatalf("concurrent GoPtr helper missing %q:\n%s", want, helper)
+		}
+	}
+}
+
 func TestWrapperMutexImportAliasesWhenLocalTypeUsesMutex(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
