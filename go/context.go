@@ -14,6 +14,7 @@ type TranspileSession struct {
 	PackageTypeModuleNames      map[string]map[string]string // Go import path -> Go type name -> Rust module name
 	SliceElemPtrReturnFuncNames map[string]sliceElemPtrReturnInfo
 	GoPtrParamFuncNames         map[string]map[int]string
+	GoPtrSlotParamFuncNames     map[string]map[int]string
 	GoPtrReturnFuncNames        map[string]map[int]goPtrResultInfo
 	SliceElemPtrFields          map[string]sliceElemPtrFieldInfo
 	GoPtrArrayFields            map[string]goPtrArrayFieldInfo
@@ -45,6 +46,7 @@ type PackageState struct {
 	SliceElemPtrSliceReturnFuncs  map[*types.Func]sliceElemPtrSliceReturnInfo
 	SliceElemPtrSliceParamFuncs   map[*types.Func]map[int]string
 	GoPtrParamFuncs               map[*types.Func]map[int]string
+	GoPtrSlotParamFuncs           map[*types.Func]map[int]string
 	GoPtrReturnFuncs              map[*types.Func]map[int]goPtrResultInfo
 	GoPtrReturnFuncNames          map[string]map[int]goPtrResultInfo
 	SliceElemPtrFields            map[string]sliceElemPtrFieldInfo
@@ -138,6 +140,7 @@ func NewTranspileSession(typeInfo *TypeInfo, packageMapping map[string]string) *
 		PackageMapping:              packageMapping,
 		SliceElemPtrReturnFuncNames: make(map[string]sliceElemPtrReturnInfo),
 		GoPtrParamFuncNames:         make(map[string]map[int]string),
+		GoPtrSlotParamFuncNames:     make(map[string]map[int]string),
 		GoPtrReturnFuncNames:        make(map[string]map[int]goPtrResultInfo),
 		SliceElemPtrFields:          make(map[string]sliceElemPtrFieldInfo),
 		GoPtrArrayFields:            make(map[string]goPtrArrayFieldInfo),
@@ -170,6 +173,7 @@ func NewPackageState() *PackageState {
 		SliceElemPtrSliceReturnFuncs:  make(map[*types.Func]sliceElemPtrSliceReturnInfo),
 		SliceElemPtrSliceParamFuncs:   make(map[*types.Func]map[int]string),
 		GoPtrParamFuncs:               make(map[*types.Func]map[int]string),
+		GoPtrSlotParamFuncs:           make(map[*types.Func]map[int]string),
 		GoPtrReturnFuncs:              make(map[*types.Func]map[int]goPtrResultInfo),
 		GoPtrReturnFuncNames:          make(map[string]map[int]goPtrResultInfo),
 		SliceElemPtrFields:            make(map[string]sliceElemPtrFieldInfo),
@@ -301,6 +305,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		if ctx.Session.GoPtrParamFuncNames == nil {
 			ctx.Session.GoPtrParamFuncNames = make(map[string]map[int]string)
 		}
+		if ctx.Session.GoPtrSlotParamFuncNames == nil {
+			ctx.Session.GoPtrSlotParamFuncNames = make(map[string]map[int]string)
+		}
 		if ctx.Session.GoPtrReturnFuncNames == nil {
 			ctx.Session.GoPtrReturnFuncNames = make(map[string]map[int]goPtrResultInfo)
 		}
@@ -353,6 +360,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		}
 		if ctx.Package.GoPtrParamFuncs == nil {
 			ctx.Package.GoPtrParamFuncs = make(map[*types.Func]map[int]string)
+		}
+		if ctx.Package.GoPtrSlotParamFuncs == nil {
+			ctx.Package.GoPtrSlotParamFuncs = make(map[*types.Func]map[int]string)
 		}
 		if ctx.Package.GoPtrReturnFuncs == nil {
 			ctx.Package.GoPtrReturnFuncs = make(map[*types.Func]map[int]goPtrResultInfo)

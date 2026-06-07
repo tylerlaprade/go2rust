@@ -2175,7 +2175,9 @@ func generatePromotedMethod(out *strings.Builder, method *ast.FuncDecl, ownerTyp
 		}
 		out.WriteString(param.name)
 		out.WriteString(": ")
-		if elemRustType, ok := goPtrParamDeclElemRustType(method, i); ok {
+		if elemRustType, ok := goPtrSlotParamDeclElemRustType(method, i); ok {
+			out.WriteString(goPtrSlotParamRustType(elemRustType))
+		} else if elemRustType, ok := goPtrParamDeclElemRustType(method, i); ok {
 			out.WriteString("GoPtr<")
 			out.WriteString(elemRustType)
 			out.WriteString(">")

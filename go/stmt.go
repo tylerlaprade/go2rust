@@ -10595,6 +10595,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									out.WriteString(".as_ref().unwrap().borrow_mut() = Some(new_val); }")
 								} else if ident, ok := star.X.(*ast.Ident); ok && isGoPtrVar(ident.Name) {
 									writeGoPtrDerefAssignment(out, ident, star, s.Rhs[0])
+								} else if writeGoPtrSlotDerefAssignment(out, star, s.Rhs[0]) {
+									// Pointer-to-GoPtr-slot assignment replaces the GoPtr stored in the slot.
 								} else if writePointerDerefSequenceHandleAssignment(out, star, s.Rhs[0]) {
 									// Pointer-to-slice assignment writes the RHS slice option into the pointee handle.
 								} else if writePointerDerefPointerHandleAssignment(out, star, s.Rhs[0]) {
@@ -11072,6 +11074,18 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 													}
 													registerGoPtrVar(lhsIdent.Name, goPtrShortDeclElemRustType, goType)
 												}
+											}
+										}
+										if !isSliceElemPtrShortDecl && !isGoPtrShortDecl {
+											if info, ok := goPtrSlotDerefResultInfo(s.Rhs[0]); ok {
+												isGoPtrShortDecl = true
+												goPtrShortDeclInfo = info
+												goPtrShortDeclElemRustType = goPtrResultElemRustType(info)
+												var goType types.Type
+												if typeInfo := GetTypeInfo(); typeInfo != nil {
+													goType = typeInfo.GetType(s.Rhs[0])
+												}
+												registerGoPtrVar(lhsIdent.Name, goPtrShortDeclElemRustType, goType)
 											}
 										}
 										if !isSliceElemPtrShortDecl {

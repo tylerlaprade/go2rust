@@ -2552,6 +2552,71 @@ func use[T any](h *holder[T], n *node[T]) {
 	}
 }
 
+func TestGoPtrFieldAddressPromotesPointerToPointerParamSlot(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type arenaHint struct {
+	next *arenaHint
+}
+
+type heap struct {
+	arenaHints *arenaHint
+}
+
+type rawHint struct {
+}
+
+func (r *rawHint) hint() *arenaHint {
+	return (*arenaHint)(unsafe.Pointer(r))
+}
+
+func (h *heap) sysAlloc(hintList **arenaHint) {
+	for *hintList != nil {
+		hint := *hintList
+		*hintList = hint.next
+	}
+}
+
+func (h *heap) seed(r *rawHint) {
+	h.arenaHints = r.hint()
+}
+
+func (h *heap) alloc() {
+	hintList := &h.arenaHints
+	h.sysAlloc(hintList)
+}
+`)
+
+	if !strings.Contains(rust, "pub arena_hints: GoPtr<arenaHint>") {
+		t.Fatalf("field assigned from a GoPtr source should use GoPtr storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, "hintList: Rc<RefCell<Option<GoPtr<arenaHint>>>>") {
+		t.Fatalf("pointer-to-pointer param targeting a GoPtr field slot should receive a GoPtr value slot:\n%s", rust)
+	}
+	if strings.Contains(rust, "pub fn sys_alloc(&mut self, hintList: Rc<RefCell<Option<Rc<RefCell<Option<arenaHint>>>>>>)") ||
+		strings.Contains(rust, "pub fn sys_alloc(&mut self, hintList: Arc<Mutex<Option<Arc<Mutex<Option<arenaHint>>>>>>)") {
+		t.Fatalf("pointer-to-pointer param targeting a GoPtr field slot must not use the old pointer wrapper slot:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*hintList.borrow_mut() = Some(new_val);") {
+		t.Fatalf("assignment through a pointer-to-GoPtr slot should replace the stored GoPtr handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__ptr_slot.as_ref().unwrap().is_nil()") {
+		t.Fatalf("nil checks through a pointer-to-GoPtr slot should test the stored GoPtr handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut hint: GoPtr<arenaHint> = { let __ptr_slot = hintList.borrow(); __ptr_slot.as_ref().unwrap().clone() }") {
+		t.Fatalf("short declarations from a pointer-to-GoPtr slot should create GoPtr locals:\n%s", rust)
+	}
+	if strings.Contains(rust, "__dst_guard.as_ref().unwrap().borrow_mut()") {
+		t.Fatalf("assignment through a pointer-to-GoPtr slot must not borrow through the old pointer wrapper shape:\n%s", rust)
+	}
+	if strings.Contains(rust, "(*(*hintList.borrow_mut().as_mut().unwrap()).borrow())") ||
+		strings.Contains(rust, "(*(*hintList.borrow().as_ref().unwrap()).borrow())") {
+		t.Fatalf("reads through a pointer-to-GoPtr slot must not borrow through the old pointer wrapper shape:\n%s", rust)
+	}
+}
+
 func TestGoPtrParamDeclUsesTypedCalleeModulePath(t *testing.T) {
 	const src = `package maps
 

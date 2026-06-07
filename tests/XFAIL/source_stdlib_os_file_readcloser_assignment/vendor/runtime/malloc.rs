@@ -547,7 +547,7 @@ impl crate::mheap::mheap {
     /// be transitioned to Prepared and then Ready before use.
     ///
     /// h must be locked.
-    pub fn sys_alloc(&mut self, mut n: Arc<Mutex<Option<usize>>>, hintList: Arc<Mutex<Option<Arc<Mutex<Option<arenaHint>>>>>>, register: Arc<Mutex<Option<bool>>>) -> (Arc<Mutex<Option<usize>>>, usize) {
+    pub fn sys_alloc(&mut self, mut n: Arc<Mutex<Option<usize>>>, hintList: Arc<Mutex<Option<GoPtr<crate::mheap::arenaHint>>>>, register: Arc<Mutex<Option<bool>>>) -> (Arc<Mutex<Option<usize>>>, usize) {
     let mut v: Arc<Mutex<Option<usize>>> = Arc::new(Mutex::new(Some(Default::default())));
     let mut size: Arc<Mutex<Option<usize>>> = Arc::new(Mutex::new(Some(Default::default())));
 
@@ -575,10 +575,10 @@ impl crate::mheap::mheap {
                         // Only do this if we're using the regular heap arena hints.
                         // This behavior is only for the heap.
                         // Try to grow the heap at a hint address.
-            while { let __nil_result = (*(*hintList.lock().unwrap().as_mut().unwrap()).lock().unwrap()).is_some(); __nil_result } {
-        let mut hint = (*hintList.lock().unwrap().as_mut().unwrap()).clone();
-        let mut p = Arc::new(Mutex::new(Some({ let __selector_holder = (*hint.lock().unwrap().as_ref().unwrap()).addr.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        if (*{ let __field = (*hint.lock().unwrap().as_ref().unwrap()).down.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
+            while { let __ptr_slot = hintList.lock().unwrap(); !__ptr_slot.as_ref().unwrap().is_nil() } {
+        let mut hint: GoPtr<crate::mheap::arenaHint> = { let __ptr_slot = hintList.lock().unwrap(); __ptr_slot.as_ref().unwrap().clone() };
+        let mut p = Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = hint.with_mut(|__ptr_value| __ptr_value.addr.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
+        if (*{ let __ptr_value = hint.borrow(); __ptr_value.as_ref().unwrap().down.clone() }.lock().unwrap().as_ref().unwrap()) {
         { let __rhs = (*n.lock().unwrap().as_ref().unwrap()); let mut guard = p.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
     }
         if { let __tmp_x = { let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
@@ -593,10 +593,10 @@ impl crate::mheap::mheap {
                 // Outside addressable heap. Can't use.
         if { let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } {
                 // Success. Update the hint.
-        if !(*{ let __field = (*hint.lock().unwrap().as_ref().unwrap()).down.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
+        if !(*{ let __ptr_value = hint.borrow(); __ptr_value.as_ref().unwrap().down.clone() }.lock().unwrap().as_ref().unwrap()) {
         { let __rhs = (*n.lock().unwrap().as_ref().unwrap()); let mut guard = p.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
-        { let new_val = p.lock().unwrap().as_ref().unwrap().clone(); *(*hint.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap() = Some(new_val); };
+        { let new_val = p.lock().unwrap().as_ref().unwrap().clone(); *{ let __ptr_value = hint.with_mut(|__ptr_value| __ptr_value.addr.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
         { let new_val = n.lock().unwrap().as_ref().unwrap().clone(); *size.lock().unwrap() = Some(new_val); };
         break
     }
@@ -611,8 +611,8 @@ impl crate::mheap::mheap {
         if { let __nil_result = (*v.lock().unwrap()).is_some(); __nil_result } {
         sys_free_o_s(Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
-        { let new_val = (*hint.lock().unwrap().as_ref().unwrap()).next.clone(); let __dst = hintList.clone(); let __dst_guard = __dst.lock().unwrap(); *__dst_guard.as_ref().unwrap().lock().unwrap() = (*new_val.lock().unwrap()).clone(); };
-        (*self.arena_hint_alloc.lock().unwrap().as_mut().unwrap()).free(Arc::new(Mutex::new(Some(Arc::as_ptr(&hint) as usize))));
+        { let new_val = GoPtr::local({ let __ptr_value = hint.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.clone()); *hintList.lock().unwrap() = Some(new_val); };
+        (*self.arena_hint_alloc.lock().unwrap().as_mut().unwrap()).free(Arc::new(Mutex::new(Some(hint.addr()))));
     }
 
                         // We can't use this, so don't ask.

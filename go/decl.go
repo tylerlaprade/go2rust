@@ -3635,6 +3635,9 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 					if elemRustType, ok := sliceElemPtrSliceParamInfoForDeclObject(fn, paramIndex); ok {
 						rustType = "Vec<GoPtr<" + elemRustType + ">>"
 					}
+					if elemRustType, ok := goPtrSlotParamDeclElemRustType(fn, paramIndex); ok {
+						rustType = goPtrSlotParamRustType(elemRustType)
+					}
 					if elemRustType, ok := goPtrParamDeclElemRustType(fn, paramIndex); ok {
 						rustType = "GoPtr<" + elemRustType + ">"
 					}
@@ -3642,7 +3645,19 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 						rustType = functionRustType
 					}
 					registerTypeExprCollectionInfo(name.Name, field.Type)
-					if elemRustType, ok := goPtrParamDeclElemRustType(fn, paramIndex); ok {
+					if elemRustType, ok := goPtrSlotParamDeclElemRustType(fn, paramIndex); ok {
+						var goType types.Type
+						if typeInfo := GetTypeInfo(); typeInfo != nil {
+							goType = typeInfo.GetType(field.Type)
+						}
+						vt.Register(name.Name, &VarInfo{
+							WrapLevel:   WrapFull,
+							RustType:    goPtrSlotParamRustType(elemRustType),
+							Source:      SourceParam,
+							PointerKind: PointerGoPtrSlot,
+							GoType:      goType,
+						})
+					} else if elemRustType, ok := goPtrParamDeclElemRustType(fn, paramIndex); ok {
 						var goType types.Type
 						if typeInfo := GetTypeInfo(); typeInfo != nil {
 							goType = typeInfo.GetType(field.Type)
@@ -5105,6 +5120,10 @@ func writeFuncDeclParam(out *strings.Builder, fn *ast.FuncDecl, paramIndex int, 
 	out.WriteString(": ")
 	if elemRustType, ok := sliceElemPtrSliceParamInfoForDeclObject(fn, paramIndex); ok {
 		out.WriteString(sliceElemPtrSliceRustType(elemRustType))
+		return
+	}
+	if elemRustType, ok := goPtrSlotParamDeclElemRustType(fn, paramIndex); ok {
+		out.WriteString(goPtrSlotParamRustType(elemRustType))
 		return
 	}
 	if elemRustType, ok := goPtrParamDeclElemRustType(fn, paramIndex); ok {
@@ -8727,6 +8746,9 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 					if elemRustType, ok := sliceElemPtrSliceParamInfoForDeclObject(fn, paramIndex); ok {
 						rustType = "Vec<GoPtr<" + elemRustType + ">>"
 					}
+					if elemRustType, ok := goPtrSlotParamDeclElemRustType(fn, paramIndex); ok {
+						rustType = goPtrSlotParamRustType(elemRustType)
+					}
 					if elemRustType, ok := goPtrParamDeclElemRustType(fn, paramIndex); ok {
 						rustType = "GoPtr<" + elemRustType + ">"
 					}
@@ -8734,7 +8756,19 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 						rustType = functionRustType
 					}
 					registerTypeExprCollectionInfo(name.Name, field.Type)
-					if elemRustType, ok := goPtrParamDeclElemRustType(fn, paramIndex); ok {
+					if elemRustType, ok := goPtrSlotParamDeclElemRustType(fn, paramIndex); ok {
+						var goType types.Type
+						if typeInfo := GetTypeInfo(); typeInfo != nil {
+							goType = typeInfo.GetType(field.Type)
+						}
+						vt.Register(name.Name, &VarInfo{
+							WrapLevel:   WrapFull,
+							RustType:    goPtrSlotParamRustType(elemRustType),
+							Source:      SourceParam,
+							PointerKind: PointerGoPtrSlot,
+							GoType:      goType,
+						})
+					} else if elemRustType, ok := goPtrParamDeclElemRustType(fn, paramIndex); ok {
 						var goType types.Type
 						if typeInfo := GetTypeInfo(); typeInfo != nil {
 							goType = typeInfo.GetType(field.Type)

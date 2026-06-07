@@ -27,6 +27,7 @@ type PackageLoader struct {
 	packageStates               map[string]*PackageState
 	sliceElemPtrReturnFuncNames map[string]sliceElemPtrReturnInfo
 	goPtrParamFuncNames         map[string]map[int]string
+	goPtrSlotParamFuncNames     map[string]map[int]string
 	goPtrReturnFuncNames        map[string]map[int]goPtrResultInfo
 	sliceElemPtrFields          map[string]sliceElemPtrFieldInfo
 	goPtrArrayFields            map[string]goPtrArrayFieldInfo
@@ -58,6 +59,7 @@ func NewPackageLoader(workDir string) *PackageLoader {
 		packageStates:               make(map[string]*PackageState),
 		sliceElemPtrReturnFuncNames: make(map[string]sliceElemPtrReturnInfo),
 		goPtrParamFuncNames:         make(map[string]map[int]string),
+		goPtrSlotParamFuncNames:     make(map[string]map[int]string),
 		goPtrReturnFuncNames:        make(map[string]map[int]goPtrResultInfo),
 		sliceElemPtrFields:          make(map[string]sliceElemPtrFieldInfo),
 		goPtrArrayFields:            make(map[string]goPtrArrayFieldInfo),
@@ -931,6 +933,7 @@ func (pl *PackageLoader) withEachPackageTypeContext(fn func(*packages.Package)) 
 		session.PackageTypeModuleNames = pl.packageTypeModules
 		session.SliceElemPtrReturnFuncNames = pl.sliceElemPtrReturnFuncNames
 		session.GoPtrParamFuncNames = pl.goPtrParamFuncNames
+		session.GoPtrSlotParamFuncNames = pl.goPtrSlotParamFuncNames
 		session.GoPtrReturnFuncNames = pl.goPtrReturnFuncNames
 		session.SliceElemPtrFields = pl.sliceElemPtrFields
 		session.GoPtrArrayFields = pl.goPtrArrayFields
@@ -990,6 +993,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	session.PackageTypeModuleNames = pl.packageTypeModules
 	session.SliceElemPtrReturnFuncNames = pl.sliceElemPtrReturnFuncNames
 	session.GoPtrParamFuncNames = pl.goPtrParamFuncNames
+	session.GoPtrSlotParamFuncNames = pl.goPtrSlotParamFuncNames
 	session.GoPtrReturnFuncNames = pl.goPtrReturnFuncNames
 	session.SliceElemPtrFields = pl.sliceElemPtrFields
 	session.GoPtrArrayFields = pl.goPtrArrayFields
@@ -1273,6 +1277,10 @@ func (pl *PackageLoader) GetSourceStdlibReachable() map[types.Object]bool {
 
 func (pl *PackageLoader) GetGoPtrParamFuncNames() map[string]map[int]string {
 	return pl.goPtrParamFuncNames
+}
+
+func (pl *PackageLoader) GetGoPtrSlotParamFuncNames() map[string]map[int]string {
+	return pl.goPtrSlotParamFuncNames
 }
 
 func (pl *PackageLoader) GetGoPtrReturnFuncNames() map[string]map[int]goPtrResultInfo {

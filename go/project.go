@@ -27,6 +27,7 @@ type ProjectGenerator struct {
 	packageMapping           map[string]string   // Go import path -> Rust crate name
 	packageTypeModules       map[string]map[string]string
 	goPtrParamFuncNames      map[string]map[int]string
+	goPtrSlotParamFuncNames  map[string]map[int]string
 	goPtrReturnFuncNames     map[string]map[int]goPtrResultInfo
 	goPtrArrayFields         map[string]goPtrArrayFieldInfo
 	generatedGoPtrFields     map[string]bool
@@ -185,6 +186,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		pg.packageMapping = loader.GetPackageMapping()
 		pg.packageTypeModules = loader.GetPackageTypeModuleNames()
 		pg.goPtrParamFuncNames = loader.GetGoPtrParamFuncNames()
+		pg.goPtrSlotParamFuncNames = loader.GetGoPtrSlotParamFuncNames()
 		pg.goPtrReturnFuncNames = loader.GetGoPtrReturnFuncNames()
 		pg.goPtrArrayFields = loader.GetGoPtrArrayFields()
 		pg.generatedGoPtrFields = loader.GetGeneratedGoPtrFields()
@@ -289,6 +291,7 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 	session := NewTranspileSession(pg.typeInfo, pg.packageMapping)
 	session.PackageTypeModuleNames = pg.packageTypeModules
 	session.GoPtrParamFuncNames = pg.goPtrParamFuncNames
+	session.GoPtrSlotParamFuncNames = pg.goPtrSlotParamFuncNames
 	session.GoPtrReturnFuncNames = pg.goPtrReturnFuncNames
 	session.GoPtrArrayFields = pg.goPtrArrayFields
 	session.GeneratedGoPtrFields = pg.generatedGoPtrFields

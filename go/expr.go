@@ -11970,6 +11970,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 			break
 		}
+		if writeGoPtrSlotDerefRead(out, e) {
+			break
+		}
 		// Dereference pointer - unwrap the wrapper to get T
 		if ctx == RValue {
 			if writeTypeParamNewDerefZeroValue(out, e.X) {
@@ -12077,6 +12080,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 				return
 			}
 			if writeSliceElemPtrFieldNilComparison(out, e.X, e.Op) {
+				return
+			}
+			if writeGoPtrSlotDerefNilComparison(out, e.X, e.Op) {
 				return
 			}
 			if writeGoPtrNilComparison(out, e.X, e.Op) {

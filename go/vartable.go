@@ -30,6 +30,7 @@ const (
 	PointerSliceElem
 	PointerArrayElem
 	PointerGoPtr
+	PointerGoPtrSlot
 )
 
 // VarInfo holds metadata about a variable tracked by VarTable.
@@ -156,4 +157,11 @@ func goPtrVarInfo(name string) (*VarInfo, bool) {
 func isGoPtrVar(name string) bool {
 	_, ok := goPtrVarInfo(name)
 	return ok
+}
+
+func goPtrSlotVarInfo(name string) (*VarInfo, bool) {
+	if info := lookupVarInfo(name); info != nil && info.PointerKind == PointerGoPtrSlot {
+		return info, true
+	}
+	return nil, false
 }
