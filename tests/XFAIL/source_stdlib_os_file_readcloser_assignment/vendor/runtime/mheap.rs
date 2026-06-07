@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::alg::*;
 use crate::arena::*;
@@ -177,7 +177,7 @@ pub(crate) const MIN_PHYS_PAGE_SIZE: i32 = 4096;
 pub(crate) const MAX_PHYS_PAGE_SIZE: i32 = 512 << 10;
 pub(crate) const MAX_PHYS_HUGE_PAGE_SIZE: i32 = PALLOC_CHUNK_BYTES;
 pub(crate) const PAGES_PER_RECLAIMER_CHUNK: i32 = 512;
-pub(crate) const PHYS_PAGE_ALIGNED_STACKS: bool = matches!(G_O_O_S, "openbsd");
+pub(crate) const PHYS_PAGE_ALIGNED_STACKS: bool = go_const_str_eq(G_O_O_S, "openbsd");
 
 
 pub(crate) const M_SPAN_DEAD: u8 = 0;

@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::alg::*;
 use crate::arena::*;
@@ -267,7 +267,7 @@ pub(crate) const WAIT_REASON_SYNCTEST_CHAN_SEND: u8 = 42;
 pub(crate) const WAIT_REASON_SYNCTEST_SELECT: u8 = 43;
 
 
-pub(crate) const FRAMEPOINTER_ENABLED: bool = matches!(G_O_A_R_C_H, "amd64") || matches!(G_O_A_R_C_H, "arm64");
+pub(crate) const FRAMEPOINTER_ENABLED: bool = go_const_str_eq(G_O_A_R_C_H, "amd64") || go_const_str_eq(G_O_A_R_C_H, "arm64");
 
 
 /// Mutual exclusion locks.  In the uncontended case,

@@ -654,7 +654,7 @@ func within(n int) bool {
 	}
 }
 
-func TestConstStringEqualityUsesPatternMatch(t *testing.T) {
+func TestConstStringEqualityUsesConstHelper(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
 const GOOS = "darwin"
@@ -663,12 +663,16 @@ const darwin64Bit = (GOOS == "darwin" || GOOS == "ios") && sizeofPtr == 8
 `)
 
 	if strings.Contains(rust, `G_O_O_S == "darwin"`) ||
-		strings.Contains(rust, `G_O_O_S == "ios"`) {
+		strings.Contains(rust, `G_O_O_S == "ios"`) ||
+		strings.Contains(rust, `matches!(G_O_O_S`) {
 		t.Fatalf("const string equality should not use non-const str equality:\n%s", rust)
 	}
-	if !strings.Contains(rust, `matches!(G_O_O_S, "darwin")`) ||
-		!strings.Contains(rust, `matches!(G_O_O_S, "ios")`) {
-		t.Fatalf("const string equality should use pattern matches:\n%s", rust)
+	if !strings.Contains(rust, `go_const_str_eq(G_O_O_S, "darwin")`) ||
+		!strings.Contains(rust, `go_const_str_eq(G_O_O_S, "ios")`) {
+		t.Fatalf("const string equality should use the const string equality helper:\n%s", rust)
+	}
+	if !strings.Contains(rust, `const fn go_const_str_eq(left: &str, right: &str) -> bool`) {
+		t.Fatalf("const string equality should emit the const string equality helper:\n%s", rust)
 	}
 }
 

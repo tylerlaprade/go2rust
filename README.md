@@ -137,6 +137,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Package-level channel globals initialized with `make` | ✅ |
 | **`const` - Constants** | |
 | └ Basic constants | ✅ |
+| └ Const string equality expressions | ✅ |
 | └ String constants passed to `strings.Builder` | ✅ |
 | └ String constants in array/slice literals | ✅ |
 | └ Iota enumerations | ✅ |

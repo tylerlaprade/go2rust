@@ -291,6 +291,22 @@ fn go_resume_unrecovered_panic() {
     }
 }
 
+const fn go_const_str_eq(left: &str, right: &str) -> bool {
+    let left = left.as_bytes();
+    let right = right.as_bytes();
+    if left.len() != right.len() {
+        return false;
+    }
+    let mut i = 0;
+    while i < left.len() {
+        if left[i] != right[i] {
+            return false;
+        }
+        i += 1;
+    }
+    true
+}
+
 #[derive(Clone)]
 pub struct GoSliceElemPtr<T: Clone> {
     slice: Arc<Mutex<Option<Vec<T>>>>,

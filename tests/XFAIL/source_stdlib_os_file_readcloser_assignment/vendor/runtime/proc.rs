@@ -1,6 +1,6 @@
 use go2rust_stdlib_stubs::*;
 
-use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
+use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
 
 use crate::alg::*;
 use crate::arena::*;
@@ -174,13 +174,13 @@ use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-pub(crate) const CRASH_STACK_IMPLEMENTED: bool = !matches!(G_O_O_S, "windows");
+pub(crate) const CRASH_STACK_IMPLEMENTED: bool = !go_const_str_eq(G_O_O_S, "windows");
 
 
 pub(crate) const __GOID_CACHE_BATCH: i32 = 16;
 
 
-pub(crate) const OS_HAS_LOW_RES_TIMER: bool = matches!(G_O_O_S, "windows") || matches!(G_O_O_S, "openbsd") || matches!(G_O_O_S, "netbsd");
+pub(crate) const OS_HAS_LOW_RES_TIMER: bool = go_const_str_eq(G_O_O_S, "windows") || go_const_str_eq(G_O_O_S, "openbsd") || go_const_str_eq(G_O_O_S, "netbsd");
 pub(crate) const OS_HAS_LOW_RES_CLOCK_INT: i32 = internal_goos::IS_WINDOWS as i32;
 pub(crate) const OS_HAS_LOW_RES_CLOCK: bool = OS_HAS_LOW_RES_CLOCK_INT > 0;
 
@@ -211,7 +211,7 @@ pub(crate) const FAILTHREADCREATE: &'static str = "runtime: failed to create new
 pub(crate) const FAILALLOCATESTACK: &'static str = "runtime: failed to allocate stack for the new OS thread\n";
 
 
-pub(crate) const HAVE_SYSMON: bool = !matches!(G_O_A_R_C_H, "wasm");
+pub(crate) const HAVE_SYSMON: bool = !go_const_str_eq(G_O_A_R_C_H, "wasm");
 
 
 pub(crate) const FORCE_PREEMPT_N_S: i32 = 10 * 1000 * 1000;

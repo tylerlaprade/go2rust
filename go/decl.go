@@ -7198,7 +7198,8 @@ func writeConstStringEquality(out *strings.Builder, expr *ast.BinaryExpr, iotaVa
 	if expr.Op == token.NEQ {
 		out.WriteString("!")
 	}
-	out.WriteString("matches!(")
+	NeedGoConstStrEq()
+	out.WriteString("go_const_str_eq(")
 	TranspileConstExpr(out, subject, iotaValue)
 	out.WriteString(", ")
 	out.WriteString(pattern)
