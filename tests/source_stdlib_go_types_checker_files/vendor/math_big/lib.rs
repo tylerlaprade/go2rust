@@ -49,6 +49,7 @@ pub fn __go_init_all() {
     __GO_INIT_ONCE.call_once(|| {
         math::__go_init_all();
         math_bits::__go_init_all();
+        strconv::__go_init_all();
         strings::__go_init_all();
         sync::__go_init_all();
         accuracy_string::__go_zero_globals();

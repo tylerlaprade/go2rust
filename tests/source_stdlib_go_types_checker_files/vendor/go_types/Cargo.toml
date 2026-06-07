@@ -25,6 +25,7 @@ math = { path = "../math" }
 path_filepath = { path = "../path_filepath" }
 slices = { path = "../slices" }
 sort = { path = "../sort" }
+strconv = { path = "../strconv" }
 strings = { path = "../strings" }
 sync = { path = "../sync" }
 sync_atomic = { path = "../sync_atomic" }
