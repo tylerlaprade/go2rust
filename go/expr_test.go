@@ -4632,6 +4632,28 @@ func sample(q uint32) float64 {
 	}
 }
 
+func TestUint64ConversionKeepsFloatConstantSubexpression(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+const retainExtraPercent = 10
+
+func goal(gcPercentGoal uint64) uint64 {
+	go func() {}()
+	return gcPercentGoal / uint64(1.0/(retainExtraPercent/100.0))
+}
+`)
+
+	if strings.Contains(rust, "1.0 as u64") ||
+		strings.Contains(rust, "100.0 as u64") ||
+		strings.Contains(rust, "RETAIN_EXTRA_PERCENT as u64") ||
+		strings.Contains(rust, "retainExtraPercent as u64") {
+		t.Fatalf("uint64 conversion should not cast float constant subexpressions to u64 before evaluating them:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __tmp_x = 1.0") || !strings.Contains(rust, "let __tmp_y = 0.1") {
+		t.Fatalf("uint64 conversion should evaluate the division in float space before the final cast:\n%s", rust)
+	}
+}
+
 func TestUnsafePointerConversionUsesCurrentReceiver(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

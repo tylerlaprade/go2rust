@@ -179,7 +179,7 @@ pub(crate) const REDUCE_EXTRA_PERCENT: i32 = 5;
 pub(crate) const MAX_PAGES_PER_PHYS_PAGE: i32 = MAX_PHYS_PAGE_SIZE / PAGE_SIZE;
 pub(crate) const SCAVENGE_COST_RATIO: f64 = 0.7 * 1.0;
 pub(crate) const SCAV_CHUNK_HI_OCC_FRAC: f64 = 0.96875;
-pub(crate) const SCAV_CHUNK_HI_OCC_PAGES: u16 = (((SCAV_CHUNK_HI_OCC_FRAC as u16) * (PALLOC_CHUNK_PAGES as u16)) as u16);
+pub(crate) const SCAV_CHUNK_HI_OCC_PAGES: u16 = ((SCAV_CHUNK_HI_OCC_FRAC * 512.0) as u16);
 
 
 pub(crate) const STARTING_SCAV_SLEEP_RATIO: f64 = 0.001;
@@ -2318,7 +2318,7 @@ pub fn gc_pace_scavenger(memoryLimit: Arc<Mutex<Option<i64>>>, heapGoal: Arc<Mut
         // looks strange but the purpose is to arrive at an integer division
         // (e.g. if retainExtraPercent = 12.5, then we get a divisor of 8)
         // that also avoids the overflow from a multiplication.
-    { let __rhs = { let __tmp_x = { let __v = (*gcPercentGoal.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((1.0 as u64) / ((RETAIN_EXTRA_PERCENT as u64) / (100.0 as u64))) as u64; __tmp_x / __tmp_y }; let mut guard = gcPercentGoal.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+    { let __rhs = { let __tmp_x = { let __v = (*gcPercentGoal.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = 1.0; let __tmp_y = 0.1; __tmp_x / __tmp_y }) as u64; __tmp_x / __tmp_y }; let mut guard = gcPercentGoal.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
 
         // Align it to a physical page boundary to make the following calculations
         // a bit more exact.

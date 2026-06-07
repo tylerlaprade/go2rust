@@ -16572,6 +16572,9 @@ func writeConstNumericConversionValueForRustType(out *strings.Builder, arg ast.E
 	if rustIntegerTypeWidth(rustType) == 0 || !isConstantExpression(arg) || constExprContainsIota(arg) {
 		return false
 	}
+	if constExpressionHasFloatGoType(arg) {
+		return false
+	}
 	if !constNumericConversionNeedsExpressionRewrite(arg) {
 		return false
 	}
@@ -16580,6 +16583,37 @@ func writeConstNumericConversionValueForRustType(out *strings.Builder, arg ast.E
 	}
 	writeConstNumericConversionOperand(out, arg, rustType)
 	return true
+}
+
+func constExpressionHasFloatGoType(expr ast.Expr) bool {
+	if value, ok := constExpressionValue(expr); ok && value.Kind() == constant.Float {
+		return true
+	}
+	typeInfo := GetTypeInfo()
+	found := false
+	ast.Inspect(expr, func(node ast.Node) bool {
+		if found {
+			return false
+		}
+		switch n := node.(type) {
+		case *ast.BasicLit:
+			if n.Kind == token.FLOAT {
+				found = true
+				return false
+			}
+		case ast.Expr:
+			if typeInfo != nil {
+				if typ := typeInfo.GetType(n); typ != nil {
+					if _, ok := rustFloatTypeForGoType(typ); ok {
+						found = true
+						return false
+					}
+				}
+			}
+		}
+		return true
+	})
+	return found
 }
 
 func constNumericConversionNeedsExpressionRewrite(arg ast.Expr) bool {

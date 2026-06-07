@@ -3749,6 +3749,29 @@ func scale(m float64) float64 {
 	}
 }
 
+func TestUint64CompoundAssignKeepsFloatConstantSubexpression(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+const retainExtraPercent = 10
+
+func goal(gcPercentGoal uint64) uint64 {
+	go func() {}()
+	gcPercentGoal += gcPercentGoal / (1.0 / (retainExtraPercent / 100.0))
+	return gcPercentGoal
+}
+`)
+
+	if strings.Contains(rust, "1.0 as u64") ||
+		strings.Contains(rust, "100.0 as u64") ||
+		strings.Contains(rust, "RETAIN_EXTRA_PERCENT as u64") ||
+		strings.Contains(rust, "retainExtraPercent as u64") {
+		t.Fatalf("uint64 compound assignment should not cast float constant subexpressions to u64 before evaluating them:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __tmp_x = 1.0") || !strings.Contains(rust, "let __tmp_y = 0.1") {
+		t.Fatalf("uint64 compound assignment should evaluate the denominator in float space before the final cast:\n%s", rust)
+	}
+}
+
 func TestBareFloatIncDecUsesFloatLiteral(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

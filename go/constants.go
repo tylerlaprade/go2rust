@@ -916,7 +916,9 @@ func writeConstExpressionForExpectedInteger(out *strings.Builder, value ast.Expr
 	if !ok {
 		return false
 	}
-	if writeConstNumericConversionValueForRustType(out, value, rustType) {
+	if constExpressionHasFloatGoType(value) {
+		writeConstExpressionCastValue(out, value)
+	} else if writeConstNumericConversionValueForRustType(out, value, rustType) {
 		// Constant operands were emitted in the expected primitive type.
 	} else if writeConstExpressionWithRustIntegerOperandsForExpected(out, value, rustType) {
 		// Constant operands were emitted in the expected primitive type.

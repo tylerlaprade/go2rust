@@ -2074,7 +2074,7 @@ pub fn trace_clock_units_per_second() -> u64 {
         // We're using cputicks as our clock, so we need a real estimate.
         // Our clock is nanotime, so it's just the constant time division.
         // (trace clock units / nanoseconds) * (1e9 nanoseconds / 1 second)
-    (*Arc::new(Mutex::new(Some((((1.0 as u64) / ((TRACE_TIME_DIV as u64) as u64)) * (1e9 as u64)) as u64))).lock().unwrap().as_ref().unwrap())
+    (*Arc::new(Mutex::new(Some(({ let __tmp_x = 0.015625; let __tmp_y = 1e+09; __tmp_x * __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap())
 }
 
 /// traceFrequency writes a batch with a single EvFrequency event.
