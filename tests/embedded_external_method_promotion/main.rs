@@ -108,7 +108,7 @@ impl writer {
         embedded_ref.read_bytes(_arg0)
     }
 
-    pub fn read_from(&self, _arg0: Arc<Mutex<Option<io_Reader>>>) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn read_from(&self, _arg0: Arc<Mutex<Option<Box<dyn io::r#mod::Reader + Send + Sync>>>>) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
@@ -192,7 +192,7 @@ impl writer {
         embedded_ref.write_string(_arg0)
     }
 
-    pub fn write_to(&self, _arg0: Arc<Mutex<Option<io_Writer>>>) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+    pub fn write_to(&self, _arg0: Arc<Mutex<Option<Box<dyn io::r#mod::Writer + Send + Sync>>>>) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
         let embedded = self.buffer.clone();
         let mut guard = embedded.lock().unwrap();
         let embedded_ref = guard.as_mut().unwrap();
@@ -201,10 +201,16 @@ impl writer {
 }
 
 fn main() {
-    bytes::__go_init_all();
-    internal_bytealg::__go_init_all();
-    internal_cpu::__go_init_all();
-    unicode_utf8::__go_init_all();
+    ::bytes::__go_init_all();
+    ::internal_abi::__go_init_all();
+    ::internal_bytealg::__go_init_all();
+    ::internal_cpu::__go_init_all();
+    ::internal_race::__go_init_all();
+    ::internal_sync::__go_init_all();
+    ::io::__go_init_all();
+    ::sync::__go_init_all();
+    ::sync_atomic::__go_init_all();
+    ::unicode_utf8::__go_init_all();
 
     let mut w = Arc::new(Mutex::new(Some(writer { buffer: Arc::new(Mutex::new(Some(bytes::buffer::Buffer { ..Default::default() }))), ..Default::default() })));
     (*w.lock().unwrap().as_mut().unwrap()).write_string(Arc::new(Mutex::new(Some("go".to_string()))));

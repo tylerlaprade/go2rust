@@ -180,16 +180,17 @@ in the first place.
 - Location: `go/external_type_stubs.go:1885`
 - Go symbol: `io.Writer` trait bridging
 - Transpiler gap: Source-transpiled `io` now handles `io.Discard`,
-  `io.MultiWriter`, and direct `Writer.Write` in focused fixtures, but the
-  no-type-info external fallback still emits `io_Writer`. Full retirement needs
-  the remaining fallback users moved to source `io` or replaced with a loud
-  unsupported path instead of hand-written writer behavior.
+  `io.MultiWriter`, direct `Writer.Write`, and promoted `bytes.Buffer`
+  method signatures in focused fixtures. No runtime fixture snapshot requires
+  `io_Writer`; the remaining debt is the no-type-info/non-source-mapped
+  external fallback that still emits `io_Writer`.
 - Fixture: `tests/external_stdlib_variadic/`,
   `tests/external_stub_closure_capture/`,
+  `tests/embedded_external_method_promotion/`,
   `go/expr_test.go:TestNoTypeInfoExternalStdlibVariadicRegistersStubs`
-- Removal trigger: no runtime fixture or snapshot requires `io_Writer`; the
-  no-type-info fallback either source-maps the stdlib path or emits a loud
-  unsupported path without hand-written writer behavior.
+- Removal trigger: the no-type-info/non-source-mapped fallback either
+  source-maps the stdlib path or emits a loud unsupported path without
+  hand-written writer behavior; then delete `writeIoWriterStub`.
 - Added: 2026-05-27 (backfill)
 
 ### json-package
