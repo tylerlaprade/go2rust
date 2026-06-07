@@ -14868,6 +14868,8 @@ func TranspileTypeConversion(out *strings.Builder, call *ast.CallExpr) {
 						writeNumericConversionValue(out, arg)
 						out.WriteString(" as char).to_string())))")
 						return
+					} else if writeNamedStringConversionValue(out, arg, argType, typeInfo) {
+						return
 					} else if basic.Kind() == types.String && !typeInfo.ReturnsWrappedValue(arg) {
 						WriteWrapperPrefix(out)
 						TranspileExpression(out, arg)
@@ -15445,6 +15447,9 @@ func writePointerTypeConversion(out *strings.Builder, target ast.Expr, source as
 		return
 	}
 	typeInfo := GetTypeInfo()
+	if typeInfo != nil && writeNamedScalarPointerTypeConversion(out, target, source, typeInfo) {
+		return
+	}
 	if typeInfo != nil && source != nil && isUnsafePointerLikeType(typeInfo.GetType(source)) {
 		writePointerTypeConversionFromUnsafePointer(out, target, source)
 		return
@@ -15453,6 +15458,44 @@ func writePointerTypeConversion(out *strings.Builder, target ast.Expr, source as
 	out.WriteString(goTypeToRustBase(target))
 	out.WriteString("::default()")
 	WriteWrapperSuffix(out)
+}
+
+func writeNamedScalarPointerTypeConversion(out *strings.Builder, target ast.Expr, source ast.Expr, typeInfo *TypeInfo) bool {
+	targetType, ok := typeInfoTypeForTypeExpr(target)
+	if !ok || targetType == nil {
+		return false
+	}
+	targetNamed, ok := types.Unalias(targetType).(*types.Named)
+	if !ok || targetNamed.Obj() == nil {
+		return false
+	}
+	if _, ok := LookupTypeDefinition(targetNamed.Obj().Name()); !ok {
+		return false
+	}
+	targetBasic, ok := types.Unalias(targetNamed.Underlying()).(*types.Basic)
+	if !ok || targetBasic.Kind() == types.Invalid {
+		return false
+	}
+	sourceType := typeInfo.GetType(source)
+	if sourceType == nil {
+		return false
+	}
+	sourcePtr, ok := types.Unalias(sourceType).Underlying().(*types.Pointer)
+	if !ok {
+		return false
+	}
+	sourceBasic, ok := types.Unalias(sourcePtr.Elem()).(*types.Basic)
+	if !ok || !types.Identical(targetBasic, sourceBasic) {
+		return false
+	}
+
+	WriteWrapperPrefix(out)
+	out.WriteString(goTypesNamedTypeToRust(targetNamed))
+	out.WriteString("(")
+	writePointerHandleExpression(out, source)
+	out.WriteString(")")
+	WriteWrapperSuffix(out)
+	return true
 }
 
 func writePointerTypeConversionFromUnsafePointer(out *strings.Builder, target ast.Expr, source ast.Expr) {
@@ -16083,6 +16126,72 @@ func writeSliceCloneOrEmpty(out *strings.Builder, arg ast.Expr) {
 	out.WriteString(".clone(); let __slice_guard = __slice_holder")
 	WriteBorrowMethod(out, false)
 	out.WriteString("; __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }")
+}
+
+func writeNamedStringConversionValue(out *strings.Builder, arg ast.Expr, argType types.Type, typeInfo *TypeInfo) bool {
+	named, ok := types.Unalias(argType).(*types.Named)
+	if !ok || typeInfo == nil {
+		return false
+	}
+	basic, ok := types.Unalias(named.Underlying()).(*types.Basic)
+	if !ok || basic.Kind() != types.String {
+		return false
+	}
+	WriteWrapperPrefix(out)
+	writeNamedStringUnderlyingClone(out, arg, named)
+	WriteWrapperSuffix(out)
+	return true
+}
+
+func writeNamedStringUnderlyingClone(out *strings.Builder, arg ast.Expr, named *types.Named) {
+	var receiverValue strings.Builder
+	if writeNamedScalarCurrentReceiverDerefUnderlyingValue(&receiverValue, arg, named) {
+		out.WriteString(receiverValue.String())
+		out.WriteString(".clone()")
+		return
+	}
+	if namedStringConversionSourceIsBareValue(arg) {
+		out.WriteString("(*")
+		TranspileExpression(out, arg)
+		out.WriteString(".0")
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).clone()")
+		return
+	}
+
+	out.WriteString("(*")
+	if ident, ok := arg.(*ast.Ident); ok && ident.Name != "nil" {
+		if isCurrentReceiverIdent(ident) {
+			out.WriteString(currentReceiverRustName())
+			out.WriteString(".0")
+		} else if isVarBare(ident.Name) {
+			out.WriteString(rustIdentForUseWithCapture(ident))
+			out.WriteString(".0")
+		} else {
+			out.WriteString("(*")
+			out.WriteString(rustIdentForUseWithCapture(ident))
+			WriteBorrowMethod(out, false)
+			out.WriteString(".as_ref().unwrap()).0")
+		}
+	} else if isExpressionResultBare(arg) {
+		TranspileExpression(out, arg)
+		out.WriteString(".0")
+	} else {
+		out.WriteString("(*")
+		TranspileExpressionContext(out, arg, LValue)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()).0")
+	}
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()).clone()")
+}
+
+func namedStringConversionSourceIsBareValue(arg ast.Expr) bool {
+	if isExpressionResultBare(arg) {
+		return true
+	}
+	_, ok := unwrapParens(arg).(*ast.TypeAssertExpr)
+	return ok
 }
 
 func writeStringTypeDefinitionInnerValue(out *strings.Builder, arg ast.Expr) bool {

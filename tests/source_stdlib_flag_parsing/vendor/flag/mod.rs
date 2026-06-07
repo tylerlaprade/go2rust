@@ -265,6 +265,8 @@ struct GoReflectField {
 #[derive(Debug, Clone, Default)]
 struct GoReflectType {
     name: Arc<Mutex<Option<String>>>,
+    kind: Arc<Mutex<Option<reflect_Kind>>>,
+    elem: Arc<Mutex<Option<Box<GoReflectType>>>>,
     fields: Arc<Mutex<Option<Vec<GoReflectField>>>>,
 }
 
@@ -274,9 +276,28 @@ impl std::fmt::Display for GoReflectType {
     }
 }
 
+impl PartialEq for GoReflectType {
+    fn eq(&self, other: &Self) -> bool {
+        *self.name.lock().unwrap() == *other.name.lock().unwrap() &&
+            *self.kind.lock().unwrap() == *other.kind.lock().unwrap()
+    }
+}
+
+impl Eq for GoReflectType {}
+
 impl GoReflectType {
     fn string(&self) -> Arc<Mutex<Option<String>>> {
         Arc::new(Mutex::new(Some((*self.name.lock().unwrap().as_ref().unwrap()).clone())))
+    }
+
+    fn kind(&self) -> Arc<Mutex<Option<reflect_Kind>>> {
+        self.kind.clone()
+    }
+
+    fn elem(&self) -> Arc<Mutex<Option<GoReflectType>>> {
+        let elem_guard = self.elem.lock().unwrap();
+        let elem = elem_guard.as_ref().expect("reflect.Type.Elem requires an element type").as_ref().clone();
+        Arc::new(Mutex::new(Some(elem)))
     }
 
     fn num_field(&self) -> i32 {
@@ -298,29 +319,51 @@ struct GoReflectValue {
     fields: Arc<Mutex<Option<Vec<GoReflectValue>>>>,
     bool_getter: Arc<Mutex<Option<GoReflectBoolGetter>>>,
     bool_setter: Arc<Mutex<Option<GoReflectBoolSetter>>>,
+    unsupported: Option<&'static str>,
 }
 
 impl GoReflectValue {
+    fn panic_if_unsupported(&self, op: &str) {
+        if let Some(message) = self.unsupported {
+            panic!("{}: {}", op, message);
+        }
+    }
+
     fn elem(&self) -> Arc<Mutex<Option<GoReflectValue>>> {
+        self.panic_if_unsupported("reflect.Value.Elem");
         Arc::new(Mutex::new(Some(self.clone())))
     }
 
     fn r#type(&self) -> Arc<Mutex<Option<GoReflectType>>> {
+        self.panic_if_unsupported("reflect.Value.Type");
         self.typ.clone()
     }
 
+    fn kind(&self) -> Arc<Mutex<Option<reflect_Kind>>> {
+        self.panic_if_unsupported("reflect.Value.Kind");
+        self.typ.lock().unwrap().as_ref().unwrap().kind()
+    }
+
     fn field(&self, index: i32) -> Arc<Mutex<Option<GoReflectValue>>> {
+        self.panic_if_unsupported("reflect.Value.Field");
         let index = index as usize;
         Arc::new(Mutex::new(Some(self.fields.lock().unwrap().as_ref().unwrap()[index].clone())))
     }
 
+    fn set<T>(&self, _value: T) {
+        self.panic_if_unsupported("reflect.Value.Set");
+        panic!("reflect.Value.Set requires typed lowering")
+    }
+
     fn set_bool(&mut self, value: Arc<Mutex<Option<bool>>>) {
+        self.panic_if_unsupported("reflect.Value.SetBool");
         let mut setter_guard = self.bool_setter.lock().unwrap();
         let setter = setter_guard.as_mut().expect("reflect.Value.SetBool requires a settable bool field");
         setter(value);
     }
 
     fn bool(&self) -> bool {
+        self.panic_if_unsupported("reflect.Value.Bool");
         let getter_guard = self.bool_getter.lock().unwrap();
         let getter = getter_guard.as_ref().expect("reflect.Value.Bool requires a bool field");
         getter()
@@ -3189,11 +3232,11 @@ impl stringValue {
     }
 
     pub fn get(&self) -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
-        Arc::new(Mutex::new(Some(Box::new({ let __v = Arc::new(Mutex::new(Some((*self).clone().to_string()))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>)))
+        Arc::new(Mutex::new(Some(Box::new({ let __v = Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()).clone()))); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned }) as Box<dyn Any + Send + Sync>)))
     }
 
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
-        Arc::new(Mutex::new(Some((*self).clone().to_string())))
+        Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()).clone())))
     }
 }
 
@@ -4113,37 +4156,37 @@ pub fn num_error(err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) -> Ar
 
 pub fn new_bool_value(val: Arc<Mutex<Option<bool>>>, p: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<boolValue>>> {
     { let new_val = { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v }; *p.lock().unwrap() = Some(new_val); };
-    Arc::new(Mutex::new(Some(boolValue::default())))
+    Arc::new(Mutex::new(Some(boolValue(p.clone()))))
 }
 
 pub fn new_int_value(val: Arc<Mutex<Option<i32>>>, p: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<intValue>>> {
     { let new_val = { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v }; *p.lock().unwrap() = Some(new_val); };
-    Arc::new(Mutex::new(Some(intValue::default())))
+    Arc::new(Mutex::new(Some(intValue(p.clone()))))
 }
 
 pub fn new_int64_value(val: Arc<Mutex<Option<i64>>>, p: Arc<Mutex<Option<i64>>>) -> Arc<Mutex<Option<int64Value>>> {
     { let new_val = { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v }; *p.lock().unwrap() = Some(new_val); };
-    Arc::new(Mutex::new(Some(int64Value::default())))
+    Arc::new(Mutex::new(Some(int64Value(p.clone()))))
 }
 
 pub fn new_uint_value(val: Arc<Mutex<Option<u64>>>, p: Arc<Mutex<Option<u64>>>) -> Arc<Mutex<Option<uintValue>>> {
     { let new_val = { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v }; *p.lock().unwrap() = Some(new_val); };
-    Arc::new(Mutex::new(Some(uintValue::default())))
+    Arc::new(Mutex::new(Some(uintValue(p.clone()))))
 }
 
 pub fn new_uint64_value(val: Arc<Mutex<Option<u64>>>, p: Arc<Mutex<Option<u64>>>) -> Arc<Mutex<Option<uint64Value>>> {
     { let new_val = { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v }; *p.lock().unwrap() = Some(new_val); };
-    Arc::new(Mutex::new(Some(uint64Value::default())))
+    Arc::new(Mutex::new(Some(uint64Value(p.clone()))))
 }
 
 pub fn new_string_value(val: Arc<Mutex<Option<String>>>, p: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<stringValue>>> {
     { let new_val = { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v }; *p.lock().unwrap() = Some(new_val); };
-    Arc::new(Mutex::new(Some(stringValue::default())))
+    Arc::new(Mutex::new(Some(stringValue(p.clone()))))
 }
 
 pub fn new_float64_value(val: Arc<Mutex<Option<f64>>>, p: Arc<Mutex<Option<f64>>>) -> Arc<Mutex<Option<float64Value>>> {
     { let new_val = { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v }; *p.lock().unwrap() = Some(new_val); };
-    Arc::new(Mutex::new(Some(float64Value::default())))
+    Arc::new(Mutex::new(Some(float64Value(p.clone()))))
 }
 
 pub fn new_duration_value(val: Arc<Mutex<Option<time_Duration>>>, p: Arc<Mutex<Option<time_Duration>>>) -> Arc<Mutex<Option<durationValue>>> {
@@ -4152,11 +4195,11 @@ pub fn new_duration_value(val: Arc<Mutex<Option<time_Duration>>>, p: Arc<Mutex<O
 }
 
 pub fn new_text_value(val: Arc<Mutex<Option<encoding_TextMarshaler>>>, p: Arc<Mutex<Option<encoding_TextUnmarshaler>>>) -> Arc<Mutex<Option<textValue>>> {
-    let mut ptrVal = unimplemented!("reflect.ValueOf requires statically known pointer-to-struct type");
+    let mut ptrVal = Arc::new(Mutex::new(Some(GoReflectValue { typ: Arc::new(Mutex::new(Some(GoReflectType { name: Arc::new(Mutex::new(Some("".to_string()))), kind: Arc::new(Mutex::new(Some(reflect_Kind(0)))), elem: Arc::new(Mutex::new(None::<Box<GoReflectType>>)), fields: Arc::new(Mutex::new(Some(vec![]))) }))), fields: Arc::new(Mutex::new(Some(vec![]))), bool_getter: Arc::new(Mutex::new(None)), bool_setter: Arc::new(Mutex::new(None)), unsupported: Some("reflect.ValueOf requires statically known pointer-to-struct type") })));
     if { let __tmp_x = (*(*ptrVal.lock().unwrap().as_ref().unwrap()).kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = reflect::PTR; __tmp_x != __tmp_y } {
         std::panic::panic_any(Box::new("variable value type must be a pointer".to_string()) as Box<dyn Any + Send + Sync>);
     }
-    let mut defVal = unimplemented!("reflect.ValueOf requires statically known pointer-to-struct type");
+    let mut defVal = Arc::new(Mutex::new(Some(GoReflectValue { typ: Arc::new(Mutex::new(Some(GoReflectType { name: Arc::new(Mutex::new(Some("".to_string()))), kind: Arc::new(Mutex::new(Some(reflect_Kind(0)))), elem: Arc::new(Mutex::new(None::<Box<GoReflectType>>)), fields: Arc::new(Mutex::new(Some(vec![]))) }))), fields: Arc::new(Mutex::new(Some(vec![]))), bool_getter: Arc::new(Mutex::new(None)), bool_setter: Arc::new(Mutex::new(None)), unsupported: Some("reflect.ValueOf requires statically known pointer-to-struct type") })));
     if { let __tmp_x = (*(*defVal.lock().unwrap().as_ref().unwrap()).kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = reflect::PTR; __tmp_x == __tmp_y } {
         { let new_val = (*defVal.lock().unwrap().as_ref().unwrap()).elem(); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *defVal.lock().unwrap() = __moved_val; };
     }
@@ -4195,7 +4238,7 @@ pub fn is_zero_value(flag: Arc<Mutex<Option<Flag>>>, value: Arc<Mutex<Option<Str
                 // Build a zero value of the flag's Value type, and see if the
                 // result of calling its String method equals the value passed in.
                 // This works unless the Value type is itself an interface type.
-        let mut typ = Arc::new(Mutex::new(Some(GoReflectType { name: Arc::new(Mutex::new(Some("flag.Value".to_string()))), fields: Arc::new(Mutex::new(Some(vec![]))) })));
+        let mut typ = Arc::new(Mutex::new(Some(GoReflectType { name: Arc::new(Mutex::new(Some("flag.Value".to_string()))), kind: Arc::new(Mutex::new(Some(reflect_Kind(20)))), elem: Arc::new(Mutex::new(None::<Box<GoReflectType>>)), fields: Arc::new(Mutex::new(Some(vec![]))) })));
         let mut z: Arc<Mutex<Option<reflect_Value>>> = Arc::new(Mutex::new(Some(Default::default())));
         if { let __tmp_x = (*(*typ.lock().unwrap().as_ref().unwrap()).kind().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = reflect::POINTER; __tmp_x == __tmp_y } {
         { let new_val = reflect::new((*typ.lock().unwrap().as_ref().unwrap()).elem()); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *z.lock().unwrap() = __moved_val; };

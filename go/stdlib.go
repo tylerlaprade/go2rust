@@ -2029,7 +2029,10 @@ func transpileReflectValueOf(out *strings.Builder, call *ast.CallExpr) {
 
 	valueType, st, ok := reflectValueOfStructPointerType(call.Args[0])
 	if !ok {
-		out.WriteString("unimplemented!(\"reflect.ValueOf requires statically known pointer-to-struct type\")")
+		NeedReflect()
+		WriteWrapperPrefix(out)
+		writeUnsupportedGoReflectValueLiteral(out, "reflect.ValueOf requires statically known pointer-to-struct type")
+		WriteWrapperSuffix(out)
 		return
 	}
 
@@ -2077,6 +2080,12 @@ func writeReflectValueTargetHandle(out *strings.Builder, arg ast.Expr) bool {
 func writeGoReflectTypeLiteral(out *strings.Builder, typ types.Type, st *types.Struct) {
 	out.WriteString("GoReflectType { name: ")
 	writeReflectString(out, reflectTypeName(typ))
+	out.WriteString(", kind: ")
+	WriteWrapperPrefix(out)
+	writeGoReflectKindValue(out, typ)
+	WriteWrapperSuffix(out)
+	out.WriteString(", elem: ")
+	writeGoReflectElemValue(out, typ)
 	out.WriteString(", fields: ")
 	WriteWrapperPrefix(out)
 	out.WriteString("vec![")
@@ -2101,6 +2110,132 @@ func writeGoReflectTypeLiteral(out *strings.Builder, typ types.Type, st *types.S
 	out.WriteString(" }")
 }
 
+func writeGoReflectKindValue(out *strings.Builder, typ types.Type) {
+	out.WriteString("reflect_Kind(")
+	out.WriteString(strconv.Itoa(int(goReflectKindForType(typ))))
+	out.WriteString(")")
+}
+
+func writeGoReflectElemValue(out *strings.Builder, typ types.Type) {
+	elem, ok := goReflectElemType(typ)
+	if !ok {
+		WriteWrapperOptionPrefix(out)
+		out.WriteString("None::<Box<GoReflectType>>")
+		WriteWrapperOptionSuffix(out)
+		return
+	}
+	WriteWrapperPrefix(out)
+	out.WriteString("Box::new(")
+	writeGoReflectTypeLiteral(out, elem, structTypeForReflectType(elem))
+	out.WriteString(")")
+	WriteWrapperSuffix(out)
+}
+
+func goReflectKindForType(typ types.Type) reflect.Kind {
+	if typ == nil {
+		return reflect.Invalid
+	}
+	switch t := types.Unalias(typ).Underlying().(type) {
+	case *types.Basic:
+		switch t.Kind() {
+		case types.Bool:
+			return reflect.Bool
+		case types.Int:
+			return reflect.Int
+		case types.Int8:
+			return reflect.Int8
+		case types.Int16:
+			return reflect.Int16
+		case types.Int32:
+			return reflect.Int32
+		case types.Int64:
+			return reflect.Int64
+		case types.Uint:
+			return reflect.Uint
+		case types.Uint8:
+			return reflect.Uint8
+		case types.Uint16:
+			return reflect.Uint16
+		case types.Uint32:
+			return reflect.Uint32
+		case types.Uint64:
+			return reflect.Uint64
+		case types.Uintptr:
+			return reflect.Uintptr
+		case types.Float32:
+			return reflect.Float32
+		case types.Float64:
+			return reflect.Float64
+		case types.Complex64:
+			return reflect.Complex64
+		case types.Complex128:
+			return reflect.Complex128
+		case types.String:
+			return reflect.String
+		case types.UnsafePointer:
+			return reflect.UnsafePointer
+		case types.UntypedBool:
+			return reflect.Bool
+		case types.UntypedInt:
+			return reflect.Int
+		case types.UntypedFloat:
+			return reflect.Float64
+		case types.UntypedComplex:
+			return reflect.Complex128
+		case types.UntypedString:
+			return reflect.String
+		default:
+			return reflect.Invalid
+		}
+	case *types.Array:
+		return reflect.Array
+	case *types.Chan:
+		return reflect.Chan
+	case *types.Signature:
+		return reflect.Func
+	case *types.Interface:
+		return reflect.Interface
+	case *types.Map:
+		return reflect.Map
+	case *types.Pointer:
+		return reflect.Pointer
+	case *types.Slice:
+		return reflect.Slice
+	case *types.Struct:
+		return reflect.Struct
+	default:
+		return reflect.Invalid
+	}
+}
+
+func goReflectElemType(typ types.Type) (types.Type, bool) {
+	if typ == nil {
+		return nil, false
+	}
+	switch t := types.Unalias(typ).Underlying().(type) {
+	case *types.Array:
+		return t.Elem(), true
+	case *types.Chan:
+		return t.Elem(), true
+	case *types.Map:
+		return t.Elem(), true
+	case *types.Pointer:
+		return t.Elem(), true
+	case *types.Slice:
+		return t.Elem(), true
+	default:
+		return nil, false
+	}
+}
+
+func structTypeForReflectType(typ types.Type) *types.Struct {
+	if typ == nil {
+		return nil
+	}
+	st, _ := types.Unalias(typ).Underlying().(*types.Struct)
+	return st
+}
+
 func writeGoReflectValueLiteral(out *strings.Builder, typ types.Type, st *types.Struct, targetName string) {
 	out.WriteString("GoReflectValue { typ: ")
 	WriteWrapperPrefix(out)
@@ -2123,6 +2258,26 @@ func writeGoReflectValueLiteral(out *strings.Builder, typ types.Type, st *types.
 	WriteWrappedNone(out)
 	out.WriteString(", bool_setter: ")
 	WriteWrappedNone(out)
+	out.WriteString(", unsupported: None")
+	out.WriteString(" }")
+}
+
+func writeUnsupportedGoReflectValueLiteral(out *strings.Builder, message string) {
+	out.WriteString("GoReflectValue { typ: ")
+	WriteWrapperPrefix(out)
+	writeGoReflectTypeLiteral(out, nil, nil)
+	WriteWrapperSuffix(out)
+	out.WriteString(", fields: ")
+	WriteWrapperPrefix(out)
+	out.WriteString("vec![]")
+	WriteWrapperSuffix(out)
+	out.WriteString(", bool_getter: ")
+	WriteWrappedNone(out)
+	out.WriteString(", bool_setter: ")
+	WriteWrappedNone(out)
+	out.WriteString(", unsupported: Some(")
+	out.WriteString(strconv.Quote(message))
+	out.WriteString(")")
 	out.WriteString(" }")
 }
 
@@ -2149,6 +2304,7 @@ func writeGoReflectFieldValueLiteral(out *strings.Builder, field *types.Var, tar
 	} else {
 		WriteWrappedNone(out)
 	}
+	out.WriteString(", unsupported: None")
 	out.WriteString(" }")
 }
 

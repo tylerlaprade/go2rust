@@ -163,6 +163,92 @@ func order(names []string) {
 	}
 }
 
+func TestReflectTypeOfEmitsKindAndElemMetadata(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "reflect"
+
+type Value interface {
+	String() string
+}
+
+type Flag struct {
+	Value Value
+}
+
+func typeName(flag *Flag) string {
+	typ := reflect.TypeOf(flag.Value)
+	if typ.Kind() == reflect.Pointer {
+		typ = typ.Elem()
+	}
+	return typ.String()
+}
+`)
+
+	for _, want := range []string{
+		"kind: ",
+		"elem: ",
+		"fn kind(&self)",
+		"fn elem(&self)",
+		"reflect_Kind(20)",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("reflect.TypeOf should emit kind/elem metadata %q:\n%s", want, rust)
+		}
+	}
+	if strings.Contains(rust, "GoReflectType { name:") && !strings.Contains(rust, "fields:") {
+		t.Fatalf("reflect.TypeOf metadata should preserve existing field metadata:\n%s", rust)
+	}
+}
+
+func TestReflectValueOfUnsupportedInterfaceIsTypedLoudPanic(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "reflect"
+
+type Text interface {
+	MarshalText() ([]byte, error)
+}
+
+func kind(v Text) reflect.Kind {
+	rv := reflect.ValueOf(v)
+	return rv.Kind()
+}
+`)
+
+	if strings.Contains(rust, `let mut rv = unimplemented!("reflect.ValueOf`) {
+		t.Fatalf("unsupported reflect.ValueOf should not emit an untyped unimplemented value:\n%s", rust)
+	}
+	if !strings.Contains(rust, `unsupported: Some("reflect.ValueOf requires statically known pointer-to-struct type")`) {
+		t.Fatalf("unsupported reflect.ValueOf should mark the local reflect value as unsupported:\n%s", rust)
+	}
+	if !strings.Contains(rust, `panic!("{}: {}", op, message)`) {
+		t.Fatalf("unsupported reflect.ValueOf methods should remain loud panic paths:\n%s", rust)
+	}
+}
+
+func TestNamedStringTypeConversionClonesStoredString(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type stringValue string
+
+func (s *stringValue) String() string {
+	return string(*s)
+}
+
+func copyString(v stringValue) string {
+	return string(v)
+}
+`)
+
+	if strings.Contains(rust, "(*self).clone().to_string()") {
+		t.Fatalf("string conversion from named string receiver should not route through Display:\n%s", rust)
+	}
+	if !strings.Contains(rust, "self.0") || !strings.Contains(rust, ".as_ref().unwrap()).clone()") {
+		t.Fatalf("string conversion from named string should clone the stored inner String:\n%s", rust)
+	}
+}
+
 func TestSortSearchLowersBinarySearchWithoutBridge(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

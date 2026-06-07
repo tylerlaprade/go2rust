@@ -4509,6 +4509,8 @@ struct GoReflectField {
 #[derive(Debug, Clone, Default)]
 struct GoReflectType {
     name: Arc<Mutex<Option<String>>>,
+    kind: Arc<Mutex<Option<reflect_Kind>>>,
+    elem: Arc<Mutex<Option<Box<GoReflectType>>>>,
     fields: Arc<Mutex<Option<Vec<GoReflectField>>>>,
 }
 
@@ -4518,9 +4520,28 @@ impl std::fmt::Display for GoReflectType {
     }
 }
 
+impl PartialEq for GoReflectType {
+    fn eq(&self, other: &Self) -> bool {
+        *self.name.lock().unwrap() == *other.name.lock().unwrap() &&
+            *self.kind.lock().unwrap() == *other.kind.lock().unwrap()
+    }
+}
+
+impl Eq for GoReflectType {}
+
 impl GoReflectType {
     fn string(&self) -> Arc<Mutex<Option<String>>> {
         Arc::new(Mutex::new(Some((*self.name.lock().unwrap().as_ref().unwrap()).clone())))
+    }
+
+    fn kind(&self) -> Arc<Mutex<Option<reflect_Kind>>> {
+        self.kind.clone()
+    }
+
+    fn elem(&self) -> Arc<Mutex<Option<GoReflectType>>> {
+        let elem_guard = self.elem.lock().unwrap();
+        let elem = elem_guard.as_ref().expect("reflect.Type.Elem requires an element type").as_ref().clone();
+        Arc::new(Mutex::new(Some(elem)))
     }
 
     fn num_field(&self) -> i32 {
@@ -4542,29 +4563,51 @@ struct GoReflectValue {
     fields: Arc<Mutex<Option<Vec<GoReflectValue>>>>,
     bool_getter: Arc<Mutex<Option<GoReflectBoolGetter>>>,
     bool_setter: Arc<Mutex<Option<GoReflectBoolSetter>>>,
+    unsupported: Option<&'static str>,
 }
 
 impl GoReflectValue {
+    fn panic_if_unsupported(&self, op: &str) {
+        if let Some(message) = self.unsupported {
+            panic!("{}: {}", op, message);
+        }
+    }
+
     fn elem(&self) -> Arc<Mutex<Option<GoReflectValue>>> {
+        self.panic_if_unsupported("reflect.Value.Elem");
         Arc::new(Mutex::new(Some(self.clone())))
     }
 
     fn r#type(&self) -> Arc<Mutex<Option<GoReflectType>>> {
+        self.panic_if_unsupported("reflect.Value.Type");
         self.typ.clone()
     }
 
+    fn kind(&self) -> Arc<Mutex<Option<reflect_Kind>>> {
+        self.panic_if_unsupported("reflect.Value.Kind");
+        self.typ.lock().unwrap().as_ref().unwrap().kind()
+    }
+
     fn field(&self, index: i32) -> Arc<Mutex<Option<GoReflectValue>>> {
+        self.panic_if_unsupported("reflect.Value.Field");
         let index = index as usize;
         Arc::new(Mutex::new(Some(self.fields.lock().unwrap().as_ref().unwrap()[index].clone())))
     }
 
+    fn set<T>(&self, _value: T) {
+        self.panic_if_unsupported("reflect.Value.Set");
+        panic!("reflect.Value.Set requires typed lowering")
+    }
+
     fn set_bool(&mut self, value: Arc<Mutex<Option<bool>>>) {
+        self.panic_if_unsupported("reflect.Value.SetBool");
         let mut setter_guard = self.bool_setter.lock().unwrap();
         let setter = setter_guard.as_mut().expect("reflect.Value.SetBool requires a settable bool field");
         setter(value);
     }
 
     fn bool(&self) -> bool {
+        self.panic_if_unsupported("reflect.Value.Bool");
         let getter_guard = self.bool_getter.lock().unwrap();
         let getter = getter_guard.as_ref().expect("reflect.Value.Bool requires a bool field");
         getter()
@@ -4622,6 +4665,8 @@ struct GoReflectField {
 #[derive(Debug, Clone, Default)]
 struct GoReflectType {
     name: Rc<RefCell<Option<String>>>,
+    kind: Rc<RefCell<Option<reflect_Kind>>>,
+    elem: Rc<RefCell<Option<Box<GoReflectType>>>>,
     fields: Rc<RefCell<Option<Vec<GoReflectField>>>>,
 }
 
@@ -4631,9 +4676,28 @@ impl std::fmt::Display for GoReflectType {
     }
 }
 
+impl PartialEq for GoReflectType {
+    fn eq(&self, other: &Self) -> bool {
+        *self.name.borrow() == *other.name.borrow() &&
+            *self.kind.borrow() == *other.kind.borrow()
+    }
+}
+
+impl Eq for GoReflectType {}
+
 impl GoReflectType {
     fn string(&self) -> Rc<RefCell<Option<String>>> {
         Rc::new(RefCell::new(Some((*self.name.borrow().as_ref().unwrap()).clone())))
+    }
+
+    fn kind(&self) -> Rc<RefCell<Option<reflect_Kind>>> {
+        self.kind.clone()
+    }
+
+    fn elem(&self) -> Rc<RefCell<Option<GoReflectType>>> {
+        let elem_guard = self.elem.borrow();
+        let elem = elem_guard.as_ref().expect("reflect.Type.Elem requires an element type").as_ref().clone();
+        Rc::new(RefCell::new(Some(elem)))
     }
 
     fn num_field(&self) -> i32 {
@@ -4655,29 +4719,51 @@ struct GoReflectValue {
     fields: Rc<RefCell<Option<Vec<GoReflectValue>>>>,
     bool_getter: Rc<RefCell<Option<GoReflectBoolGetter>>>,
     bool_setter: Rc<RefCell<Option<GoReflectBoolSetter>>>,
+    unsupported: Option<&'static str>,
 }
 
 impl GoReflectValue {
+    fn panic_if_unsupported(&self, op: &str) {
+        if let Some(message) = self.unsupported {
+            panic!("{}: {}", op, message);
+        }
+    }
+
     fn elem(&self) -> Rc<RefCell<Option<GoReflectValue>>> {
+        self.panic_if_unsupported("reflect.Value.Elem");
         Rc::new(RefCell::new(Some(self.clone())))
     }
 
     fn r#type(&self) -> Rc<RefCell<Option<GoReflectType>>> {
+        self.panic_if_unsupported("reflect.Value.Type");
         self.typ.clone()
     }
 
+    fn kind(&self) -> Rc<RefCell<Option<reflect_Kind>>> {
+        self.panic_if_unsupported("reflect.Value.Kind");
+        self.typ.borrow().as_ref().unwrap().kind()
+    }
+
     fn field(&self, index: i32) -> Rc<RefCell<Option<GoReflectValue>>> {
+        self.panic_if_unsupported("reflect.Value.Field");
         let index = index as usize;
         Rc::new(RefCell::new(Some(self.fields.borrow().as_ref().unwrap()[index].clone())))
     }
 
+    fn set<T>(&self, _value: T) {
+        self.panic_if_unsupported("reflect.Value.Set");
+        panic!("reflect.Value.Set requires typed lowering")
+    }
+
     fn set_bool(&mut self, value: Rc<RefCell<Option<bool>>>) {
+        self.panic_if_unsupported("reflect.Value.SetBool");
         let mut setter_guard = self.bool_setter.borrow_mut();
         let setter = setter_guard.as_mut().expect("reflect.Value.SetBool requires a settable bool field");
         setter(value);
     }
 
     fn bool(&self) -> bool {
+        self.panic_if_unsupported("reflect.Value.Bool");
         let getter_guard = self.bool_getter.borrow();
         let getter = getter_guard.as_ref().expect("reflect.Value.Bool requires a bool field");
         getter()

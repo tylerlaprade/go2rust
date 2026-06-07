@@ -758,8 +758,8 @@ func plain(x Text) string {
 	if strings.Contains(rust, "}).borrow()") || strings.Contains(rust, "}).lock()") {
 		t.Fatalf("string conversion from named string assertion should not borrow the bare assertion result:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".to_string()") {
-		t.Fatalf("string conversion from named string assertion should stringify the bare value:\n%s", rust)
+	if !strings.Contains(rust, ".0") || !strings.Contains(rust, ".as_ref().unwrap()).clone()") {
+		t.Fatalf("string conversion from named string assertion should clone the stored string:\n%s", rust)
 	}
 }
 
@@ -4168,7 +4168,7 @@ func tagString(field StructField) string {
 	if strings.Contains(rust, ".clone().lock()") || strings.Contains(rust, ".clone().borrow()") {
 		t.Fatalf("string conversion from a named string selector should borrow the field handle, not lock the cloned value:\n%s", rust)
 	}
-	if !strings.Contains(rust, ".tag") || !strings.Contains(rust, ".to_string()") {
+	if !strings.Contains(rust, ".tag") || !strings.Contains(rust, ".0") || !strings.Contains(rust, ".as_ref().unwrap()).clone()") {
 		t.Fatalf("string conversion from a named string selector should emit a field string conversion:\n%s", rust)
 	}
 }
@@ -4404,6 +4404,25 @@ func box() any {
 	}
 	if !strings.Contains(rust, `go_register_any_type_with_elem::<P>("pointer", true, "struct", true)`) {
 		t.Fatalf("named pointer nil conversion boxed as any should register Go pointer metadata:\n%s", rust)
+	}
+}
+
+func TestNamedScalarPointerConversionPreservesSourceHandle(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type stringValue string
+
+func newStringValue(val string, p *string) *stringValue {
+	*p = val
+	return (*stringValue)(p)
+}
+`)
+
+	if strings.Contains(rust, "stringValue::default()") {
+		t.Fatalf("named scalar pointer conversion should not default the target pointee:\n%s", rust)
+	}
+	if !strings.Contains(rust, "stringValue(p.clone())") {
+		t.Fatalf("named scalar pointer conversion should wrap the source pointer handle:\n%s", rust)
 	}
 }
 

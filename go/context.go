@@ -1173,6 +1173,7 @@ func NeedReflect() {
 	if helpers := activeHelperTracker(); helpers != nil {
 		helpers.needsReflect = true
 	}
+	RegisterExternalIntegerTypeStub("reflect_Kind", "u64")
 }
 
 // NeedGoHttpResponse marks that we need minimal HTTP response/body helpers.

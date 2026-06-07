@@ -2443,6 +2443,10 @@ run_xfail_test() {
     run_test "tests/source_stdlib_bytes_buffer_basic"
 }
 
+@test "source_stdlib_flag_parsing" {
+    run_test "tests/source_stdlib_flag_parsing"
+}
+
 @test "source_stdlib_go_ast_manual_decl_cross_package" {
     run_test "tests/source_stdlib_go_ast_manual_decl_cross_package"
 }
@@ -3053,10 +3057,6 @@ run_xfail_test() {
 
 @test "XFAIL: parallel_assign_receiver_value_field_swap" {
     run_xfail_test "tests/XFAIL/parallel_assign_receiver_value_field_swap"
-}
-
-@test "XFAIL: source_stdlib_flag_parsing" {
-    run_xfail_test "tests/XFAIL/source_stdlib_flag_parsing"
 }
 
 @test "XFAIL: stateful_goroutines" {
