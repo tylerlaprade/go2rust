@@ -4225,7 +4225,7 @@ pub fn is_zero_value(flag: Arc<Mutex<Option<Flag>>>, value: Arc<Mutex<Option<Str
         let guard = val.lock().unwrap();
         if let Some(ref any_val) = *guard {
             if let Some(typed_val) = any_val.downcast_ref::<boolFuncValue>() {
-                Arc::new(Mutex::new(Some(Box::new(typed_val.clone()) as Box<dyn Value + Send + Sync>)))
+                Arc::new(Mutex::new(Some(Box::new(boolFuncValueAsValue(typed_val.clone())) as Box<dyn Value + Send + Sync>)))
             } else if let Some(typed_val) = any_val.downcast_ref::<boolValuePtr>() {
                 Arc::new(Mutex::new(Some(Box::new(typed_val.clone()) as Box<dyn Value + Send + Sync>)))
             } else if let Some(typed_val) = any_val.downcast_ref::<durationValuePtr>() {
@@ -4233,7 +4233,7 @@ pub fn is_zero_value(flag: Arc<Mutex<Option<Flag>>>, value: Arc<Mutex<Option<Str
             } else if let Some(typed_val) = any_val.downcast_ref::<float64ValuePtr>() {
                 Arc::new(Mutex::new(Some(Box::new(typed_val.clone()) as Box<dyn Value + Send + Sync>)))
             } else if let Some(typed_val) = any_val.downcast_ref::<funcValue>() {
-                Arc::new(Mutex::new(Some(Box::new(typed_val.clone()) as Box<dyn Value + Send + Sync>)))
+                Arc::new(Mutex::new(Some(Box::new(funcValueAsValue(typed_val.clone())) as Box<dyn Value + Send + Sync>)))
             } else if let Some(typed_val) = any_val.downcast_ref::<int64ValuePtr>() {
                 Arc::new(Mutex::new(Some(Box::new(typed_val.clone()) as Box<dyn Value + Send + Sync>)))
             } else if let Some(typed_val) = any_val.downcast_ref::<intValuePtr>() {

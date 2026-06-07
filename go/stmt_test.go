@@ -8090,6 +8090,11 @@ func use(f flag) bool {
 	v, ok := f.value.(boolFlag)
 	return ok && v.IsBoolFlag()
 }
+
+func useAny(x any) string {
+	v := x.(value)
+	return v.String()
+}
 `)
 
 	if strings.Contains(rust, "Box::new(typed_val.clone()) as Box<dyn boolFlag") {
@@ -8097,6 +8102,12 @@ func use(f flag) bool {
 	}
 	if !strings.Contains(rust, "Box::new(boolFuncValueAsboolFlag(typed_val.clone())) as Box<dyn boolFlag") {
 		t.Fatalf("function type assertion should box the generated target-interface adapter:\n%s", rust)
+	}
+	if strings.Contains(rust, "Box::new(typed_val.clone()) as Box<dyn value") {
+		t.Fatalf("function type assertion should not box the raw function handle as the base interface:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(boolFuncValueAsvalue(typed_val.clone())) as Box<dyn value") {
+		t.Fatalf("function type assertion should box the generated base-interface adapter:\n%s", rust)
 	}
 	if !strings.Contains(rust, "fn __go_as_any(&self) -> &dyn std::any::Any {\n        &self.0\n    }") {
 		t.Fatalf("function type interface adapter should expose the original function value as the Go dynamic type:\n%s", rust)

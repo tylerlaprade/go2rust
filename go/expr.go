@@ -17786,7 +17786,7 @@ func writeLocalInterfaceAssertionValue(out *strings.Builder, e *ast.TypeAssertEx
 		writeLocalInterfaceAssertionDowncast(out, sourceTrait, candidate.rustType)
 		out.WriteString(" {\n")
 		out.WriteString("                ")
-		writeLocalInterfaceAssertionWrappedSuccess(out, ifaceName)
+		writeLocalInterfaceAssertionWrappedCandidateSuccess(out, ifaceName, candidate)
 		out.WriteString("\n")
 		out.WriteString("            }")
 	}
