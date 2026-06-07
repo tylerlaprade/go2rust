@@ -1963,7 +1963,7 @@ pub fn persistentalloc1(size: Arc<Mutex<Option<usize>>>, mut align: Arc<Mutex<Op
     let mut mp = acquirem();
     let mut persistent: Arc<Mutex<Option<persistentAlloc>>> = Arc::new(Mutex::new(None));
     if { let __nil_result = (*mp.lock().unwrap()).is_some(); __nil_result } && { let __tmp_x = { let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
-        { let new_val = (*crate::runtime2::puintptr::ptr(&(*(*mp.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()).palloc.clone().clone(); persistent = new_val; };
+        { let new_val = { let __ptr = crate::runtime2::puintptr::ptr(&(*(*mp.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().palloc.clone() }.clone().clone(); persistent = new_val; };
     } else {
         lock(GoPtr::local((*globalAlloc.lock().unwrap().as_ref().unwrap()).mutex.clone()));
         { let new_val = (*globalAlloc.lock().unwrap().as_ref().unwrap()).persistent_alloc.clone().clone(); persistent = new_val; };

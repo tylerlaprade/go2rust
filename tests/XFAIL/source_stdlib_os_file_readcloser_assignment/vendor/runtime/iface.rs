@@ -1623,11 +1623,11 @@ fn __go_init_globals() {
     *uint64Eface.lock().unwrap() = Some(Box::new(uint64InterfacePtr(Arc::new(Mutex::new(Some(0 as u64))))) as Box<dyn Any + Send + Sync>);
     *stringEface.lock().unwrap() = Some(Box::new(stringInterfacePtr(Arc::new(Mutex::new(Some("".to_string()))))) as Box<dyn Any + Send + Sync>);
     *sliceEface.lock().unwrap() = Some(Box::new(sliceInterfacePtr(Arc::new(Mutex::new(None::<Vec<u8>>)))) as Box<dyn Any + Send + Sync>);
-    *uint16Type.lock().unwrap() = Some({ let __field = (*eface_of(uint16Eface.clone()).lock().unwrap().as_ref().unwrap())._type.clone(); __field });
-    *uint32Type.lock().unwrap() = Some({ let __field = (*eface_of(uint32Eface.clone()).lock().unwrap().as_ref().unwrap())._type.clone(); __field });
-    *uint64Type.lock().unwrap() = Some({ let __field = (*eface_of(uint64Eface.clone()).lock().unwrap().as_ref().unwrap())._type.clone(); __field });
-    *stringType.lock().unwrap() = Some({ let __field = (*eface_of(stringEface.clone()).lock().unwrap().as_ref().unwrap())._type.clone(); __field });
-    *sliceType.lock().unwrap() = Some({ let __field = (*eface_of(sliceEface.clone()).lock().unwrap().as_ref().unwrap())._type.clone(); __field });
+    *uint16Type.lock().unwrap() = Some({ let __field = { let __ptr = eface_of(uint16Eface.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap()._type.clone() }.clone(); __field });
+    *uint32Type.lock().unwrap() = Some({ let __field = { let __ptr = eface_of(uint32Eface.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap()._type.clone() }.clone(); __field });
+    *uint64Type.lock().unwrap() = Some({ let __field = { let __ptr = eface_of(uint64Eface.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap()._type.clone() }.clone(); __field });
+    *stringType.lock().unwrap() = Some({ let __field = { let __ptr = eface_of(stringEface.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap()._type.clone() }.clone(); __field });
+    *sliceType.lock().unwrap() = Some({ let __field = { let __ptr = eface_of(sliceEface.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap()._type.clone() }.clone(); __field });
     *emptyTypeAssertCache.lock().unwrap() = Some(internal_abi::switch::TypeAssertCache { mask: Arc::new(Mutex::new(Some(0 as usize))), ..Default::default() });
     *emptyInterfaceSwitchCache.lock().unwrap() = Some(internal_abi::switch::InterfaceSwitchCache { mask: Arc::new(Mutex::new(Some(0 as usize))), ..Default::default() });
 }
@@ -1689,27 +1689,27 @@ pub(crate) fn __go_init_order_13() {
 
 
 pub(crate) fn __go_init_order_14() {
-    *uint16Type.lock().unwrap() = Some({ let __field = (*eface_of(uint16Eface.clone()).lock().unwrap().as_ref().unwrap())._type.clone(); __field });
+    *uint16Type.lock().unwrap() = Some({ let __field = { let __ptr = eface_of(uint16Eface.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap()._type.clone() }.clone(); __field });
 }
 
 
 pub(crate) fn __go_init_order_15() {
-    *uint32Type.lock().unwrap() = Some({ let __field = (*eface_of(uint32Eface.clone()).lock().unwrap().as_ref().unwrap())._type.clone(); __field });
+    *uint32Type.lock().unwrap() = Some({ let __field = { let __ptr = eface_of(uint32Eface.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap()._type.clone() }.clone(); __field });
 }
 
 
 pub(crate) fn __go_init_order_16() {
-    *uint64Type.lock().unwrap() = Some({ let __field = (*eface_of(uint64Eface.clone()).lock().unwrap().as_ref().unwrap())._type.clone(); __field });
+    *uint64Type.lock().unwrap() = Some({ let __field = { let __ptr = eface_of(uint64Eface.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap()._type.clone() }.clone(); __field });
 }
 
 
 pub(crate) fn __go_init_order_17() {
-    *stringType.lock().unwrap() = Some({ let __field = (*eface_of(stringEface.clone()).lock().unwrap().as_ref().unwrap())._type.clone(); __field });
+    *stringType.lock().unwrap() = Some({ let __field = { let __ptr = eface_of(stringEface.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap()._type.clone() }.clone(); __field });
 }
 
 
 pub(crate) fn __go_init_order_18() {
-    *sliceType.lock().unwrap() = Some({ let __field = (*eface_of(sliceEface.clone()).lock().unwrap().as_ref().unwrap())._type.clone(); __field });
+    *sliceType.lock().unwrap() = Some({ let __field = { let __ptr = eface_of(sliceEface.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap()._type.clone() }.clone(); __field });
 }
 
 

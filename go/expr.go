@@ -11614,6 +11614,9 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			if base, ok := e.X.(*ast.SelectorExpr); ok && writeSliceElemPtrFieldPointeeSelector(out, base, fieldInfo, e, ctx) {
 				break
 			}
+			if writeGoPtrExpressionFieldSelector(out, e.X, fieldInfo, e, ctx) {
+				break
+			}
 
 			if fieldInfo.IsPromoted {
 				// Accessing promoted field through embedded struct(s)

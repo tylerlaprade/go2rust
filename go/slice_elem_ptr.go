@@ -5721,6 +5721,50 @@ func writeGoPtrLocalFieldSelector(out *strings.Builder, ident *ast.Ident, fieldI
 	return true
 }
 
+func writeGoPtrExpressionFieldSelector(out *strings.Builder, base ast.Expr, fieldInfo FieldAccessInfo, sel *ast.SelectorExpr, ctx ExprContext) bool {
+	if !goPtrExpressionReturnsHandle(base) {
+		return false
+	}
+	if ctx == LValue || ctx == AddressOf {
+		writeGoPtrExpressionFieldHandle(out, base, fieldInfo)
+		return true
+	}
+	if typeInfoIsPointerExpr(sel) || selectorExpressionKeepsHandle(sel) {
+		writeGoPtrExpressionFieldHandle(out, base, fieldInfo)
+		return true
+	}
+	out.WriteString("(*")
+	writeGoPtrExpressionFieldHandle(out, base, fieldInfo)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()")
+	writeSelectorRValueClose(out, sel)
+	return true
+}
+
+func goPtrExpressionReturnsHandle(expr ast.Expr) bool {
+	call, ok := unwrapParens(expr).(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	_, ok = goPtrResultInfoForCall(call, 0)
+	return ok
+}
+
+func writeGoPtrExpressionFieldHandle(out *strings.Builder, base ast.Expr, fieldInfo FieldAccessInfo) {
+	out.WriteString("{ let __ptr = ")
+	TranspileExpression(out, base)
+	out.WriteString("; let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap()")
+	for _, embedded := range fieldInfo.EmbeddedPath {
+		out.WriteString(".")
+		out.WriteString(ToSnakeCase(embedded))
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap()")
+	}
+	out.WriteString(".")
+	out.WriteString(fieldInfo.FieldName)
+	out.WriteString(".clone() }")
+}
+
 func writeGoPtrCurrentReceiverFieldSelector(out *strings.Builder, fieldInfo FieldAccessInfo, sel *ast.SelectorExpr, ctx ExprContext) bool {
 	if !currentReceiverRustAliasIsGoPtr {
 		return false

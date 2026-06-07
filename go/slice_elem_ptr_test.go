@@ -1307,6 +1307,52 @@ func forceConcurrent(ch chan bool) {
 	}
 }
 
+func TestGoPtrCallResultFieldMethodCallBorrowsThroughGoPtr(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type counter struct {
+	value int
+}
+
+func (c *counter) get() int {
+	return c.value
+}
+
+type p struct {
+	counter counter
+}
+
+var sink p
+
+func getp() *p {
+	return (*p)(unsafe.Pointer(&sink))
+}
+
+func read() int {
+	return getp().counter.get()
+}
+
+func forceConcurrent(ch chan bool) {
+	go func() {
+		ch <- true
+	}()
+}
+`)
+
+	if !strings.Contains(rust, "pub fn getp() -> GoPtr<p>") {
+		t.Fatalf("unsafe pointer result should use GoPtr result type:\n%s", rust)
+	}
+	if strings.Contains(rust, "getp().lock().unwrap().as_ref().unwrap()).counter") ||
+		strings.Contains(rust, "getp().borrow().as_ref().unwrap()).counter") {
+		t.Fatalf("field method call on GoPtr call result should not use wrapper borrows directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __ptr = getp(); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().counter.clone()") {
+		t.Fatalf("field method call on GoPtr call result should borrow through GoPtr before selecting the field:\n%s", rust)
+	}
+}
+
 func TestGoPtrCallResultNamedScalarValueMethodBorrowsThroughGoPtr(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

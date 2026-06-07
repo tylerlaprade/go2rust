@@ -1768,7 +1768,7 @@ impl timer {
                 // Note: t.arg is a chan time.Time,
                 // and runtime cannot refer to that type,
                 // so we cannot use a type assertion.
-        GoPtr::raw({ let __ptr = (*eface_of(self.arg.clone()).lock().unwrap().as_ref().unwrap()).data.clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) })
+        GoPtr::raw({ let __ptr = { let __ptr = eface_of(self.arg.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().data.clone() }.clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) })
     }
 
     /// updateHeap updates t as directed by t.state, updating t.state
@@ -2032,7 +2032,7 @@ impl timer {
     }
         { let new_val = (*sg.lock().unwrap().as_ref().unwrap()).timers.clone().clone(); ts = new_val; };
     } else {
-        { let new_val = (*crate::runtime2::puintptr::ptr(&(*(*mp.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()).timers.clone().clone(); ts = new_val; };
+        { let new_val = { let __ptr = crate::runtime2::puintptr::ptr(&(*(*mp.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().timers.clone() }.clone().clone(); ts = new_val; };
     }
         { let __recv = ts.clone(); let __recv_ptr: *mut timers = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut timers }; let __result = unsafe { &mut *__recv_ptr }.lock(); __result };
         { let __recv = ts.clone(); let __recv_ptr: *mut timers = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut timers }; let __result = unsafe { &mut *__recv_ptr }.clean_head(); __result };
@@ -2078,7 +2078,7 @@ impl timer {
                 // Note that we are running on a system stack,
                 // so there is no chance of getg().m being reassigned
                 // out from under us while this function executes.
-        let mut tsLocal = (*crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()).timers.clone();
+        let mut tsLocal = { let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().timers.clone() }.clone();
         if { let __tmp_x = (*{ let __field = (*tsLocal.lock().unwrap().as_ref().unwrap()).race_ctx.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
         { let new_val = racegostart(Arc::new(Mutex::new(Some({ let __tmp_x = internal_abi::func_p_c_a_b_i_internal(Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<timers>>>, __arg1: Arc<Mutex<Option<i64>>>| -> i64 { { let __recv = __arg0.clone(); let __recv_ptr: *mut timers = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut timers }; let __result = unsafe { &mut *__recv_ptr }.run(__arg1); __result } }) as Box<dyn FnMut(Arc<Mutex<Option<timers>>>, Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>))).clone()) as Box<dyn Any + Send + Sync>)))); let __tmp_y = internal_runtime_sys::P_C_QUANTUM as usize; __tmp_x + __tmp_y })))); *(*tsLocal.lock().unwrap().as_ref().unwrap()).race_ctx.lock().unwrap() = Some(new_val); };
     }
@@ -2131,7 +2131,7 @@ impl timer {
         if { let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).racectx.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
         throw(Arc::new(Mutex::new(Some("unexpected racectx".to_string()))));
     }
-        { let new_val = { let __selector_holder = (*(*crate::runtime2::puintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()).timers.lock().unwrap().as_ref().unwrap()).race_ctx.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *(*gp.lock().unwrap().as_ref().unwrap()).racectx.lock().unwrap() = Some(new_val); };
+        { let new_val = { let __selector_holder = (*{ let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().timers.clone() }.lock().unwrap().as_ref().unwrap()).race_ctx.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *(*gp.lock().unwrap().as_ref().unwrap()).racectx.lock().unwrap() = Some(new_val); };
     }
                 // Temporarily use the current P's racectx for g0.
         if { let __nil_result = (*ts.lock().unwrap()).is_some(); __nil_result } {
@@ -2608,7 +2608,7 @@ impl timers {
         if { let __tmp_x = zombies; let __tmp_y = 0 as i32; __tmp_x < __tmp_y } {
         bad_timer();
     }
-        let mut force = Arc::new(Mutex::new(Some({ let __peer = (*crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()).timers.clone(); let __peer_guard = __peer.lock().unwrap(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); __eq } && { let __tmp_x = (*Arc::new(Mutex::new(Some(zombies as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*self.len.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 4; __tmp_x / __tmp_y }; __tmp_x > __tmp_y })));
+        let mut force = Arc::new(Mutex::new(Some({ let __peer = { let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().timers.clone() }.clone(); let __peer_guard = __peer.lock().unwrap(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); __eq } && { let __tmp_x = (*Arc::new(Mutex::new(Some(zombies as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*self.len.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 4; __tmp_x / __tmp_y }; __tmp_x > __tmp_y })));
         if { let __tmp_x = { let __v = (*now.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = next; __tmp_x < __tmp_y } && !{ let __v = (*force.lock().unwrap().as_ref().unwrap()).clone(); __v } {
                 // Next timer is not ready to run, and we don't need to clear deleted timers.
         return ({ let __v = (*now.lock().unwrap().as_ref().unwrap()).clone(); __v }, next, false);
@@ -2636,7 +2636,7 @@ impl timers {
                 // is significantly faster under contention, such as in
                 // package time's BenchmarkTimerAdjust10000,
                 // though we do not fully understand why.
-        { let new_val = { let __peer = (*crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()).timers.clone(); let __peer_guard = __peer.lock().unwrap(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); __eq } && { let __tmp_x = (*Arc::new(Mutex::new(Some((*self.zombies.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*self.len.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 4; __tmp_x / __tmp_y }; __tmp_x > __tmp_y }; *force.lock().unwrap() = Some(new_val); };
+        { let new_val = { let __peer = { let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().timers.clone() }.clone(); let __peer_guard = __peer.lock().unwrap(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); __eq } && { let __tmp_x = (*Arc::new(Mutex::new(Some((*self.zombies.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*self.len.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 4; __tmp_x / __tmp_y }; __tmp_x > __tmp_y }; *force.lock().unwrap() = Some(new_val); };
         if { let __v = (*force.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         self.adjust(Arc::new(Mutex::new(Some({ let __arg_holder = now.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(true))));
     }

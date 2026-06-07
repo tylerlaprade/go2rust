@@ -4780,7 +4780,7 @@ pub fn addfinalizer(p: Arc<Mutex<Option<usize>>>, f: Arc<Mutex<Option<funcval>>>
         if { let __tmp_x = (*gcphase.lock().unwrap().as_ref().unwrap()); let __tmp_y = __G_COFF as u32; __tmp_x != __tmp_y } {
         let (mut base, mut span, _) = find_object(Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some(0 as usize))), Arc::new(Mutex::new(Some(0 as usize))));
         let mut mp = acquirem();
-        let mut gcw = (*crate::runtime2::puintptr::ptr(&(*(*mp.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()).gcw.clone();
+        let mut gcw = { let __ptr = crate::runtime2::puintptr::ptr(&(*(*mp.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().gcw.clone() }.clone();
                 // Mark everything reachable from the object
                 // so it's retained for the finalizer.
         if !spanClass::noscan(&(*{ let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.spanclass.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap())) {

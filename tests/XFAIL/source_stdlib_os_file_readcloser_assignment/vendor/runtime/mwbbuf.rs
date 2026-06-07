@@ -1112,7 +1112,7 @@ pub fn wb_buf_flush() {
                 // We're going down. Not much point in write barriers
                 // and this way we can allow write barriers in the
                 // panic path.
-        (*(*crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()).wb_buf.lock().unwrap().as_mut().unwrap()).discard();
+        (*{ let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().wb_buf.clone() }.lock().unwrap().as_mut().unwrap()).discard();
         return;
     }
 

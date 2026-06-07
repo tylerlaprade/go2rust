@@ -1005,7 +1005,7 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
     }
                         // ok - satisfies empty interface
             {
-        let mut itab: GoPtr<internal_abi::iface::ITab> = assert_e2_i2(ityp.clone(), (*eface_of(obj.clone()).lock().unwrap().as_ref().unwrap())._type.clone());;
+        let mut itab: GoPtr<internal_abi::iface::ITab> = assert_e2_i2(ityp.clone(), { let __ptr = eface_of(obj.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap()._type.clone() }.clone());;
         if !itab.is_nil() {
             break 'okarg;;
         }

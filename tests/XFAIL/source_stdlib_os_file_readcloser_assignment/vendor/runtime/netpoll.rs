@@ -1477,7 +1477,7 @@ fn __go_init_globals() {
     *pdEface.lock().unwrap() = None;
     *pdType.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
     *pdEface.lock().unwrap() = Some({ let __boxed = Box::new(Arc::new(Mutex::new(None::<pollDesc>))) as Box<dyn Any + Send + Sync>; go_register_any_type_with_elem::<Arc<Mutex<Option<pollDesc>>>>("pointer", true, "struct", false); __boxed });
-    *pdType.lock().unwrap() = Some({ let __field = (*eface_of(pdEface.clone()).lock().unwrap().as_ref().unwrap())._type.clone(); __field });
+    *pdType.lock().unwrap() = Some({ let __field = { let __ptr = eface_of(pdEface.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap()._type.clone() }.clone(); __field });
 }
 
 
@@ -1497,7 +1497,7 @@ pub(crate) fn __go_init_order_38() {
 
 
 pub(crate) fn __go_init_order_39() {
-    *pdType.lock().unwrap() = Some({ let __field = (*eface_of(pdEface.clone()).lock().unwrap().as_ref().unwrap())._type.clone(); __field });
+    *pdType.lock().unwrap() = Some({ let __field = { let __ptr = eface_of(pdEface.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap()._type.clone() }.clone(); __field });
 }
 
 

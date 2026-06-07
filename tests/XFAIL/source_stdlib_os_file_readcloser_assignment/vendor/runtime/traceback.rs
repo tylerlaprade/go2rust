@@ -2744,7 +2744,7 @@ impl unwinder {
     }
                 // We don't have a cgo unwinder (typical case), or we do but we're not
                 // in a cgo frame or we're out of cgo context.
-        let mut ctxt = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*crate::runtime2::guintptr::ptr(&(*self.g.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()).cgo_ctxt.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(*self.cgo_ctxt.clone().lock().unwrap().as_ref().unwrap()) as usize].clone() })));
+        let mut ctxt = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = { let __ptr = crate::runtime2::guintptr::ptr(&(*self.g.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().cgo_ctxt.clone() }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(*self.cgo_ctxt.clone().lock().unwrap().as_ref().unwrap()) as usize].clone() })));
         { let __target = self.cgo_ctxt.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
         cgo_context_p_cs(Arc::new(Mutex::new(Some({ let __arg_holder = ctxt.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), pcBuf.clone());
         { let __range_holder = pcBuf.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, pc) in __range_values.iter().copied().enumerate() {

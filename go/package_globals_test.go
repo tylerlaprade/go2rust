@@ -282,6 +282,8 @@ var Tables = map[string]*RangeTable{"C": C}
 func TestPackageGlobalPointerInitFromSelectorCopiesHandle(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 
+import "unsafe"
+
 type Type struct{}
 
 type eface struct {
@@ -291,7 +293,7 @@ type eface struct {
 var sink any
 
 func efaceOf(ep *any) *eface {
-	return (*eface)(nil)
+	return (*eface)(unsafe.Pointer(ep))
 }
 
 var typ *Type = efaceOf(&sink).typ
@@ -302,11 +304,16 @@ func main() {
 `)
 
 	if strings.Contains(rust, ".typ.lock().unwrap().as_ref().unwrap()") ||
-		strings.Contains(rust, "Some((*(*eface_of(") {
+		strings.Contains(rust, "Some((*(*eface_of(") ||
+		strings.Contains(rust, "eface_of(sink.clone()).lock().unwrap().as_ref().unwrap()") ||
+		strings.Contains(rust, "eface_of(sink.clone()).borrow().as_ref().unwrap()") {
 		t.Fatalf("package-global pointer initializer should not unwrap the selected pointer pointee:\n%s", rust)
 	}
 	if !strings.Contains(rust, ".typ.clone()") {
 		t.Fatalf("package-global pointer initializer should clone the selected pointer handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __ptr = eface_of(sink.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().typ.clone()") {
+		t.Fatalf("package-global pointer initializer should borrow GoPtr call result before selecting the field:\n%s", rust)
 	}
 }
 

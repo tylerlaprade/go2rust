@@ -2475,7 +2475,7 @@ pub fn gc_mark_termination(stw: Arc<Mutex<Option<worldStop>>>) {
         if { let __tmp_x = (*{ let __field = (*debug.lock().unwrap().as_ref().unwrap()).gccheckmark.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x > __tmp_y } {
         start_checkmarks();
         gc_reset_mark_state();
-        let mut gcw = (*crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()).gcw.clone();
+        let mut gcw = { let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().gcw.clone() }.clone();
         gc_drain(gcw.clone(), Arc::new(Mutex::new(Some(crate::mgcmark::gcDrainFlags(Arc::new(Mutex::new(Some(0 as i32))))))));
         wb_buf_flush1(crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())));
         { let __recv = gcw.clone(); let __recv_ptr: *mut crate::mgcwork::gcWork = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::mgcwork::gcWork }; let __result = unsafe { &mut *__recv_ptr }.dispose(); __result };

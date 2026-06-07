@@ -1187,7 +1187,7 @@ pub fn bulk_barrier_pre_write(dst: Arc<Mutex<Option<usize>>>, src: Arc<Mutex<Opt
         // another stack. Either way, no need for barriers.
         // This will also catch if dst is in a freed span,
         // though that should never have.
-    let mut buf_local = (*crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()).wb_buf.clone();
+    let mut buf_local = { let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().wb_buf.clone() }.clone();
 
         // Double-check that the bitmaps generated in the two possible paths match.
     const doubleCheck: bool = false;
@@ -1645,7 +1645,7 @@ pub fn bulk_barrier_bitmap(dst: Arc<Mutex<Option<usize>>>, src: Arc<Mutex<Option
     bits = addb(bits.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*word.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y }))));
     let mut mask = Arc::new(Mutex::new(Some({ let __tmp_x = (1 as u8); let __tmp_y = ({ let __tmp_x = { let __v = (*word.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x % __tmp_y }); __tmp_x << __tmp_y })));
 
-    let mut buf_local = (*crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()).wb_buf.clone();
+    let mut buf_local = { let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().wb_buf.clone() }.clone();
     let mut i = Arc::new(Mutex::new(Some(0 as usize)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
         if { let __tmp_x = { let __v = (*mask.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u8; __tmp_x == __tmp_y } {
@@ -1702,7 +1702,7 @@ pub fn type_bits_bulk_barrier(typ: Arc<Mutex<Option<internal_abi::r#type::Type>>
         return;
     }
     let mut ptrmask: GoPtr<u8> = get_g_c_mask(GoPtr::local(typ.clone()));
-    let mut buf_local = (*crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()).wb_buf.clone();
+    let mut buf_local = { let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().wb_buf.clone() }.clone();
     let mut bits: Arc<Mutex<Option<u32>>> = Arc::new(Mutex::new(Some(0)));
     let mut i = Arc::new(Mutex::new(Some(0 as usize)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*typ.lock().unwrap().as_ref().unwrap()).ptr_bytes.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
