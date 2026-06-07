@@ -2955,6 +2955,10 @@ func (h *heap) alloc() {
 	hintList := &h.arenaHints
 	h.sysAlloc(hintList)
 }
+
+func (h *heap) grow() {
+	h.sysAlloc(&h.arenaHints)
+}
 `)
 
 	if !strings.Contains(rust, "pub arena_hints: GoPtr<arenaHint>") {
@@ -2978,6 +2982,14 @@ func (h *heap) alloc() {
 	}
 	if !strings.Contains(rust, "let mut hintList: GoPtr<GoPtr<arenaHint>> = GoPtr::local(") {
 		t.Fatalf("addressing a GoPtr field should create a local GoPtr slot handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __method_arg0 = GoPtr::local(") &&
+		!strings.Contains(rust, ".sys_alloc(GoPtr::local(") {
+		t.Fatalf("direct method call with addressed GoPtr field should pass a GoPtr slot handle:\n%s", rust)
+	}
+	if strings.Contains(rust, "__method_arg0 = Rc::new(RefCell::new(Some(self.arena_hints.clone())))") ||
+		strings.Contains(rust, "__method_arg0 = Arc::new(Mutex::new(Some(self.arena_hints.clone())))") {
+		t.Fatalf("direct method call with addressed GoPtr field must not pass the old wrapper slot shape:\n%s", rust)
 	}
 	if strings.Contains(rust, "__dst_guard.as_ref().unwrap().borrow_mut()") {
 		t.Fatalf("assignment through a pointer-to-GoPtr slot must not borrow through the old pointer wrapper shape:\n%s", rust)

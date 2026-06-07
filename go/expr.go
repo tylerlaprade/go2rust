@@ -1573,6 +1573,13 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 	if expectedArgType == nil {
 		expectedArgType = expectedTypeFromParamExpr(expectedArgExpr)
 	}
+	if info, ok := goPtrSlotParamGoPtrResultInfoForCall(call, index); ok {
+		if writeGoPtrCallArgumentWithQualifierForInfo(out, arg, info, goPtrHelperQualifierForCall(call)) {
+			return
+		}
+		out.WriteString(`unimplemented!("GoPtr slot parameter argument requires pointer-compatible value")`)
+		return
+	}
 	if info, ok := goPtrParamResultInfoForCall(call, index); ok {
 		if writeGoPtrCallArgumentWithQualifierForInfo(out, arg, info, goPtrHelperQualifierForCall(call)) {
 			return
