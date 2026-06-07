@@ -2087,7 +2087,7 @@ pub struct schedt {
     pub stopnote: Arc<Mutex<Option<note>>>,
     pub sysmonwait: Arc<Mutex<Option<internal_runtime_atomic::types::Bool>>>,
     pub sysmonnote: Arc<Mutex<Option<note>>>,
-    pub safe_point_fn: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<p>>>) -> () + Send + Sync>>>>,
+    pub safe_point_fn: Arc<Mutex<Option<Box<dyn FnMut(GoPtr<p>) -> () + Send + Sync>>>>,
     pub safe_point_wait: Arc<Mutex<Option<i32>>>,
     pub safe_point_note: Arc<Mutex<Option<note>>>,
     pub profilehz: Arc<Mutex<Option<i32>>>,

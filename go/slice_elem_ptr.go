@@ -1009,6 +1009,7 @@ func registerSliceElemPtrReturnsFromFiles(files []*ast.File) {
 	}
 	registerSliceElemPtrSliceParamsFromFiles(files)
 	registerGoPtrParamsFromFiles(files)
+	registerFunctionValueGoPtrParamsFromFiles(files)
 }
 
 func registerSliceElemPtrFactsFromFiles(files []*ast.File) {
@@ -3025,6 +3026,396 @@ func funcLitGoPtrParamInfo(funcLit *ast.FuncLit, paramIndex int) (goPtrResultInf
 	}
 	info, ok := params[paramIndex]
 	return info, ok
+}
+
+func withFuncLitGoPtrParamInfos(funcLit *ast.FuncLit, infos map[int]goPtrResultInfo, emit func()) {
+	if funcLit == nil || len(infos) == 0 || emit == nil {
+		if emit != nil {
+			emit()
+		}
+		return
+	}
+	old := currentFuncLitGoPtrParamInfos
+	next := make(map[*ast.FuncLit]map[int]goPtrResultInfo, len(old)+1)
+	for lit, params := range old {
+		next[lit] = params
+	}
+	merged := make(map[int]goPtrResultInfo)
+	if old != nil {
+		if existing := old[funcLit]; existing != nil {
+			for index, info := range existing {
+				merged[index] = info
+			}
+		}
+	}
+	for index, info := range infos {
+		merged[index] = info
+	}
+	next[funcLit] = merged
+	currentFuncLitGoPtrParamInfos = next
+	defer func() {
+		currentFuncLitGoPtrParamInfos = old
+	}()
+	emit()
+}
+
+func registerFunctionValueGoPtrParamsFromFiles(files []*ast.File) {
+	registerDirectFunctionValueGoPtrParamsFromFiles(files)
+	for propagateFunctionValueGoPtrParamsFromFilesPass(files) {
+	}
+}
+
+func registerDirectFunctionValueGoPtrParamsFromFiles(files []*ast.File) {
+	ctx := GetTranspileContext()
+	typeInfo := GetTypeInfo()
+	if ctx == nil || ctx.Package == nil || typeInfo == nil || typeInfo.info == nil {
+		return
+	}
+	if ctx.Package.FunctionValueGoPtrParamObjs == nil {
+		ctx.Package.FunctionValueGoPtrParamObjs = make(map[types.Object]map[int]goPtrResultInfo)
+	}
+
+	for _, file := range files {
+		if file == nil {
+			continue
+		}
+		for _, decl := range file.Decls {
+			fnDecl, ok := decl.(*ast.FuncDecl)
+			if !ok || fnDecl.Body == nil {
+				continue
+			}
+			currentFn, _ := sliceElemPtrReturnFuncObject(fnDecl)
+			goPtrCandidates := collectGoPtrCandidatesForFunc(fnDecl)
+			ast.Inspect(fnDecl.Body, func(node ast.Node) bool {
+				call, ok := node.(*ast.CallExpr)
+				if !ok {
+					return true
+				}
+				obj, sig, ok := functionValueCallObjectAndSignature(typeInfo, call)
+				if !ok {
+					return true
+				}
+				for i, arg := range call.Args {
+					argElemRustType, ok := goPtrArgElemRustType(arg, currentFn, nil, nil, goPtrCandidates)
+					if !ok {
+						continue
+					}
+					paramInfo, ok := signaturePointerParamGoPtrInfo(sig, i)
+					if !ok || !goPtrResultElemCompatible(goPtrResultInfo{elemRustType: argElemRustType}, paramInfo) {
+						continue
+					}
+					registerFunctionValueGoPtrParamObject(obj, i, paramInfo)
+				}
+				return true
+			})
+		}
+	}
+}
+
+func propagateFunctionValueGoPtrParamsFromFilesPass(files []*ast.File) bool {
+	ctx := GetTranspileContext()
+	typeInfo := GetTypeInfo()
+	if ctx == nil || ctx.Package == nil || typeInfo == nil || typeInfo.info == nil {
+		return false
+	}
+
+	changed := false
+	for _, file := range files {
+		if file == nil {
+			continue
+		}
+		for _, decl := range file.Decls {
+			fnDecl, ok := decl.(*ast.FuncDecl)
+			if !ok || fnDecl.Body == nil {
+				continue
+			}
+			ast.Inspect(fnDecl.Body, func(node ast.Node) bool {
+				switch n := node.(type) {
+				case *ast.CallExpr:
+					if propagateFunctionValueGoPtrParamsFromCall(typeInfo, n) {
+						changed = true
+					}
+				case *ast.AssignStmt:
+					if propagateFunctionValueGoPtrParamsFromAssignment(typeInfo, n) {
+						changed = true
+					}
+				}
+				return true
+			})
+		}
+	}
+	return changed
+}
+
+func functionValueCallObjectAndSignature(typeInfo *TypeInfo, call *ast.CallExpr) (types.Object, *types.Signature, bool) {
+	if call == nil {
+		return nil, nil, false
+	}
+	return functionValueExprObjectAndSignature(typeInfo, call.Fun)
+}
+
+func functionValueExprObjectAndSignature(typeInfo *TypeInfo, expr ast.Expr) (types.Object, *types.Signature, bool) {
+	if typeInfo == nil || typeInfo.info == nil || expr == nil {
+		return nil, nil, false
+	}
+	fun := unwrapParens(expr)
+	var obj types.Object
+	switch e := fun.(type) {
+	case *ast.Ident:
+		obj = typeInfo.GetObject(e)
+		if _, isFunc := obj.(*types.Func); isFunc {
+			return nil, nil, false
+		}
+	case *ast.SelectorExpr:
+		selection := typeInfo.info.Selections[e]
+		if selection == nil || selection.Kind() != types.FieldVal {
+			return nil, nil, false
+		}
+		obj = selection.Obj()
+	default:
+		return nil, nil, false
+	}
+	if obj == nil {
+		return nil, nil, false
+	}
+	sig, ok := signatureFromType(typeInfo.GetType(fun))
+	if !ok || sig == nil {
+		return nil, nil, false
+	}
+	return obj, sig, true
+}
+
+func propagateFunctionValueGoPtrParamsFromCall(typeInfo *TypeInfo, call *ast.CallExpr) bool {
+	callee, ok := callFunctionObjectFromTypeInfo(typeInfo, call)
+	if !ok {
+		return false
+	}
+	sig, ok := signatureFromType(callee.Type())
+	if !ok || sig.Params() == nil {
+		return false
+	}
+	changed := false
+	for i, arg := range call.Args {
+		if i >= sig.Params().Len() {
+			continue
+		}
+		sourceObj := sig.Params().At(i)
+		if propagateFunctionValueGoPtrParamsBetweenObjects(typeInfo, sourceObj, arg) {
+			changed = true
+		}
+	}
+	return changed
+}
+
+func propagateFunctionValueGoPtrParamsFromAssignment(typeInfo *TypeInfo, assign *ast.AssignStmt) bool {
+	if assign == nil {
+		return false
+	}
+	changed := false
+	for i, lhs := range assign.Lhs {
+		if i >= len(assign.Rhs) {
+			break
+		}
+		rhs := assign.Rhs[i]
+		lhsObj, _, lhsOK := functionValueExprObjectAndSignature(typeInfo, lhs)
+		rhsObj, _, rhsOK := functionValueExprObjectAndSignature(typeInfo, rhs)
+		if lhsOK && rhsOK {
+			if propagateFunctionValueGoPtrParamsFromInfos(lhsObj, rhsObj) {
+				changed = true
+			}
+			if propagateFunctionValueGoPtrParamsFromInfos(rhsObj, lhsObj) {
+				changed = true
+			}
+		}
+	}
+	return changed
+}
+
+func propagateFunctionValueGoPtrParamsBetweenObjects(typeInfo *TypeInfo, sourceObj types.Object, targetExpr ast.Expr) bool {
+	targetObj, _, ok := functionValueExprObjectAndSignature(typeInfo, targetExpr)
+	if !ok {
+		return false
+	}
+	return propagateFunctionValueGoPtrParamsFromInfos(sourceObj, targetObj)
+}
+
+func propagateFunctionValueGoPtrParamsFromInfos(sourceObj, targetObj types.Object) bool {
+	sourceInfos, ok := functionValueGoPtrParamInfosForObject(sourceObj)
+	if !ok {
+		return false
+	}
+	_, targetSig, ok := functionValueObjectSignature(targetObj)
+	if !ok {
+		return false
+	}
+	changed := false
+	for index, info := range sourceInfos {
+		paramInfo, ok := signaturePointerParamGoPtrInfo(targetSig, index)
+		if !ok || !goPtrResultElemCompatible(info, paramInfo) {
+			continue
+		}
+		if registerFunctionValueGoPtrParamObject(targetObj, index, paramInfo) {
+			changed = true
+		}
+	}
+	return changed
+}
+
+func functionValueObjectSignature(obj types.Object) (types.Object, *types.Signature, bool) {
+	if obj == nil {
+		return nil, nil, false
+	}
+	sig, ok := signatureFromType(obj.Type())
+	if !ok {
+		return nil, nil, false
+	}
+	return obj, sig, true
+}
+
+func signaturePointerParamGoPtrInfo(sig *types.Signature, paramIndex int) (goPtrResultInfo, bool) {
+	if sig == nil || sig.Params() == nil || paramIndex < 0 || paramIndex >= sig.Params().Len() {
+		return goPtrResultInfo{}, false
+	}
+	return goPtrInfoForPointerType(sig.Params().At(paramIndex).Type())
+}
+
+func registerFunctionValueGoPtrParamObject(obj types.Object, paramIndex int, info goPtrResultInfo) bool {
+	ctx := GetTranspileContext()
+	if obj == nil || paramIndex < 0 || goPtrResultElemRustType(info) == "" || ctx == nil || ctx.Package == nil {
+		return false
+	}
+	if ctx.Package.FunctionValueGoPtrParamObjs == nil {
+		ctx.Package.FunctionValueGoPtrParamObjs = make(map[types.Object]map[int]goPtrResultInfo)
+	}
+	params := ctx.Package.FunctionValueGoPtrParamObjs[obj]
+	if params == nil {
+		params = map[int]goPtrResultInfo{}
+		ctx.Package.FunctionValueGoPtrParamObjs[obj] = params
+	}
+	if existing, ok := params[paramIndex]; ok {
+		if goPtrResultElemCompatible(existing, info) || goPtrResultElemRustType(existing) == goPtrResultElemRustType(info) {
+			return false
+		}
+	}
+	params[paramIndex] = info
+	return true
+}
+
+func functionValueGoPtrParamInfosForObject(obj types.Object) (map[int]goPtrResultInfo, bool) {
+	ctx := GetTranspileContext()
+	if obj == nil || ctx == nil || ctx.Package == nil || ctx.Package.FunctionValueGoPtrParamObjs == nil {
+		return nil, false
+	}
+	params := ctx.Package.FunctionValueGoPtrParamObjs[obj]
+	return params, len(params) > 0
+}
+
+func functionValueGoPtrParamInfoForObject(obj types.Object, paramIndex int) (goPtrResultInfo, bool) {
+	params, ok := functionValueGoPtrParamInfosForObject(obj)
+	if !ok {
+		return goPtrResultInfo{}, false
+	}
+	info, ok := params[paramIndex]
+	return info, ok
+}
+
+func functionValueGoPtrAwareBoxTypeForObject(obj types.Object, sig *types.Signature) (string, bool) {
+	infos, ok := functionValueGoPtrParamInfosForObject(obj)
+	if !ok || sig == nil {
+		return "", false
+	}
+	return signatureToGoPtrAwareBoxDynFn(sig, infos, goTypesParamTypeToRust), true
+}
+
+func functionValueGoPtrAwareWrappedTypeForObject(obj types.Object, sig *types.Signature) (string, bool) {
+	boxType, ok := functionValueGoPtrAwareBoxTypeForObject(obj, sig)
+	if !ok {
+		return "", false
+	}
+	return goTypesWrappedRustType(boxType), true
+}
+
+func functionValueGoPtrAwareBoxTypeForNamedTypeExpr(name *ast.Ident, typ ast.Expr) (string, bool) {
+	typeInfo := GetTypeInfo()
+	if name == nil || typ == nil || typeInfo == nil || typeInfo.info == nil {
+		return "", false
+	}
+	obj := typeInfo.GetObject(name)
+	if obj == nil {
+		return "", false
+	}
+	sig, ok := signatureFromType(typeInfo.GetType(typ))
+	if !ok {
+		return "", false
+	}
+	return functionValueGoPtrAwareBoxTypeForObject(obj, sig)
+}
+
+func functionValueGoPtrAwareWrappedTypeForNamedTypeExpr(name *ast.Ident, typ ast.Expr) (string, bool) {
+	typeInfo := GetTypeInfo()
+	if name == nil || typ == nil || typeInfo == nil || typeInfo.info == nil {
+		return "", false
+	}
+	obj := typeInfo.GetObject(name)
+	if obj == nil {
+		return "", false
+	}
+	sig, ok := signatureFromType(typeInfo.GetType(typ))
+	if !ok {
+		return "", false
+	}
+	return functionValueGoPtrAwareWrappedTypeForObject(obj, sig)
+}
+
+func functionValueGoPtrAwareWrappedTypeForFuncDeclParam(fn *ast.FuncDecl, paramIndex int, typ ast.Expr) (string, bool) {
+	if fn == nil || fn.Type == nil || fn.Type.Params == nil || paramIndex < 0 {
+		return "", false
+	}
+	seen := 0
+	for _, field := range fn.Type.Params.List {
+		if field == nil {
+			continue
+		}
+		if len(field.Names) == 0 {
+			if seen == paramIndex {
+				return "", false
+			}
+			seen++
+			continue
+		}
+		for _, name := range field.Names {
+			if seen == paramIndex {
+				return functionValueGoPtrAwareWrappedTypeForNamedTypeExpr(name, typ)
+			}
+			seen++
+		}
+	}
+	return "", false
+}
+
+func functionValueGoPtrAwareBoxTypeForExprObject(expr ast.Expr) (string, bool) {
+	typeInfo := GetTypeInfo()
+	if expr == nil || typeInfo == nil || typeInfo.info == nil {
+		return "", false
+	}
+	var obj types.Object
+	switch e := unwrapParens(expr).(type) {
+	case *ast.Ident:
+		obj = typeInfo.GetObject(e)
+	case *ast.SelectorExpr:
+		selection := typeInfo.info.Selections[e]
+		if selection == nil || selection.Kind() != types.FieldVal {
+			return "", false
+		}
+		obj = selection.Obj()
+	default:
+		return "", false
+	}
+	sig, ok := signatureFromType(typeInfo.GetType(expr))
+	if !ok {
+		return "", false
+	}
+	return functionValueGoPtrAwareBoxTypeForObject(obj, sig)
 }
 
 func sourceFunctionHasBody(fn *types.Func) bool {

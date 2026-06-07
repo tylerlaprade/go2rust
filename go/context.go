@@ -50,6 +50,7 @@ type PackageState struct {
 	GoPtrSlotParamFuncs           map[*types.Func]map[int]string
 	GoPtrReturnFuncs              map[*types.Func]map[int]goPtrResultInfo
 	GoPtrReturnFuncNames          map[string]map[int]goPtrResultInfo
+	FunctionValueGoPtrParamObjs   map[types.Object]map[int]goPtrResultInfo
 	SliceElemPtrFields            map[string]sliceElemPtrFieldInfo
 	SliceElemPtrSliceFields       map[string]sliceElemPtrSliceFieldInfo
 	GoPtrArrayFields              map[string]goPtrArrayFieldInfo
@@ -180,6 +181,7 @@ func NewPackageState() *PackageState {
 		GoPtrSlotParamFuncs:           make(map[*types.Func]map[int]string),
 		GoPtrReturnFuncs:              make(map[*types.Func]map[int]goPtrResultInfo),
 		GoPtrReturnFuncNames:          make(map[string]map[int]goPtrResultInfo),
+		FunctionValueGoPtrParamObjs:   make(map[types.Object]map[int]goPtrResultInfo),
 		SliceElemPtrFields:            make(map[string]sliceElemPtrFieldInfo),
 		SliceElemPtrSliceFields:       make(map[string]sliceElemPtrSliceFieldInfo),
 		GoPtrArrayFields:              make(map[string]goPtrArrayFieldInfo),
@@ -378,6 +380,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		}
 		if ctx.Package.GoPtrReturnFuncNames == nil {
 			ctx.Package.GoPtrReturnFuncNames = make(map[string]map[int]goPtrResultInfo)
+		}
+		if ctx.Package.FunctionValueGoPtrParamObjs == nil {
+			ctx.Package.FunctionValueGoPtrParamObjs = make(map[types.Object]map[int]goPtrResultInfo)
 		}
 		if ctx.Package.SliceElemPtrFields == nil {
 			ctx.Package.SliceElemPtrFields = make(map[string]sliceElemPtrFieldInfo)

@@ -2165,10 +2165,16 @@ func signatureFromType(t types.Type) (*types.Signature, bool) {
 }
 
 func signatureToBoxDynFnWithParamShape(sig *types.Signature, paramType func(types.Type) string) string {
+	return signatureToBoxDynFnWithIndexedParamShape(sig, func(_ int, typ types.Type) string {
+		return paramType(typ)
+	})
+}
+
+func signatureToBoxDynFnWithIndexedParamShape(sig *types.Signature, paramType func(int, types.Type) string) string {
 	var paramTypes []string
 	params := sig.Params()
 	for i := 0; i < params.Len(); i++ {
-		paramTypes = append(paramTypes, paramType(params.At(i).Type()))
+		paramTypes = append(paramTypes, paramType(i, params.At(i).Type()))
 	}
 
 	var returnType string
@@ -2190,6 +2196,16 @@ func signatureToBoxDynFnWithParamShape(sig *types.Signature, paramType func(type
 		return fmt.Sprintf("Box<dyn FnMut(%s) -> %s + Send + Sync>", paramsStr, returnType)
 	}
 	return fmt.Sprintf("Box<dyn FnMut(%s) -> %s>", paramsStr, returnType)
+}
+
+func signatureToGoPtrAwareBoxDynFn(sig *types.Signature, infos map[int]goPtrResultInfo, paramType func(types.Type) string) string {
+	return signatureToBoxDynFnWithIndexedParamShape(sig, func(index int, typ types.Type) string {
+		if info, ok := infos[index]; ok && goPtrResultElemRustType(info) != "" {
+			NeedSliceElemPtr()
+			return "GoPtr<" + goPtrResultElemRustType(info) + ">"
+		}
+		return paramType(typ)
+	})
 }
 
 // signatureToBoxDynFn converts a go/types Signature to a boxed Go function

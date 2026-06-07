@@ -3341,7 +3341,7 @@ pub fn m_park() {
 ///
 /// The caller must hold worldsema. fn must not refer to any
 /// part of the current goroutine's stack, since the GC may move it.
-pub fn for_each_p(reason: Arc<Mutex<Option<waitReason>>>, r#fn: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<p>>>) -> () + Send + Sync>>>>) {
+pub fn for_each_p(reason: Arc<Mutex<Option<waitReason>>>, r#fn: Arc<Mutex<Option<Box<dyn FnMut(GoPtr<crate::runtime2::p>) -> () + Send + Sync>>>>) {
     let fn_closure_clone = r#fn.clone(); let reason_closure_clone = reason.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
         let mut gp: GoPtr<crate::runtime2::g> = (*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.clone();
         cas_g_to_waiting_for_suspend_g(gp.clone(), Arc::new(Mutex::new(Some(__GRUNNING as u32))), Arc::new(Mutex::new(Some({ let __arg_holder = reason_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
@@ -3359,7 +3359,7 @@ pub fn for_each_p(reason: Arc<Mutex<Option<waitReason>>>, r#fn: Arc<Mutex<Option
 /// to the systemstack. Due to these restrictions, prefer forEachP when possible.
 ///
 ///go:systemstack
-pub fn for_each_p_internal(r#fn: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<p>>>) -> () + Send + Sync>>>>) {
+pub fn for_each_p_internal(r#fn: Arc<Mutex<Option<Box<dyn FnMut(GoPtr<crate::runtime2::p>) -> () + Send + Sync>>>>) {
     let mut mp = acquirem();
     let mut pp: GoPtr<crate::runtime2::p> = crate::runtime2::puintptr::ptr(&(*(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()));
 
@@ -3386,7 +3386,7 @@ pub fn for_each_p_internal(r#fn: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option
     let mut p: GoPtr<crate::runtime2::p> = crate::runtime2::puintptr::ptr(&(*(*sched.lock().unwrap().as_ref().unwrap()).pidle.lock().unwrap().as_ref().unwrap()));
     while !p.is_nil() {
         if internal_runtime_atomic::cas(internal_runtime_atomic::GoPtr::local({ let __ptr_value = p.with_mut(|__ptr_value| __ptr_value.run_safe_point_fn.clone()); __ptr_value }.clone()), Arc::new(Mutex::new(Some(1 as u32))), Arc::new(Mutex::new(Some(0 as u32)))) {
-        { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<p>>>) -> () + Send + Sync> = { let mut __f_guard = r#fn.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<p>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(p.clone()) };
+        { let __f_ptr: *mut Box<dyn FnMut(GoPtr<crate::runtime2::p>) -> () + Send + Sync> = { let mut __f_guard = r#fn.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(GoPtr<crate::runtime2::p>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(p.clone()) };
         { let __target = (*sched.lock().unwrap().as_ref().unwrap()).safe_point_wait.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
         p = crate::runtime2::puintptr::ptr(&(*{ let __ptr_value = p.with_mut(|__ptr_value| __ptr_value.link.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()));
@@ -3396,7 +3396,7 @@ pub fn for_each_p_internal(r#fn: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option
     unlock(GoPtr::local((*sched.lock().unwrap().as_ref().unwrap()).lock.clone()));
 
         // Run fn for the current P.
-    { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<p>>>) -> () + Send + Sync> = { let mut __f_guard = r#fn.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<p>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(pp.clone()) };
+    { let __f_ptr: *mut Box<dyn FnMut(GoPtr<crate::runtime2::p>) -> () + Send + Sync> = { let mut __f_guard = r#fn.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(GoPtr<crate::runtime2::p>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(pp.clone()) };
 
         // Force Ps currently in _Psyscall into _Pidle and hand them
         // off to induce safe point function execution.
@@ -3475,7 +3475,7 @@ pub fn run_safe_point_fn() {
     if !internal_runtime_atomic::cas(internal_runtime_atomic::GoPtr::local({ let __ptr_value = p.with_mut(|__ptr_value| __ptr_value.run_safe_point_fn.clone()); __ptr_value }.clone()), Arc::new(Mutex::new(Some(1 as u32))), Arc::new(Mutex::new(Some(0 as u32)))) {
         return;
     }
-    { let __f_holder = (*sched.lock().unwrap().as_ref().unwrap()).safe_point_fn.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<p>>>) -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<p>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(p.clone()) };
+    { let __f_holder = (*sched.lock().unwrap().as_ref().unwrap()).safe_point_fn.clone(); let __f_ptr: *mut Box<dyn FnMut(GoPtr<crate::runtime2::p>) -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(GoPtr<crate::runtime2::p>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(p.clone()) };
     lock(GoPtr::local((*sched.lock().unwrap().as_ref().unwrap()).lock.clone()));
     { let __target = (*sched.lock().unwrap().as_ref().unwrap()).safe_point_wait.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
     if { let __tmp_x = (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).safe_point_wait.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x == __tmp_y } {
@@ -4222,7 +4222,7 @@ pub fn handoffp(pp: GoPtr<crate::runtime2::p>) {
         return;
     }
     if { let __tmp_x = (*{ let __ptr_value = pp.borrow(); __ptr_value.as_ref().unwrap().run_safe_point_fn.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x != __tmp_y } && internal_runtime_atomic::cas(internal_runtime_atomic::GoPtr::local({ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.run_safe_point_fn.clone()); __ptr_value }.clone()), Arc::new(Mutex::new(Some(1 as u32))), Arc::new(Mutex::new(Some(0 as u32)))) {
-        { let __f_holder = (*sched.lock().unwrap().as_ref().unwrap()).safe_point_fn.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<p>>>) -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<p>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(pp.clone()) };
+        { let __f_holder = (*sched.lock().unwrap().as_ref().unwrap()).safe_point_fn.clone(); let __f_ptr: *mut Box<dyn FnMut(GoPtr<crate::runtime2::p>) -> () + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(GoPtr<crate::runtime2::p>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(pp.clone()) };
         { let __target = (*sched.lock().unwrap().as_ref().unwrap()).safe_point_wait.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
         if { let __tmp_x = (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).safe_point_wait.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x == __tmp_y } {
         notewakeup((*sched.lock().unwrap().as_ref().unwrap()).safe_point_note.clone());

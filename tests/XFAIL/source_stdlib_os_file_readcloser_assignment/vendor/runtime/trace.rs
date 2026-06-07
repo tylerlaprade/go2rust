@@ -2096,13 +2096,13 @@ pub fn trace_advance(stopTrace: Arc<Mutex<Option<bool>>>) {
                 // preempt all Ps anyway, might as well stay consistent with StartTrace
                 // which does this during the STW.
         semacquire(GoPtr::local(worldsema.clone()));
-        for_each_p(Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_TRACE_PROC_STATUS as u8))))))), Arc::new(Mutex::new(Some(Box::new(move |pp: Arc<Mutex<Option<p>>>| {
+        for_each_p(Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_TRACE_PROC_STATUS as u8))))))), Arc::new(Mutex::new(Some(Box::new(move |pp: GoPtr<crate::runtime2::p>| {
         let mut tl = trace_acquire();
-        if !(*(*pp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).status_was_traced(Arc::new(Mutex::new(Some({ let __selector_holder = (*tl.lock().unwrap().as_ref().unwrap()).gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) {
+        if !(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).status_was_traced(Arc::new(Mutex::new(Some({ let __selector_holder = (*tl.lock().unwrap().as_ref().unwrap()).gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) {
         { let __recv = { let __recv = (*tl.lock().unwrap().as_ref().unwrap()).writer(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).write_proc_status_for_p(pp.clone(), Arc::new(Mutex::new(Some(false)))); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result };
     }
         trace_release(Arc::new(Mutex::new(Some({ let __arg_holder = tl.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-    }) as Box<dyn FnMut(Arc<Mutex<Option<p>>>) -> () + Send + Sync>))));
+    }) as Box<dyn FnMut(GoPtr<crate::runtime2::p>) -> () + Send + Sync>))));
         semrelease(GoPtr::local(worldsema.clone()));
     }
 

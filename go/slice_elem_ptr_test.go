@@ -6113,6 +6113,62 @@ func via() {
 	}
 }
 
+func TestFunctionValueParamAndFieldUseGoPtrABI(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct {
+	flag bool
+}
+
+type scheduler struct {
+	safe func(*node)
+}
+
+var sched scheduler
+
+func raw(addr uintptr) *node {
+	return (*node)(unsafe.Pointer(addr))
+}
+
+func runParam(addr uintptr, fn func(*node)) {
+	p := raw(addr)
+	fn(p)
+}
+
+func save(fn func(*node)) {
+	sched.safe = fn
+}
+
+func runField(addr uintptr) {
+	p := raw(addr)
+	sched.safe(p)
+}
+
+func runLiteral(addr uintptr) {
+	runParam(addr, func(p *node) {
+		p.flag = true
+	})
+}
+`)
+
+	if !strings.Contains(rust, "Box<dyn FnMut(GoPtr<node>) -> ()") {
+		t.Fatalf("function value parameter and field should use GoPtr ABI:\n%s", rust)
+	}
+	if strings.Contains(rust, "Box<dyn FnMut(Rc<RefCell<Option<node>>>)") ||
+		strings.Contains(rust, "Box<dyn FnMut(Arc<Mutex<Option<node>>>)") {
+		t.Fatalf("function value parameter and field should not use old pointer-wrapper ABI:\n%s", rust)
+	}
+	if !strings.Contains(rust, "(*__f)(p.clone())") {
+		t.Fatalf("function value calls should pass existing GoPtr handles:\n%s", rust)
+	}
+	if strings.Contains(rust, "Box::new(move |p: Rc<RefCell<Option<node>>>|") ||
+		strings.Contains(rust, "Box::new(move |p: Arc<Mutex<Option<node>>>|") {
+		t.Fatalf("GoPtr-aware function value literal should not use old pointer-wrapper param ABI:\n%s", rust)
+	}
+}
+
 func TestReadOnlyMethodPointerParamAcceptsSliceElemPointerLocal(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

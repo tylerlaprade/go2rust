@@ -2307,14 +2307,14 @@ pub fn gc_mark_done() {
 
                 // Flush all local buffers and collect flushedWork flags.
         { let new_val = 0 as u32; *gcMarkDoneFlushed.lock().unwrap() = Some(new_val); };
-        for_each_p(Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_G_C_MARK_TERMINATION as u8))))))), Arc::new(Mutex::new(Some(Box::new(move |pp: Arc<Mutex<Option<p>>>| {
-        wb_buf_flush1(GoPtr::local(pp.clone()));
-        (*(*pp.lock().unwrap().as_ref().unwrap()).gcw.lock().unwrap().as_mut().unwrap()).dispose();
-        if (*(*(*pp.lock().unwrap().as_ref().unwrap()).gcw.lock().unwrap().as_ref().unwrap()).flushed_work.lock().unwrap().as_ref().unwrap()) {
+        for_each_p(Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_G_C_MARK_TERMINATION as u8))))))), Arc::new(Mutex::new(Some(Box::new(move |pp: GoPtr<crate::runtime2::p>| {
+        wb_buf_flush1(pp.clone());
+        (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.gcw.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).dispose();
+        if (*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.gcw.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).flushed_work.lock().unwrap().as_ref().unwrap()) {
         internal_runtime_atomic::xadd(internal_runtime_atomic::GoPtr::local(gcMarkDoneFlushed.clone()), Arc::new(Mutex::new(Some(1 as i32))));
-        { let new_val = false; *(*(*pp.lock().unwrap().as_ref().unwrap()).gcw.lock().unwrap().as_ref().unwrap()).flushed_work.lock().unwrap() = Some(new_val); };
+        { let new_val = false; *(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.gcw.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).flushed_work.lock().unwrap() = Some(new_val); };
     }
-    }) as Box<dyn FnMut(Arc<Mutex<Option<p>>>) -> () + Send + Sync>))));
+    }) as Box<dyn FnMut(GoPtr<crate::runtime2::p>) -> () + Send + Sync>))));
 
                 // Flush the write barrier buffer, since this may add
                 // work to the gcWork.
@@ -2630,17 +2630,17 @@ pub fn gc_mark_termination(stw: Arc<Mutex<Option<worldStop>>>) {
         //
         // Also, flush the pinner cache, to avoid leaking that memory
         // indefinitely.
-    for_each_p(Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_FLUSH_PROC_CACHES as u8))))))), Arc::new(Mutex::new(Some(Box::new(move |pp: Arc<Mutex<Option<p>>>| {
-        { let __recv_field = (*pp.lock().unwrap().as_ref().unwrap()).mcache.clone(); let __result = __recv_field.with_mut(|__recv_value| __recv_value.prepare_for_sweep()); __result };
-        if { let __tmp_x = (*{ let __field = (*pp.lock().unwrap().as_ref().unwrap()).status.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __PIDLE as u32; __tmp_x == __tmp_y } {
+    for_each_p(Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_FLUSH_PROC_CACHES as u8))))))), Arc::new(Mutex::new(Some(Box::new(move |pp: GoPtr<crate::runtime2::p>| {
+        { let __recv_field = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.mcache.clone()); __ptr_value }.clone(); let __result = __recv_field.with_mut(|__recv_value| __recv_value.prepare_for_sweep()); __result };
+        if { let __tmp_x = (*{ let __ptr_value = pp.borrow(); __ptr_value.as_ref().unwrap().status.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __PIDLE as u32; __tmp_x == __tmp_y } {
         let pp_closure_clone = pp.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
         lock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).lock.clone()));
-        (*(*pp_closure_clone.lock().unwrap().as_ref().unwrap()).pcache.lock().unwrap().as_mut().unwrap()).flush((*mheap_.lock().unwrap().as_ref().unwrap()).pages.clone());
+        (*{ let __ptr_value = pp_closure_clone.with_mut(|__ptr_value| __ptr_value.pcache.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).flush((*mheap_.lock().unwrap().as_ref().unwrap()).pages.clone());
         unlock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).lock.clone()));
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
     }
-        *(*pp.lock().unwrap().as_ref().unwrap()).pinner_cache.lock().unwrap() = None;
-    }) as Box<dyn FnMut(Arc<Mutex<Option<p>>>) -> () + Send + Sync>))));
+        *{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.pinner_cache.clone()); __ptr_value }.lock().unwrap() = None;
+    }) as Box<dyn FnMut(GoPtr<crate::runtime2::p>) -> () + Send + Sync>))));
     if (*{ let __field = (*sl.lock().unwrap().as_ref().unwrap()).valid.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
                 // Now that we've swept stale spans in mcaches, they don't
                 // count against unswept spans.

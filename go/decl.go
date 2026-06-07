@@ -3659,7 +3659,9 @@ func TranspileFunction(out *strings.Builder, fn *ast.FuncDecl, fileSet *token.Fi
 					if elemRustType, ok := goPtrParamDeclElemRustType(fn, paramIndex); ok {
 						rustType = "GoPtr<" + elemRustType + ">"
 					}
-					if functionRustType, ok := functionTypeRustNameFromTypeExpr(field.Type); ok {
+					if functionRustType, ok := functionValueGoPtrAwareBoxTypeForNamedTypeExpr(name, field.Type); ok {
+						rustType = functionRustType
+					} else if functionRustType, ok := functionTypeRustNameFromTypeExpr(field.Type); ok {
 						rustType = functionRustType
 					}
 					registerTypeExprCollectionInfo(name.Name, field.Type)
@@ -5151,6 +5153,10 @@ func writeFuncDeclParam(out *strings.Builder, fn *ast.FuncDecl, paramIndex int, 
 		out.WriteString(">")
 		return
 	}
+	if functionRustType, ok := functionValueGoPtrAwareWrappedTypeForFuncDeclParam(fn, paramIndex, typ); ok {
+		out.WriteString(functionRustType)
+		return
+	}
 	out.WriteString(GoTypeToRustParam(typ))
 }
 
@@ -5302,6 +5308,8 @@ func emitStructTypeDeclBody(out *strings.Builder, typeSpec *ast.TypeSpec, t *ast
 					out.WriteString(">")
 				} else if syncAtomicPointerStorageField(typeSpec, field, name) {
 					out.WriteString(syncAtomicPointerStorageRustType(typeSpec))
+				} else if functionRustType, ok := functionValueGoPtrAwareWrappedTypeForNamedTypeExpr(name, field.Type); ok {
+					out.WriteString(functionRustType)
 				} else {
 					out.WriteString(GoTypeToRust(field.Type))
 				}

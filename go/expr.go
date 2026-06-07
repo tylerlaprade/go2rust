@@ -1629,6 +1629,9 @@ func writeRegularMethodCallArgument(out *strings.Builder, sel *ast.SelectorExpr,
 		if writePointerHandleCallArgument(out, arg, expectedArgType) {
 			return
 		}
+		if writeFunctionValueGoPtrAwareCallArgument(out, call, index, arg) {
+			return
+		}
 		if writeFunctionHandleCallArgument(out, arg, expectedArgType) {
 			return
 		}
@@ -3685,6 +3688,55 @@ func writeFunctionHandleCallArgument(out *strings.Builder, arg ast.Expr, expecte
 		return false
 	}
 	return writeFunctionValueHandleForExpected(out, arg, expected)
+}
+
+func writeFunctionValueGoPtrAwareCallArgument(out *strings.Builder, call *ast.CallExpr, index int, arg ast.Expr) bool {
+	funcLit, ok := arg.(*ast.FuncLit)
+	if !ok {
+		return false
+	}
+	infos, expected, ok := functionValueGoPtrParamInfosForCallArgument(call, index)
+	if !ok {
+		return false
+	}
+	TranspileFuncLitWithExpectedAndGoPtrParamInfos(out, funcLit, expected, infos)
+	return true
+}
+
+func functionValueGoPtrParamInfosForCallArgument(call *ast.CallExpr, index int) (map[int]goPtrResultInfo, types.Type, bool) {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || call == nil || index < 0 {
+		return nil, nil, false
+	}
+	callee, ok := callFunctionObjectFromTypeInfo(typeInfo, call)
+	if !ok {
+		return nil, nil, false
+	}
+	sig, ok := signatureFromType(callee.Type())
+	if !ok || sig == nil || sig.Params() == nil {
+		return nil, nil, false
+	}
+	params := sig.Params()
+	paramIndex := index
+	if sig.Variadic() && index >= params.Len()-1 {
+		paramIndex = params.Len() - 1
+	}
+	if paramIndex < 0 || paramIndex >= params.Len() {
+		return nil, nil, false
+	}
+	param := params.At(paramIndex)
+	if param == nil || !isFunctionSignatureType(param.Type()) {
+		return nil, nil, false
+	}
+	infos, ok := functionValueGoPtrParamInfosForObject(param)
+	if !ok {
+		return nil, nil, false
+	}
+	expected := generatedFunctionParamTypeForCall(call, index, param.Type())
+	if expected == nil {
+		expected = param.Type()
+	}
+	return infos, expected, true
 }
 
 func writeBareStructAliasCallArgument(out *strings.Builder, arg ast.Expr, expected types.Type) bool {
@@ -14256,6 +14308,12 @@ func TranspileFuncLitWithExpected(out *strings.Builder, funcLit *ast.FuncLit, ex
 	WriteWrapperSuffix(out)
 }
 
+func TranspileFuncLitWithExpectedAndGoPtrParamInfos(out *strings.Builder, funcLit *ast.FuncLit, expected types.Type, infos map[int]goPtrResultInfo) {
+	withFuncLitGoPtrParamInfos(funcLit, infos, func() {
+		TranspileFuncLitWithExpected(out, funcLit, expected)
+	})
+}
+
 func TranspileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit) {
 	transpileFuncLitBox(out, funcLit, nil)
 }
@@ -14717,6 +14775,9 @@ func generateFuncLitClosureTypeWithResultOverrides(funcLit *ast.FuncLit, overrid
 func functionBoxTypeForCallTarget(expr ast.Expr) string {
 	if lit, ok := expr.(*ast.FuncLit); ok {
 		return generateFuncLitClosureType(lit)
+	}
+	if rustType, ok := functionValueGoPtrAwareBoxTypeForExprObject(expr); ok {
+		return rustType
 	}
 	if ident, ok := expr.(*ast.Ident); ok {
 		if vt := GetVarTable(); vt != nil {
@@ -19864,6 +19925,9 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 					if writePointerHandleCallArgument(out, arg, expectedArgType) {
 						continue
 					}
+					if writeFunctionValueGoPtrAwareCallArgument(out, call, i, arg) {
+						continue
+					}
 					if writeFunctionHandleCallArgument(out, arg, generatedFunctionParamTypeForCall(call, i, expectedArgType)) {
 						continue
 					}
@@ -20610,6 +20674,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 
 				if writePointerHandleCallArgument(out, arg, expectedArgType) {
+					continue
+				}
+
+				if writeFunctionValueGoPtrAwareCallArgument(out, call, i, arg) {
 					continue
 				}
 
