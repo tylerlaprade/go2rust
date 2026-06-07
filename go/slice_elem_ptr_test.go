@@ -1634,6 +1634,51 @@ func fill(l *list, n *node) {
 	}
 }
 
+func TestGoPtrFieldAssignmentUsesParamDiscoveredFromFieldBackedReturn(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+type node struct{}
+
+type box struct {
+	p *node
+	q *node
+}
+
+func raw(n *node) *node {
+	return (*node)(unsafe.Pointer(n))
+}
+
+func seed(b *box, n *node) {
+	b.p = raw(n)
+}
+
+func field(b *box) *node {
+	return b.p
+}
+
+func assign(dst *box, src *node) {
+	dst.q = src
+}
+
+func call(dst *box, src *box) {
+	assign(dst, field(src))
+}
+`)
+
+	if !strings.Contains(rust, "pub p: GoPtr<node>") {
+		t.Fatalf("source field should use GoPtr storage before field-backed returns are collected:\n%s", rust)
+	}
+	if !strings.Contains(rust, "pub q: GoPtr<node>") {
+		t.Fatalf("field assigned from a parameter discovered through a field-backed return should use GoPtr storage:\n%s", rust)
+	}
+	if strings.Contains(rust, "pub q: Rc<RefCell<Option<node>>>") ||
+		strings.Contains(rust, "pub q: Arc<Mutex<Option<node>>>") {
+		t.Fatalf("field assigned from a late-discovered GoPtr parameter should not keep ordinary pointer wrapper storage:\n%s", rust)
+	}
+}
+
 func TestGenericUnsafePointerLoadKeepsTypeParamPointerWrapper(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

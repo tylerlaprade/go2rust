@@ -1011,6 +1011,10 @@ func registerSliceElemPtrFactsFromFiles(files []*ast.File) {
 	// Field-backed pointer result facts depend on the field prepass above,
 	// while field assignment facts can themselves depend on earlier result facts.
 	registerSliceElemPtrReturnsFromFiles(files)
+	// The second return/parameter pass can discover GoPtr parameters from
+	// field-backed call arguments. Re-run field collection so assignments from
+	// those parameters promote their destination fields before declarations emit.
+	registerSliceElemPtrFieldsFromFiles(files)
 }
 
 func registerSliceElemPtrFieldsFromFiles(files []*ast.File) {

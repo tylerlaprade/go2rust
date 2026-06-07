@@ -28,7 +28,7 @@ use std::sync::{Arc, Mutex};
 #[derive(Clone)]
 pub struct ITab {
     pub inter: GoPtr<crate::r#type::InterfaceType>,
-    pub r#type: Arc<Mutex<Option<Type>>>,
+    pub r#type: GoPtr<crate::r#type::Type>,
     pub hash: Arc<Mutex<Option<u32>>>,
     pub fun: Arc<Mutex<Option<[usize; 1]>>>,
 }
@@ -42,13 +42,13 @@ impl ITab {
 
 impl Default for ITab {
     fn default() -> Self {
-        Self { inter: GoPtr::nil(), r#type: Arc::new(Mutex::new(None)), hash: Arc::new(Mutex::new(Some(0))), fun: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
+        Self { inter: GoPtr::nil(), r#type: GoPtr::nil(), hash: Arc::new(Mutex::new(Some(0))), fun: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))) }
     }
 }
 
 impl std::fmt::Display for ITab {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", { if self.inter.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, { let __guard = self.r#type.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } }, (*self.hash.lock().unwrap().as_ref().unwrap()), format_slice(&self.fun))
+        write!(f, "{{{} {} {} {}}}", { if self.inter.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, { if self.r#type.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } }, (*self.hash.lock().unwrap().as_ref().unwrap()), format_slice(&self.fun))
     }
 }
 
