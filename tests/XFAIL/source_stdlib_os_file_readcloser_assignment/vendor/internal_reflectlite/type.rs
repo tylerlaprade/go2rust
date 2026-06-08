@@ -781,7 +781,11 @@ pub fn implements(T: GoPtr<internal_abi::r#type::Type>, V: GoPtr<internal_abi::r
     let mut i = Arc::new(Mutex::new(Some(0)));
     let mut vmethods = { let __recv = v.clone(); let __recv_ptr: *const internal_abi::r#type::UncommonType = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const internal_abi::r#type::UncommonType }; let __result = unsafe { &*__recv_ptr }.methods(); __result };
     let mut j = Arc::new(Mutex::new(Some(0)));
-    while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*v.lock().unwrap().as_ref().unwrap()).mcount.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+    while {
+        let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v };
+        let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*v.lock().unwrap().as_ref().unwrap()).mcount.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
+        __tmp_x < __tmp_y
+    } {
         let mut tm: Option<GoSliceElemPtr<internal_abi::r#type::Imethod>> = Some(GoSliceElemPtr::new({ let __ptr_value = t.with_mut(|__ptr_value| __ptr_value.methods.clone()); __ptr_value }.clone(), ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize));
         let mut tmName = (*rT.lock().unwrap().as_ref().unwrap()).name_off(Arc::new(Mutex::new(Some({ let __selector_holder = (*tm.as_ref().unwrap().borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
         let mut vm = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = vmethods.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })));

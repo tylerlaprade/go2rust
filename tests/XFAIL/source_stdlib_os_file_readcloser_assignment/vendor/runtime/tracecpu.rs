@@ -331,7 +331,15 @@ pub fn trace_c_p_u_sample(gp: GoPtr<crate::runtime2::g>, mp: Arc<Mutex<Option<m>
     if !pp.is_nil() {
                 // Overflow records in profBuf have all header values set to zero. Make
                 // sure that real headers have at least one bit set.
-        (*hdr.lock().unwrap().as_mut().unwrap())[(0) as usize] = { let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.id.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x << __tmp_y }; let __tmp_y = 0b1 as u64; __tmp_x | __tmp_y };
+        (*hdr.lock().unwrap().as_mut().unwrap())[(0) as usize] = {
+            let __tmp_x = {
+                let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.id.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))).lock().unwrap().as_ref().unwrap());
+                let __tmp_y = 1;
+                __tmp_x << __tmp_y
+            };
+            let __tmp_y = 0b1 as u64;
+            __tmp_x | __tmp_y
+        };
     } else {
         (*hdr.lock().unwrap().as_mut().unwrap())[(0) as usize] = 0b10 as u64;
     }

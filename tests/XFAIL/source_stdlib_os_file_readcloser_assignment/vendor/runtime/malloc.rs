@@ -559,7 +559,11 @@ impl crate::mheap::mheap {
             __tmp_x == __tmp_y
         } {
         let mut size = Arc::new(Mutex::new(Some({
-            let __tmp_x = { let __tmp_x = 2 as usize; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __cap_target = { let __field = self.all_arenas.clone(); __field }; let __cap_guard = __cap_target.lock().unwrap(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) }) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y };
+            let __tmp_x = {
+                let __tmp_x = 2 as usize;
+                let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __cap_target = { let __field = self.all_arenas.clone(); __field }; let __cap_guard = __cap_target.lock().unwrap(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) }) as usize))).lock().unwrap().as_ref().unwrap());
+                __tmp_x * __tmp_y
+            };
             let __tmp_y = internal_goarch::PTR_SIZE as usize;
             __tmp_x * __tmp_y
         })));

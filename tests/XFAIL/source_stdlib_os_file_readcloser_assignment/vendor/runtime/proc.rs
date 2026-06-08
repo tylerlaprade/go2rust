@@ -7422,10 +7422,18 @@ pub fn globrunqget(pp: GoPtr<crate::runtime2::p>, max: Arc<Mutex<Option<i32>>>) 
     }
     if {
         let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v };
-        let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() as i32))).lock().unwrap().as_ref().unwrap()) as i32; let __tmp_y = 2 as i32; __tmp_x / __tmp_y } as i32;
+        let __tmp_y = {
+            let __tmp_x = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() as i32))).lock().unwrap().as_ref().unwrap()) as i32;
+            let __tmp_y = 2 as i32;
+            __tmp_x / __tmp_y
+        } as i32;
         __tmp_x > __tmp_y
     } {
-        { let new_val = { let __tmp_x = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() as i32))).lock().unwrap().as_ref().unwrap()) as i32; let __tmp_y = 2 as i32; __tmp_x / __tmp_y } as i32; *n.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() as i32))).lock().unwrap().as_ref().unwrap()) as i32;
+            let __tmp_y = 2 as i32;
+            __tmp_x / __tmp_y
+        } as i32; *n.lock().unwrap() = Some(new_val); };
     }
 
     { let __target = (*sched.lock().unwrap().as_ref().unwrap()).runqsize.clone(); let __rhs = (*n.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
@@ -7601,7 +7609,11 @@ pub fn runqput(pp: GoPtr<crate::runtime2::p>, mut gp: GoPtr<crate::runtime2::g>,
             let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32;
             __tmp_x < __tmp_y
         } {
-        { let __seq = { let __seq_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*t.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32; __tmp_x % __tmp_y }) as usize].clone() }.set(gp.clone());
+        { let __seq = { let __seq_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({
+            let __tmp_x = { let __v = (*t.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32;
+            __tmp_x % __tmp_y
+        }) as usize].clone() }.set(gp.clone());
         internal_runtime_atomic::store_rel({ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runqtail.clone()); __ptr_value }.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*t.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u32; __tmp_x + __tmp_y }))));
         return;
     }
@@ -7700,7 +7712,11 @@ pub fn runqputbatch(pp: GoPtr<crate::runtime2::p>, q: Arc<Mutex<Option<gQueue>>>
         }
     } {
         let mut gp: GoPtr<crate::runtime2::g> = { let __recv = q.clone(); let __recv_ptr: *mut gQueue = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut gQueue }; let __result = unsafe { &mut *__recv_ptr }.pop(); __result };
-        { let __seq = { let __seq_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*t.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32; __tmp_x % __tmp_y }) as usize].clone() }.set(gp.clone());
+        { let __seq = { let __seq_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({
+            let __tmp_x = { let __v = (*t.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32;
+            __tmp_x % __tmp_y
+        }) as usize].clone() }.set(gp.clone());
         { let mut guard = t.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         { let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
@@ -7765,7 +7781,11 @@ pub fn runqget(pp: GoPtr<crate::runtime2::p>) -> (GoPtr<crate::runtime2::g>, boo
         if { let __tmp_x = { let __v = (*t.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = h; __tmp_x == __tmp_y } {
         return (GoPtr::nil(), false);
     }
-        let mut gp: GoPtr<crate::runtime2::g> = crate::runtime2::guintptr::ptr(&({ let __seq = { let __seq_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = h; let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32; __tmp_x % __tmp_y }) as usize].clone() }));
+        let mut gp: GoPtr<crate::runtime2::g> = crate::runtime2::guintptr::ptr(&({ let __seq = { let __seq_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({
+            let __tmp_x = h;
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32;
+            __tmp_x % __tmp_y
+        }) as usize].clone() }));
         if internal_runtime_atomic::cas_rel({ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runqhead.clone()); __ptr_value }.clone(), Arc::new(Mutex::new(Some(h))), Arc::new(Mutex::new(Some({ let __tmp_x = h; let __tmp_y = 1 as u32; __tmp_x + __tmp_y })))) {
         return (gp.clone(), false);
     }
@@ -7791,7 +7811,11 @@ pub fn runqdrain(pp: GoPtr<crate::runtime2::p>) -> (Arc<Mutex<Option<gQueue>>>, 
         if { let __tmp_x = { let __v = (*qn.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u32; __tmp_x == __tmp_y } {
         return (drainQ.clone(), (*n.lock().unwrap().as_ref().unwrap()));
     }
-        if { let __tmp_x = { let __v = (*qn.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32; __tmp_x > __tmp_y } {
+        if {
+            let __tmp_x = { let __v = (*qn.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32;
+            __tmp_x > __tmp_y
+        } {
         continue 'retry;
     }
 

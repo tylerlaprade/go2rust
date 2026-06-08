@@ -1071,7 +1071,19 @@ pub fn recovery(gp: Arc<Mutex<Option<g>>>) {
     let (mut p0, mut saveOpenDeferState) = (p.clone(), Arc::new(Mutex::new(Some({ let __ptr_field = (*p.lock().unwrap().as_ref().unwrap()).defer_bits_ptr.clone(); !__ptr_field.is_nil() } && { let __tmp_x = { let __ptr_value = (*p.lock().unwrap().as_ref().unwrap()).defer_bits_ptr.borrow(); __ptr_value.as_ref().unwrap().clone() }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y }))));
 
         // Unwind the panic stack.
-    while { let __nil_result = (*p.lock().unwrap()).is_some(); __nil_result } && { let __tmp_x = (*Arc::new(Mutex::new(Some((*(*p.lock().unwrap().as_ref().unwrap()).start_s_p.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*sp.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
+    while {
+        let __go_cond_0 = { let __nil_result = (*p.lock().unwrap()).is_some(); __nil_result };
+        if __go_cond_0 {
+            let __go_cond_1 = {
+                let __tmp_x = (*Arc::new(Mutex::new(Some((*(*p.lock().unwrap().as_ref().unwrap()).start_s_p.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+                let __tmp_y = { let __v = (*sp.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                __tmp_x < __tmp_y
+            };
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
                 // Don't allow jumping past a pending Goexit.
                 // Instead, have its _panic.start() call return again.
                 //

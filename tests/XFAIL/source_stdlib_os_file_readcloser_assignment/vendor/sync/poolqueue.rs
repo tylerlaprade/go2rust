@@ -290,7 +290,11 @@ impl poolDequeue {
         let (mut head, mut tail) = self.unpack(Arc::new(StdMutex::new(Some(ptrs))));
         if {
             let __tmp_x = {
-                let __tmp_x = ({ let __tmp_x = tail; let __tmp_y = (*Arc::new(StdMutex::new(Some(({ let __len_target = { let __field = self.vals.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y });
+                let __tmp_x = ({
+                    let __tmp_x = tail;
+                    let __tmp_y = (*Arc::new(StdMutex::new(Some(({ let __len_target = { let __field = self.vals.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap());
+                    __tmp_x + __tmp_y
+                });
                 let __tmp_y = (((1 as u64) << (DEQUEUE_BITS as u64)) - (1 as u64)) as u32;
                 __tmp_x & __tmp_y
             };

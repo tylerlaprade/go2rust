@@ -4679,6 +4679,31 @@ func overlaps(x *buf, s *state, addr uintptr) bool {
 	}
 }
 
+func TestConcurrentIfBuildsNestedSelectorConversionConditionWithStatements(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type special struct {
+	offset uint16
+	kind byte
+}
+
+func find(s *special, offset uintptr, kind byte) bool {
+	go func() {}()
+	if offset < uintptr(s.offset) || (offset == uintptr(s.offset) && kind < s.kind) {
+		return true
+	}
+	return false
+}
+`)
+
+	if strings.Contains(rust, "} || ({") || strings.Contains(rust, "} && {") {
+		t.Fatalf("selector conversion logical condition should not chain inline statement blocks:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __go_cond_") {
+		t.Fatalf("selector conversion logical condition should build condition operands with statements:\n%s", rust)
+	}
+}
+
 func TestConcurrentIfBuildsLogicalCallConditionWithSelectorArgs(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

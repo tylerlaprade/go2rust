@@ -1084,7 +1084,11 @@ impl gcCPULimiterState {
         {
         let mut lastUpdate = (*self.last_update.lock().unwrap().as_mut().unwrap()).load();;
         if { let __tmp_x = { let __v = (*now.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = lastUpdate; __tmp_x >= __tmp_y } {
-            { let __method_arg0 = Arc::new(Mutex::new(Some(0 as i64))); let __method_arg1 = Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __v = (*now.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = lastUpdate; __tmp_x - __tmp_y }); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.nprocs.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }))); self.accumulate(__method_arg0, __method_arg1) };;
+            { let __method_arg0 = Arc::new(Mutex::new(Some(0 as i64))); let __method_arg1 = Arc::new(Mutex::new(Some({
+                let __tmp_x = ({ let __tmp_x = { let __v = (*now.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = lastUpdate; __tmp_x - __tmp_y });
+                let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.nprocs.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap());
+                __tmp_x * __tmp_y
+            }))); self.accumulate(__method_arg0, __method_arg1) };;
         }
     }
         (*self.last_update.lock().unwrap().as_mut().unwrap()).store(Arc::new(Mutex::new(Some({ let __arg_holder = now.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
@@ -1139,7 +1143,11 @@ impl gcCPULimiterState {
         return;
     }
                 // Defensively avoid overflow. This isn't even the latest update anyway.
-        let mut windowTotalTime = Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __v = (*now.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = lastUpdate; __tmp_x - __tmp_y }); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.nprocs.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y })));
+        let mut windowTotalTime = Arc::new(Mutex::new(Some({
+            let __tmp_x = ({ let __tmp_x = { let __v = (*now.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = lastUpdate; __tmp_x - __tmp_y });
+            let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.nprocs.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap());
+            __tmp_x * __tmp_y
+        })));
         (*self.last_update.lock().unwrap().as_mut().unwrap()).store(Arc::new(Mutex::new(Some({ let __arg_holder = now.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
                 // Drain the pool of assist time.
         let mut assistTime = (*self.assist_time_pool.lock().unwrap().as_mut().unwrap()).load();

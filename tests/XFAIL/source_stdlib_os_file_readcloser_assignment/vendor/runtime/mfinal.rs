@@ -837,7 +837,11 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
         { let __rhs = MALLOC_HEADER_SIZE as usize; base = base + __rhs; };
     }
 
-    if { let __tmp_x = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = base; __tmp_x != __tmp_y } {
+    if {
+        let __tmp_x = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+        let __tmp_y = base;
+        __tmp_x != __tmp_y
+    } {
                 // As an implementation detail we allow to set finalizers for an inner byte
                 // of an object if it could come from tiny alloc (see mallocgc for details).
         if { let __nil_target = { let __ptr_value = ot.with_mut(|__ptr_value| __ptr_value.elem.clone()); __ptr_value }.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } || (*{ let __ptr_value = ot.with_mut(|__ptr_value| __ptr_value.elem.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).pointers() || { let __tmp_x = (*(*{ let __ptr_value = ot.with_mut(|__ptr_value| __ptr_value.elem.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).size_.lock().unwrap().as_ref().unwrap()); let __tmp_y = MAX_TINY_SIZE as usize; __tmp_x >= __tmp_y } {

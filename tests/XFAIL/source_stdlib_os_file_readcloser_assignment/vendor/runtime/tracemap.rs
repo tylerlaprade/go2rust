@@ -247,7 +247,19 @@ impl traceMap {
                 // Reload n. Because pointers are only stored once,
                 // we must have lost the race, and therefore n is not nil
                 // anymore.
-        if { let __tmp_x = (*{ let __ptr_value = n.borrow(); __ptr_value.as_ref().unwrap().hash.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = hash; __tmp_x == __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = { let __ptr_value = n.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } {
+        if {
+            let __go_cond_0 = { let __tmp_x = (*{ let __ptr_value = n.borrow(); __ptr_value.as_ref().unwrap().hash.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = hash; __tmp_x == __tmp_y };
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = { let __ptr_value = n.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as usize))).lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                    __tmp_x == __tmp_y
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         if memequal(
             Arc::new(Mutex::new(Some({ let __seq_holder = { let __ptr_value = n.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))),
             Arc::new(Mutex::new(Some({ let __arg_holder = data.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),

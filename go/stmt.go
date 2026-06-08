@@ -9550,6 +9550,7 @@ func transpileIfWithInitAsBlock(out *strings.Builder, stmt *ast.IfStmt, fnType *
 const minStatementBuiltLogicalConditionNodes = 4
 const minStatementBuiltLogicalConditionOperandComplexity = 10
 const concurrentFieldSelectorLogicalConditionComplexity = 4
+const concurrentFieldSelectorConversionLogicalConditionComplexity = 4
 const concurrentNamedIntegerLogicalComparisonOperandComplexity = 4
 const concurrentGoErrorLogicalComparisonComplexity = 10
 
@@ -9614,6 +9615,9 @@ func countLogicalConditionOperandComplexity(expr ast.Expr) int {
 		for _, arg := range e.Args {
 			count += countLogicalConditionOperandComplexity(arg)
 		}
+		if logicalConditionCallConvertsFieldSelector(e) {
+			count += concurrentFieldSelectorConversionLogicalConditionComplexity
+		}
 		return count
 	case *ast.IndexExpr:
 		return 2 + countLogicalConditionOperandComplexity(e.X) + countLogicalConditionOperandComplexity(e.Index)
@@ -9648,6 +9652,17 @@ func countLogicalConditionOperandComplexity(expr ast.Expr) int {
 		}
 		return 1
 	}
+}
+
+func logicalConditionCallConvertsFieldSelector(call *ast.CallExpr) bool {
+	if call == nil || len(call.Args) != 1 || !NeedsConcurrentWrapper() {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsTypeConversion(call) {
+		return false
+	}
+	return exprContainsTypedFieldSelector(call.Args[0])
 }
 
 func logicalConditionBinaryIsComparison(expr *ast.BinaryExpr) bool {

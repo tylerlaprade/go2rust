@@ -938,7 +938,11 @@ impl Location {
         for i in 0..(({ let __range_holder = __self.zone.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
         let mut zone: Option<GoSliceElemPtr<zone>> = Some(GoSliceElemPtr::new(__self.zone.clone(), (i) as usize));
         if { let __tmp_x = { let __selector_holder = (*zone.as_ref().unwrap().borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = (*name.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } {
-        let (mut nam, mut offset, _, _, _) = __self.lookup(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*unix.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*zone.as_ref().unwrap().borrow().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }))));
+        let (mut nam, mut offset, _, _, _) = __self.lookup(Arc::new(Mutex::new(Some({
+            let __tmp_x = { let __v = (*unix.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*zone.as_ref().unwrap().borrow().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap());
+            __tmp_x - __tmp_y
+        }))));
         if { let __tmp_x = (*nam.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = { let __selector_holder = (*zone.as_ref().unwrap().borrow().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; __tmp_x == __tmp_y } {
         return (offset, true);
     }

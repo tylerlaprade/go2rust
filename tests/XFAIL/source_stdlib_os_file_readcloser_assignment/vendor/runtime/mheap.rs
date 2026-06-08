@@ -3306,11 +3306,47 @@ impl mspan {
         if { let __nil_result = (*s.lock().unwrap()).is_none(); __nil_result } {
         break
     }
-        if { let __tmp_x = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*s.lock().unwrap().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } && { let __tmp_x = { let __v = (*kind.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*s.lock().unwrap().as_ref().unwrap()).kind.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __tmp_x = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*s.lock().unwrap().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+                __tmp_x == __tmp_y
+            };
+            if __go_cond_0 {
+                let __go_cond_1 = { let __tmp_x = { let __v = (*kind.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*s.lock().unwrap().as_ref().unwrap()).kind.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         { let new_val = true; *found.lock().unwrap() = Some(new_val); };
         break
     }
-        if { let __tmp_x = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*s.lock().unwrap().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } || ({ let __tmp_x = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*s.lock().unwrap().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } && { let __tmp_x = { let __v = (*kind.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*s.lock().unwrap().as_ref().unwrap()).kind.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y }) {
+        if {
+            let __go_cond_0 = {
+                let __tmp_x = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*s.lock().unwrap().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+                __tmp_x < __tmp_y
+            };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_1 = {
+                    let __go_cond_2 = {
+                        let __tmp_x = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                        let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*s.lock().unwrap().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+                        __tmp_x == __tmp_y
+                    };
+                    if __go_cond_2 {
+                        let __go_cond_3 = { let __tmp_x = { let __v = (*kind.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*s.lock().unwrap().as_ref().unwrap()).kind.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y };
+                        __go_cond_3
+                    } else {
+                        false
+                    }
+                };
+                __go_cond_1
+            }
+        } {
         break
     }
         { let new_val = Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).next.clone()))).clone(); iter = new_val; };
@@ -4828,7 +4864,11 @@ impl gcBitsArena {
     }
                 // Try to allocate from this block.
         let mut end = internal_runtime_atomic::xadduintptr(self.free.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = bytes.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-        if { let __tmp_x = end; let __tmp_y = (*Arc::new(Mutex::new(Some((*self.bits.lock().unwrap().as_ref().unwrap()).len() as usize))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x > __tmp_y } {
+        if {
+            let __tmp_x = end;
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*self.bits.lock().unwrap().as_ref().unwrap()).len() as usize))).lock().unwrap().as_ref().unwrap()) as usize;
+            __tmp_x > __tmp_y
+        } {
         return None;
     }
                 // There was enough room.

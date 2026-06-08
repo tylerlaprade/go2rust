@@ -218,7 +218,11 @@ impl traceRegionAlloc {
         let mut block: GoPtr<traceRegionAllocBlock> = GoPtr::raw({ let __ptr = (*self.current.lock().unwrap().as_mut().unwrap()).load().clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         if !block.is_nil() {
         let mut r = (*{ let __ptr_value = block.with_mut(|__ptr_value| { let __field = __ptr_value.trace_region_alloc_block_header.lock().unwrap().as_ref().unwrap().off.clone(); __field }); __ptr_value }.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-        if { let __tmp_x = r; let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = block.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() as usize))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x <= __tmp_y } {
+        if {
+            let __tmp_x = r;
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = block.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() as usize))).lock().unwrap().as_ref().unwrap()) as usize;
+            __tmp_x <= __tmp_y
+        } {
         return GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some({ let __seq_holder = { let __ptr_value = block.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[({ let __tmp_x = r; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }) as usize] as *const _ as usize }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
     }
     }
@@ -229,7 +233,11 @@ impl traceRegionAlloc {
         block = GoPtr::raw({ let __ptr = (*self.current.lock().unwrap().as_mut().unwrap()).load().clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         if !block.is_nil() {
         let mut r = (*{ let __ptr_value = block.with_mut(|__ptr_value| { let __field = __ptr_value.trace_region_alloc_block_header.lock().unwrap().as_ref().unwrap().off.clone(); __field }); __ptr_value }.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-        if { let __tmp_x = r; let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = block.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() as usize))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x <= __tmp_y } {
+        if {
+            let __tmp_x = r;
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __ptr_value = block.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len() as usize))).lock().unwrap().as_ref().unwrap()) as usize;
+            __tmp_x <= __tmp_y
+        } {
         unlock(GoPtr::local(self.lock.clone()));
         return GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some({ let __seq_holder = { let __ptr_value = block.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[({ let __tmp_x = r; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }) as usize] as *const _ as usize }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
     }

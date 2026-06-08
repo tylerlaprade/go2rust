@@ -1528,7 +1528,15 @@ impl profBuf {
             let __tmp_y = (({ let __len_target = { let __field = self.data.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32);
             __tmp_x + __tmp_y
         })));
-        let mut want = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = 2; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.hdrsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*nstk.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })));
+        let mut want = Arc::new(Mutex::new(Some({
+            let __tmp_x = {
+                let __tmp_x = 2;
+                let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.hdrsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
+                __tmp_x + __tmp_y
+            };
+            let __tmp_y = { let __v = (*nstk.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            __tmp_x + __tmp_y
+        })));
         let mut i = Arc::new(Mutex::new(Some(({
             let __tmp_x = profIndex::data_count(&(*bw.lock().unwrap().as_ref().unwrap()));
             let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.data.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap());
@@ -1579,7 +1587,15 @@ impl profBuf {
             __tmp_x + __tmp_y
         })));
                 // first record
-        let mut want = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = 2; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.hdrsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*nstk1.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })));
+        let mut want = Arc::new(Mutex::new(Some({
+            let __tmp_x = {
+                let __tmp_x = 2;
+                let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.hdrsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
+                __tmp_x + __tmp_y
+            };
+            let __tmp_y = { let __v = (*nstk1.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            __tmp_x + __tmp_y
+        })));
         let mut i = Arc::new(Mutex::new(Some(({
             let __tmp_x = profIndex::data_count(&(*bw.lock().unwrap().as_ref().unwrap()));
             let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.data.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap());
@@ -1596,7 +1612,15 @@ impl profBuf {
         { let __rhs = (*want.lock().unwrap().as_ref().unwrap()); let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let __rhs = (*want.lock().unwrap().as_ref().unwrap()); let mut guard = nd.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
                 // second record
-        { let new_val = { let __tmp_x = { let __tmp_x = 2; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.hdrsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*nstk2.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; *want.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = {
+                let __tmp_x = 2;
+                let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.hdrsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
+                __tmp_x + __tmp_y
+            };
+            let __tmp_y = { let __v = (*nstk2.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            __tmp_x + __tmp_y
+        }; *want.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*want.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y } as i32); let __tmp_y = (({ let __len_target = { let __field = self.data.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); __tmp_x > __tmp_y } {
                 // Can't fit in trailing fragment of slice.
                 // Skip over that and start over at beginning of slice.
@@ -1617,7 +1641,11 @@ impl profBuf {
         if false {
         return;
     }
-        if { let __tmp_x = ((*hdr.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = ((*Arc::new(Mutex::new(Some({ let __selector_holder = self.hdrsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()) as i32); __tmp_x > __tmp_y } {
+        if {
+            let __tmp_x = ((*hdr.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32);
+            let __tmp_y = ((*Arc::new(Mutex::new(Some({ let __selector_holder = self.hdrsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()) as i32);
+            __tmp_x > __tmp_y
+        } {
         throw(Arc::new(Mutex::new(Some("misuse of profBuf.write".to_string()))));
     }
         {
@@ -1708,7 +1736,11 @@ impl profBuf {
         let mut skip = Arc::new(Mutex::new(Some(0)));
         if {
             let __tmp_x = ({
-                let __tmp_x = ({ let __tmp_x = { let __tmp_x = { let __v = (*wd.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.hdrsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y } as i32);
+                let __tmp_x = ({
+                    let __tmp_x = { let __tmp_x = { let __v = (*wd.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x + __tmp_y };
+                    let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.hdrsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
+                    __tmp_x + __tmp_y
+                } as i32);
                 let __tmp_y = ((*stk.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32);
                 __tmp_x + __tmp_y
             } as i32);

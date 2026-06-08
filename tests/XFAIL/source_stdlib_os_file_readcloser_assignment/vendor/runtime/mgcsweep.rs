@@ -926,13 +926,29 @@ impl crate::mheap::mspan {
         let mut mbits = self.mark_bits_for_base();
         let mut abits = self.alloc_bits_for_index(Arc::new(Mutex::new(Some(0 as usize))));
         let mut i = Arc::new(Mutex::new(Some(0 as usize)));
-    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.nelems.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+    while {
+        let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v };
+        let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.nelems.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+        __tmp_x < __tmp_y
+    } {
         let mut addr = Arc::new(Mutex::new(Some({ let __tmp_x = self.base(); let __tmp_y = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.elemsize.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; __tmp_x + __tmp_y })));
         {
             let __go_print_arg_0 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*addr.lock().unwrap().as_ref().unwrap()) as u64)))));
             eprint!("{}", __go_print_arg_0)
         };
-        let mut alloc = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.freeindex.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } || (*abits.lock().unwrap().as_ref().unwrap()).is_marked())));
+        let mut alloc = Arc::new(Mutex::new(Some({
+            let __go_cond_0 = {
+                let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.freeindex.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+                __tmp_x < __tmp_y
+            };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_1 = (*abits.lock().unwrap().as_ref().unwrap()).is_marked();
+                __go_cond_1
+            }
+        })));
         if { let __v = (*alloc.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         {
             let __go_print_arg_0 = format!("{}", " alloc".to_string());
@@ -1063,7 +1079,19 @@ impl sweepLocked {
         let mut hasFinAndRevived = Arc::new(Mutex::new(Some(false)));
         let mut endOffset = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result }; __tmp_x - __tmp_y }; let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })));
         let mut tmp = (*siter.lock().unwrap().as_ref().unwrap()).s.clone();
-    while { let __nil_result = (*tmp.lock().unwrap()).is_some(); __nil_result } && { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*tmp.lock().unwrap().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*endOffset.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
+    while {
+        let __go_cond_0 = { let __nil_result = (*tmp.lock().unwrap()).is_some(); __nil_result };
+        if __go_cond_0 {
+            let __go_cond_1 = {
+                let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*tmp.lock().unwrap().as_ref().unwrap()).offset.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+                let __tmp_y = { let __v = (*endOffset.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                __tmp_x < __tmp_y
+            };
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
         if { let __tmp_x = (*{ let __field = (*tmp.lock().unwrap().as_ref().unwrap()).kind.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __KIND_SPECIAL_FINALIZER as u8; __tmp_x == __tmp_y } {
                 // Stop freeing of object if it has a finalizer.
         (*mbits.lock().unwrap().as_ref().unwrap()).set_marked_non_atomic();
@@ -1214,7 +1242,11 @@ impl sweepLocked {
         let mut mbits = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).mark_bits_for_base(); __result };
         let mut abits = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).alloc_bits_for_index(Arc::new(Mutex::new(Some(0 as usize)))); __result };
         let mut i = Arc::new(Mutex::new(Some(0 as usize)));
-    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.nelems.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+    while {
+        let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v };
+        let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.nelems.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+        __tmp_x < __tmp_y
+    } {
         if {
             let __go_cond_0 = !(*mbits.lock().unwrap().as_ref().unwrap()).is_marked();
             if __go_cond_0 {
@@ -1462,7 +1494,11 @@ impl sweepLocked {
         { let __elem_ptr_0 = Some(GoArrayElemPtr::new((*stats.as_ref().unwrap().borrow().as_ref().unwrap()).small_free_count.clone(), (crate::mheap::spanClass::sizeclass(&(*spc.lock().unwrap().as_ref().unwrap()))) as usize)); let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = internal_runtime_atomic::xadd64(__arg0.clone(), Arc::new(Mutex::new(Some((*nfreed.lock().unwrap().as_ref().unwrap()) as i64)))); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.lock().unwrap()).clone(); }; __result };
         (*(*memstats.lock().unwrap().as_ref().unwrap()).heap_stats.lock().unwrap().as_mut().unwrap()).release();
                 // Count the frees in the inconsistent, internal stats.
-        (*(*gcController.lock().unwrap().as_ref().unwrap()).total_free.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*nfreed.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.elemsize.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }))));
+        (*(*gcController.lock().unwrap().as_ref().unwrap()).total_free.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some({
+            let __tmp_x = (*Arc::new(Mutex::new(Some((*nfreed.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.elemsize.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap());
+            __tmp_x * __tmp_y
+        }))));
     }
                 // Only mark the span as needing zeroing if we've freed any
                 // objects, because a fresh span that had been allocated into,

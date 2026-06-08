@@ -262,7 +262,11 @@ impl cpuProfile {
                 let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
                 drop(__seq_guard);
                 let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize;
-                let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.extra.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() } as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }) as usize;
+                let __high = ({
+                    let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                    let __tmp_y = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.extra.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() } as i32))).lock().unwrap().as_ref().unwrap());
+                    __tmp_x + __tmp_y
+                }) as usize;
                 let __max = __source_cap;
                 let _slice = &__seq[__low..__high];
                 let mut _v = Vec::with_capacity((__max - __low) as usize);

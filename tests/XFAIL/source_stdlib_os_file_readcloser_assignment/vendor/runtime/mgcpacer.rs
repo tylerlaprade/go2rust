@@ -584,7 +584,11 @@ impl gcControllerState {
         let mut extHeapGoal = Arc::new(Mutex::new(Some({
             let __tmp_x = (*Arc::new(Mutex::new(Some(({
                 let __tmp_x = {
-                    let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*heapGoal.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.triggered.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap());
+                    let __tmp_x = (*Arc::new(Mutex::new(Some(({
+                        let __tmp_x = { let __v = (*heapGoal.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                        let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.triggered.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap());
+                        __tmp_x - __tmp_y
+                    }) as f64))).lock().unwrap().as_ref().unwrap());
                     let __tmp_y = (*Arc::new(Mutex::new(Some((*scanWorkExpected.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap());
                     __tmp_x / __tmp_y
                 };
@@ -865,7 +869,11 @@ impl gcControllerState {
             let __go_print_arg_2 = format!("{}", " B -> ".to_string());
             let __go_print_arg_3 = format!("{}", live);
             let __go_print_arg_4 = format!("{}", " B (\u{2206}goal ".to_string());
-            let __go_print_arg_5 = format!("{}", { let __tmp_x = (*Arc::new(Mutex::new(Some(live as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.last_heap_goal.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y });
+            let __go_print_arg_5 = format!("{}", {
+                let __tmp_x = (*Arc::new(Mutex::new(Some(live as i64))).lock().unwrap().as_ref().unwrap());
+                let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.last_heap_goal.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap());
+                __tmp_x - __tmp_y
+            });
             let __go_print_arg_6 = format!("{}", ", cons/mark ".to_string());
             let __go_print_arg_7 = format!("{}", { let __v = (*oldConsMark.lock().unwrap().as_ref().unwrap()).clone(); __v });
             let __go_print_arg_8 = format!("{}", ")".to_string());
@@ -1038,7 +1046,11 @@ impl gcControllerState {
             let __go_cond_0 = { let __tmp_x = { let __v = (*delta.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x > __tmp_y };
             if __go_cond_0 {
                 let __go_cond_1 = {
-                    let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.gc_fractional_mark_time.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*delta.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y };
+                    let __tmp_x = {
+                        let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.gc_fractional_mark_time.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as f64))).lock().unwrap().as_ref().unwrap());
+                        let __tmp_y = (*Arc::new(Mutex::new(Some((*delta.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap());
+                        __tmp_x / __tmp_y
+                    };
                     let __tmp_y = (*self.fractional_utilization_goal.lock().unwrap().as_ref().unwrap());
                     __tmp_x > __tmp_y
                 };

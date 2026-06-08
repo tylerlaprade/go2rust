@@ -201,7 +201,11 @@ impl stkframe {
                 // This is an uncommon and complicated case. Fall back to fully
                 // fetching the argument map to compute its size.
         let (mut argMap, _) = self.arg_map_internal();
-        return { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*argMap.lock().unwrap().as_ref().unwrap()).n.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y };
+        return {
+            let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*argMap.lock().unwrap().as_ref().unwrap()).n.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = internal_goarch::PTR_SIZE as usize;
+            __tmp_x * __tmp_y
+        };
     }
 
     /// argMapInternal is used internally by stkframe to fetch special

@@ -1821,7 +1821,15 @@ impl scavChunkData {
 
     /// alloc updates sc given that npages were allocated in the corresponding chunk.
     pub fn alloc(&mut self, npages: Arc<Mutex<Option<u64>>>, newGen: Arc<Mutex<Option<u32>>>) {
-        if { let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.in_use.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = PALLOC_CHUNK_PAGES as u64; __tmp_x > __tmp_y } {
+        if {
+            let __tmp_x = {
+                let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.in_use.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))).lock().unwrap().as_ref().unwrap());
+                let __tmp_y = { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                __tmp_x + __tmp_y
+            };
+            let __tmp_y = PALLOC_CHUNK_PAGES as u64;
+            __tmp_x > __tmp_y
+        } {
         {
             let __go_print_arg_0 = format!("{}", "runtime: inUse=".to_string());
             let __go_print_arg_1 = format!("{}", (*self.in_use.lock().unwrap().as_ref().unwrap()));
@@ -1845,7 +1853,11 @@ impl scavChunkData {
 
     /// free updates sc given that npages was freed in the corresponding chunk.
     pub fn free(&mut self, npages: Arc<Mutex<Option<u64>>>, newGen: Arc<Mutex<Option<u32>>>) {
-        if { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.in_use.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
+        if {
+            let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.in_use.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            __tmp_x < __tmp_y
+        } {
         {
             let __go_print_arg_0 = format!("{}", "runtime: inUse=".to_string());
             let __go_print_arg_1 = format!("{}", (*self.in_use.lock().unwrap().as_ref().unwrap()));
@@ -2039,7 +2051,11 @@ pub fn gc_pace_scavenger(memoryLimit: Arc<Mutex<Option<i64>>>, heapGoal: Arc<Mut
 
         // Compute our scavenging goal.
     let mut goalRatio = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*heapGoal.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*lastHeapGoal.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y })));
-    let mut gcPercentGoal = Arc::new(Mutex::new(Some(({ let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*memstats.lock().unwrap().as_ref().unwrap()).last_heap_in_use.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*goalRatio.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }) as u64)));
+    let mut gcPercentGoal = Arc::new(Mutex::new(Some(({
+        let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*memstats.lock().unwrap().as_ref().unwrap()).last_heap_in_use.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as f64))).lock().unwrap().as_ref().unwrap());
+        let __tmp_y = { let __v = (*goalRatio.lock().unwrap().as_ref().unwrap()).clone(); __v };
+        __tmp_x * __tmp_y
+    }) as u64)));
 
         // Add retainExtraPercent overhead to retainedGoal. This calculation
         // looks strange but the purpose is to arrive at an integer division

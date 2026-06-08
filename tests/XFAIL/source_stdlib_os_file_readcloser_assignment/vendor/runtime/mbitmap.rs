@@ -622,7 +622,11 @@ impl crate::mheap::mspan {
     /// been no preemption points since ensuring this (which could allow a
     /// GC transition, which would allow the state to change).
     pub fn is_free(&self, index: Arc<Mutex<Option<usize>>>) -> bool {
-        if { let __tmp_x = { let __v = (*index.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.free_index_for_scan.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+        if {
+            let __tmp_x = { let __v = (*index.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.free_index_for_scan.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+            __tmp_x < __tmp_y
+        } {
         return false;
     }
         let (mut bytep, mut mask) = { let __recv_field = self.alloc_bits.clone(); let __result = __recv_field.with_mut(|__recv_value| __recv_value.bitp(Arc::new(Mutex::new(Some({ let __arg_holder = index.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))); __result };
@@ -642,7 +646,11 @@ impl crate::mheap::mspan {
 
                 // See explanation in mksizeclasses.go's computeDivMagic.
         let mut q = Arc::new(Mutex::new(Some(({
-            let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.div_mul.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y });
+            let __tmp_x = ({
+                let __tmp_x = (*Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap());
+                let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.div_mul.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))).lock().unwrap().as_ref().unwrap());
+                __tmp_x * __tmp_y
+            });
             let __tmp_y = 32;
             __tmp_x >> __tmp_y
         }) as usize)));

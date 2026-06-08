@@ -282,7 +282,11 @@ pub fn ticks_per_second() -> i64 {
         if { let __tmp_x = nowTicks; let __tmp_y = (*{ let __field = (*ticks.lock().unwrap().as_ref().unwrap()).start_ticks.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } && { let __tmp_x = { let __tmp_x = nowTime; let __tmp_y = (*{ let __field = (*ticks.lock().unwrap().as_ref().unwrap()).start_time.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }; let __tmp_y = MIN_TIME_FOR_TICKS_PER_SECOND as i64; __tmp_x > __tmp_y } {
                 // Perform the calculation with floats. We don't want to risk overflow.
         { let new_val = (*Arc::new(Mutex::new(Some(({
-            let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = nowTicks; let __tmp_y = (*{ let __field = (*ticks.lock().unwrap().as_ref().unwrap()).start_ticks.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1e+09; __tmp_x * __tmp_y };
+            let __tmp_x = {
+                let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = nowTicks; let __tmp_y = (*{ let __field = (*ticks.lock().unwrap().as_ref().unwrap()).start_ticks.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap());
+                let __tmp_y = 1e+09;
+                __tmp_x * __tmp_y
+            };
             let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = nowTime; let __tmp_y = (*{ let __field = (*ticks.lock().unwrap().as_ref().unwrap()).start_time.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap());
             __tmp_x / __tmp_y
         }) as i64))).lock().unwrap().as_ref().unwrap()); r = new_val; };

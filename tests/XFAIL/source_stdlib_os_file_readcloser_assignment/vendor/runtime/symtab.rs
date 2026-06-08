@@ -1610,7 +1610,11 @@ impl crate::runtime2::_func {
             if __go_cond_0 {
                 let __go_cond_1 = {
                     let __tmp_x = { let __v = (*ptr.lock().unwrap().as_ref().unwrap()).clone(); __v };
-                    let __tmp_y = { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = (*datap.lock().unwrap().as_ref().unwrap()).pclntable.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y };
+                    let __tmp_y = {
+                        let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                        let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = (*datap.lock().unwrap().as_ref().unwrap()).pclntable.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as usize))).lock().unwrap().as_ref().unwrap());
+                        __tmp_x + __tmp_y
+                    };
                     __tmp_x < __tmp_y
                 };
                 __go_cond_1

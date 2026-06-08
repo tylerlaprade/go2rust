@@ -2775,7 +2775,11 @@ pub fn gc_mark_termination(stw: Arc<Mutex<Option<worldStop>>>) {
                     _v.extend_from_slice(_slice);
                     _v
                 }))),
-                Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).t_sweep_term.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*runtimeInitTime.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1e6 as u64; __tmp_x / __tmp_y }))),
+                Arc::new(Mutex::new(Some({
+                    let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).t_sweep_term.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*runtimeInitTime.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = 1e6 as u64;
+                    __tmp_x / __tmp_y
+                }))),
                 Arc::new(Mutex::new(Some(3)))
             ).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap()));
             let __go_print_arg_4 = format!("{}", "s ".to_string());

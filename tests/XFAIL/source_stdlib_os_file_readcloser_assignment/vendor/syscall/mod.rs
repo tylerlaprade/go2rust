@@ -51,7 +51,11 @@ impl crate::ztypes_darwin_arm64::Timespec {
     /// Nano returns the time stored in ts as nanoseconds.
     pub fn nano(&self) -> i64 {
         return {
-            let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.sec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1e9 as i64; __tmp_x * __tmp_y };
+            let __tmp_x = {
+                let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.sec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap());
+                let __tmp_y = 1e9 as i64;
+                __tmp_x * __tmp_y
+            };
             let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.nsec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap());
             __tmp_x + __tmp_y
         };

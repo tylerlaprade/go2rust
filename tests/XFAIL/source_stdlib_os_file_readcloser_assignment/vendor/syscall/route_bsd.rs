@@ -817,7 +817,11 @@ pub fn parse_link_layer_addr(mut b: Arc<Mutex<Option<Vec<u8>>>>) -> (Arc<Mutex<O
     let mut lla: GoPtr<linkLayerAddr> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
     let mut l = Arc::new(Mutex::new(Some({
         let __tmp_x = {
-            let __tmp_x = { let __tmp_x = 4; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = lla.with_mut(|__ptr_value| __ptr_value.nlen.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y };
+            let __tmp_x = {
+                let __tmp_x = 4;
+                let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = lla.with_mut(|__ptr_value| __ptr_value.nlen.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
+                __tmp_x + __tmp_y
+            };
             let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = lla.with_mut(|__ptr_value| __ptr_value.alen.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap());
             __tmp_x + __tmp_y
         };
