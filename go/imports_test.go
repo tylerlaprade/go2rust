@@ -169,7 +169,8 @@ func forceConcurrent() {
 	if !strings.Contains(rust, "state: Arc<StdMutex<Option<i32>>>") {
 		t.Fatalf("struct field wrapper should use StdMutex:\n%s", rust)
 	}
-	if !strings.Contains(rust, "state: Arc::new(StdMutex::new(Some(0)))") {
+	if !strings.Contains(rust, "let __go_default_0_0 = Arc::new(StdMutex::new(Some(0)));") ||
+		!strings.Contains(rust, "state: __go_default_0_0") {
 		t.Fatalf("struct default wrapper should construct through StdMutex:\n%s", rust)
 	}
 }
