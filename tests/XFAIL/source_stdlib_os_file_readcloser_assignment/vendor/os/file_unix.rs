@@ -730,7 +730,12 @@ pub fn new_file(fd: Arc<Mutex<Option<usize>>>, name: Arc<Mutex<Option<String>>>)
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         { let new_val = 0; flags = new_val; };
     }
-    let mut f = new_file_1(Arc::new(Mutex::new(Some({ let __arg_holder = fdi.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(newFileKind(Arc::new(Mutex::new(Some(KIND_NEW_FILE as i32))))))), Arc::new(Mutex::new(Some(internal_syscall_unix::has_nonblock_flag(Arc::new(Mutex::new(Some(flags))))))));
+    let mut f = new_file_1(
+        Arc::new(Mutex::new(Some({ let __arg_holder = fdi.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some(newFileKind(Arc::new(Mutex::new(Some(KIND_NEW_FILE as i32))))))),
+        Arc::new(Mutex::new(Some(internal_syscall_unix::has_nonblock_flag(Arc::new(Mutex::new(Some(flags)))))))
+    );
     { let new_val = { let __tmp_x = { let __tmp_x = flags; let __tmp_y = syscall::O__A_P_P_E_N_D; __tmp_x & __tmp_y }; let __tmp_y = 0; __tmp_x != __tmp_y }; *(*(*f.lock().unwrap().as_mut().unwrap()).file.lock().unwrap().as_mut().unwrap()).append_mode.lock().unwrap() = Some(new_val); };
     return f.clone();
 }
@@ -897,7 +902,11 @@ pub fn open_file_nolog(name: Arc<Mutex<Option<String>>>, flag: Arc<Mutex<Option<
 
         // We have to check EINTR here, per issues 11180 and 39237.
     let mut e_closure_clone = e.clone(); let flag_closure_clone = flag.clone(); let name_closure_clone = name.clone(); let perm_closure_clone = perm.clone(); let mut r_closure_clone = r.clone(); let mut s_closure_clone = s.clone(); ignoring_e_i_n_t_r(Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        { let (__tmp_0, __tmp_1, __tmp_2) = open_1(Arc::new(Mutex::new(Some({ let __arg_holder = name_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*flag_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = syscall::O__C_L_O_E_X_E_C; __tmp_x | __tmp_y }))), Arc::new(Mutex::new(Some(syscall_mode(Arc::new(Mutex::new(Some({ let __arg_holder = perm_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))))))); *r_closure_clone.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *s_closure_clone.lock().unwrap() = __moved_tmp_1; let __moved_tmp_2 = { let mut __guard = __tmp_2.lock().unwrap(); __guard.take() }; *e_closure_clone.lock().unwrap() = __moved_tmp_2; };
+        { let (__tmp_0, __tmp_1, __tmp_2) = open_1(
+            Arc::new(Mutex::new(Some({ let __arg_holder = name_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*flag_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = syscall::O__C_L_O_E_X_E_C; __tmp_x | __tmp_y }))),
+            Arc::new(Mutex::new(Some(syscall_mode(Arc::new(Mutex::new(Some({ let __arg_holder = perm_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))))))
+        ); *r_closure_clone.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *s_closure_clone.lock().unwrap() = __moved_tmp_1; let __moved_tmp_2 = { let mut __guard = __tmp_2.lock().unwrap(); __guard.take() }; *e_closure_clone.lock().unwrap() = __moved_tmp_2; };
         return e_closure_clone.clone();
     }) as Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>))));
     if { let __nil_result = (*e.lock().unwrap()).is_some(); __nil_result } {
@@ -915,7 +924,12 @@ pub fn open_file_nolog(name: Arc<Mutex<Option<String>>>, flag: Arc<Mutex<Option<
         syscall::close_on_exec(Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
 
-    let mut f = new_file_1(Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(newFileKind(Arc::new(Mutex::new(Some(KIND_OPEN_FILE as i32))))))), Arc::new(Mutex::new(Some(internal_syscall_unix::has_nonblock_flag(Arc::new(Mutex::new(Some({ let __arg_holder = flag.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))))));
+    let mut f = new_file_1(
+        Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some(newFileKind(Arc::new(Mutex::new(Some(KIND_OPEN_FILE as i32))))))),
+        Arc::new(Mutex::new(Some(internal_syscall_unix::has_nonblock_flag(Arc::new(Mutex::new(Some({ let __arg_holder = flag.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))))))
+    );
     { let new_val = s.lock().unwrap().as_ref().unwrap().clone(); *(*(*(*f.lock().unwrap().as_mut().unwrap()).file.lock().unwrap().as_mut().unwrap()).pfd.lock().unwrap().as_ref().unwrap()).sys_file.lock().unwrap() = Some(new_val); };
     return (f.clone(), Arc::new(Mutex::new(None)));
 }
@@ -923,7 +937,11 @@ pub fn open_file_nolog(name: Arc<Mutex<Option<String>>>, flag: Arc<Mutex<Option<
 pub fn open_dir_nolog(name: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<crate::types::File>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
     let mut r: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));let mut s: Arc<Mutex<Option<internal_poll::fd_unixjs::SysFile>>> = Arc::new(Mutex::new(Some(Default::default())));let mut e: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
     let mut e_closure_clone = e.clone(); let name_closure_clone = name.clone(); let mut r_closure_clone = r.clone(); let mut s_closure_clone = s.clone(); ignoring_e_i_n_t_r(Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        { let (__tmp_0, __tmp_1, __tmp_2) = open_1(Arc::new(Mutex::new(Some({ let __arg_holder = name_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(17825792))), Arc::new(Mutex::new(Some(0 as u32)))); *r_closure_clone.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *s_closure_clone.lock().unwrap() = __moved_tmp_1; let __moved_tmp_2 = { let mut __guard = __tmp_2.lock().unwrap(); __guard.take() }; *e_closure_clone.lock().unwrap() = __moved_tmp_2; };
+        { let (__tmp_0, __tmp_1, __tmp_2) = open_1(
+            Arc::new(Mutex::new(Some({ let __arg_holder = name_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(17825792))),
+            Arc::new(Mutex::new(Some(0 as u32)))
+        ); *r_closure_clone.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *s_closure_clone.lock().unwrap() = __moved_tmp_1; let __moved_tmp_2 = { let mut __guard = __tmp_2.lock().unwrap(); __guard.take() }; *e_closure_clone.lock().unwrap() = __moved_tmp_2; };
         return e_closure_clone.clone();
     }) as Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>))));
     if { let __nil_result = (*e.lock().unwrap()).is_some(); __nil_result } {

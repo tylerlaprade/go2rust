@@ -237,7 +237,11 @@ impl fixalloc {
             let __tmp_y = (*self.size.lock().unwrap().as_ref().unwrap());
             __tmp_x < __tmp_y
         } {
-        { let new_val = Arc::new(Mutex::new(Some((*persistentalloc(Arc::new(Mutex::new(Some({ let __selector_holder = self.nalloc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))), Arc::new(Mutex::new(Some(0 as usize))), { let __field = self.stat.clone(); __field }).lock().unwrap().as_ref().unwrap()) as usize))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *self.chunk.lock().unwrap() = __moved_val; };
+        { let new_val = Arc::new(Mutex::new(Some((*persistentalloc(
+            Arc::new(Mutex::new(Some({ let __selector_holder = self.nalloc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))),
+            Arc::new(Mutex::new(Some(0 as usize))),
+            { let __field = self.stat.clone(); __field }
+        ).lock().unwrap().as_ref().unwrap()) as usize))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *self.chunk.lock().unwrap() = __moved_val; };
         { let new_val = { let __selector_holder = self.nalloc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *self.nchunk.lock().unwrap() = Some(new_val); };
     }
         let mut v = Arc::new(Mutex::new(Some({ let __selector_holder = self.chunk.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));

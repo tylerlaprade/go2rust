@@ -123,7 +123,11 @@ pub fn start_checkmarks() {
         let mut bitmap: GoPtr<checkmarksMap> = (*arena.lock().unwrap().as_ref().unwrap()).checkmarks.clone();
         if bitmap.is_nil() {
                 // Allocate bitmap on first use.
-        bitmap = GoPtr::raw({ let __ptr = persistentalloc(Arc::new(Mutex::new(Some(std::mem::size_of::<checkmarksMap>()))), Arc::new(Mutex::new(Some(0 as usize))), (*memstats.lock().unwrap().as_ref().unwrap()).gc_misc_sys.clone()).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
+        bitmap = GoPtr::raw({ let __ptr = persistentalloc(
+            Arc::new(Mutex::new(Some(std::mem::size_of::<checkmarksMap>()))),
+            Arc::new(Mutex::new(Some(0 as usize))),
+            (*memstats.lock().unwrap().as_ref().unwrap()).gc_misc_sys.clone()
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         if bitmap.is_nil() {
         throw(Arc::new(Mutex::new(Some("out of memory allocating checkmarks bitmap".to_string()))));
     }
@@ -171,7 +175,11 @@ pub fn set_checkmark(obj: Arc<Mutex<Option<usize>>>, base: Arc<Mutex<Option<usiz
                 // Dump the source (base) object
         gc_dump_object(Arc::new(Mutex::new(Some("base".to_string()))), Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = off.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
                 // Dump the object
-        gc_dump_object(Arc::new(Mutex::new(Some("obj".to_string()))), Arc::new(Mutex::new(Some({ let __arg_holder = obj.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(!(0 as usize) as usize))));
+        gc_dump_object(
+            Arc::new(Mutex::new(Some("obj".to_string()))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = obj.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(!(0 as usize) as usize)))
+        );
         { let new_val = 2 as u8; *(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).traceback.lock().unwrap() = Some(new_val); };
         throw(Arc::new(Mutex::new(Some("checkmark found unmarked object".to_string()))));
     }

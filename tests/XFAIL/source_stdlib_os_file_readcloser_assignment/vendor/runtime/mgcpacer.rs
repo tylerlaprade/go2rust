@@ -1655,7 +1655,11 @@ pub fn gc_controller_commit() {
 
     let (mut trigger, mut heapGoal) = (*gcController.lock().unwrap().as_ref().unwrap()).trigger();
     gc_pace_sweeper(Arc::new(Mutex::new(Some(trigger))));
-    gc_pace_scavenger(Arc::new(Mutex::new(Some((*(*gcController.lock().unwrap().as_ref().unwrap()).memory_limit.lock().unwrap().as_mut().unwrap()).load()))), Arc::new(Mutex::new(Some(heapGoal))), Arc::new(Mutex::new(Some({ let __selector_holder = (*gcController.lock().unwrap().as_ref().unwrap()).last_heap_goal.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+    gc_pace_scavenger(
+        Arc::new(Mutex::new(Some((*(*gcController.lock().unwrap().as_ref().unwrap()).memory_limit.lock().unwrap().as_mut().unwrap()).load()))),
+        Arc::new(Mutex::new(Some(heapGoal))),
+        Arc::new(Mutex::new(Some({ let __selector_holder = (*gcController.lock().unwrap().as_ref().unwrap()).last_heap_goal.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))
+    );
 }
 
 pub(crate) fn __go_init_functions() {

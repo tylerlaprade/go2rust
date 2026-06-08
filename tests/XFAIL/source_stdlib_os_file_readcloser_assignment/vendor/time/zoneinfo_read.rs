@@ -759,7 +759,11 @@ const zheader: i32 = 0x04034b50;
 
         { let new_val = Arc::new(Mutex::new(Some(vec![0; (size) as usize]))); buf = new_val; };
         {
-        let mut err = preadn(Arc::new(Mutex::new(Some(fd))), buf.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __tmp_x = off; let __tmp_y = 30; __tmp_x + __tmp_y }; let __tmp_y = namelen; __tmp_x + __tmp_y }; let __tmp_y = xlen; __tmp_x + __tmp_y }))));;
+        let mut err = preadn(
+            Arc::new(Mutex::new(Some(fd))),
+            buf.clone(),
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __tmp_x = off; let __tmp_y = 30; __tmp_x + __tmp_y }; let __tmp_y = namelen; __tmp_x + __tmp_y }; let __tmp_y = xlen; __tmp_x + __tmp_y })))
+        );;
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
             {
         // Execute deferred functions

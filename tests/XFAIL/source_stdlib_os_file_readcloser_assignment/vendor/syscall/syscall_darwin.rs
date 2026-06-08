@@ -244,7 +244,13 @@ pub fn nametomib(name: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Vec<crat
         // Magic sysctl: "setting" 0.3 to a string name
         // lets you read back the array of integers form.
     {
-        { let __rhs_holder = sysctl_1(Arc::new(Mutex::new(Some(vec![crate::ztypes_darwin_arm64::_C_int(Arc::new(Mutex::new(Some(0 as i32)))), crate::ztypes_darwin_arm64::_C_int(Arc::new(Mutex::new(Some(3 as i32))))]))), p.clone(), n.clone(), GoPtr::slice_elem(GoSliceElemPtr::new(bytes.clone(), (0) as usize)), Arc::new(Mutex::new(Some((*name.lock().unwrap().as_ref().unwrap()).len() as usize)))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };;
+        { let __rhs_holder = sysctl_1(
+            Arc::new(Mutex::new(Some(vec![crate::ztypes_darwin_arm64::_C_int(Arc::new(Mutex::new(Some(0 as i32)))), crate::ztypes_darwin_arm64::_C_int(Arc::new(Mutex::new(Some(3 as i32))))]))),
+            p.clone(),
+            n.clone(),
+            GoPtr::slice_elem(GoSliceElemPtr::new(bytes.clone(), (0) as usize)),
+            Arc::new(Mutex::new(Some((*name.lock().unwrap().as_ref().unwrap()).len() as usize)))
+        ).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };;
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
             return (Arc::new(Mutex::new(None)), err.clone());;
         }
@@ -260,7 +266,12 @@ pub fn fdopendir(fd: Arc<Mutex<Option<i32>>>) -> (usize, Arc<Mutex<Option<Box<dy
     let mut dir: Arc<Mutex<Option<usize>>> = Arc::new(Mutex::new(Some(Default::default())));
     let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
-    let (mut r0, _, mut e1) = syscall_ptr(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(libc_fdopendir_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some((*fd.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some(0 as usize))), Arc::new(Mutex::new(Some(0 as usize))));
+    let (mut r0, _, mut e1) = syscall_ptr(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(libc_fdopendir_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some((*fd.lock().unwrap().as_ref().unwrap()) as usize))),
+        Arc::new(Mutex::new(Some(0 as usize))),
+        Arc::new(Mutex::new(Some(0 as usize)))
+    );
     { let new_val = r0; *dir.lock().unwrap() = Some(new_val); };
     if { let __tmp_x = (*e1.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::syscall_unix::Errno(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
         { let __rhs_holder = errno_err(Arc::new(Mutex::new(Some({ let __arg_holder = e1.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };

@@ -451,12 +451,24 @@ impl crate::r#mod::Time {
         { let new_val = { let __append_target = buf.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*sign.lock().unwrap().as_ref().unwrap()).clone()); __append_target.clone() }; buf = new_val; };
         let mut wid = Arc::new(Mutex::new(Some(0)));
         if { let __tmp_x = { let __v = (*m0.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
-        { let new_val = append_int(buf.clone(), Arc::new(Mutex::new(Some((*m0.lock().unwrap().as_ref().unwrap()) as i32))), Arc::new(Mutex::new(Some(0)))); buf = new_val; };
+        { let new_val = append_int(
+            buf.clone(),
+            Arc::new(Mutex::new(Some((*m0.lock().unwrap().as_ref().unwrap()) as i32))),
+            Arc::new(Mutex::new(Some(0)))
+        ); buf = new_val; };
         { let new_val = 9; *wid.lock().unwrap() = Some(new_val); };
     }
-        { let new_val = append_int(buf.clone(), Arc::new(Mutex::new(Some((*m1.lock().unwrap().as_ref().unwrap()) as i32))), Arc::new(Mutex::new(Some({ let __arg_holder = wid.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); buf = new_val; };
+        { let new_val = append_int(
+            buf.clone(),
+            Arc::new(Mutex::new(Some((*m1.lock().unwrap().as_ref().unwrap()) as i32))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = wid.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        ); buf = new_val; };
         { let new_val = { let __append_target = buf.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(('.' as i32) as u8); __append_target.clone() }; buf = new_val; };
-        { let new_val = append_int(buf.clone(), Arc::new(Mutex::new(Some((*m2.lock().unwrap().as_ref().unwrap()) as i32))), Arc::new(Mutex::new(Some(9)))); buf = new_val; };
+        { let new_val = append_int(
+            buf.clone(),
+            Arc::new(Mutex::new(Some((*m2.lock().unwrap().as_ref().unwrap()) as i32))),
+            Arc::new(Mutex::new(Some(9)))
+        ); buf = new_val; };
         { (*s.lock().unwrap().as_mut().unwrap()).push_str(&{ let __s = Arc::new(Mutex::new(Some(String::from_utf8((*buf.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))); let __value = (*__s.lock().unwrap().as_ref().unwrap()).clone(); __value }); };
     }
         return { let __owned = s.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
@@ -477,7 +489,11 @@ impl crate::r#mod::Time {
     } else {
                 // It's difficult to construct a time.Time with a date outside the
                 // standard range but we might as well try to handle the case.
-        { let new_val = append_int(buf.clone(), Arc::new(Mutex::new(Some((*{ let __v = (*month.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))), Arc::new(Mutex::new(Some(0)))); buf = new_val; };
+        { let new_val = append_int(
+            buf.clone(),
+            Arc::new(Mutex::new(Some((*{ let __v = (*month.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))),
+            Arc::new(Mutex::new(Some(0)))
+        ); buf = new_val; };
     }
                 // It's difficult to construct a time.Time with a date outside the
                 // standard range but we might as well try to handle the case.
@@ -490,7 +506,11 @@ impl crate::r#mod::Time {
         { let new_val = { let __append_target = buf.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(", ".to_string().as_bytes().iter().cloned()); __append_target.clone() }; buf = new_val; };
         { let new_val = append_int(buf.clone(), Arc::new(Mutex::new(Some(second))), Arc::new(Mutex::new(Some(0)))); buf = new_val; };
         { let new_val = { let __append_target = buf.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(", ".to_string().as_bytes().iter().cloned()); __append_target.clone() }; buf = new_val; };
-        { let new_val = append_int(buf.clone(), Arc::new(Mutex::new(Some(self.nanosecond()))), Arc::new(Mutex::new(Some(0)))); buf = new_val; };
+        { let new_val = append_int(
+            buf.clone(),
+            Arc::new(Mutex::new(Some(self.nanosecond()))),
+            Arc::new(Mutex::new(Some(0)))
+        ); buf = new_val; };
         { let new_val = { let __append_target = buf.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend(", ".to_string().as_bytes().iter().cloned()); __append_target.clone() }; buf = new_val; };
         let mut loc = self.location();
     if { let __switch_val = loc.clone(); { let __case = (*UTC.lock().unwrap().as_ref().unwrap()).clone(); let __switch_guard = __switch_val.lock().unwrap(); let __case_guard = __case.lock().unwrap(); let __both_nil = (*__switch_guard).is_none() && (*__case_guard).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__switch_val, &__case); __eq } } || { let __switch_val = loc.clone(); (*__switch_val.lock().unwrap()).is_none() } {
@@ -607,7 +627,11 @@ impl crate::r#mod::Time {
             if { let __tmp_x = { let __v = (*y.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x < __tmp_y } {
         { let new_val = -((*y.lock().unwrap().as_ref().unwrap())); *y.lock().unwrap() = Some(new_val); };
     }
-            { let new_val = append_int(b.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*y.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 100; __tmp_x % __tmp_y }))), Arc::new(Mutex::new(Some(2)))); b = new_val; };
+            { let new_val = append_int(
+                b.clone(),
+                Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*y.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 100; __tmp_x % __tmp_y }))),
+                Arc::new(Mutex::new(Some(2)))
+            ); b = new_val; };
         } else if _switch_val == (275) {
             { let new_val = append_int(b.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = year.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(4)))); b = new_val; };
         } else if _switch_val == (258) {
@@ -616,9 +640,17 @@ impl crate::r#mod::Time {
             let mut m = crate::r#mod::Month::string(&(*month.lock().unwrap().as_ref().unwrap()));
             { let new_val = { let __append_target = b.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend((*m.lock().unwrap().as_ref().unwrap()).clone().as_bytes().iter().cloned()); __append_target.clone() }; b = new_val; };
         } else if _switch_val == (259) {
-            { let new_val = append_int(b.clone(), Arc::new(Mutex::new(Some((*{ let __v = (*month.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))), Arc::new(Mutex::new(Some(0)))); b = new_val; };
+            { let new_val = append_int(
+                b.clone(),
+                Arc::new(Mutex::new(Some((*{ let __v = (*month.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))),
+                Arc::new(Mutex::new(Some(0)))
+            ); b = new_val; };
         } else if _switch_val == (260) {
-            { let new_val = append_int(b.clone(), Arc::new(Mutex::new(Some((*{ let __v = (*month.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))), Arc::new(Mutex::new(Some(2)))); b = new_val; };
+            { let new_val = append_int(
+                b.clone(),
+                Arc::new(Mutex::new(Some((*{ let __v = (*month.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))),
+                Arc::new(Mutex::new(Some(2)))
+            ); b = new_val; };
         } else if _switch_val == (262) {
             { let new_val = { let __append_target = b.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend((*Arc::new(Mutex::new(Some({ let __s = &((*crate::r#mod::Weekday::string(&(*crate::r#mod::absDays::weekday(&(*days.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()).clone()); let __high = (3) as usize; __s[..__high].to_string() }))).lock().unwrap().as_ref().unwrap()).clone().as_bytes().iter().cloned()); __append_target.clone() }; b = new_val; };
         } else if _switch_val == (261) {
@@ -735,19 +767,31 @@ impl crate::r#mod::Time {
     } else {
         { let new_val = { let __append_target = b.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(('+' as i32) as u8); __append_target.clone() }; b = new_val; };
     }
-            { let new_val = append_int(b.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*zone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60; __tmp_x / __tmp_y }))), Arc::new(Mutex::new(Some(2)))); b = new_val; };
+            { let new_val = append_int(
+                b.clone(),
+                Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*zone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60; __tmp_x / __tmp_y }))),
+                Arc::new(Mutex::new(Some(2)))
+            ); b = new_val; };
             if { let __tmp_x = std; let __tmp_y = 27; __tmp_x == __tmp_y } || { let __tmp_x = std; let __tmp_y = 32; __tmp_x == __tmp_y } || { let __tmp_x = std; let __tmp_y = 28; __tmp_x == __tmp_y } || { let __tmp_x = std; let __tmp_y = 33; __tmp_x == __tmp_y } {
         { let new_val = { let __append_target = b.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((':' as i32) as u8); __append_target.clone() }; b = new_val; };
     }
             if { let __tmp_x = std; let __tmp_y = 31; __tmp_x != __tmp_y } && { let __tmp_x = std; let __tmp_y = 26; __tmp_x != __tmp_y } {
-        { let new_val = append_int(b.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*zone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60; __tmp_x % __tmp_y }))), Arc::new(Mutex::new(Some(2)))); b = new_val; };
+        { let new_val = append_int(
+            b.clone(),
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*zone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60; __tmp_x % __tmp_y }))),
+            Arc::new(Mutex::new(Some(2)))
+        ); b = new_val; };
     }
                         // append seconds if appropriate
             if { let __tmp_x = std; let __tmp_y = 25; __tmp_x == __tmp_y } || { let __tmp_x = std; let __tmp_y = 30; __tmp_x == __tmp_y } || { let __tmp_x = std; let __tmp_y = 33; __tmp_x == __tmp_y } || { let __tmp_x = std; let __tmp_y = 28; __tmp_x == __tmp_y } {
         if { let __tmp_x = std; let __tmp_y = 33; __tmp_x == __tmp_y } || { let __tmp_x = std; let __tmp_y = 28; __tmp_x == __tmp_y } {
         { let new_val = { let __append_target = b.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((':' as i32) as u8); __append_target.clone() }; b = new_val; };
     }
-        { let new_val = append_int(b.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*absoffset.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60; __tmp_x % __tmp_y }))), Arc::new(Mutex::new(Some(2)))); b = new_val; };
+        { let new_val = append_int(
+            b.clone(),
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*absoffset.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60; __tmp_x % __tmp_y }))),
+            Arc::new(Mutex::new(Some(2)))
+        ); b = new_val; };
     }
         } else if _switch_val == (23) {
             if { let __tmp_x = (*name.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
@@ -763,10 +807,22 @@ impl crate::r#mod::Time {
     } else {
         { let new_val = { let __append_target = b.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(('+' as i32) as u8); __append_target.clone() }; b = new_val; };
     }
-            { let new_val = append_int(b.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*zone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60; __tmp_x / __tmp_y }))), Arc::new(Mutex::new(Some(2)))); b = new_val; };
-            { let new_val = append_int(b.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*zone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60; __tmp_x % __tmp_y }))), Arc::new(Mutex::new(Some(2)))); b = new_val; };
+            { let new_val = append_int(
+                b.clone(),
+                Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*zone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60; __tmp_x / __tmp_y }))),
+                Arc::new(Mutex::new(Some(2)))
+            ); b = new_val; };
+            { let new_val = append_int(
+                b.clone(),
+                Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*zone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60; __tmp_x % __tmp_y }))),
+                Arc::new(Mutex::new(Some(2)))
+            ); b = new_val; };
         } else if _switch_val == (34) || _switch_val == (35) {
-            { let new_val = append_nano(b.clone(), Arc::new(Mutex::new(Some(self.nanosecond()))), Arc::new(Mutex::new(Some(std)))); b = new_val; };
+            { let new_val = append_nano(
+                b.clone(),
+                Arc::new(Mutex::new(Some(self.nanosecond()))),
+                Arc::new(Mutex::new(Some(std)))
+            ); b = new_val; };
         }
     };
         break;
@@ -959,7 +1015,11 @@ pub fn next_std_chunk(layout: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<S
         if { let __tmp_x = { let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] }; let __tmp_y = ('9' as i32) as u8; __tmp_x == __tmp_y } {
         { let new_val = 35; *code.lock().unwrap() = Some(new_val); };
     }
-        let mut std = std_frac_second(Arc::new(Mutex::new(Some({ let __arg_holder = code.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }); __tmp_x - __tmp_y }))), Arc::new(Mutex::new(Some({ let __arg_holder = c.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        let mut std = std_frac_second(
+            Arc::new(Mutex::new(Some({ let __arg_holder = code.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }); __tmp_x - __tmp_y }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = c.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        );
         return (Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = (0) as usize; let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), std, Arc::new(Mutex::new(Some({ let __s = &((*layout.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..].to_string() }))));
     }
     }
@@ -1356,7 +1416,13 @@ pub fn parse_1(mut layout: Arc<Mutex<Option<String>>>, mut value: Arc<Mutex<Opti
     }
         if { let __tmp_x = std; let __tmp_y = 0; __tmp_x == __tmp_y } {
         if { let __tmp_x = ((*value.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 0; __tmp_x != __tmp_y } {
-        return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), Arc::new(Mutex::new(Some(Box::new((*new_parse_error(Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("".to_string()))), Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(format!("{}{}", ": extra text: ".to_string(), (*quote(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap())))))).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>))));
+        return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), Arc::new(Mutex::new(Some(Box::new((*new_parse_error(
+            Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some("".to_string()))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(format!("{}{}", ": extra text: ".to_string(), (*quote(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap())))))
+        ).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>))));
     }
         break
     }
@@ -1770,13 +1836,19 @@ pub fn parse_1(mut layout: Arc<Mutex<Option<String>>>, mut value: Arc<Mutex<Opti
                 // Take any number of digits, even more than asked for,
                 // because it is what the stdSecond case would do.
         if { let __tmp_x = (*rangeErrString.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
-        return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), Arc::new(Mutex::new(Some(Box::new((*new_parse_error(Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = stdstr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({
-            let mut __s = String::new();
-            __s.push_str(&format!("{}", ": ".to_string()));
-            __s.push_str(&format!("{}", { let __v = (*rangeErrString.lock().unwrap().as_ref().unwrap()).clone(); __v }));
-            __s.push_str(&format!("{}", " out of range".to_string()));
-            __s
-        })))).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>))));
+        return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), Arc::new(Mutex::new(Some(Box::new((*new_parse_error(
+            Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = stdstr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({
+                let mut __s = String::new();
+                __s.push_str(&format!("{}", ": ".to_string()));
+                __s.push_str(&format!("{}", { let __v = (*rangeErrString.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+                __s.push_str(&format!("{}", " out of range".to_string()));
+                __s
+            })))
+        ).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>))));
     }
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), Arc::new(Mutex::new(Some(Box::new((*new_parse_error(Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = stdstr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = hold.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("".to_string())))).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>))));
@@ -1857,11 +1929,29 @@ pub fn parse_1(mut layout: Arc<Mutex<Option<String>>>, mut value: Arc<Mutex<Opti
     }
 
     if { let __nil_result = (*z.lock().unwrap()).is_some(); __nil_result } {
-        return (date(Arc::new(Mutex::new(Some({ let __arg_holder = year.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(crate::r#mod::Month(Arc::new(Mutex::new(Some((*month.lock().unwrap().as_ref().unwrap()) as i32))))))), Arc::new(Mutex::new(Some({ let __arg_holder = day.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = hour.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = min.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = sec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = nsec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), z.clone()), Arc::new(Mutex::new(None)));
+        return (date(
+            Arc::new(Mutex::new(Some({ let __arg_holder = year.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(crate::r#mod::Month(Arc::new(Mutex::new(Some((*month.lock().unwrap().as_ref().unwrap()) as i32))))))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = day.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = hour.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = min.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = sec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = nsec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            z.clone()
+        ), Arc::new(Mutex::new(None)));
     }
 
     if { let __tmp_x = { let __v = (*zoneOffset.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = -1; __tmp_x != __tmp_y } {
-        let mut t = date(Arc::new(Mutex::new(Some({ let __arg_holder = year.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(crate::r#mod::Month(Arc::new(Mutex::new(Some((*month.lock().unwrap().as_ref().unwrap()) as i32))))))), Arc::new(Mutex::new(Some({ let __arg_holder = day.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = hour.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = min.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = sec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = nsec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), { let __arg_holder = UTC.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
+        let mut t = date(
+            Arc::new(Mutex::new(Some({ let __arg_holder = year.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(crate::r#mod::Month(Arc::new(Mutex::new(Some((*month.lock().unwrap().as_ref().unwrap()) as i32))))))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = day.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = hour.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = min.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = sec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = nsec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            { let __arg_holder = UTC.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }
+        );
         (*t.lock().unwrap().as_mut().unwrap()).add_sec(Arc::new(Mutex::new(Some(-((*zoneOffset.lock().unwrap().as_ref().unwrap()) as i64)))));
                 // Look for local zone with the given offset.
                 // If that zone was in effect at the given time, use it.
@@ -1881,7 +1971,16 @@ pub fn parse_1(mut layout: Arc<Mutex<Option<String>>>, mut value: Arc<Mutex<Opti
         // Otherwise create fake zone to record offset.
         // avoid leaking the input value
     if { let __tmp_x = (*zoneName.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
-        let mut t = date(Arc::new(Mutex::new(Some({ let __arg_holder = year.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(crate::r#mod::Month(Arc::new(Mutex::new(Some((*month.lock().unwrap().as_ref().unwrap()) as i32))))))), Arc::new(Mutex::new(Some({ let __arg_holder = day.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = hour.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = min.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = sec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = nsec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), { let __arg_holder = UTC.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
+        let mut t = date(
+            Arc::new(Mutex::new(Some({ let __arg_holder = year.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(crate::r#mod::Month(Arc::new(Mutex::new(Some((*month.lock().unwrap().as_ref().unwrap()) as i32))))))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = day.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = hour.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = min.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = sec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = nsec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            { let __arg_holder = UTC.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }
+        );
                 // Look for local zone with the given offset.
                 // If that zone was in effect at the given time, use it.
         let (mut offset, mut ok) = { let __recv = local.clone(); let __recv_ptr: *mut crate::zoneinfo::Location = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::zoneinfo::Location }; let __result = unsafe { &mut *__recv_ptr }.lookup_name(Arc::new(Mutex::new(Some({ let __arg_holder = zoneName.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some((*t.lock().unwrap().as_ref().unwrap()).unix_sec())))); __result };
@@ -1907,7 +2006,16 @@ pub fn parse_1(mut layout: Arc<Mutex<Option<String>>>, mut value: Arc<Mutex<Opti
         // Guaranteed OK by parseGMT.
         // avoid leaking the input value
         // Otherwise, fall back to default.
-    return (date(Arc::new(Mutex::new(Some({ let __arg_holder = year.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(crate::r#mod::Month(Arc::new(Mutex::new(Some((*month.lock().unwrap().as_ref().unwrap()) as i32))))))), Arc::new(Mutex::new(Some({ let __arg_holder = day.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = hour.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = min.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = sec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = nsec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), defaultLocation.clone()), Arc::new(Mutex::new(None)));
+    return (date(
+        Arc::new(Mutex::new(Some({ let __arg_holder = year.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some(crate::r#mod::Month(Arc::new(Mutex::new(Some((*month.lock().unwrap().as_ref().unwrap()) as i32))))))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = day.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = hour.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = min.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = sec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = nsec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        defaultLocation.clone()
+    ), Arc::new(Mutex::new(None)));
 }
 
 /// parseTimeZone parses a time zone string and returns its length. Time zones

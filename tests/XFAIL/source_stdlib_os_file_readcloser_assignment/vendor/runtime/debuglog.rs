@@ -1134,7 +1134,11 @@ pub fn print_debug_log_impl() {
         { let new_val = 0 as i64; *pnano.lock().unwrap() = Some(new_val); };
     }
                 // Logged before runtimeInitTime was set.
-        let mut pnanoBytes = itoa_div(Arc::new(Mutex::new(Some({ let __seq_holder = tmpbuf_local.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(Some((*pnano.lock().unwrap().as_ref().unwrap()) as u64))), Arc::new(Mutex::new(Some(9))));
+        let mut pnanoBytes = itoa_div(
+            Arc::new(Mutex::new(Some({ let __seq_holder = tmpbuf_local.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))),
+            Arc::new(Mutex::new(Some((*pnano.lock().unwrap().as_ref().unwrap()) as u64))),
+            Arc::new(Mutex::new(Some(9)))
+        );
         {
             let __go_print_arg_0 = format!("{}", (*slicebytetostringtmp(GoPtr::raw({ let __ptr = noescape(Arc::new(Mutex::new(Some({ let __seq_holder = pnanoBytes.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize })))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) }), Arc::new(Mutex::new(Some((*pnanoBytes.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)))).lock().unwrap().as_ref().unwrap()));
             eprint!("{}", __go_print_arg_0)

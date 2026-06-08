@@ -9881,6 +9881,14 @@ func methodCallArgumentsShouldUseMultiline(call *ast.CallExpr) bool {
 	return !ok || !sig.Variadic()
 }
 
+func functionCallArgumentsShouldUseMultiline(call *ast.CallExpr) bool {
+	if call == nil || !callArgumentsShouldUseMultiline(call.Args) {
+		return false
+	}
+	sig, ok := callSignatureFromTypeInfo(call)
+	return !ok || !sig.Variadic()
+}
+
 func functionValueSelectorCallShouldUseMultiline(call *ast.CallExpr) bool {
 	if call == nil || !NeedsConcurrentWrapper() {
 		return false
@@ -20995,8 +21003,20 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 
+	multilineFunctionArgs := functionCallArgumentsShouldUseMultiline(call)
+	functionArgIndent := ""
+	if multilineFunctionArgs {
+		functionArgIndent = currentLineIndent(out)
+		out.WriteString("\n")
+	}
 	for i, arg := range call.Args {
-		if i > 0 {
+		if multilineFunctionArgs {
+			if i > 0 {
+				out.WriteString(",\n")
+			}
+			out.WriteString(functionArgIndent)
+			out.WriteString("    ")
+		} else if i > 0 {
 			out.WriteString(", ")
 		}
 
@@ -21489,6 +21509,10 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		} else {
 			TranspileExpression(out, arg)
 		}
+	}
+	if multilineFunctionArgs {
+		out.WriteString("\n")
+		out.WriteString(functionArgIndent)
 	}
 	closeFunctionCall()
 }

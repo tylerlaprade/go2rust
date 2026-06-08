@@ -161,7 +161,11 @@ impl pollDesc {
 impl crate::fd_unix::FD {
     /// SetDeadline sets the read and write deadlines associated with fd.
     pub fn set_deadline(&self, t: Arc<Mutex<Option<time::r#mod::Time>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
-        set_deadline_impl(Arc::new(Mutex::new(Some(self.clone()))), Arc::new(Mutex::new(Some({ let __arg_holder = t.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(233))))
+        set_deadline_impl(
+            Arc::new(Mutex::new(Some(self.clone()))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = t.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(233)))
+        )
     }
 
     /// SetReadDeadline sets the read deadline associated with fd.

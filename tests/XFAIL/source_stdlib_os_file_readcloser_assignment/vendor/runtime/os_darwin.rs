@@ -605,7 +605,11 @@ pub fn semawakeup(mp: GoPtr<crate::runtime2::m>) {
 /// sigNoteWakeup wakes up a thread sleeping on a note created by sigNoteSetup.
 pub fn sig_note_wakeup(__arg0: Arc<Mutex<Option<note>>>) {
     let mut b: Arc<Mutex<Option<u8>>> = Arc::new(Mutex::new(Some(0)));
-    write(Arc::new(Mutex::new(Some((*sigNoteWrite.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some(Arc::as_ptr(&b.clone()) as usize))), Arc::new(Mutex::new(Some(1 as i32))));
+    write(
+        Arc::new(Mutex::new(Some((*sigNoteWrite.lock().unwrap().as_ref().unwrap()) as usize))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&b.clone()) as usize))),
+        Arc::new(Mutex::new(Some(1 as i32)))
+    );
 }
 
 /// May run with m.p==nil, so write barriers are not allowed.
@@ -658,7 +662,11 @@ pub fn newosproc(mp: GoPtr<crate::runtime2::m>) {
     let mut oset: Arc<Mutex<Option<sigset>>> = Arc::new(Mutex::new(Some(sigset(Arc::new(Mutex::new(Some(0)))))));
     sigprocmask(Arc::new(Mutex::new(Some(__S_I_G__S_E_T_M_A_S_K as u32))), sigset_all.clone(), oset.clone());
     let attr_closure_clone = attr.clone(); let mp_closure_clone = mp.clone(); { let new_val = retry_on_e_a_g_a_i_n(Arc::new(Mutex::new(Some(Box::new(move || -> i32 {
-        return pthread_create(attr_closure_clone.clone(), Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(mstart_stub.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(mp.addr()))));
+        return pthread_create(
+            attr_closure_clone.clone(),
+            Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(mstart_stub.clone()) as Box<dyn Any + Send + Sync>))))))),
+            Arc::new(Mutex::new(Some(mp.addr())))
+        );
     }) as Box<dyn FnMut() -> i32 + Send + Sync>)))); *err.lock().unwrap() = Some(new_val); };
     sigprocmask(Arc::new(Mutex::new(Some(__S_I_G__S_E_T_M_A_S_K as u32))), oset.clone(), Arc::new(Mutex::new(None)));
     if { let __tmp_x = { let __v = (*err.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i32; __tmp_x != __tmp_y } {

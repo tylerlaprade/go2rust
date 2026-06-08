@@ -226,7 +226,11 @@ pub fn suspend_g(gp: Arc<Mutex<Option<g>>>) -> Arc<Mutex<Option<suspendGState>>>
                         // Claim goroutine by setting scan bit.
                         // This may race with execution or readying of gp.
                         // The scan bit keeps it from transition state.
-            if !castogscanstatus(gp.clone(), Arc::new(Mutex::new(Some(s))), Arc::new(Mutex::new(Some({ let __tmp_x = s; let __tmp_y = __GSCAN as u32; __tmp_x | __tmp_y })))) {
+            if !castogscanstatus(
+                gp.clone(),
+                Arc::new(Mutex::new(Some(s))),
+                Arc::new(Mutex::new(Some({ let __tmp_x = s; let __tmp_y = __GSCAN as u32; __tmp_x | __tmp_y })))
+            ) {
         break '__go_switch_1
     }
                         // Clear the preemption request. It's safe to
@@ -408,7 +412,11 @@ pub fn resume_g(state: Arc<Mutex<Option<suspendGState>>>) {
     let mut s = readgstatus(GoPtr::local(gp.clone()));
     { let _switch_val = s;
     if _switch_val == (((__GRUNNABLE as u32) | (__GSCAN as u32)) as u32) || _switch_val == (((__GWAITING as u32) | (__GSCAN as u32)) as u32) || _switch_val == (((__GSYSCALL as u32) | (__GSCAN as u32)) as u32) {
-            casfrom__gscanstatus(GoPtr::local(gp.clone()), Arc::new(Mutex::new(Some(s))), Arc::new(Mutex::new(Some({ let __tmp_x = s; let __tmp_y = __GSCAN as u32; __tmp_x & ! __tmp_y }))));
+            casfrom__gscanstatus(
+                GoPtr::local(gp.clone()),
+                Arc::new(Mutex::new(Some(s))),
+                Arc::new(Mutex::new(Some({ let __tmp_x = s; let __tmp_y = __GSCAN as u32; __tmp_x & ! __tmp_y })))
+            );
         } else {
             dumpgstatus(GoPtr::local(gp.clone()));
             throw(Arc::new(Mutex::new(Some("unexpected g status".to_string()))));

@@ -490,11 +490,15 @@ impl addrRanges {
         let mut ranges: GoPtr<crate::slice::notInHeapSlice> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&self.ranges.clone()) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         { let new_val = 0; *{ let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.len.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
         { let new_val = 16; *{ let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.cap.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
-        { let new_val = GoPtr::local(Arc::new(Mutex::new({ let __ptr = persistentalloc(Arc::new(Mutex::new(Some({
-            let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<addrRange>()))).lock().unwrap().as_ref().unwrap()) as usize;
-            let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.cap.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
-            __tmp_x * __tmp_y
-        }))), Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))), sysStat.clone()).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<notInHeap>(unimplemented!("unsafe.Pointer conversion to notInHeap")) } })).clone()); ranges.with_mut(|__ptr_value| { __ptr_value.array = new_val; }); };
+        { let new_val = GoPtr::local(Arc::new(Mutex::new({ let __ptr = persistentalloc(
+            Arc::new(Mutex::new(Some({
+                let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<addrRange>()))).lock().unwrap().as_ref().unwrap()) as usize;
+                let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.cap.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+                __tmp_x * __tmp_y
+            }))),
+            Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))),
+            sysStat.clone()
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<notInHeap>(unimplemented!("unsafe.Pointer conversion to notInHeap")) } })).clone()); ranges.with_mut(|__ptr_value| { __ptr_value.array = new_val; }); };
         { let new_val = sysStat.clone(); self.sys_stat = new_val; };
         { let new_val = 0 as usize; *self.total_bytes.lock().unwrap() = Some(new_val); };
     }
@@ -659,11 +663,15 @@ impl addrRanges {
         let mut ranges: GoPtr<crate::slice::notInHeapSlice> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&self.ranges.clone()) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         { let new_val = { let __tmp_x = ((*oldRanges.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x + __tmp_y }; *{ let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.len.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
         { let new_val = { let __tmp_x = ((*oldRanges.lock().unwrap()).as_ref().map(|__v| __v.capacity()).unwrap_or(0) as i32); let __tmp_y = 2; __tmp_x * __tmp_y }; *{ let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.cap.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
-        { let new_val = GoPtr::local(Arc::new(Mutex::new({ let __ptr = persistentalloc(Arc::new(Mutex::new(Some({
-            let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<addrRange>()))).lock().unwrap().as_ref().unwrap()) as usize;
-            let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.cap.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
-            __tmp_x * __tmp_y
-        }))), Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))), { let __field = self.sys_stat.clone(); __field }).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<notInHeap>(unimplemented!("unsafe.Pointer conversion to notInHeap")) } })).clone()); ranges.with_mut(|__ptr_value| { __ptr_value.array = new_val; }); };
+        { let new_val = GoPtr::local(Arc::new(Mutex::new({ let __ptr = persistentalloc(
+            Arc::new(Mutex::new(Some({
+                let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<addrRange>()))).lock().unwrap().as_ref().unwrap()) as usize;
+                let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.cap.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+                __tmp_x * __tmp_y
+            }))),
+            Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))),
+            { let __field = self.sys_stat.clone(); __field }
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<notInHeap>(unimplemented!("unsafe.Pointer conversion to notInHeap")) } })).clone()); ranges.with_mut(|__ptr_value| { __ptr_value.array = new_val; }); };
         {
             let _dst_start = 0;
             let _dst_len = ((i) as usize) - _dst_start;
@@ -780,11 +788,15 @@ impl addrRanges {
         let mut ranges: GoPtr<crate::slice::notInHeapSlice> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&(*b.lock().unwrap().as_ref().unwrap()).ranges.clone()) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         { let new_val = 0; *{ let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.len.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
         { let new_val = ({ let __cap_target = { let __field = self.ranges.clone(); __field }; let __cap_guard = __cap_target.lock().unwrap(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) }) as i32; *{ let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.cap.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
-        { let new_val = GoPtr::local(Arc::new(Mutex::new({ let __ptr = persistentalloc(Arc::new(Mutex::new(Some({
-            let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<addrRange>()))).lock().unwrap().as_ref().unwrap()) as usize;
-            let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.cap.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
-            __tmp_x * __tmp_y
-        }))), Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))), { let __field = (*b.lock().unwrap().as_ref().unwrap()).sys_stat.clone(); __field }).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<notInHeap>(unimplemented!("unsafe.Pointer conversion to notInHeap")) } })).clone()); ranges.with_mut(|__ptr_value| { __ptr_value.array = new_val; }); };
+        { let new_val = GoPtr::local(Arc::new(Mutex::new({ let __ptr = persistentalloc(
+            Arc::new(Mutex::new(Some({
+                let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<addrRange>()))).lock().unwrap().as_ref().unwrap()) as usize;
+                let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = ranges.with_mut(|__ptr_value| __ptr_value.cap.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap());
+                __tmp_x * __tmp_y
+            }))),
+            Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))),
+            { let __field = (*b.lock().unwrap().as_ref().unwrap()).sys_stat.clone(); __field }
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<notInHeap>(unimplemented!("unsafe.Pointer conversion to notInHeap")) } })).clone()); ranges.with_mut(|__ptr_value| { __ptr_value.array = new_val; }); };
     }
                 // Grow the array.
         { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = (*b.lock().unwrap().as_ref().unwrap()).ranges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = (({ let __len_target = { let __field = self.ranges.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); (*b.lock().unwrap().as_mut().unwrap()).ranges = new_val; };

@@ -1707,7 +1707,11 @@ impl mLockProfile {
         );
         { let new_val = {
             let __tmp_x = 1;
-            let __tmp_y = traceback_p_cs(u.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = skip_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __seq_holder = prof_closure_clone.stack.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))));
+            let __tmp_y = traceback_p_cs(
+                u.clone(),
+                Arc::new(Mutex::new(Some({ let __arg_holder = skip_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some({ let __seq_holder = prof_closure_clone.stack.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))
+            );
             __tmp_x + __tmp_y
         }; *nstk_closure_clone.lock().unwrap() = Some(new_val); };
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
@@ -1744,10 +1748,20 @@ impl mLockProfile {
         };
         { let new_val = false; *self.have_stack.lock().unwrap() = Some(new_val); };
         let mut rate = Arc::new(Mutex::new(Some(internal_runtime_atomic::load64(mutexprofilerate.clone()) as i64)));
-        save_block_event_stack(Arc::new(Mutex::new(Some({ let __arg_holder = cycles.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = rate.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __seq_holder = self.stack.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ({ let __v = (*nstk.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(Some(bucketType(Arc::new(Mutex::new(Some(MUTEX_PROFILE as i32))))))));
+        save_block_event_stack(
+            Arc::new(Mutex::new(Some({ let __arg_holder = cycles.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = rate.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __seq_holder = self.stack.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ({ let __v = (*nstk.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))),
+            Arc::new(Mutex::new(Some(bucketType(Arc::new(Mutex::new(Some(MUTEX_PROFILE as i32)))))))
+        );
         if { let __tmp_x = { let __v = (*lost.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x > __tmp_y } {
         let mut lostStk = Arc::new(Mutex::new(Some([LOGICAL_STACK_SENTINEL as usize, { let __tmp_x = internal_abi::func_p_c_a_b_i_internal(Arc::new(Mutex::new(Some(Box::new(__lost_contended_runtime_lock.clone()) as Box<dyn Any + Send + Sync>)))); let __tmp_y = internal_runtime_sys::P_C_QUANTUM as usize; __tmp_x + __tmp_y }])));
-        save_block_event_stack(Arc::new(Mutex::new(Some({ let __arg_holder = lost.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = rate.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __seq_holder = lostStk.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(Some(bucketType(Arc::new(Mutex::new(Some(MUTEX_PROFILE as i32))))))));
+        save_block_event_stack(
+            Arc::new(Mutex::new(Some({ let __arg_holder = lost.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = rate.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __seq_holder = lostStk.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))),
+            Arc::new(Mutex::new(Some(bucketType(Arc::new(Mutex::new(Some(MUTEX_PROFILE as i32)))))))
+        );
     }
         { let new_val = false; *self.disabled.lock().unwrap() = Some(new_val); };
         releasem(GoPtr::local(mp.clone()));
@@ -2047,7 +2061,12 @@ pub fn m_prof__malloc(mp: Arc<Mutex<Option<m>>>, p: Arc<Mutex<Option<usize>>>, s
         __tmp_x % __tmp_y
     })));
 
-    let mut b: GoPtr<bucket> = stkbucket(Arc::new(Mutex::new(Some(bucketType(Arc::new(Mutex::new(Some(MEM_PROFILE as i32))))))), Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __seq_holder = (*mp.lock().unwrap().as_ref().unwrap()).prof_stack.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = (nstk) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(Some(true))));
+    let mut b: GoPtr<bucket> = stkbucket(
+        Arc::new(Mutex::new(Some(bucketType(Arc::new(Mutex::new(Some(MEM_PROFILE as i32))))))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __seq_holder = (*mp.lock().unwrap().as_ref().unwrap()).prof_stack.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = (nstk) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))),
+        Arc::new(Mutex::new(Some(true)))
+    );
     let mut mr: GoPtr<memRecord> = { let __result = b.with_mut(|__recv_value| __recv_value.mp()); __result };
     let mut mpc: Option<GoArrayElemPtr<memRecordCycle, 3>> = Some(GoArrayElemPtr::new({ let __ptr_value = mr.with_mut(|__ptr_value| __ptr_value.future.clone()); __ptr_value }.clone(), ({ let __v = (*index.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize));
 
@@ -2089,7 +2108,12 @@ pub fn blockevent(mut cycles: Arc<Mutex<Option<i64>>>, skip: Arc<Mutex<Option<i3
 
     let mut rate = Arc::new(Mutex::new(Some(internal_runtime_atomic::load64(blockprofilerate.clone()) as i64)));
     if blocksampled(Arc::new(Mutex::new(Some({ let __arg_holder = cycles.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = rate.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
-        saveblockevent(Arc::new(Mutex::new(Some({ let __arg_holder = cycles.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = rate.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*skip.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }))), Arc::new(Mutex::new(Some(bucketType(Arc::new(Mutex::new(Some(BLOCK_PROFILE as i32))))))));
+        saveblockevent(
+            Arc::new(Mutex::new(Some({ let __arg_holder = cycles.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = rate.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*skip.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }))),
+            Arc::new(Mutex::new(Some(bucketType(Arc::new(Mutex::new(Some(BLOCK_PROFILE as i32)))))))
+        );
     }
 }
 
@@ -2150,12 +2174,20 @@ pub fn saveblockevent(cycles: Arc<Mutex<Option<i64>>>, rate: Arc<Mutex<Option<i6
                 // frame, whereas the saved frame pointer will give us the
                 // caller's return address first (so, not including
                 // saveblockevent)
-        { let new_val = fp_traceback_partial_expand(Arc::new(Mutex::new(Some({ let __arg_holder = skip.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(getfp()))), { let __field = (*mp.lock().unwrap().as_ref().unwrap()).prof_stack.clone(); __field }); *nstk.lock().unwrap() = Some(new_val); };
+        { let new_val = fp_traceback_partial_expand(
+            Arc::new(Mutex::new(Some({ let __arg_holder = skip.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(getfp()))),
+            { let __field = (*mp.lock().unwrap().as_ref().unwrap()).prof_stack.clone(); __field }
+        ); *nstk.lock().unwrap() = Some(new_val); };
     } else {
         (*(*mp.lock().unwrap().as_ref().unwrap()).prof_stack.lock().unwrap().as_mut().unwrap())[(0) as usize] = (*(*{ let __ptr_value = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.with_mut(|__ptr_value| __ptr_value.sched.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).pc.lock().unwrap().as_ref().unwrap());
         { let new_val = {
             let __tmp_x = 1;
-            let __tmp_y = fp_traceback_partial_expand(Arc::new(Mutex::new(Some({ let __arg_holder = skip.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.with_mut(|__ptr_value| __ptr_value.sched.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).bp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __seq_holder = (*mp.lock().unwrap().as_ref().unwrap()).prof_stack.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))));
+            let __tmp_y = fp_traceback_partial_expand(
+                Arc::new(Mutex::new(Some({ let __arg_holder = skip.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.with_mut(|__ptr_value| __ptr_value.sched.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).bp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+                Arc::new(Mutex::new(Some({ let __seq_holder = (*mp.lock().unwrap().as_ref().unwrap()).prof_stack.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))
+            );
             __tmp_x + __tmp_y
         }; *nstk.lock().unwrap() = Some(new_val); };
     }
@@ -2166,7 +2198,12 @@ pub fn saveblockevent(cycles: Arc<Mutex<Option<i64>>>, rate: Arc<Mutex<Option<i6
         // frame, whereas the saved frame pointer will give us the
         // caller's return address first (so, not including
         // saveblockevent)
-    save_block_event_stack(Arc::new(Mutex::new(Some({ let __arg_holder = cycles.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = rate.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __seq_holder = (*mp.lock().unwrap().as_ref().unwrap()).prof_stack.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ({ let __v = (*nstk.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(Some({ let __arg_holder = which.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    save_block_event_stack(
+        Arc::new(Mutex::new(Some({ let __arg_holder = cycles.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = rate.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __seq_holder = (*mp.lock().unwrap().as_ref().unwrap()).prof_stack.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ({ let __v = (*nstk.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = which.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+    );
     releasem(GoPtr::local(mp.clone()));
 }
 
@@ -2273,7 +2310,12 @@ pub fn mutexevent(mut cycles: Arc<Mutex<Option<i64>>>, skip: Arc<Mutex<Option<i3
     }
     let mut rate = Arc::new(Mutex::new(Some(internal_runtime_atomic::load64(mutexprofilerate.clone()) as i64)));
     if { let __tmp_x = { let __v = (*rate.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x > __tmp_y } && { let __tmp_x = { let __tmp_x = cheaprand64(); let __tmp_y = { let __v = (*rate.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x % __tmp_y }; let __tmp_y = 0 as i64; __tmp_x == __tmp_y } {
-        saveblockevent(Arc::new(Mutex::new(Some({ let __arg_holder = cycles.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = rate.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*skip.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }))), Arc::new(Mutex::new(Some(bucketType(Arc::new(Mutex::new(Some(MUTEX_PROFILE as i32))))))));
+        saveblockevent(
+            Arc::new(Mutex::new(Some({ let __arg_holder = cycles.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = rate.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*skip.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }))),
+            Arc::new(Mutex::new(Some(bucketType(Arc::new(Mutex::new(Some(MUTEX_PROFILE as i32)))))))
+        );
     }
 }
 
@@ -2398,7 +2440,13 @@ pub fn do_record_goroutine_profile(gp1: GoPtr<crate::runtime2::g>, pcbuf: Arc<Mu
         // preventing it from being truly _Grunnable. So we'll use the system stack
         // to avoid schedule delays.
     let gp1_closure_clone = gp1.clone(); let offset_closure_clone = offset.clone(); let pcbuf_closure_clone = pcbuf.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
-        saveg(Arc::new(Mutex::new(Some(!(0 as usize) as usize))), Arc::new(Mutex::new(Some(!(0 as usize) as usize))), gp1_closure_clone.clone(), GoPtr::slice_elem(GoSliceElemPtr::new((*goroutineProfile.lock().unwrap().as_ref().unwrap()).records.clone(), ({ let __v = (*offset_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize)), pcbuf_closure_clone.clone());
+        saveg(
+            Arc::new(Mutex::new(Some(!(0 as usize) as usize))),
+            Arc::new(Mutex::new(Some(!(0 as usize) as usize))),
+            gp1_closure_clone.clone(),
+            GoPtr::slice_elem(GoSliceElemPtr::new((*goroutineProfile.lock().unwrap().as_ref().unwrap()).records.clone(), ({ let __v = (*offset_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize)),
+            pcbuf_closure_clone.clone()
+        );
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
 
     if { let __nil_target = (*goroutineProfile.lock().unwrap().as_ref().unwrap()).labels.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {

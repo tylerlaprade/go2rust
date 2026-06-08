@@ -1580,15 +1580,19 @@ pub fn getitab(inter: GoPtr<internal_abi::r#type::InterfaceType>, typ: GoPtr<int
     }
 
                 // Entry doesn't exist yet. Make a new entry & add it.
-        m = GoPtr::raw({ let __ptr = persistentalloc(Arc::new(Mutex::new(Some({
-            let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<internal_abi::iface::ITab>()))).lock().unwrap().as_ref().unwrap()) as usize;
-            let __tmp_y = {
-                let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (({ let __len_target = { let __field = { let __ptr_value = inter.with_mut(|__ptr_value| __ptr_value.methods.clone()); __ptr_value }.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize))).lock().unwrap().as_ref().unwrap());
-                let __tmp_y = internal_goarch::PTR_SIZE as usize;
-                __tmp_x * __tmp_y
-            };
-            __tmp_x + __tmp_y
-        }))), Arc::new(Mutex::new(Some(0 as usize))), (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone()).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
+        m = GoPtr::raw({ let __ptr = persistentalloc(
+            Arc::new(Mutex::new(Some({
+                let __tmp_x = (*Arc::new(Mutex::new(Some(std::mem::size_of::<internal_abi::iface::ITab>()))).lock().unwrap().as_ref().unwrap()) as usize;
+                let __tmp_y = {
+                    let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (({ let __len_target = { let __field = { let __ptr_value = inter.with_mut(|__ptr_value| __ptr_value.methods.clone()); __ptr_value }.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize))).lock().unwrap().as_ref().unwrap());
+                    let __tmp_y = internal_goarch::PTR_SIZE as usize;
+                    __tmp_x * __tmp_y
+                };
+                __tmp_x + __tmp_y
+            }))),
+            Arc::new(Mutex::new(Some(0 as usize))),
+            (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone()
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         { let new_val = { let __go_ptr = inter.clone(); match __go_ptr { GoPtr::Nil => internal_abi::GoPtr::nil(), GoPtr::Local(__value) => internal_abi::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => internal_abi::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => internal_abi::GoPtr::slice_elem(internal_abi::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }; m.with_mut(|__ptr_value| { __ptr_value.inter = new_val; }); };
         { let new_val = { let __go_ptr = typ.clone(); match __go_ptr { GoPtr::Nil => internal_abi::GoPtr::nil(), GoPtr::Local(__value) => internal_abi::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => internal_abi::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => internal_abi::GoPtr::slice_elem(internal_abi::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }; m.with_mut(|__ptr_value| { __ptr_value.r#type = new_val; }); };
 
@@ -1644,7 +1648,11 @@ pub fn itab_add(m: GoPtr<internal_abi::iface::ITab>) {
                 // t2 = new(itabTableType) + some additional entries
                 // We lie and tell malloc we want pointer-free memory because
                 // all the pointed-to values are not in the heap.
-        let mut t2: GoPtr<itabTableType> = GoPtr::raw({ let __ptr = mallocgc(Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = 2 as usize; let __tmp_y = { let __tmp_x = 2 as usize; let __tmp_y = (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).size.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; __tmp_x + __tmp_y }); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y }))), GoPtr::nil(), Arc::new(Mutex::new(Some(true)))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
+        let mut t2: GoPtr<itabTableType> = GoPtr::raw({ let __ptr = mallocgc(
+            Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = 2 as usize; let __tmp_y = { let __tmp_x = 2 as usize; let __tmp_y = (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).size.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; __tmp_x + __tmp_y }); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y }))),
+            GoPtr::nil(),
+            Arc::new(Mutex::new(Some(true)))
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         { let new_val = { let __tmp_x = (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).size.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x * __tmp_y }; *{ let __ptr_value = t2.with_mut(|__ptr_value| __ptr_value.size.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
                 // Copy over entries.
                 // Note: while copying, other threads may look for an itab and

@@ -948,7 +948,12 @@ pub fn semacquire1(addr: GoPtr<u32>, lifo: Arc<Mutex<Option<bool>>>, profile: Ar
                 // Any semrelease after the cansemacquire knows we're waiting
                 // (we set nwait above), so go to sleep.
         { let __recv = root.clone(); let __recv_ptr: *mut semaRoot = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut semaRoot }; let __result = unsafe { &mut *__recv_ptr }.queue(addr.clone(), s.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = lifo.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result };
-        goparkunlock((*root.lock().unwrap().as_ref().unwrap()).lock.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = reason.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_SYNC as u8))))))), Arc::new(Mutex::new(Some({ let __tmp_x = 4; let __tmp_y = { let __v = (*skipframes.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))));
+        goparkunlock(
+            (*root.lock().unwrap().as_ref().unwrap()).lock.clone(),
+            Arc::new(Mutex::new(Some({ let __arg_holder = reason.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_SYNC as u8))))))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = 4; let __tmp_y = { let __v = (*skipframes.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })))
+        );
         if { let __tmp_x = (*{ let __field = (*s.lock().unwrap().as_ref().unwrap()).ticket.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x != __tmp_y } || cansemacquire(addr.clone()) {
         break
     }

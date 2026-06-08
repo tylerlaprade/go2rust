@@ -326,7 +326,11 @@ pub fn write_err_str(s: Arc<Mutex<Option<String>>>) {
 ///
 ///go:nosplit
 pub fn write_err_data(data: GoPtr<u8>, n: Arc<Mutex<Option<i32>>>) {
-    write(Arc::new(Mutex::new(Some(2 as usize))), Arc::new(Mutex::new(Some(data.addr()))), Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    write(
+        Arc::new(Mutex::new(Some(2 as usize))),
+        Arc::new(Mutex::new(Some(data.addr()))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+    );
 
         // If crashing, print a copy to the SetCrashOutput fd.
     let mut gp = getg();
@@ -334,7 +338,11 @@ pub fn write_err_data(data: GoPtr<u8>, n: Arc<Mutex<Option<i32>>>) {
         {
         let mut fd = (*crashFD.lock().unwrap().as_mut().unwrap()).load();;
         if { let __tmp_x = fd; let __tmp_y = !(0 as usize) as usize; __tmp_x != __tmp_y } {
-            write(Arc::new(Mutex::new(Some(fd))), Arc::new(Mutex::new(Some(data.addr()))), Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
+            write(
+                Arc::new(Mutex::new(Some(fd))),
+                Arc::new(Mutex::new(Some(data.addr()))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+            );;
         }
     }
     }

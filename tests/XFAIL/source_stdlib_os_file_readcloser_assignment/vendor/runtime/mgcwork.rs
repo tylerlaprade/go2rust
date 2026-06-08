@@ -618,11 +618,15 @@ pub fn handoff(b: GoPtr<workbuf>) -> GoPtr<workbuf> {
     let mut n = Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __ptr_value = b.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2; __tmp_x / __tmp_y })));
     { let __target = { let __ptr_value = b.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.clone(); let __rhs = (*n.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
     { let new_val = n.lock().unwrap().as_ref().unwrap().clone(); *{ let __ptr_value = b1.with_mut(|__ptr_value| { let __field = __ptr_value.workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field }); __ptr_value }.lock().unwrap() = Some(new_val); };
-    memmove(Arc::new(Mutex::new(Some({ let __seq_holder = { let __ptr_value = b1.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))), Arc::new(Mutex::new(Some({ let __seq_holder = { let __ptr_value = b.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[((*{ let __ptr_value = b.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap())) as usize] as *const _ as usize }))), Arc::new(Mutex::new(Some({
-        let __tmp_x = (*Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
-        let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<usize>()))).lock().unwrap().as_ref().unwrap()) as usize;
-        __tmp_x * __tmp_y
-    }))));
+    memmove(
+        Arc::new(Mutex::new(Some({ let __seq_holder = { let __ptr_value = b1.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))),
+        Arc::new(Mutex::new(Some({ let __seq_holder = { let __ptr_value = b.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[((*{ let __ptr_value = b.borrow(); let __field_value = __ptr_value.as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap().nobj.clone(); __field_value }.lock().unwrap().as_ref().unwrap())) as usize] as *const _ as usize }))),
+        Arc::new(Mutex::new(Some({
+            let __tmp_x = (*Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<usize>()))).lock().unwrap().as_ref().unwrap()) as usize;
+            __tmp_x * __tmp_y
+        })))
+    );
 
         // Put b on full list - let first half of b get stolen.
     putfull(b.clone());

@@ -1686,7 +1686,13 @@ pub fn gopark(unlockf: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<g>>>, Arc
 /// Puts the current goroutine into a waiting state and unlocks the lock.
 /// The goroutine can be made runnable again by calling goready(gp).
 pub fn goparkunlock(lock: Arc<Mutex<Option<mutex>>>, reason: Arc<Mutex<Option<waitReason>>>, traceReason: Arc<Mutex<Option<traceBlockReason>>>, traceskip: Arc<Mutex<Option<i32>>>) {
-    gopark(Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<crate::runtime2::g>>>, __arg1: Arc<Mutex<Option<usize>>>| -> bool { parkunlock_c(__arg0, __arg1) }) as Box<dyn FnMut(Arc<Mutex<Option<crate::runtime2::g>>>, Arc<Mutex<Option<usize>>>) -> bool + Send + Sync>))), Arc::new(Mutex::new(Some(Arc::as_ptr(&lock) as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = reason.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = traceReason.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = traceskip.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    gopark(
+        Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<crate::runtime2::g>>>, __arg1: Arc<Mutex<Option<usize>>>| -> bool { parkunlock_c(__arg0, __arg1) }) as Box<dyn FnMut(Arc<Mutex<Option<crate::runtime2::g>>>, Arc<Mutex<Option<usize>>>) -> bool + Send + Sync>))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&lock) as usize))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = reason.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = traceReason.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = traceskip.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+    );
 }
 
 /// goready should be an internal detail,
@@ -2052,7 +2058,11 @@ pub fn ready(gp: GoPtr<crate::runtime2::g>, traceskip: Arc<Mutex<Option<i32>>>, 
         (*trace_local.lock().unwrap().as_ref().unwrap()).go_unpark(gp.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = traceskip.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         trace_release(Arc::new(Mutex::new(Some({ let __arg_holder = trace_local.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
-    runqput(crate::runtime2::puintptr::ptr(&(*(*mp.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())), gp.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = next.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    runqput(
+        crate::runtime2::puintptr::ptr(&(*(*mp.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())),
+        gp.clone(),
+        Arc::new(Mutex::new(Some({ let __arg_holder = next.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+    );
     wakep();
     releasem(GoPtr::local(mp.clone()));
 }
@@ -2546,7 +2556,11 @@ pub fn stop_the_world_with_sema(reason: Arc<Mutex<Option<stwReason>>>) -> Arc<Mu
         //
         // N.B. The execution tracer is not aware of this status transition and
         // andles it specially based on the wait reason.
-    cas_g_to_waiting_for_suspend_g((*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.clone(), Arc::new(Mutex::new(Some(__GRUNNING as u32))), Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_STOPPING_THE_WORLD as u8))))))));
+    cas_g_to_waiting_for_suspend_g(
+        (*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.clone(),
+        Arc::new(Mutex::new(Some(__GRUNNING as u32))),
+        Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_STOPPING_THE_WORLD as u8)))))))
+    );
 
     let mut trace_local = trace_acquire();
     if (*trace_local.lock().unwrap().as_ref().unwrap()).ok() {
@@ -2663,7 +2677,11 @@ pub fn stop_the_world_with_sema(reason: Arc<Mutex<Option<stwReason>>>) -> Arc<Mu
     world_stopped();
 
         // Switch back to _Grunning, now that the world is stopped.
-    casgstatus((*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.clone(), Arc::new(Mutex::new(Some(__GWAITING as u32))), Arc::new(Mutex::new(Some(__GRUNNING as u32))));
+    casgstatus(
+        (*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.clone(),
+        Arc::new(Mutex::new(Some(__GWAITING as u32))),
+        Arc::new(Mutex::new(Some(__GRUNNING as u32)))
+    );
 
     return Arc::new(Mutex::new(Some(worldStop { reason: Arc::new(Mutex::new(Some({ let __arg_holder = reason.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), started_stopping: Arc::new(Mutex::new(Some(start))), finished_stopping: Arc::new(Mutex::new(Some(finish))), stopping_c_p_u_time: Arc::new(Mutex::new(Some({ let __arg_holder = stoppingCPUTime.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
 }
@@ -5119,7 +5137,11 @@ pub fn preempt_park(gp: GoPtr<crate::runtime2::g>) {
         // something could claim this G before we've fully cleaned it
         // up. Hence, we set the scan bit to lock down further
         // transitions until we can dropg.
-    cas_g_to_preempt_scan(gp.clone(), Arc::new(Mutex::new(Some(__GRUNNING as u32))), Arc::new(Mutex::new(Some(((__GSCAN as u32) | (__GPREEMPTED as u32)) as u32))));
+    cas_g_to_preempt_scan(
+        gp.clone(),
+        Arc::new(Mutex::new(Some(__GRUNNING as u32))),
+        Arc::new(Mutex::new(Some(((__GSCAN as u32) | (__GPREEMPTED as u32)) as u32)))
+    );
     dropg();
 
         // Be careful about how we trace this next event. The ordering
@@ -5141,7 +5163,11 @@ pub fn preempt_park(gp: GoPtr<crate::runtime2::g>) {
     if (*trace_local.lock().unwrap().as_ref().unwrap()).ok() {
         (*trace_local.lock().unwrap().as_ref().unwrap()).go_park(Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_PREEMPTED as u8))))))), Arc::new(Mutex::new(Some(0))));
     }
-    casfrom__gscanstatus(gp.clone(), Arc::new(Mutex::new(Some(((__GSCAN as u32) | (__GPREEMPTED as u32)) as u32))), Arc::new(Mutex::new(Some(__GPREEMPTED as u32))));
+    casfrom__gscanstatus(
+        gp.clone(),
+        Arc::new(Mutex::new(Some(((__GSCAN as u32) | (__GPREEMPTED as u32)) as u32))),
+        Arc::new(Mutex::new(Some(__GPREEMPTED as u32)))
+    );
     if (*trace_local.lock().unwrap().as_ref().unwrap()).ok() {
         trace_release(Arc::new(Mutex::new(Some({ let __arg_holder = trace_local.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
@@ -5414,7 +5440,11 @@ pub fn entersyscall() {
         // the stack. This results in exceeding the nosplit stack requirements
         // on some platforms.
     let mut fp = getcallerfp();
-    reentersyscall(Arc::new(Mutex::new(Some(internal_runtime_sys::get_caller_p_c()))), Arc::new(Mutex::new(Some(internal_runtime_sys::get_caller_s_p()))), Arc::new(Mutex::new(Some(fp))));
+    reentersyscall(
+        Arc::new(Mutex::new(Some(internal_runtime_sys::get_caller_p_c()))),
+        Arc::new(Mutex::new(Some(internal_runtime_sys::get_caller_s_p()))),
+        Arc::new(Mutex::new(Some(fp)))
+    );
 }
 
 pub fn entersyscall_sysmon() {
@@ -5626,7 +5656,11 @@ pub fn entersyscallblock() {
     systemstack(Arc::new(Mutex::new(Some(Box::new(move || { entersyscallblock_handoff() }) as Box<dyn FnMut() -> () + Send + Sync>))));
 
         // Resave for traceback during blocked call.
-    save(Arc::new(Mutex::new(Some(internal_runtime_sys::get_caller_p_c()))), Arc::new(Mutex::new(Some(internal_runtime_sys::get_caller_s_p()))), Arc::new(Mutex::new(Some(getcallerfp()))));
+    save(
+        Arc::new(Mutex::new(Some(internal_runtime_sys::get_caller_p_c()))),
+        Arc::new(Mutex::new(Some(internal_runtime_sys::get_caller_s_p()))),
+        Arc::new(Mutex::new(Some(getcallerfp())))
+    );
 
     { let __target = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).locks.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
 }
@@ -6154,7 +6188,11 @@ pub fn sigprof(mut pc: Arc<Mutex<Option<usize>>>, sp: Arc<Mutex<Option<usize>>>,
         // Collect Go stack that leads to the call.
         // VDSO call, e.g. nanotime1 on Linux.
         // Collect Go stack that leads to the call.
-    { let __rhs = traceback_p_cs(u.clone(), Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some({ let __seq_holder = stk.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))); let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+    { let __rhs = traceback_p_cs(
+        u.clone(),
+        Arc::new(Mutex::new(Some(0))),
+        Arc::new(Mutex::new(Some({ let __seq_holder = stk.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))
+    ); let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
 
     if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x <= __tmp_y } {
                 // Normal traceback is impossible or has failed.
@@ -6196,7 +6234,12 @@ pub fn sigprof(mut pc: Arc<Mutex<Option<usize>>>, sp: Arc<Mutex<Option<usize>>>,
         { let new_val = { let __ptr_value = gp.borrow(); let __field_value = __ptr_value.as_ref().unwrap().m.clone(); __field_value }; mp = new_val; };
         pp = crate::runtime2::puintptr::ptr(&(*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()));
     }
-        trace_c_p_u_sample(gprof.clone(), mp.clone(), pp.clone(), Arc::new(Mutex::new(Some({ let __seq_holder = stk.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))));
+        trace_c_p_u_sample(
+            gprof.clone(),
+            mp.clone(),
+            pp.clone(),
+            Arc::new(Mutex::new(Some({ let __seq_holder = stk.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))
+        );
     }
         // Note: it can happen on Windows that we interrupted a system thread
         // with no g, so gp could nil. The other nil checks are done out of

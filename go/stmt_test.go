@@ -4769,6 +4769,34 @@ func (p *profiler) addExtra(i int) {
 	}
 }
 
+func TestConcurrentFunctionCallBreaksComplexArgumentsAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func writeFD(fd int, p []byte) (int, error) {
+	return 0, nil
+}
+
+func retry(fn func(int, []byte) (int, error), fd int, p []byte) (int, error) {
+	return fn(fd, p)
+}
+
+func writeAll(fd int, p []byte, nn int, max int) int {
+	go func() {}()
+	n, _ := retry(writeFD, fd, p[nn:max])
+	return n
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "retry(") && strings.Contains(line, "let __seq_holder") {
+			t.Fatalf("complex function-call arguments should not stay on the opening call line:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "retry(\n") {
+		t.Fatalf("complex function-call arguments should use multiline call syntax:\n%s", rust)
+	}
+}
+
 func TestConcurrentFixedArrayCallArgumentBreaksComplexElementsAcrossLines(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

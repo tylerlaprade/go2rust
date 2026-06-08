@@ -153,7 +153,11 @@ impl crate::types::File {
         if { let __tmp_x = (*mode.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::dir::readdirMode(Arc::new(Mutex::new(Some(READDIR_NAME as i32)))); __tmp_x == __tmp_y } {
         { let new_val = { let __append_target = names.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((*Arc::new(Mutex::new(Some(String::from_utf8((*name.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap()).clone()); __append_target.clone() }; names = new_val; };
     } else if { let __tmp_x = (*mode.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::dir::readdirMode(Arc::new(Mutex::new(Some(READDIR_DIR_ENTRY as i32)))); __tmp_x == __tmp_y } {
-        let (mut de, mut err) = new_unix_dirent(Arc::new(Mutex::new(Some({ let __selector_holder = (*self.file.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(String::from_utf8((*name.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))), dt_to_type(Arc::new(Mutex::new(Some({ let __selector_holder = (*dirent.lock().unwrap().as_ref().unwrap()).r#type.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))));
+        let (mut de, mut err) = new_unix_dirent(
+            Arc::new(Mutex::new(Some({ let __selector_holder = (*self.file.lock().unwrap().as_ref().unwrap()).name.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            Arc::new(Mutex::new(Some(String::from_utf8((*name.lock().unwrap().as_ref().unwrap()).clone()).unwrap()))),
+            dt_to_type(Arc::new(Mutex::new(Some({ let __selector_holder = (*dirent.lock().unwrap().as_ref().unwrap()).r#type.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))))
+        );
         if is_not_exist(err.clone()) {
         continue
     }

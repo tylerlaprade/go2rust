@@ -262,12 +262,20 @@ impl traceRegionAlloc {
         while { let __ptr_field = self.full.clone(); !__ptr_field.is_nil() } {
         let mut block: GoPtr<traceRegionAllocBlock> = self.full.clone();
         { let new_val = { let __ptr_value = block.with_mut(|__ptr_value| { let __field = __ptr_value.trace_region_alloc_block_header.lock().unwrap().as_ref().unwrap().next.clone(); __field }); __ptr_value }.clone(); self.full = new_val; };
-        sys_free(Arc::new(Mutex::new(Some(block.addr()))), Arc::new(Mutex::new(Some(std::mem::size_of::<traceRegionAllocBlock>()))), (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone());
+        sys_free(
+            Arc::new(Mutex::new(Some(block.addr()))),
+            Arc::new(Mutex::new(Some(std::mem::size_of::<traceRegionAllocBlock>()))),
+            (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone()
+        );
     }
         {
         let mut current = (*self.current.lock().unwrap().as_mut().unwrap()).load();;
         if { let __nil_result = (*current.lock().unwrap()).is_some(); __nil_result } {
-            sys_free(Arc::new(Mutex::new(Some({ let __arg_holder = current.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(std::mem::size_of::<traceRegionAllocBlock>()))), (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone());;
+            sys_free(
+                Arc::new(Mutex::new(Some({ let __arg_holder = current.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some(std::mem::size_of::<traceRegionAllocBlock>()))),
+                (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone()
+            );;
             (*self.current.lock().unwrap().as_mut().unwrap()).store(Arc::new(Mutex::new(None)));;
         }
     }

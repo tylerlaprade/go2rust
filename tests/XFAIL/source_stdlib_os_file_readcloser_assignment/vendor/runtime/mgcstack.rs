@@ -632,14 +632,22 @@ pub fn binary_search_tree(mut x: GoPtr<stackObjectBuf>, mut idx: Arc<Mutex<Optio
         return (None, x.clone(), { let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v });
     }
     let mut left: GoPtr<stackObject> = GoPtr::nil();let mut right: GoPtr<stackObject> = GoPtr::nil();
-    { let (__tmp_0, __tmp_1, __tmp_2) = binary_search_tree(x.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = idx.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x / __tmp_y })))); left = GoPtr::array_elem_opt(__tmp_0.clone()); x = __tmp_1.clone(); *idx.lock().unwrap() = Some(__tmp_2); };
+    { let (__tmp_0, __tmp_1, __tmp_2) = binary_search_tree(
+        x.clone(),
+        Arc::new(Mutex::new(Some({ let __arg_holder = idx.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x / __tmp_y })))
+    ); left = GoPtr::array_elem_opt(__tmp_0.clone()); x = __tmp_1.clone(); *idx.lock().unwrap() = Some(__tmp_2); };
     root = Some(GoArrayElemPtr::new({ let __ptr_value = x.with_mut(|__ptr_value| __ptr_value.obj.clone()); __ptr_value }.clone(), ({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize));
     { let mut guard = idx.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     if { let __tmp_x = ({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = 63; __tmp_x == __tmp_y } {
         x = { let __ptr_value = x.borrow(); let __field_value = __ptr_value.as_ref().unwrap().stack_object_buf_hdr.lock().unwrap().as_ref().unwrap().next.clone(); __field_value };
         { let new_val = 0; *idx.lock().unwrap() = Some(new_val); };
     }
-    { let (__tmp_0, __tmp_1, __tmp_2) = binary_search_tree(x.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = idx.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x / __tmp_y }; __tmp_x - __tmp_y }; let __tmp_y = 1; __tmp_x - __tmp_y })))); right = GoPtr::array_elem_opt(__tmp_0.clone()); x = __tmp_1.clone(); *idx.lock().unwrap() = Some(__tmp_2); };
+    { let (__tmp_0, __tmp_1, __tmp_2) = binary_search_tree(
+        x.clone(),
+        Arc::new(Mutex::new(Some({ let __arg_holder = idx.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x / __tmp_y }; __tmp_x - __tmp_y }; let __tmp_y = 1; __tmp_x - __tmp_y })))
+    ); right = GoPtr::array_elem_opt(__tmp_0.clone()); x = __tmp_1.clone(); *idx.lock().unwrap() = Some(__tmp_2); };
     { let new_val = left.clone(); (*root.as_ref().unwrap().borrow_mut().as_mut().unwrap()).left = new_val; };
     { let new_val = right.clone(); (*root.as_ref().unwrap().borrow_mut().as_mut().unwrap()).right = new_val; };
     return (root.clone(), x.clone(), { let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v });

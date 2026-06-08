@@ -4826,7 +4826,16 @@ impl Time {
     pub fn add_date(&self, years: Arc<Mutex<Option<i32>>>, months: Arc<Mutex<Option<i32>>>, days: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Time>>> {
         let (mut year, mut month, mut day) = self.date();
         let (mut hour, mut min, mut sec) = self.clock();
-        return date(Arc::new(Mutex::new(Some({ let __tmp_x = year; let __tmp_y = { let __v = (*years.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))), Arc::new(Mutex::new(Some(Month(Arc::new(Mutex::new(Some(((*{ let __v = (*month.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) + (*months.lock().unwrap().as_ref().unwrap()) as i32)))))))), Arc::new(Mutex::new(Some({ let __tmp_x = day; let __tmp_y = { let __v = (*days.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))), Arc::new(Mutex::new(Some(hour))), Arc::new(Mutex::new(Some(min))), Arc::new(Mutex::new(Some(sec))), Arc::new(Mutex::new(Some(self.nsec() as i32))), self.location());
+        return date(
+            Arc::new(Mutex::new(Some({ let __tmp_x = year; let __tmp_y = { let __v = (*years.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))),
+            Arc::new(Mutex::new(Some(Month(Arc::new(Mutex::new(Some(((*{ let __v = (*month.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) + (*months.lock().unwrap().as_ref().unwrap()) as i32)))))))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = day; let __tmp_y = { let __v = (*days.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))),
+            Arc::new(Mutex::new(Some(hour))),
+            Arc::new(Mutex::new(Some(min))),
+            Arc::new(Mutex::new(Some(sec))),
+            Arc::new(Mutex::new(Some(self.nsec() as i32))),
+            self.location()
+        );
     }
 
     /// UTC returns t with the location set to UTC.
@@ -5511,12 +5520,20 @@ impl Duration {
                 // U+00B5 'µ' micro sign == 0xC2 0xB5
                 // Need room for two bytes.
                 // print milliseconds
-        { let (__tmp_0, __tmp_1) = fmt_frac(Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = ({ let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(Some({ let __arg_holder = u.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = prec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); *w.lock().unwrap() = Some(__tmp_0); *u.lock().unwrap() = Some(__tmp_1); };
+        { let (__tmp_0, __tmp_1) = fmt_frac(
+            Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = ({ let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = u.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = prec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        ); *w.lock().unwrap() = Some(__tmp_0); *u.lock().unwrap() = Some(__tmp_1); };
         { let new_val = fmt_int(Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = ({ let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(Some({ let __arg_holder = u.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); *w.lock().unwrap() = Some(new_val); };
     } else {
         { let mut guard = w.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
         (*buf.lock().unwrap().as_mut().unwrap())[({ let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = ('s' as i32) as u8;
-        { let (__tmp_0, __tmp_1) = fmt_frac(Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = ({ let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(Some({ let __arg_holder = u.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(9)))); *w.lock().unwrap() = Some(__tmp_0); *u.lock().unwrap() = Some(__tmp_1); };
+        { let (__tmp_0, __tmp_1) = fmt_frac(
+            Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = ({ let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = u.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(9)))
+        ); *w.lock().unwrap() = Some(__tmp_0); *u.lock().unwrap() = Some(__tmp_1); };
                 // u is now integer seconds
         { let new_val = fmt_int(Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = ({ let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*u.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60 as u64; __tmp_x % __tmp_y })))); *w.lock().unwrap() = Some(new_val); };
         { let __rhs = 60 as u64; let mut guard = u.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() / __rhs); };
@@ -5947,7 +5964,11 @@ pub fn date(mut year: Arc<Mutex<Option<i32>>>, mut month: Arc<Mutex<Option<Month
         // Convert to absolute time and then Unix time.
     let mut unix = Arc::new(Mutex::new(Some({
         let __tmp_x = {
-            let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*(*date_to_abs_days(Arc::new(Mutex::new(Some((*year.lock().unwrap().as_ref().unwrap()) as i64))), Arc::new(Mutex::new(Some({ let __arg_holder = month.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = day.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = SECONDS_PER_DAY as i64; __tmp_x * __tmp_y };
+            let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*(*date_to_abs_days(
+    Arc::new(Mutex::new(Some((*year.lock().unwrap().as_ref().unwrap()) as i64))),
+    Arc::new(Mutex::new(Some({ let __arg_holder = month.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+    Arc::new(Mutex::new(Some({ let __arg_holder = day.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+).lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = SECONDS_PER_DAY as i64; __tmp_x * __tmp_y };
             let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __tmp_x = { let __tmp_x = { let __v = (*hour.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 3600; __tmp_x * __tmp_y }; let __tmp_y = { let __tmp_x = { let __v = (*min.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60; __tmp_x * __tmp_y }; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*sec.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as i64))).lock().unwrap().as_ref().unwrap());
             __tmp_x + __tmp_y
         };

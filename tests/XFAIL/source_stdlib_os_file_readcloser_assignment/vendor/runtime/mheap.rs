@@ -4037,7 +4037,11 @@ impl mheap {
         if { let __tmp_x = { let __v = (*scav.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
                 // sysUsed all the pages that are actually available
                 // in the span since some of them might be scavenged.
-        sys_used(Arc::new(Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some({ let __arg_holder = nbytes.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = scav.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        sys_used(
+            Arc::new(Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap())))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = nbytes.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = scav.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        );
         (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_released.lock().unwrap().as_ref().unwrap()).add(Arc::new(Mutex::new(Some(-((*scav.lock().unwrap().as_ref().unwrap()) as i64)))));
     }
 
@@ -4258,7 +4262,11 @@ impl mheap {
             __tmp_x - __tmp_y
         })));;
         if { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
-            sys_map(Arc::new(Mutex::new(Some({ let __selector_holder = (*self.cur_arena.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), (*gcController.lock().unwrap().as_ref().unwrap()).heap_released.clone());;
+            sys_map(
+                Arc::new(Mutex::new(Some({ let __selector_holder = (*self.cur_arena.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                (*gcController.lock().unwrap().as_ref().unwrap()).heap_released.clone()
+            );;
             let mut stats: Option<GoArrayElemPtr<heapStatsDelta, 3>> = (*(*memstats.lock().unwrap().as_ref().unwrap()).heap_stats.lock().unwrap().as_mut().unwrap()).acquire();;
             internal_runtime_atomic::xaddint64((*stats.as_ref().unwrap().borrow().as_ref().unwrap()).released.clone(), Arc::new(Mutex::new(Some((*size.lock().unwrap().as_ref().unwrap()) as i64))));;
             (*(*memstats.lock().unwrap().as_ref().unwrap()).heap_stats.lock().unwrap().as_mut().unwrap()).release();;
@@ -4321,7 +4329,11 @@ impl mheap {
                 // The allocation is always aligned to the heap arena
                 // size which is always > physPageSize, so its safe to
                 // just add directly to heapReleased.
-        sys_map(Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some({ let __tmp_x = nBase; let __tmp_y = { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))), (*gcController.lock().unwrap().as_ref().unwrap()).heap_released.clone());
+        sys_map(
+            Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap())))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = nBase; let __tmp_y = { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))),
+            (*gcController.lock().unwrap().as_ref().unwrap()).heap_released.clone()
+        );
                 // The memory just allocated counts as both released
                 // and idle, even though it's not yet backed by spans.
         let mut stats: Option<GoArrayElemPtr<heapStatsDelta, 3>> = (*(*memstats.lock().unwrap().as_ref().unwrap()).heap_stats.lock().unwrap().as_mut().unwrap()).acquire();
@@ -4729,11 +4741,15 @@ pub fn recordspan(vh: Arc<Mutex<Option<usize>>>, p: Arc<Mutex<Option<usize>>>) {
         let mut oldAllspans = { let __ptr_value = h.with_mut(|__ptr_value| __ptr_value.allspans.clone()); __ptr_value }.clone();
         { unimplemented!("unsafe.Pointer dereference assignment"); };
         if { let __tmp_x = ((*oldAllspans.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x != __tmp_y } {
-        sys_free(Arc::new(Mutex::new(Some({ let __seq_holder = oldAllspans.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))), Arc::new(Mutex::new(Some({
-            let __tmp_x = (*Arc::new(Mutex::new(Some((*oldAllspans.lock().unwrap()).as_ref().map(|__v| __v.capacity()).unwrap_or(0) as usize))).lock().unwrap().as_ref().unwrap());
-            let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<Arc<Mutex<Option<mspan>>>>()))).lock().unwrap().as_ref().unwrap()) as usize;
-            __tmp_x * __tmp_y
-        }))), (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone());
+        sys_free(
+            Arc::new(Mutex::new(Some({ let __seq_holder = oldAllspans.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))),
+            Arc::new(Mutex::new(Some({
+                let __tmp_x = (*Arc::new(Mutex::new(Some((*oldAllspans.lock().unwrap()).as_ref().map(|__v| __v.capacity()).unwrap_or(0) as usize))).lock().unwrap().as_ref().unwrap());
+                let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<Arc<Mutex<Option<mspan>>>>()))).lock().unwrap().as_ref().unwrap()) as usize;
+                __tmp_x * __tmp_y
+            }))),
+            (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone()
+        );
     }
     }
     { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = { let __ptr_value = h.with_mut(|__ptr_value| __ptr_value.allspans.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ({ let __tmp_x = (({ let __len_target = { let __field = { let __ptr_value = h.with_mut(|__ptr_value| __ptr_value.allspans.clone()); __ptr_value }.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); h.with_mut(|__ptr_value| { __ptr_value.allspans = new_val; }); };
@@ -5015,7 +5031,11 @@ pub fn addfinalizer(p: Arc<Mutex<Option<usize>>>, f: Arc<Mutex<Option<funcval>>>
                 // situation where it's possible that markrootSpans
                 // has already run but mark termination hasn't yet.
         if { let __tmp_x = (*gcphase.lock().unwrap().as_ref().unwrap()); let __tmp_y = __G_COFF as u32; __tmp_x != __tmp_y } {
-        let (mut base, mut span, _) = find_object(Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some(0 as usize))), Arc::new(Mutex::new(Some(0 as usize))));
+        let (mut base, mut span, _) = find_object(
+            Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()) as usize))),
+            Arc::new(Mutex::new(Some(0 as usize))),
+            Arc::new(Mutex::new(Some(0 as usize)))
+        );
         let mut mp = acquirem();
         let mut gcw = { let __ptr = crate::runtime2::puintptr::ptr(&(*(*mp.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().gcw.clone() }.clone();
                 // Mark everything reachable from the object
@@ -5025,7 +5045,13 @@ pub fn addfinalizer(p: Arc<Mutex<Option<usize>>>, f: Arc<Mutex<Option<funcval>>>
     }
                 // Mark the finalizer itself, since the
                 // special isn't part of the GC'd heap.
-        scanblock(Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some({ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.r#fn.clone()); __ptr_value }.clone())))) as usize))).lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))), GoPtr::array_elem(GoArrayElemPtr::new(oneptrmask.clone(), (0) as usize)), gcw.clone(), Arc::new(Mutex::new(None)));
+        scanblock(
+            Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some({ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.r#fn.clone()); __ptr_value }.clone())))) as usize))).lock().unwrap().as_ref().unwrap()) as usize))),
+            Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))),
+            GoPtr::array_elem(GoArrayElemPtr::new(oneptrmask.clone(), (0) as usize)),
+            gcw.clone(),
+            Arc::new(Mutex::new(None))
+        );
         releasem(GoPtr::local(mp.clone()));
     }
                 // Mark everything reachable from the object

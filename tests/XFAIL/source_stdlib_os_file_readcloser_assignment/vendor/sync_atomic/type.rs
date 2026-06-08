@@ -360,7 +360,11 @@ impl Bool {
     pub fn compare_and_swap(&self, old: Arc<Mutex<Option<bool>>>, new: Arc<Mutex<Option<bool>>>) -> bool {
     let mut swapped: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
 
-        compare_and_swap_uint32(self.v.clone(), Arc::new(Mutex::new(Some(b32(Arc::new(Mutex::new(Some({ let __arg_holder = old.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))))), Arc::new(Mutex::new(Some(b32(Arc::new(Mutex::new(Some({ let __arg_holder = new.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))))))
+        compare_and_swap_uint32(
+            self.v.clone(),
+            Arc::new(Mutex::new(Some(b32(Arc::new(Mutex::new(Some({ let __arg_holder = old.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))))),
+            Arc::new(Mutex::new(Some(b32(Arc::new(Mutex::new(Some({ let __arg_holder = new.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))))))
+        )
     }
 }
 

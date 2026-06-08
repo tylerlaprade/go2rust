@@ -338,7 +338,11 @@ impl crate::mheap::mspan {
     } }
         if { let __v = (*hasPins.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         let mut newPinnerBits = self.new_pinner_bits();
-        memmove(Arc::new(Mutex::new(Some(Arc::as_ptr(&(*newPinnerBits.lock().unwrap().as_ref().unwrap()).x.clone()) as usize))), Arc::new(Mutex::new(Some(Arc::as_ptr(&{ let __ptr_value = p.with_mut(|__ptr_value| __ptr_value.x.clone()); __ptr_value }.clone()) as usize))), Arc::new(Mutex::new(Some(bytes))));
+        memmove(
+            Arc::new(Mutex::new(Some(Arc::as_ptr(&(*newPinnerBits.lock().unwrap().as_ref().unwrap()).x.clone()) as usize))),
+            Arc::new(Mutex::new(Some(Arc::as_ptr(&{ let __ptr_value = p.with_mut(|__ptr_value| __ptr_value.x.clone()); __ptr_value }.clone()) as usize))),
+            Arc::new(Mutex::new(Some(bytes)))
+        );
         self.set_pinner_bits(GoPtr::local(newPinnerBits.clone()));
     } else {
         self.set_pinner_bits(GoPtr::nil());

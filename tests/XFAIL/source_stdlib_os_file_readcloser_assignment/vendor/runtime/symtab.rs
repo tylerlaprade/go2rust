@@ -1448,7 +1448,11 @@ impl Func {
     }
                 // Pass strict=false here, because anyone can call this function,
                 // and they might just be wrong about targetpc belonging to f.
-        let (__tmp_0, mut line32) = funcline1(self.func_info(), Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(false)))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *file.lock().unwrap() = __moved_tmp_0;;
+        let (__tmp_0, mut line32) = funcline1(
+            self.func_info(),
+            Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(false)))
+        ); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *file.lock().unwrap() = __moved_tmp_0;;
         return ({ let __owned = file.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, (*Arc::new(Mutex::new(Some(line32 as i32))).lock().unwrap().as_ref().unwrap()));
     }
 
@@ -1958,7 +1962,12 @@ pub fn pcvalue(f: Arc<Mutex<Option<funcInfo>>>, off: Arc<Mutex<Option<u32>>>, ta
     let mut val = Arc::new(Mutex::new(Some(-(1) as i32)));
     loop {
         let mut ok: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
-        { let (__tmp_0, __tmp_1) = step(p.clone(), Arc::new(Mutex::new(Some(pc.clone()))), val.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = pc; let __tmp_y = (*f.lock().unwrap().as_ref().unwrap()).entry(); __tmp_x == __tmp_y })))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *p.lock().unwrap() = __moved_tmp_0; *ok.lock().unwrap() = Some(__tmp_1); };
+        { let (__tmp_0, __tmp_1) = step(
+            p.clone(),
+            Arc::new(Mutex::new(Some(pc.clone()))),
+            val.clone(),
+            Arc::new(Mutex::new(Some({ let __tmp_x = pc; let __tmp_y = (*f.lock().unwrap().as_ref().unwrap()).entry(); __tmp_x == __tmp_y })))
+        ); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *p.lock().unwrap() = __moved_tmp_0; *ok.lock().unwrap() = Some(__tmp_1); };
         if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         break
     }
@@ -2043,7 +2052,12 @@ pub fn pcvalue(f: Arc<Mutex<Option<funcInfo>>>, off: Arc<Mutex<Option<u32>>>, ta
     { let new_val = -1 as i32; *val.lock().unwrap() = Some(new_val); };
     loop {
         let mut ok: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
-        { let (__tmp_0, __tmp_1) = step(p.clone(), Arc::new(Mutex::new(Some(pc.clone()))), val.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = pc; let __tmp_y = (*f.lock().unwrap().as_ref().unwrap()).entry(); __tmp_x == __tmp_y })))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *p.lock().unwrap() = __moved_tmp_0; *ok.lock().unwrap() = Some(__tmp_1); };
+        { let (__tmp_0, __tmp_1) = step(
+            p.clone(),
+            Arc::new(Mutex::new(Some(pc.clone()))),
+            val.clone(),
+            Arc::new(Mutex::new(Some({ let __tmp_x = pc; let __tmp_y = (*f.lock().unwrap().as_ref().unwrap()).entry(); __tmp_x == __tmp_y })))
+        ); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *p.lock().unwrap() = __moved_tmp_0; *ok.lock().unwrap() = Some(__tmp_1); };
         if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         break
     }
@@ -2152,7 +2166,12 @@ pub fn func_max_s_p_delta(f: Arc<Mutex<Option<funcInfo>>>) -> i32 {
     let mut most = Arc::new(Mutex::new(Some(0 as i32)));
     loop {
         let mut ok: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
-        { let (__tmp_0, __tmp_1) = step(p.clone(), Arc::new(Mutex::new(Some(pc.clone()))), val.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = pc; let __tmp_y = (*f.lock().unwrap().as_ref().unwrap()).entry(); __tmp_x == __tmp_y })))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *p.lock().unwrap() = __moved_tmp_0; *ok.lock().unwrap() = Some(__tmp_1); };
+        { let (__tmp_0, __tmp_1) = step(
+            p.clone(),
+            Arc::new(Mutex::new(Some(pc.clone()))),
+            val.clone(),
+            Arc::new(Mutex::new(Some({ let __tmp_x = pc; let __tmp_y = (*f.lock().unwrap().as_ref().unwrap()).entry(); __tmp_x == __tmp_y })))
+        ); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *p.lock().unwrap() = __moved_tmp_0; *ok.lock().unwrap() = Some(__tmp_1); };
         if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         return { let __v = (*most.lock().unwrap().as_ref().unwrap()).clone(); __v };
     }
@@ -2172,7 +2191,12 @@ pub fn pcdatavalue(f: Arc<Mutex<Option<funcInfo>>>, table: Arc<Mutex<Option<u32>
     if { let __tmp_x = { let __v = (*table.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*(*(*f.lock().unwrap().as_ref().unwrap())._func.lock().unwrap().as_ref().unwrap()).npcdata.lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y } {
         return -(1);
     }
-    let (mut r, _) = pcvalue(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(pcdatastart(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = table.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))))), Arc::new(Mutex::new(Some({ let __arg_holder = targetpc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(true))));
+    let (mut r, _) = pcvalue(
+        Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some(pcdatastart(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = table.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = targetpc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some(true)))
+    );
     r
 }
 
@@ -2180,7 +2204,12 @@ pub fn pcdatavalue1(f: Arc<Mutex<Option<funcInfo>>>, table: Arc<Mutex<Option<u32
     if { let __tmp_x = { let __v = (*table.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*(*(*f.lock().unwrap().as_ref().unwrap())._func.lock().unwrap().as_ref().unwrap()).npcdata.lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y } {
         return -(1);
     }
-    let (mut r, _) = pcvalue(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(pcdatastart(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = table.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))))), Arc::new(Mutex::new(Some({ let __arg_holder = targetpc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = strict.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    let (mut r, _) = pcvalue(
+        Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some(pcdatastart(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = table.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = targetpc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = strict.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+    );
     r
 }
 
@@ -2189,7 +2218,12 @@ pub fn pcdatavalue2(f: Arc<Mutex<Option<funcInfo>>>, table: Arc<Mutex<Option<u32
     if { let __tmp_x = { let __v = (*table.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*(*(*f.lock().unwrap().as_ref().unwrap())._func.lock().unwrap().as_ref().unwrap()).npcdata.lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y } {
         return (-(1), 0);
     }
-    pcvalue(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(pcdatastart(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = table.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))))), Arc::new(Mutex::new(Some({ let __arg_holder = targetpc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(true))))
+    pcvalue(
+        Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some(pcdatastart(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = table.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = targetpc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some(true)))
+    )
 }
 
 /// funcdata returns a pointer to the ith funcdata for f.

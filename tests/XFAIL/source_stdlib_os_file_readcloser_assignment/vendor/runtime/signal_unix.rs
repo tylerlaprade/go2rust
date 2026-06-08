@@ -301,7 +301,12 @@ pub fn do_sig_preempt(gp: GoPtr<crate::runtime2::g>, ctxt: Arc<Mutex<Option<sigc
         // preempt.
     if want_async_preempt(gp.clone()) {
         {
-        let (mut ok, mut newpc) = is_async_safe_point(gp.clone(), Arc::new(Mutex::new(Some({ let __recv = ctxt.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.sigpc(); __result }))), Arc::new(Mutex::new(Some({ let __recv = ctxt.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.sigsp(); __result }))), Arc::new(Mutex::new(Some({ let __recv = ctxt.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.siglr(); __result }))));;
+        let (mut ok, mut newpc) = is_async_safe_point(
+            gp.clone(),
+            Arc::new(Mutex::new(Some({ let __recv = ctxt.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.sigpc(); __result }))),
+            Arc::new(Mutex::new(Some({ let __recv = ctxt.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.sigsp(); __result }))),
+            Arc::new(Mutex::new(Some({ let __recv = ctxt.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.siglr(); __result })))
+        );;
         if ok {
             { let __recv = ctxt.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.push_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(async_preempt.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(newpc)))); __result };;
         }
@@ -419,7 +424,13 @@ pub fn sighandler(sig_local: Arc<Mutex<Option<u32>>>, info: Arc<Mutex<Option<sig
                 // Some platforms (Linux) have per-thread timers, which we use in
                 // combination with the process-wide timer. Avoid double-counting.
         if !{ let __v = (*delayedSignal.lock().unwrap().as_ref().unwrap()).clone(); __v } && valid_s_i_g_p_r_o_f(mp.clone(), c.clone()) {
-        sigprof(Arc::new(Mutex::new(Some({ let __recv = c.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.sigpc(); __result }))), Arc::new(Mutex::new(Some({ let __recv = c.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.sigsp(); __result }))), Arc::new(Mutex::new(Some({ let __recv = c.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.siglr(); __result }))), gp.clone(), mp.clone());
+        sigprof(
+            Arc::new(Mutex::new(Some({ let __recv = c.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.sigpc(); __result }))),
+            Arc::new(Mutex::new(Some({ let __recv = c.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.sigsp(); __result }))),
+            Arc::new(Mutex::new(Some({ let __recv = c.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.siglr(); __result }))),
+            gp.clone(),
+            mp.clone()
+        );
     }
         return;
     }
@@ -437,7 +448,11 @@ pub fn sighandler(sig_local: Arc<Mutex<Option<u32>>>, info: Arc<Mutex<Option<sig
             }
         };
         if __go_cond_0 {
-            let __go_cond_3 = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<crate::defs_darwin_arm64::siginfo>>>, Arc<Mutex<Option<crate::signal_darwin_arm64::sigctxt>>>, GoPtr<crate::runtime2::g>) -> bool + Send + Sync> = { let mut __f_guard = testSigtrap.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<crate::defs_darwin_arm64::siginfo>>>, Arc<Mutex<Option<crate::signal_darwin_arm64::sigctxt>>>, GoPtr<crate::runtime2::g>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(info.clone(), Arc::new(Mutex::new({ let __ptr = noescape(Arc::new(Mutex::new(Some(Arc::as_ptr(&c) as usize)))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<sigctxt>(unimplemented!("unsafe.Pointer conversion to sigctxt")) } })), gp.clone()) };
+            let __go_cond_3 = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<crate::defs_darwin_arm64::siginfo>>>, Arc<Mutex<Option<crate::signal_darwin_arm64::sigctxt>>>, GoPtr<crate::runtime2::g>) -> bool + Send + Sync> = { let mut __f_guard = testSigtrap.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<crate::defs_darwin_arm64::siginfo>>>, Arc<Mutex<Option<crate::signal_darwin_arm64::sigctxt>>>, GoPtr<crate::runtime2::g>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(
+                info.clone(),
+                Arc::new(Mutex::new({ let __ptr = noescape(Arc::new(Mutex::new(Some(Arc::as_ptr(&c) as usize)))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<sigctxt>(unimplemented!("unsafe.Pointer conversion to sigctxt")) } })),
+                gp.clone()
+            ) };
             __go_cond_3
         } else {
             false
@@ -559,11 +574,21 @@ pub fn sighandler(sig_local: Arc<Mutex<Option<u32>>>, info: Arc<Mutex<Option<sig
     let (mut level, _, mut docrash) = gotraceback();
     if { let __tmp_x = level; let __tmp_y = 0 as i32; __tmp_x > __tmp_y } {
         goroutineheader(gp.clone());
-        tracebacktrap(Arc::new(Mutex::new(Some({ let __recv = c.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.sigpc(); __result }))), Arc::new(Mutex::new(Some({ let __recv = c.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.sigsp(); __result }))), Arc::new(Mutex::new(Some({ let __recv = c.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.siglr(); __result }))), gp.clone());
+        tracebacktrap(
+            Arc::new(Mutex::new(Some({ let __recv = c.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.sigpc(); __result }))),
+            Arc::new(Mutex::new(Some({ let __recv = c.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.sigsp(); __result }))),
+            Arc::new(Mutex::new(Some({ let __recv = c.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.siglr(); __result }))),
+            gp.clone()
+        );
         if { let __tmp_x = (*crashing.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 0 as i32; __tmp_x > __tmp_y } && { let __left_addr = gp.addr(); let __right_addr = (*mp.lock().unwrap().as_ref().unwrap()).curg.addr(); let __eq = __left_addr == __right_addr; !__eq } && { let __ptr_field = (*mp.lock().unwrap().as_ref().unwrap()).curg.clone(); !__ptr_field.is_nil() } && { let __tmp_x = { let __tmp_x = readgstatus((*mp.lock().unwrap().as_ref().unwrap()).curg.clone()); let __tmp_y = __GSCAN as u32; __tmp_x & ! __tmp_y }; let __tmp_y = __GRUNNING as u32; __tmp_x == __tmp_y } {
                 // tracebackothers on original m skipped this one; trace it now.
         goroutineheader((*mp.lock().unwrap().as_ref().unwrap()).curg.clone());
-        traceback(Arc::new(Mutex::new(Some(!(0 as usize) as usize))), Arc::new(Mutex::new(Some(!(0 as usize) as usize))), Arc::new(Mutex::new(Some(0 as usize))), (*mp.lock().unwrap().as_ref().unwrap()).curg.clone());
+        traceback(
+            Arc::new(Mutex::new(Some(!(0 as usize) as usize))),
+            Arc::new(Mutex::new(Some(!(0 as usize) as usize))),
+            Arc::new(Mutex::new(Some(0 as usize))),
+            (*mp.lock().unwrap().as_ref().unwrap()).curg.clone()
+        );
     } else if { let __tmp_x = (*crashing.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 0 as i32; __tmp_x == __tmp_y } {
         tracebackothers(gp.clone());
         {

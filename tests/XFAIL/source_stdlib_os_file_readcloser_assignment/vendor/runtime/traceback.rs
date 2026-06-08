@@ -1761,7 +1761,12 @@ pub fn printcreatedby(gp: GoPtr<crate::runtime2::g>) {
         // Show what created goroutine, except main goroutine (goid 1).
     let mut pc = Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.gopc.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     let mut f = findfunc(Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-    if (*f.lock().unwrap().as_ref().unwrap()).valid() && showframe((*f.lock().unwrap().as_ref().unwrap()).src_func(), gp.clone(), Arc::new(Mutex::new(Some(false))), Arc::new(Mutex::new(Some(internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(internal_abi::FUNC_I_D_NORMAL as u8)))))))) && { let __tmp_x = (*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().goid.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as u64; __tmp_x != __tmp_y } {
+    if (*f.lock().unwrap().as_ref().unwrap()).valid() && showframe(
+        (*f.lock().unwrap().as_ref().unwrap()).src_func(),
+        gp.clone(),
+        Arc::new(Mutex::new(Some(false))),
+        Arc::new(Mutex::new(Some(internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(internal_abi::FUNC_I_D_NORMAL as u8)))))))
+    ) && { let __tmp_x = (*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().goid.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as u64; __tmp_x != __tmp_y } {
         printcreatedby1(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.parent_goid.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
     }
 }
@@ -1823,7 +1828,13 @@ pub fn traceback(pc: Arc<Mutex<Option<usize>>>, sp: Arc<Mutex<Option<usize>>>, l
 pub fn tracebacktrap(pc: Arc<Mutex<Option<usize>>>, sp: Arc<Mutex<Option<usize>>>, lr: Arc<Mutex<Option<usize>>>, gp: GoPtr<crate::runtime2::g>) {
     if { let __tmp_x = (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).libcallsp.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
                 // We're in C code somewhere, traceback from the saved position.
-        traceback1(Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).libcallpc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).libcallsp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(0 as usize))), crate::runtime2::guintptr::ptr(&(*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).libcallg.lock().unwrap().as_ref().unwrap())), Arc::new(Mutex::new(Some(unwindFlags(Arc::new(Mutex::new(Some(0 as u8))))))));
+        traceback1(
+            Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).libcallpc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).libcallsp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            Arc::new(Mutex::new(Some(0 as usize))),
+            crate::runtime2::guintptr::ptr(&(*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).libcallg.lock().unwrap().as_ref().unwrap())),
+            Arc::new(Mutex::new(Some(unwindFlags(Arc::new(Mutex::new(Some(0 as u8)))))))
+        );
         return;
     }
         // We're in C code somewhere, traceback from the saved position.
@@ -1977,7 +1988,12 @@ pub fn traceback1(mut pc: Arc<Mutex<Option<usize>>>, mut sp: Arc<Mutex<Option<us
             let __go_print_arg_2 = format!("{}", " frames elided...\n".to_string());
             eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
         };
-        traceback2(u2.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = showRuntime.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = lastN; let __tmp_y = { let __v = (*elide.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))), Arc::new(Mutex::new(Some(50))));
+        traceback2(
+            u2.clone(),
+            Arc::new(Mutex::new(Some({ let __arg_holder = showRuntime.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = lastN; let __tmp_y = { let __v = (*elide.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))),
+            Arc::new(Mutex::new(Some(50)))
+        );
     } else if { let __tmp_x = { let __v = (*elide.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x <= __tmp_y } {
         traceback2(u2.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = showRuntime.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(lastN))), Arc::new(Mutex::new(Some(50))));
     }
@@ -2047,7 +2063,12 @@ pub fn traceback2(u: Arc<Mutex<Option<unwinder>>>, showRuntime: Arc<Mutex<Option
         let mut sf = (*iu.lock().unwrap().as_ref().unwrap()).src_func(Arc::new(Mutex::new(Some({ let __arg_holder = uf.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         let mut callee = Arc::new(Mutex::new(Some({ let __selector_holder = (*u.lock().unwrap().as_ref().unwrap()).callee_func_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         { let new_val = internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some((*(*(*sf.lock().unwrap().as_ref().unwrap()).func_i_d.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *(*u.lock().unwrap().as_ref().unwrap()).callee_func_i_d.lock().unwrap() = Some(new_val); };
-        if !({ let __v = (*showRuntime.lock().unwrap().as_ref().unwrap()).clone(); __v } || showframe(Arc::new(Mutex::new(Some({ let __arg_holder = sf.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), gp.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y }))), Arc::new(Mutex::new(Some({ let __arg_holder = callee.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))) {
+        if !({ let __v = (*showRuntime.lock().unwrap().as_ref().unwrap()).clone(); __v } || showframe(
+            Arc::new(Mutex::new(Some({ let __arg_holder = sf.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            gp.clone(),
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x == __tmp_y }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = callee.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        )) {
         { let new_val = (*iu.lock().unwrap().as_ref().unwrap()).next(Arc::new(Mutex::new(Some({ let __arg_holder = uf.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *uf.lock().unwrap() = __moved_val; };; continue
     }
 
@@ -2079,7 +2100,11 @@ pub fn traceback2(u: Arc<Mutex<Option<unwinder>>>, showRuntime: Arc<Mutex<Option
         };
     } else {
         let mut argp = Arc::new(Mutex::new(Some({ let __selector_holder = (*(*u.lock().unwrap().as_ref().unwrap()).frame.lock().unwrap().as_ref().unwrap()).argp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        print_args(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = argp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __recv = u.clone(); let __recv_ptr: *const unwinder = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const unwinder }; let __result = unsafe { &*__recv_ptr }.sym_p_c(); __result }))));
+        print_args(
+            Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = argp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __recv = u.clone(); let __recv_ptr: *const unwinder = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const unwinder }; let __result = unsafe { &*__recv_ptr }.sym_p_c(); __result })))
+        );
     }
         {
             let __go_print_arg_0 = format!("{}", ")\n".to_string());
@@ -2220,7 +2245,11 @@ pub fn print_ancestor_traceback(ancestor: Arc<Mutex<Option<ancestorInfo>>>) {
         };
     { let __range_holder = (*ancestor.lock().unwrap().as_ref().unwrap()).pcs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (fidx, pc) in __range_values.iter().copied().enumerate() {
         let mut f = findfunc(Arc::new(Mutex::new(Some(pc.clone()))));
-        if showfuncinfo((*f.lock().unwrap().as_ref().unwrap()).src_func(), Arc::new(Mutex::new(Some({ let __tmp_x = fidx as i32; let __tmp_y = 0; __tmp_x == __tmp_y }))), Arc::new(Mutex::new(Some(internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(internal_abi::FUNC_I_D_NORMAL as u8)))))))) {
+        if showfuncinfo(
+            (*f.lock().unwrap().as_ref().unwrap()).src_func(),
+            Arc::new(Mutex::new(Some({ let __tmp_x = fidx as i32; let __tmp_y = 0; __tmp_x == __tmp_y }))),
+            Arc::new(Mutex::new(Some(internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(internal_abi::FUNC_I_D_NORMAL as u8)))))))
+        ) {
         print_ancestor_traceback_func_info(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(pc.clone()))));
     }
     } }
@@ -2234,7 +2263,11 @@ pub fn print_ancestor_traceback(ancestor: Arc<Mutex<Option<ancestorInfo>>>) {
 
         // Show what created goroutine, except main goroutine (goid 1).
     let mut f = findfunc(Arc::new(Mutex::new(Some({ let __selector_holder = (*ancestor.lock().unwrap().as_ref().unwrap()).gopc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
-    if (*f.lock().unwrap().as_ref().unwrap()).valid() && showfuncinfo((*f.lock().unwrap().as_ref().unwrap()).src_func(), Arc::new(Mutex::new(Some(false))), Arc::new(Mutex::new(Some(internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(internal_abi::FUNC_I_D_NORMAL as u8)))))))) && { let __tmp_x = (*{ let __field = (*ancestor.lock().unwrap().as_ref().unwrap()).goid.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as u64; __tmp_x != __tmp_y } {
+    if (*f.lock().unwrap().as_ref().unwrap()).valid() && showfuncinfo(
+        (*f.lock().unwrap().as_ref().unwrap()).src_func(),
+        Arc::new(Mutex::new(Some(false))),
+        Arc::new(Mutex::new(Some(internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(internal_abi::FUNC_I_D_NORMAL as u8)))))))
+    ) && { let __tmp_x = (*{ let __field = (*ancestor.lock().unwrap().as_ref().unwrap()).goid.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as u64; __tmp_x != __tmp_y } {
                 // In ancestor mode, we'll already print the goroutine ancestor.
                 // Pass 0 for the goid parameter so we don't print it again.
         printcreatedby1(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*ancestor.lock().unwrap().as_ref().unwrap()).gopc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(0 as u64))));
@@ -2634,7 +2667,12 @@ pub fn tracebackothers(me: GoPtr<crate::runtime2::g>) {
             eprint!("{}", __go_print_arg_0)
         };
         goroutineheader(curgp.clone());
-        traceback(Arc::new(Mutex::new(Some(!(0 as usize) as usize))), Arc::new(Mutex::new(Some(!(0 as usize) as usize))), Arc::new(Mutex::new(Some(0 as usize))), curgp.clone());
+        traceback(
+            Arc::new(Mutex::new(Some(!(0 as usize) as usize))),
+            Arc::new(Mutex::new(Some(!(0 as usize) as usize))),
+            Arc::new(Mutex::new(Some(0 as usize))),
+            curgp.clone()
+        );
     }
 
         // We can't call locking forEachG here because this may be during fatal
@@ -2700,7 +2738,12 @@ pub fn tracebackothers(me: GoPtr<crate::runtime2::g>) {
         };
         printcreatedby(GoPtr::local(gp.clone()));
     } else {
-        traceback(Arc::new(Mutex::new(Some(!(0 as usize) as usize))), Arc::new(Mutex::new(Some(!(0 as usize) as usize))), Arc::new(Mutex::new(Some(0 as usize))), GoPtr::local(gp.clone()));
+        traceback(
+            Arc::new(Mutex::new(Some(!(0 as usize) as usize))),
+            Arc::new(Mutex::new(Some(!(0 as usize) as usize))),
+            Arc::new(Mutex::new(Some(0 as usize))),
+            GoPtr::local(gp.clone())
+        );
     }
     }) as Box<dyn FnMut(Arc<Mutex<Option<g>>>) -> () + Send + Sync>))));
 }

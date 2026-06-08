@@ -41,7 +41,14 @@ pub(crate) const __E_N_O_M_E_M: i32 = 12;
 ///
 ///go:nosplit
 pub fn sys_alloc_o_s(n: Arc<Mutex<Option<usize>>>) -> Arc<Mutex<Option<usize>>> {
-    let (mut v, mut err) = mmap(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = __P_R_O_T__R_E_A_D; let __tmp_y = __P_R_O_T__W_R_I_T_E; __tmp_x | __tmp_y } as i32))), Arc::new(Mutex::new(Some({ let __tmp_x = __M_A_P__A_N_O_N; let __tmp_y = __M_A_P__P_R_I_V_A_T_E; __tmp_x | __tmp_y } as i32))), Arc::new(Mutex::new(Some(-1 as i32))), Arc::new(Mutex::new(Some(0 as u32))));
+    let (mut v, mut err) = mmap(
+        Arc::new(Mutex::new(None)),
+        Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __tmp_x = __P_R_O_T__R_E_A_D; let __tmp_y = __P_R_O_T__W_R_I_T_E; __tmp_x | __tmp_y } as i32))),
+        Arc::new(Mutex::new(Some({ let __tmp_x = __M_A_P__A_N_O_N; let __tmp_y = __M_A_P__P_R_I_V_A_T_E; __tmp_x | __tmp_y } as i32))),
+        Arc::new(Mutex::new(Some(-1 as i32))),
+        Arc::new(Mutex::new(Some(0 as u32)))
+    );
     if { let __tmp_x = err; let __tmp_y = 0; __tmp_x != __tmp_y } {
         return Arc::new(Mutex::new(None));
     }
@@ -76,11 +83,25 @@ pub fn sys_free_o_s(v: Arc<Mutex<Option<usize>>>, n: Arc<Mutex<Option<usize>>>) 
 }
 
 pub fn sys_fault_o_s(v: Arc<Mutex<Option<usize>>>, n: Arc<Mutex<Option<usize>>>) {
-    mmap(Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(__P_R_O_T__N_O_N_E as i32))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = __M_A_P__A_N_O_N; let __tmp_y = __M_A_P__P_R_I_V_A_T_E; __tmp_x | __tmp_y }; let __tmp_y = __M_A_P__F_I_X_E_D; __tmp_x | __tmp_y } as i32))), Arc::new(Mutex::new(Some(-1 as i32))), Arc::new(Mutex::new(Some(0 as u32))));
+    mmap(
+        Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some(__P_R_O_T__N_O_N_E as i32))),
+        Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = __M_A_P__A_N_O_N; let __tmp_y = __M_A_P__P_R_I_V_A_T_E; __tmp_x | __tmp_y }; let __tmp_y = __M_A_P__F_I_X_E_D; __tmp_x | __tmp_y } as i32))),
+        Arc::new(Mutex::new(Some(-1 as i32))),
+        Arc::new(Mutex::new(Some(0 as u32)))
+    );
 }
 
 pub fn sys_reserve_o_s(v: Arc<Mutex<Option<usize>>>, n: Arc<Mutex<Option<usize>>>) -> Arc<Mutex<Option<usize>>> {
-    let (mut p, mut err) = mmap(Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(__P_R_O_T__N_O_N_E as i32))), Arc::new(Mutex::new(Some({ let __tmp_x = __M_A_P__A_N_O_N; let __tmp_y = __M_A_P__P_R_I_V_A_T_E; __tmp_x | __tmp_y } as i32))), Arc::new(Mutex::new(Some(-1 as i32))), Arc::new(Mutex::new(Some(0 as u32))));
+    let (mut p, mut err) = mmap(
+        Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some(__P_R_O_T__N_O_N_E as i32))),
+        Arc::new(Mutex::new(Some({ let __tmp_x = __M_A_P__A_N_O_N; let __tmp_y = __M_A_P__P_R_I_V_A_T_E; __tmp_x | __tmp_y } as i32))),
+        Arc::new(Mutex::new(Some(-1 as i32))),
+        Arc::new(Mutex::new(Some(0 as u32)))
+    );
     if { let __tmp_x = err; let __tmp_y = 0; __tmp_x != __tmp_y } {
         return Arc::new(Mutex::new(None));
     }
@@ -88,7 +109,14 @@ pub fn sys_reserve_o_s(v: Arc<Mutex<Option<usize>>>, n: Arc<Mutex<Option<usize>>
 }
 
 pub fn sys_map_o_s(v: Arc<Mutex<Option<usize>>>, n: Arc<Mutex<Option<usize>>>) {
-    let (mut p, mut err) = mmap(Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = __P_R_O_T__R_E_A_D; let __tmp_y = __P_R_O_T__W_R_I_T_E; __tmp_x | __tmp_y } as i32))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = __M_A_P__A_N_O_N; let __tmp_y = __M_A_P__F_I_X_E_D; __tmp_x | __tmp_y }; let __tmp_y = __M_A_P__P_R_I_V_A_T_E; __tmp_x | __tmp_y } as i32))), Arc::new(Mutex::new(Some(-1 as i32))), Arc::new(Mutex::new(Some(0 as u32))));
+    let (mut p, mut err) = mmap(
+        Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __tmp_x = __P_R_O_T__R_E_A_D; let __tmp_y = __P_R_O_T__W_R_I_T_E; __tmp_x | __tmp_y } as i32))),
+        Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = __M_A_P__A_N_O_N; let __tmp_y = __M_A_P__F_I_X_E_D; __tmp_x | __tmp_y }; let __tmp_y = __M_A_P__P_R_I_V_A_T_E; __tmp_x | __tmp_y } as i32))),
+        Arc::new(Mutex::new(Some(-1 as i32))),
+        Arc::new(Mutex::new(Some(0 as u32)))
+    );
     if { let __tmp_x = err; let __tmp_y = 12; __tmp_x == __tmp_y } {
         throw(Arc::new(Mutex::new(Some("runtime: out of memory".to_string()))));
     }

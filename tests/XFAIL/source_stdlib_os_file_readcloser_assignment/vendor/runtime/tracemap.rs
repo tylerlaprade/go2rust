@@ -245,7 +245,11 @@ impl traceMap {
                 // we must have lost the race, and therefore n is not nil
                 // anymore.
         if { let __tmp_x = (*{ let __ptr_value = n.borrow(); __ptr_value.as_ref().unwrap().hash.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = hash; __tmp_x == __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = { let __ptr_value = n.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } {
-        if memequal(Arc::new(Mutex::new(Some({ let __seq_holder = { let __ptr_value = n.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))), Arc::new(Mutex::new(Some({ let __arg_holder = data.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
+        if memequal(
+            Arc::new(Mutex::new(Some({ let __seq_holder = { let __ptr_value = n.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = data.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        ) {
         return ((*{ let __ptr_value = n.with_mut(|__ptr_value| __ptr_value.id.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()), false);
     }
     }
@@ -257,7 +261,11 @@ impl traceMap {
     pub fn new_trace_map_node(&self, data: Arc<Mutex<Option<usize>>>, size: Arc<Mutex<Option<usize>>>, hash: Arc<Mutex<Option<usize>>>, id: Arc<Mutex<Option<u64>>>) -> GoPtr<traceMapNode> {
                 // Create data array.
         let mut sl = Arc::new(Mutex::new(Some(crate::slice::notInHeapSlice { array: (*self.mem.lock().unwrap().as_mut().unwrap()).alloc(Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))), len: Arc::new(Mutex::new(Some((*size.lock().unwrap().as_ref().unwrap()) as i32))), cap: Arc::new(Mutex::new(Some((*size.lock().unwrap().as_ref().unwrap()) as i32))), ..Default::default() })));
-        memmove(Arc::new(Mutex::new(Some((*sl.lock().unwrap().as_ref().unwrap()).array.addr()))), Arc::new(Mutex::new(Some({ let __arg_holder = data.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        memmove(
+            Arc::new(Mutex::new(Some((*sl.lock().unwrap().as_ref().unwrap()).array.addr()))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = data.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        );
                 // Create metadata structure.
         let mut meta: GoPtr<traceMapNode> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some((*self.mem.lock().unwrap().as_mut().unwrap()).alloc(Arc::new(Mutex::new(Some(std::mem::size_of::<traceMapNode>())))).addr()))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         { unimplemented!("unsafe.Pointer dereference assignment"); };

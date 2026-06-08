@@ -187,7 +187,11 @@ impl crate::mpagealloc::pageAlloc {
                 // of summary indices which must be mapped to support those addresses
                 // in the summary range.
         let mut addrRangeToSummaryRange = Arc::new(Mutex::new(Some(Box::new(move |level: Arc<Mutex<Option<i32>>>, r: Arc<Mutex<Option<addrRange>>>| -> (i32, i32) {
-        let (mut sumIdxBase, mut sumIdxLimit) = addrs_to_summary_range(Arc::new(Mutex::new(Some({ let __arg_holder = level.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some((*(*r.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).addr()))), Arc::new(Mutex::new(Some((*(*r.lock().unwrap().as_ref().unwrap()).limit.lock().unwrap().as_ref().unwrap()).addr()))));
+        let (mut sumIdxBase, mut sumIdxLimit) = addrs_to_summary_range(
+            Arc::new(Mutex::new(Some({ let __arg_holder = level.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some((*(*r.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).addr()))),
+            Arc::new(Mutex::new(Some((*(*r.lock().unwrap().as_ref().unwrap()).limit.lock().unwrap().as_ref().unwrap()).addr())))
+        );
         block_align_summary_range(Arc::new(Mutex::new(Some({ let __arg_holder = level.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(sumIdxBase))), Arc::new(Mutex::new(Some(sumIdxLimit))))
     }) as Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<addrRange>>>) -> (i32, i32) + Send + Sync>)));
                 // summaryRangeToSumAddrRange converts a range of indices in any
@@ -249,8 +253,16 @@ impl crate::mpagealloc::pageAlloc {
         continue
     }
                 // Map and commit need.
-        sys_map(Arc::new(Mutex::new(Some((*(*need.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).addr()))), Arc::new(Mutex::new(Some((*need.lock().unwrap().as_ref().unwrap()).size()))), { let __field = self.sys_stat.clone(); __field });
-        sys_used(Arc::new(Mutex::new(Some((*(*need.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).addr()))), Arc::new(Mutex::new(Some((*need.lock().unwrap().as_ref().unwrap()).size()))), Arc::new(Mutex::new(Some((*need.lock().unwrap().as_ref().unwrap()).size()))));
+        sys_map(
+            Arc::new(Mutex::new(Some((*(*need.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).addr()))),
+            Arc::new(Mutex::new(Some((*need.lock().unwrap().as_ref().unwrap()).size()))),
+            { let __field = self.sys_stat.clone(); __field }
+        );
+        sys_used(
+            Arc::new(Mutex::new(Some((*(*need.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).addr()))),
+            Arc::new(Mutex::new(Some((*need.lock().unwrap().as_ref().unwrap()).size()))),
+            Arc::new(Mutex::new(Some((*need.lock().unwrap().as_ref().unwrap()).size())))
+        );
         { let __target = self.summary_mapped_ready.clone(); let __rhs = (*need.lock().unwrap().as_ref().unwrap()).size(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
                 // Figure out what part of the summary array this new address space needs.
@@ -319,8 +331,16 @@ impl crate::mgcscavenge::scavengeIndex {
         { let new_val = (*need.lock().unwrap().as_ref().unwrap()).subtract(Arc::new(Mutex::new(Some({ let __arg_holder = have.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *need.lock().unwrap() = __moved_val; };
                 // If we've got something to map, map it, and update the slice bounds.
         if { let __tmp_x = (*need.lock().unwrap().as_ref().unwrap()).size(); let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
-        sys_map(Arc::new(Mutex::new(Some((*(*need.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).addr()))), Arc::new(Mutex::new(Some((*need.lock().unwrap().as_ref().unwrap()).size()))), sysStat.clone());
-        sys_used(Arc::new(Mutex::new(Some((*(*need.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).addr()))), Arc::new(Mutex::new(Some((*need.lock().unwrap().as_ref().unwrap()).size()))), Arc::new(Mutex::new(Some((*need.lock().unwrap().as_ref().unwrap()).size()))));
+        sys_map(
+            Arc::new(Mutex::new(Some((*(*need.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).addr()))),
+            Arc::new(Mutex::new(Some((*need.lock().unwrap().as_ref().unwrap()).size()))),
+            sysStat.clone()
+        );
+        sys_used(
+            Arc::new(Mutex::new(Some((*(*need.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).addr()))),
+            Arc::new(Mutex::new(Some((*need.lock().unwrap().as_ref().unwrap()).size()))),
+            Arc::new(Mutex::new(Some((*need.lock().unwrap().as_ref().unwrap()).size())))
+        );
                 // Update the indices only after the new memory is valid.
         if { let __tmp_x = haveMax; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } || { let __tmp_x = needMin; let __tmp_y = haveMin; __tmp_x < __tmp_y } {
         (*self.min.lock().unwrap().as_mut().unwrap()).store(Arc::new(Mutex::new(Some(needMin))));

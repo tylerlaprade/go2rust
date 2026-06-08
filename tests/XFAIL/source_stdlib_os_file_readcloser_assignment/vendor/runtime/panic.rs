@@ -836,7 +836,11 @@ pub fn bad_defer() -> GoPtr<crate::runtime2::_defer> {
 pub fn deferconvert(d0: Arc<Mutex<Option<_defer>>>) {
     let mut head = (*d0.lock().unwrap().as_ref().unwrap()).head.clone();
     if RACEENABLED {
-        racereadpc(Arc::new(Mutex::new(Some(Arc::as_ptr(&head) as usize))), Arc::new(Mutex::new(Some(internal_runtime_sys::get_caller_p_c()))), Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i_internal(Arc::new(Mutex::new(Some(Box::new(deferconvert.clone()) as Box<dyn Any + Send + Sync>))))))));
+        racereadpc(
+            Arc::new(Mutex::new(Some(Arc::as_ptr(&head) as usize))),
+            Arc::new(Mutex::new(Some(internal_runtime_sys::get_caller_p_c()))),
+            Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i_internal(Arc::new(Mutex::new(Some(Box::new(deferconvert.clone()) as Box<dyn Any + Send + Sync>)))))))
+        );
     }
     let mut tail = (*d0.lock().unwrap().as_ref().unwrap()).link.clone();
     { let new_val = false; *(*d0.lock().unwrap().as_ref().unwrap()).rangefunc.lock().unwrap() = Some(new_val); };

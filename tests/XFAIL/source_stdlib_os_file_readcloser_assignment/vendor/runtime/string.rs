@@ -107,7 +107,12 @@ impl GoJsonDecode for stringStruct {
 ///   - Used for string(b)=="foo" comparison where b is []byte.
 pub fn slicebytetostringtmp(ptr: GoPtr<u8>, n: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<String>>> {
     if RACEENABLED && { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
-        racereadrangepc(Arc::new(Mutex::new(Some(ptr.addr()))), Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some(internal_runtime_sys::get_caller_p_c()))), Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i_internal(Arc::new(Mutex::new(Some(Box::new(slicebytetostringtmp.clone()) as Box<dyn Any + Send + Sync>))))))));
+        racereadrangepc(
+            Arc::new(Mutex::new(Some(ptr.addr()))),
+            Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as usize))),
+            Arc::new(Mutex::new(Some(internal_runtime_sys::get_caller_p_c()))),
+            Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i_internal(Arc::new(Mutex::new(Some(Box::new(slicebytetostringtmp.clone()) as Box<dyn Any + Send + Sync>)))))))
+        );
     }
     if MSANENABLED && { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
         msanread(Arc::new(Mutex::new(Some(ptr.addr()))), Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as usize))));
@@ -130,7 +135,11 @@ pub fn rawstring(size: Arc<Mutex<Option<i32>>>) -> (Arc<Mutex<Option<String>>>, 
     let mut s: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(Some(String::new())));
     let mut b: Arc<Mutex<Option<Vec<u8>>>> = Arc::new(Mutex::new(None));
 
-    let mut p = mallocgc(Arc::new(Mutex::new(Some((*size.lock().unwrap().as_ref().unwrap()) as usize))), GoPtr::nil(), Arc::new(Mutex::new(Some(false))));
+    let mut p = mallocgc(
+        Arc::new(Mutex::new(Some((*size.lock().unwrap().as_ref().unwrap()) as usize))),
+        GoPtr::nil(),
+        Arc::new(Mutex::new(Some(false)))
+    );
     return ({ let __go_unsafe_result: Arc<Mutex<Option<String>>> = unimplemented!("unsafe.String requires unsafe intrinsic support"); __go_unsafe_result }, { let __go_unsafe_result: Arc<Mutex<Option<Vec<u8>>>> = unimplemented!("unsafe.Slice requires unsafe intrinsic support"); __go_unsafe_result });
 }
 
@@ -143,7 +152,11 @@ pub fn gostring(p: Arc<Mutex<Option<u8>>>) -> Arc<Mutex<Option<String>>> {
         return Arc::new(Mutex::new(Some("".to_string())));
     }
     let (mut s, mut b) = rawstring(Arc::new(Mutex::new(Some(l))));
-    memmove(Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))), Arc::new(Mutex::new(Some(Arc::as_ptr(&p) as usize))), Arc::new(Mutex::new(Some(l as usize))));
+    memmove(
+        Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&p) as usize))),
+        Arc::new(Mutex::new(Some(l as usize)))
+    );
     return { let __owned = s.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
 }
 

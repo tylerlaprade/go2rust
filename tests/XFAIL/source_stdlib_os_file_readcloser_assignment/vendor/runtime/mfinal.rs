@@ -436,7 +436,13 @@ pub fn runfinq() {
         let mut fb = (*finq.lock().unwrap().as_ref().unwrap()).clone();
         *finq.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
         if { let __nil_result = (*fb.lock().unwrap()).is_none(); __nil_result } {
-        gopark(Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<crate::runtime2::g>>>, __arg1: Arc<Mutex<Option<usize>>>| -> bool { finalizercommit(__arg0, __arg1) }) as Box<dyn FnMut(Arc<Mutex<Option<crate::runtime2::g>>>, Arc<Mutex<Option<usize>>>) -> bool + Send + Sync>))), Arc::new(Mutex::new(Some(Arc::as_ptr(&finlock.clone()) as usize))), Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_FINALIZER_WAIT as u8))))))), Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_SYSTEM_GOROUTINE as u8))))))), Arc::new(Mutex::new(Some(1))));
+        gopark(
+            Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<crate::runtime2::g>>>, __arg1: Arc<Mutex<Option<usize>>>| -> bool { finalizercommit(__arg0, __arg1) }) as Box<dyn FnMut(Arc<Mutex<Option<crate::runtime2::g>>>, Arc<Mutex<Option<usize>>>) -> bool + Send + Sync>))),
+            Arc::new(Mutex::new(Some(Arc::as_ptr(&finlock.clone()) as usize))),
+            Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_FINALIZER_WAIT as u8))))))),
+            Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_SYSTEM_GOROUTINE as u8))))))),
+            Arc::new(Mutex::new(Some(1)))
+        );
         continue
     }
         { let new_val = intArgRegs.lock().unwrap().as_ref().unwrap().clone(); *argRegs.lock().unwrap() = Some(new_val); };
@@ -538,7 +544,15 @@ pub fn runfinq() {
                 // convert to interface with methods
                 // this conversion is guaranteed to succeed - we checked in SetFinalizer
         (*fingStatus.lock().unwrap().as_mut().unwrap()).or(Arc::new(Mutex::new(Some(FING_RUNNING_FINALIZER as u32))));
-        reflectcall(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Arc::as_ptr(&(*f.as_ref().unwrap().borrow().as_ref().unwrap()).r#fn.clone()) as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = frame.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some((*framesz.lock().unwrap().as_ref().unwrap()) as u32))), Arc::new(Mutex::new(Some((*framesz.lock().unwrap().as_ref().unwrap()) as u32))), Arc::new(Mutex::new(Some((*framesz.lock().unwrap().as_ref().unwrap()) as u32))), regs.clone());
+        reflectcall(
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(Some(Arc::as_ptr(&(*f.as_ref().unwrap().borrow().as_ref().unwrap()).r#fn.clone()) as usize))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = frame.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some((*framesz.lock().unwrap().as_ref().unwrap()) as u32))),
+            Arc::new(Mutex::new(Some((*framesz.lock().unwrap().as_ref().unwrap()) as u32))),
+            Arc::new(Mutex::new(Some((*framesz.lock().unwrap().as_ref().unwrap()) as u32))),
+            regs.clone()
+        );
         (*fingStatus.lock().unwrap().as_mut().unwrap()).and(Arc::new(Mutex::new(Some(!FING_RUNNING_FINALIZER as u32))));
 
                 // Drop finalizer queue heap references
@@ -796,7 +810,11 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
         // debug.sbrk never frees memory, so no finalizers run
         // (and we don't have the data structures to record them).
         // find the containing object
-    let (mut base, mut span, _) = find_object(Arc::new(Mutex::new(Some((*{ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some(0 as usize))), Arc::new(Mutex::new(Some(0 as usize))));
+    let (mut base, mut span, _) = find_object(
+        Arc::new(Mutex::new(Some((*{ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()) as usize))),
+        Arc::new(Mutex::new(Some(0 as usize))),
+        Arc::new(Mutex::new(Some(0 as usize)))
+    );
 
     if { let __tmp_x = base; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
         if is_go_pointer_without_span(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) {
@@ -943,7 +961,13 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
     createfing();
 
     let e_closure_clone = e.clone(); let f_closure_clone = f.clone(); let fint_closure_clone = fint.clone(); let nret_closure_clone = nret.clone(); let ot_closure_clone = ot.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
-        if !addfinalizer(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = e_closure_clone.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new({ let __ptr = { let __ptr_value = f_closure_clone.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<funcval>(unimplemented!("unsafe.Pointer conversion to funcval")) } })), Arc::new(Mutex::new(Some({ let __arg_holder = nret_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), fint_closure_clone.clone(), ot_closure_clone.clone()) {
+        if !addfinalizer(
+            Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = e_closure_clone.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            Arc::new(Mutex::new({ let __ptr = { let __ptr_value = f_closure_clone.with_mut(|__ptr_value| __ptr_value.data.clone()); __ptr_value }.clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<funcval>(unimplemented!("unsafe.Pointer conversion to funcval")) } })),
+            Arc::new(Mutex::new(Some({ let __arg_holder = nret_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            fint_closure_clone.clone(),
+            ot_closure_clone.clone()
+        ) {
         throw(Arc::new(Mutex::new(Some("runtime.SetFinalizer: finalizer already set".to_string()))));
     }
     }) as Box<dyn FnMut() -> () + Send + Sync>))));

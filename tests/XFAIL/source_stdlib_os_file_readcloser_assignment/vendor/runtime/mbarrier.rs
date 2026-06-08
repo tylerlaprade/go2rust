@@ -60,7 +60,12 @@ pub fn typedmemmove(typ: Arc<Mutex<Option<internal_abi::r#type::Type>>>, dst: Ar
                 // This always copies a full value of type typ so it's safe
                 // to pass typ along as an optimization. See the comment on
                 // bulkBarrierPreWrite.
-        bulk_barrier_pre_write(Arc::new(Mutex::new(Some((*dst.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some((*src.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some({ let __selector_holder = (*typ.lock().unwrap().as_ref().unwrap()).ptr_bytes.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), typ.clone());
+        bulk_barrier_pre_write(
+            Arc::new(Mutex::new(Some((*dst.lock().unwrap().as_ref().unwrap()) as usize))),
+            Arc::new(Mutex::new(Some((*src.lock().unwrap().as_ref().unwrap()) as usize))),
+            Arc::new(Mutex::new(Some({ let __selector_holder = (*typ.lock().unwrap().as_ref().unwrap()).ptr_bytes.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            typ.clone()
+        );
     }
 
         // This always copies a full value of type typ so it's safe
@@ -95,7 +100,12 @@ pub fn typedmemclr(typ: Arc<Mutex<Option<internal_abi::r#type::Type>>>, ptr: Arc
                 // This always clears a whole value of type typ, so it's
                 // safe to pass a type here and apply the optimization.
                 // See the comment on bulkBarrierPreWrite.
-        bulk_barrier_pre_write(Arc::new(Mutex::new(Some((*ptr.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some(0 as usize))), Arc::new(Mutex::new(Some({ let __selector_holder = (*typ.lock().unwrap().as_ref().unwrap()).ptr_bytes.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), typ.clone());
+        bulk_barrier_pre_write(
+            Arc::new(Mutex::new(Some((*ptr.lock().unwrap().as_ref().unwrap()) as usize))),
+            Arc::new(Mutex::new(Some(0 as usize))),
+            Arc::new(Mutex::new(Some({ let __selector_holder = (*typ.lock().unwrap().as_ref().unwrap()).ptr_bytes.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            typ.clone()
+        );
     }
         // This always clears a whole value of type typ, so it's
         // safe to pass a type here and apply the optimization.

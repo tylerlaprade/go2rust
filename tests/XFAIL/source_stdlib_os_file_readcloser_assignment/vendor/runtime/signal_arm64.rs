@@ -73,7 +73,11 @@ impl crate::signal_darwin_arm64::sigctxt {
                 // function.
         { unimplemented!("unsafe.Pointer dereference assignment"); };
         let mut pc = Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.sigpc.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        if should_push_sigpanic(gp.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(self.lr() as usize)))) {
+        if should_push_sigpanic(
+            gp.clone(),
+            Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(self.lr() as usize)))
+        ) {
                 // Make it look the like faulting PC called sigpanic.
         self.set_lr(Arc::new(Mutex::new(Some((*pc.lock().unwrap().as_ref().unwrap()) as u64))));
     }

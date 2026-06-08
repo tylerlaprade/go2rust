@@ -950,7 +950,11 @@ impl crate::mheap::mspan {
         if { let __tmp_x = { let __v = (*length.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1024 as usize; __tmp_x > __tmp_y } {
         { let new_val = 1024 as usize; *length.lock().unwrap() = Some(new_val); };
     }
-        hexdump_words(Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*addr.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*length.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))), Arc::new(Mutex::new(None)));
+        hexdump_words(
+            Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*addr.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*length.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))),
+            Arc::new(Mutex::new(None))
+        );
     }
         (*mbits.lock().unwrap().as_mut().unwrap()).advance();
         (*abits.lock().unwrap().as_mut().unwrap()).advance();
@@ -1075,7 +1079,11 @@ impl sweepLocked {
         })));
         if { let __tmp_x = (*{ let __field = (*special.lock().unwrap().as_ref().unwrap()).kind.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __KIND_SPECIAL_FINALIZER as u8; __tmp_x == __tmp_y } || { let __tmp_x = (*{ let __field = (*special.lock().unwrap().as_ref().unwrap()).kind.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __KIND_SPECIAL_WEAK_HANDLE as u8; __tmp_x == __tmp_y } {
         (*siter.lock().unwrap().as_mut().unwrap()).unlink_and_next();
-        free_special(special.clone(), Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        free_special(
+            special.clone(),
+            Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap())))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        );
     } else {
                 // All other specials only apply when an object is freed,
                 // so just keep the special record.
@@ -1106,7 +1114,11 @@ impl sweepLocked {
             __tmp_x + __tmp_y
         })));
         (*siter.lock().unwrap().as_mut().unwrap()).unlink_and_next();
-        free_special(special.clone(), Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        free_special(
+            special.clone(),
+            Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap())))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        );
     }
     }
     } else {
@@ -1114,7 +1126,11 @@ impl sweepLocked {
         if { let __tmp_x = (*(*(*siter.lock().unwrap().as_ref().unwrap()).s.lock().unwrap().as_ref().unwrap()).kind.lock().unwrap().as_ref().unwrap()); let __tmp_y = __KIND_SPECIAL_REACHABLE as u8; __tmp_x == __tmp_y } {
         let mut special = (*siter.lock().unwrap().as_mut().unwrap()).unlink_and_next();
         { let new_val = true; *(*Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&special) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<specialReachable>(unimplemented!("unsafe.Pointer conversion to specialReachable")) } })).lock().unwrap().as_ref().unwrap()).reachable.lock().unwrap() = Some(new_val); };
-        free_special(special.clone(), Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        free_special(
+            special.clone(),
+            Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap())))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        );
     } else {
                 // keep special record
         (*siter.lock().unwrap().as_mut().unwrap()).next();

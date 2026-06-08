@@ -33,7 +33,11 @@ impl crate::r#mod::Time {
         let (mut year, mut month, mut day) = crate::r#mod::absDays::date(&(*crate::r#mod::absSeconds::days(&(*abs.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()));
         { let new_val = append_int(b.clone(), Arc::new(Mutex::new(Some(year))), Arc::new(Mutex::new(Some(4)))); b = new_val; };
         { let new_val = { let __append_target = b.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(('-' as i32) as u8); __append_target.clone() }; b = new_val; };
-        { let new_val = append_int(b.clone(), Arc::new(Mutex::new(Some((*{ let __v = (*month.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))), Arc::new(Mutex::new(Some(2)))); b = new_val; };
+        { let new_val = append_int(
+            b.clone(),
+            Arc::new(Mutex::new(Some((*{ let __v = (*month.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))),
+            Arc::new(Mutex::new(Some(2)))
+        ); b = new_val; };
         { let new_val = { let __append_target = b.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(('-' as i32) as u8); __append_target.clone() }; b = new_val; };
         { let new_val = append_int(b.clone(), Arc::new(Mutex::new(Some(day))), Arc::new(Mutex::new(Some(2)))); b = new_val; };
         { let new_val = { let __append_target = b.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(('T' as i32) as u8); __append_target.clone() }; b = new_val; };
@@ -46,7 +50,11 @@ impl crate::r#mod::Time {
         { let new_val = append_int(b.clone(), Arc::new(Mutex::new(Some(sec))), Arc::new(Mutex::new(Some(2)))); b = new_val; };
         if { let __v = (*nanos.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         let mut std = std_frac_second(Arc::new(Mutex::new(Some(35))), Arc::new(Mutex::new(Some(9))), Arc::new(Mutex::new(Some(('.' as i32) as i32))));
-        { let new_val = append_nano(b.clone(), Arc::new(Mutex::new(Some(self.nanosecond()))), Arc::new(Mutex::new(Some(std)))); b = new_val; };
+        { let new_val = append_nano(
+            b.clone(),
+            Arc::new(Mutex::new(Some(self.nanosecond()))),
+            Arc::new(Mutex::new(Some(std)))
+        ); b = new_val; };
     }
         if { let __tmp_x = offset; let __tmp_y = 0; __tmp_x == __tmp_y } {
         return { let __append_target = b.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(('Z' as i32) as u8); __append_target.clone() };
@@ -59,9 +67,17 @@ impl crate::r#mod::Time {
     } else {
         { let new_val = { let __append_target = b.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(('+' as i32) as u8); __append_target.clone() }; b = new_val; };
     }
-        { let new_val = append_int(b.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*zone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60; __tmp_x / __tmp_y }))), Arc::new(Mutex::new(Some(2)))); b = new_val; };
+        { let new_val = append_int(
+            b.clone(),
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*zone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60; __tmp_x / __tmp_y }))),
+            Arc::new(Mutex::new(Some(2)))
+        ); b = new_val; };
         { let new_val = { let __append_target = b.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((':' as i32) as u8); __append_target.clone() }; b = new_val; };
-        { let new_val = append_int(b.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*zone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60; __tmp_x % __tmp_y }))), Arc::new(Mutex::new(Some(2)))); b = new_val; };
+        { let new_val = append_int(
+            b.clone(),
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*zone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60; __tmp_x % __tmp_y }))),
+            Arc::new(Mutex::new(Some(2)))
+        ); b = new_val; };
         return b.clone();
     }
 
@@ -145,12 +161,36 @@ pub fn parse_r_f_c3339<bytes: GoByteSequence + Clone + Send + Sync + 'static>(mu
     if { let __tmp_x = ((*s.lock().unwrap().as_ref().unwrap()).go_len() as i32); let __tmp_y = 19; __tmp_x < __tmp_y } {
         return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), false);
     }
-    let mut year = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> = { let mut __f_guard = parseUint.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).go_slice_to_string((0) as usize, Some((4) as usize))))), Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(9999)))) };
-    let mut month = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> = { let mut __f_guard = parseUint.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).go_slice_to_string((5) as usize, Some((7) as usize))))), Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(12)))) };
-    let mut day = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> = { let mut __f_guard = parseUint.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).go_slice_to_string((8) as usize, Some((10) as usize))))), Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some(days_in(Arc::new(Mutex::new(Some(crate::r#mod::Month(Arc::new(Mutex::new(Some(month as i32))))))), Arc::new(Mutex::new(Some(year)))))))) };
-    let mut hour = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> = { let mut __f_guard = parseUint.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).go_slice_to_string((11) as usize, Some((13) as usize))))), Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(23)))) };
-    let mut min = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> = { let mut __f_guard = parseUint.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).go_slice_to_string((14) as usize, Some((16) as usize))))), Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(59)))) };
-    let mut sec = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> = { let mut __f_guard = parseUint.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).go_slice_to_string((17) as usize, Some((19) as usize))))), Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(59)))) };
+    let mut year = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> = { let mut __f_guard = parseUint.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(
+        Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).go_slice_to_string((0) as usize, Some((4) as usize))))),
+        Arc::new(Mutex::new(Some(0))),
+        Arc::new(Mutex::new(Some(9999)))
+    ) };
+    let mut month = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> = { let mut __f_guard = parseUint.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(
+        Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).go_slice_to_string((5) as usize, Some((7) as usize))))),
+        Arc::new(Mutex::new(Some(1))),
+        Arc::new(Mutex::new(Some(12)))
+    ) };
+    let mut day = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> = { let mut __f_guard = parseUint.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(
+        Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).go_slice_to_string((8) as usize, Some((10) as usize))))),
+        Arc::new(Mutex::new(Some(1))),
+        Arc::new(Mutex::new(Some(days_in(Arc::new(Mutex::new(Some(crate::r#mod::Month(Arc::new(Mutex::new(Some(month as i32))))))), Arc::new(Mutex::new(Some(year)))))))
+    ) };
+    let mut hour = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> = { let mut __f_guard = parseUint.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(
+        Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).go_slice_to_string((11) as usize, Some((13) as usize))))),
+        Arc::new(Mutex::new(Some(0))),
+        Arc::new(Mutex::new(Some(23)))
+    ) };
+    let mut min = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> = { let mut __f_guard = parseUint.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(
+        Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).go_slice_to_string((14) as usize, Some((16) as usize))))),
+        Arc::new(Mutex::new(Some(0))),
+        Arc::new(Mutex::new(Some(59)))
+    ) };
+    let mut sec = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> = { let mut __f_guard = parseUint.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(
+        Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).go_slice_to_string((17) as usize, Some((19) as usize))))),
+        Arc::new(Mutex::new(Some(0))),
+        Arc::new(Mutex::new(Some(59)))
+    ) };
     if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } || !({ let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).go_byte((4) as usize); let __tmp_y = ('-' as i32) as u8; __tmp_x == __tmp_y } && { let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).go_byte((7) as usize); let __tmp_y = ('-' as i32) as u8; __tmp_x == __tmp_y } && { let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).go_byte((10) as usize); let __tmp_y = ('T' as i32) as u8; __tmp_x == __tmp_y } && { let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).go_byte((13) as usize); let __tmp_y = (':' as i32) as u8; __tmp_x == __tmp_y } && { let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).go_byte((16) as usize); let __tmp_y = (':' as i32) as u8; __tmp_x == __tmp_y }) {
         return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), false);
     }
@@ -168,13 +208,30 @@ pub fn parse_r_f_c3339<bytes: GoByteSequence + Clone + Send + Sync + 'static>(mu
     }
 
         // Parse the time zone.
-    let mut t = date(Arc::new(Mutex::new(Some(year))), Arc::new(Mutex::new(Some(crate::r#mod::Month(Arc::new(Mutex::new(Some(month as i32))))))), Arc::new(Mutex::new(Some(day))), Arc::new(Mutex::new(Some(hour))), Arc::new(Mutex::new(Some(min))), Arc::new(Mutex::new(Some(sec))), Arc::new(Mutex::new(Some({ let __arg_holder = nsec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), { let __arg_holder = UTC.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
+    let mut t = date(
+        Arc::new(Mutex::new(Some(year))),
+        Arc::new(Mutex::new(Some(crate::r#mod::Month(Arc::new(Mutex::new(Some(month as i32))))))),
+        Arc::new(Mutex::new(Some(day))),
+        Arc::new(Mutex::new(Some(hour))),
+        Arc::new(Mutex::new(Some(min))),
+        Arc::new(Mutex::new(Some(sec))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = nsec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        { let __arg_holder = UTC.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }
+    );
     if { let __tmp_x = ((*s.lock().unwrap().as_ref().unwrap()).go_len() as i32); let __tmp_y = 1; __tmp_x != __tmp_y } || { let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).go_byte((0) as usize); let __tmp_y = ('Z' as i32) as u8; __tmp_x != __tmp_y } {
         if { let __tmp_x = ((*s.lock().unwrap().as_ref().unwrap()).go_len() as i32); let __tmp_y = 6; __tmp_x != __tmp_y } {
         return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), false);
     }
-        let mut hr = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> = { let mut __f_guard = parseUint.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).go_slice_to_string((1) as usize, Some((3) as usize))))), Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(23)))) };
-        let mut mm = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> = { let mut __f_guard = parseUint.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).go_slice_to_string((4) as usize, Some((6) as usize))))), Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(59)))) };
+        let mut hr = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> = { let mut __f_guard = parseUint.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(
+            Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).go_slice_to_string((1) as usize, Some((3) as usize))))),
+            Arc::new(Mutex::new(Some(0))),
+            Arc::new(Mutex::new(Some(23)))
+        ) };
+        let mut mm = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> = { let mut __f_guard = parseUint.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<bytes>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> (i32) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(
+            Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).go_slice_to_string((4) as usize, Some((6) as usize))))),
+            Arc::new(Mutex::new(Some(0))),
+            Arc::new(Mutex::new(Some(59)))
+        ) };
         if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } || !(({ let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).go_byte((0) as usize); let __tmp_y = ('-' as i32) as u8; __tmp_x == __tmp_y } || { let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).go_byte((0) as usize); let __tmp_y = ('+' as i32) as u8; __tmp_x == __tmp_y }) && { let __tmp_x = (*s.lock().unwrap().as_ref().unwrap()).go_byte((3) as usize); let __tmp_y = (':' as i32) as u8; __tmp_x == __tmp_y }) {
         return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), false);
     }

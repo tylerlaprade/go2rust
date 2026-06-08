@@ -3532,7 +3532,11 @@ impl UncommonType {
         return Arc::new(Mutex::new(None));
     }
         Arc::new(Mutex::new(Some({
-            let mut __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(Arc::new(Mutex::new(Some(self as *const _ as usize))), Arc::new(Mutex::new(Some({ let __selector_holder = self.moff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))), Arc::new(Mutex::new(Some("t.mcount > 0".to_string())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Method; 65536]>(unimplemented!("unsafe.Pointer conversion to [Method; 65536]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+            let mut __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(
+                Arc::new(Mutex::new(Some(self as *const _ as usize))),
+                Arc::new(Mutex::new(Some({ let __selector_holder = self.moff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))),
+                Arc::new(Mutex::new(Some("t.mcount > 0".to_string())))
+            ).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Method; 65536]>(unimplemented!("unsafe.Pointer conversion to [Method; 65536]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
             let __low = 0;
             let __high = (*self.mcount.clone().lock().unwrap().as_ref().unwrap()) as usize;
             let __max = (*self.mcount.clone().lock().unwrap().as_ref().unwrap()) as usize;
@@ -3548,7 +3552,11 @@ impl UncommonType {
         return Arc::new(Mutex::new(None));
     }
         Arc::new(Mutex::new(Some({
-            let mut __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(Arc::new(Mutex::new(Some(self as *const _ as usize))), Arc::new(Mutex::new(Some({ let __selector_holder = self.moff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))), Arc::new(Mutex::new(Some("t.xcount > 0".to_string())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Method; 65536]>(unimplemented!("unsafe.Pointer conversion to [Method; 65536]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+            let mut __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(
+                Arc::new(Mutex::new(Some(self as *const _ as usize))),
+                Arc::new(Mutex::new(Some({ let __selector_holder = self.moff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))),
+                Arc::new(Mutex::new(Some("t.xcount > 0".to_string())))
+            ).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Method; 65536]>(unimplemented!("unsafe.Pointer conversion to [Method; 65536]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
             let __low = 0;
             let __high = (*self.xcount.clone().lock().unwrap().as_ref().unwrap()) as usize;
             let __max = (*self.xcount.clone().lock().unwrap().as_ref().unwrap()) as usize;
@@ -3765,7 +3773,11 @@ impl FuncType {
         return Arc::new(Mutex::new(None));
     }
         return Arc::new(Mutex::new(Some({
-            let mut __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(Arc::new(Mutex::new(Some(self as *const _ as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = uadd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("t.inCount > 0".to_string())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Arc<Mutex<Option<Type>>>; 65536]>(unimplemented!("unsafe.Pointer conversion to [Arc<Mutex<Option<Type>>>; 65536]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+            let mut __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(
+                Arc::new(Mutex::new(Some(self as *const _ as usize))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = uadd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some("t.inCount > 0".to_string())))
+            ).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Arc<Mutex<Option<Type>>>; 65536]>(unimplemented!("unsafe.Pointer conversion to [Arc<Mutex<Option<Type>>>; 65536]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
             let __low = 0;
             let __high = (*self.in_count.clone().lock().unwrap().as_ref().unwrap()) as usize;
             let __max = (*self.in_count.clone().lock().unwrap().as_ref().unwrap()) as usize;
@@ -3790,7 +3802,11 @@ impl FuncType {
         { let __rhs = (*Arc::new(Mutex::new(Some(std::mem::size_of::<UncommonType>()))).lock().unwrap().as_ref().unwrap()) as usize; let mut guard = uadd.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
         return Arc::new(Mutex::new(Some({
-            let mut __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(Arc::new(Mutex::new(Some(self as *const _ as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = uadd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("outCount > 0".to_string())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Arc<Mutex<Option<Type>>>; 131072]>(unimplemented!("unsafe.Pointer conversion to [Arc<Mutex<Option<Type>>>; 131072]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+            let mut __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add_checked(
+                Arc::new(Mutex::new(Some(self as *const _ as usize))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = uadd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some("outCount > 0".to_string())))
+            ).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[Arc<Mutex<Option<Type>>>; 131072]>(unimplemented!("unsafe.Pointer conversion to [Arc<Mutex<Option<Type>>>; 131072]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
             let __low = (*self.in_count.clone().lock().unwrap().as_ref().unwrap()) as usize;
             let __high = ({ let __tmp_x = (*self.in_count.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*outCount.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize;
             let __max = ({ let __tmp_x = (*self.in_count.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*outCount.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize;
@@ -3992,13 +4008,21 @@ impl Name {
     /// DataChecked does pointer arithmetic on n's Bytes, and that arithmetic is asserted to
     /// be safe for the reason in whySafe (which can appear in a backtrace, etc.)
     pub fn data_checked(&self, off: Arc<Mutex<Option<i32>>>, whySafe: Arc<Mutex<Option<String>>>) -> GoPtr<u8> {
-        GoPtr::raw({ let __ptr = add_checked(Arc::new(Mutex::new(Some(self.bytes.addr()))), Arc::new(Mutex::new(Some((*off.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = whySafe.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) })
+        GoPtr::raw({ let __ptr = add_checked(
+            Arc::new(Mutex::new(Some(self.bytes.addr()))),
+            Arc::new(Mutex::new(Some((*off.lock().unwrap().as_ref().unwrap()) as usize))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = whySafe.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) })
     }
 
     /// Data does pointer arithmetic on n's Bytes, and that arithmetic is asserted to
     /// be safe because the runtime made the call (other packages use DataChecked)
     pub fn data(&self, off: Arc<Mutex<Option<i32>>>) -> GoPtr<u8> {
-        GoPtr::raw({ let __ptr = add_checked(Arc::new(Mutex::new(Some(self.bytes.addr()))), Arc::new(Mutex::new(Some((*off.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some("the runtime doesn't need to give you a reason".to_string())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) })
+        GoPtr::raw({ let __ptr = add_checked(
+            Arc::new(Mutex::new(Some(self.bytes.addr()))),
+            Arc::new(Mutex::new(Some((*off.lock().unwrap().as_ref().unwrap()) as usize))),
+            Arc::new(Mutex::new(Some("the runtime doesn't need to give you a reason".to_string())))
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) })
     }
 
     /// IsExported returns "is n exported?"

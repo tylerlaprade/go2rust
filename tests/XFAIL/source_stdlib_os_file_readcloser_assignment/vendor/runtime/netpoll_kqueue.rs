@@ -113,7 +113,14 @@ pub fn netpoll(delay: Arc<Mutex<Option<i64>>>) -> (Arc<Mutex<Option<crate::proc:
         // Darwin returns EINVAL if the sleep time is too long.
     let mut events: Arc<Mutex<Option<[keventt; 64]>>> = Arc::new(Mutex::new(Some(std::array::from_fn(|_| Default::default()))));
     'retry: loop {
-        let mut n = kevent(Arc::new(Mutex::new(Some({ let __arg_holder = kq.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), GoPtr::nil(), Arc::new(Mutex::new(Some(0 as i32))), GoPtr::array_elem(GoArrayElemPtr::new(events.clone(), (0) as usize)), Arc::new(Mutex::new(Some((*events.lock().unwrap().as_ref().unwrap()).len() as i32))), tp.clone());
+        let mut n = kevent(
+            Arc::new(Mutex::new(Some({ let __arg_holder = kq.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            GoPtr::nil(),
+            Arc::new(Mutex::new(Some(0 as i32))),
+            GoPtr::array_elem(GoArrayElemPtr::new(events.clone(), (0) as usize)),
+            Arc::new(Mutex::new(Some((*events.lock().unwrap().as_ref().unwrap()).len() as i32))),
+            tp.clone()
+        );
         if { let __tmp_x = n; let __tmp_y = 0 as i32; __tmp_x < __tmp_y } {
                 // Ignore the ETIMEDOUT error for now, but try to dive deep and
                 // figure out what really happened with n == ETIMEOUT,

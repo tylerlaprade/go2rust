@@ -475,7 +475,11 @@ impl lfstack {
 /// lfstack.push. This only needs to be called when node is allocated.
 pub fn lfnode_validate(node: Arc<Mutex<Option<lfnode>>>) {
     {
-        let (mut base, _, _) = find_object(Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&node) as usize))).lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some(0 as usize))), Arc::new(Mutex::new(Some(0 as usize))));;
+        let (mut base, _, _) = find_object(
+            Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&node) as usize))).lock().unwrap().as_ref().unwrap()) as usize))),
+            Arc::new(Mutex::new(Some(0 as usize))),
+            Arc::new(Mutex::new(Some(0 as usize)))
+        );;
         if { let __tmp_x = base; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
             throw(Arc::new(Mutex::new(Some("lfstack node allocated from the heap".to_string()))));;
         }

@@ -676,7 +676,11 @@ pub fn trace_advance(stopTrace: Arc<Mutex<Option<bool>>>) {
         while { let __nil_target = (*trace.lock().unwrap().as_ref().unwrap()).empty.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
         let mut buf_local = (*trace.lock().unwrap().as_ref().unwrap()).empty.clone();
         { let new_val = (*(*buf_local.lock().unwrap().as_mut().unwrap()).trace_buf_header.lock().unwrap().as_mut().unwrap()).link.clone(); (*trace.lock().unwrap().as_mut().unwrap()).empty = new_val; };
-        sys_free(Arc::new(Mutex::new(Some(Arc::as_ptr(&buf_local) as usize))), Arc::new(Mutex::new(Some(std::mem::size_of::<crate::tracebuf::traceBuf>()))), (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone());
+        sys_free(
+            Arc::new(Mutex::new(Some(Arc::as_ptr(&buf_local) as usize))),
+            Arc::new(Mutex::new(Some(std::mem::size_of::<crate::tracebuf::traceBuf>()))),
+            (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone()
+        );
     }
         { let new_val = false; *(*trace.lock().unwrap().as_ref().unwrap()).header_written.lock().unwrap() = Some(new_val); };
         (*(*trace.lock().unwrap().as_ref().unwrap()).shutdown.lock().unwrap().as_ref().unwrap()).store(Arc::new(Mutex::new(Some(false))));

@@ -2699,7 +2699,11 @@ pub fn gc_mark_termination(stw: Arc<Mutex<Option<worldStop>>>) {
             let __go_print_arg_0 = format!("{}", "gc ".to_string());
             let __go_print_arg_1 = format!("{}", (*{ let __field = (*memstats.lock().unwrap().as_ref().unwrap()).numgc.clone(); __field }.lock().unwrap().as_ref().unwrap()));
             let __go_print_arg_2 = format!("{}", " @".to_string());
-            let __go_print_arg_3 = format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8((*itoa_div(Arc::new(Mutex::new(Some({ let __seq_holder = sbuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).t_sweep_term.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*runtimeInitTime.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1e6 as u64; __tmp_x / __tmp_y }))), Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_3 = format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8((*itoa_div(
+                Arc::new(Mutex::new(Some({ let __seq_holder = sbuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))),
+                Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).t_sweep_term.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*runtimeInitTime.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1e6 as u64; __tmp_x / __tmp_y }))),
+                Arc::new(Mutex::new(Some(3)))
+            ).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap()));
             let __go_print_arg_4 = format!("{}", "s ".to_string());
             let __go_print_arg_5 = format!("{}", { let __v = (*util.lock().unwrap().as_ref().unwrap()).clone(); __v });
             let __go_print_arg_6 = format!("{}", "%: ".to_string());
@@ -2921,7 +2925,8 @@ pub fn gc_bg_mark_worker(ready: GoChannel<AnonymousStruct12>) {
     loop {
                 // Go to sleep until woken by
                 // gcController.findRunnableGCWorker.
-        gopark(Arc::new(Mutex::new(Some(Box::new(move |g: Arc<Mutex<Option<g>>>, nodep: Arc<Mutex<Option<usize>>>| -> bool {
+        gopark(
+            Arc::new(Mutex::new(Some(Box::new(move |g: Arc<Mutex<Option<g>>>, nodep: Arc<Mutex<Option<usize>>>| -> bool {
         let mut node = Arc::new(Mutex::new({ let __ptr = nodep.clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<gcBgMarkWorkerNode>(unimplemented!("unsafe.Pointer conversion to gcBgMarkWorkerNode")) } }));
         {
         let mut mp: GoPtr<crate::runtime2::m> = crate::runtime2::muintptr::ptr(&(*(*node.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()));;
@@ -2931,7 +2936,12 @@ pub fn gc_bg_mark_worker(ready: GoChannel<AnonymousStruct12>) {
     }
         (*gcBgMarkWorkerPool.lock().unwrap().as_ref().unwrap()).push((*node.lock().unwrap().as_ref().unwrap()).node.clone());
         true
-    }) as Box<dyn FnMut(Arc<Mutex<Option<g>>>, Arc<Mutex<Option<usize>>>) -> bool + Send + Sync>))), Arc::new(Mutex::new(Some(Arc::as_ptr(&node) as usize))), Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_G_C_WORKER_IDLE as u8))))))), Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_SYSTEM_GOROUTINE as u8))))))), Arc::new(Mutex::new(Some(0))));
+    }) as Box<dyn FnMut(Arc<Mutex<Option<g>>>, Arc<Mutex<Option<usize>>>) -> bool + Send + Sync>))),
+            Arc::new(Mutex::new(Some(Arc::as_ptr(&node) as usize))),
+            Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_G_C_WORKER_IDLE as u8))))))),
+            Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_SYSTEM_GOROUTINE as u8))))))),
+            Arc::new(Mutex::new(Some(0)))
+        );
 
                 // The worker G is no longer running; release
                 // the M.
@@ -3443,7 +3453,11 @@ pub fn itoa_div(buf_local: Arc<Mutex<Option<Vec<u8>>>>, mut val: Arc<Mutex<Optio
 pub fn fmt_n_s_as_m_s(buf_local: Arc<Mutex<Option<Vec<u8>>>>, ns: Arc<Mutex<Option<u64>>>) -> Arc<Mutex<Option<Vec<u8>>>> {
     if { let __tmp_x = { let __v = (*ns.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10e6 as u64; __tmp_x >= __tmp_y } {
                 // Format as whole milliseconds.
-        return itoa_div(buf_local.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*ns.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1e6 as u64; __tmp_x / __tmp_y }))), Arc::new(Mutex::new(Some(0))));
+        return itoa_div(
+            buf_local.clone(),
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*ns.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1e6 as u64; __tmp_x / __tmp_y }))),
+            Arc::new(Mutex::new(Some(0)))
+        );
     }
 
         // Format as whole milliseconds.

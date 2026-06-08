@@ -796,11 +796,19 @@ impl spanSet {
         if { let __tmp_x = { let __v = (*newCap.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
         { let new_val = SPAN_SET_INIT_SPINE_CAP as usize; *newCap.lock().unwrap() = Some(new_val); };
     }
-        let mut newSpine = persistentalloc(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*newCap.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y }))), Arc::new(Mutex::new(Some({ let __selector_holder = internal_cpu::CacheLineSize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), (*memstats.lock().unwrap().as_ref().unwrap()).gc_misc_sys.clone());
+        let mut newSpine = persistentalloc(
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*newCap.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y }))),
+            Arc::new(Mutex::new(Some({ let __selector_holder = internal_cpu::CacheLineSize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            (*memstats.lock().unwrap().as_ref().unwrap()).gc_misc_sys.clone()
+        );
         if { let __tmp_x = (*self.spine_cap.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
                 // Blocks are allocated off-heap, so
                 // no write barriers.
-        memmove(Arc::new(Mutex::new(Some({ let __arg_holder = newSpine.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*spine.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __tmp_x = (*self.spine_cap.lock().unwrap().as_ref().unwrap()); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y }))));
+        memmove(
+            Arc::new(Mutex::new(Some({ let __arg_holder = newSpine.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __selector_holder = (*spine.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = (*self.spine_cap.lock().unwrap().as_ref().unwrap()); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y })))
+        );
     }
                 // Blocks are allocated off-heap, so
                 // no write barriers.
@@ -1082,7 +1090,11 @@ impl spanSetBlockAlloc {
             return s.clone();;
         }
     }
-        GoPtr::raw({ let __ptr = persistentalloc(Arc::new(Mutex::new(Some(std::mem::size_of::<spanSetBlock>()))), Arc::new(Mutex::new(Some({ let __selector_holder = internal_cpu::CacheLineSize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), (*memstats.lock().unwrap().as_ref().unwrap()).gc_misc_sys.clone()).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) })
+        GoPtr::raw({ let __ptr = persistentalloc(
+            Arc::new(Mutex::new(Some(std::mem::size_of::<spanSetBlock>()))),
+            Arc::new(Mutex::new(Some({ let __selector_holder = internal_cpu::CacheLineSize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            (*memstats.lock().unwrap().as_ref().unwrap()).gc_misc_sys.clone()
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) })
     }
 
     /// free returns a spanSetBlock back to the pool.

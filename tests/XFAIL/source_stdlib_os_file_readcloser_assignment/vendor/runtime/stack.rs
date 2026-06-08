@@ -1094,7 +1094,12 @@ pub fn adjustframe(frame: Arc<Mutex<Option<stkframe>>>, adjinfo: Arc<Mutex<Optio
         // Adjust local variables if stack frame has been allocated.
     if { let __tmp_x = (*{ let __field = (*locals.lock().unwrap().as_ref().unwrap()).n.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x > __tmp_y } {
         let mut size = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*locals.lock().unwrap().as_ref().unwrap()).n.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y })));
-        adjustpointers(Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*frame.lock().unwrap().as_ref().unwrap()).varp.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))), locals.clone(), adjinfo.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        adjustpointers(
+            Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*frame.lock().unwrap().as_ref().unwrap()).varp.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))),
+            locals.clone(),
+            adjinfo.clone(),
+            Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        );
     }
 
         // Adjust arguments.
@@ -1105,7 +1110,12 @@ pub fn adjustframe(frame: Arc<Mutex<Option<stkframe>>>, adjinfo: Arc<Mutex<Optio
             eprint!("{}", __go_print_arg_0)
         };
     }
-        adjustpointers(Arc::new(Mutex::new(Some({ let __selector_holder = (*frame.lock().unwrap().as_ref().unwrap()).argp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), args.clone(), adjinfo.clone(), Arc::new(Mutex::new(Some(funcInfo { _func: Default::default(), datap: Default::default() }))));
+        adjustpointers(
+            Arc::new(Mutex::new(Some({ let __selector_holder = (*frame.lock().unwrap().as_ref().unwrap()).argp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            args.clone(),
+            adjinfo.clone(),
+            Arc::new(Mutex::new(Some(funcInfo { _func: Default::default(), datap: Default::default() })))
+        );
     }
 
         // Adjust pointers in all stack objects (whether they are live or not).
@@ -1195,7 +1205,11 @@ pub fn adjustctxt(gp: GoPtr<crate::runtime2::g>, adjinfo: Arc<Mutex<Option<adjus
             };
             __tmp_x == __tmp_y
         } {
-        memmove(Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.sched.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).bp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some((*oldfp.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))));
+        memmove(
+            Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.sched.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).bp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            Arc::new(Mutex::new(Some((*oldfp.lock().unwrap().as_ref().unwrap())))),
+            Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize)))
+        );
         adjustpointer(adjinfo.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.sched.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).bp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
     }
     }
@@ -1313,7 +1327,11 @@ pub fn syncadjustsudogs(gp: GoPtr<crate::runtime2::g>, used: Arc<Mutex<Option<us
         let mut oldBot = Arc::new(Mutex::new(Some({ let __tmp_x = (*(*(*adjinfo.lock().unwrap().as_ref().unwrap()).old.lock().unwrap().as_ref().unwrap()).hi.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*used.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y })));
         let mut newBot = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*oldBot.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*adjinfo.lock().unwrap().as_ref().unwrap()).delta.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })));
         { let new_val = { let __tmp_x = (*{ let __field = (*adjinfo.lock().unwrap().as_ref().unwrap()).sghi.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*oldBot.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }; *sgsize.lock().unwrap() = Some(new_val); };
-        memmove(Arc::new(Mutex::new(Some((*newBot.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some((*oldBot.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some({ let __arg_holder = sgsize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        memmove(
+            Arc::new(Mutex::new(Some((*newBot.lock().unwrap().as_ref().unwrap())))),
+            Arc::new(Mutex::new(Some((*oldBot.lock().unwrap().as_ref().unwrap())))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = sgsize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        );
     }
 
         // Unlock channels.
@@ -1445,7 +1463,11 @@ pub fn copystack(gp: GoPtr<crate::runtime2::g>, newsize: Arc<Mutex<Option<usize>
         // Synchronize with channel ops and copy the part of
         // the stack they may interact with.
         // Copy the stack (or the rest of it) to the new location
-    memmove(Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*new.lock().unwrap().as_ref().unwrap()).hi.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*ncopy.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))), Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*old.lock().unwrap().as_ref().unwrap()).hi.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*ncopy.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))), Arc::new(Mutex::new(Some({ let __arg_holder = ncopy.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    memmove(
+        Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*new.lock().unwrap().as_ref().unwrap()).hi.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*ncopy.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))),
+        Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*old.lock().unwrap().as_ref().unwrap()).hi.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*ncopy.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = ncopy.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+    );
 
         // Adjust remaining structures that have pointers into stacks.
         // We have to do most of these before we traceback the new

@@ -532,7 +532,11 @@ impl crate::mheap::mheap {
             (*memstats.lock().unwrap().as_ref().unwrap()).gc_misc_sys.clone(),
         ).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         if r.is_nil() {
-        r = GoPtr::raw({ let __ptr = persistentalloc(Arc::new(Mutex::new(Some(std::mem::size_of::<crate::mheap::heapArena>()))), Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))), (*memstats.lock().unwrap().as_ref().unwrap()).gc_misc_sys.clone()).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
+        r = GoPtr::raw({ let __ptr = persistentalloc(
+            Arc::new(Mutex::new(Some(std::mem::size_of::<crate::mheap::heapArena>()))),
+            Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))),
+            (*memstats.lock().unwrap().as_ref().unwrap()).gc_misc_sys.clone()
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         if r.is_nil() {
         throw(Arc::new(Mutex::new(Some("out of memory allocating heap arena metadata".to_string()))));
     }
@@ -746,8 +750,16 @@ impl linearAlloc {
         if { let __tmp_x = pEnd; let __tmp_y = (*self.mapped.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
             if (*self.map_memory.clone().lock().unwrap().as_ref().unwrap()) {
         let mut n = Arc::new(Mutex::new(Some({ let __tmp_x = pEnd; let __tmp_y = (*self.mapped.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })));
-        sys_map(Arc::new(Mutex::new(Some({ let __selector_holder = self.mapped.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), sysStat.clone());
-        sys_used(Arc::new(Mutex::new(Some({ let __selector_holder = self.mapped.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        sys_map(
+            Arc::new(Mutex::new(Some({ let __selector_holder = self.mapped.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            sysStat.clone()
+        );
+        sys_used(
+            Arc::new(Mutex::new(Some({ let __selector_holder = self.mapped.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        );
     };
             { let new_val = pEnd; *self.mapped.lock().unwrap() = Some(new_val); };;
         }
@@ -1263,7 +1275,12 @@ pub fn mallocgc_small_scan_no_header(mut size: Arc<Mutex<Option<usize>>>, typ: G
                 // on 64-bit platforms.
         { let __target = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.scan_alloc.clone()); __ptr_value }.clone(); let __rhs = 8 as usize; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } else {
-        { let __target = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.scan_alloc.clone()); __ptr_value }.clone(); let __rhs = heap_set_type_no_header(Arc::new(Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), typ.clone(), span.clone()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __target = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.scan_alloc.clone()); __ptr_value }.clone(); let __rhs = heap_set_type_no_header(
+            Arc::new(Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap()) as usize))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            typ.clone(),
+            span.clone()
+        ); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
         // initHeapBits already set the pointer bits for the 8-byte sizeclass
         // on 64-bit platforms.
@@ -1364,7 +1381,13 @@ pub fn mallocgc_small_scan_header(mut size: Arc<Mutex<Option<usize>>>, typ: GoPt
     }
     let mut header: GoPtr<GoPtr<internal_abi::r#type::Type>> = GoPtr::raw({ let __ptr = x.clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
     { let new_val = add(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(MALLOC_HEADER_SIZE as usize)))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *x.lock().unwrap() = __moved_val; };
-    { let __target = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.scan_alloc.clone()); __ptr_value }.clone(); let __rhs = heap_set_type_small_header(Arc::new(Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MALLOC_HEADER_SIZE as usize; __tmp_x - __tmp_y }))), typ.clone(), header.clone(), span.clone()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+    { let __target = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.scan_alloc.clone()); __ptr_value }.clone(); let __rhs = heap_set_type_small_header(
+        Arc::new(Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap()) as usize))),
+        Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MALLOC_HEADER_SIZE as usize; __tmp_x - __tmp_y }))),
+        typ.clone(),
+        header.clone(),
+        span.clone()
+    ); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
 
         // Ensure that the stores above that initialize x to
         // type-safe memory and set the heap bits occur before
@@ -1505,7 +1528,12 @@ pub fn mallocgc_large(mut size: Arc<Mutex<Option<usize>>>, typ: GoPtr<internal_a
             memclr_no_heap_pointers_chunked(Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));;
             let mut mp = acquirem();;
             if !{ let __v = (*noscan.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        { let __target = { let __ptr = get_m_cache(mp.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().scan_alloc.clone() }.clone(); let __rhs = heap_set_type_large(Arc::new(Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), typ.clone(), span.clone()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __target = { let __ptr = get_m_cache(mp.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().scan_alloc.clone() }.clone(); let __rhs = heap_set_type_large(
+            Arc::new(Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap()) as usize))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            typ.clone(),
+            span.clone()
+        ); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     };
             publication_barrier();;
             releasem(GoPtr::local(mp.clone()));;

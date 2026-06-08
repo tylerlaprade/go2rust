@@ -326,7 +326,11 @@ pub fn chansend(c: Arc<Mutex<Option<hchan>>>, ep: Arc<Mutex<Option<usize>>>, blo
     }
 
     if RACEENABLED {
-        racereadpc({ let __recv = c.clone(); let __recv_ptr: *mut hchan = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut hchan }; let __result = unsafe { &mut *__recv_ptr }.raceaddr(); __result }, Arc::new(Mutex::new(Some({ let __arg_holder = callerpc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i_internal(Arc::new(Mutex::new(Some(Box::new(chansend.clone()) as Box<dyn Any + Send + Sync>))))))));
+        racereadpc(
+            { let __recv = c.clone(); let __recv_ptr: *mut hchan = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut hchan }; let __result = unsafe { &mut *__recv_ptr }.raceaddr(); __result },
+            Arc::new(Mutex::new(Some({ let __arg_holder = callerpc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i_internal(Arc::new(Mutex::new(Some(Box::new(chansend.clone()) as Box<dyn Any + Send + Sync>)))))))
+        );
     }
 
     if (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).synctest.clone(); __field }.lock().unwrap().as_ref().unwrap()) && { let __nil_target = (*getg().lock().unwrap().as_ref().unwrap()).sync_group.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
@@ -368,9 +372,15 @@ pub fn chansend(c: Arc<Mutex<Option<hchan>>>, ep: Arc<Mutex<Option<usize>>>, blo
     {
         let mut sg = (*(*c.lock().unwrap().as_ref().unwrap()).recvq.lock().unwrap().as_mut().unwrap()).dequeue();;
         if { let __nil_result = (*sg.lock().unwrap()).is_some(); __nil_result } {
-            let c_closure_clone = c.clone(); send(c_closure_clone.clone(), GoPtr::local(sg.clone()), Arc::new(Mutex::new(Some({ let __arg_holder = ep.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let c_closure_clone_closure_clone = c_closure_clone.clone(); Box::new(move || {
+            let c_closure_clone = c.clone(); send(
+                c_closure_clone.clone(),
+                GoPtr::local(sg.clone()),
+                Arc::new(Mutex::new(Some({ let __arg_holder = ep.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some({ let c_closure_clone_closure_clone = c_closure_clone.clone(); Box::new(move || {
         unlock(GoPtr::local((*c_closure_clone_closure_clone.lock().unwrap().as_ref().unwrap()).lock.clone()));
-    }) as Box<dyn FnMut() -> () + Send + Sync> }))), Arc::new(Mutex::new(Some(3))));;
+    }) as Box<dyn FnMut() -> () + Send + Sync> }))),
+                Arc::new(Mutex::new(Some(3)))
+            );;
             return true;;
         }
     }
@@ -427,7 +437,13 @@ pub fn chansend(c: Arc<Mutex<Option<hchan>>>, ep: Arc<Mutex<Option<usize>>>, blo
     if (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).synctest.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
         { let new_val = crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_SYNCTEST_CHAN_SEND as u8)))); *reason.lock().unwrap() = Some(new_val); };
     }
-    gopark(Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<crate::runtime2::g>>>, __arg1: Arc<Mutex<Option<usize>>>| -> bool { chanparkcommit(__arg0, __arg1) }) as Box<dyn FnMut(Arc<Mutex<Option<crate::runtime2::g>>>, Arc<Mutex<Option<usize>>>) -> bool + Send + Sync>))), Arc::new(Mutex::new(Some(Arc::as_ptr(&(*c.lock().unwrap().as_ref().unwrap()).lock.clone()) as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = reason.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_CHAN_SEND as u8))))))), Arc::new(Mutex::new(Some(2))));
+    gopark(
+        Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<crate::runtime2::g>>>, __arg1: Arc<Mutex<Option<usize>>>| -> bool { chanparkcommit(__arg0, __arg1) }) as Box<dyn FnMut(Arc<Mutex<Option<crate::runtime2::g>>>, Arc<Mutex<Option<usize>>>) -> bool + Send + Sync>))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&(*c.lock().unwrap().as_ref().unwrap()).lock.clone()) as usize))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = reason.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_CHAN_SEND as u8))))))),
+        Arc::new(Mutex::new(Some(2)))
+    );
 
         // Ensure the value being sent is kept alive until the
         // receiver copies it out. The sudog has a pointer to the
@@ -545,7 +561,12 @@ pub fn send_direct(t: Arc<Mutex<Option<internal_abi::r#type::Type>>>, sg: GoPtr<
         // be updated if the destination's stack gets copied (shrunk).
         // So make sure that no preemption points can happen between read & use.
     let mut dst = Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = sg.with_mut(|__ptr_value| __ptr_value.elem.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-    type_bits_bulk_barrier(t.clone(), Arc::new(Mutex::new(Some((*dst.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some((*src.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).size_.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+    type_bits_bulk_barrier(
+        t.clone(),
+        Arc::new(Mutex::new(Some((*dst.lock().unwrap().as_ref().unwrap()) as usize))),
+        Arc::new(Mutex::new(Some((*src.lock().unwrap().as_ref().unwrap()) as usize))),
+        Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).size_.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))
+    );
 
         // No need for cgo write barrier checks because dst is always
         // Go memory.
@@ -557,7 +578,12 @@ pub fn recv_direct(t: Arc<Mutex<Option<internal_abi::r#type::Type>>>, sg: GoPtr<
         // The channel is locked, so src will not move during this
         // operation.
     let mut src = Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = sg.with_mut(|__ptr_value| __ptr_value.elem.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-    type_bits_bulk_barrier(t.clone(), Arc::new(Mutex::new(Some((*dst.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some((*src.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).size_.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+    type_bits_bulk_barrier(
+        t.clone(),
+        Arc::new(Mutex::new(Some((*dst.lock().unwrap().as_ref().unwrap()) as usize))),
+        Arc::new(Mutex::new(Some((*src.lock().unwrap().as_ref().unwrap()) as usize))),
+        Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).size_.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))
+    );
     memmove(Arc::new(Mutex::new(Some({ let __arg_holder = dst.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = src.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).size_.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
 }
 
@@ -693,9 +719,15 @@ pub fn chanrecv(c: Arc<Mutex<Option<hchan>>>, ep: Arc<Mutex<Option<usize>>>, blo
         {
         let mut sg = (*(*c.lock().unwrap().as_ref().unwrap()).sendq.lock().unwrap().as_mut().unwrap()).dequeue();;
         if { let __nil_result = (*sg.lock().unwrap()).is_some(); __nil_result } {
-            let c_closure_clone = c.clone(); recv(c_closure_clone.clone(), GoPtr::local(sg.clone()), Arc::new(Mutex::new(Some({ let __arg_holder = ep.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let c_closure_clone_closure_clone = c_closure_clone.clone(); Box::new(move || {
+            let c_closure_clone = c.clone(); recv(
+                c_closure_clone.clone(),
+                GoPtr::local(sg.clone()),
+                Arc::new(Mutex::new(Some({ let __arg_holder = ep.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some({ let c_closure_clone_closure_clone = c_closure_clone.clone(); Box::new(move || {
         unlock(GoPtr::local((*c_closure_clone_closure_clone.lock().unwrap().as_ref().unwrap()).lock.clone()));
-    }) as Box<dyn FnMut() -> () + Send + Sync> }))), Arc::new(Mutex::new(Some(3))));;
+    }) as Box<dyn FnMut() -> () + Send + Sync> }))),
+                Arc::new(Mutex::new(Some(3)))
+            );;
             return (true, true);;
         }
     }
@@ -764,7 +796,13 @@ pub fn chanrecv(c: Arc<Mutex<Option<hchan>>>, ep: Arc<Mutex<Option<usize>>>, blo
     if (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).synctest.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
         { let new_val = crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_SYNCTEST_CHAN_RECEIVE as u8)))); *reason.lock().unwrap() = Some(new_val); };
     }
-    gopark(Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<crate::runtime2::g>>>, __arg1: Arc<Mutex<Option<usize>>>| -> bool { chanparkcommit(__arg0, __arg1) }) as Box<dyn FnMut(Arc<Mutex<Option<crate::runtime2::g>>>, Arc<Mutex<Option<usize>>>) -> bool + Send + Sync>))), Arc::new(Mutex::new(Some(Arc::as_ptr(&(*c.lock().unwrap().as_ref().unwrap()).lock.clone()) as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = reason.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_CHAN_RECV as u8))))))), Arc::new(Mutex::new(Some(2))));
+    gopark(
+        Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<crate::runtime2::g>>>, __arg1: Arc<Mutex<Option<usize>>>| -> bool { chanparkcommit(__arg0, __arg1) }) as Box<dyn FnMut(Arc<Mutex<Option<crate::runtime2::g>>>, Arc<Mutex<Option<usize>>>) -> bool + Send + Sync>))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&(*c.lock().unwrap().as_ref().unwrap()).lock.clone()) as usize))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = reason.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_CHAN_RECV as u8))))))),
+        Arc::new(Mutex::new(Some(2)))
+    );
 
         // someone woke us up
     if { let __left = mysg.clone(); let __right = (*gp.lock().unwrap().as_ref().unwrap()).waiting.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
