@@ -6005,6 +6005,31 @@ func text(b []byte) string {
 	}
 }
 
+func TestUnsafeSliceFromStringDataUsesStringBytes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+func bytes(s string) []byte {
+	return unsafe.Slice(unsafe.StringData(s), len(s))
+}
+`)
+
+	if strings.Contains(rust, `unimplemented!("unsafe.Slice requires unsafe intrinsic support")`) ||
+		strings.Contains(rust, `unimplemented!("unsafe.StringData requires unsafe intrinsic support")`) {
+		t.Fatalf("unsafe.Slice(unsafe.StringData(s), len(s)) should lower through the typed string-data path:\n%s", rust)
+	}
+	if !strings.Contains(rust, `let __string_holder = s.clone()`) {
+		t.Fatalf("unsafe.Slice string-data path should borrow the string handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, `let __len = __string.len()`) {
+		t.Fatalf("unsafe.Slice string-data path should reuse the borrowed string length:\n%s", rust)
+	}
+	if !strings.Contains(rust, `__string.as_bytes()[..__len].to_vec()`) {
+		t.Fatalf("unsafe.Slice string-data path should build bytes from the borrowed string:\n%s", rust)
+	}
+}
+
 func TestUnsafePointerSliceDataConversionUsesSliceDataPointer(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

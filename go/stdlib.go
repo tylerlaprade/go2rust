@@ -4062,6 +4062,9 @@ func transpileUnsafeAdd(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func transpileUnsafeSlice(out *strings.Builder, call *ast.CallExpr) {
+	if writeUnsafeSliceFromStringData(out, call) {
+		return
+	}
 	transpileUnsupportedUnsafeIntrinsic(out, call, "Slice")
 }
 
@@ -4157,6 +4160,53 @@ func unsafeStringLengthUsesBorrowedSlice(length ast.Expr, slice ast.Expr) bool {
 		return false
 	}
 	return sameExpressionSyntax(call.Args[0], slice)
+}
+
+func writeUnsafeSliceFromStringData(out *strings.Builder, call *ast.CallExpr) bool {
+	if call == nil || len(call.Args) != 2 {
+		return false
+	}
+	stringDataCall, ok := unwrapParens(call.Args[0]).(*ast.CallExpr)
+	if !ok || len(stringDataCall.Args) != 1 {
+		return false
+	}
+	key, ok := stdlibCallKey(stringDataCall.Fun)
+	if !ok || key != "unsafe.StringData" {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		WriteWrapperPrefix(out)
+		out.WriteString(`unimplemented!("type info required for unsafe.Slice string-data source")`)
+		WriteWrapperSuffix(out)
+		return true
+	}
+	resultType := typeInfo.GetType(call)
+	if resultType == nil {
+		WriteWrapperPrefix(out)
+		out.WriteString(`unimplemented!("type info required for unsafe.Slice string-data source")`)
+		WriteWrapperSuffix(out)
+		return true
+	}
+	sliceType, ok := types.Unalias(resultType).Underlying().(*types.Slice)
+	if !ok || !isByteType(sliceType.Elem()) || !typeInfo.IsString(stringDataCall.Args[0]) {
+		return false
+	}
+
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __string_holder = ")
+	TranspileExpressionContext(out, stringDataCall.Args[0], LValue)
+	out.WriteString(".clone(); let __string_guard = __string_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __string = __string_guard.as_ref().unwrap(); let __len = ")
+	if unsafeStringLengthUsesBorrowedSlice(call.Args[1], stringDataCall.Args[0]) {
+		out.WriteString("__string.len()")
+	} else {
+		writeExpressionAsUsize(out, call.Args[1])
+	}
+	out.WriteString("; __string.as_bytes()[..__len].to_vec() }")
+	WriteWrapperSuffix(out)
+	return true
 }
 
 func transpileRandSeed(out *strings.Builder, call *ast.CallExpr) {
