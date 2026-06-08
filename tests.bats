@@ -121,6 +121,26 @@ fixture_timeout() {
     fi
 }
 
+note_fixture_phase() {
+    local phase="$1"
+    [ -n "${GO2RUST_TEST_PHASE_FILE:-}" ] || return 0
+    printf "%s\n" "$phase" > "$GO2RUST_TEST_PHASE_FILE"
+}
+
+report_fixture_timeout() {
+    local timeout="$1"
+    local phase_file="$2"
+    local phase=""
+    if [ -r "$phase_file" ]; then
+        phase=$(cat "$phase_file" 2>/dev/null || true)
+    fi
+    if [ -n "$phase" ]; then
+        echo "Test timed out after $timeout (last phase: $phase)"
+    else
+        echo "Test timed out after $timeout"
+    fi
+}
+
 # Helper function that handles transpilation, Rust compilation, and output comparison
 # Takes test_dir and go_output as parameters
 run_transpile_and_compare() {
@@ -146,6 +166,7 @@ run_transpile_and_compare() {
         transpile_args+=("--source-stdlib-packages=$source_stdlib_packages")
     fi
     local transpile_output
+    note_fixture_phase "transpiling"
     transpile_output=$("$transpiler" "${transpile_args[@]}" "$test_dir" 2>&1)
     if [ $? -ne 0 ]; then
         echo "Transpilation failed:"
@@ -197,6 +218,7 @@ run_transpile_and_compare() {
         cargo_offline_args=(${GO2RUST_CARGO_OFFLINE_ARGS})
     fi
 
+    note_fixture_phase "cargo run"
     if rust_output=$(cd "$test_dir" && CARGO_TARGET_DIR="$cargo_target_dir" RUSTFLAGS="-A warnings -C opt-level=0 -C debuginfo=0" cargo "${cargo_offline_args[@]}" run --quiet 2>&1); then
         rust_exit_code=0
     else
@@ -239,18 +261,26 @@ run_test() {
     # Export the helper functions so they're available in the subshell
     export -f run_transpile_and_compare
     export -f compare_outputs
+    export -f note_fixture_phase
+
+    local phase_file
+    phase_file=$(mktemp "${TMPDIR:-/tmp}/go2rust-test-phase.XXXXXX")
 
     # Run the entire test with timeout
     # shellcheck disable=SC2016
     local exit_code=0
     if timeout -k "$kill_after" "$timeout" bash -c '
         test_dir="$1"
+        phase_file="$2"
+        export GO2RUST_TEST_PHASE_FILE="$phase_file"
+        note_fixture_phase "allocating temp workspace"
         test_tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test.XXXXXX")
         echo "$$" > "$test_tmp_root/go2rust-test.pid"
         trap '"'"'rm -rf "$test_tmp_root"'"'"' EXIT
         export GO2RUST_TEST_TMP="$test_tmp_root"
 
         if [ -f "$test_dir/go.mod" ]; then
+            note_fixture_phase "go mod download"
             mod_download_output=$(cd "$test_dir" && go mod download 2>&1)
             mod_download_exit_code=$?
             if [ $mod_download_exit_code -ne 0 ]; then
@@ -261,6 +291,7 @@ run_test() {
         fi
         
         # Run Go version
+        note_fixture_phase "go run"
         go_output=$(cd "$test_dir" && go run . 2>&1)
         go_exit_code=$?
         
@@ -295,17 +326,19 @@ run_test() {
         
         # Use the shared helper for transpilation and comparison
         run_transpile_and_compare "$test_dir" "$go_output"
-    ' _ "$test_dir"; then
+    ' _ "$test_dir" "$phase_file"; then
         exit_code=0
     else
         exit_code=$?
     fi
     if [ $exit_code -ne 0 ]; then
         if [ $exit_code -eq 124 ]; then
-            echo "Test timed out after $timeout"
+            report_fixture_timeout "$timeout" "$phase_file"
         fi
+        rm -f "$phase_file"
         return 1
     fi
+    rm -f "$phase_file"
     
     return 0
 }
@@ -321,6 +354,10 @@ run_xfail_test() {
     # Export the helper functions so they're available in the subshell
     export -f run_transpile_and_compare
     export -f compare_outputs
+    export -f note_fixture_phase
+
+    local phase_file
+    phase_file=$(mktemp "${TMPDIR:-/tmp}/go2rust-test-phase.XXXXXX")
     
     # Run the entire test with timeout
     # shellcheck disable=SC2016
@@ -328,12 +365,16 @@ run_xfail_test() {
     if timeout -k "$kill_after" "$timeout" bash -c '
         test_dir="$1"
         test_name="$2"
+        phase_file="$3"
+        export GO2RUST_TEST_PHASE_FILE="$phase_file"
+        note_fixture_phase "allocating temp workspace"
         test_tmp_root=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test.XXXXXX")
         echo "$$" > "$test_tmp_root/go2rust-test.pid"
         trap '"'"'rm -rf "$test_tmp_root"'"'"' EXIT
         export GO2RUST_TEST_TMP="$test_tmp_root"
         
         # Build Go version
+        note_fixture_phase "go build"
         go_build_output=$(cd "$test_dir" && go build -o "$test_name" . 2>&1)
         if [ $? -ne 0 ]; then
             echo "ERROR: XFAIL test '"'"'$test_name'"'"' does not compile:"
@@ -342,6 +383,7 @@ run_xfail_test() {
         fi
         
         # Run Go binary
+        note_fixture_phase "go run"
         go_output=$(cd "$test_dir" && ./"$test_name" 2>&1)
         go_exit_code=$?
         
@@ -379,18 +421,20 @@ run_xfail_test() {
         
         # Use the shared helper for transpilation and comparison
         run_transpile_and_compare "$test_dir" "$go_output"
-    ' _ "$test_dir" "$test_name"; then
+    ' _ "$test_dir" "$test_name" "$phase_file"; then
         exit_code=0
     else
         exit_code=$?
     fi
     if [ $exit_code -ne 0 ]; then
         if [ $exit_code -eq 124 ]; then
-            echo "Test timed out after $timeout"
+            report_fixture_timeout "$timeout" "$phase_file"
         elif [ $exit_code -eq 2 ]; then
             # Compilation failure or other problem in the Go code itself- this is a real error for XFAIL tests
+            rm -f "$phase_file"
             return 1
         fi
+        rm -f "$phase_file"
         # Other failures are expected for XFAIL
         # But if we're running specific tests (not all tests), fail so we see the output
         if [ "$SHOW_XFAIL_ERRORS" = "true" ]; then
@@ -398,6 +442,7 @@ run_xfail_test() {
         fi
         return 0
     else
+        rm -f "$phase_file"
         # Test passed - promote it!
         echo "🎉 Promoting XFAIL test '$test_name' - it now passes!"
         mv "$test_dir" "tests/"

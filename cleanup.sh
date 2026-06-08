@@ -661,6 +661,7 @@ cleanup_temp_root() {
         remove_path "$file"
     done < <(find "$root" -maxdepth 1 "${age_args[@]}" -type f \( \
         -name 'go2rust-tests-list.*' -o \
+        -name 'go2rust-test-phase.*' -o \
         -name 'go2rust-current' -o \
         -name 'go2rust-probe-bin' -o \
         -name 'go2rust-debug-*.log' -o \

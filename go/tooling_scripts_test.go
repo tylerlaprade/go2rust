@@ -19,6 +19,7 @@ func TestCleanupScriptSweepsAllGeneratedTempRoots(t *testing.T) {
 		"go2rust-cargo-target.*",
 		"go2rust-rust-work.*",
 		"go2rust-tests-list.*",
+		"go2rust-test-phase.*",
 		"go2rust-rust-diff.*",
 		"go2rust-stdout.*",
 		"go2rust-stderr.*",
@@ -119,6 +120,7 @@ func TestScriptsUseNamedGo2RustTempPaths(t *testing.T) {
 		`mktemp -d "${TMPDIR:-/tmp}/go2rust-go-cache.XXXXXX"`,
 		`mktemp -d "$tmp_root/go2rust-rust-work.XXXXXX"`,
 		`mktemp "$diff_root/go2rust-rust-diff.XXXXXX"`,
+		`mktemp "${TMPDIR:-/tmp}/go2rust-test-phase.XXXXXX"`,
 	} {
 		if !strings.Contains(combined, want) {
 			t.Fatalf("scripts should use named go2rust temp path %q", want)
@@ -637,6 +639,18 @@ func TestBatsFixtureTimeoutKillsLingeringChildren(t *testing.T) {
 	}
 	if count := strings.Count(script, `if [ $exit_code -eq 124 ]; then`); count != 2 {
 		t.Fatalf("tests.bats should report timeout exit status in run_test and run_xfail_test; got %d checks", count)
+	}
+	for _, want := range []string{
+		`note_fixture_phase()`,
+		`report_fixture_timeout()`,
+		`export GO2RUST_TEST_PHASE_FILE="$phase_file"`,
+		`note_fixture_phase "cargo run"`,
+		`report_fixture_timeout "$timeout" "$phase_file"`,
+		`Test timed out after $timeout (last phase: $phase)`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("tests.bats should report the last fixture phase on timeout; missing %q", want)
+		}
 	}
 }
 
