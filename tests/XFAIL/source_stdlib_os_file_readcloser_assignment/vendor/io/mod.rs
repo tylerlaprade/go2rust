@@ -317,10 +317,13 @@ fn __go_init_globals() {
     { let __rhs_holder = errors::new(Arc::new(Mutex::new(Some("Seek: invalid whence".to_string())))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *errWhence.lock().unwrap() = new_val; }
     { let __rhs_holder = errors::new(Arc::new(Mutex::new(Some("Seek: invalid offset".to_string())))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *errOffset.lock().unwrap() = new_val; }
     *Discard.lock().unwrap() = Some(Box::new(discard {  }) as Box<dyn Writer + Send + Sync>);
-    *blackHolePool.lock().unwrap() = Some(sync::pool::Pool { new: Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
+    *blackHolePool.lock().unwrap() = Some(sync::pool::Pool {
+        new: Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
         let mut b = Arc::new(Mutex::new(Some(vec![0; (8192) as usize])));
         return Arc::new(Mutex::new(Some(Box::new(b.clone().clone()) as Box<dyn Any + Send + Sync>)));
-    }) as Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> + Send + Sync>))), ..Default::default() });
+    }) as Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> + Send + Sync>))),
+        ..Default::default()
+    });
 }
 
 
@@ -384,10 +387,13 @@ pub(crate) fn __go_init_order_8() {
 
 
 pub(crate) fn __go_init_order_10() {
-    *blackHolePool.lock().unwrap() = Some(sync::pool::Pool { new: Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
+    *blackHolePool.lock().unwrap() = Some(sync::pool::Pool {
+        new: Arc::new(Mutex::new(Some(Box::new(move || -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> {
         let mut b = Arc::new(Mutex::new(Some(vec![0; (8192) as usize])));
         return Arc::new(Mutex::new(Some(Box::new(b.clone().clone()) as Box<dyn Any + Send + Sync>)));
-    }) as Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> + Send + Sync>))), ..Default::default() });
+    }) as Box<dyn FnMut() -> Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>> + Send + Sync>))),
+        ..Default::default()
+    });
 }
 
 

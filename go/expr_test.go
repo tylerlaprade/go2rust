@@ -781,6 +781,44 @@ func makeError(s string, n int) Error {
 	}
 }
 
+func TestConcurrentStructLiteralFunctionFieldsBreakAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type hooks struct {
+	active map[int]int
+	onMake func(int) int
+	onDrop func(int) error
+}
+
+func makeHook(x int) int {
+	return x
+}
+
+func dropHook(x int) error {
+	return nil
+}
+
+var h = &hooks{
+	active: map[int]int{},
+	onMake: makeHook,
+	onDrop: dropHook,
+}
+
+func run() {
+	go func() {}()
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "hooks {") && strings.Contains(line, "on_make:") && strings.Contains(line, "on_drop:") {
+			t.Fatalf("struct literal function fields should not stay on one line:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "hooks {\n") {
+		t.Fatalf("struct literal with function fields should use multiline struct syntax:\n%s", rust)
+	}
+}
+
 func TestStructCompositeLiteralValueFieldCopiesWrappedIdent(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

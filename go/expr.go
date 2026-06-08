@@ -9717,7 +9717,7 @@ func writeInstantiatedStructCompositeLiteral(out *strings.Builder, lit *ast.Comp
 
 func writeTypesStructCompositeLiteral(out *strings.Builder, structTypeName string, structType types.Type, structUnder *types.Struct, elts []ast.Expr) {
 	registerExternalStructCompositeLiteralFields(structType, structUnder, elts)
-	multilineStructLiteral := structCompositeLiteralShouldUseMultiline(elts)
+	multilineStructLiteral := typesStructCompositeLiteralShouldUseMultiline(elts, structUnder)
 	structLiteralIndent := ""
 	out.WriteString(rustStructLiteralPath(structTypeName))
 	if multilineStructLiteral {
@@ -9816,6 +9816,128 @@ func structCompositeLiteralShouldUseMultiline(elts []ast.Expr) bool {
 		return true
 	}
 	return structCompositeLiteralSelectorFieldsShouldUseMultiline(values)
+}
+
+func typesStructCompositeLiteralShouldUseMultiline(elts []ast.Expr, structUnder *types.Struct) bool {
+	if structCompositeLiteralShouldUseMultiline(elts) {
+		return true
+	}
+	if !NeedsConcurrentWrapper() || structUnder == nil {
+		return false
+	}
+	allPositional := true
+	for _, elt := range elts {
+		if _, ok := elt.(*ast.KeyValueExpr); ok {
+			allPositional = false
+			break
+		}
+	}
+	if allPositional {
+		for i := range elts {
+			if i >= structUnder.NumFields() {
+				break
+			}
+			if isFunctionSignatureType(structUnder.Field(i).Type()) {
+				return true
+			}
+		}
+		return false
+	}
+	for _, elt := range elts {
+		kv, ok := elt.(*ast.KeyValueExpr)
+		if !ok {
+			continue
+		}
+		key, ok := kv.Key.(*ast.Ident)
+		if !ok {
+			continue
+		}
+		field := findTypesStructField(structUnder, key.Name)
+		if field != nil && isFunctionSignatureType(field.Type()) {
+			return true
+		}
+	}
+	return false
+}
+
+func localStructCompositeLiteralShouldUseMultiline(typeName string, elts []ast.Expr) bool {
+	if structCompositeLiteralShouldUseMultiline(elts) {
+		return true
+	}
+	if !NeedsConcurrentWrapper() {
+		return false
+	}
+	sd, exists := structDefs[typeName]
+	if !exists || sd.ASTType == nil {
+		return false
+	}
+	fields := localStructLiteralFieldEntries(sd.ASTType)
+	allPositional := true
+	for _, elt := range elts {
+		if _, ok := elt.(*ast.KeyValueExpr); ok {
+			allPositional = false
+			break
+		}
+	}
+	if allPositional {
+		for i := range elts {
+			if i >= len(fields) {
+				break
+			}
+			if _, ok := fields[i].typ.(*ast.FuncType); ok {
+				return true
+			}
+		}
+		return false
+	}
+	for _, elt := range elts {
+		kv, ok := elt.(*ast.KeyValueExpr)
+		if !ok {
+			continue
+		}
+		key, ok := kv.Key.(*ast.Ident)
+		if !ok {
+			continue
+		}
+		for _, field := range fields {
+			if field.name == key.Name {
+				_, ok := field.typ.(*ast.FuncType)
+				if ok {
+					return true
+				}
+				break
+			}
+		}
+	}
+	return false
+}
+
+type localStructLiteralFieldEntry struct {
+	name string
+	typ  ast.Expr
+}
+
+func localStructLiteralFieldEntries(structType *ast.StructType) []localStructLiteralFieldEntry {
+	if structType == nil || structType.Fields == nil {
+		return nil
+	}
+	var fields []localStructLiteralFieldEntry
+	for _, field := range structType.Fields.List {
+		if len(field.Names) == 0 {
+			fields = append(fields, localStructLiteralFieldEntry{
+				name: getEmbeddedFieldName(field.Type),
+				typ:  field.Type,
+			})
+			continue
+		}
+		for _, name := range field.Names {
+			fields = append(fields, localStructLiteralFieldEntry{
+				name: name.Name,
+				typ:  field.Type,
+			})
+		}
+	}
+	return fields
 }
 
 func structCompositeLiteralSelectorFieldsShouldUseMultiline(values []ast.Expr) bool {
@@ -13642,7 +13764,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			}
 
 			// Struct literal
-			multilineStructLiteral := structCompositeLiteralShouldUseMultiline(e.Elts)
+			multilineStructLiteral := localStructCompositeLiteralShouldUseMultiline(ident.Name, e.Elts)
 			structLiteralIndent := ""
 			out.WriteString(RustTypeNameForUse(ident.Name))
 			if multilineStructLiteral {
