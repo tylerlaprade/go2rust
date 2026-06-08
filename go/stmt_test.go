@@ -4836,6 +4836,28 @@ func spin(awoke bool, old int32) bool {
 	}
 }
 
+func TestConcurrentIfBuildsNestedStringIndexLogicalConditionWithStatements(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func fractional(layout string, i int) bool {
+	go func() {}()
+	if i+1 < len(layout) && (layout[i+1] == '0' || layout[i+1] == '9') {
+		return true
+	}
+	return false
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "if ") && strings.Contains(line, "as_bytes()") && strings.Contains(line, "&&") {
+			t.Fatalf("nested string-index logical condition should not stay on one if line:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "let __go_cond_") {
+		t.Fatalf("nested string-index logical condition should build condition operands with statements:\n%s", rust)
+	}
+}
+
 func TestConcurrentIfBuildsGoErrorComparisonChainWithStatements(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

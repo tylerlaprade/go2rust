@@ -76,10 +76,26 @@ pub fn init_local() {
         return;
     }
         } else if { let __tmp_x = (*tz.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
-            if { let __tmp_x = { let __s = &((*tz.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = (':' as i32) as u8; __tmp_x == __tmp_y } {
+            if {
+                let __tmp_x = { let __s = &((*tz.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] };
+                let __tmp_y = (':' as i32) as u8;
+                __tmp_x == __tmp_y
+            } {
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*tz.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; __s[__low..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *tz.lock().unwrap() = __moved_val; };
     }
-            if { let __tmp_x = (*tz.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } && { let __tmp_x = { let __s = &((*tz.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('/' as i32) as u8; __tmp_x == __tmp_y } {
+            if {
+                let __go_cond_0 = { let __tmp_x = (*tz.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y };
+                if __go_cond_0 {
+                    let __go_cond_1 = {
+                        let __tmp_x = { let __s = &((*tz.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] };
+                        let __tmp_y = ('/' as i32) as u8;
+                        __tmp_x == __tmp_y
+                    };
+                    __go_cond_1
+                } else {
+                    false
+                }
+            } {
         {
         let (mut z, mut err) = load_location_1(
             Arc::new(Mutex::new(Some({ let __arg_holder = tz.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),

@@ -333,7 +333,11 @@ pub fn len64(mut x: Arc<Mutex<Option<u64>>>) -> i32 {
         { let __rhs = 8 as u64; let mut guard = x.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() >> __rhs); };
         { let __rhs = 8; let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
-    return { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __s = &(LEN8TAB); __s.as_bytes()[({ let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] } as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y };
+    return {
+        let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v };
+        let __tmp_y = (*Arc::new(Mutex::new(Some({ let __s = &(LEN8TAB); __s.as_bytes()[({ let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] } as i32))).lock().unwrap().as_ref().unwrap());
+        __tmp_x + __tmp_y
+    };
 }
 
 /// OnesCount64 returns the number of one bits ("population count") in x.

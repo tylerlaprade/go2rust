@@ -1800,7 +1800,11 @@ pub fn func_name_pieces_for_print(name: Arc<Mutex<Option<String>>>) -> (Arc<Mute
         return ({ let __owned = name.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, Arc::new(Mutex::new(Some("".to_string()))), Arc::new(Mutex::new(Some("".to_string()))));
     }
     let mut j = Arc::new(Mutex::new(Some({ let __tmp_x = ((*name.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 1; __tmp_x - __tmp_y })));
-    while { let __tmp_x = { let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] }; let __tmp_y = (']' as i32) as u8; __tmp_x != __tmp_y } {
+    while {
+        let __tmp_x = { let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] };
+        let __tmp_y = (']' as i32) as u8;
+        __tmp_x != __tmp_y
+    } {
         { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
     if { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = i; __tmp_x <= __tmp_y } {
@@ -2585,7 +2589,19 @@ pub fn is_exported_runtime(mut name: Arc<Mutex<Option<String>>>) -> bool {
         // Extract receiver type, if any.
         // For example, runtime.(*Func).Entry
     let mut i = Arc::new(Mutex::new(Some({ let __tmp_x = ((*name.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 1; __tmp_x - __tmp_y })));
-    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } && { let __tmp_x = { let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] }; let __tmp_y = ('.' as i32) as u8; __tmp_x != __tmp_y } {
+    while {
+        let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y };
+        if __go_cond_0 {
+            let __go_cond_1 = {
+                let __tmp_x = { let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] };
+                let __tmp_y = ('.' as i32) as u8;
+                __tmp_x != __tmp_y
+            };
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
     }
     if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } {
@@ -2597,21 +2613,33 @@ pub fn is_exported_runtime(mut name: Arc<Mutex<Option<String>>>) -> bool {
                 let __go_cond_1 = {
                     let __go_cond_2 = { let __tmp_x = ((*rcvr.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 3; __tmp_x >= __tmp_y };
                     if __go_cond_2 {
-                        let __go_cond_3 = { let __tmp_x = { let __s = &((*rcvr.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('(' as i32) as u8; __tmp_x == __tmp_y };
+                        let __go_cond_3 = {
+                            let __tmp_x = { let __s = &((*rcvr.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] };
+                            let __tmp_y = ('(' as i32) as u8;
+                            __tmp_x == __tmp_y
+                        };
                         __go_cond_3
                     } else {
                         false
                     }
                 };
                 if __go_cond_1 {
-                    let __go_cond_4 = { let __tmp_x = { let __s = &((*rcvr.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] }; let __tmp_y = ('*' as i32) as u8; __tmp_x == __tmp_y };
+                    let __go_cond_4 = {
+                        let __tmp_x = { let __s = &((*rcvr.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] };
+                        let __tmp_y = ('*' as i32) as u8;
+                        __tmp_x == __tmp_y
+                    };
                     __go_cond_4
                 } else {
                     false
                 }
             };
             if __go_cond_0 {
-                let __go_cond_5 = { let __tmp_x = { let __s = &((*rcvr.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = ((*rcvr.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize] }; let __tmp_y = (')' as i32) as u8; __tmp_x == __tmp_y };
+                let __go_cond_5 = {
+                    let __tmp_x = { let __s = &((*rcvr.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = ((*rcvr.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize] };
+                    let __tmp_y = (')' as i32) as u8;
+                    __tmp_x == __tmp_y
+                };
                 __go_cond_5
             } else {
                 false
@@ -2628,14 +2656,22 @@ pub fn is_exported_runtime(mut name: Arc<Mutex<Option<String>>>) -> bool {
             let __go_cond_1 = {
                 let __go_cond_2 = { let __tmp_x = ((*name.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 0; __tmp_x > __tmp_y };
                 if __go_cond_2 {
-                    let __go_cond_3 = { let __tmp_x = ('A' as i32) as u8; let __tmp_y = { let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; __tmp_x <= __tmp_y };
+                    let __go_cond_3 = {
+                        let __tmp_x = ('A' as i32) as u8;
+                        let __tmp_y = { let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] };
+                        __tmp_x <= __tmp_y
+                    };
                     __go_cond_3
                 } else {
                     false
                 }
             };
             if __go_cond_1 {
-                let __go_cond_4 = { let __tmp_x = { let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('Z' as i32) as u8; __tmp_x <= __tmp_y };
+                let __go_cond_4 = {
+                    let __tmp_x = { let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] };
+                    let __tmp_y = ('Z' as i32) as u8;
+                    __tmp_x <= __tmp_y
+                };
                 __go_cond_4
             } else {
                 false
@@ -2648,9 +2684,17 @@ pub fn is_exported_runtime(mut name: Arc<Mutex<Option<String>>>) -> bool {
                     true
                 } else {
                     let __go_cond_7 = {
-                        let __go_cond_8 = { let __tmp_x = ('A' as i32) as u8; let __tmp_y = { let __s = &((*rcvr.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; __tmp_x <= __tmp_y };
+                        let __go_cond_8 = {
+                            let __tmp_x = ('A' as i32) as u8;
+                            let __tmp_y = { let __s = &((*rcvr.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] };
+                            __tmp_x <= __tmp_y
+                        };
                         if __go_cond_8 {
-                            let __go_cond_9 = { let __tmp_x = { let __s = &((*rcvr.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('Z' as i32) as u8; __tmp_x <= __tmp_y };
+                            let __go_cond_9 = {
+                                let __tmp_x = { let __s = &((*rcvr.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] };
+                                let __tmp_y = ('Z' as i32) as u8;
+                                __tmp_x <= __tmp_y
+                            };
                             __go_cond_9
                         } else {
                             false

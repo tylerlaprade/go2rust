@@ -65,7 +65,11 @@ pub fn copyenv() {
     { let __range_holder = envs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for (i, s) in __range_values.iter().enumerate() {
         let mut j = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = ({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = (s.len() as i32); __tmp_x < __tmp_y } {
-        if { let __tmp_x = { let __s = &(s); __s.as_bytes()[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] }; let __tmp_y = ('=' as i32) as u8; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __s = &(s); __s.as_bytes()[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] };
+            let __tmp_y = ('=' as i32) as u8;
+            __tmp_x == __tmp_y
+        } {
         let mut key = Arc::new(Mutex::new(Some({ let __s = &(s); let __high = ({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[..__high].to_string() })));
         {
         let (_, mut ok) = { let __map = { let __map_holder = env.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&(*key.lock().unwrap().as_ref().unwrap()).clone())) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Arc::new(Mutex::new(Some(0))), false) } };;
@@ -129,7 +133,11 @@ pub fn getenv(key: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>, b
         let mut s = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = envs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })));
         let mut i = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x < __tmp_y } {
-        if { let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] }; let __tmp_y = ('=' as i32) as u8; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] };
+            let __tmp_y = ('=' as i32) as u8;
+            __tmp_x == __tmp_y
+        } {
         {
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *value.lock().unwrap() = __moved_val; };;
         { let new_val = true; *found.lock().unwrap() = Some(new_val); };;

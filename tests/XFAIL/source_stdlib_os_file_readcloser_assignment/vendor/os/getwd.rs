@@ -69,7 +69,19 @@ pub fn getwd() -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError
         // if $PWD is set and matches ".", use it.
     let mut dot: FileInfo = Arc::new(Mutex::new(None));
     { let new_val = getenv(Arc::new(Mutex::new(Some("PWD".to_string())))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *dir.lock().unwrap() = __moved_val; };
-    if { let __tmp_x = ((*dir.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 0; __tmp_x > __tmp_y } && { let __tmp_x = { let __s = &((*dir.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('/' as i32) as u8; __tmp_x == __tmp_y } {
+    if {
+        let __go_cond_0 = { let __tmp_x = ((*dir.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 0; __tmp_x > __tmp_y };
+        if __go_cond_0 {
+            let __go_cond_1 = {
+                let __tmp_x = { let __s = &((*dir.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] };
+                let __tmp_y = ('/' as i32) as u8;
+                __tmp_x == __tmp_y
+            };
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
         { let (__tmp_0, __tmp_1) = stat_nolog(Arc::new(Mutex::new(Some(".".to_string())))); let __moved_tmp_0 = { let mut __guard = __tmp_0.lock().unwrap(); __guard.take() }; *dot.lock().unwrap() = __moved_tmp_0; let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         return (Arc::new(Mutex::new(Some("".to_string()))), err.clone());

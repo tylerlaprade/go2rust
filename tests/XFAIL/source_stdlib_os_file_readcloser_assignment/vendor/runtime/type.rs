@@ -204,7 +204,27 @@ impl rtype {
         let mut s = self.string();
         let mut i = Arc::new(Mutex::new(Some({ let __tmp_x = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 1; __tmp_x - __tmp_y })));
         let mut sqBrackets = Arc::new(Mutex::new(Some(0)));
-        while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } && ({ let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] }; let __tmp_y = ('.' as i32) as u8; __tmp_x != __tmp_y } || { let __tmp_x = { let __v = (*sqBrackets.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x != __tmp_y }) {
+        while {
+            let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y };
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __go_cond_2 = {
+                        let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] };
+                        let __tmp_y = ('.' as i32) as u8;
+                        __tmp_x != __tmp_y
+                    };
+                    if __go_cond_2 {
+                        true
+                    } else {
+                        let __go_cond_3 = { let __tmp_x = { let __v = (*sqBrackets.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x != __tmp_y };
+                        __go_cond_3
+                    }
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         { let _switch_val = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] };
     if _switch_val == ((']' as i32) as u8) {
             { let mut guard = sqBrackets.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }

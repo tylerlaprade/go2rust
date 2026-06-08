@@ -759,7 +759,19 @@ fn __go_init_globals() {
 impl Setting {
     /// Name returns the name of the setting.
     pub fn name(&self) -> Arc<Mutex<Option<String>>> {
-        if { let __tmp_x = (*self.name.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } && { let __tmp_x = { let __s = &((*self.name.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('#' as i32) as u8; __tmp_x == __tmp_y } {
+        if {
+            let __go_cond_0 = { let __tmp_x = (*self.name.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y };
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __tmp_x = { let __s = &((*self.name.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] };
+                    let __tmp_y = ('#' as i32) as u8;
+                    __tmp_x == __tmp_y
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         return Arc::new(Mutex::new(Some({ let __s = &((*self.name.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; __s[__low..].to_string() })));
     }
         return self.name.clone();
@@ -767,7 +779,19 @@ impl Setting {
 
     /// Undocumented reports whether this is an undocumented setting.
     pub fn undocumented(&self) -> bool {
-        return { let __tmp_x = (*self.name.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } && { let __tmp_x = { let __s = &((*self.name.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('#' as i32) as u8; __tmp_x == __tmp_y };
+        return {
+            let __go_cond_0 = { let __tmp_x = (*self.name.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y };
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __tmp_x = { let __s = &((*self.name.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] };
+                    let __tmp_y = ('#' as i32) as u8;
+                    __tmp_x == __tmp_y
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        };
     }
 
     /// String returns a printable form for the setting: name=value.
@@ -1073,7 +1097,19 @@ pub fn parse(did: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<bool>>>>>>>
     let mut eq = Arc::new(Mutex::new(Some(-(1))));
     let mut i = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*end.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y })));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = -1; __tmp_x >= __tmp_y } {
-        if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = -1; __tmp_x == __tmp_y } || { let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] }; let __tmp_y = (',' as i32) as u8; __tmp_x == __tmp_y } {
+        if {
+            let __go_cond_0 = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = -1; __tmp_x == __tmp_y };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_1 = {
+                    let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] };
+                    let __tmp_y = (',' as i32) as u8;
+                    __tmp_x == __tmp_y
+                };
+                __go_cond_1
+            }
+        } {
         if { let __tmp_x = { let __v = (*eq.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } {
         let (mut name, mut arg) = (Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; let __high = ({ let __v = (*eq.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))), Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*eq.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; let __high = ({ let __v = (*end.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[__low..__high].to_string() }))));
         if !{ let __map = { let __map_holder = did.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&(*name.lock().unwrap().as_ref().unwrap()).clone())).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| false) } {
@@ -1081,7 +1117,11 @@ pub fn parse(did: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<bool>>>>>>>
         let mut v = Arc::new(Mutex::new(Some(value { text: Arc::new(Mutex::new(Some({ let __arg_holder = arg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
         let mut j = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = ({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*arg.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x < __tmp_y } {
-        if { let __tmp_x = { let __s = &((*arg.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] }; let __tmp_y = ('#' as i32) as u8; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __s = &((*arg.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] };
+            let __tmp_y = ('#' as i32) as u8;
+            __tmp_x == __tmp_y
+        } {
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*arg.lock().unwrap().as_ref().unwrap()).clone()); let __high = ({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[..__high].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *(*v.lock().unwrap().as_ref().unwrap()).text.lock().unwrap() = __moved_val; };
         { let (__tmp_0, __tmp_1) = internal_bisect::new(Arc::new(Mutex::new(Some({ let __s = &((*arg.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })))); (*v.lock().unwrap().as_mut().unwrap()).bisect = __tmp_0.clone(); };
         break
@@ -1093,7 +1133,11 @@ pub fn parse(did: Arc<Mutex<Option<BTreeMap<String, Arc<Mutex<Option<bool>>>>>>>
     }
         { let new_val = -1; *eq.lock().unwrap() = Some(new_val); };
         { let new_val = i.lock().unwrap().as_ref().unwrap().clone(); *end.lock().unwrap() = Some(new_val); };
-    } else if { let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] }; let __tmp_y = ('=' as i32) as u8; __tmp_x == __tmp_y } {
+    } else if {
+        let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] };
+        let __tmp_y = ('=' as i32) as u8;
+        __tmp_x == __tmp_y
+    } {
         { let new_val = i.lock().unwrap().as_ref().unwrap().clone(); *eq.lock().unwrap() = Some(new_val); };
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }

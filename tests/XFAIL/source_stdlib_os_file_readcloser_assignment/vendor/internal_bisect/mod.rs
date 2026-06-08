@@ -1100,7 +1100,19 @@ pub fn new(pattern: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Matcher>>>,
 
         // Special case for leading 'q' so that 'qn' quietly disables, e.g. fmahash=qn to disable fma
         // Any instance of 'v' disables 'q'.
-    if { let __tmp_x = ((*p.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 0; __tmp_x > __tmp_y } && { let __tmp_x = { let __s = &((*p.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('q' as i32) as u8; __tmp_x == __tmp_y } {
+    if {
+        let __go_cond_0 = { let __tmp_x = ((*p.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 0; __tmp_x > __tmp_y };
+        if __go_cond_0 {
+            let __go_cond_1 = {
+                let __tmp_x = { let __s = &((*p.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] };
+                let __tmp_y = ('q' as i32) as u8;
+                __tmp_x == __tmp_y
+            };
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
         { let new_val = true; *(*m.lock().unwrap().as_ref().unwrap()).quiet.lock().unwrap() = Some(new_val); };
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*p.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; __s[__low..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *p.lock().unwrap() = __moved_val; };
         if { let __tmp_x = (*p.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
@@ -1112,7 +1124,19 @@ pub fn new(pattern: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Matcher>>>,
     }
 
         // Allow multiple v, so that “bisect cmd vPATTERN” can force verbose all the time.
-    while { let __tmp_x = ((*p.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 0; __tmp_x > __tmp_y } && { let __tmp_x = { let __s = &((*p.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('v' as i32) as u8; __tmp_x == __tmp_y } {
+    while {
+        let __go_cond_0 = { let __tmp_x = ((*p.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 0; __tmp_x > __tmp_y };
+        if __go_cond_0 {
+            let __go_cond_1 = {
+                let __tmp_x = { let __s = &((*p.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] };
+                let __tmp_y = ('v' as i32) as u8;
+                __tmp_x == __tmp_y
+            };
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
         { let new_val = true; *(*m.lock().unwrap().as_ref().unwrap()).verbose.lock().unwrap() = Some(new_val); };
         { let new_val = false; *(*m.lock().unwrap().as_ref().unwrap()).quiet.lock().unwrap() = Some(new_val); };
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*p.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; __s[__low..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *p.lock().unwrap() = __moved_val; };
@@ -1127,7 +1151,19 @@ pub fn new(pattern: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Matcher>>>,
         // Allow multiple !, each negating the last, so that “bisect cmd !PATTERN” works
         // even when bisect chooses to add its own !.
     { let new_val = true; *(*m.lock().unwrap().as_ref().unwrap()).enable.lock().unwrap() = Some(new_val); };
-    while { let __tmp_x = ((*p.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 0; __tmp_x > __tmp_y } && { let __tmp_x = { let __s = &((*p.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('!' as i32) as u8; __tmp_x == __tmp_y } {
+    while {
+        let __go_cond_0 = { let __tmp_x = ((*p.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 0; __tmp_x > __tmp_y };
+        if __go_cond_0 {
+            let __go_cond_1 = {
+                let __tmp_x = { let __s = &((*p.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] };
+                let __tmp_y = ('!' as i32) as u8;
+                __tmp_x == __tmp_y
+            };
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
         { let new_val = !(*{ let __field = (*m.lock().unwrap().as_ref().unwrap()).enable.clone(); __field }.lock().unwrap().as_ref().unwrap()); *(*m.lock().unwrap().as_ref().unwrap()).enable.lock().unwrap() = Some(new_val); };
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*p.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; __s[__low..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *p.lock().unwrap() = __moved_val; };
         if { let __tmp_x = (*p.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
@@ -1206,7 +1242,31 @@ pub fn new(pattern: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Matcher>>>,
         if !_matched && (_switch_val == ('y' as i32) as u8) || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            if { let __tmp_x = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y } as i32); let __tmp_y = ((*p.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x < __tmp_y } && ({ let __tmp_x = { let __s = &((*p.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] }; let __tmp_y = ('0' as i32) as u8; __tmp_x == __tmp_y } || { let __tmp_x = { let __s = &((*p.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] }; let __tmp_y = ('1' as i32) as u8; __tmp_x == __tmp_y }) {
+            if {
+                let __go_cond_0 = { let __tmp_x = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y } as i32); let __tmp_y = ((*p.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x < __tmp_y };
+                if __go_cond_0 {
+                    let __go_cond_1 = {
+                        let __go_cond_2 = {
+                            let __tmp_x = { let __s = &((*p.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] };
+                            let __tmp_y = ('0' as i32) as u8;
+                            __tmp_x == __tmp_y
+                        };
+                        if __go_cond_2 {
+                            true
+                        } else {
+                            let __go_cond_3 = {
+                                let __tmp_x = { let __s = &((*p.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] };
+                                let __tmp_y = ('1' as i32) as u8;
+                                __tmp_x == __tmp_y
+                            };
+                            __go_cond_3
+                        }
+                    };
+                    __go_cond_1
+                } else {
+                    false
+                }
+            } {
         return (
             Arc::new(Mutex::new(None)),
             Arc::new(Mutex::new(Some(Box::new(parseError { text: Arc::new(Mutex::new(Some(format!("{}{}", "invalid pattern syntax: ".to_string(), { let __v = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); __v })))), ..Default::default() }) as Box<dyn StdError + Send + Sync>)))
@@ -1239,7 +1299,11 @@ pub fn new(pattern: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Matcher>>>,
             Arc::new(Mutex::new(Some(Box::new(parseError { text: Arc::new(Mutex::new(Some(format!("{}{}", "invalid pattern syntax: ".to_string(), { let __v = (*pattern.lock().unwrap().as_ref().unwrap()).clone(); __v })))), ..Default::default() }) as Box<dyn StdError + Send + Sync>)))
         );
     }
-        if { let __tmp_x = { let __s = &((*p.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] }; let __tmp_y = ('y' as i32) as u8; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __s = &((*p.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] };
+            let __tmp_y = ('y' as i32) as u8;
+            __tmp_x == __tmp_y
+        } {
         { let new_val = 0; *n.lock().unwrap() = Some(new_val); };
     }
         let mut mask = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (1 as u64); let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }; let __tmp_y = 1 as u64; __tmp_x - __tmp_y })));
