@@ -4584,6 +4584,34 @@ func use(chunks [][]int) int {
 	}
 }
 
+func TestGoPtrPointerParamAcceptsUnsafeStringData(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+func read(p *byte) byte {
+	return *p
+}
+
+func call(s string) byte {
+	return read(unsafe.StringData(s))
+}
+`)
+
+	if strings.Contains(rust, `unimplemented!("unsafe.StringData requires unsafe intrinsic support")`) {
+		t.Fatalf("unsafe.StringData passed to a GoPtr byte parameter should not use the unsupported intrinsic fallback:\n%s", rust)
+	}
+	if !strings.Contains(rust, "read(GoPtr::array_elem_foreign(") {
+		t.Fatalf("unsafe.StringData should lower to a foreign GoPtr for byte pointer parameters:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".as_bytes().get(0).copied()") {
+		t.Fatalf("unsafe.StringData GoPtr should borrow the first byte from the string handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, `panic!("unsafe.StringData pointer assignment requires writable pointee support")`) {
+		t.Fatalf("unsafe.StringData GoPtr mutation should remain loudly unsupported:\n%s", rust)
+	}
+}
+
 func TestReadOnlyPointerParamAcceptsRangeSliceElemAddress(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

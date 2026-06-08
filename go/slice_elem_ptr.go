@@ -7699,6 +7699,9 @@ func writeGoPtrCallArgumentWithQualifierForInfo(out *strings.Builder, arg ast.Ex
 		return true
 	}
 	if call, ok := unwrapParens(arg).(*ast.CallExpr); ok {
+		if writeUnsafeStringDataGoPtrCallArgument(out, call, info, helperQualifier) {
+			return true
+		}
 		if info, ok := sliceElemPtrReturnInfoForCall(call); ok && info.elemRustType == elemRustType {
 			writeGoPtrQualifiedConstructor(out, helperQualifier, "slice_elem_opt")
 			out.WriteString("(")
@@ -7776,6 +7779,92 @@ func writeGoPtrCallArgumentWithQualifierForInfo(out *strings.Builder, arg ast.Ex
 		return true
 	}
 	return false
+}
+
+func writeUnsafeStringDataGoPtrCallArgument(out *strings.Builder, call *ast.CallExpr, info goPtrResultInfo, helperQualifier string) bool {
+	elemRustType := goPtrResultElemRustType(info)
+	if elemRustType != "u8" {
+		return false
+	}
+	if info.elemType != nil && !isByteType(info.elemType) {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	stringExpr, ok := unsafeStringDataCallArg(call, typeInfo)
+	if !ok || !typeInfo.IsString(stringExpr) {
+		return false
+	}
+	callType := typeInfo.GetType(call)
+	if callType == nil {
+		return false
+	}
+	ptr, ok := types.Unalias(callType).Underlying().(*types.Pointer)
+	if !ok || !isByteType(ptr.Elem()) {
+		return false
+	}
+
+	out.WriteString("{ let __string_data_holder = ")
+	TranspileExpressionContext(out, stringExpr, LValue)
+	out.WriteString(".clone(); ")
+	writeGoPtrQualifiedConstructor(out, helperQualifier, "array_elem_foreign")
+	out.WriteString("(")
+	writeUnsafeStringDataForeignClosurePrefix(out)
+	out.WriteString("({ let __string_data_holder = __string_data_holder.clone(); move || { let __string_guard = __string_data_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __string_guard.as_ref().and_then(|__s| __s.as_bytes().get(0).copied()) } }), ")
+	writeUnsafeStringDataForeignClosurePrefix(out)
+	out.WriteString(`(move |__assigned| { let _ = __assigned; panic!("unsafe.StringData pointer assignment requires writable pointee support") }), `)
+	writeUnsafeStringDataForeignClosurePrefix(out)
+	out.WriteString(`(move |__callback| { let _ = __callback; panic!("unsafe.StringData pointer mutable borrow requires writable pointee support") }), `)
+	writeUnsafeStringDataForeignClosurePrefix(out)
+	out.WriteString("({ let __string_data_holder = __string_data_holder.clone(); move || { let __string_guard = __string_data_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; match __string_guard.as_ref() { Some(__s) => (__s.as_ptr() as *const (), 0usize), None => (std::ptr::null(), 0usize) } } })")
+	out.WriteString(") }")
+	return true
+}
+
+func unsafeStringDataCallArg(expr ast.Expr, typeInfo *TypeInfo) (ast.Expr, bool) {
+	if typeInfo == nil || typeInfo.info == nil {
+		return nil, false
+	}
+	call, ok := unwrapParens(expr).(*ast.CallExpr)
+	if !ok || len(call.Args) != 1 {
+		return nil, false
+	}
+	sel, ok := unwrapParens(call.Fun).(*ast.SelectorExpr)
+	if !ok || sel.Sel == nil {
+		return nil, false
+	}
+	pkgIdent, ok := unwrapParens(sel.X).(*ast.Ident)
+	if !ok {
+		return nil, false
+	}
+	pkgName, ok := typeInfo.info.Uses[pkgIdent].(*types.PkgName)
+	if !ok || pkgName.Imported() == nil || pkgName.Imported().Path() != "unsafe" {
+		return nil, false
+	}
+	switch obj := typeInfo.info.Uses[sel.Sel].(type) {
+	case *types.Builtin:
+		if obj.Name() != "StringData" {
+			return nil, false
+		}
+	case *types.Func:
+		if obj.Pkg() == nil || obj.Pkg().Path() != "unsafe" || obj.Name() != "StringData" {
+			return nil, false
+		}
+	default:
+		return nil, false
+	}
+	return call.Args[0], true
+}
+
+func writeUnsafeStringDataForeignClosurePrefix(out *strings.Builder) {
+	if NeedsConcurrentWrapper() {
+		out.WriteString("std::sync::Arc::new")
+		return
+	}
+	out.WriteString("std::rc::Rc::new")
 }
 
 func writeGoPtrArrayFieldIndexRead(out *strings.Builder, indexExpr *ast.IndexExpr) {
