@@ -8188,6 +8188,9 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 	if typeInfo := GetTypeInfo(); typeInfo != nil {
 		RegisterAnyCloneType(typeInfo.GetType(expr))
 	}
+	if writeFunctionValueAnyBox(out, expr) {
+		return
+	}
 	out.WriteString("Box::new(")
 	if call, ok := expr.(*ast.CallExpr); ok {
 		typeInfo := GetTypeInfo()
@@ -8216,6 +8219,29 @@ func writeInterfaceBoxedValue(out *strings.Builder, expr ast.Expr) {
 	}
 	out.WriteString(") as ")
 	out.WriteString(rustAnyTraitObject())
+}
+
+func writeFunctionValueAnyBox(out *strings.Builder, expr ast.Expr) bool {
+	sel, ok := unwrapParens(expr).(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	sig, ok := methodExpressionSignature(sel)
+	if !ok || !methodExpressionValueBoxShouldUseMultiline(sig) {
+		return false
+	}
+	indent := currentLineIndent(out)
+	out.WriteString("Box::new({\n")
+	out.WriteString(indent)
+	out.WriteString("    let __func_value = ")
+	writeFunctionValueHandle(out, sel)
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("    __func_value.clone()\n")
+	out.WriteString(indent)
+	out.WriteString("}) as ")
+	out.WriteString(rustAnyTraitObject())
+	return true
 }
 
 func writeExternalNamedIntegerAnyBox(out *strings.Builder, expr ast.Expr) bool {
@@ -15227,6 +15253,10 @@ func writePointerMethodValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig
 
 func writeMethodExpressionValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig *types.Signature) {
 	boxType := signatureToGoParamBoxDynFn(sig)
+	if methodExpressionValueBoxShouldUseMultiline(sig) {
+		writeMultilineMethodExpressionValueBox(out, sel, sig, boxType)
+		return
+	}
 	out.WriteString("Box::new(move |")
 	params := sig.Params()
 	for i := 0; i < params.Len(); i++ {
@@ -15301,6 +15331,121 @@ func writeMethodExpressionValueBox(out *strings.Builder, sel *ast.SelectorExpr, 
 	}
 	out.WriteString(" }) as ")
 	out.WriteString(boxType)
+}
+
+func methodExpressionValueBoxShouldUseMultiline(sig *types.Signature) bool {
+	if !NeedsConcurrentWrapper() {
+		return false
+	}
+	_, ok := methodExpressionReceiverPointeeRustType(sig)
+	return ok
+}
+
+func writeMultilineMethodExpressionValueBox(out *strings.Builder, sel *ast.SelectorExpr, sig *types.Signature, boxType string) {
+	indent := currentLineIndent(out)
+	params := sig.Params()
+	out.WriteString("Box::new(move |")
+	if params.Len() > 0 {
+		out.WriteString("\n")
+		for i := 0; i < params.Len(); i++ {
+			out.WriteString(indent)
+			out.WriteString("    ")
+			out.WriteString(fmt.Sprintf("__arg%d: %s", i, goTypesParamTypeToRust(params.At(i).Type())))
+			if i < params.Len()-1 {
+				out.WriteString(",")
+			}
+			out.WriteString("\n")
+		}
+		out.WriteString(indent)
+	}
+	out.WriteString("|")
+	writeFunctionValueBoxResultTypes(out, sig.Results())
+	out.WriteString(" {\n")
+	if params.Len() == 0 {
+		out.WriteString(indent)
+		out.WriteString("    /* ERROR: Method expression requires receiver parameter */ unimplemented!(\"method expression requires receiver parameter\")\n")
+	} else if recvType, ok := methodExpressionReceiverPointeeRustType(sig); ok {
+		needsMut := methodCallNeedsMutableReceiver(sel)
+		out.WriteString(indent)
+		out.WriteString("    {\n")
+		out.WriteString(indent)
+		out.WriteString("        let __recv = __arg0.clone();\n")
+		out.WriteString(indent)
+		out.WriteString("        let __recv_ptr: ")
+		if needsMut {
+			out.WriteString("*mut ")
+		} else {
+			out.WriteString("*const ")
+		}
+		out.WriteString(recvType)
+		out.WriteString(" = {\n")
+		out.WriteString(indent)
+		out.WriteString("            ")
+		if needsMut {
+			out.WriteString("let mut __recv_guard = __recv")
+			WriteBorrowMethod(out, true)
+			out.WriteString(";\n")
+			out.WriteString(indent)
+			out.WriteString("            __recv_guard.as_mut().unwrap() as *mut ")
+		} else {
+			out.WriteString("let __recv_guard = __recv")
+			WriteBorrowMethod(out, false)
+			out.WriteString(";\n")
+			out.WriteString(indent)
+			out.WriteString("            __recv_guard.as_ref().unwrap() as *const ")
+		}
+		out.WriteString(recvType)
+		out.WriteString("\n")
+		out.WriteString(indent)
+		out.WriteString("        };\n")
+		out.WriteString(indent)
+		out.WriteString("        let __result = unsafe { ")
+		if needsMut {
+			out.WriteString("&mut *__recv_ptr")
+		} else {
+			out.WriteString("&*__recv_ptr")
+		}
+		out.WriteString(" }.")
+		out.WriteString(rustMethodSelectorName(sel))
+		out.WriteString("(")
+		for i := 1; i < params.Len(); i++ {
+			if i > 1 {
+				out.WriteString(", ")
+			}
+			out.WriteString(fmt.Sprintf("__arg%d", i))
+		}
+		out.WriteString(");\n")
+		out.WriteString(indent)
+		out.WriteString("        __result\n")
+		out.WriteString(indent)
+		out.WriteString("    }\n")
+	} else {
+		out.WriteString(indent)
+		out.WriteString("    ")
+		writeBorrowedMethodExpressionCall(out, sel, params)
+		out.WriteString("\n")
+	}
+	out.WriteString(indent)
+	out.WriteString("}) as ")
+	out.WriteString(boxType)
+}
+
+func writeFunctionValueBoxResultTypes(out *strings.Builder, results *types.Tuple) {
+	if results == nil || results.Len() == 0 {
+		return
+	}
+	out.WriteString(" -> ")
+	if results.Len() == 1 {
+		out.WriteString(goTypesReturnTypeToRust(results.At(0).Type()))
+		return
+	}
+	retTypes := make([]string, 0, results.Len())
+	for i := 0; i < results.Len(); i++ {
+		retTypes = append(retTypes, goTypesReturnTypeToRust(results.At(i).Type()))
+	}
+	out.WriteString("(")
+	out.WriteString(strings.Join(retTypes, ", "))
+	out.WriteString(")")
 }
 
 func methodExpressionReceiverPointeeRustType(sig *types.Signature) (string, bool) {

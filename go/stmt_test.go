@@ -5186,6 +5186,41 @@ func use() uintptr {
 	}
 }
 
+func TestConcurrentFunctionValueAnyArgumentBuildsMethodExpressionWithStatements(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type timers struct{}
+
+func (ts *timers) run(now int64) int64 {
+	return now
+}
+
+func pc(fn any) uintptr {
+	return 1
+}
+
+func start(v uintptr) uintptr {
+	return v
+}
+
+const quantum uintptr = 4
+
+func use() uintptr {
+	go func() {}()
+	return start(pc((*timers).run) + quantum)
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "let __go_binary_") && strings.Contains(line, "Box::new(move |") {
+			t.Fatalf("method-expression function value boxed into any should not stay on one line:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "let __func_value =") {
+		t.Fatalf("method-expression function value boxed into any should use a temporary handle:\n%s", rust)
+	}
+}
+
 func TestConcurrentBinaryOperandBreaksComplexCallArgumentsAcrossLines(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

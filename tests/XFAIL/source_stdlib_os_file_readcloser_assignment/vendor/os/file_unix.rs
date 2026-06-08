@@ -906,7 +906,22 @@ pub fn new_file_1(fd: Arc<Mutex<Option<i32>>>, name: Arc<Mutex<Option<String>>>,
         }
     }
 
-    runtime::set_finalizer(Arc::new(Mutex::new(Some(Box::new((*f.lock().unwrap().as_ref().unwrap()).file.clone()) as Box<dyn Any + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<file>>>| -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> { { let __recv = __arg0.clone(); let __recv_ptr: *const file = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const file }; let __result = unsafe { &*__recv_ptr }.close(); __result } }) as Box<dyn FnMut(Arc<Mutex<Option<file>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>))).clone()) as Box<dyn Any + Send + Sync>))));
+    runtime::set_finalizer(Arc::new(Mutex::new(Some(Box::new((*f.lock().unwrap().as_ref().unwrap()).file.clone()) as Box<dyn Any + Send + Sync>))), Arc::new(Mutex::new(Some(Box::new({
+        let __func_value = Arc::new(Mutex::new(Some(Box::new(move |
+            __arg0: Arc<Mutex<Option<file>>>
+        | -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
+            {
+                let __recv = __arg0.clone();
+                let __recv_ptr: *const file = {
+                    let __recv_guard = __recv.lock().unwrap();
+                    __recv_guard.as_ref().unwrap() as *const file
+                };
+                let __result = unsafe { &*__recv_ptr }.close();
+                __result
+            }
+        }) as Box<dyn FnMut(Arc<Mutex<Option<file>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> + Send + Sync>)));
+        __func_value.clone()
+    }) as Box<dyn Any + Send + Sync>))));
     return f.clone();
 }
 

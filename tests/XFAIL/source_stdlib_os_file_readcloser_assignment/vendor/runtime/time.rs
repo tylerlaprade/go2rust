@@ -769,7 +769,23 @@ impl timer {
         {
             let new_val = racegostart(
             Arc::new(Mutex::new(Some({
-                let __go_binary_0 = internal_abi::func_p_c_a_b_i_internal(Arc::new(Mutex::new(Some(Box::new(Arc::new(Mutex::new(Some(Box::new(move |__arg0: Arc<Mutex<Option<timers>>>, __arg1: Arc<Mutex<Option<i64>>>| -> i64 { { let __recv = __arg0.clone(); let __recv_ptr: *mut timers = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut timers }; let __result = unsafe { &mut *__recv_ptr }.run(__arg1); __result } }) as Box<dyn FnMut(Arc<Mutex<Option<timers>>>, Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>))).clone()) as Box<dyn Any + Send + Sync>))));
+                let __go_binary_0 = internal_abi::func_p_c_a_b_i_internal(Arc::new(Mutex::new(Some(Box::new({
+                    let __func_value = Arc::new(Mutex::new(Some(Box::new(move |
+                        __arg0: Arc<Mutex<Option<timers>>>,
+                        __arg1: Arc<Mutex<Option<i64>>>
+                    | -> i64 {
+                        {
+                            let __recv = __arg0.clone();
+                            let __recv_ptr: *mut timers = {
+                                let mut __recv_guard = __recv.lock().unwrap();
+                                __recv_guard.as_mut().unwrap() as *mut timers
+                            };
+                            let __result = unsafe { &mut *__recv_ptr }.run(__arg1);
+                            __result
+                        }
+                    }) as Box<dyn FnMut(Arc<Mutex<Option<timers>>>, Arc<Mutex<Option<i64>>>) -> i64 + Send + Sync>)));
+                    __func_value.clone()
+                }) as Box<dyn Any + Send + Sync>))));
                 let __go_binary_1 = internal_runtime_sys::P_C_QUANTUM as usize;
                 let __go_binary_2 = __go_binary_0 + __go_binary_1;
                 __go_binary_2
