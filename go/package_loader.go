@@ -1048,7 +1048,6 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 	var generatedModules []generatedRustModule
 	var initModules []generatedInitModule
 	packageImports := NewImportTracker()
-	siblingItemImports := packageSiblingItemImports(pkg.Syntax, moduleNamesByIndex, pkgTypeInfo)
 
 	// Process each file in the package
 	for i, astFile := range pkg.Syntax {
@@ -1086,6 +1085,7 @@ func (pl *PackageLoader) transpilePackage(pkg *packages.Package) error {
 			rustCode: rustCode,
 		})
 	}
+	siblingItemImports := packageSiblingItemImports(pkg.Syntax, moduleNamesByIndex, pkgTypeInfo)
 
 	helpersNeeded := usePackageHelpers && pkgState.Helpers.HasAnyOmittingSharedStdlibHelpers()
 	initDependencyCrates := packageDependencyCrates(pkg.Imports, crateName, pl.packageMapping)

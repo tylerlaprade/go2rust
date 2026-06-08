@@ -249,6 +249,51 @@ func main() {
 	}
 }
 
+func TestMultiFileModuleImportsAnonymousStructTypes(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "owner.go"), `package main
+
+var ready chan struct{}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "use.go"), `package main
+
+func passthrough(ch chan struct{}) chan struct{} {
+	return ch
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+func main() {
+	_ = passthrough(ready)
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "owner.go"),
+		filepath.Join(tempDir, "use.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	ownerRS := mustReadFile(t, filepath.Join(tempDir, "owner.rs"))
+	useRS := mustReadFile(t, filepath.Join(tempDir, "use.rs"))
+	if !strings.Contains(ownerRS, "pub struct AnonymousStruct1") {
+		t.Fatalf("owner module should emit the anonymous struct definition, got:\n%s", ownerRS)
+	}
+	if strings.Contains(useRS, "pub struct AnonymousStruct1") {
+		t.Fatalf("using module should not duplicate the anonymous struct definition, got:\n%s", useRS)
+	}
+	if !strings.Contains(useRS, "use crate::{owner::{AnonymousStruct1}};") {
+		t.Fatalf("using module should import the cross-file anonymous struct type, got:\n%s", useRS)
+	}
+}
+
 func TestSiblingItemImportsSkipPrunedDeclarations(t *testing.T) {
 	fset := token.NewFileSet()
 	defs, err := parser.ParseFile(fset, "defs.go", `package p

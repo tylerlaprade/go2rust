@@ -2,7 +2,7 @@ use go2rust_stdlib_stubs::*;
 
 use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
 
-use crate::{mbitmap::{addb}, panic::{panicking, throw}, plugin::{ptabEntry}, print::{hex}, proc::{initTask}, r#extern::{G_O_A_R_C_H}, r#type::{_type, typeOff}, rand::{cheaprandn}, runtime1::{acquirem, releasem}, runtime2::{_func, funcinl, itab, m}, stack::{STACK_DEBUG, bitvector}, string::{gostring, gostringnocopy}, stubs::{add}, symtabinl::{inlineFrame, inlineUnwinder, new_inline_unwinder}, traceback::{call_cgo_symbolizer, cgoSymbolizer, cgoSymbolizerArg, elide_wrapper_calling, func_name_for_print}};
+use crate::{mbitmap::{addb}, mgc::{AnonymousStruct12}, panic::{panicking, throw}, plugin::{ptabEntry}, print::{hex}, proc::{initTask}, r#extern::{G_O_A_R_C_H}, r#type::{_type, typeOff}, rand::{cheaprandn}, runtime1::{acquirem, releasem}, runtime2::{_func, funcinl, itab, m}, stack::{STACK_DEBUG, bitvector}, string::{gostring, gostringnocopy}, stubs::{add}, symtabinl::{inlineFrame, inlineUnwinder, new_inline_unwinder}, traceback::{call_cgo_symbolizer, cgoSymbolizer, cgoSymbolizerArg, elide_wrapper_calling, func_name_for_print}};
 
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};

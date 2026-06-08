@@ -72,6 +72,7 @@ type PackageState struct {
 	AnonymousStructCounter        int
 	AnonymousStructs              map[string]*ast.StructType
 	AnonymousStructTypeMap        map[string]string
+	AnonymousStructModuleNames    map[string]string
 	AnonymousStructAliases        map[string]string
 	ImportedInterfaceImpls        map[string]map[string]*types.Interface
 	ImportedPointerInterfaceImpls map[string]map[string]*types.Interface
@@ -203,6 +204,7 @@ func NewPackageState() *PackageState {
 		EmbeddedFields:                make(map[string]map[string]string),
 		AnonymousStructs:              make(map[string]*ast.StructType),
 		AnonymousStructTypeMap:        make(map[string]string),
+		AnonymousStructModuleNames:    make(map[string]string),
 		AnonymousStructAliases:        make(map[string]string),
 		ImportedInterfaceImpls:        make(map[string]map[string]*types.Interface),
 		ImportedPointerInterfaceImpls: make(map[string]map[string]*types.Interface),
@@ -464,6 +466,9 @@ func (ctx *TranspileContext) ensureDefaults() {
 		if ctx.Package.AnonymousStructTypeMap == nil {
 			ctx.Package.AnonymousStructTypeMap = make(map[string]string)
 		}
+		if ctx.Package.AnonymousStructModuleNames == nil {
+			ctx.Package.AnonymousStructModuleNames = make(map[string]string)
+		}
 		if ctx.Package.AnonymousStructAliases == nil {
 			ctx.Package.AnonymousStructAliases = make(map[string]string)
 		}
@@ -609,6 +614,7 @@ func (ctx *TranspileContext) captureCompatibilityState() {
 		ctx.Package.AnonymousStructCounter = anonymousStructCounter
 		ctx.Package.AnonymousStructs = anonymousStructs
 		ctx.Package.AnonymousStructTypeMap = anonymousStructTypeMap
+		ctx.Package.AnonymousStructModuleNames = anonymousStructModuleNames
 		ctx.Package.AnonymousStructAliases = anonymousStructAliases
 	}
 	if ctx.File != nil {
@@ -678,6 +684,7 @@ func (ctx *TranspileContext) applyCompatibilityState() {
 		anonymousStructCounter = ctx.Package.AnonymousStructCounter
 		anonymousStructs = ctx.Package.AnonymousStructs
 		anonymousStructTypeMap = ctx.Package.AnonymousStructTypeMap
+		anonymousStructModuleNames = ctx.Package.AnonymousStructModuleNames
 		anonymousStructAliases = ctx.Package.AnonymousStructAliases
 	}
 	if ctx.File != nil {

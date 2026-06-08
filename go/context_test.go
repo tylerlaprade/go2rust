@@ -89,10 +89,12 @@ func TestTranspileContextScopesAnonymousStructsToPackage(t *testing.T) {
 	savedCounter := anonymousStructCounter
 	savedStructs := anonymousStructs
 	savedTypeMap := anonymousStructTypeMap
+	savedModuleNames := anonymousStructModuleNames
 	defer func() {
 		anonymousStructCounter = savedCounter
 		anonymousStructs = savedStructs
 		anonymousStructTypeMap = savedTypeMap
+		anonymousStructModuleNames = savedModuleNames
 		SetTranspileContext(nil)
 	}()
 

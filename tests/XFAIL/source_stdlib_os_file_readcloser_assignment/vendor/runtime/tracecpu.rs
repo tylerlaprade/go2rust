@@ -2,7 +2,7 @@ use go2rust_stdlib_stubs::*;
 
 use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
 
-use crate::{lock_spinbit::{lock, unlock}, os_darwin::{osyield}, panic::{throw}, profbuf::{PROF_BUF_NON_BLOCKING, profBuf, profBufReadMode}, runtime2::{g, m, mutex, p}, stubs::{systemstack}, trace::{trace, wakeableSleep}, tracebuf::{TRACE_BYTES_PER_NUMBER, traceBuf, traceWriter, trace_buf_flush, unsafe_trace_writer}, traceevent::{TRACE_EV_C_P_U_SAMPLE, TRACE_EV_C_P_U_SAMPLES}, traceruntime::{mTraceState, trace_enabled}, tracestack::{LOGICAL_STACK_SENTINEL, TRACE_STACK_SIZE, traceStackTable}, tracetime::{traceTime, trace_clock_now}};
+use crate::{lock_spinbit::{lock, unlock}, mgc::{AnonymousStruct12}, os_darwin::{osyield}, panic::{throw}, profbuf::{PROF_BUF_NON_BLOCKING, profBuf, profBufReadMode}, runtime2::{g, m, mutex, p}, stubs::{systemstack}, trace::{trace, wakeableSleep}, tracebuf::{TRACE_BYTES_PER_NUMBER, traceBuf, traceWriter, trace_buf_flush, unsafe_trace_writer}, traceevent::{TRACE_EV_C_P_U_SAMPLE, TRACE_EV_C_P_U_SAMPLES}, traceruntime::{mTraceState, trace_enabled}, tracestack::{LOGICAL_STACK_SENTINEL, TRACE_STACK_SIZE, traceStackTable}, tracetime::{traceTime, trace_clock_now}};
 
 use std::any::Any;
 use std::sync::{Arc, Mutex};

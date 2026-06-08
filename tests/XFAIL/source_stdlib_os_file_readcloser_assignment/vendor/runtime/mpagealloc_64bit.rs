@@ -2,7 +2,7 @@ use go2rust_stdlib_stubs::*;
 
 use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
 
-use crate::{malloc::{HEAP_ADDR_BITS, notInHeap, physPageSize}, mem::{sys_map, sys_reserve, sys_used}, mgcscavenge::{atomicScavChunkData, scavengeIndex}, mpagealloc::{LOG_PALLOC_CHUNK_PAGES, PALLOC_CHUNK_BYTES, PALLOC_SUM_BYTES, SUMMARY_L0_BITS, SUMMARY_LEVEL_BITS, addrs_to_summary_range, block_align_summary_range, chunkIdx, chunk_index, pageAlloc, pallocSum}, mranges::{addrRange, addrRanges, make_addr_range, offAddr}, mstats::{sysMemStat}, panic::{throw}, print::{hex}, slice::{notInHeapSlice}, stubs::{add, align_down, align_up}};
+use crate::{malloc::{HEAP_ADDR_BITS, notInHeap, physPageSize}, mem::{sys_map, sys_reserve, sys_used}, mgcscavenge::{atomicScavChunkData, scavengeIndex}, mheap::{AnonymousStruct15}, mpagealloc::{LOG_PALLOC_CHUNK_PAGES, PALLOC_CHUNK_BYTES, PALLOC_SUM_BYTES, SUMMARY_L0_BITS, SUMMARY_LEVEL_BITS, addrs_to_summary_range, block_align_summary_range, chunkIdx, chunk_index, pageAlloc, pallocSum}, mranges::{addrRange, addrRanges, make_addr_range, offAddr}, mstats::{sysMemStat}, panic::{throw}, print::{hex}, slice::{notInHeapSlice}, stubs::{add, align_down, align_up}};
 
 use std::sync::{Arc, Mutex};
 

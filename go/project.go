@@ -330,7 +330,6 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 
 	nonMainModuleNames := pg.nonMainModuleNames(astFilesByPath)
 	moduleNamesByIndex := pg.moduleNamesByASTFiles(astFiles, astFilesByPath)
-	siblingItemImports := packageSiblingItemImports(astFiles, moduleNamesByIndex, pg.typeInfo)
 	for _, filename := range pg.goFiles {
 		file := astFilesByPath[normalizeFilePath(filename)]
 		if file == nil {
@@ -421,6 +420,8 @@ func (pg *ProjectGenerator) generateInternal(skipExternalHandling bool) error {
 		})
 		pg.moduleNames = append(pg.moduleNames, outputName)
 	}
+
+	siblingItemImports := packageSiblingItemImports(astFiles, moduleNamesByIndex, pg.typeInfo)
 
 	// Handle external packages based on mode (skip for vendor packages)
 	// Note: ModeTranspile is already handled above with unified transpilation
@@ -691,6 +692,19 @@ func packageSiblingItemImports(files []*ast.File, moduleNamesByIndex []string, t
 			}
 			neededByModule[sourceModule][rustName] = true
 		}
+		recordAnonymousStruct := func(typeName string) {
+			if typeName == "" || anonymousStructModuleNames == nil {
+				return
+			}
+			sourceModule := anonymousStructModuleNames[typeName]
+			if sourceModule == "" || sourceModule == currentModule {
+				return
+			}
+			if neededByModule[sourceModule] == nil {
+				neededByModule[sourceModule] = make(map[string]bool)
+			}
+			neededByModule[sourceModule][typeName] = true
+		}
 		var collectTypeReferences func(types.Type, map[types.Type]bool)
 		collectTupleReferences := func(tuple *types.Tuple, seen map[types.Type]bool) {
 			if tuple == nil {
@@ -736,6 +750,7 @@ func packageSiblingItemImports(files []*ast.File, moduleNamesByIndex []string, t
 				for i := 0; i < t.NumFields(); i++ {
 					collectTypeReferences(t.Field(i).Type(), seen)
 				}
+				recordAnonymousStruct(lookupAnonymousStructName(t))
 			case *types.Interface:
 				for i := 0; i < t.NumEmbeddeds(); i++ {
 					collectTypeReferences(t.EmbeddedType(i), seen)

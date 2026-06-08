@@ -14,6 +14,7 @@ import (
 var anonymousStructCounter = 0
 var anonymousStructs = make(map[string]*ast.StructType)
 var anonymousStructTypeMap = make(map[string]string) // maps struct signature to type name
+var anonymousStructModuleNames = make(map[string]string)
 var anonymousStructAliases = make(map[string]string) // maps package global type aliases to anonymous struct names
 
 func rustUintType() string {
@@ -687,6 +688,14 @@ func generateAnonymousStructType(structType *ast.StructType) string {
 		if _, registered := structDefs[typeName]; !registered {
 			registerStructDef(typeName, structType)
 		}
+		if anonymousStructModuleNames == nil {
+			anonymousStructModuleNames = make(map[string]string)
+		}
+		if anonymousStructModuleNames[typeName] == "" {
+			if ctx := GetTranspileContext(); ctx != nil && ctx.CurrentModuleName != "" {
+				anonymousStructModuleNames[typeName] = ctx.CurrentModuleName
+			}
+		}
 		return typeName
 	}
 
@@ -695,6 +704,12 @@ func generateAnonymousStructType(structType *ast.StructType) string {
 	typeName := fmt.Sprintf("AnonymousStruct%d", anonymousStructCounter)
 	anonymousStructs[typeName] = structType
 	anonymousStructTypeMap[sig] = typeName
+	if anonymousStructModuleNames == nil {
+		anonymousStructModuleNames = make(map[string]string)
+	}
+	if ctx := GetTranspileContext(); ctx != nil && ctx.CurrentModuleName != "" {
+		anonymousStructModuleNames[typeName] = ctx.CurrentModuleName
+	}
 	registerStructDef(typeName, structType)
 
 	// Process nested structs in fields to ensure they're also generated

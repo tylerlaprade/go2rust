@@ -2,7 +2,7 @@ use go2rust_stdlib_stubs::*;
 
 use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceElemMutRef, GoSliceElemPtr, GoSliceElemRef, format_any, format_map, format_nested_pointer_slice, format_nested_pointer_slice_wrapped, format_nested_slice, format_nested_slice_wrapped, format_slice, format_slice_values, format_slice_wrapped, format_slice_wrapped_values, go_any_clone, go_const_str_eq, go_recover, go_resume_unrecovered_panic, go_store_panic_payload};
 
-use crate::{lock_spinbit::{lock, unlock}, malloc::{PAGE_SIZE, __NUM_STACK_ORDERS, __PAGE_MASK, __PAGE_SIZE, next_sample}, mcentral::{mcentral}, mfixalloc::{fixalloc}, mgcpacer::{gcController}, mgcsweep::{deduct_sweep_credit}, mheap::{NUM_SPAN_CLASSES, TINY_SPAN_CLASS, make_span_class, mheap_, mspan, spanClass}, mspanset::{spanSet}, mstats::{consistentHeapStats, heapStatsDelta, memstats}, panic::{throw}, proc::{mcache0}, runtime2::{m, mutex, p, puintptr}, sizeclasses::{__PAGE_SHIFT}, stack::{stackcache_clear}, stubs::{systemstack}};
+use crate::{lock_spinbit::{lock, unlock}, malloc::{PAGE_SIZE, __NUM_STACK_ORDERS, __PAGE_MASK, __PAGE_SIZE, next_sample}, mcentral::{mcentral}, mfixalloc::{fixalloc}, mgcpacer::{gcController}, mgcsweep::{deduct_sweep_credit}, mheap::{AnonymousStruct17, NUM_SPAN_CLASSES, TINY_SPAN_CLASS, make_span_class, mheap_, mspan, spanClass}, mspanset::{spanSet}, mstats::{consistentHeapStats, heapStatsDelta, memstats}, panic::{throw}, proc::{mcache0}, runtime2::{m, mutex, p, puintptr}, sizeclasses::{__PAGE_SHIFT}, stack::{stackcache_clear}, stubs::{systemstack}};
 
 use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
