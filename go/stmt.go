@@ -3281,13 +3281,34 @@ func typeSwitchInterfaceBindingFallbackRustType(typeInfo *TypeInfo, typeExpr ast
 	return ""
 }
 
+func typeSwitchInterfaceBindingTraitName(typeInfo *TypeInfo, typeExpr ast.Expr, iface *types.Interface, candidates []localInterfaceAssertionCandidate) (string, bool) {
+	if _, ok := typeExpr.(*ast.InterfaceType); ok {
+		if ifaceName := registerAnonymousInterfaceAssertionTrait(iface, candidates); ifaceName != "" {
+			return ifaceName, true
+		}
+		return "", false
+	}
+	if typeInfo == nil || typeExpr == nil {
+		return "", false
+	}
+	typ := typeInfo.GetType(typeExpr)
+	if ident, ok := typeExpr.(*ast.Ident); ok {
+		if obj, ok := typeInfo.GetObject(ident).(*types.TypeName); ok {
+			typ = obj.Type()
+		}
+	} else if sel, ok := typeExpr.(*ast.SelectorExpr); ok {
+		if obj, ok := typeInfo.GetObject(sel.Sel).(*types.TypeName); ok {
+			typ = obj.Type()
+		}
+	}
+	return localNamedInterfaceTypeNameFromTypes(typ)
+}
+
 // writeTypeSwitchInterfaceCaseBinding binds the case variable for an interface
 // case (named or anonymous). The condition has already matched a structural
 // candidate, so the bound value is the matched concrete implementor downcast
-// out of the subject. With a single candidate this is exact; multiple
-// candidates still panic loudly rather than emitting a lossy binding, but the
-// fallback uses the interface method-set type so unreachable case bodies remain
-// type-checkable.
+// out of the subject. Multiple candidates use the interface method-set trait
+// object so the case variable has one Rust type.
 func writeTypeSwitchInterfaceCaseBinding(out *strings.Builder, typeInfo *TypeInfo, varName string, typeExpr ast.Expr, subjectType types.Type, mutable bool) bool {
 	iface, ok := typeSwitchCaseInterface(typeInfo, typeExpr)
 	if !ok {
@@ -3299,6 +3320,31 @@ func writeTypeSwitchInterfaceCaseBinding(out *strings.Builder, typeInfo *TypeInf
 		out.WriteString("mut ")
 	}
 	out.WriteString(varName)
+	if len(candidates) > 1 {
+		if ifaceName, ok := typeSwitchInterfaceBindingTraitName(typeInfo, typeExpr, iface, candidates); ok {
+			out.WriteString(": ")
+			out.WriteString(goTypesWrappedRustType(rustLocalInterfaceTraitObject(ifaceName)))
+			out.WriteString(" = ")
+			for i, candidate := range candidates {
+				if i == 0 {
+					out.WriteString("if let Some(typed_val) = ")
+				} else {
+					out.WriteString(" else if let Some(typed_val) = ")
+				}
+				out.WriteString("_ts_val.and_then(|__v| __v.downcast_ref::<")
+				out.WriteString(candidate.rustType)
+				out.WriteString(">()) {\n")
+				out.WriteString("            ")
+				writeLocalInterfaceAssertionWrappedCandidateSuccess(out, ifaceName, candidate)
+				out.WriteString("\n")
+				out.WriteString("        }")
+			}
+			out.WriteString(" else {\n")
+			out.WriteString("            panic!(\"type switch interface case condition matched no concrete implementor\")\n")
+			out.WriteString("        };\n")
+			return true
+		}
+	}
 	if len(candidates) != 1 {
 		if fallbackType := typeSwitchInterfaceBindingFallbackRustType(typeInfo, typeExpr, iface, candidates); fallbackType != "" {
 			out.WriteString(": ")

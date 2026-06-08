@@ -691,7 +691,7 @@ func classify(v any) string {
 	}
 }
 
-func TestTypeSwitchInterfaceCaseUnimplementedBindingIsTyped(t *testing.T) {
+func TestTypeSwitchInterfaceCaseSynthesizesMultiCandidateBinding(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
 type Positioner interface {
@@ -714,11 +714,18 @@ func visit(x any) {
 }
 `)
 
-	if strings.Contains(rust, `let a = unimplemented!("type info required: type switch on interface case with 2 concrete implementors`) {
-		t.Fatalf("unimplemented interface case binding should carry an explicit Rust type:\n%s", rust)
+	if strings.Contains(rust, `type switch on interface case with 2 concrete implementors needs a synthesized trait object`) {
+		t.Fatalf("interface case binding should synthesize a trait object instead of panicking:\n%s", rust)
 	}
-	if !strings.Contains(rust, `let a: Rc<RefCell<Option<Box<dyn Positioner>>>> = unimplemented!`) {
-		t.Fatalf("unimplemented interface case binding should be typed as the case interface:\n%s", rust)
+	for _, want := range []string{
+		`let a: Rc<RefCell<Option<Box<dyn Positioner>>>> = if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<A>())`,
+		`} else if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<B>())`,
+		`Box::new(typed_val.clone()) as Box<dyn Positioner>`,
+		`panic!("type switch interface case condition matched no concrete implementor")`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("interface case binding should contain %q:\n%s", want, rust)
+		}
 	}
 }
 
