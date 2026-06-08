@@ -169,9 +169,6 @@ use crate::vdso_in_none::*;
 use crate::vgetrandom_unsupported::*;
 use crate::write_err::*;
 
-use std::fmt::{Display, Formatter};
-use std::sync::{Arc, Mutex};
-
 pub(crate) const OFFSET_X86_HAS_A_V_X: usize = std::mem::offset_of!(internal_cpu::X86, has_a_v_x);
 pub(crate) const OFFSET_X86_HAS_A_V_X2: usize = std::mem::offset_of!(internal_cpu::X86, has_a_v_x2);
 pub(crate) const OFFSET_X86_HAS_E_R_M_S: usize = std::mem::offset_of!(internal_cpu::X86, has_e_r_m_s);
@@ -179,43 +176,6 @@ pub(crate) const OFFSET_X86_HAS_R_D_T_S_C_P: usize = std::mem::offset_of!(intern
 pub(crate) const OFFSET_A_R_M_HAS_I_D_I_V_A: usize = std::mem::offset_of!(internal_cpu::ARM, has_i_d_i_v_a);
 pub(crate) const OFFSET_M_I_P_S64_X_HAS_M_S_A: usize = std::mem::offset_of!(internal_cpu::MIPS64X, has_m_s_a);
 pub(crate) const OFFSET_L_O_O_N_G64_HAS_L_S_X: usize = std::mem::offset_of!(internal_cpu::Loong64, has_l_s_x);
-
-
-#[derive(Clone)]
-pub struct AnonymousStruct1 {
-    pub lock: Arc<Mutex<Option<mutex>>>,
-    pub reuse: Arc<Mutex<Option<Vec<liveUserArenaChunk>>>>,
-    pub fault: Arc<Mutex<Option<Vec<liveUserArenaChunk>>>>,
-}
-impl AnonymousStruct1 {
-    pub fn __go_value_clone(&self) -> Self {
-        Self { lock: { let __guard = self.lock.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, reuse: self.reuse.clone(), fault: self.fault.clone() }
-    }
-}
-
-
-impl Default for AnonymousStruct1 {
-    fn default() -> Self {
-        Self { lock: Arc::new(Mutex::new(Some(mutex::default()))), reuse: Arc::new(Mutex::new(None)), fault: Arc::new(Mutex::new(None)) }
-    }
-}
-
-impl std::fmt::Display for AnonymousStruct1 {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {}}}", (*self.lock.lock().unwrap().as_ref().unwrap()), format_slice(&self.reuse), format_slice(&self.fault))
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct1 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
-
-pub(crate) type userArenaState = AnonymousStruct1;
 
 
 pub(crate) static x86HasPOPCNT: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<bool>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));

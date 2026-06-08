@@ -32,9 +32,6 @@ use crate::zerrors_darwin_arm64::*;
 use crate::zsyscall_darwin_arm64::*;
 use crate::ztypes_darwin_arm64::*;
 
-use std::fmt::{Display, Formatter};
-use std::sync::{Arc, Mutex};
-
 pub const S_Y_S__S_Y_S_C_A_L_L: i32 = 0;
 pub const S_Y_S__E_X_I_T: i32 = 1;
 pub const S_Y_S__F_O_R_K: i32 = 2;
@@ -384,50 +381,3 @@ pub const S_Y_S__P_I_D__S_H_U_T_D_O_W_N__S_O_C_K_E_T_S: i32 = 436;
 pub const S_Y_S__S_H_A_R_E_D__R_E_G_I_O_N__M_A_P__A_N_D__S_L_I_D_E__N_P: i32 = 438;
 pub const S_Y_S__K_A_S__I_N_F_O: i32 = 439;
 pub const S_Y_S__M_A_X_S_Y_S_C_A_L_L: i32 = 440;
-
-
-#[derive(Debug, Clone)]
-pub struct AnonymousStruct1 {
-    pub r#type: Arc<Mutex<Option<u8>>>,
-    pub nlen: Arc<Mutex<Option<u8>>>,
-    pub alen: Arc<Mutex<Option<u8>>>,
-    pub slen: Arc<Mutex<Option<u8>>>,
-}
-impl AnonymousStruct1 {
-    pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, nlen: { let __guard = self.nlen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, alen: { let __guard = self.alen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, slen: { let __guard = self.slen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
-    }
-}
-
-
-impl Default for AnonymousStruct1 {
-    fn default() -> Self {
-        Self { r#type: Arc::new(Mutex::new(Some(0))), nlen: Arc::new(Mutex::new(Some(0))), alen: Arc::new(Mutex::new(Some(0))), slen: Arc::new(Mutex::new(Some(0))) }
-    }
-}
-
-impl std::fmt::Display for AnonymousStruct1 {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.r#type.lock().unwrap().as_ref().unwrap()), (*self.nlen.lock().unwrap().as_ref().unwrap()), (*self.alen.lock().unwrap().as_ref().unwrap()), (*self.slen.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct1 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Type") {
-            out.r#type = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Nlen") {
-            out.nlen = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Alen") {
-            out.alen = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Slen") {
-            out.slen = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}

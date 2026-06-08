@@ -32,7 +32,6 @@ use crate::zsyscall_darwin_arm64::*;
 use crate::zsysnum_darwin_arm64::*;
 use crate::ztypes_darwin_arm64::*;
 
-use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
 
 pub const A_F__A_P_P_L_E_T_A_L_K: i32 = 0x10;
@@ -1310,53 +1309,6 @@ pub const S_I_G_V_T_A_L_R_M: i32 = (0x1a as i32);
 pub const S_I_G_W_I_N_C_H: i32 = (0x1c as i32);
 pub const S_I_G_X_C_P_U: i32 = (0x18 as i32);
 pub const S_I_G_X_F_S_Z: i32 = (0x19 as i32);
-
-
-#[derive(Debug, Clone)]
-pub struct AnonymousStruct1 {
-    pub r#type: Arc<Mutex<Option<u8>>>,
-    pub nlen: Arc<Mutex<Option<u8>>>,
-    pub alen: Arc<Mutex<Option<u8>>>,
-    pub slen: Arc<Mutex<Option<u8>>>,
-}
-impl AnonymousStruct1 {
-    pub fn __go_value_clone(&self) -> Self {
-        Self { r#type: { let __guard = self.r#type.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, nlen: { let __guard = self.nlen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, alen: { let __guard = self.alen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) }, slen: { let __guard = self.slen.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
-    }
-}
-
-
-impl Default for AnonymousStruct1 {
-    fn default() -> Self {
-        Self { r#type: Arc::new(Mutex::new(Some(0))), nlen: Arc::new(Mutex::new(Some(0))), alen: Arc::new(Mutex::new(Some(0))), slen: Arc::new(Mutex::new(Some(0))) }
-    }
-}
-
-impl std::fmt::Display for AnonymousStruct1 {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{} {} {} {}}}", (*self.r#type.lock().unwrap().as_ref().unwrap()), (*self.nlen.lock().unwrap().as_ref().unwrap()), (*self.alen.lock().unwrap().as_ref().unwrap()), (*self.slen.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct1 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        if let Some(field_value) = object.get("Type") {
-            out.r#type = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Nlen") {
-            out.nlen = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Alen") {
-            out.alen = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        if let Some(field_value) = object.get("Slen") {
-            out.slen = <Arc<Mutex<Option<u8>>> as GoJsonDecode>::go_json_decode(field_value)?;
-        }
-        Ok(out)
-    }
-}
 
 
 pub(crate) static errors: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<[String; 107]>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));

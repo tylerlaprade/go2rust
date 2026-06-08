@@ -5137,6 +5137,56 @@ func check() {
 	}
 }
 
+func TestMultiFileAnonymousStructGlobalEmitsDefinitionOnce(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "arena.go"), `package main
+
+var userArenaState struct {
+	lock int
+	reuse []int
+	fault []int
+}
+
+func useArena() int {
+	return userArenaState.lock
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "other.go"), `package main
+
+func other() int {
+	return 1
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+func main() {
+	println(useArena() + other())
+}
+`)
+
+	generator := NewProjectGenerator([]string{
+		filepath.Join(tempDir, "arena.go"),
+		filepath.Join(tempDir, "other.go"),
+		filepath.Join(tempDir, "main.go"),
+	})
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	arenaRS := mustReadFile(t, filepath.Join(tempDir, "arena.rs"))
+	otherRS := mustReadFile(t, filepath.Join(tempDir, "other.rs"))
+	if !strings.Contains(arenaRS, "pub struct AnonymousStruct1") || !strings.Contains(arenaRS, "type userArenaState = AnonymousStruct1") {
+		t.Fatalf("anonymous struct global owner should emit struct and alias, got:\n%s", arenaRS)
+	}
+	if strings.Contains(otherRS, "pub struct AnonymousStruct1") || strings.Contains(otherRS, "type userArenaState = AnonymousStruct1") {
+		t.Fatalf("unrelated file should not duplicate anonymous struct definitions, got:\n%s", otherRS)
+	}
+}
+
 func TestExportedAnonymousStructGlobalFieldsArePublic(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

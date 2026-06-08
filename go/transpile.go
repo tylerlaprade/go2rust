@@ -3122,6 +3122,8 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	SetTranspileContext(ctx)
 	defer SetTranspileContext(parentCtx)
 	reserveSiblingRustTypeNames(imports)
+	preexistingAnonymousStructs := snapshotAnonymousStructNames()
+	preexistingAnonymousStructAliases := snapshotAnonymousStructAliasNames()
 	if currentContext != nil && currentContext.Package != nil && len(currentContext.Package.MethodNameOverrides) == 0 {
 		currentContext.Package.MethodNameOverrides = assignPackageMethodNames([]*ast.File{file}, typeInfo)
 		packageMethodNameOverrides = currentContext.Package.MethodNameOverrides
@@ -3409,7 +3411,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 	}
 
 	emittedAnonymousStructs := make(map[string]bool)
-	writeAnonymousStructDefinitions(&body, &first, emittedAnonymousStructs)
+	writeAnonymousStructDefinitions(&body, &first, emittedAnonymousStructs, preexistingAnonymousStructs, preexistingAnonymousStructAliases)
 
 	if hasGlobals {
 		if !first {
@@ -3703,7 +3705,7 @@ func TranspileWithMapping(file *ast.File, fileSet *token.FileSet, typeInfo *Type
 
 	writeNilPointerReceiverMethodHelpers(&body, &first, nilPointerReceiverMethodHelpers, methods, fileSet, file.Comments)
 
-	writeAnonymousStructDefinitions(&body, &first, emittedAnonymousStructs)
+	writeAnonymousStructDefinitions(&body, &first, emittedAnonymousStructs, preexistingAnonymousStructs, preexistingAnonymousStructAliases)
 	writeAnonymousInterfaceAssertionTraits(&body, &first)
 
 	if hasInitFunction {
@@ -3860,10 +3862,26 @@ func writeAnonymousStructPromotedMethods(out *strings.Builder, typeName string) 
 	out.WriteString("}\n")
 }
 
-func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted map[string]bool) {
+func snapshotAnonymousStructNames() map[string]bool {
+	names := make(map[string]bool, len(anonymousStructs))
+	for name := range anonymousStructs {
+		names[name] = true
+	}
+	return names
+}
+
+func snapshotAnonymousStructAliasNames() map[string]bool {
+	names := make(map[string]bool, len(anonymousStructAliases))
+	for name := range anonymousStructAliases {
+		names[name] = true
+	}
+	return names
+}
+
+func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted map[string]bool, preexistingStructs map[string]bool, preexistingAliases map[string]bool) {
 	var anonTypeNames []string
 	for typeName := range anonymousStructs {
-		if !emitted[typeName] {
+		if !emitted[typeName] && !preexistingStructs[typeName] {
 			anonTypeNames = append(anonTypeNames, typeName)
 		}
 	}
@@ -3933,7 +3951,8 @@ func writeAnonymousStructDefinitions(body *strings.Builder, first *bool, emitted
 
 	var aliasNames []string
 	for aliasName, targetName := range anonymousStructAliases {
-		if emitted["alias:"+aliasName] || !emitted[targetName] {
+		targetAvailable := emitted[targetName] || preexistingStructs[targetName]
+		if emitted["alias:"+aliasName] || preexistingAliases[aliasName] || !targetAvailable {
 			continue
 		}
 		aliasNames = append(aliasNames, aliasName)

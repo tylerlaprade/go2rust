@@ -5,7 +5,7 @@ use crate::{GoArrayElemMutRef, GoArrayElemPtr, GoArrayElemRef, GoPtr, GoSliceEle
 use crate::exit::*;
 
 use std::any::Any;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Display};
 use std::sync::{Arc, Mutex};
 
 /// Interface is the interface required of test loggers.
@@ -27,42 +27,6 @@ impl Clone for Box<dyn Interface + Send + Sync> {
         Interface::__go_clone_box_interface(self.as_ref())
     }
 }
-
-#[derive(Clone)]
-pub struct AnonymousStruct1 {
-    pub mu: sync::mutex::Mutex,
-    pub val: Arc<Mutex<Option<bool>>>,
-}
-impl AnonymousStruct1 {
-    pub fn __go_value_clone(&self) -> Self {
-        Self { mu: self.mu.clone(), val: { let __guard = self.val.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
-    }
-}
-
-
-impl Default for AnonymousStruct1 {
-    fn default() -> Self {
-        Self { mu: Default::default(), val: Arc::new(Mutex::new(Some(false))) }
-    }
-}
-
-impl std::fmt::Display for AnonymousStruct1 {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.val.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct1 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
-
-pub(crate) type panicOnExit0 = AnonymousStruct1;
-
 
 pub(crate) static logger_1: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<sync_atomic::r#type::Pointer<Box<dyn Interface + Send + Sync>>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 

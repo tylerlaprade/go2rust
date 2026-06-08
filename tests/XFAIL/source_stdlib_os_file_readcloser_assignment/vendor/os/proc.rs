@@ -43,61 +43,7 @@ use crate::wait_unimp::*;
 use crate::zero_copy_posix::*;
 use crate::zero_copy_stub::*;
 
-use std::fmt::{Display, Formatter};
 use std::sync::{Arc, Mutex};
-
-#[derive(Clone)]
-pub struct AnonymousStruct1 {
-    pub mutex: sync::mutex::Mutex,
-    pub dir: Arc<Mutex<Option<String>>>,
-}
-impl AnonymousStruct1 {
-    pub fn __go_value_clone(&self) -> Self {
-        Self { mutex: self.mutex.clone(), dir: { let __guard = self.dir.lock().unwrap(); Arc::new(Mutex::new((*__guard).clone())) } }
-    }
-}
-
-impl AnonymousStruct1 {
-    pub fn lock(&mut self) {
-        let embedded_ref = &mut self.mutex;
-        embedded_ref.lock()
-    }
-
-    pub fn try_lock(&mut self) -> bool {
-        let embedded_ref = &mut self.mutex;
-        embedded_ref.try_lock()
-    }
-
-    pub fn unlock(&mut self) {
-        let embedded_ref = &mut self.mutex;
-        embedded_ref.unlock()
-    }
-}
-
-
-impl Default for AnonymousStruct1 {
-    fn default() -> Self {
-        Self { mutex: Default::default(), dir: Arc::new(Mutex::new(Some(String::new()))) }
-    }
-}
-
-impl std::fmt::Display for AnonymousStruct1 {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.dir.lock().unwrap().as_ref().unwrap()))
-    }
-}
-
-impl GoJsonDecode for AnonymousStruct1 {
-    fn go_json_decode(value: &serde_json::Value) -> Result<Self, String> {
-        let object = value.as_object().ok_or_else(|| go_json_expected(value, "object"))?;
-        let mut out = Self::default();
-        Ok(out)
-    }
-}
-
-
-pub(crate) type getwdCache = AnonymousStruct1;
-
 
 pub static Args: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex<Option<Vec<String>>>>> = std::sync::LazyLock::new(|| std::sync::Arc::new(std::sync::Mutex::new(None)));
 
