@@ -1624,6 +1624,24 @@ func clearValue(x int) int {
 	}
 }
 
+func TestBuiltinClearGenericSliceConstraintUsesCoreType(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func Delete[S ~[]E, E any](s S, i int, j int) S {
+	clear(s[len(s)-(j-i):len(s)])
+	return s
+}
+`)
+
+	if strings.Contains(rust, `unimplemented!("clear requires map or slice type")`) {
+		t.Fatalf("clear on generic slice constraint should use the go/types core slice type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "for __clear_i in __clear_start..__clear_end") ||
+		!strings.Contains(rust, "__clear_seq[__clear_i] = Default::default();") {
+		t.Fatalf("clear on generic slice constraint should zero the selected range:\n%s", rust)
+	}
+}
+
 func TestUserFunctionNamedClearDoesNotUseBuiltinClear(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

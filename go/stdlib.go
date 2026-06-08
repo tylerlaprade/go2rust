@@ -5465,7 +5465,7 @@ func transpileClear(out *strings.Builder, call *ast.CallExpr) {
 		out.WriteString("unimplemented!(\"type info required for clear\")")
 		return
 	}
-	switch typ := types.Unalias(argType).Underlying().(type) {
+	switch typ := coreUnderlyingType(argType).(type) {
 	case *types.Map:
 		writeClearMap(out, arg)
 	case *types.Slice:
