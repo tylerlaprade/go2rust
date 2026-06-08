@@ -373,7 +373,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         let mut hashShift = Arc::new(StdMutex::new(Some({ let __tmp_x = 8; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y })));
@@ -394,7 +394,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         if n.is_nil() {
@@ -449,7 +449,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         { let new_val = ((8 as u64) * (internal_goarch::PTR_SIZE as u64)) as u64; *hashShift.lock().unwrap() = Some(new_val); };
@@ -465,7 +465,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         if n.is_nil() {
@@ -517,7 +517,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         if (n.is_nil() || (*{ let __ptr_value = n.borrow(); __ptr_value.as_ref().unwrap().is_entry.clone() }.lock().unwrap().as_ref().unwrap())) && !(*{ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.dead.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load() {
@@ -636,7 +636,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 GoPtr::Local(__value) => sync_atomic::GoPtr::local(__value.clone()),
                 GoPtr::Raw(__addr) => sync_atomic::GoPtr::raw(__addr),
                 GoPtr::SliceElem(__value) => sync_atomic::GoPtr::slice_elem(sync_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                GoPtr::ArrayElem(__value) => sync_atomic::GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         });
         return (*newEntry.lock().unwrap().as_ref().unwrap()).node.clone();
@@ -735,7 +735,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         { let new_val = ((8 as u64) * (internal_goarch::PTR_SIZE as u64)) as u64; *hashShift.lock().unwrap() = Some(new_val); };
@@ -751,7 +751,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         if n.is_nil() || (*{ let __ptr_value = n.borrow(); __ptr_value.as_ref().unwrap().is_entry.clone() }.lock().unwrap().as_ref().unwrap()) {
@@ -779,7 +779,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         if (n.is_nil() || (*{ let __ptr_value = n.borrow(); __ptr_value.as_ref().unwrap().is_entry.clone() }.lock().unwrap().as_ref().unwrap())) && !(*{ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.dead.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load() {
@@ -1152,7 +1152,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         { let new_val = ((8 as u64) * (internal_goarch::PTR_SIZE as u64)) as u64; *hashShift.lock().unwrap() = Some(new_val); };
@@ -1168,7 +1168,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         if n.is_nil() {
@@ -1214,7 +1214,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         if !(*{ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.dead.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load() && (n.is_nil() || (*{ let __ptr_value = n.borrow(); __ptr_value.as_ref().unwrap().is_entry.clone() }.lock().unwrap().as_ref().unwrap())) {
@@ -1248,7 +1248,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         }; let __method_arg1 = r#yield.clone(); ht_closure_clone.iter(__method_arg0, __method_arg1) };
     }) as Box<dyn FnMut(Arc<StdMutex<Option<Box<dyn FnMut(Arc<StdMutex<Option<K>>>, Arc<StdMutex<Option<V>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>)));
@@ -1268,7 +1268,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         }; let __method_arg1 = r#yield.clone(); self.iter(__method_arg0, __method_arg1) };
     }
@@ -1289,7 +1289,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         if n.is_nil() {
@@ -1326,7 +1326,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
     }
@@ -1392,7 +1392,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         }; __self = new_val; };
     }
@@ -1441,7 +1441,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         }; __self = new_val; };
     }
@@ -1467,7 +1467,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };;
         if !chain.is_nil() {
@@ -1478,7 +1478,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                     GoPtr::Local(__value) => sync_atomic::GoPtr::local(__value.clone()),
                     GoPtr::Raw(__addr) => sync_atomic::GoPtr::raw(__addr),
                     GoPtr::SliceElem(__value) => sync_atomic::GoPtr::slice_elem(sync_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                    GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                    GoPtr::ArrayElem(__value) => sync_atomic::GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
                 }
             });;
         }
@@ -1494,7 +1494,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         while !e.is_nil() {
@@ -1512,7 +1512,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
     }
@@ -1554,7 +1554,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };;
         if !chain.is_nil() {
@@ -1565,7 +1565,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                     GoPtr::Local(__value) => sync_atomic::GoPtr::local(__value.clone()),
                     GoPtr::Raw(__addr) => sync_atomic::GoPtr::raw(__addr),
                     GoPtr::SliceElem(__value) => sync_atomic::GoPtr::slice_elem(sync_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                    GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                    GoPtr::ArrayElem(__value) => sync_atomic::GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
                 }
             });;
         }
@@ -1581,7 +1581,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         while !e.is_nil() {
@@ -1617,7 +1617,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
     }
@@ -1640,7 +1640,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                     sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                     sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                     sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                    sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                    sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
                 }
             },
             true
@@ -1655,7 +1655,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         while !e.is_nil() {
@@ -1671,7 +1671,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
     }
@@ -1715,7 +1715,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                     sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                     sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                     sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                    sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                    sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
                 }
             },
             true
@@ -1730,7 +1730,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         while !e.is_nil() {
@@ -1764,7 +1764,7 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
     }

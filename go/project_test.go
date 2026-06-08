@@ -2366,7 +2366,7 @@ func main() {
 	}
 }
 
-func TestExternalGoPtrArgumentArrayElemPointerLocalUsesLoudCrossPackageGap(t *testing.T) {
+func TestExternalGoPtrArgumentArrayElemPointerLocalForwardsAcrossPackages(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
 
@@ -2407,8 +2407,15 @@ func main() {
 	if strings.Contains(mainRS, "example_com_dep::GoPtr::array_elem_opt(slot.clone())") {
 		t.Fatalf("external GoPtr argument should not wrap a local array element helper with the external constructor:\n%s", mainRS)
 	}
-	if !strings.Contains(mainRS, `unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers")`) {
-		t.Fatalf("external GoPtr argument should expose the missing shared array-element helper boundary loudly:\n%s", mainRS)
+	if strings.Contains(mainRS, `unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers")`) {
+		t.Fatalf("external GoPtr argument should forward array element helpers across packages:\n%s", mainRS)
+	}
+	if !strings.Contains(mainRS, "example_com_dep::GoPtr::array_elem_foreign(") ||
+		!strings.Contains(mainRS, "borrow_dyn") ||
+		!strings.Contains(mainRS, "assign_dyn") ||
+		!strings.Contains(mainRS, "with_mut_dyn") ||
+		!strings.Contains(mainRS, "identity_dyn") {
+		t.Fatalf("external GoPtr argument should adapt array element helper operations across packages:\n%s", mainRS)
 	}
 }
 

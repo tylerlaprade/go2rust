@@ -454,6 +454,31 @@ pub trait GoArrayElemPtrDyn<T: Send + Sync + 'static>: Send + Sync {
     fn identity_dyn(&self) -> (*const (), usize);
 }
 
+pub struct GoForeignArrayElemPtrDyn<T: Send + Sync + 'static> {
+    borrow: Arc<dyn Fn() -> Option<T> + Send + Sync>,
+    assign: Arc<dyn Fn(Option<T>) + Send + Sync>,
+    with_mut: Arc<dyn Fn(&mut dyn FnMut(&mut T)) + Send + Sync>,
+    identity: Arc<dyn Fn() -> (*const (), usize) + Send + Sync>,
+}
+
+impl<T: Send + Sync + 'static> GoArrayElemPtrDyn<T> for GoForeignArrayElemPtrDyn<T> {
+    fn borrow_dyn(&self) -> Option<T> {
+        (self.borrow)()
+    }
+
+    fn assign_dyn(&self, value: Option<T>) {
+        (self.assign)(value)
+    }
+
+    fn with_mut_dyn(&self, f: &mut dyn FnMut(&mut T)) {
+        (self.with_mut)(f)
+    }
+
+    fn identity_dyn(&self) -> (*const (), usize) {
+        (self.identity)()
+    }
+}
+
 impl<T: Clone + Send + Sync + 'static, const N: usize> GoArrayElemPtrDyn<T> for GoArrayElemPtr<T, N> {
     fn borrow_dyn(&self) -> Option<T> {
         (*self.borrow()).clone()
@@ -539,6 +564,20 @@ impl<T: Send + Sync + 'static> GoPtr<T> {
             Some(value) => GoPtr::ArrayElem(Arc::new(value)),
             None => GoPtr::Nil,
         }
+    }
+
+    pub fn array_elem_foreign(
+        borrow: Arc<dyn Fn() -> Option<T> + Send + Sync>,
+        assign: Arc<dyn Fn(Option<T>) + Send + Sync>,
+        with_mut: Arc<dyn Fn(&mut dyn FnMut(&mut T)) + Send + Sync>,
+        identity: Arc<dyn Fn() -> (*const (), usize) + Send + Sync>,
+    ) -> Self {
+        GoPtr::ArrayElem(Arc::new(GoForeignArrayElemPtrDyn {
+            borrow,
+            assign,
+            with_mut,
+            identity,
+        }))
     }
 
     pub fn is_nil(&self) -> bool {

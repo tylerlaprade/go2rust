@@ -5834,6 +5834,14 @@ func TestGoPtrConversionSplitsMatchArms(t *testing.T) {
 	if strings.Contains(rust, "match __go_ptr { sync_atomic::GoPtr::Nil") {
 		t.Fatalf("cross-package GoPtr conversion should not keep the full match inline:\n%s", rust)
 	}
+	if strings.Contains(rust, "cross-package GoPtr array element forwarding requires shared GoPtr helpers") {
+		t.Fatalf("cross-package GoPtr conversion should forward array element helpers instead of stopping at a gap:\n%s", rust)
+	}
+	for _, want := range []string{"GoPtr::array_elem_foreign(", "borrow_dyn", "assign_dyn", "with_mut_dyn", "identity_dyn"} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("cross-package GoPtr conversion should include %q:\n%s", want, rust)
+		}
+	}
 }
 
 func TestGoPtrLocalFieldReadHandleBindsCloneBeforeReturning(t *testing.T) {

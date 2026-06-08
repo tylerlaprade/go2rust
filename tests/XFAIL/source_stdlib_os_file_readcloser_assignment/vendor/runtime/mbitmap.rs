@@ -999,7 +999,7 @@ impl markBits {
                 GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()),
                 GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr),
                 GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                GoPtr::ArrayElem(__value) => internal_runtime_atomic::GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         }, Arc::new(Mutex::new(Some({ let __selector_holder = self.mask.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
     }
@@ -1022,7 +1022,7 @@ impl markBits {
                 GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()),
                 GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr),
                 GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                GoPtr::ArrayElem(__value) => internal_runtime_atomic::GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         }, Arc::new(Mutex::new(Some(!{ let __selector_holder = self.mask.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
     }

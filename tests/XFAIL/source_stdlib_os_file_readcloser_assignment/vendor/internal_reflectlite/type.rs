@@ -270,7 +270,7 @@ impl rtype {
                 internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                internal_abi::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         if !tt.is_nil() {
@@ -350,7 +350,7 @@ impl rtype {
                 internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                internal_abi::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         if tt.is_nil() {
@@ -367,7 +367,7 @@ impl rtype {
                 internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                internal_abi::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         if tt.is_nil() {
@@ -384,7 +384,7 @@ impl rtype {
                 internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                internal_abi::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         if tt.is_nil() {
@@ -401,7 +401,7 @@ impl rtype {
                 internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                internal_abi::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         if tt.is_nil() {
@@ -418,7 +418,7 @@ impl rtype {
                 internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                internal_abi::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         if tt.is_nil() {
@@ -435,7 +435,7 @@ impl rtype {
                 internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                internal_abi::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         if tt.is_nil() {
@@ -452,7 +452,7 @@ impl rtype {
                 internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                internal_abi::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         };
         if tt.is_nil() {
@@ -505,7 +505,7 @@ impl rtype {
                 internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                internal_abi::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         } })
     }
@@ -529,7 +529,7 @@ impl rtype {
                 internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                internal_abi::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         } })
     }
@@ -558,7 +558,7 @@ impl rtype {
                 internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                internal_abi::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         } })
     }
@@ -582,7 +582,7 @@ impl rtype {
                 internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                internal_abi::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         } })
     }
@@ -606,7 +606,7 @@ impl rtype {
                 internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
                 internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
                 internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-                internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                internal_abi::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
             }
         } })
     }
@@ -846,7 +846,7 @@ pub fn type_of(i: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) -> Arc<Mutex<O
             internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
             internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
             internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-            internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            internal_abi::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
         }
     }).clone()
 }
@@ -860,7 +860,7 @@ pub fn implements(T: GoPtr<internal_abi::r#type::Type>, V: GoPtr<internal_abi::r
             internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
             internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
             internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-            internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            internal_abi::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
         }
     };
     if t.is_nil() {

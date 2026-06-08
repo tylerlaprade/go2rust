@@ -57,7 +57,7 @@ pub fn logger() -> Arc<Mutex<Option<Box<dyn Interface + Send + Sync>>>> {
             sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
             sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
             sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
-            sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            sync_atomic::GoPtr::ArrayElem(__value) => GoPtr::array_elem_foreign(std::sync::Arc::new({ let __value = __value.clone(); move || __value.borrow_dyn() }), std::sync::Arc::new({ let __value = __value.clone(); move |__assigned| __value.assign_dyn(__assigned) }), std::sync::Arc::new({ let __value = __value.clone(); move |__callback| __value.with_mut_dyn(__callback) }), std::sync::Arc::new({ let __value = __value.clone(); move || __value.identity_dyn() })),
         }
     };
     if r#impl.is_nil() {

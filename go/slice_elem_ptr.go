@@ -7317,7 +7317,10 @@ func writeGoPtrCallArgumentWithQualifierForInfo(out *strings.Builder, arg ast.Ex
 		}
 		if info, ok := arrayElemPtrVarInfo(ident.Name); ok && elemRustTypeFromArrayElemPtrRustType(info.RustType) == elemRustType {
 			if helperQualifier != "" {
-				writeCrossPackageGoPtrArrayElemForwardingGap(out)
+				writeGoPtrArrayElemOptionConversion(out, helperQualifier, func() {
+					out.WriteString(rustIdentForUseWithCapture(ident))
+					out.WriteString(".clone()")
+				})
 				return true
 			}
 			writeGoPtrQualifiedConstructor(out, helperQualifier, "array_elem_opt")
@@ -7366,7 +7369,9 @@ func writeGoPtrCallArgumentWithQualifierForInfo(out *strings.Builder, arg ast.Ex
 		}
 		if info, ok := arrayElemPtrResultInfoForCall(call, 0); ok && info.elemRustType == elemRustType {
 			if helperQualifier != "" {
-				writeCrossPackageGoPtrArrayElemForwardingGap(out)
+				writeGoPtrArrayElemOptionConversion(out, helperQualifier, func() {
+					TranspileExpression(out, arg)
+				})
 				return true
 			}
 			writeGoPtrQualifiedConstructor(out, helperQualifier, "array_elem_opt")
@@ -7681,8 +7686,8 @@ func writeGoPtrConversion(out *strings.Builder, inputHelperQualifier string, out
 	out.WriteString("GoSliceElemPtr::new(__value.slice_handle(), __value.index())),\n")
 	out.WriteString(armIndent)
 	writeGoPtrQualifiedVariant(out, inputHelperQualifier, "ArrayElem")
-	out.WriteString("(_) => ")
-	writeCrossPackageGoPtrArrayElemForwardingGap(out)
+	out.WriteString("(__value) => ")
+	writeGoPtrForeignArrayElemConversion(out, outputHelperQualifier, "__value")
 	out.WriteString(",\n")
 	out.WriteString(innerIndent)
 	out.WriteString("}\n")
@@ -7690,8 +7695,49 @@ func writeGoPtrConversion(out *strings.Builder, inputHelperQualifier string, out
 	out.WriteString("}")
 }
 
-func writeCrossPackageGoPtrArrayElemForwardingGap(out *strings.Builder) {
-	out.WriteString(`unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers")`)
+func writeGoPtrArrayElemOptionConversion(out *strings.Builder, helperQualifier string, writeValue func()) {
+	out.WriteString("{ match ")
+	writeValue()
+	out.WriteString(" { Some(__value) => ")
+	writeGoPtrForeignArrayElemConversion(out, helperQualifier, "__value")
+	out.WriteString(", None => ")
+	writeGoPtrQualifiedConstructor(out, helperQualifier, "nil")
+	out.WriteString("() } }")
+}
+
+func writeGoPtrForeignArrayElemConversion(out *strings.Builder, outputHelperQualifier string, valueExpr string) {
+	writeGoPtrQualifiedConstructor(out, outputHelperQualifier, "array_elem_foreign")
+	out.WriteString("(")
+	writeGoPtrForeignArrayElemClosure(out, valueExpr, "borrow_dyn", "||", "")
+	out.WriteString(", ")
+	writeGoPtrForeignArrayElemClosure(out, valueExpr, "assign_dyn", "|__assigned|", "__assigned")
+	out.WriteString(", ")
+	writeGoPtrForeignArrayElemClosure(out, valueExpr, "with_mut_dyn", "|__callback|", "__callback")
+	out.WriteString(", ")
+	writeGoPtrForeignArrayElemClosure(out, valueExpr, "identity_dyn", "||", "")
+	out.WriteString(")")
+}
+
+func writeGoPtrForeignArrayElemClosure(out *strings.Builder, valueExpr string, method string, params string, arg string) {
+	if NeedsConcurrentWrapper() {
+		out.WriteString("std::sync::Arc::new")
+	} else {
+		out.WriteString("std::rc::Rc::new")
+	}
+	out.WriteString("({ let __value = ")
+	out.WriteString(valueExpr)
+	out.WriteString(".clone(); move ")
+	out.WriteString(params)
+	out.WriteString(" __value.")
+	out.WriteString(method)
+	if arg == "" {
+		out.WriteString("()")
+	} else {
+		out.WriteString("(")
+		out.WriteString(arg)
+		out.WriteString(")")
+	}
+	out.WriteString(" })")
 }
 
 func writeGoPtrQualifiedVariant(out *strings.Builder, helperQualifier string, variant string) {
