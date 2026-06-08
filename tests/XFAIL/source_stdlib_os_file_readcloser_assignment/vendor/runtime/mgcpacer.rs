@@ -1015,13 +1015,13 @@ impl gcControllerState {
         loop {
         let mut v = { let __recv = val.clone(); let __recv_ptr: *mut internal_runtime_atomic::types::Int64 = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut internal_runtime_atomic::types::Int64 }; let __result = unsafe { &mut *__recv_ptr }.load(); __result };
         if { let __tmp_x = v; let __tmp_y = 0 as i64; __tmp_x <= __tmp_y } {
-        return unimplemented!("GoPtr return requires compatible pointer value");
+        return false;
     }
         if { let __recv = val.clone(); let __recv_ptr: *mut internal_runtime_atomic::types::Int64 = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut internal_runtime_atomic::types::Int64 }; let __result = unsafe { &mut *__recv_ptr }.compare_and_swap(
             Arc::new(Mutex::new(Some(v))),
             Arc::new(Mutex::new(Some({ let __tmp_x = v; let __tmp_y = 1 as i64; __tmp_x - __tmp_y }))),
         ); __result } {
-        return unimplemented!("GoPtr return requires compatible pointer value");
+        return true;
     }
     }
     }) as Box<dyn FnMut(Arc<Mutex<Option<internal_runtime_atomic::types::Int64>>>) -> bool + Send + Sync>)));

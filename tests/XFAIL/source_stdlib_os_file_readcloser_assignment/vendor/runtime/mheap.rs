@@ -4038,7 +4038,7 @@ impl mheap {
         let mut released = (*self.pages.lock().unwrap().as_mut().unwrap()).scavenge(
             Arc::new(Mutex::new(Some({ let __arg_holder = bytesToScavenge.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
             Arc::new(Mutex::new(Some(Box::new(move || -> bool {
-        unimplemented!("GoPtr return requires compatible pointer value")
+        (*gcCPULimiter.lock().unwrap().as_ref().unwrap()).limiting()
     }) as Box<dyn FnMut() -> bool + Send + Sync>))),
             Arc::new(Mutex::new(Some({ let __arg_holder = forceScavenge.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
         );

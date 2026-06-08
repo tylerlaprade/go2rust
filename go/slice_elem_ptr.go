@@ -4281,6 +4281,23 @@ func pushCurrentSliceElemPtrReturn(fn *ast.FuncDecl) func() {
 	}
 }
 
+func pushFuncLitReturnContext() func() {
+	prev := currentSliceElemPtrReturn
+	prevSlice := currentSliceElemPtrSliceReturn
+	prevArray := currentArrayElemPtrReturnInfos
+	prevGoPtr := currentGoPtrReturnInfos
+	currentSliceElemPtrReturn = nil
+	currentSliceElemPtrSliceReturn = nil
+	currentArrayElemPtrReturnInfos = nil
+	currentGoPtrReturnInfos = nil
+	return func() {
+		currentSliceElemPtrReturn = prev
+		currentSliceElemPtrSliceReturn = prevSlice
+		currentArrayElemPtrReturnInfos = prevArray
+		currentGoPtrReturnInfos = prevGoPtr
+	}
+}
+
 func currentFunctionReturnsSliceElemPtr() bool {
 	return currentSliceElemPtrReturn != nil
 }

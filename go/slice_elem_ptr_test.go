@@ -6320,6 +6320,47 @@ func pick(a *arena, i int) *node {
 	}
 }
 
+func TestGoPtrReturnContextDoesNotLeakIntoFuncLiteral(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type node struct {
+	value int
+}
+
+type holder struct {
+	root *node
+}
+
+func accept(fn func() bool) {
+	fn()
+}
+
+func seed(h *holder, nodes []node) {
+	h.root = &nodes[0]
+}
+
+func pick(h *holder) *node {
+	accept(func() bool {
+		return h.root != nil
+	})
+	return h.root
+}
+`)
+
+	if !strings.Contains(rust, "pub fn pick(") || !strings.Contains(rust, " -> GoPtr<node>") {
+		t.Fatalf("outer function should keep GoPtr return context:\n%s", rust)
+	}
+	if strings.Contains(rust, `unimplemented!("GoPtr return requires compatible pointer value")`) {
+		t.Fatalf("function literal bool return should not inherit the outer GoPtr return context:\n%s", rust)
+	}
+	if !strings.Contains(rust, "!__ptr_field.is_nil()") {
+		t.Fatalf("function literal should lower the bool return normally:\n%s", rust)
+	}
+	if !strings.Contains(rust, "return { let __field_value =") && !strings.Contains(rust, ".root.clone();") {
+		t.Fatalf("outer GoPtr return should still clone the pointer field handle:\n%s", rust)
+	}
+}
+
 func TestGoPtrNamedResultsAssignedFromGoPtrCallsUseGoPtrSlots(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

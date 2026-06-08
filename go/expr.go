@@ -16058,6 +16058,8 @@ func transpileFuncLitBox(out *strings.Builder, funcLit *ast.FuncLit, resultOverr
 	prevReturnTail := currentReturnStatementIsTail
 	currentReturnStatementIsTail = false
 	defer func() { currentReturnStatementIsTail = prevReturnTail }()
+	restoreFuncLitReturnContext := pushFuncLitReturnContext()
+	defer restoreFuncLitReturnContext()
 	if funcLit.Body != nil {
 		for i, stmt := range funcLit.Body.List {
 			out.WriteString("        ") // Indent for closure body
