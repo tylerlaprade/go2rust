@@ -518,8 +518,33 @@ pub(crate) static boundsNegErrorFmts: std::sync::LazyLock<std::sync::Arc<std::sy
 fn __go_init_globals() {
     *boundsErrorFmts.lock().unwrap() = Some(std::array::from_fn(|_| String::new()));
     *boundsNegErrorFmts.lock().unwrap() = Some(std::array::from_fn(|_| String::new()));
-    *boundsErrorFmts.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(["index out of range [%x] with length %y".to_string(), "slice bounds out of range [:%x] with length %y".to_string(), "slice bounds out of range [:%x] with capacity %y".to_string(), "slice bounds out of range [%x:%y]".to_string(), "slice bounds out of range [::%x] with length %y".to_string(), "slice bounds out of range [::%x] with capacity %y".to_string(), "slice bounds out of range [:%x:%y]".to_string(), "slice bounds out of range [%x:%y:]".to_string(), "cannot convert slice with length %y to array or pointer to array with length %x".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
-    *boundsNegErrorFmts.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(["index out of range [%x]".to_string(), "slice bounds out of range [:%x]".to_string(), "slice bounds out of range [:%x]".to_string(), "slice bounds out of range [%x:]".to_string(), "slice bounds out of range [::%x]".to_string(), "slice bounds out of range [::%x]".to_string(), "slice bounds out of range [:%x:]".to_string(), "slice bounds out of range [%x::]".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<String>::with_capacity(9);
+        __go_array.push("index out of range [%x] with length %y".to_string());
+        __go_array.push("slice bounds out of range [:%x] with length %y".to_string());
+        __go_array.push("slice bounds out of range [:%x] with capacity %y".to_string());
+        __go_array.push("slice bounds out of range [%x:%y]".to_string());
+        __go_array.push("slice bounds out of range [::%x] with length %y".to_string());
+        __go_array.push("slice bounds out of range [::%x] with capacity %y".to_string());
+        __go_array.push("slice bounds out of range [:%x:%y]".to_string());
+        __go_array.push("slice bounds out of range [%x:%y:]".to_string());
+        __go_array.push("cannot convert slice with length %y to array or pointer to array with length %x".to_string());
+        let __go_array: [String; 9] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *boundsErrorFmts.lock().unwrap() = Some(__go_array);
+    }
+    {
+        let mut __go_array = Vec::<String>::with_capacity(8);
+        __go_array.push("index out of range [%x]".to_string());
+        __go_array.push("slice bounds out of range [:%x]".to_string());
+        __go_array.push("slice bounds out of range [:%x]".to_string());
+        __go_array.push("slice bounds out of range [%x:]".to_string());
+        __go_array.push("slice bounds out of range [::%x]".to_string());
+        __go_array.push("slice bounds out of range [::%x]".to_string());
+        __go_array.push("slice bounds out of range [:%x:]".to_string());
+        __go_array.push("slice bounds out of range [%x::]".to_string());
+        let __go_array: [String; 8] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *boundsNegErrorFmts.lock().unwrap() = Some(__go_array);
+    }
 }
 
 
@@ -530,12 +555,37 @@ pub(crate) fn __go_zero_globals() {
 
 
 pub(crate) fn __go_init_order_2() {
-    *boundsErrorFmts.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(["index out of range [%x] with length %y".to_string(), "slice bounds out of range [:%x] with length %y".to_string(), "slice bounds out of range [:%x] with capacity %y".to_string(), "slice bounds out of range [%x:%y]".to_string(), "slice bounds out of range [::%x] with length %y".to_string(), "slice bounds out of range [::%x] with capacity %y".to_string(), "slice bounds out of range [:%x:%y]".to_string(), "slice bounds out of range [%x:%y:]".to_string(), "cannot convert slice with length %y to array or pointer to array with length %x".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<String>::with_capacity(9);
+        __go_array.push("index out of range [%x] with length %y".to_string());
+        __go_array.push("slice bounds out of range [:%x] with length %y".to_string());
+        __go_array.push("slice bounds out of range [:%x] with capacity %y".to_string());
+        __go_array.push("slice bounds out of range [%x:%y]".to_string());
+        __go_array.push("slice bounds out of range [::%x] with length %y".to_string());
+        __go_array.push("slice bounds out of range [::%x] with capacity %y".to_string());
+        __go_array.push("slice bounds out of range [:%x:%y]".to_string());
+        __go_array.push("slice bounds out of range [%x:%y:]".to_string());
+        __go_array.push("cannot convert slice with length %y to array or pointer to array with length %x".to_string());
+        let __go_array: [String; 9] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *boundsErrorFmts.lock().unwrap() = Some(__go_array);
+    }
 }
 
 
 pub(crate) fn __go_init_order_3() {
-    *boundsNegErrorFmts.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(["index out of range [%x]".to_string(), "slice bounds out of range [:%x]".to_string(), "slice bounds out of range [:%x]".to_string(), "slice bounds out of range [%x:]".to_string(), "slice bounds out of range [::%x]".to_string(), "slice bounds out of range [::%x]".to_string(), "slice bounds out of range [:%x:]".to_string(), "slice bounds out of range [%x::]".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<String>::with_capacity(8);
+        __go_array.push("index out of range [%x]".to_string());
+        __go_array.push("slice bounds out of range [:%x]".to_string());
+        __go_array.push("slice bounds out of range [:%x]".to_string());
+        __go_array.push("slice bounds out of range [%x:]".to_string());
+        __go_array.push("slice bounds out of range [::%x]".to_string());
+        __go_array.push("slice bounds out of range [::%x]".to_string());
+        __go_array.push("slice bounds out of range [:%x:]".to_string());
+        __go_array.push("slice bounds out of range [%x::]".to_string());
+        let __go_array: [String; 8] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *boundsNegErrorFmts.lock().unwrap() = Some(__go_array);
+    }
 }
 
 

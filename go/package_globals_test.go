@@ -55,6 +55,64 @@ var sink any
 	}
 }
 
+func TestPackageGlobalSliceLiteralBuildsVecWithStatements(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type rank int
+
+var order = [][]rank{
+	{},
+	{1, 2},
+	{3},
+}
+
+func main() {
+	go func() {}()
+}
+`)
+
+	if strings.Contains(rust, "*order.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec![") {
+		t.Fatalf("package global slice literal should not emit one nested wrapper expression:\n%s", rust)
+	}
+	for _, want := range []string{
+		"let mut __go_slice = Vec::<Vec<rank>>::with_capacity(3);",
+		"__go_slice.push(Vec::<rank>::new());",
+		"__go_slice.push(vec![rank(",
+		"*order.lock().unwrap() = Some(__go_slice);",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("package global slice literal should build a temporary Vec with statements, missing %q:\n%s", want, rust)
+		}
+	}
+}
+
+func TestPackageGlobalArrayLiteralBuildsArrayWithStatements(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+var table = [4]uint32{0: 1, 2: 3}
+
+func main() {
+	go func() {}()
+}
+`)
+
+	if strings.Contains(rust, "*table.lock().unwrap() = Some((*Arc::new(Mutex::new(Some([") {
+		t.Fatalf("package global array literal should not emit one nested wrapper expression:\n%s", rust)
+	}
+	for _, want := range []string{
+		"let mut __go_array = Vec::<u32>::with_capacity(4);",
+		"__go_array.push(1 as u32);",
+		"__go_array.push(0);",
+		"__go_array.push(3 as u32);",
+		"let __go_array: [u32; 4] = match __go_array.try_into()",
+		"*table.lock().unwrap() = Some(__go_array);",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("package global array literal should build a temporary array with statements, missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestPackageGlobalAnyDefinedTypeInitializersBoxConcreteValues(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

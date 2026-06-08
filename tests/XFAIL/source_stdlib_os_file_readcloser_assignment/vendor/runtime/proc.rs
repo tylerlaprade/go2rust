@@ -888,7 +888,28 @@ fn __go_init_globals() {
     *stealOrder.lock().unwrap() = Some(Default::default());
     *inittrace.lock().unwrap() = Some(Default::default());
     *casgstatusAlwaysTrack.lock().unwrap() = Some(false);
-    *stwReasonStrings.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(["unknown".to_string(), "GC mark termination".to_string(), "GC sweep termination".to_string(), "write heap dump".to_string(), "goroutine profile".to_string(), "goroutine profile cleanup".to_string(), "all goroutines stack trace".to_string(), "read mem stats".to_string(), "AllThreadsSyscall".to_string(), "GOMAXPROCS".to_string(), "start trace".to_string(), "stop trace".to_string(), "CountPagesInUse (test)".to_string(), "ReadMetricsSlow (test)".to_string(), "ReadMemStatsSlow (test)".to_string(), "PageCachePagesLeaked (test)".to_string(), "ResetDebugLog (test)".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<String>::with_capacity(17);
+        __go_array.push("unknown".to_string());
+        __go_array.push("GC mark termination".to_string());
+        __go_array.push("GC sweep termination".to_string());
+        __go_array.push("write heap dump".to_string());
+        __go_array.push("goroutine profile".to_string());
+        __go_array.push("goroutine profile cleanup".to_string());
+        __go_array.push("all goroutines stack trace".to_string());
+        __go_array.push("read mem stats".to_string());
+        __go_array.push("AllThreadsSyscall".to_string());
+        __go_array.push("GOMAXPROCS".to_string());
+        __go_array.push("start trace".to_string());
+        __go_array.push("stop trace".to_string());
+        __go_array.push("CountPagesInUse (test)".to_string());
+        __go_array.push("ReadMetricsSlow (test)".to_string());
+        __go_array.push("ReadMemStatsSlow (test)".to_string());
+        __go_array.push("PageCachePagesLeaked (test)".to_string());
+        __go_array.push("ResetDebugLog (test)".to_string());
+        let __go_array: [String; 17] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *stwReasonStrings.lock().unwrap() = Some(__go_array);
+    }
     *worldsema.lock().unwrap() = Some(1 as u32);
     *gcsema.lock().unwrap() = Some(1 as u32);
     *forcegcperiod.lock().unwrap() = Some({ let __tmp_x = 120.0; let __tmp_y = 1e+09; __tmp_x * __tmp_y } as i64);
@@ -945,7 +966,28 @@ pub(crate) fn __go_init_order_56() {
 
 
 pub(crate) fn __go_init_order_57() {
-    *stwReasonStrings.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(["unknown".to_string(), "GC mark termination".to_string(), "GC sweep termination".to_string(), "write heap dump".to_string(), "goroutine profile".to_string(), "goroutine profile cleanup".to_string(), "all goroutines stack trace".to_string(), "read mem stats".to_string(), "AllThreadsSyscall".to_string(), "GOMAXPROCS".to_string(), "start trace".to_string(), "stop trace".to_string(), "CountPagesInUse (test)".to_string(), "ReadMetricsSlow (test)".to_string(), "ReadMemStatsSlow (test)".to_string(), "PageCachePagesLeaked (test)".to_string(), "ResetDebugLog (test)".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<String>::with_capacity(17);
+        __go_array.push("unknown".to_string());
+        __go_array.push("GC mark termination".to_string());
+        __go_array.push("GC sweep termination".to_string());
+        __go_array.push("write heap dump".to_string());
+        __go_array.push("goroutine profile".to_string());
+        __go_array.push("goroutine profile cleanup".to_string());
+        __go_array.push("all goroutines stack trace".to_string());
+        __go_array.push("read mem stats".to_string());
+        __go_array.push("AllThreadsSyscall".to_string());
+        __go_array.push("GOMAXPROCS".to_string());
+        __go_array.push("start trace".to_string());
+        __go_array.push("stop trace".to_string());
+        __go_array.push("CountPagesInUse (test)".to_string());
+        __go_array.push("ReadMetricsSlow (test)".to_string());
+        __go_array.push("ReadMemStatsSlow (test)".to_string());
+        __go_array.push("PageCachePagesLeaked (test)".to_string());
+        __go_array.push("ResetDebugLog (test)".to_string());
+        let __go_array: [String; 17] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *stwReasonStrings.lock().unwrap() = Some(__go_array);
+    }
 }
 
 

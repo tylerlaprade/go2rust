@@ -543,7 +543,21 @@ fn __go_init_globals() {
     *cgoTraceback.lock().unwrap() = Some(0);
     *cgoContext.lock().unwrap() = Some(0);
     *cgoSymbolizer.lock().unwrap() = Some(0);
-    *gStatusStrings.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(["idle".to_string(), "runnable".to_string(), "running".to_string(), "syscall".to_string(), "waiting".to_string(), String::new(), "dead".to_string(), String::new(), "copystack".to_string(), "preempted".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<String>::with_capacity(10);
+        __go_array.push("idle".to_string());
+        __go_array.push("runnable".to_string());
+        __go_array.push("running".to_string());
+        __go_array.push("syscall".to_string());
+        __go_array.push("waiting".to_string());
+        __go_array.push(String::new());
+        __go_array.push("dead".to_string());
+        __go_array.push(String::new());
+        __go_array.push("copystack".to_string());
+        __go_array.push("preempted".to_string());
+        let __go_array: [String; 10] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *gStatusStrings.lock().unwrap() = Some(__go_array);
+    }
 }
 
 
@@ -556,7 +570,21 @@ pub(crate) fn __go_zero_globals() {
 
 
 pub(crate) fn __go_init_order_82() {
-    *gStatusStrings.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(["idle".to_string(), "runnable".to_string(), "running".to_string(), "syscall".to_string(), "waiting".to_string(), String::new(), "dead".to_string(), String::new(), "copystack".to_string(), "preempted".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<String>::with_capacity(10);
+        __go_array.push("idle".to_string());
+        __go_array.push("runnable".to_string());
+        __go_array.push("running".to_string());
+        __go_array.push("syscall".to_string());
+        __go_array.push("waiting".to_string());
+        __go_array.push(String::new());
+        __go_array.push("dead".to_string());
+        __go_array.push(String::new());
+        __go_array.push("copystack".to_string());
+        __go_array.push("preempted".to_string());
+        let __go_array: [String; 10] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *gStatusStrings.lock().unwrap() = Some(__go_array);
+    }
 }
 
 

@@ -951,8 +951,36 @@ pub(crate) static traceGoStopReasonStrings: std::sync::LazyLock<std::sync::Arc<s
 fn __go_init_globals() {
     *traceBlockReasonStrings.lock().unwrap() = Some(std::array::from_fn(|_| String::new()));
     *traceGoStopReasonStrings.lock().unwrap() = Some(std::array::from_fn(|_| String::new()));
-    *traceBlockReasonStrings.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(["unspecified".to_string(), "forever".to_string(), "network".to_string(), "select".to_string(), "sync.(*Cond).Wait".to_string(), "sync".to_string(), "chan send".to_string(), "chan receive".to_string(), "GC mark assist wait for work".to_string(), "GC background sweeper wait".to_string(), "system goroutine wait".to_string(), "preempted".to_string(), "wait for debug call".to_string(), "wait until GC ends".to_string(), "sleep".to_string(), "GC weak to strong wait".to_string(), "synctest".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
-    *traceGoStopReasonStrings.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(["unspecified".to_string(), "runtime.Gosched".to_string(), "preempted".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<String>::with_capacity(17);
+        __go_array.push("unspecified".to_string());
+        __go_array.push("forever".to_string());
+        __go_array.push("network".to_string());
+        __go_array.push("select".to_string());
+        __go_array.push("sync.(*Cond).Wait".to_string());
+        __go_array.push("sync".to_string());
+        __go_array.push("chan send".to_string());
+        __go_array.push("chan receive".to_string());
+        __go_array.push("GC mark assist wait for work".to_string());
+        __go_array.push("GC background sweeper wait".to_string());
+        __go_array.push("system goroutine wait".to_string());
+        __go_array.push("preempted".to_string());
+        __go_array.push("wait for debug call".to_string());
+        __go_array.push("wait until GC ends".to_string());
+        __go_array.push("sleep".to_string());
+        __go_array.push("GC weak to strong wait".to_string());
+        __go_array.push("synctest".to_string());
+        let __go_array: [String; 17] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *traceBlockReasonStrings.lock().unwrap() = Some(__go_array);
+    }
+    {
+        let mut __go_array = Vec::<String>::with_capacity(3);
+        __go_array.push("unspecified".to_string());
+        __go_array.push("runtime.Gosched".to_string());
+        __go_array.push("preempted".to_string());
+        let __go_array: [String; 3] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *traceGoStopReasonStrings.lock().unwrap() = Some(__go_array);
+    }
 }
 
 
@@ -963,12 +991,40 @@ pub(crate) fn __go_zero_globals() {
 
 
 pub(crate) fn __go_init_order_83() {
-    *traceBlockReasonStrings.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(["unspecified".to_string(), "forever".to_string(), "network".to_string(), "select".to_string(), "sync.(*Cond).Wait".to_string(), "sync".to_string(), "chan send".to_string(), "chan receive".to_string(), "GC mark assist wait for work".to_string(), "GC background sweeper wait".to_string(), "system goroutine wait".to_string(), "preempted".to_string(), "wait for debug call".to_string(), "wait until GC ends".to_string(), "sleep".to_string(), "GC weak to strong wait".to_string(), "synctest".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<String>::with_capacity(17);
+        __go_array.push("unspecified".to_string());
+        __go_array.push("forever".to_string());
+        __go_array.push("network".to_string());
+        __go_array.push("select".to_string());
+        __go_array.push("sync.(*Cond).Wait".to_string());
+        __go_array.push("sync".to_string());
+        __go_array.push("chan send".to_string());
+        __go_array.push("chan receive".to_string());
+        __go_array.push("GC mark assist wait for work".to_string());
+        __go_array.push("GC background sweeper wait".to_string());
+        __go_array.push("system goroutine wait".to_string());
+        __go_array.push("preempted".to_string());
+        __go_array.push("wait for debug call".to_string());
+        __go_array.push("wait until GC ends".to_string());
+        __go_array.push("sleep".to_string());
+        __go_array.push("GC weak to strong wait".to_string());
+        __go_array.push("synctest".to_string());
+        let __go_array: [String; 17] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *traceBlockReasonStrings.lock().unwrap() = Some(__go_array);
+    }
 }
 
 
 pub(crate) fn __go_init_order_84() {
-    *traceGoStopReasonStrings.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(["unspecified".to_string(), "runtime.Gosched".to_string(), "preempted".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<String>::with_capacity(3);
+        __go_array.push("unspecified".to_string());
+        __go_array.push("runtime.Gosched".to_string());
+        __go_array.push("preempted".to_string());
+        let __go_array: [String; 3] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *traceGoStopReasonStrings.lock().unwrap() = Some(__go_array);
+    }
 }
 
 

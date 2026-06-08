@@ -1506,7 +1506,15 @@ fn __go_init_globals() {
     *gcDebugMarkDone.lock().unwrap() = Some(Default::default());
     *boringCaches.lock().unwrap() = Some(vec![]);
     *uniqueMapCleanup.lock().unwrap() = Some(Default::default());
-    *gcMarkWorkerModeStrings.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(["Not worker".to_string(), "GC (dedicated)".to_string(), "GC (fractional)".to_string(), "GC (idle)".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<String>::with_capacity(4);
+        __go_array.push("Not worker".to_string());
+        __go_array.push("GC (dedicated)".to_string());
+        __go_array.push("GC (fractional)".to_string());
+        __go_array.push("GC (idle)".to_string());
+        let __go_array: [String; 4] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *gcMarkWorkerModeStrings.lock().unwrap() = Some(__go_array);
+    }
 }
 
 
@@ -1524,7 +1532,15 @@ pub(crate) fn __go_zero_globals() {
 
 
 pub(crate) fn __go_init_order_27() {
-    *gcMarkWorkerModeStrings.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(["Not worker".to_string(), "GC (dedicated)".to_string(), "GC (fractional)".to_string(), "GC (idle)".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<String>::with_capacity(4);
+        __go_array.push("Not worker".to_string());
+        __go_array.push("GC (dedicated)".to_string());
+        __go_array.push("GC (fractional)".to_string());
+        __go_array.push("GC (idle)".to_string());
+        let __go_array: [String; 4] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *gcMarkWorkerModeStrings.lock().unwrap() = Some(__go_array);
+    }
 }
 
 

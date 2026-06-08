@@ -1127,11 +1127,21 @@ func writePackageGlobalCompositeInit(out *strings.Builder, global packageGlobal,
 		return false
 	}
 	mapType := packageGlobalMapLiteralType(global.typ, lit)
-	if mapType == nil {
-		return false
+	if mapType != nil {
+		writePackageGlobalMapLiteralInit(out, rustPackageGlobalName(global.name), mapType, lit)
+		return true
 	}
-	writePackageGlobalMapLiteralInit(out, rustPackageGlobalName(global.name), mapType, lit)
-	return true
+	sliceType := packageGlobalSliceLiteralType(global.typ, lit)
+	if sliceType != nil {
+		writePackageGlobalSliceLiteralInit(out, rustPackageGlobalName(global.name), global.typ, sliceType, lit)
+		return true
+	}
+	arrayType := packageGlobalArrayLiteralType(global.typ, lit)
+	if arrayType != nil {
+		writePackageGlobalArrayLiteralInit(out, rustPackageGlobalName(global.name), global.typ, arrayType, lit)
+		return true
+	}
+	return false
 }
 
 func packageGlobalMapLiteralType(globalType types.Type, lit *ast.CompositeLit) *types.Map {
@@ -1307,6 +1317,119 @@ func underlyingSliceType(typ types.Type) *types.Slice {
 		return sliceType
 	}
 	return nil
+}
+
+func underlyingArrayType(typ types.Type) *types.Array {
+	if typ == nil {
+		return nil
+	}
+	typ = types.Unalias(typ)
+	if arrayType, ok := typ.Underlying().(*types.Array); ok {
+		return arrayType
+	}
+	return nil
+}
+
+func packageGlobalSliceLiteralType(globalType types.Type, lit *ast.CompositeLit) *types.Slice {
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil {
+		if typ := typeInfo.GetType(lit); typ != nil {
+			if sliceType := underlyingSliceType(typ); sliceType != nil {
+				return sliceType
+			}
+		}
+	}
+	return underlyingSliceType(globalType)
+}
+
+func writePackageGlobalSliceLiteralInit(out *strings.Builder, name string, globalType types.Type, sliceType *types.Slice, lit *ast.CompositeLit) {
+	values := orderedArrayLiteralValues(lit.Elts)
+	out.WriteString("    {\n")
+	out.WriteString("        let mut __go_slice = Vec::<")
+	out.WriteString(goTypesCollectionElemTypeToRust(sliceType.Elem()))
+	out.WriteString(">::with_capacity(")
+	out.WriteString(fmt.Sprintf("%d", len(values)))
+	out.WriteString(");\n")
+	for _, elt := range values {
+		out.WriteString("        __go_slice.push(")
+		if elt == nil {
+			out.WriteString(zeroValueForTypesType(sliceType.Elem()))
+		} else if !writeArraySliceLiteralElementValue(out, elt, sliceType.Elem()) && !writeOwnedExpressionValue(out, elt) {
+			TranspileExpression(out, elt)
+		}
+		out.WriteString(");\n")
+	}
+	out.WriteString("        let __go_slice = __go_slice.into_boxed_slice().into_vec();\n")
+	out.WriteString("        *")
+	out.WriteString(name)
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(")
+	if named, _, ok := namedSliceTypeFromType(globalType); ok {
+		out.WriteString(goTypesNamedTypeToRust(named))
+		out.WriteString("(")
+		WriteWrapperPrefix(out)
+		out.WriteString("__go_slice")
+		WriteWrapperSuffix(out)
+		out.WriteString(")")
+	} else {
+		out.WriteString("__go_slice")
+	}
+	out.WriteString(");\n")
+	out.WriteString("    }\n")
+}
+
+func packageGlobalArrayLiteralType(globalType types.Type, lit *ast.CompositeLit) *types.Array {
+	typeInfo := GetTypeInfo()
+	if typeInfo != nil {
+		if typ := typeInfo.GetType(lit); typ != nil {
+			if arrayType := underlyingArrayType(typ); arrayType != nil {
+				return arrayType
+			}
+		}
+	}
+	return underlyingArrayType(globalType)
+}
+
+func writePackageGlobalArrayLiteralInit(out *strings.Builder, name string, globalType types.Type, arrayType *types.Array, lit *ast.CompositeLit) {
+	values := orderedArrayLiteralValuesForLength(lit.Elts, arrayType.Len())
+	elemRust := goTypesCollectionElemTypeToRust(arrayType.Elem())
+	arrayLen := fmt.Sprintf("%d", arrayType.Len())
+	out.WriteString("    {\n")
+	out.WriteString("        let mut __go_array = Vec::<")
+	out.WriteString(elemRust)
+	out.WriteString(">::with_capacity(")
+	out.WriteString(arrayLen)
+	out.WriteString(");\n")
+	for _, elt := range values {
+		out.WriteString("        __go_array.push(")
+		if elt == nil {
+			out.WriteString(zeroValueForTypesType(arrayType.Elem()))
+		} else if !writeArraySliceLiteralElementValue(out, elt, arrayType.Elem()) && !writeOwnedExpressionValue(out, elt) {
+			TranspileExpression(out, elt)
+		}
+		out.WriteString(");\n")
+	}
+	out.WriteString("        let __go_array: [")
+	out.WriteString(elemRust)
+	out.WriteString("; ")
+	out.WriteString(arrayLen)
+	out.WriteString("] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!(\"go2rust array literal length mismatch\") };\n")
+	out.WriteString("        *")
+	out.WriteString(name)
+	WriteBorrowMethod(out, true)
+	out.WriteString(" = Some(")
+	if named, _, ok := namedArrayTypeFromType(globalType); ok {
+		out.WriteString(goTypesNamedTypeToRust(named))
+		out.WriteString("(")
+		WriteWrapperPrefix(out)
+		out.WriteString("__go_array")
+		WriteWrapperSuffix(out)
+		out.WriteString(")")
+	} else {
+		out.WriteString("__go_array")
+	}
+	out.WriteString(");\n")
+	out.WriteString("    }\n")
 }
 
 func writePackageGlobalErrorHandleInit(out *strings.Builder, global packageGlobal, expr ast.Expr) bool {

@@ -124,7 +124,16 @@ fn __go_init_globals() {
     *finptrmask.lock().unwrap() = Some(std::array::from_fn(|_| 0));
     *allfin.lock().unwrap() = Some(Arc::new(Mutex::new(None)));
     *finalizer1.lock().unwrap() = Some(std::array::from_fn(|_| 0));
-    *finalizer1.lock().unwrap() = Some((*Arc::new(Mutex::new(Some([(((((((((1 as u8) << (0 as u8)) | ((1 as u8) << (1 as u8))) | ((0 as u8) << (2 as u8))) | ((1 as u8) << (3 as u8))) | ((1 as u8) << (4 as u8))) | ((1 as u8) << (5 as u8))) | ((1 as u8) << (6 as u8))) | ((0 as u8) << (7 as u8))) as u8, (((((((((1 as u8) << (0 as u8)) | ((1 as u8) << (1 as u8))) | ((1 as u8) << (2 as u8))) | ((1 as u8) << (3 as u8))) | ((0 as u8) << (4 as u8))) | ((1 as u8) << (5 as u8))) | ((1 as u8) << (6 as u8))) | ((1 as u8) << (7 as u8))) as u8, (((((((((1 as u8) << (0 as u8)) | ((0 as u8) << (1 as u8))) | ((1 as u8) << (2 as u8))) | ((1 as u8) << (3 as u8))) | ((1 as u8) << (4 as u8))) | ((1 as u8) << (5 as u8))) | ((0 as u8) << (6 as u8))) | ((1 as u8) << (7 as u8))) as u8, (((((((((1 as u8) << (0 as u8)) | ((1 as u8) << (1 as u8))) | ((1 as u8) << (2 as u8))) | ((0 as u8) << (3 as u8))) | ((1 as u8) << (4 as u8))) | ((1 as u8) << (5 as u8))) | ((1 as u8) << (6 as u8))) | ((1 as u8) << (7 as u8))) as u8, (((((((((0 as u8) << (0 as u8)) | ((1 as u8) << (1 as u8))) | ((1 as u8) << (2 as u8))) | ((1 as u8) << (3 as u8))) | ((1 as u8) << (4 as u8))) | ((0 as u8) << (5 as u8))) | ((1 as u8) << (6 as u8))) | ((1 as u8) << (7 as u8))) as u8]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<u8>::with_capacity(5);
+        __go_array.push((((((((((1 as u8) << (0 as u8)) | ((1 as u8) << (1 as u8))) | ((0 as u8) << (2 as u8))) | ((1 as u8) << (3 as u8))) | ((1 as u8) << (4 as u8))) | ((1 as u8) << (5 as u8))) | ((1 as u8) << (6 as u8))) | ((0 as u8) << (7 as u8))) as u8);
+        __go_array.push((((((((((1 as u8) << (0 as u8)) | ((1 as u8) << (1 as u8))) | ((1 as u8) << (2 as u8))) | ((1 as u8) << (3 as u8))) | ((0 as u8) << (4 as u8))) | ((1 as u8) << (5 as u8))) | ((1 as u8) << (6 as u8))) | ((1 as u8) << (7 as u8))) as u8);
+        __go_array.push((((((((((1 as u8) << (0 as u8)) | ((0 as u8) << (1 as u8))) | ((1 as u8) << (2 as u8))) | ((1 as u8) << (3 as u8))) | ((1 as u8) << (4 as u8))) | ((1 as u8) << (5 as u8))) | ((0 as u8) << (6 as u8))) | ((1 as u8) << (7 as u8))) as u8);
+        __go_array.push((((((((((1 as u8) << (0 as u8)) | ((1 as u8) << (1 as u8))) | ((1 as u8) << (2 as u8))) | ((0 as u8) << (3 as u8))) | ((1 as u8) << (4 as u8))) | ((1 as u8) << (5 as u8))) | ((1 as u8) << (6 as u8))) | ((1 as u8) << (7 as u8))) as u8);
+        __go_array.push((((((((((0 as u8) << (0 as u8)) | ((1 as u8) << (1 as u8))) | ((1 as u8) << (2 as u8))) | ((1 as u8) << (3 as u8))) | ((1 as u8) << (4 as u8))) | ((0 as u8) << (5 as u8))) | ((1 as u8) << (6 as u8))) | ((1 as u8) << (7 as u8))) as u8);
+        let __go_array: [u8; 5] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *finalizer1.lock().unwrap() = Some(__go_array);
+    }
 }
 
 
@@ -141,7 +150,16 @@ pub(crate) fn __go_zero_globals() {
 
 
 pub(crate) fn __go_init_order_26() {
-    *finalizer1.lock().unwrap() = Some((*Arc::new(Mutex::new(Some([(((((((((1 as u8) << (0 as u8)) | ((1 as u8) << (1 as u8))) | ((0 as u8) << (2 as u8))) | ((1 as u8) << (3 as u8))) | ((1 as u8) << (4 as u8))) | ((1 as u8) << (5 as u8))) | ((1 as u8) << (6 as u8))) | ((0 as u8) << (7 as u8))) as u8, (((((((((1 as u8) << (0 as u8)) | ((1 as u8) << (1 as u8))) | ((1 as u8) << (2 as u8))) | ((1 as u8) << (3 as u8))) | ((0 as u8) << (4 as u8))) | ((1 as u8) << (5 as u8))) | ((1 as u8) << (6 as u8))) | ((1 as u8) << (7 as u8))) as u8, (((((((((1 as u8) << (0 as u8)) | ((0 as u8) << (1 as u8))) | ((1 as u8) << (2 as u8))) | ((1 as u8) << (3 as u8))) | ((1 as u8) << (4 as u8))) | ((1 as u8) << (5 as u8))) | ((0 as u8) << (6 as u8))) | ((1 as u8) << (7 as u8))) as u8, (((((((((1 as u8) << (0 as u8)) | ((1 as u8) << (1 as u8))) | ((1 as u8) << (2 as u8))) | ((0 as u8) << (3 as u8))) | ((1 as u8) << (4 as u8))) | ((1 as u8) << (5 as u8))) | ((1 as u8) << (6 as u8))) | ((1 as u8) << (7 as u8))) as u8, (((((((((0 as u8) << (0 as u8)) | ((1 as u8) << (1 as u8))) | ((1 as u8) << (2 as u8))) | ((1 as u8) << (3 as u8))) | ((1 as u8) << (4 as u8))) | ((0 as u8) << (5 as u8))) | ((1 as u8) << (6 as u8))) | ((1 as u8) << (7 as u8))) as u8]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<u8>::with_capacity(5);
+        __go_array.push((((((((((1 as u8) << (0 as u8)) | ((1 as u8) << (1 as u8))) | ((0 as u8) << (2 as u8))) | ((1 as u8) << (3 as u8))) | ((1 as u8) << (4 as u8))) | ((1 as u8) << (5 as u8))) | ((1 as u8) << (6 as u8))) | ((0 as u8) << (7 as u8))) as u8);
+        __go_array.push((((((((((1 as u8) << (0 as u8)) | ((1 as u8) << (1 as u8))) | ((1 as u8) << (2 as u8))) | ((1 as u8) << (3 as u8))) | ((0 as u8) << (4 as u8))) | ((1 as u8) << (5 as u8))) | ((1 as u8) << (6 as u8))) | ((1 as u8) << (7 as u8))) as u8);
+        __go_array.push((((((((((1 as u8) << (0 as u8)) | ((0 as u8) << (1 as u8))) | ((1 as u8) << (2 as u8))) | ((1 as u8) << (3 as u8))) | ((1 as u8) << (4 as u8))) | ((1 as u8) << (5 as u8))) | ((0 as u8) << (6 as u8))) | ((1 as u8) << (7 as u8))) as u8);
+        __go_array.push((((((((((1 as u8) << (0 as u8)) | ((1 as u8) << (1 as u8))) | ((1 as u8) << (2 as u8))) | ((0 as u8) << (3 as u8))) | ((1 as u8) << (4 as u8))) | ((1 as u8) << (5 as u8))) | ((1 as u8) << (6 as u8))) | ((1 as u8) << (7 as u8))) as u8);
+        __go_array.push((((((((((0 as u8) << (0 as u8)) | ((1 as u8) << (1 as u8))) | ((1 as u8) << (2 as u8))) | ((1 as u8) << (3 as u8))) | ((1 as u8) << (4 as u8))) | ((0 as u8) << (5 as u8))) | ((1 as u8) << (6 as u8))) | ((1 as u8) << (7 as u8))) as u8);
+        let __go_array: [u8; 5] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *finalizer1.lock().unwrap() = Some(__go_array);
+    }
 }
 
 

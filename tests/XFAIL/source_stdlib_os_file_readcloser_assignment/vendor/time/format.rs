@@ -161,11 +161,75 @@ fn __go_init_globals() {
     *errBad.lock().unwrap() = None;
     *errLeadingInt.lock().unwrap() = None;
     *unitMap.lock().unwrap() = Some(BTreeMap::new());
-    *std0x.lock().unwrap() = Some((*Arc::new(Mutex::new(Some([260, 265, 1038, 1040, 1042, 276]))).lock().unwrap().as_ref().unwrap()).clone());
-    *longDayNames.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec!["Sunday".to_string(), "Monday".to_string(), "Tuesday".to_string(), "Wednesday".to_string(), "Thursday".to_string(), "Friday".to_string(), "Saturday".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
-    *shortDayNames.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec!["Sun".to_string(), "Mon".to_string(), "Tue".to_string(), "Wed".to_string(), "Thu".to_string(), "Fri".to_string(), "Sat".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
-    *shortMonthNames.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec!["Jan".to_string(), "Feb".to_string(), "Mar".to_string(), "Apr".to_string(), "May".to_string(), "Jun".to_string(), "Jul".to_string(), "Aug".to_string(), "Sep".to_string(), "Oct".to_string(), "Nov".to_string(), "Dec".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
-    *longMonthNames.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec!["January".to_string(), "February".to_string(), "March".to_string(), "April".to_string(), "May".to_string(), "June".to_string(), "July".to_string(), "August".to_string(), "September".to_string(), "October".to_string(), "November".to_string(), "December".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<i32>::with_capacity(6);
+        __go_array.push(260);
+        __go_array.push(265);
+        __go_array.push(1038);
+        __go_array.push(1040);
+        __go_array.push(1042);
+        __go_array.push(276);
+        let __go_array: [i32; 6] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *std0x.lock().unwrap() = Some(__go_array);
+    }
+    {
+        let mut __go_slice = Vec::<String>::with_capacity(7);
+        __go_slice.push("Sunday".to_string());
+        __go_slice.push("Monday".to_string());
+        __go_slice.push("Tuesday".to_string());
+        __go_slice.push("Wednesday".to_string());
+        __go_slice.push("Thursday".to_string());
+        __go_slice.push("Friday".to_string());
+        __go_slice.push("Saturday".to_string());
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *longDayNames.lock().unwrap() = Some(__go_slice);
+    }
+    {
+        let mut __go_slice = Vec::<String>::with_capacity(7);
+        __go_slice.push("Sun".to_string());
+        __go_slice.push("Mon".to_string());
+        __go_slice.push("Tue".to_string());
+        __go_slice.push("Wed".to_string());
+        __go_slice.push("Thu".to_string());
+        __go_slice.push("Fri".to_string());
+        __go_slice.push("Sat".to_string());
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *shortDayNames.lock().unwrap() = Some(__go_slice);
+    }
+    {
+        let mut __go_slice = Vec::<String>::with_capacity(12);
+        __go_slice.push("Jan".to_string());
+        __go_slice.push("Feb".to_string());
+        __go_slice.push("Mar".to_string());
+        __go_slice.push("Apr".to_string());
+        __go_slice.push("May".to_string());
+        __go_slice.push("Jun".to_string());
+        __go_slice.push("Jul".to_string());
+        __go_slice.push("Aug".to_string());
+        __go_slice.push("Sep".to_string());
+        __go_slice.push("Oct".to_string());
+        __go_slice.push("Nov".to_string());
+        __go_slice.push("Dec".to_string());
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *shortMonthNames.lock().unwrap() = Some(__go_slice);
+    }
+    {
+        let mut __go_slice = Vec::<String>::with_capacity(12);
+        __go_slice.push("January".to_string());
+        __go_slice.push("February".to_string());
+        __go_slice.push("March".to_string());
+        __go_slice.push("April".to_string());
+        __go_slice.push("May".to_string());
+        __go_slice.push("June".to_string());
+        __go_slice.push("July".to_string());
+        __go_slice.push("August".to_string());
+        __go_slice.push("September".to_string());
+        __go_slice.push("October".to_string());
+        __go_slice.push("November".to_string());
+        __go_slice.push("December".to_string());
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *longMonthNames.lock().unwrap() = Some(__go_slice);
+    }
     { let __rhs_holder = errors::new(Arc::new(Mutex::new(Some("time: invalid number".to_string())))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *errAtoi.lock().unwrap() = new_val; }
     { let __rhs_holder = errors::new(Arc::new(Mutex::new(Some("bad value for field".to_string())))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *errBad.lock().unwrap() = new_val; }
     { let __rhs_holder = errors::new(Arc::new(Mutex::new(Some("time: bad [0-9]*".to_string())))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *errLeadingInt.lock().unwrap() = new_val; }
@@ -198,27 +262,91 @@ pub(crate) fn __go_zero_globals() {
 
 
 pub(crate) fn __go_init_order_0() {
-    *std0x.lock().unwrap() = Some((*Arc::new(Mutex::new(Some([260, 265, 1038, 1040, 1042, 276]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<i32>::with_capacity(6);
+        __go_array.push(260);
+        __go_array.push(265);
+        __go_array.push(1038);
+        __go_array.push(1040);
+        __go_array.push(1042);
+        __go_array.push(276);
+        let __go_array: [i32; 6] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *std0x.lock().unwrap() = Some(__go_array);
+    }
 }
 
 
 pub(crate) fn __go_init_order_1() {
-    *longDayNames.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec!["Sunday".to_string(), "Monday".to_string(), "Tuesday".to_string(), "Wednesday".to_string(), "Thursday".to_string(), "Friday".to_string(), "Saturday".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_slice = Vec::<String>::with_capacity(7);
+        __go_slice.push("Sunday".to_string());
+        __go_slice.push("Monday".to_string());
+        __go_slice.push("Tuesday".to_string());
+        __go_slice.push("Wednesday".to_string());
+        __go_slice.push("Thursday".to_string());
+        __go_slice.push("Friday".to_string());
+        __go_slice.push("Saturday".to_string());
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *longDayNames.lock().unwrap() = Some(__go_slice);
+    }
 }
 
 
 pub(crate) fn __go_init_order_2() {
-    *shortDayNames.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec!["Sun".to_string(), "Mon".to_string(), "Tue".to_string(), "Wed".to_string(), "Thu".to_string(), "Fri".to_string(), "Sat".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_slice = Vec::<String>::with_capacity(7);
+        __go_slice.push("Sun".to_string());
+        __go_slice.push("Mon".to_string());
+        __go_slice.push("Tue".to_string());
+        __go_slice.push("Wed".to_string());
+        __go_slice.push("Thu".to_string());
+        __go_slice.push("Fri".to_string());
+        __go_slice.push("Sat".to_string());
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *shortDayNames.lock().unwrap() = Some(__go_slice);
+    }
 }
 
 
 pub(crate) fn __go_init_order_3() {
-    *shortMonthNames.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec!["Jan".to_string(), "Feb".to_string(), "Mar".to_string(), "Apr".to_string(), "May".to_string(), "Jun".to_string(), "Jul".to_string(), "Aug".to_string(), "Sep".to_string(), "Oct".to_string(), "Nov".to_string(), "Dec".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_slice = Vec::<String>::with_capacity(12);
+        __go_slice.push("Jan".to_string());
+        __go_slice.push("Feb".to_string());
+        __go_slice.push("Mar".to_string());
+        __go_slice.push("Apr".to_string());
+        __go_slice.push("May".to_string());
+        __go_slice.push("Jun".to_string());
+        __go_slice.push("Jul".to_string());
+        __go_slice.push("Aug".to_string());
+        __go_slice.push("Sep".to_string());
+        __go_slice.push("Oct".to_string());
+        __go_slice.push("Nov".to_string());
+        __go_slice.push("Dec".to_string());
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *shortMonthNames.lock().unwrap() = Some(__go_slice);
+    }
 }
 
 
 pub(crate) fn __go_init_order_4() {
-    *longMonthNames.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec!["January".to_string(), "February".to_string(), "March".to_string(), "April".to_string(), "May".to_string(), "June".to_string(), "July".to_string(), "August".to_string(), "September".to_string(), "October".to_string(), "November".to_string(), "December".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_slice = Vec::<String>::with_capacity(12);
+        __go_slice.push("January".to_string());
+        __go_slice.push("February".to_string());
+        __go_slice.push("March".to_string());
+        __go_slice.push("April".to_string());
+        __go_slice.push("May".to_string());
+        __go_slice.push("June".to_string());
+        __go_slice.push("July".to_string());
+        __go_slice.push("August".to_string());
+        __go_slice.push("September".to_string());
+        __go_slice.push("October".to_string());
+        __go_slice.push("November".to_string());
+        __go_slice.push("December".to_string());
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *longMonthNames.lock().unwrap() = Some(__go_slice);
+    }
 }
 
 

@@ -213,7 +213,13 @@ fn __go_init_globals() {
     *stackPoisonCopy.lock().unwrap() = Some(0);
     *maxstacksize.lock().unwrap() = Some(((1 as usize) << (20 as usize)) as usize);
     *maxstackceiling.lock().unwrap() = Some((*maxstacksize.lock().unwrap().as_ref().unwrap()).clone());
-    *ptrnames.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec!["scalar".to_string(), "ptr".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_slice = Vec::<String>::with_capacity(2);
+        __go_slice.push("scalar".to_string());
+        __go_slice.push("ptr".to_string());
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *ptrnames.lock().unwrap() = Some(__go_slice);
+    }
     *startingStackSize.lock().unwrap() = Some(FIXED_STACK as u32);
 }
 
@@ -245,7 +251,13 @@ pub(crate) fn __go_init_order_76() {
 
 
 pub(crate) fn __go_init_order_77() {
-    *ptrnames.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec!["scalar".to_string(), "ptr".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_slice = Vec::<String>::with_capacity(2);
+        __go_slice.push("scalar".to_string());
+        __go_slice.push("ptr".to_string());
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *ptrnames.lock().unwrap() = Some(__go_slice);
+    }
 }
 
 

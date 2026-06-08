@@ -31,8 +31,112 @@ pub(crate) static deBruijn64tab: std::sync::LazyLock<std::sync::Arc<std::sync::M
 fn __go_init_globals() {
     *deBruijn32tab.lock().unwrap() = Some(std::array::from_fn(|_| 0));
     *deBruijn64tab.lock().unwrap() = Some(std::array::from_fn(|_| 0));
-    *deBruijn32tab.lock().unwrap() = Some((*Arc::new(Mutex::new(Some([0 as u8, 1 as u8, 28 as u8, 2 as u8, 29 as u8, 14 as u8, 24 as u8, 3 as u8, 30 as u8, 22 as u8, 20 as u8, 15 as u8, 25 as u8, 17 as u8, 4 as u8, 8 as u8, 31 as u8, 27 as u8, 13 as u8, 23 as u8, 21 as u8, 19 as u8, 16 as u8, 7 as u8, 26 as u8, 12 as u8, 18 as u8, 6 as u8, 11 as u8, 5 as u8, 10 as u8, 9 as u8]))).lock().unwrap().as_ref().unwrap()).clone());
-    *deBruijn64tab.lock().unwrap() = Some((*Arc::new(Mutex::new(Some([0 as u8, 1 as u8, 56 as u8, 2 as u8, 57 as u8, 49 as u8, 28 as u8, 3 as u8, 61 as u8, 58 as u8, 42 as u8, 50 as u8, 38 as u8, 29 as u8, 17 as u8, 4 as u8, 62 as u8, 47 as u8, 59 as u8, 36 as u8, 45 as u8, 43 as u8, 51 as u8, 22 as u8, 53 as u8, 39 as u8, 33 as u8, 30 as u8, 24 as u8, 18 as u8, 12 as u8, 5 as u8, 63 as u8, 55 as u8, 48 as u8, 27 as u8, 60 as u8, 41 as u8, 37 as u8, 16 as u8, 46 as u8, 35 as u8, 44 as u8, 21 as u8, 52 as u8, 32 as u8, 23 as u8, 11 as u8, 54 as u8, 26 as u8, 40 as u8, 15 as u8, 34 as u8, 20 as u8, 31 as u8, 10 as u8, 25 as u8, 14 as u8, 19 as u8, 9 as u8, 13 as u8, 8 as u8, 7 as u8, 6 as u8]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<u8>::with_capacity(32);
+        __go_array.push(0 as u8);
+        __go_array.push(1 as u8);
+        __go_array.push(28 as u8);
+        __go_array.push(2 as u8);
+        __go_array.push(29 as u8);
+        __go_array.push(14 as u8);
+        __go_array.push(24 as u8);
+        __go_array.push(3 as u8);
+        __go_array.push(30 as u8);
+        __go_array.push(22 as u8);
+        __go_array.push(20 as u8);
+        __go_array.push(15 as u8);
+        __go_array.push(25 as u8);
+        __go_array.push(17 as u8);
+        __go_array.push(4 as u8);
+        __go_array.push(8 as u8);
+        __go_array.push(31 as u8);
+        __go_array.push(27 as u8);
+        __go_array.push(13 as u8);
+        __go_array.push(23 as u8);
+        __go_array.push(21 as u8);
+        __go_array.push(19 as u8);
+        __go_array.push(16 as u8);
+        __go_array.push(7 as u8);
+        __go_array.push(26 as u8);
+        __go_array.push(12 as u8);
+        __go_array.push(18 as u8);
+        __go_array.push(6 as u8);
+        __go_array.push(11 as u8);
+        __go_array.push(5 as u8);
+        __go_array.push(10 as u8);
+        __go_array.push(9 as u8);
+        let __go_array: [u8; 32] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *deBruijn32tab.lock().unwrap() = Some(__go_array);
+    }
+    {
+        let mut __go_array = Vec::<u8>::with_capacity(64);
+        __go_array.push(0 as u8);
+        __go_array.push(1 as u8);
+        __go_array.push(56 as u8);
+        __go_array.push(2 as u8);
+        __go_array.push(57 as u8);
+        __go_array.push(49 as u8);
+        __go_array.push(28 as u8);
+        __go_array.push(3 as u8);
+        __go_array.push(61 as u8);
+        __go_array.push(58 as u8);
+        __go_array.push(42 as u8);
+        __go_array.push(50 as u8);
+        __go_array.push(38 as u8);
+        __go_array.push(29 as u8);
+        __go_array.push(17 as u8);
+        __go_array.push(4 as u8);
+        __go_array.push(62 as u8);
+        __go_array.push(47 as u8);
+        __go_array.push(59 as u8);
+        __go_array.push(36 as u8);
+        __go_array.push(45 as u8);
+        __go_array.push(43 as u8);
+        __go_array.push(51 as u8);
+        __go_array.push(22 as u8);
+        __go_array.push(53 as u8);
+        __go_array.push(39 as u8);
+        __go_array.push(33 as u8);
+        __go_array.push(30 as u8);
+        __go_array.push(24 as u8);
+        __go_array.push(18 as u8);
+        __go_array.push(12 as u8);
+        __go_array.push(5 as u8);
+        __go_array.push(63 as u8);
+        __go_array.push(55 as u8);
+        __go_array.push(48 as u8);
+        __go_array.push(27 as u8);
+        __go_array.push(60 as u8);
+        __go_array.push(41 as u8);
+        __go_array.push(37 as u8);
+        __go_array.push(16 as u8);
+        __go_array.push(46 as u8);
+        __go_array.push(35 as u8);
+        __go_array.push(44 as u8);
+        __go_array.push(21 as u8);
+        __go_array.push(52 as u8);
+        __go_array.push(32 as u8);
+        __go_array.push(23 as u8);
+        __go_array.push(11 as u8);
+        __go_array.push(54 as u8);
+        __go_array.push(26 as u8);
+        __go_array.push(40 as u8);
+        __go_array.push(15 as u8);
+        __go_array.push(34 as u8);
+        __go_array.push(20 as u8);
+        __go_array.push(31 as u8);
+        __go_array.push(10 as u8);
+        __go_array.push(25 as u8);
+        __go_array.push(14 as u8);
+        __go_array.push(19 as u8);
+        __go_array.push(9 as u8);
+        __go_array.push(13 as u8);
+        __go_array.push(8 as u8);
+        __go_array.push(7 as u8);
+        __go_array.push(6 as u8);
+        let __go_array: [u8; 64] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *deBruijn64tab.lock().unwrap() = Some(__go_array);
+    }
 }
 
 
@@ -43,12 +147,116 @@ pub(crate) fn __go_zero_globals() {
 
 
 pub(crate) fn __go_init_order_1() {
-    *deBruijn32tab.lock().unwrap() = Some((*Arc::new(Mutex::new(Some([0 as u8, 1 as u8, 28 as u8, 2 as u8, 29 as u8, 14 as u8, 24 as u8, 3 as u8, 30 as u8, 22 as u8, 20 as u8, 15 as u8, 25 as u8, 17 as u8, 4 as u8, 8 as u8, 31 as u8, 27 as u8, 13 as u8, 23 as u8, 21 as u8, 19 as u8, 16 as u8, 7 as u8, 26 as u8, 12 as u8, 18 as u8, 6 as u8, 11 as u8, 5 as u8, 10 as u8, 9 as u8]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<u8>::with_capacity(32);
+        __go_array.push(0 as u8);
+        __go_array.push(1 as u8);
+        __go_array.push(28 as u8);
+        __go_array.push(2 as u8);
+        __go_array.push(29 as u8);
+        __go_array.push(14 as u8);
+        __go_array.push(24 as u8);
+        __go_array.push(3 as u8);
+        __go_array.push(30 as u8);
+        __go_array.push(22 as u8);
+        __go_array.push(20 as u8);
+        __go_array.push(15 as u8);
+        __go_array.push(25 as u8);
+        __go_array.push(17 as u8);
+        __go_array.push(4 as u8);
+        __go_array.push(8 as u8);
+        __go_array.push(31 as u8);
+        __go_array.push(27 as u8);
+        __go_array.push(13 as u8);
+        __go_array.push(23 as u8);
+        __go_array.push(21 as u8);
+        __go_array.push(19 as u8);
+        __go_array.push(16 as u8);
+        __go_array.push(7 as u8);
+        __go_array.push(26 as u8);
+        __go_array.push(12 as u8);
+        __go_array.push(18 as u8);
+        __go_array.push(6 as u8);
+        __go_array.push(11 as u8);
+        __go_array.push(5 as u8);
+        __go_array.push(10 as u8);
+        __go_array.push(9 as u8);
+        let __go_array: [u8; 32] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *deBruijn32tab.lock().unwrap() = Some(__go_array);
+    }
 }
 
 
 pub(crate) fn __go_init_order_2() {
-    *deBruijn64tab.lock().unwrap() = Some((*Arc::new(Mutex::new(Some([0 as u8, 1 as u8, 56 as u8, 2 as u8, 57 as u8, 49 as u8, 28 as u8, 3 as u8, 61 as u8, 58 as u8, 42 as u8, 50 as u8, 38 as u8, 29 as u8, 17 as u8, 4 as u8, 62 as u8, 47 as u8, 59 as u8, 36 as u8, 45 as u8, 43 as u8, 51 as u8, 22 as u8, 53 as u8, 39 as u8, 33 as u8, 30 as u8, 24 as u8, 18 as u8, 12 as u8, 5 as u8, 63 as u8, 55 as u8, 48 as u8, 27 as u8, 60 as u8, 41 as u8, 37 as u8, 16 as u8, 46 as u8, 35 as u8, 44 as u8, 21 as u8, 52 as u8, 32 as u8, 23 as u8, 11 as u8, 54 as u8, 26 as u8, 40 as u8, 15 as u8, 34 as u8, 20 as u8, 31 as u8, 10 as u8, 25 as u8, 14 as u8, 19 as u8, 9 as u8, 13 as u8, 8 as u8, 7 as u8, 6 as u8]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<u8>::with_capacity(64);
+        __go_array.push(0 as u8);
+        __go_array.push(1 as u8);
+        __go_array.push(56 as u8);
+        __go_array.push(2 as u8);
+        __go_array.push(57 as u8);
+        __go_array.push(49 as u8);
+        __go_array.push(28 as u8);
+        __go_array.push(3 as u8);
+        __go_array.push(61 as u8);
+        __go_array.push(58 as u8);
+        __go_array.push(42 as u8);
+        __go_array.push(50 as u8);
+        __go_array.push(38 as u8);
+        __go_array.push(29 as u8);
+        __go_array.push(17 as u8);
+        __go_array.push(4 as u8);
+        __go_array.push(62 as u8);
+        __go_array.push(47 as u8);
+        __go_array.push(59 as u8);
+        __go_array.push(36 as u8);
+        __go_array.push(45 as u8);
+        __go_array.push(43 as u8);
+        __go_array.push(51 as u8);
+        __go_array.push(22 as u8);
+        __go_array.push(53 as u8);
+        __go_array.push(39 as u8);
+        __go_array.push(33 as u8);
+        __go_array.push(30 as u8);
+        __go_array.push(24 as u8);
+        __go_array.push(18 as u8);
+        __go_array.push(12 as u8);
+        __go_array.push(5 as u8);
+        __go_array.push(63 as u8);
+        __go_array.push(55 as u8);
+        __go_array.push(48 as u8);
+        __go_array.push(27 as u8);
+        __go_array.push(60 as u8);
+        __go_array.push(41 as u8);
+        __go_array.push(37 as u8);
+        __go_array.push(16 as u8);
+        __go_array.push(46 as u8);
+        __go_array.push(35 as u8);
+        __go_array.push(44 as u8);
+        __go_array.push(21 as u8);
+        __go_array.push(52 as u8);
+        __go_array.push(32 as u8);
+        __go_array.push(23 as u8);
+        __go_array.push(11 as u8);
+        __go_array.push(54 as u8);
+        __go_array.push(26 as u8);
+        __go_array.push(40 as u8);
+        __go_array.push(15 as u8);
+        __go_array.push(34 as u8);
+        __go_array.push(20 as u8);
+        __go_array.push(31 as u8);
+        __go_array.push(10 as u8);
+        __go_array.push(25 as u8);
+        __go_array.push(14 as u8);
+        __go_array.push(19 as u8);
+        __go_array.push(9 as u8);
+        __go_array.push(13 as u8);
+        __go_array.push(8 as u8);
+        __go_array.push(7 as u8);
+        __go_array.push(6 as u8);
+        let __go_array: [u8; 64] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *deBruijn64tab.lock().unwrap() = Some(__go_array);
+    }
 }
 
 

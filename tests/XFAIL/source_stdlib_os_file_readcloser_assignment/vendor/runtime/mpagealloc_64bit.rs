@@ -23,9 +23,36 @@ fn __go_init_globals() {
     *levelBits.lock().unwrap() = Some(std::array::from_fn(|_| 0));
     *levelShift.lock().unwrap() = Some(std::array::from_fn(|_| 0));
     *levelLogPages.lock().unwrap() = Some(std::array::from_fn(|_| 0));
-    *levelBits.lock().unwrap() = Some((*Arc::new(Mutex::new(Some([SUMMARY_L0_BITS as u64, SUMMARY_LEVEL_BITS as u64, SUMMARY_LEVEL_BITS as u64, SUMMARY_LEVEL_BITS as u64, SUMMARY_LEVEL_BITS as u64]))).lock().unwrap().as_ref().unwrap()).clone());
-    *levelShift.lock().unwrap() = Some((*Arc::new(Mutex::new(Some([((HEAP_ADDR_BITS as u64) - (SUMMARY_L0_BITS as u64)) as u64, (((HEAP_ADDR_BITS as u64) - (SUMMARY_L0_BITS as u64)) - ((1 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64, (((HEAP_ADDR_BITS as u64) - (SUMMARY_L0_BITS as u64)) - ((2 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64, (((HEAP_ADDR_BITS as u64) - (SUMMARY_L0_BITS as u64)) - ((3 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64, (((HEAP_ADDR_BITS as u64) - (SUMMARY_L0_BITS as u64)) - ((4 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64]))).lock().unwrap().as_ref().unwrap()).clone());
-    *levelLogPages.lock().unwrap() = Some((*Arc::new(Mutex::new(Some([((LOG_PALLOC_CHUNK_PAGES as u64) + ((4 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64, ((LOG_PALLOC_CHUNK_PAGES as u64) + ((3 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64, ((LOG_PALLOC_CHUNK_PAGES as u64) + ((2 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64, ((LOG_PALLOC_CHUNK_PAGES as u64) + ((1 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64, LOG_PALLOC_CHUNK_PAGES as u64]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<u64>::with_capacity(5);
+        __go_array.push(SUMMARY_L0_BITS as u64);
+        __go_array.push(SUMMARY_LEVEL_BITS as u64);
+        __go_array.push(SUMMARY_LEVEL_BITS as u64);
+        __go_array.push(SUMMARY_LEVEL_BITS as u64);
+        __go_array.push(SUMMARY_LEVEL_BITS as u64);
+        let __go_array: [u64; 5] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *levelBits.lock().unwrap() = Some(__go_array);
+    }
+    {
+        let mut __go_array = Vec::<u64>::with_capacity(5);
+        __go_array.push(((HEAP_ADDR_BITS as u64) - (SUMMARY_L0_BITS as u64)) as u64);
+        __go_array.push((((HEAP_ADDR_BITS as u64) - (SUMMARY_L0_BITS as u64)) - ((1 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64);
+        __go_array.push((((HEAP_ADDR_BITS as u64) - (SUMMARY_L0_BITS as u64)) - ((2 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64);
+        __go_array.push((((HEAP_ADDR_BITS as u64) - (SUMMARY_L0_BITS as u64)) - ((3 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64);
+        __go_array.push((((HEAP_ADDR_BITS as u64) - (SUMMARY_L0_BITS as u64)) - ((4 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64);
+        let __go_array: [u64; 5] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *levelShift.lock().unwrap() = Some(__go_array);
+    }
+    {
+        let mut __go_array = Vec::<u64>::with_capacity(5);
+        __go_array.push(((LOG_PALLOC_CHUNK_PAGES as u64) + ((4 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64);
+        __go_array.push(((LOG_PALLOC_CHUNK_PAGES as u64) + ((3 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64);
+        __go_array.push(((LOG_PALLOC_CHUNK_PAGES as u64) + ((2 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64);
+        __go_array.push(((LOG_PALLOC_CHUNK_PAGES as u64) + ((1 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64);
+        __go_array.push(LOG_PALLOC_CHUNK_PAGES as u64);
+        let __go_array: [u64; 5] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *levelLogPages.lock().unwrap() = Some(__go_array);
+    }
 }
 
 
@@ -37,17 +64,44 @@ pub(crate) fn __go_zero_globals() {
 
 
 pub(crate) fn __go_init_order_30() {
-    *levelBits.lock().unwrap() = Some((*Arc::new(Mutex::new(Some([SUMMARY_L0_BITS as u64, SUMMARY_LEVEL_BITS as u64, SUMMARY_LEVEL_BITS as u64, SUMMARY_LEVEL_BITS as u64, SUMMARY_LEVEL_BITS as u64]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<u64>::with_capacity(5);
+        __go_array.push(SUMMARY_L0_BITS as u64);
+        __go_array.push(SUMMARY_LEVEL_BITS as u64);
+        __go_array.push(SUMMARY_LEVEL_BITS as u64);
+        __go_array.push(SUMMARY_LEVEL_BITS as u64);
+        __go_array.push(SUMMARY_LEVEL_BITS as u64);
+        let __go_array: [u64; 5] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *levelBits.lock().unwrap() = Some(__go_array);
+    }
 }
 
 
 pub(crate) fn __go_init_order_31() {
-    *levelShift.lock().unwrap() = Some((*Arc::new(Mutex::new(Some([((HEAP_ADDR_BITS as u64) - (SUMMARY_L0_BITS as u64)) as u64, (((HEAP_ADDR_BITS as u64) - (SUMMARY_L0_BITS as u64)) - ((1 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64, (((HEAP_ADDR_BITS as u64) - (SUMMARY_L0_BITS as u64)) - ((2 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64, (((HEAP_ADDR_BITS as u64) - (SUMMARY_L0_BITS as u64)) - ((3 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64, (((HEAP_ADDR_BITS as u64) - (SUMMARY_L0_BITS as u64)) - ((4 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<u64>::with_capacity(5);
+        __go_array.push(((HEAP_ADDR_BITS as u64) - (SUMMARY_L0_BITS as u64)) as u64);
+        __go_array.push((((HEAP_ADDR_BITS as u64) - (SUMMARY_L0_BITS as u64)) - ((1 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64);
+        __go_array.push((((HEAP_ADDR_BITS as u64) - (SUMMARY_L0_BITS as u64)) - ((2 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64);
+        __go_array.push((((HEAP_ADDR_BITS as u64) - (SUMMARY_L0_BITS as u64)) - ((3 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64);
+        __go_array.push((((HEAP_ADDR_BITS as u64) - (SUMMARY_L0_BITS as u64)) - ((4 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64);
+        let __go_array: [u64; 5] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *levelShift.lock().unwrap() = Some(__go_array);
+    }
 }
 
 
 pub(crate) fn __go_init_order_32() {
-    *levelLogPages.lock().unwrap() = Some((*Arc::new(Mutex::new(Some([((LOG_PALLOC_CHUNK_PAGES as u64) + ((4 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64, ((LOG_PALLOC_CHUNK_PAGES as u64) + ((3 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64, ((LOG_PALLOC_CHUNK_PAGES as u64) + ((2 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64, ((LOG_PALLOC_CHUNK_PAGES as u64) + ((1 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64, LOG_PALLOC_CHUNK_PAGES as u64]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_array = Vec::<u64>::with_capacity(5);
+        __go_array.push(((LOG_PALLOC_CHUNK_PAGES as u64) + ((4 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64);
+        __go_array.push(((LOG_PALLOC_CHUNK_PAGES as u64) + ((3 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64);
+        __go_array.push(((LOG_PALLOC_CHUNK_PAGES as u64) + ((2 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64);
+        __go_array.push(((LOG_PALLOC_CHUNK_PAGES as u64) + ((1 as u64) * (SUMMARY_LEVEL_BITS as u64))) as u64);
+        __go_array.push(LOG_PALLOC_CHUNK_PAGES as u64);
+        let __go_array: [u64; 5] = match __go_array.try_into() { Ok(__go_array) => __go_array, Err(_) => panic!("go2rust array literal length mismatch") };
+        *levelLogPages.lock().unwrap() = Some(__go_array);
+    }
 }
 
 

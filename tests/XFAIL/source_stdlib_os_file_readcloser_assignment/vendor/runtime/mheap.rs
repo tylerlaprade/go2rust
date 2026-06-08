@@ -2418,7 +2418,14 @@ fn __go_init_globals() {
     *mheap_.lock().unwrap() = Some(Default::default());
     *mSpanStateNames.lock().unwrap() = Some(vec![]);
     *gcBitsArenas.lock().unwrap() = Some(Default::default());
-    *mSpanStateNames.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec!["mSpanDead".to_string(), "mSpanInUse".to_string(), "mSpanManual".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_slice = Vec::<String>::with_capacity(3);
+        __go_slice.push("mSpanDead".to_string());
+        __go_slice.push("mSpanInUse".to_string());
+        __go_slice.push("mSpanManual".to_string());
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *mSpanStateNames.lock().unwrap() = Some(__go_slice);
+    }
 }
 
 
@@ -2430,7 +2437,14 @@ pub(crate) fn __go_zero_globals() {
 
 
 pub(crate) fn __go_init_order_29() {
-    *mSpanStateNames.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec!["mSpanDead".to_string(), "mSpanInUse".to_string(), "mSpanManual".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_slice = Vec::<String>::with_capacity(3);
+        __go_slice.push("mSpanDead".to_string());
+        __go_slice.push("mSpanInUse".to_string());
+        __go_slice.push("mSpanManual".to_string());
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *mSpanStateNames.lock().unwrap() = Some(__go_slice);
+    }
 }
 
 

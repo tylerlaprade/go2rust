@@ -2919,7 +2919,38 @@ pub(crate) static kindNames: std::sync::LazyLock<std::sync::Arc<std::sync::Mutex
 
 fn __go_init_globals() {
     *kindNames.lock().unwrap() = Some(vec![]);
-    *kindNames.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec!["invalid".to_string(), "bool".to_string(), "int".to_string(), "int8".to_string(), "int16".to_string(), "int32".to_string(), "int64".to_string(), "uint".to_string(), "uint8".to_string(), "uint16".to_string(), "uint32".to_string(), "uint64".to_string(), "uintptr".to_string(), "float32".to_string(), "float64".to_string(), "complex64".to_string(), "complex128".to_string(), "array".to_string(), "chan".to_string(), "func".to_string(), "interface".to_string(), "map".to_string(), "ptr".to_string(), "slice".to_string(), "string".to_string(), "struct".to_string(), "unsafe.Pointer".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_slice = Vec::<String>::with_capacity(27);
+        __go_slice.push("invalid".to_string());
+        __go_slice.push("bool".to_string());
+        __go_slice.push("int".to_string());
+        __go_slice.push("int8".to_string());
+        __go_slice.push("int16".to_string());
+        __go_slice.push("int32".to_string());
+        __go_slice.push("int64".to_string());
+        __go_slice.push("uint".to_string());
+        __go_slice.push("uint8".to_string());
+        __go_slice.push("uint16".to_string());
+        __go_slice.push("uint32".to_string());
+        __go_slice.push("uint64".to_string());
+        __go_slice.push("uintptr".to_string());
+        __go_slice.push("float32".to_string());
+        __go_slice.push("float64".to_string());
+        __go_slice.push("complex64".to_string());
+        __go_slice.push("complex128".to_string());
+        __go_slice.push("array".to_string());
+        __go_slice.push("chan".to_string());
+        __go_slice.push("func".to_string());
+        __go_slice.push("interface".to_string());
+        __go_slice.push("map".to_string());
+        __go_slice.push("ptr".to_string());
+        __go_slice.push("slice".to_string());
+        __go_slice.push("string".to_string());
+        __go_slice.push("struct".to_string());
+        __go_slice.push("unsafe.Pointer".to_string());
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *kindNames.lock().unwrap() = Some(__go_slice);
+    }
 }
 
 
@@ -2929,7 +2960,38 @@ pub(crate) fn __go_zero_globals() {
 
 
 pub(crate) fn __go_init_order_0() {
-    *kindNames.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec!["invalid".to_string(), "bool".to_string(), "int".to_string(), "int8".to_string(), "int16".to_string(), "int32".to_string(), "int64".to_string(), "uint".to_string(), "uint8".to_string(), "uint16".to_string(), "uint32".to_string(), "uint64".to_string(), "uintptr".to_string(), "float32".to_string(), "float64".to_string(), "complex64".to_string(), "complex128".to_string(), "array".to_string(), "chan".to_string(), "func".to_string(), "interface".to_string(), "map".to_string(), "ptr".to_string(), "slice".to_string(), "string".to_string(), "struct".to_string(), "unsafe.Pointer".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_slice = Vec::<String>::with_capacity(27);
+        __go_slice.push("invalid".to_string());
+        __go_slice.push("bool".to_string());
+        __go_slice.push("int".to_string());
+        __go_slice.push("int8".to_string());
+        __go_slice.push("int16".to_string());
+        __go_slice.push("int32".to_string());
+        __go_slice.push("int64".to_string());
+        __go_slice.push("uint".to_string());
+        __go_slice.push("uint8".to_string());
+        __go_slice.push("uint16".to_string());
+        __go_slice.push("uint32".to_string());
+        __go_slice.push("uint64".to_string());
+        __go_slice.push("uintptr".to_string());
+        __go_slice.push("float32".to_string());
+        __go_slice.push("float64".to_string());
+        __go_slice.push("complex64".to_string());
+        __go_slice.push("complex128".to_string());
+        __go_slice.push("array".to_string());
+        __go_slice.push("chan".to_string());
+        __go_slice.push("func".to_string());
+        __go_slice.push("interface".to_string());
+        __go_slice.push("map".to_string());
+        __go_slice.push("ptr".to_string());
+        __go_slice.push("slice".to_string());
+        __go_slice.push("string".to_string());
+        __go_slice.push("struct".to_string());
+        __go_slice.push("unsafe.Pointer".to_string());
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *kindNames.lock().unwrap() = Some(__go_slice);
+    }
 }
 
 

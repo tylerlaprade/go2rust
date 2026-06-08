@@ -12,7 +12,15 @@ pub(crate) static platformZoneSources: std::sync::LazyLock<std::sync::Arc<std::s
 
 fn __go_init_globals() {
     *platformZoneSources.lock().unwrap() = Some(vec![]);
-    *platformZoneSources.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec!["/usr/share/zoneinfo/".to_string(), "/usr/share/lib/zoneinfo/".to_string(), "/usr/lib/locale/TZ/".to_string(), "/etc/zoneinfo".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_slice = Vec::<String>::with_capacity(4);
+        __go_slice.push("/usr/share/zoneinfo/".to_string());
+        __go_slice.push("/usr/share/lib/zoneinfo/".to_string());
+        __go_slice.push("/usr/lib/locale/TZ/".to_string());
+        __go_slice.push("/etc/zoneinfo".to_string());
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *platformZoneSources.lock().unwrap() = Some(__go_slice);
+    }
 }
 
 
@@ -22,7 +30,15 @@ pub(crate) fn __go_zero_globals() {
 
 
 pub(crate) fn __go_init_order_16() {
-    *platformZoneSources.lock().unwrap() = Some((*Arc::new(Mutex::new(Some(vec!["/usr/share/zoneinfo/".to_string(), "/usr/share/lib/zoneinfo/".to_string(), "/usr/lib/locale/TZ/".to_string(), "/etc/zoneinfo".to_string()]))).lock().unwrap().as_ref().unwrap()).clone());
+    {
+        let mut __go_slice = Vec::<String>::with_capacity(4);
+        __go_slice.push("/usr/share/zoneinfo/".to_string());
+        __go_slice.push("/usr/share/lib/zoneinfo/".to_string());
+        __go_slice.push("/usr/lib/locale/TZ/".to_string());
+        __go_slice.push("/etc/zoneinfo".to_string());
+        let __go_slice = __go_slice.into_boxed_slice().into_vec();
+        *platformZoneSources.lock().unwrap() = Some(__go_slice);
+    }
 }
 
 
