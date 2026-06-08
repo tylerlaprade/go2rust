@@ -1067,6 +1067,10 @@ run_xfail_test() {
     run_test "tests/enums_iota"
 }
 
+@test "error_any_many_candidates" {
+    run_test "tests/error_any_many_candidates"
+}
+
 @test "error_argument_clone" {
     run_test "tests/error_argument_clone"
 }

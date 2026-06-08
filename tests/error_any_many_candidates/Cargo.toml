@@ -1,0 +1,8 @@
+[package]
+name = "error_any_many_candidates"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "error_any_many_candidates"
+path = "main.rs"

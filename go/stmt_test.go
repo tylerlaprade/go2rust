@@ -9215,6 +9215,43 @@ func pass(err error) {
 	}
 }
 
+func TestConcurrentPanicErrorPayloadBreaksDowncastChainAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type alphaErr struct{}
+func (alphaErr) Error() string { return "alpha" }
+
+type betaErr struct{}
+func (betaErr) Error() string { return "beta" }
+
+type gammaErr struct{}
+func (gammaErr) Error() string { return "gamma" }
+
+type deltaErr struct{}
+func (deltaErr) Error() string { return "delta" }
+
+func fail(err error) {
+	go func() {}()
+	panic(err)
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "match __err_guard.as_ref()") && strings.Contains(line, "downcast_ref::<") {
+			t.Fatalf("error-to-any downcast chain should split across lines:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "match __err_guard.as_ref() {\n") {
+		t.Fatalf("error-to-any downcast chain should use multiline match syntax:\n%s", rust)
+	}
+	if !strings.Contains(rust, "downcast_ref::<alphaErr>()") ||
+		!strings.Contains(rust, "downcast_ref::<betaErr>()") ||
+		!strings.Contains(rust, "downcast_ref::<gammaErr>()") ||
+		!strings.Contains(rust, "downcast_ref::<deltaErr>()") {
+		t.Fatalf("error-to-any downcast chain should preserve concrete error candidates:\n%s", rust)
+	}
+}
+
 func TestPointerAssertionCallArgumentKeepsHandle(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

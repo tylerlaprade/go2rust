@@ -8307,6 +8307,10 @@ func writeGoErrorInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
 	}
 	errorIface, _ := errorObj.Type().Underlying().(*types.Interface)
 	candidates := localInterfaceAssertionCandidates(errorIface, typeInfo.GetType(expr))
+	if goErrorInterfaceAnyBoxShouldUseMultiline(candidates) {
+		writeGoErrorInterfaceAnyBoxMultiline(out, expr, candidates)
+		return true
+	}
 	out.WriteString("{ let __err_holder = ")
 	TranspileExpressionContext(out, expr, LValue)
 	out.WriteString(".clone(); let __err_guard = __err_holder")
@@ -8331,6 +8335,55 @@ func writeGoErrorInterfaceAnyBox(out *strings.Builder, expr ast.Expr) bool {
 	}
 	out.WriteString(" } }")
 	return true
+}
+
+func goErrorInterfaceAnyBoxShouldUseMultiline(candidates []localInterfaceAssertionCandidate) bool {
+	return len(candidates) >= 3
+}
+
+func writeGoErrorInterfaceAnyBoxMultiline(out *strings.Builder, expr ast.Expr, candidates []localInterfaceAssertionCandidate) {
+	indent := currentLineIndent(out)
+	out.WriteString("{\n")
+	out.WriteString(indent)
+	out.WriteString("    let __err_holder = ")
+	TranspileExpressionContext(out, expr, LValue)
+	out.WriteString(".clone();\n")
+	out.WriteString(indent)
+	out.WriteString("    let __err_guard = __err_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("    match __err_guard.as_ref() {\n")
+	out.WriteString(indent)
+	out.WriteString("        None => panic!(\"nil error-to-any lowering requires nil interface representation\"),\n")
+	out.WriteString(indent)
+	out.WriteString("        Some(__err) => {\n")
+	for i, candidate := range candidates {
+		out.WriteString(indent)
+		if i == 0 {
+			out.WriteString("            if let Some(typed_val) = __err.downcast_ref::<")
+		} else {
+			out.WriteString("            } else if let Some(typed_val) = __err.downcast_ref::<")
+		}
+		out.WriteString(candidate.rustType)
+		out.WriteString(">() {\n")
+		out.WriteString(indent)
+		out.WriteString("                ")
+		writeGoAnyMetadataBox(out, "typed_val.clone()", candidate)
+		out.WriteString("\n")
+	}
+	out.WriteString(indent)
+	out.WriteString("            } else {\n")
+	out.WriteString(indent)
+	out.WriteString("                panic!(\"type info required: error-to-any for unknown dynamic error type\")\n")
+	out.WriteString(indent)
+	out.WriteString("            }\n")
+	out.WriteString(indent)
+	out.WriteString("        }\n")
+	out.WriteString(indent)
+	out.WriteString("    }\n")
+	out.WriteString(indent)
+	out.WriteString("}")
 }
 
 func writeGoAnyMetadataBox(out *strings.Builder, valueExpr string, candidate localInterfaceAssertionCandidate) {

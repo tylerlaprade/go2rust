@@ -814,22 +814,98 @@ pub fn panic_check2(err: Arc<Mutex<Option<String>>>) {
 ///go:yeswritebarrierrec
 pub fn panicdivide() {
     panic_check2(Arc::new(Mutex::new(Some("integer divide by zero".to_string()))));
-    std::panic::panic_any({ let __err_holder = divideError.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<crate::error::TypeAssertionError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<crate::error::errorAddressString>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) } else if let Some(typed_val) = __err.downcast_ref::<crate::error::errorString>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else if let Some(typed_val) = __err.downcast_ref::<crate::error::plainError>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else { panic!("type info required: error-to-any for unknown dynamic error type") } } });
+    std::panic::panic_any({
+        let __err_holder = divideError.clone();
+        let __err_guard = __err_holder.lock().unwrap();
+        match __err_guard.as_ref() {
+            None => panic!("nil error-to-any lowering requires nil interface representation"),
+            Some(__err) => {
+                if let Some(typed_val) = __err.downcast_ref::<crate::error::TypeAssertionError>() {
+                    go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                } else if let Some(typed_val) = __err.downcast_ref::<crate::error::errorAddressString>() {
+                    go_box_any_with_metadata(typed_val.clone(), "struct", true)
+                } else if let Some(typed_val) = __err.downcast_ref::<crate::error::errorString>() {
+                    go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                } else if let Some(typed_val) = __err.downcast_ref::<crate::error::plainError>() {
+                    go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                } else {
+                    panic!("type info required: error-to-any for unknown dynamic error type")
+                }
+            }
+        }
+    });
 }
 
 pub fn panicoverflow() {
     panic_check2(Arc::new(Mutex::new(Some("integer overflow".to_string()))));
-    std::panic::panic_any({ let __err_holder = overflowError.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<crate::error::TypeAssertionError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<crate::error::errorAddressString>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) } else if let Some(typed_val) = __err.downcast_ref::<crate::error::errorString>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else if let Some(typed_val) = __err.downcast_ref::<crate::error::plainError>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else { panic!("type info required: error-to-any for unknown dynamic error type") } } });
+    std::panic::panic_any({
+        let __err_holder = overflowError.clone();
+        let __err_guard = __err_holder.lock().unwrap();
+        match __err_guard.as_ref() {
+            None => panic!("nil error-to-any lowering requires nil interface representation"),
+            Some(__err) => {
+                if let Some(typed_val) = __err.downcast_ref::<crate::error::TypeAssertionError>() {
+                    go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                } else if let Some(typed_val) = __err.downcast_ref::<crate::error::errorAddressString>() {
+                    go_box_any_with_metadata(typed_val.clone(), "struct", true)
+                } else if let Some(typed_val) = __err.downcast_ref::<crate::error::errorString>() {
+                    go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                } else if let Some(typed_val) = __err.downcast_ref::<crate::error::plainError>() {
+                    go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                } else {
+                    panic!("type info required: error-to-any for unknown dynamic error type")
+                }
+            }
+        }
+    });
 }
 
 pub fn panicfloat() {
     panic_check2(Arc::new(Mutex::new(Some("floating point error".to_string()))));
-    std::panic::panic_any({ let __err_holder = floatError.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<crate::error::TypeAssertionError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<crate::error::errorAddressString>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) } else if let Some(typed_val) = __err.downcast_ref::<crate::error::errorString>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else if let Some(typed_val) = __err.downcast_ref::<crate::error::plainError>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else { panic!("type info required: error-to-any for unknown dynamic error type") } } });
+    std::panic::panic_any({
+        let __err_holder = floatError.clone();
+        let __err_guard = __err_holder.lock().unwrap();
+        match __err_guard.as_ref() {
+            None => panic!("nil error-to-any lowering requires nil interface representation"),
+            Some(__err) => {
+                if let Some(typed_val) = __err.downcast_ref::<crate::error::TypeAssertionError>() {
+                    go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                } else if let Some(typed_val) = __err.downcast_ref::<crate::error::errorAddressString>() {
+                    go_box_any_with_metadata(typed_val.clone(), "struct", true)
+                } else if let Some(typed_val) = __err.downcast_ref::<crate::error::errorString>() {
+                    go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                } else if let Some(typed_val) = __err.downcast_ref::<crate::error::plainError>() {
+                    go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                } else {
+                    panic!("type info required: error-to-any for unknown dynamic error type")
+                }
+            }
+        }
+    });
 }
 
 pub fn panicmem() {
     panic_check2(Arc::new(Mutex::new(Some("invalid memory address or nil pointer dereference".to_string()))));
-    std::panic::panic_any({ let __err_holder = memoryError.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<crate::error::TypeAssertionError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<crate::error::errorAddressString>() { go_box_any_with_metadata(typed_val.clone(), "struct", true) } else if let Some(typed_val) = __err.downcast_ref::<crate::error::errorString>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else if let Some(typed_val) = __err.downcast_ref::<crate::error::plainError>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else { panic!("type info required: error-to-any for unknown dynamic error type") } } });
+    std::panic::panic_any({
+        let __err_holder = memoryError.clone();
+        let __err_guard = __err_holder.lock().unwrap();
+        match __err_guard.as_ref() {
+            None => panic!("nil error-to-any lowering requires nil interface representation"),
+            Some(__err) => {
+                if let Some(typed_val) = __err.downcast_ref::<crate::error::TypeAssertionError>() {
+                    go_box_any_with_metadata(typed_val.clone(), "pointer", true)
+                } else if let Some(typed_val) = __err.downcast_ref::<crate::error::errorAddressString>() {
+                    go_box_any_with_metadata(typed_val.clone(), "struct", true)
+                } else if let Some(typed_val) = __err.downcast_ref::<crate::error::errorString>() {
+                    go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                } else if let Some(typed_val) = __err.downcast_ref::<crate::error::plainError>() {
+                    go_box_any_with_metadata(typed_val.clone(), "basic", true)
+                } else {
+                    panic!("type info required: error-to-any for unknown dynamic error type")
+                }
+            }
+        }
+    });
 }
 
 pub fn panicmem_addr(addr: Arc<Mutex<Option<usize>>>) {
