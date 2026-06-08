@@ -90,7 +90,7 @@ func buildGotoPlan(stmts []ast.Stmt) gotoPlan {
 func TranspileGotoStatementList(out *strings.Builder, stmts []ast.Stmt, fnType *ast.FuncType, fileSet *token.FileSet, comments []*ast.CommentGroup, lastPos *token.Pos, indent string) ast.Stmt {
 	plan := buildGotoPlan(stmts)
 	oldModes := currentGotoLabelModes
-	currentGotoLabelModes = plan.modes
+	currentGotoLabelModes = mergedGotoLabelModes(oldModes, plan.modes)
 	defer func() { currentGotoLabelModes = oldModes }()
 
 	var prevStmt ast.Stmt
@@ -198,6 +198,23 @@ func TranspileGotoStatementList(out *strings.Builder, stmts []ast.Stmt, fnType *
 		closeForwardLabel(forwardStack[len(forwardStack)-1])
 	}
 	return prevStmt
+}
+
+func mergedGotoLabelModes(outer, inner map[string]string) map[string]string {
+	if len(outer) == 0 {
+		return inner
+	}
+	if len(inner) == 0 {
+		return outer
+	}
+	merged := make(map[string]string, len(outer)+len(inner))
+	for label, mode := range outer {
+		merged[label] = mode
+	}
+	for label, mode := range inner {
+		merged[label] = mode
+	}
+	return merged
 }
 
 func stmtListHasPlannedGoto(stmts []ast.Stmt) bool {

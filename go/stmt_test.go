@@ -1538,6 +1538,44 @@ func find(names []string, want string) int {
 	}
 }
 
+func TestLoopBodyGotoPlanPreservesOuterForwardGoto(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func scan(values []int, want int, stop bool) int {
+	i := 0
+	for i < len(values) {
+		for j := 0; j < 2; j++ {
+			if values[i] == want {
+				goto next
+			}
+		}
+		return i
+
+	next:
+		i++
+		if stop {
+			goto fallback
+		}
+	}
+	return -1
+
+fallback:
+	return -2
+}
+`)
+
+	if strings.Contains(rust, "TODO: unsupported goto next") ||
+		strings.Contains(rust, "TODO: unsupported goto fallback") {
+		t.Fatalf("loop body goto planner should preserve both local and enclosing labels:\n%s", rust)
+	}
+	if !strings.Contains(rust, "'next: {") || !strings.Contains(rust, "break 'next;") {
+		t.Fatalf("loop-local forward goto should break to the emitted next label block:\n%s", rust)
+	}
+	if !strings.Contains(rust, "'fallback: {") || !strings.Contains(rust, "break 'fallback;") {
+		t.Fatalf("enclosing forward goto should remain visible inside the loop body planner:\n%s", rust)
+	}
+}
+
 func TestMultiShortDeclLenCapWrapsGoInt(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
