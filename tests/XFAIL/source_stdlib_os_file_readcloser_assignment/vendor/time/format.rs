@@ -1042,7 +1042,20 @@ pub fn std_frac_second(code: Arc<Mutex<Option<i32>>>, n: Arc<Mutex<Option<i32>>>
     if { let __tmp_x = { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('.' as i32); __tmp_x == __tmp_y } {
         return { let __tmp_x = { let __v = (*code.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = ({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4095; __tmp_x & __tmp_y }); let __tmp_y = STD_ARG_SHIFT; __tmp_x << __tmp_y }); __tmp_x | __tmp_y };
     }
-    return { let __tmp_x = { let __tmp_x = { let __v = (*code.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = ({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4095; __tmp_x & __tmp_y }); let __tmp_y = STD_ARG_SHIFT; __tmp_x << __tmp_y }); __tmp_x | __tmp_y }; let __tmp_y = 268435456; __tmp_x | __tmp_y };
+    return {
+            let __go_binary_0 = (*code.lock().unwrap().as_ref().unwrap());
+            let __go_binary_1 = (*n.lock().unwrap().as_ref().unwrap());
+            let __go_binary_2 = 4095;
+            let __go_binary_3 = __go_binary_1 & __go_binary_2;
+            let __go_binary_4 = STD_ARG_SHIFT;
+            let __go_binary_5 = __go_binary_3 << __go_binary_4;
+            let __go_binary_6 = __go_binary_0 | __go_binary_5;
+            let __go_binary_7 = 1;
+            let __go_binary_8 = STD_SEPARATOR_SHIFT;
+            let __go_binary_9 = __go_binary_7 << __go_binary_8;
+            let __go_binary_10 = __go_binary_6 | __go_binary_9;
+            __go_binary_10
+        };
 }
 
 pub fn digits_len(std: Arc<Mutex<Option<i32>>>) -> i32 {

@@ -397,19 +397,63 @@ func withShortDeclOuterRhsBindings(lhs []ast.Expr, rhs ast.Expr, emit func()) {
 const minStatementBuiltBinaryInitializerNodes = 4
 
 func writeStatementBuiltConcurrentBinaryShortDecl(out *strings.Builder, lhs ast.Expr, rhs ast.Expr) bool {
-	if !NeedsConcurrentWrapper() {
-		return false
-	}
-	binary, ok := unwrapParens(rhs).(*ast.BinaryExpr)
+	temps, result, ok := buildStatementBuiltConcurrentBinaryValue(rhs, []ast.Expr{lhs})
 	if !ok {
 		return false
 	}
-	typeInfo := GetTypeInfo()
-	if typeInfo == nil {
+
+	out.WriteString(temps)
+	out.WriteString("let mut ")
+	TranspileExpressionContext(out, lhs, LValue)
+	out.WriteString(" = ")
+	WriteWrapperPrefix(out)
+	out.WriteString(result)
+	WriteWrapperSuffix(out)
+	return true
+}
+
+func writeStatementBuiltConcurrentBinaryReturnValue(out *strings.Builder, expr ast.Expr) bool {
+	temps, result, ok := buildStatementBuiltConcurrentBinaryValue(expr, nil)
+	if !ok {
 		return false
 	}
+	out.WriteString("{\n")
+	writeIndentedStatementBuiltBinaryTemps(out, temps, "            ")
+	out.WriteString("            ")
+	out.WriteString(result)
+	out.WriteString("\n        }")
+	return true
+}
+
+func writeIndentedStatementBuiltBinaryTemps(out *strings.Builder, temps string, indent string) {
+	temps = strings.TrimSuffix(temps, "\n")
+	if temps == "" {
+		return
+	}
+	for _, line := range strings.Split(temps, "\n") {
+		if line == "" {
+			continue
+		}
+		out.WriteString(indent)
+		out.WriteString(line)
+		out.WriteString("\n")
+	}
+}
+
+func buildStatementBuiltConcurrentBinaryValue(rhs ast.Expr, hiddenShortDeclLhs []ast.Expr) (string, string, bool) {
+	if !NeedsConcurrentWrapper() {
+		return "", "", false
+	}
+	binary, ok := unwrapParens(rhs).(*ast.BinaryExpr)
+	if !ok {
+		return "", "", false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return "", "", false
+	}
 	if countStatementBuiltConcurrentBinaryNodes(typeInfo, binary) < minStatementBuiltBinaryInitializerNodes {
-		return false
+		return "", "", false
 	}
 
 	var temps strings.Builder
@@ -451,21 +495,19 @@ func writeStatementBuiltConcurrentBinaryShortDecl(out *strings.Builder, lhs ast.
 	}
 
 	var result string
-	withShortDeclOuterRhsBindings([]ast.Expr{lhs}, rhs, func() {
+	emit := func() {
 		result = writeValue(binary, nil, nil)
-	})
+	}
+	if len(hiddenShortDeclLhs) > 0 {
+		withShortDeclOuterRhsBindings(hiddenShortDeclLhs, rhs, emit)
+	} else {
+		emit()
+	}
 	if result == "" {
-		return false
+		return "", "", false
 	}
 
-	out.WriteString(temps.String())
-	out.WriteString("let mut ")
-	TranspileExpressionContext(out, lhs, LValue)
-	out.WriteString(" = ")
-	WriteWrapperPrefix(out)
-	out.WriteString(result)
-	WriteWrapperSuffix(out)
-	return true
+	return temps.String(), result, true
 }
 
 func countStatementBuiltConcurrentBinaryNodes(typeInfo *TypeInfo, expr ast.Expr) int {

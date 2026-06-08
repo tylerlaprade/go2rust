@@ -1657,7 +1657,24 @@ impl atomicScavChunkData {
 impl scavChunkData {
     /// pack returns sc packed into a uint64.
     pub fn pack(&self) -> u64 {
-        return { let __tmp_x = { let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.in_use.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.last_in_use.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 16; __tmp_x << __tmp_y }); __tmp_x | __tmp_y }; let __tmp_y = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*(*self.scav_chunk_flags.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = 16; let __tmp_y = LOG_SCAV_CHUNK_IN_USE_MAX; __tmp_x + __tmp_y }); __tmp_x << __tmp_y }); __tmp_x | __tmp_y }; let __tmp_y = ({ let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 32; __tmp_x << __tmp_y }); __tmp_x | __tmp_y };
+        return {
+            let __go_binary_0 = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.in_use.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))).lock().unwrap().as_ref().unwrap());
+            let __go_binary_1 = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.last_in_use.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))).lock().unwrap().as_ref().unwrap());
+            let __go_binary_2 = 16;
+            let __go_binary_3 = __go_binary_1 << __go_binary_2;
+            let __go_binary_4 = __go_binary_0 | __go_binary_3;
+            let __go_binary_5 = (*Arc::new(Mutex::new(Some((*(*self.scav_chunk_flags.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap());
+            let __go_binary_6 = 16;
+            let __go_binary_7 = LOG_SCAV_CHUNK_IN_USE_MAX;
+            let __go_binary_8 = __go_binary_6 + __go_binary_7;
+            let __go_binary_9 = __go_binary_5 << __go_binary_8;
+            let __go_binary_10 = __go_binary_4 | __go_binary_9;
+            let __go_binary_11 = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))).lock().unwrap().as_ref().unwrap());
+            let __go_binary_12 = 32;
+            let __go_binary_13 = __go_binary_11 << __go_binary_12;
+            let __go_binary_14 = __go_binary_10 | __go_binary_13;
+            __go_binary_14
+        };
     }
 
     /// shouldScavenge returns true if the corresponding chunk should be interrogated

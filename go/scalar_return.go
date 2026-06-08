@@ -545,6 +545,9 @@ func writeBareScalarReturnValue(out *strings.Builder, expr ast.Expr, expectedTyp
 				return
 			}
 		}
+		if writeStatementBuiltConcurrentBinaryReturnValue(out, e) {
+			return
+		}
 		// Binary expressions on scalar operands compose bare operands into a
 		// bare result via the existing RValue lowering.
 		TranspileExpression(out, e)

@@ -7546,6 +7546,24 @@ func decode(buf []byte) int64 {
 	}
 }
 
+func TestConcurrentBareScalarReturnBuildsComplexBinaryWithStatements(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func decode(buf []byte) uint64 {
+	go func() {}()
+	return uint64(buf[0]) | uint64(buf[1])<<8 | uint64(buf[2])<<16 | uint64(buf[3])<<24 |
+		uint64(buf[4])<<32 | uint64(buf[5])<<40 | uint64(buf[6])<<48 | uint64(buf[7])<<56
+}
+`)
+
+	if strings.Contains(rust, "return { let __tmp_x =") {
+		t.Fatalf("complex bare-scalar return should not inline the whole binary tree into the return expression:\n%s", rust)
+	}
+	if !strings.Contains(rust, "return {\n") || !strings.Contains(rust, "let __go_binary_") {
+		t.Fatalf("complex bare-scalar return should build the return value through statement locals:\n%s", rust)
+	}
+}
+
 func TestMethodReceiverShadowShortDeclUsesLocalIdent(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

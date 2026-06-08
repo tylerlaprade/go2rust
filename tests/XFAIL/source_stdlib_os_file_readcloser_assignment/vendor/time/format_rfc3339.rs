@@ -72,7 +72,18 @@ impl crate::r#mod::Time {
                 // Explicitly check for these edge cases.
                 // See https://go.dev/issue/4556 and https://go.dev/issue/54580.
         let mut num2 = Arc::new(Mutex::new(Some(Box::new(move |b: Arc<Mutex<Option<Vec<u8>>>>| -> u8 {
-        return { let __tmp_x = { let __tmp_x = 10 as u8; let __tmp_y = ({ let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __tmp_y = ('0' as i32) as u8; __tmp_x - __tmp_y }); __tmp_x * __tmp_y }; let __tmp_y = ({ let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }; let __tmp_y = ('0' as i32) as u8; __tmp_x - __tmp_y }); __tmp_x + __tmp_y };
+        return {
+            let __go_binary_0 = 10 as u8;
+            let __go_binary_1 = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+            let __go_binary_2 = ('0' as i32) as u8;
+            let __go_binary_3 = __go_binary_1 - __go_binary_2;
+            let __go_binary_4 = __go_binary_0 * __go_binary_3;
+            let __go_binary_5 = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() };
+            let __go_binary_6 = ('0' as i32) as u8;
+            let __go_binary_7 = __go_binary_5 - __go_binary_6;
+            let __go_binary_8 = __go_binary_4 + __go_binary_7;
+            __go_binary_8
+        };
     }) as Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync>)));
         if { let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ({ let __v = (*n0.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = 4; __tmp_x + __tmp_y }) as usize].clone() }; let __tmp_y = ('-' as i32) as u8; __tmp_x != __tmp_y } {
             return (b.clone(), errors::new(Arc::new(Mutex::new(Some("year outside of range [0,9999]".to_string())))));
@@ -179,7 +190,18 @@ pub fn parse_strict_r_f_c3339(b: Arc<Mutex<Option<Vec<u8>>>>) -> (Arc<Mutex<Opti
                 // Explicitly check for cases that Parse is unable to validate for.
                 // See https://go.dev/issue/54580.
         let mut num2 = Arc::new(Mutex::new(Some(Box::new(move |b: Arc<Mutex<Option<Vec<u8>>>>| -> u8 {
-        return { let __tmp_x = { let __tmp_x = 10 as u8; let __tmp_y = ({ let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __tmp_y = ('0' as i32) as u8; __tmp_x - __tmp_y }); __tmp_x * __tmp_y }; let __tmp_y = ({ let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }; let __tmp_y = ('0' as i32) as u8; __tmp_x - __tmp_y }); __tmp_x + __tmp_y };
+        return {
+            let __go_binary_0 = 10 as u8;
+            let __go_binary_1 = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() };
+            let __go_binary_2 = ('0' as i32) as u8;
+            let __go_binary_3 = __go_binary_1 - __go_binary_2;
+            let __go_binary_4 = __go_binary_0 * __go_binary_3;
+            let __go_binary_5 = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() };
+            let __go_binary_6 = ('0' as i32) as u8;
+            let __go_binary_7 = __go_binary_5 - __go_binary_6;
+            let __go_binary_8 = __go_binary_4 + __go_binary_7;
+            __go_binary_8
+        };
     }) as Box<dyn FnMut(Arc<Mutex<Option<Vec<u8>>>>) -> u8 + Send + Sync>)));
         if true {
             return ({ let __owned = t.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) }, Arc::new(Mutex::new(None)));

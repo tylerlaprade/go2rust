@@ -5263,7 +5263,24 @@ impl absYday {
     /// yday returns the standard 1-based yday for (ayday, janFeb, leap).
     pub fn yday(&self, janFeb: Arc<Mutex<Option<absJanFeb>>>, leap: Arc<Mutex<Option<absLeap>>>) -> i32 {
                 // See “Computations on Times” comment above.
-        return { let __tmp_x = { let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 60; __tmp_x + __tmp_y }; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*{ let __v = (*leap.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __v = (*janFeb.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x & ! __tmp_y }; __tmp_x + __tmp_y }; let __tmp_y = { let __tmp_x = 365; let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __v = (*janFeb.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; __tmp_x - __tmp_y };
+        return {
+            let __go_binary_0 = (*Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap());
+            let __go_binary_1 = 1;
+            let __go_binary_2 = 31;
+            let __go_binary_3 = __go_binary_1 + __go_binary_2;
+            let __go_binary_4 = 28;
+            let __go_binary_5 = __go_binary_3 + __go_binary_4;
+            let __go_binary_6 = __go_binary_0 + __go_binary_5;
+            let __go_binary_7 = (*Arc::new(Mutex::new(Some((*{ let __v = (*leap.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap());
+            let __go_binary_8 = (*Arc::new(Mutex::new(Some((*{ let __v = (*janFeb.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap());
+            let __go_binary_9 = __go_binary_7 & ! __go_binary_8;
+            let __go_binary_10 = __go_binary_6 + __go_binary_9;
+            let __go_binary_11 = 365;
+            let __go_binary_12 = (*Arc::new(Mutex::new(Some((*{ let __v = (*janFeb.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap());
+            let __go_binary_13 = __go_binary_11 * __go_binary_12;
+            let __go_binary_14 = __go_binary_10 - __go_binary_13;
+            __go_binary_14
+        };
     }
 }
 
@@ -5627,7 +5644,18 @@ pub fn days_before(m: Arc<Mutex<Option<Month>>>) -> i32 {
         // integer approximation of the form (a×m + b)/c.
         // A brute force search over small a, b, c finds that
         // (214×m - 211) / 7 computes the function perfectly.
-    return { let __tmp_x = { let __tmp_x = ({ let __tmp_x = { let __tmp_x = 214; let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; let __tmp_y = 211; __tmp_x - __tmp_y }); let __tmp_y = 7; __tmp_x / __tmp_y }; let __tmp_y = { let __v = (*adj.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y };
+    return {
+            let __go_binary_0 = 214;
+            let __go_binary_1 = (*Arc::new(Mutex::new(Some((*{ let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap());
+            let __go_binary_2 = __go_binary_0 * __go_binary_1;
+            let __go_binary_3 = 211;
+            let __go_binary_4 = __go_binary_2 - __go_binary_3;
+            let __go_binary_5 = 7;
+            let __go_binary_6 = __go_binary_4 / __go_binary_5;
+            let __go_binary_7 = (*adj.lock().unwrap().as_ref().unwrap());
+            let __go_binary_8 = __go_binary_6 + __go_binary_7;
+            __go_binary_8
+        };
 }
 
 pub fn days_in(m: Arc<Mutex<Option<Month>>>, year: Arc<Mutex<Option<i32>>>) -> i32 {

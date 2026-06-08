@@ -343,7 +343,18 @@ pub fn asmcgocall(r#fn: Arc<Mutex<Option<usize>>>, arg: Arc<Mutex<Option<usize>>
 ///
 ///go:nosplit
 pub fn align_up(n: Arc<Mutex<Option<usize>>>, a: Arc<Mutex<Option<usize>>>) -> usize {
-    return { let __tmp_x = ({ let __tmp_x = { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y }); let __tmp_y = ({ let __tmp_x = { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y }); __tmp_x & ! __tmp_y };
+    return {
+            let __go_binary_0 = (*n.lock().unwrap().as_ref().unwrap());
+            let __go_binary_1 = (*a.lock().unwrap().as_ref().unwrap());
+            let __go_binary_2 = __go_binary_0 + __go_binary_1;
+            let __go_binary_3 = 1 as usize;
+            let __go_binary_4 = __go_binary_2 - __go_binary_3;
+            let __go_binary_5 = (*a.lock().unwrap().as_ref().unwrap());
+            let __go_binary_6 = 1 as usize;
+            let __go_binary_7 = __go_binary_5 - __go_binary_6;
+            let __go_binary_8 = __go_binary_4 & ! __go_binary_7;
+            __go_binary_8
+        };
 }
 
 /// alignDown rounds n down to a multiple of a. a must be a power of 2.
