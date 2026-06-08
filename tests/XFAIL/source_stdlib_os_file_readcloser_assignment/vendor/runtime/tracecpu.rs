@@ -286,7 +286,12 @@ pub fn trace_c_p_u_sample(gp: GoPtr<crate::runtime2::g>, mp: Arc<Mutex<Option<m>
     {
         let mut log = { let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).cpu_log_write.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = gen; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }.load();;
         if { let __nil_result = (*log.lock().unwrap()).is_some(); __nil_result } {
-            { let __recv = log.clone(); let __recv_ptr: *mut crate::profbuf::profBuf = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::profbuf::profBuf }; let __result = unsafe { &mut *__recv_ptr }.write(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some((*{ let __v = (*now.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i64))), Arc::new(Mutex::new(Some({ let __seq_holder = hdr.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), stk.clone()); __result };;
+            { let __recv = log.clone(); let __recv_ptr: *mut crate::profbuf::profBuf = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::profbuf::profBuf }; let __result = unsafe { &mut *__recv_ptr }.write(
+                Arc::new(Mutex::new(None)),
+                Arc::new(Mutex::new(Some((*{ let __v = (*now.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i64))),
+                Arc::new(Mutex::new(Some({ let __seq_holder = hdr.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))),
+                stk.clone(),
+            ); __result };;
         }
     }
 

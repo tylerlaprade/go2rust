@@ -1067,10 +1067,18 @@ impl scavengerState {
                 // recomputing this often enough relative to GOMAXPROCS changes in general
                 // (it only changes when the world is stopped, and not during a GC) that
                 // that small inaccuracy is in the noise.
-        let mut cpuFraction = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*worked.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*slept.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*worked.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __f_holder = self.gomaxprocs.clone(); let __f_ptr: *mut Box<dyn FnMut() -> i32 + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() } as f64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }); __tmp_x / __tmp_y })));
+        let mut cpuFraction = Arc::new(Mutex::new(Some({
+            let __tmp_x = { let __v = (*worked.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            let __tmp_y = ({ let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*slept.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*worked.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __f_holder = self.gomaxprocs.clone(); let __f_ptr: *mut Box<dyn FnMut() -> i32 + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> i32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() } as f64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y });
+            __tmp_x / __tmp_y
+        })));
                 // Update the critSleepRatio, adjusting until we reach our ideal fraction.
         let mut ok: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
-        { let (__tmp_0, __tmp_1) = (*self.sleep_controller.lock().unwrap().as_mut().unwrap()).next(Arc::new(Mutex::new(Some({ let __arg_holder = cpuFraction.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = idealFraction.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*slept.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*worked.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })))); *self.sleep_ratio.lock().unwrap() = Some(__tmp_0); *ok.lock().unwrap() = Some(__tmp_1); };
+        { let (__tmp_0, __tmp_1) = (*self.sleep_controller.lock().unwrap().as_mut().unwrap()).next(
+            Arc::new(Mutex::new(Some({ let __arg_holder = cpuFraction.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = idealFraction.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*slept.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*worked.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))),
+        ); *self.sleep_ratio.lock().unwrap() = Some(__tmp_0); *ok.lock().unwrap() = Some(__tmp_1); };
         if !{ let __v = (*ok.lock().unwrap().as_ref().unwrap()).clone(); __v } {
                 // The core assumption of the controller, that we can get a proportional
                 // response, broke down. This may be transient, so temporarily switch to
@@ -1223,7 +1231,11 @@ impl crate::mpagealloc::pageAlloc {
         break
     }
         let ci_closure_clone = ci.clone(); let nbytes_closure_clone = nbytes.clone(); let mut p_closure_clone = (*self).clone(); let pageIdx_closure_clone = pageIdx.clone(); let mut released_closure_clone = released.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
-        { let __rhs = p_closure_clone.scavenge_one(Arc::new(Mutex::new(Some({ let __arg_holder = ci_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(pageIdx_closure_clone))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*nbytes_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*released_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y })))); let mut guard = released_closure_clone.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __rhs = p_closure_clone.scavenge_one(
+            Arc::new(Mutex::new(Some({ let __arg_holder = ci_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(pageIdx_closure_clone))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*nbytes_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*released_closure_clone.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))),
+        ); let mut guard = released_closure_clone.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
         if { let __nil_result = (*shouldStop.lock().unwrap()).is_some(); __nil_result } && { let __f_ptr: *mut Box<dyn FnMut() -> bool + Send + Sync> = { let mut __f_guard = shouldStop.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() } {
         break
@@ -1266,7 +1278,11 @@ impl crate::mpagealloc::pageAlloc {
         { let new_val = 1 as usize; *minPages.lock().unwrap() = Some(new_val); };
     }
         lock(GoPtr::local(self.mheap_lock.clone()));
-        if { let __tmp_x = crate::mpagealloc::pallocSum::max(&({ let __seq = { let __seq_holder = self.summary.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = 5; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }[(*{ let __v = (*ci.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone())); let __tmp_y = (*Arc::new(Mutex::new(Some((*minPages.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y } {
+        if {
+            let __tmp_x = crate::mpagealloc::pallocSum::max(&({ let __seq = { let __seq_holder = self.summary.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = 5; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }[(*{ let __v = (*ci.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone()));
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*minPages.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap());
+            __tmp_x >= __tmp_y
+        } {
                 // We only bother looking for a candidate if there at least
                 // minPages free pages at all.
         let (mut base, mut npages) = { let __recv = self.chunk_of(Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).find_scavenge_candidate(Arc::new(Mutex::new(Some({ let __arg_holder = searchIdx.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = minPages.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = maxPages.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result };
@@ -1279,7 +1295,12 @@ impl crate::mpagealloc::pageAlloc {
                 // the scavenging is in progress. Be careful here -- just do the
                 // bare minimum to avoid stepping on our own scavenging stats.
         { let __recv = self.chunk_of(Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).alloc_range(Arc::new(Mutex::new(Some(base))), Arc::new(Mutex::new(Some(npages)))); __result };
-        self.update(Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(npages as usize))), Arc::new(Mutex::new(Some(true))), Arc::new(Mutex::new(Some(true))));
+        self.update(
+            Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(npages as usize))),
+            Arc::new(Mutex::new(Some(true))),
+            Arc::new(Mutex::new(Some(true))),
+        );
                 // With that done, it's safe to unlock.
         unlock(GoPtr::local(self.mheap_lock.clone()));
         if !(*self.test.clone().lock().unwrap().as_ref().unwrap()) {
@@ -1310,7 +1331,12 @@ impl crate::mpagealloc::pageAlloc {
         }
     }
         { let __recv = self.chunk_of(Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).free(Arc::new(Mutex::new(Some(base))), Arc::new(Mutex::new(Some(npages)))); __result };
-        self.update(Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(npages as usize))), Arc::new(Mutex::new(Some(true))), Arc::new(Mutex::new(Some(false))));
+        self.update(
+            Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(npages as usize))),
+            Arc::new(Mutex::new(Some(true))),
+            Arc::new(Mutex::new(Some(false))),
+        );
                 // Mark the range as scavenged.
         { let __recv = self.chunk_of(Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __field = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).scavenged.clone(); let __result = (*__field.lock().unwrap().as_mut().unwrap()).set_range(Arc::new(Mutex::new(Some(base))), Arc::new(Mutex::new(Some(npages)))); __result };
         unlock(GoPtr::local(self.mheap_lock.clone()));
@@ -1839,7 +1865,11 @@ impl piController {
     }
                 // Update the controller's state.
         if { let __tmp_x = (*self.ti.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0.0; __tmp_x != __tmp_y } && { let __tmp_x = (*self.tt.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0.0; __tmp_x != __tmp_y } {
-        { let __target = self.err_integral.clone(); let __rhs = { let __tmp_x = { let __tmp_x = ({ let __tmp_x = { let __tmp_x = (*self.kp.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*period.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }; let __tmp_y = (*self.ti.lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y }); let __tmp_y = ({ let __tmp_x = { let __v = (*setpoint.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*input.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); __tmp_x * __tmp_y }; let __tmp_y = { let __tmp_x = ({ let __tmp_x = { let __v = (*period.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.tt.lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y }); let __tmp_y = ({ let __tmp_x = { let __v = (*output.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*rawOutput.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); __tmp_x * __tmp_y }; __tmp_x + __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __target = self.err_integral.clone(); let __rhs = {
+            let __tmp_x = { let __tmp_x = ({ let __tmp_x = { let __tmp_x = (*self.kp.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*period.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }; let __tmp_y = (*self.ti.lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y }); let __tmp_y = ({ let __tmp_x = { let __v = (*setpoint.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*input.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); __tmp_x * __tmp_y };
+            let __tmp_y = { let __tmp_x = ({ let __tmp_x = { let __v = (*period.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.tt.lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y }); let __tmp_y = ({ let __tmp_x = { let __v = (*output.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*rawOutput.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); __tmp_x * __tmp_y };
+            __tmp_x + __tmp_y
+        }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         if is_inf(Arc::new(Mutex::new(Some({ let __selector_holder = self.err_integral.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) || is_na_n(Arc::new(Mutex::new(Some({ let __selector_holder = self.err_integral.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) {
                 // So much error has accumulated that we managed to overflow.
                 // The assumptions around the controller have likely broken down.

@@ -167,7 +167,11 @@ impl RegArgs {
         if internal_goarch::BIG_ENDIAN {
         { let new_val = { let __tmp_x = internal_goarch::PTR_SIZE as usize; let __tmp_y = { let __v = (*argSize.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }; *offset.lock().unwrap() = Some(new_val); };
     }
-        return Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some({ let __seq_holder = self.ints.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[({ let __v = (*reg.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] as *const _ as usize }))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })));
+        return Arc::new(Mutex::new(Some({
+            let __tmp_x = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some({ let __seq_holder = self.ints.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[({ let __v = (*reg.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] as *const _ as usize }))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            __tmp_x + __tmp_y
+        })));
     }
 }
 

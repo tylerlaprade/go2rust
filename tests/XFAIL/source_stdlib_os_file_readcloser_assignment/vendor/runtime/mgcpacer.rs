@@ -495,13 +495,21 @@ impl gcControllerState {
                 // act like GOGC is huge for the below calculations.
         let mut live = (*self.heap_live.lock().unwrap().as_mut().unwrap()).load();
         let mut scan = (*self.heap_scan.lock().unwrap().as_mut().unwrap()).load();
-        let mut work_local = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (*self.heap_scan_work.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = (*self.stack_scan_work.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y }; let __tmp_y = (*self.globals_scan_work.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y })));
+        let mut work_local = Arc::new(Mutex::new(Some({
+            let __tmp_x = { let __tmp_x = (*self.heap_scan_work.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = (*self.stack_scan_work.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y };
+            let __tmp_y = (*self.globals_scan_work.lock().unwrap().as_mut().unwrap()).load();
+            __tmp_x + __tmp_y
+        })));
                 // Assume we're under the soft goal. Pace GC to complete at
                 // heapGoal assuming the heap is in steady-state.
         let mut heapGoal = Arc::new(Mutex::new(Some(self.heap_goal() as i64)));
                 // The expected scan work is computed as the amount of bytes scanned last
                 // GC cycle (both heap and stack), plus our estimate of globals work for this cycle.
-        let mut scanWorkExpected = Arc::new(Mutex::new(Some(({ let __tmp_x = { let __tmp_x = (*self.last_heap_scan.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.last_stack_scan.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y }; let __tmp_y = (*self.globals_scan.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y }) as i64)));
+        let mut scanWorkExpected = Arc::new(Mutex::new(Some(({
+            let __tmp_x = { let __tmp_x = (*self.last_heap_scan.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.last_stack_scan.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y };
+            let __tmp_y = (*self.globals_scan.lock().unwrap().as_mut().unwrap()).load();
+            __tmp_x + __tmp_y
+        }) as i64)));
                 // maxScanWork is a worst-case estimate of the amount of scan work that
                 // needs to be performed in this GC cycle. Specifically, it represents
                 // the case where *all* scannable memory turns out to be live, and
@@ -519,7 +527,15 @@ impl gcControllerState {
                 // growths. It's OK to use more memory this cycle to scan all the live heap,
                 // because the next GC cycle is inevitably going to use *at least* that much
                 // memory anyway.
-        let mut extHeapGoal = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*heapGoal.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.triggered.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*scanWorkExpected.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some((*maxScanWork.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }) as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.triggered.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })));
+        let mut extHeapGoal = Arc::new(Mutex::new(Some({
+            let __tmp_x = (*Arc::new(Mutex::new(Some(({
+                let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*heapGoal.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.triggered.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*scanWorkExpected.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y };
+                let __tmp_y = (*Arc::new(Mutex::new(Some((*maxScanWork.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap());
+                __tmp_x * __tmp_y
+            }) as i64))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.triggered.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap());
+            __tmp_x + __tmp_y
+        })));
         { let new_val = maxScanWork.lock().unwrap().as_ref().unwrap().clone(); *scanWorkExpected.lock().unwrap() = Some(new_val); };
                 // hardGoal is a hard limit on the amount that we're willing to push back the
                 // heap goal, and that's twice the heap goal (i.e. if GOGC=100 and the heap and/or
@@ -628,7 +644,11 @@ impl gcControllerState {
         let mut utilization = Arc::new(Mutex::new(Some(GC_BACKGROUND_UTILIZATION)));
                 // Add assist utilization; avoid divide by zero.
         if { let __tmp_x = { let __v = (*assistDuration.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x > __tmp_y } {
-        { let __rhs = { let __tmp_x = (*Arc::new(Mutex::new(Some((*self.assist_time.lock().unwrap().as_mut().unwrap()).load() as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*assistDuration.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*procs.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y }; let mut guard = utilization.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __rhs = {
+            let __tmp_x = (*Arc::new(Mutex::new(Some((*self.assist_time.lock().unwrap().as_mut().unwrap()).load() as f64))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*assistDuration.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*procs.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap());
+            __tmp_x / __tmp_y
+        }; let mut guard = utilization.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
         if { let __tmp_x = (*self.heap_live.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = (*self.triggered.lock().unwrap().as_ref().unwrap()); __tmp_x <= __tmp_y } {
                 // Shouldn't happen, but let's be very safe about this in case the
@@ -651,7 +671,11 @@ impl gcControllerState {
                 // Ignore this case and don't update anything.
         let mut idleUtilization = Arc::new(Mutex::new(Some(0.0)));
         if { let __tmp_x = { let __v = (*assistDuration.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x > __tmp_y } {
-        { let new_val = { let __tmp_x = (*Arc::new(Mutex::new(Some((*self.idle_mark_time.lock().unwrap().as_mut().unwrap()).load() as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*assistDuration.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*procs.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y }; *idleUtilization.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = (*Arc::new(Mutex::new(Some((*self.idle_mark_time.lock().unwrap().as_mut().unwrap()).load() as f64))).lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*assistDuration.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*procs.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap());
+            __tmp_x / __tmp_y
+        }; *idleUtilization.lock().unwrap() = Some(new_val); };
     }
                 // Determine the cons/mark ratio.
                 //
@@ -681,8 +705,20 @@ impl gcControllerState {
                 //         (scanWork) / (assistDuration * procs * (utilization+idleUtilization))
                 //
                 // Note that because we only care about the ratio, assistDuration and procs cancel out.
-        let mut scanWork = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (*self.heap_scan_work.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = (*self.stack_scan_work.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y }; let __tmp_y = (*self.globals_scan_work.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y })));
-        let mut currentConsMark = Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*self.heap_live.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = (*self.triggered.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = { let __v = (*utilization.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*idleUtilization.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }); __tmp_x * __tmp_y }); let __tmp_y = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*scanWork.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = 1.0; let __tmp_y = { let __v = (*utilization.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); __tmp_x * __tmp_y }); __tmp_x / __tmp_y })));
+        let mut scanWork = Arc::new(Mutex::new(Some({
+            let __tmp_x = { let __tmp_x = (*self.heap_scan_work.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = (*self.stack_scan_work.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y };
+            let __tmp_y = (*self.globals_scan_work.lock().unwrap().as_mut().unwrap()).load();
+            __tmp_x + __tmp_y
+        })));
+        let mut currentConsMark = Arc::new(Mutex::new(Some({
+            let __tmp_x = ({
+                let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*self.heap_live.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = (*self.triggered.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap());
+                let __tmp_y = ({ let __tmp_x = { let __v = (*utilization.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*idleUtilization.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y });
+                __tmp_x * __tmp_y
+            });
+            let __tmp_y = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*scanWork.lock().unwrap().as_ref().unwrap()) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = 1.0; let __tmp_y = { let __v = (*utilization.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); __tmp_x * __tmp_y });
+            __tmp_x / __tmp_y
+        })));
                 // Update our cons/mark estimate. This is the maximum of the value we just computed and the last
                 // 4 cons/mark values we measured. The reason we take the maximum here is to bias a noisy
                 // cons/mark measurement toward fewer assists at the expense of additional GC cycles (starting
@@ -723,7 +759,11 @@ impl gcControllerState {
             let __go_print_arg_3 = format!("{}", "+".to_string());
             let __go_print_arg_4 = format!("{}", (*self.globals_scan_work.lock().unwrap().as_mut().unwrap()).load());
             let __go_print_arg_5 = format!("{}", " B work (".to_string());
-            let __go_print_arg_6 = format!("{}", { let __tmp_x = { let __tmp_x = (*self.last_heap_scan.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.last_stack_scan.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y }; let __tmp_y = (*self.globals_scan.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y });
+            let __go_print_arg_6 = format!("{}", {
+                let __tmp_x = { let __tmp_x = (*self.last_heap_scan.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.last_stack_scan.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y };
+                let __tmp_y = (*self.globals_scan.lock().unwrap().as_mut().unwrap()).load();
+                __tmp_x + __tmp_y
+            });
             let __go_print_arg_7 = format!("{}", " B exp.) ".to_string());
             eprint!("{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7)
         };
@@ -1311,7 +1351,23 @@ let mut maxTrigger = Arc::new(Mutex::new(Some(__go_binary_8)));
         {
         let mut gcPercent = (*self.gc_percent.lock().unwrap().as_mut().unwrap()).load();;
         if { let __tmp_x = gcPercent; let __tmp_y = 0 as i32; __tmp_x >= __tmp_y } {
-            { let new_val = { let __tmp_x = (*self.heap_marked.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = { let __tmp_x = ({ let __tmp_x = { let __tmp_x = (*self.heap_marked.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.last_stack_scan.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y }; let __tmp_y = (*self.globals_scan.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y }); let __tmp_y = (*Arc::new(Mutex::new(Some(gcPercent as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; let __tmp_y = 100 as u64; __tmp_x / __tmp_y }; __tmp_x + __tmp_y }; *gcPercentHeapGoal.lock().unwrap() = Some(new_val); };;
+            { let new_val = {
+                let __tmp_x = (*self.heap_marked.lock().unwrap().as_ref().unwrap());
+                let __tmp_y = {
+                    let __tmp_x = {
+                        let __tmp_x = ({
+                            let __tmp_x = { let __tmp_x = (*self.heap_marked.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.last_stack_scan.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y };
+                            let __tmp_y = (*self.globals_scan.lock().unwrap().as_mut().unwrap()).load();
+                            __tmp_x + __tmp_y
+                        });
+                        let __tmp_y = (*Arc::new(Mutex::new(Some(gcPercent as u64))).lock().unwrap().as_ref().unwrap());
+                        __tmp_x * __tmp_y
+                    };
+                    let __tmp_y = 100 as u64;
+                    __tmp_x / __tmp_y
+                };
+                __tmp_x + __tmp_y
+            }; *gcPercentHeapGoal.lock().unwrap() = Some(new_val); };;
         }
     }
                 // Apply the minimum heap size here. It's defined in terms of gcPercent
@@ -1343,7 +1399,15 @@ let mut maxTrigger = Arc::new(Mutex::new(Some(__go_binary_8)));
                 // Furthermore, by setting the runway so that CPU resources are divided
                 // this way, assuming that the cons/mark ratio is correct, we make that
                 // division a reality.
-        (*self.runway.lock().unwrap().as_mut().unwrap()).store(Arc::new(Mutex::new(Some(({ let __tmp_x = ({ let __tmp_x = { let __tmp_x = (*self.cons_mark.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0.75; __tmp_x * __tmp_y }; let __tmp_y = 0.25; __tmp_x / __tmp_y }); let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __tmp_x = (*self.last_heap_scan.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.last_stack_scan.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y }; let __tmp_y = (*self.globals_scan.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }) as u64))));
+        (*self.runway.lock().unwrap().as_mut().unwrap()).store(Arc::new(Mutex::new(Some(({
+            let __tmp_x = ({ let __tmp_x = { let __tmp_x = (*self.cons_mark.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0.75; __tmp_x * __tmp_y }; let __tmp_y = 0.25; __tmp_x / __tmp_y });
+            let __tmp_y = (*Arc::new(Mutex::new(Some(({
+                let __tmp_x = { let __tmp_x = (*self.last_heap_scan.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.last_stack_scan.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y };
+                let __tmp_y = (*self.globals_scan.lock().unwrap().as_mut().unwrap()).load();
+                __tmp_x + __tmp_y
+            }) as f64))).lock().unwrap().as_ref().unwrap());
+            __tmp_x * __tmp_y
+        }) as u64))));
     }
 
     /// setGCPercent updates gcPercent. commit must be called after.

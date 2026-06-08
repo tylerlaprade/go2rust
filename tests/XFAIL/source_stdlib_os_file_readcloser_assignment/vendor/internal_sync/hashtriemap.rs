@@ -795,7 +795,12 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         self.init();
         let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), Arc::new(StdMutex::new(Some({ let __selector_holder = self.seed.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
                 // Find a node with the key and compare with it. n != nil if we found the node.
-        let (mut i, mut hashShift, mut slot, mut n) = self.find(Arc::new(StdMutex::new(Some({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }))), Arc::new(StdMutex::new(Some(hash))), Arc::new(StdMutex::new(None)), Arc::new(StdMutex::new(None)));
+        let (mut i, mut hashShift, mut slot, mut n) = self.find(
+            Arc::new(StdMutex::new(Some({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }))),
+            Arc::new(StdMutex::new(Some(hash))),
+            Arc::new(StdMutex::new(None)),
+            Arc::new(StdMutex::new(None)),
+        );
         if n.is_nil() {
         if !i.is_nil() {
         (*{ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.mu.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).unlock();
@@ -860,7 +865,12 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
     }
         let mut hash = { let __f_holder = self.key_hash.clone(); let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = { let mut __f_guard = __f_holder.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&key.clone()) as usize)))), Arc::new(StdMutex::new(Some({ let __selector_holder = self.seed.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) };
                 // Find a node with the key. n != nil if we found the node.
-        let (mut i, mut hashShift, mut slot, mut n) = self.find(Arc::new(StdMutex::new(Some({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }))), Arc::new(StdMutex::new(Some(hash))), Arc::new(StdMutex::new(None)), Arc::new(StdMutex::new(None)));
+        let (mut i, mut hashShift, mut slot, mut n) = self.find(
+            Arc::new(StdMutex::new(Some({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).go_value_clone() }))),
+            Arc::new(StdMutex::new(Some(hash))),
+            Arc::new(StdMutex::new(None)),
+            Arc::new(StdMutex::new(None)),
+        );
         if n.is_nil() {
         if !i.is_nil() {
         (*{ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.mu.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).unlock();
@@ -1279,11 +1289,23 @@ impl<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'stat
 }
 
 pub fn new_indirect_node<K: Any + GoComparable + Send + Sync + 'static, V: Any + Send + Sync + 'static>(parent: GoPtr<indirect<K, V>>) -> Arc<StdMutex<Option<indirect<K, V>>>> {
-    { let __owner = Arc::new(StdMutex::new(Some(indirect::<K, V> { node: Arc::new(StdMutex::new(Some(node::<K, V> { is_entry: Arc::new(StdMutex::new(Some(false))), ..Default::default() }))), parent: parent.clone(), ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().node.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner }
+    {
+        let __owner = Arc::new(StdMutex::new(Some(indirect::<K, V> { node: Arc::new(StdMutex::new(Some(node::<K, V> { is_entry: Arc::new(StdMutex::new(Some(false))), ..Default::default() }))), parent: parent.clone(), ..Default::default() })));
+        let __embedded = { let __owner_guard = __owner.lock().unwrap(); __owner_guard.as_ref().unwrap().node.clone() };
+        let __embedded_key = { let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) };
+        go_register_embedded_owner(__embedded_key, __owner.clone());
+        __owner
+    }
 }
 
 pub fn new_entry_node<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoValueClone + Send + Sync + 'static>(key: Arc<StdMutex<Option<K>>>, value: Arc<StdMutex<Option<V>>>) -> Arc<StdMutex<Option<entry<K, V>>>> {
-    { let __owner = Arc::new(StdMutex::new(Some(entry::<K, V> { node: Arc::new(StdMutex::new(Some(node::<K, V> { is_entry: Arc::new(StdMutex::new(Some(true))), ..Default::default() }))), key: key.clone(), value: value.clone(), ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().node.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner }
+    {
+        let __owner = Arc::new(StdMutex::new(Some(entry::<K, V> { node: Arc::new(StdMutex::new(Some(node::<K, V> { is_entry: Arc::new(StdMutex::new(Some(true))), ..Default::default() }))), key: key.clone(), value: value.clone(), ..Default::default() })));
+        let __embedded = { let __owner_guard = __owner.lock().unwrap(); __owner_guard.as_ref().unwrap().node.clone() };
+        let __embedded_key = { let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) };
+        go_register_embedded_owner(__embedded_key, __owner.clone());
+        __owner
+    }
 }
 
 /// Pull in runtime.rand so that we don't need to take a dependency

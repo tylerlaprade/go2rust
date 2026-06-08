@@ -1332,7 +1332,11 @@ impl limiterEvent {
     /// of "on-CPU" time. The OS could deschedule us at any time, but we want to maintain as
     /// close of an approximation as we can.
     pub fn start(&self, typ: Arc<Mutex<Option<limiterEventType>>>, now: Arc<Mutex<Option<i64>>>) -> bool {
-        if { let __tmp_x = (*limiterEventStamp::typ(&(limiterEventStamp(Arc::new(Mutex::new(Some((*self.stamp.lock().unwrap().as_mut().unwrap()).load() as u64)))))).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = limiterEventType(Arc::new(Mutex::new(Some(LIMITER_EVENT_NONE as u8)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = (*limiterEventStamp::typ(&(limiterEventStamp(Arc::new(Mutex::new(Some((*self.stamp.lock().unwrap().as_mut().unwrap()).load() as u64)))))).lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = limiterEventType(Arc::new(Mutex::new(Some(LIMITER_EVENT_NONE as u8))));
+            __tmp_x != __tmp_y
+        } {
         return false;
     }
         (*self.stamp.lock().unwrap().as_mut().unwrap()).store(Arc::new(Mutex::new(Some((*(*make_limiter_event_stamp(Arc::new(Mutex::new(Some({ let __arg_holder = typ.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = now.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) as u64))));

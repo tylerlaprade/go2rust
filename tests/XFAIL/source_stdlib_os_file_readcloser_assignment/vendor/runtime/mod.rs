@@ -281,7 +281,11 @@ pub fn ticks_per_second() -> i64 {
                 // See if we can use these times.
         if { let __tmp_x = nowTicks; let __tmp_y = (*{ let __field = (*ticks.lock().unwrap().as_ref().unwrap()).start_ticks.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } && { let __tmp_x = { let __tmp_x = nowTime; let __tmp_y = (*{ let __field = (*ticks.lock().unwrap().as_ref().unwrap()).start_time.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }; let __tmp_y = MIN_TIME_FOR_TICKS_PER_SECOND as i64; __tmp_x > __tmp_y } {
                 // Perform the calculation with floats. We don't want to risk overflow.
-        { let new_val = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = nowTicks; let __tmp_y = (*{ let __field = (*ticks.lock().unwrap().as_ref().unwrap()).start_ticks.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1e+09; __tmp_x * __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = nowTime; let __tmp_y = (*{ let __field = (*ticks.lock().unwrap().as_ref().unwrap()).start_time.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y }) as i64))).lock().unwrap().as_ref().unwrap()); r = new_val; };
+        { let new_val = (*Arc::new(Mutex::new(Some(({
+            let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = nowTicks; let __tmp_y = (*{ let __field = (*ticks.lock().unwrap().as_ref().unwrap()).start_ticks.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1e+09; __tmp_x * __tmp_y };
+            let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = nowTime; let __tmp_y = (*{ let __field = (*ticks.lock().unwrap().as_ref().unwrap()).start_time.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap());
+            __tmp_x / __tmp_y
+        }) as i64))).lock().unwrap().as_ref().unwrap()); r = new_val; };
         if { let __tmp_x = r; let __tmp_y = 0 as i64; __tmp_x == __tmp_y } {
                 // Zero is both a sentinel value and it would be bad if callers used this as
                 // a divisor. We tried out best, so just make it 1.

@@ -510,7 +510,11 @@ impl crate::mheap::mheap {
         throw(Arc::new(Mutex::new(Some("arena already initialized".to_string()))));
     }
         let mut r: GoPtr<crate::mheap::heapArena> = GoPtr::nil();
-        r = GoPtr::raw({ let __ptr = (*self.heap_arena_alloc.lock().unwrap().as_mut().unwrap()).alloc(Arc::new(Mutex::new(Some(std::mem::size_of::<crate::mheap::heapArena>()))), Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))), (*memstats.lock().unwrap().as_ref().unwrap()).gc_misc_sys.clone()).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
+        r = GoPtr::raw({ let __ptr = (*self.heap_arena_alloc.lock().unwrap().as_mut().unwrap()).alloc(
+            Arc::new(Mutex::new(Some(std::mem::size_of::<crate::mheap::heapArena>()))),
+            Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))),
+            (*memstats.lock().unwrap().as_ref().unwrap()).gc_misc_sys.clone(),
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         if r.is_nil() {
         r = GoPtr::raw({ let __ptr = persistentalloc(Arc::new(Mutex::new(Some(std::mem::size_of::<crate::mheap::heapArena>()))), Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))), (*memstats.lock().unwrap().as_ref().unwrap()).gc_misc_sys.clone()).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         if r.is_nil() {

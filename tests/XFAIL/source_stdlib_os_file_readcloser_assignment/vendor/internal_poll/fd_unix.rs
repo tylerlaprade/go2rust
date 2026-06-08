@@ -877,7 +877,14 @@ impl FD {
                 // If we don't check this we will panic
                 // with slice bounds out of range.
                 // Use a more informative panic.
-        std::panic::panic_any(Box::new({ let mut __s = String::new(); __s.push_str(&format!("{}", "invalid return from write: got ".to_string())); __s.push_str(&format!("{}", (*internal_itoa::itoa(Arc::new(Mutex::new(Some(n)))).lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", " from a write of ".to_string())); __s.push_str(&format!("{}", (*internal_itoa::itoa(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*max.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*nn.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y })))).lock().unwrap().as_ref().unwrap()))); __s }) as Box<dyn Any + Send + Sync>);
+        std::panic::panic_any(Box::new({
+    let mut __s = String::new();
+    __s.push_str(&format!("{}", "invalid return from write: got ".to_string()));
+    __s.push_str(&format!("{}", (*internal_itoa::itoa(Arc::new(Mutex::new(Some(n)))).lock().unwrap().as_ref().unwrap())));
+    __s.push_str(&format!("{}", " from a write of ".to_string()));
+    __s.push_str(&format!("{}", (*internal_itoa::itoa(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*max.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*nn.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y })))).lock().unwrap().as_ref().unwrap())));
+    __s
+}) as Box<dyn Any + Send + Sync>);
     }
                 // This can reportedly happen when using
                 // some VPN software. Issue #61060.

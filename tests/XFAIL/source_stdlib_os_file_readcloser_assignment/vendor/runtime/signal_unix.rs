@@ -565,7 +565,11 @@ pub fn sighandler(sig_local: Arc<Mutex<Option<u32>>>, info: Arc<Mutex<Option<sig
     } else {
         (*crashing.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(1 as i32))));
     }
-        if { let __tmp_x = (*crashing.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = { let __tmp_x = mcount(); let __tmp_y = (*Arc::new(Mutex::new(Some((*extraMLength.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }; __tmp_x < __tmp_y } {
+        if {
+            let __tmp_x = (*crashing.lock().unwrap().as_mut().unwrap()).load();
+            let __tmp_y = { let __tmp_x = mcount(); let __tmp_y = (*Arc::new(Mutex::new(Some((*extraMLength.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y };
+            __tmp_x < __tmp_y
+        } {
                 // There are other m's that need to dump their stacks.
                 // Relay SIGQUIT to the next m by sending it to the current process.
                 // All m's that have already received SIGQUIT have signal masks blocking
@@ -605,7 +609,11 @@ pub fn sighandler(sig_local: Arc<Mutex<Option<u32>>>, info: Arc<Mutex<Option<sig
         while {
             let __go_cond_0 = { let __tmp_x = { let __v = (*timeout.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u32; __tmp_x > __tmp_y };
             if __go_cond_0 {
-                let __go_cond_1 = ({ let __tmp_x = (*crashing.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = { let __tmp_x = mcount(); let __tmp_y = (*Arc::new(Mutex::new(Some((*extraMLength.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }; __tmp_x < __tmp_y });
+                let __go_cond_1 = ({
+                    let __tmp_x = (*crashing.lock().unwrap().as_mut().unwrap()).load();
+                    let __tmp_y = { let __tmp_x = mcount(); let __tmp_y = (*Arc::new(Mutex::new(Some((*extraMLength.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y };
+                    __tmp_x < __tmp_y
+                });
                 __go_cond_1
             } else {
                 false

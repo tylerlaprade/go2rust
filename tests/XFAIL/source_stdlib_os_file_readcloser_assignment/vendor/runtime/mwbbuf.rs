@@ -117,12 +117,28 @@ impl wbBuf {
                 // immediate flush and delayed flush cases.
         { let new_val = Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some({ let __seq_holder = self.buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[({ let __tmp_x = WB_MAX_ENTRIES_PER_CALL; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize] as *const _ as usize }))).lock().unwrap().as_ref().unwrap()) as usize))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *self.end.lock().unwrap() = __moved_val; };
     } else {
-        { let new_val = { let __tmp_x = { let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*self.buf.lock().unwrap().as_ref().unwrap()).len() as usize))).lock().unwrap().as_ref().unwrap()) as usize; let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<usize>()))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x * __tmp_y } as usize; __tmp_x + __tmp_y }; *self.end.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = { let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            let __tmp_y = {
+                let __tmp_x = (*Arc::new(Mutex::new(Some((*self.buf.lock().unwrap().as_ref().unwrap()).len() as usize))).lock().unwrap().as_ref().unwrap()) as usize;
+                let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<usize>()))).lock().unwrap().as_ref().unwrap()) as usize;
+                __tmp_x * __tmp_y
+            } as usize;
+            __tmp_x + __tmp_y
+        }; *self.end.lock().unwrap() = Some(new_val); };
     }
                 // For testing, make the buffer smaller but more than
                 // 1 write barrier's worth, so it tests both the
                 // immediate flush and delayed flush cases.
-        if { let __tmp_x = { let __tmp_x = ({ let __tmp_x = (*self.end.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.next.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<usize>()))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x % __tmp_y }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = {
+                let __tmp_x = ({ let __tmp_x = (*self.end.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.next.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y });
+                let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<usize>()))).lock().unwrap().as_ref().unwrap()) as usize;
+                __tmp_x % __tmp_y
+            };
+            let __tmp_y = 0 as usize;
+            __tmp_x != __tmp_y
+        } {
         throw(Arc::new(Mutex::new(Some("bad write barrier buffer bounds".to_string()))));
     }
     }
@@ -138,7 +154,11 @@ impl wbBuf {
 
     /// empty reports whether b contains no pointers.
     pub fn empty(&self) -> bool {
-        return { let __tmp_x = (*self.next.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some({ let __seq_holder = self.buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y };
+        return {
+            let __tmp_x = (*self.next.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some({ let __seq_holder = self.buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+            __tmp_x == __tmp_y
+        };
     }
 
     /// getX returns space in the write barrier buffer to store X pointers.
@@ -233,7 +253,11 @@ pub fn wb_buf_flush() {
 pub fn wb_buf_flush1(pp: GoPtr<crate::runtime2::p>) {
         // Get the buffered pointers.
     let mut start = Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some({ let __seq_holder = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.wb_buf.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))).lock().unwrap().as_ref().unwrap()) as usize)));
-    let mut n = Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = (*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.wb_buf.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).next.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<usize>()))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x / __tmp_y })));
+    let mut n = Arc::new(Mutex::new(Some({
+        let __tmp_x = ({ let __tmp_x = (*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.wb_buf.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).next.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*start.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y });
+        let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<usize>()))).lock().unwrap().as_ref().unwrap()) as usize;
+        __tmp_x / __tmp_y
+    })));
     let mut ptrs = Arc::new(Mutex::new(Some({ let __seq_holder = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.wb_buf.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })));
 
         // Poison the buffer to make extra sure nothing is enqueued

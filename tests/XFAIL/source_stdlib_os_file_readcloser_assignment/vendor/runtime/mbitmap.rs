@@ -807,7 +807,11 @@ let mut bits = Arc::new(Mutex::new(Some(__go_binary_8)));
                 // elem needs to be moved to the element containing
                 // tp.addr + n.
         let mut oldelem = Arc::new(Mutex::new(Some({ let __selector_holder = __self.elem.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        { let __target = __self.elem.clone(); let __rhs = { let __tmp_x = { let __tmp_x = ({ let __tmp_x = { let __tmp_x = (*__self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*__self.elem.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }); let __tmp_y = (*{ let __ptr_value = __self.typ.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y }; let __tmp_y = (*{ let __ptr_value = __self.typ.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __target = __self.elem.clone(); let __rhs = {
+            let __tmp_x = { let __tmp_x = ({ let __tmp_x = { let __tmp_x = (*__self.addr.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*__self.elem.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }); let __tmp_y = (*{ let __ptr_value = __self.typ.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y };
+            let __tmp_y = (*{ let __ptr_value = __self.typ.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap());
+            __tmp_x * __tmp_y
+        }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let new_val = { let __tmp_x = (*__self.elem.lock().unwrap().as_ref().unwrap()); let __tmp_y = align_down(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = (*__self.elem.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*oldelem.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); __tmp_x - __tmp_y }))), Arc::new(Mutex::new(Some(((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize)))); __tmp_x + __tmp_y }; *__self.addr.lock().unwrap() = Some(new_val); };
     } else {
         { let __target = __self.addr.clone(); let __rhs = align_down(Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize)))); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
@@ -1116,7 +1120,11 @@ pub fn double_check_heap_pointers(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mu
         let mut off = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y })));
         if { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
         let mut j = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y })));
-        { let new_val = { let __tmp_x = { let __tmp_x = { let __tmp_x = { let __ptr_handle = addb(get_g_c_mask(typ.clone()), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y })))); let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() }; let __tmp_y = ({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x % __tmp_y }); __tmp_x >> __tmp_y }; let __tmp_y = 1 as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y }; *want.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = { let __tmp_x = { let __tmp_x = { let __ptr_handle = addb(get_g_c_mask(typ.clone()), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y })))); let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() }; let __tmp_y = ({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x % __tmp_y }); __tmp_x >> __tmp_y }; let __tmp_y = 1 as u8; __tmp_x & __tmp_y };
+            let __tmp_y = 0 as u8;
+            __tmp_x != __tmp_y
+        }; *want.lock().unwrap() = Some(new_val); };
     }
     }
         if { let __v = (*want.lock().unwrap().as_ref().unwrap()).clone(); __v } {
@@ -1238,7 +1246,11 @@ pub fn double_check_heap_pointers_interior(x: Arc<Mutex<Option<usize>>>, interio
         let mut off = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y })));
         if { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
         let mut j = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y })));
-        { let new_val = { let __tmp_x = { let __tmp_x = { let __tmp_x = { let __ptr_handle = addb(get_g_c_mask(typ.clone()), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y })))); let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() }; let __tmp_y = ({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x % __tmp_y }); __tmp_x >> __tmp_y }; let __tmp_y = 1 as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y }; *want.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = { let __tmp_x = { let __tmp_x = { let __ptr_handle = addb(get_g_c_mask(typ.clone()), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y })))); let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() }; let __tmp_y = ({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x % __tmp_y }); __tmp_x >> __tmp_y }; let __tmp_y = 1 as u8; __tmp_x & __tmp_y };
+            let __tmp_y = 0 as u8;
+            __tmp_x != __tmp_y
+        }; *want.lock().unwrap() = Some(new_val); };
     }
     }
         if { let __v = (*want.lock().unwrap().as_ref().unwrap()).clone(); __v } {
@@ -1342,7 +1354,11 @@ pub fn double_check_heap_pointers_interior(x: Arc<Mutex<Option<usize>>>, interio
         let mut off = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y })));
         if { let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
         let mut j = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y })));
-        { let new_val = { let __tmp_x = { let __tmp_x = { let __tmp_x = { let __ptr_handle = addb(get_g_c_mask(typ.clone()), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y })))); let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() }; let __tmp_y = ({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x % __tmp_y }); __tmp_x >> __tmp_y }; let __tmp_y = 1 as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y }; *want.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = { let __tmp_x = { let __tmp_x = { let __ptr_handle = addb(get_g_c_mask(typ.clone()), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y })))); let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() }; let __tmp_y = ({ let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x % __tmp_y }); __tmp_x >> __tmp_y }; let __tmp_y = 1 as u8; __tmp_x & __tmp_y };
+            let __tmp_y = 0 as u8;
+            __tmp_x != __tmp_y
+        }; *want.lock().unwrap() = Some(new_val); };
     }
     }
         if { let __v = (*want.lock().unwrap().as_ref().unwrap()).clone(); __v } {

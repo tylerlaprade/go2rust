@@ -72,10 +72,22 @@ pub fn tagged_pointer_pack(ptr: Arc<Mutex<Option<usize>>>, tag: Arc<Mutex<Option
         if { let __tmp_x = "arm64".to_string(); let __tmp_y = "ppc64".to_string(); __tmp_x != __tmp_y } {
         throw(Arc::new(Mutex::new(Some("check this code for aix on non-ppc64".to_string()))));
     }
-        return Arc::new(Mutex::new(Some(crate::tagptr::taggedPointer(Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*ptr.lock().unwrap().as_ref().unwrap()) as usize as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = 64; let __tmp_y = AIX_ADDR_BITS; __tmp_x - __tmp_y }); __tmp_x << __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*tag.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (((1 as usize) << (AIX_TAG_BITS as usize)) - (1 as usize)) as usize; __tmp_x & __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x | __tmp_y } as u64)))))));
+        return Arc::new(Mutex::new(Some(crate::tagptr::taggedPointer(Arc::new(Mutex::new(Some({
+            let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*ptr.lock().unwrap().as_ref().unwrap()) as usize as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = 64; let __tmp_y = AIX_ADDR_BITS; __tmp_x - __tmp_y }); __tmp_x << __tmp_y };
+            let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*tag.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (((1 as usize) << (AIX_TAG_BITS as usize)) - (1 as usize)) as usize; __tmp_x & __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap());
+            __tmp_x | __tmp_y
+        } as u64)))))));
     }
     if { let __tmp_x = "arm64".to_string(); let __tmp_y = "riscv64".to_string(); __tmp_x == __tmp_y } {
-        return Arc::new(Mutex::new(Some(crate::tagptr::taggedPointer(Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*ptr.lock().unwrap().as_ref().unwrap()) as usize as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = 64; let __tmp_y = RISCV64_ADDR_BITS; __tmp_x - __tmp_y }); __tmp_x << __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*tag.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (((1 as usize) << (RISCV64_TAG_BITS as usize)) - (1 as usize)) as usize; __tmp_x & __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x | __tmp_y } as u64)))))));
+        return Arc::new(Mutex::new(Some(crate::tagptr::taggedPointer(Arc::new(Mutex::new(Some({
+            let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*ptr.lock().unwrap().as_ref().unwrap()) as usize as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = 64; let __tmp_y = RISCV64_ADDR_BITS; __tmp_x - __tmp_y }); __tmp_x << __tmp_y };
+            let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*tag.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (((1 as usize) << (RISCV64_TAG_BITS as usize)) - (1 as usize)) as usize; __tmp_x & __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap());
+            __tmp_x | __tmp_y
+        } as u64)))))));
     }
-    Arc::new(Mutex::new(Some(crate::tagptr::taggedPointer(Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*ptr.lock().unwrap().as_ref().unwrap()) as usize as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = 64; let __tmp_y = ADDR_BITS; __tmp_x - __tmp_y }); __tmp_x << __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*tag.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (((1 as usize) << (TAG_BITS as usize)) - (1 as usize)) as usize; __tmp_x & __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x | __tmp_y } as u64)))))))
+    Arc::new(Mutex::new(Some(crate::tagptr::taggedPointer(Arc::new(Mutex::new(Some({
+        let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*ptr.lock().unwrap().as_ref().unwrap()) as usize as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = 64; let __tmp_y = ADDR_BITS; __tmp_x - __tmp_y }); __tmp_x << __tmp_y };
+        let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*tag.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (((1 as usize) << (TAG_BITS as usize)) - (1 as usize)) as usize; __tmp_x & __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap());
+        __tmp_x | __tmp_y
+    } as u64)))))))
 }

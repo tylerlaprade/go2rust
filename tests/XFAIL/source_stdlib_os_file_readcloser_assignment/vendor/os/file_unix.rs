@@ -646,7 +646,13 @@ impl unixDirent {
         if { let __iface_handle = { let __field = self.info.clone(); __field }; let __iface_guard = __iface_handle.lock().unwrap(); (*__iface_guard).is_some() } {
         return ({ let __field = self.info.clone(); __field }, Arc::new(Mutex::new(None)));
     }
-        { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Box<dyn io_fs::r#mod::FileInfo + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync> = { let mut __f_guard = lstat_1.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Box<dyn io_fs::r#mod::FileInfo + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", (*self.parent.clone().lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", "/".to_string())); __s.push_str(&format!("{}", (*self.name.clone().lock().unwrap().as_ref().unwrap()))); __s })))) }
+        { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Box<dyn io_fs::r#mod::FileInfo + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync> = { let mut __f_guard = lstat_1.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Box<dyn io_fs::r#mod::FileInfo + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", (*self.parent.clone().lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", "/".to_string()));
+            __s.push_str(&format!("{}", (*self.name.clone().lock().unwrap().as_ref().unwrap())));
+            __s
+        })))) }
     }
 
     pub fn string(&self) -> Arc<Mutex<Option<String>>> {
@@ -733,7 +739,13 @@ pub fn new_file(fd: Arc<Mutex<Option<usize>>>, name: Arc<Mutex<Option<String>>>)
 /// (as passed in the kind parameter) it tries to add the file to
 /// the runtime poller.
 pub fn new_file_1(fd: Arc<Mutex<Option<i32>>>, name: Arc<Mutex<Option<String>>>, kind: Arc<Mutex<Option<newFileKind>>>, nonBlocking: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<crate::types::File>>> {
-    let mut f = { let __owner = Arc::new(Mutex::new(Some(crate::types::File { file: Arc::new(Mutex::new(Some(file { pfd: Arc::new(Mutex::new(Some(internal_poll::fd_unix::FD { sysfd: Arc::new(Mutex::new(Some({ let __arg_holder = fd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), is_stream: Arc::new(Mutex::new(Some(true))), zero_read_is_e_o_f: Arc::new(Mutex::new(Some(true))), ..Default::default() }))), name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), stdout_or_err: Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*fd.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x == __tmp_y } || { let __tmp_x = { let __v = (*fd.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x == __tmp_y }))), ..Default::default() }))).clone(), ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().file.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner };
+    let mut f = {
+        let __owner = Arc::new(Mutex::new(Some(crate::types::File { file: Arc::new(Mutex::new(Some(file { pfd: Arc::new(Mutex::new(Some(internal_poll::fd_unix::FD { sysfd: Arc::new(Mutex::new(Some({ let __arg_holder = fd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), is_stream: Arc::new(Mutex::new(Some(true))), zero_read_is_e_o_f: Arc::new(Mutex::new(Some(true))), ..Default::default() }))), name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), stdout_or_err: Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*fd.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x == __tmp_y } || { let __tmp_x = { let __v = (*fd.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x == __tmp_y }))), ..Default::default() }))).clone(), ..Default::default() })));
+        let __embedded = { let __owner_guard = __owner.lock().unwrap(); __owner_guard.as_ref().unwrap().file.clone() };
+        let __embedded_key = { let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) };
+        go_register_embedded_owner(__embedded_key, __owner.clone());
+        __owner
+    };
 
     let mut pollable = Arc::new(Mutex::new(Some({ let __tmp_x = (*kind.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = newFileKind(Arc::new(Mutex::new(Some(KIND_OPEN_FILE as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*kind.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = newFileKind(Arc::new(Mutex::new(Some(KIND_PIPE as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*kind.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = newFileKind(Arc::new(Mutex::new(Some(KIND_SOCK as i32)))); __tmp_x == __tmp_y } || { let __v = (*nonBlocking.lock().unwrap().as_ref().unwrap()).clone(); __v })));
 
@@ -913,7 +925,13 @@ pub fn new_unix_dirent(parent: Arc<Mutex<Option<String>>>, name: Arc<Mutex<Optio
         return (Arc::new(Mutex::new(Some(Box::new(unixDirentPtr(ude.clone())) as Box<dyn io_fs::r#mod::DirEntry + Send + Sync>))), Arc::new(Mutex::new(None)));
     }
 
-    let (mut info, mut err) = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Box<dyn io_fs::r#mod::FileInfo + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync> = { let mut __f_guard = lstat_1.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Box<dyn io_fs::r#mod::FileInfo + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", { let __v = (*parent.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", "/".to_string())); __s.push_str(&format!("{}", { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s })))) };
+    let (mut info, mut err) = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Box<dyn io_fs::r#mod::FileInfo + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync> = { let mut __f_guard = lstat_1.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Box<dyn io_fs::r#mod::FileInfo + Send + Sync>>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({
+        let mut __s = String::new();
+        __s.push_str(&format!("{}", { let __v = (*parent.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+        __s.push_str(&format!("{}", "/".to_string()));
+        __s.push_str(&format!("{}", { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+        __s
+    })))) };
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         return (Arc::new(Mutex::new(None)), err.clone());
     }

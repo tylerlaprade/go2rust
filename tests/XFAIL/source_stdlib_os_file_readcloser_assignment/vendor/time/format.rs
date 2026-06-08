@@ -791,9 +791,26 @@ impl ParseError {
     /// Error returns the string representation of a ParseError.
     pub fn error(&self) -> Arc<Mutex<Option<String>>> {
         if { let __tmp_x = (*self.message.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
-        return Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "parsing time ".to_string())); __s.push_str(&format!("{}", (*quote(Arc::new(Mutex::new(Some({ let __selector_holder = self.value.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", " as ".to_string())); __s.push_str(&format!("{}", (*quote(Arc::new(Mutex::new(Some({ let __selector_holder = self.layout.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", ": cannot parse ".to_string())); __s.push_str(&format!("{}", (*quote(Arc::new(Mutex::new(Some({ let __selector_holder = self.value_elem.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", " as ".to_string())); __s.push_str(&format!("{}", (*quote(Arc::new(Mutex::new(Some({ let __selector_holder = self.layout_elem.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap()))); __s })));
+        return Arc::new(Mutex::new(Some({
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", "parsing time ".to_string()));
+            __s.push_str(&format!("{}", (*quote(Arc::new(Mutex::new(Some({ let __selector_holder = self.value.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", " as ".to_string()));
+            __s.push_str(&format!("{}", (*quote(Arc::new(Mutex::new(Some({ let __selector_holder = self.layout.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", ": cannot parse ".to_string()));
+            __s.push_str(&format!("{}", (*quote(Arc::new(Mutex::new(Some({ let __selector_holder = self.value_elem.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", " as ".to_string()));
+            __s.push_str(&format!("{}", (*quote(Arc::new(Mutex::new(Some({ let __selector_holder = self.layout_elem.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap())));
+            __s
+        })));
     }
-        return Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "parsing time ".to_string())); __s.push_str(&format!("{}", (*quote(Arc::new(Mutex::new(Some({ let __selector_holder = self.value.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", (*self.message.clone().lock().unwrap().as_ref().unwrap()))); __s })));
+        return Arc::new(Mutex::new(Some({
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", "parsing time ".to_string()));
+            __s.push_str(&format!("{}", (*quote(Arc::new(Mutex::new(Some({ let __selector_holder = self.value.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", (*self.message.clone().lock().unwrap().as_ref().unwrap())));
+            __s
+        })));
     }
 }
 
@@ -1213,7 +1230,11 @@ pub fn getnum(s: Arc<Mutex<Option<String>>>, fixed: Arc<Mutex<Option<bool>>>) ->
     }
         return ((*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('0' as i32) as u8; __tmp_x - __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap()), Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (1) as usize; __s[__low..].to_string() }))), Arc::new(Mutex::new(None)));
     }
-    return ({ let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('0' as i32) as u8; __tmp_x - __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 10; __tmp_x * __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] }; let __tmp_y = ('0' as i32) as u8; __tmp_x - __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }, Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (2) as usize; __s[__low..].to_string() }))), Arc::new(Mutex::new(None)));
+    return ({
+        let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('0' as i32) as u8; __tmp_x - __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 10; __tmp_x * __tmp_y };
+        let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] }; let __tmp_y = ('0' as i32) as u8; __tmp_x - __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap());
+        __tmp_x + __tmp_y
+    }, Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (2) as usize; __s[__low..].to_string() }))), Arc::new(Mutex::new(None)));
 }
 
 /// getnum3 parses s[0:1], s[0:2], or s[0:3] (fixed forces s[0:3])
@@ -1749,7 +1770,13 @@ pub fn parse_1(mut layout: Arc<Mutex<Option<String>>>, mut value: Arc<Mutex<Opti
                 // Take any number of digits, even more than asked for,
                 // because it is what the stdSecond case would do.
         if { let __tmp_x = (*rangeErrString.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
-        return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), Arc::new(Mutex::new(Some(Box::new((*new_parse_error(Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = stdstr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", ": ".to_string())); __s.push_str(&format!("{}", { let __v = (*rangeErrString.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", " out of range".to_string())); __s })))).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>))));
+        return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), Arc::new(Mutex::new(Some(Box::new((*new_parse_error(Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = stdstr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", ": ".to_string()));
+            __s.push_str(&format!("{}", { let __v = (*rangeErrString.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+            __s.push_str(&format!("{}", " out of range".to_string()));
+            __s
+        })))).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>))));
     }
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         return (Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(0))), ext: Arc::new(Mutex::new(Some(0))), loc: Default::default() }))), Arc::new(Mutex::new(Some(Box::new((*new_parse_error(Arc::new(Mutex::new(Some({ let __arg_holder = alayout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = avalue.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = stdstr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = hold.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some("".to_string())))).lock().unwrap().as_ref().unwrap()).clone()) as Box<dyn StdError + Send + Sync>))));

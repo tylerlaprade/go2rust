@@ -159,9 +159,21 @@ pub fn getwd() -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError
                 // is not implemented or failed with ENAMETOOLONG,
                 // so return the most sensible error.
         { let __range_holder = names.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for name in __range_values.iter() {
-        let (mut d, _) = lstat_nolog(Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", { let __v = (*parent.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", "/".to_string())); __s.push_str(&format!("{}", name)); __s }))));
+        let (mut d, _) = lstat_nolog(Arc::new(Mutex::new(Some({
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", { let __v = (*parent.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+            __s.push_str(&format!("{}", "/".to_string()));
+            __s.push_str(&format!("{}", name));
+            __s
+        }))));
         if same_file(d.clone(), dot.clone()) {
-        { let new_val = { let mut __s = String::new(); __s.push_str(&format!("{}", "/".to_string())); __s.push_str(&format!("{}", name)); __s.push_str(&format!("{}", { let __v = (*dir.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s }; *dir.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", "/".to_string()));
+            __s.push_str(&format!("{}", name));
+            __s.push_str(&format!("{}", { let __v = (*dir.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+            __s
+        }; *dir.lock().unwrap() = Some(new_val); };
         // TODO: unsupported goto found
     }
     } }

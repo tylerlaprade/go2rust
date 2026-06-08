@@ -171,7 +171,11 @@ impl pageCache {
         if { let __tmp_x = { let __tmp_x = (*self.cache.lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = (1 as u64); let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }); __tmp_x & __tmp_y }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
         { let __recv = { let __recv = p.clone(); let __recv_ptr: *const crate::mpagealloc::pageAlloc = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::mpagealloc::pageAlloc }; let __result = unsafe { &*__recv_ptr }.chunk_of(Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result }; let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).free1(Arc::new(Mutex::new(Some({ let __tmp_x = pi; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })))); __result };
                 // Update density statistics.
-        (*(*(*p.lock().unwrap().as_ref().unwrap()).scav.lock().unwrap().as_ref().unwrap()).index.lock().unwrap().as_mut().unwrap()).free(Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = pi; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))), Arc::new(Mutex::new(Some(1 as u64))));
+        (*(*(*p.lock().unwrap().as_ref().unwrap()).scav.lock().unwrap().as_ref().unwrap()).index.lock().unwrap().as_mut().unwrap()).free(
+            Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = pi; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))),
+            Arc::new(Mutex::new(Some(1 as u64))),
+        );
     }
                 // Update density statistics.
         if { let __tmp_x = { let __tmp_x = (*self.scav.lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = (1 as u64); let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }); __tmp_x & __tmp_y }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
@@ -213,7 +217,11 @@ impl crate::mpagealloc::pageAlloc {
         let mut c = Arc::new(Mutex::new(Some(pageCache { base: Arc::new(Mutex::new(Some(0))), cache: Arc::new(Mutex::new(Some(0))), scav: Arc::new(Mutex::new(Some(0))) })));
         let mut ci = chunk_index(Arc::new(Mutex::new(Some((*self.search_addr.lock().unwrap().as_ref().unwrap()).addr()))));
         let mut chunk: Option<GoArrayElemPtr<crate::mpallocbits::pallocData, 8192>> = None;
-        if { let __tmp_x = { let __seq = { let __seq_holder = self.summary.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = 5; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }[(*{ let __v = (*ci.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone(); let __tmp_y = crate::mpagealloc::pallocSum(Arc::new(Mutex::new(Some(0 as u64)))); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = { let __seq = { let __seq_holder = self.summary.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = 5; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }[(*{ let __v = (*ci.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone();
+            let __tmp_y = crate::mpagealloc::pallocSum(Arc::new(Mutex::new(Some(0 as u64))));
+            __tmp_x != __tmp_y
+        } {
                 // Fast path: there's free pages at or near the searchAddr address.
         chunk = self.chunk_of(Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         let (mut j, _) = { let __promoted_recv = (*chunk.as_ref().unwrap().borrow().as_ref().unwrap()).palloc_bits.clone(); let __promoted_guard = __promoted_recv.lock().unwrap(); let __promoted_ref = __promoted_guard.as_ref().unwrap(); let __result = __promoted_ref.find(Arc::new(Mutex::new(Some(1 as usize))), Arc::new(Mutex::new(Some(chunk_page_index(Arc::new(Mutex::new(Some((*self.search_addr.lock().unwrap().as_ref().unwrap()).addr())))))))); __result };

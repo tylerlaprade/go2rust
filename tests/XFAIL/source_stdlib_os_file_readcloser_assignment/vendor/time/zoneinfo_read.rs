@@ -128,7 +128,13 @@ pub(crate) fn __go_init_order_15() {
 
 impl fileSizeError {
     pub fn error(&self) -> Arc<Mutex<Option<String>>> {
-        return Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "time: file ".to_string())); __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()).clone()))).lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", " is too large".to_string())); __s })));
+        return Arc::new(Mutex::new(Some({
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", "time: file ".to_string()));
+            __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some((*self.0.lock().unwrap().as_ref().unwrap()).clone()))).lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", " is too large".to_string()));
+            __s
+        })));
     }
 }
 
@@ -526,7 +532,13 @@ pub fn load_tzinfo_from_dir_or_zip(dir: Arc<Mutex<Option<String>>>, mut name: Ar
         return load_tzinfo_from_zip(Arc::new(Mutex::new(Some({ let __arg_holder = dir.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
     if { let __tmp_x = (*dir.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
-        { let new_val = { let mut __s = String::new(); __s.push_str(&format!("{}", { let __v = (*dir.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", "/".to_string())); __s.push_str(&format!("{}", { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s }; *name.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", { let __v = (*dir.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+            __s.push_str(&format!("{}", "/".to_string()));
+            __s.push_str(&format!("{}", { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+            __s
+        }; *name.lock().unwrap() = Some(new_val); };
     }
     read_file(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))
 }
@@ -559,7 +571,11 @@ pub fn get2(b: Arc<Mutex<Option<Vec<u8>>>>) -> i32 {
     if { let __tmp_x = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 2; __tmp_x < __tmp_y } {
         return 0;
     }
-    return { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() } as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() } as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 8; __tmp_x << __tmp_y }; __tmp_x | __tmp_y };
+    return {
+        let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() } as i32))).lock().unwrap().as_ref().unwrap());
+        let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() } as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 8; __tmp_x << __tmp_y };
+        __tmp_x | __tmp_y
+    };
 }
 
 /// loadTzinfoFromZip returns the contents of the file with the given name
@@ -667,7 +683,14 @@ const zheader: i32 = 0x04034b50;
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (Arc::new(Mutex::new(None)), errors::new(Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "unsupported compression for ".to_string())); __s.push_str(&format!("{}", { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", " in ".to_string())); __s.push_str(&format!("{}", { let __v = (*zipfile.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s })))));
+        return (Arc::new(Mutex::new(None)), errors::new(Arc::new(Mutex::new(Some({
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", "unsupported compression for ".to_string()));
+            __s.push_str(&format!("{}", { let __v = (*name.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+            __s.push_str(&format!("{}", " in ".to_string()));
+            __s.push_str(&format!("{}", { let __v = (*zipfile.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+            __s
+        })))));
     }
     }
 

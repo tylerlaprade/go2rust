@@ -1845,7 +1845,11 @@ pub fn checkmcount() {
         // calls, causing the runtime to create millions of threads. By
         // definition, this isn't a problem for threads created in C, so we
         // exclude them from the limit. See https://go.dev/issue/60004.
-    let mut count = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = mcount(); let __tmp_y = (*Arc::new(Mutex::new(Some((*extraMInUse.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some((*extraMLength.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })));
+    let mut count = Arc::new(Mutex::new(Some({
+        let __tmp_x = { let __tmp_x = mcount(); let __tmp_y = (*Arc::new(Mutex::new(Some((*extraMInUse.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y };
+        let __tmp_y = (*Arc::new(Mutex::new(Some((*extraMLength.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap());
+        __tmp_x - __tmp_y
+    })));
     if { let __tmp_x = { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).maxmcount.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
         {
             let __go_print_arg_0 = format!("{}", "runtime: program exceeds ".to_string());
@@ -3608,7 +3612,11 @@ pub fn handoffp(pp: GoPtr<crate::runtime2::p>) {
         // no local work, check that there are no spinning/idle M's,
         // otherwise our help is not required
     if {
-        let __go_cond_0 = { let __tmp_x = { let __tmp_x = (*(*sched.lock().unwrap().as_ref().unwrap()).nmspinning.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = (*(*sched.lock().unwrap().as_ref().unwrap()).npidle.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y }; let __tmp_y = 0 as i32; __tmp_x == __tmp_y };
+        let __go_cond_0 = {
+            let __tmp_x = { let __tmp_x = (*(*sched.lock().unwrap().as_ref().unwrap()).nmspinning.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = (*(*sched.lock().unwrap().as_ref().unwrap()).npidle.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y };
+            let __tmp_y = 0 as i32;
+            __tmp_x == __tmp_y
+        };
         if __go_cond_0 {
             let __go_cond_1 = (*(*sched.lock().unwrap().as_ref().unwrap()).nmspinning.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some(0 as i32))), Arc::new(Mutex::new(Some(1 as i32))));
             __go_cond_1
@@ -3986,7 +3994,11 @@ pub fn find_runnable() -> (GoPtr<crate::runtime2::g>, bool, bool) {
             if __go_cond_0 {
                 true
             } else {
-                let __go_cond_1 = { let __tmp_x = { let __tmp_x = 2 as i32; let __tmp_y = (*(*sched.lock().unwrap().as_ref().unwrap()).nmspinning.lock().unwrap().as_mut().unwrap()).load(); __tmp_x * __tmp_y }; let __tmp_y = { let __tmp_x = (*gomaxprocs.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*sched.lock().unwrap().as_ref().unwrap()).npidle.lock().unwrap().as_mut().unwrap()).load(); __tmp_x - __tmp_y }; __tmp_x < __tmp_y };
+                let __go_cond_1 = {
+                    let __tmp_x = { let __tmp_x = 2 as i32; let __tmp_y = (*(*sched.lock().unwrap().as_ref().unwrap()).nmspinning.lock().unwrap().as_mut().unwrap()).load(); __tmp_x * __tmp_y };
+                    let __tmp_y = { let __tmp_x = (*gomaxprocs.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*sched.lock().unwrap().as_ref().unwrap()).npidle.lock().unwrap().as_mut().unwrap()).load(); __tmp_x - __tmp_y };
+                    __tmp_x < __tmp_y
+                };
                 __go_cond_1
             }
         } {
@@ -5802,11 +5814,29 @@ pub fn sigprof(mut pc: Arc<Mutex<Option<usize>>>, sp: Arc<Mutex<Option<usize>>>,
                 // Collect Go stack that leads to the cgo call.
         (*u.lock().unwrap().as_mut().unwrap()).init_at(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = (*mp.lock().unwrap().as_ref().unwrap()).curg.with_mut(|__ptr_value| __ptr_value.syscallpc.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = (*mp.lock().unwrap().as_ref().unwrap()).curg.with_mut(|__ptr_value| __ptr_value.syscallsp.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(0 as usize))), (*mp.lock().unwrap().as_ref().unwrap()).curg.clone(), Arc::new(Mutex::new(Some(crate::traceback::unwindFlags(Arc::new(Mutex::new(Some(UNWIND_SILENT_ERRORS as u8))))))));
     } else if uses_libcall() && { let __tmp_x = { let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).libcallg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } && { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).libcallpc.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y } && { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).libcallsp.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
-        (*u.lock().unwrap().as_mut().unwrap()).init_at(Arc::new(Mutex::new(Some({ let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).libcallpc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).libcallsp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(0 as usize))), crate::runtime2::guintptr::ptr(&(*(*mp.lock().unwrap().as_ref().unwrap()).libcallg.lock().unwrap().as_ref().unwrap())), Arc::new(Mutex::new(Some(crate::traceback::unwindFlags(Arc::new(Mutex::new(Some(UNWIND_SILENT_ERRORS as u8))))))));
+        (*u.lock().unwrap().as_mut().unwrap()).init_at(
+            Arc::new(Mutex::new(Some({ let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).libcallpc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            Arc::new(Mutex::new(Some({ let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).libcallsp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            Arc::new(Mutex::new(Some(0 as usize))),
+            crate::runtime2::guintptr::ptr(&(*(*mp.lock().unwrap().as_ref().unwrap()).libcallg.lock().unwrap().as_ref().unwrap())),
+            Arc::new(Mutex::new(Some(crate::traceback::unwindFlags(Arc::new(Mutex::new(Some(UNWIND_SILENT_ERRORS as u8))))))),
+        );
     } else if { let __nil_result = (*mp.lock().unwrap()).is_some(); __nil_result } && { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).vdso_s_p.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
-        (*u.lock().unwrap().as_mut().unwrap()).init_at(Arc::new(Mutex::new(Some({ let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).vdso_p_c.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).vdso_s_p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(0 as usize))), gp.clone(), Arc::new(Mutex::new(Some(crate::traceback::unwindFlags(Arc::new(Mutex::new(Some((UNWIND_SILENT_ERRORS as u8 | UNWIND_JUMP_STACK as u8) as u8))))))));
+        (*u.lock().unwrap().as_mut().unwrap()).init_at(
+            Arc::new(Mutex::new(Some({ let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).vdso_p_c.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            Arc::new(Mutex::new(Some({ let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).vdso_s_p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            Arc::new(Mutex::new(Some(0 as usize))),
+            gp.clone(),
+            Arc::new(Mutex::new(Some(crate::traceback::unwindFlags(Arc::new(Mutex::new(Some((UNWIND_SILENT_ERRORS as u8 | UNWIND_JUMP_STACK as u8) as u8))))))),
+        );
     } else {
-        (*u.lock().unwrap().as_mut().unwrap()).init_at(Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = sp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = lr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), gp.clone(), Arc::new(Mutex::new(Some(crate::traceback::unwindFlags(Arc::new(Mutex::new(Some((UNWIND_SILENT_ERRORS as u8 | UNWIND_TRAP as u8 as u8 | UNWIND_JUMP_STACK as u8) as u8))))))));
+        (*u.lock().unwrap().as_mut().unwrap()).init_at(
+            Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = sp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = lr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            gp.clone(),
+            Arc::new(Mutex::new(Some(crate::traceback::unwindFlags(Arc::new(Mutex::new(Some((UNWIND_SILENT_ERRORS as u8 | UNWIND_TRAP as u8 as u8 | UNWIND_JUMP_STACK as u8) as u8))))))),
+        );
     }
         // Check cgoCallersUse to make sure that we are not
         // interrupting other code that is fiddling with

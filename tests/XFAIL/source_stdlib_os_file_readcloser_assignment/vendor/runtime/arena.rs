@@ -898,7 +898,11 @@ pub fn user_arena_heap_bits_set_type(typ: GoPtr<internal_abi::r#type::Type>, ptr
                 // a platform-ordered way for efficiency, but stores back the
                 // data in little endian order, since we expose the bitmap through
                 // a dummy type.
-        { let new_val = (*h.lock().unwrap().as_ref().unwrap()).write(s.clone(), Arc::new(Mutex::new(Some(read_uintptr(addb(p.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y })))))))), Arc::new(Mutex::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *h.lock().unwrap() = __moved_val; };
+        { let new_val = (*h.lock().unwrap().as_ref().unwrap()).write(
+            s.clone(),
+            Arc::new(Mutex::new(Some(read_uintptr(addb(p.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y })))))))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        ); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *h.lock().unwrap() = __moved_val; };
         { let __rhs = PTR_BITS as usize; let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
 
@@ -915,7 +919,11 @@ pub fn user_arena_heap_bits_set_type(typ: GoPtr<internal_abi::r#type::Type>, ptr
         // markers from previous uses because arena chunk pointer bitmaps
         // are always fully cleared when reused.
     { let new_val = (*h.lock().unwrap().as_ref().unwrap()).pad(s.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *h.lock().unwrap() = __moved_val; };
-    (*h.lock().unwrap().as_ref().unwrap()).flush(s.clone(), Arc::new(Mutex::new(Some((*ptr.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = typ.with_mut(|__ptr_value| __ptr_value.size_.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+    (*h.lock().unwrap().as_ref().unwrap()).flush(
+        s.clone(),
+        Arc::new(Mutex::new(Some((*ptr.lock().unwrap().as_ref().unwrap()) as usize))),
+        Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = typ.with_mut(|__ptr_value| __ptr_value.size_.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+    );
 
         // Update the PtrBytes value in the type information. After this
         // point, the GC will observe the new bitmap.

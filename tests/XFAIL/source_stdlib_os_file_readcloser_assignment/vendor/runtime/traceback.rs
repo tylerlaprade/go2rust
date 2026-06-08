@@ -729,7 +729,13 @@ impl unwinder {
                 // move to the next frame, but that's both more awkward to use in a "for"
                 // loop and is harder to implement because we have to do things differently
                 // for the first frame.
-        self.init_at(Arc::new(Mutex::new(Some(!(0 as usize) as usize))), Arc::new(Mutex::new(Some(!(0 as usize) as usize))), Arc::new(Mutex::new(Some(!(0 as usize) as usize))), gp.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = flags.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        self.init_at(
+            Arc::new(Mutex::new(Some(!(0 as usize) as usize))),
+            Arc::new(Mutex::new(Some(!(0 as usize) as usize))),
+            Arc::new(Mutex::new(Some(!(0 as usize) as usize))),
+            gp.clone(),
+            Arc::new(Mutex::new(Some({ let __arg_holder = flags.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        );
     }
 
     pub fn init_at(&mut self, mut pc0: Arc<Mutex<Option<usize>>>, mut sp0: Arc<Mutex<Option<usize>>>, mut lr0: Arc<Mutex<Option<usize>>>, gp: GoPtr<crate::runtime2::g>, flags: Arc<Mutex<Option<unwindFlags>>>) {
@@ -1087,7 +1093,11 @@ impl unwinder {
         { let new_val = { let __selector_holder = (*frame.lock().unwrap().as_ref().unwrap()).pc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *(*frame.lock().unwrap().as_ref().unwrap()).continpc.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = (*self.callee_func_i_d.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(internal_abi::FUNC_I_D_SIGPANIC as u8)))); __tmp_x == __tmp_y } {
         if { let __tmp_x = (*(*(*frame.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap().as_ref().unwrap())._func.lock().unwrap().as_ref().unwrap().deferreturn.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u32; __tmp_x != __tmp_y } {
-        { let new_val = { let __tmp_x = { let __tmp_x = (*(*frame.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap().as_ref().unwrap()).entry(); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*(*frame.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap().as_ref().unwrap())._func.lock().unwrap().as_ref().unwrap().deferreturn.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }; let __tmp_y = 1 as usize; __tmp_x + __tmp_y }; *(*frame.lock().unwrap().as_ref().unwrap()).continpc.lock().unwrap() = Some(new_val); };
+        { let new_val = {
+            let __tmp_x = { let __tmp_x = (*(*frame.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap().as_ref().unwrap()).entry(); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*(*frame.lock().unwrap().as_ref().unwrap()).r#fn.lock().unwrap().as_ref().unwrap())._func.lock().unwrap().as_ref().unwrap().deferreturn.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y };
+            let __tmp_y = 1 as usize;
+            __tmp_x + __tmp_y
+        }; *(*frame.lock().unwrap().as_ref().unwrap()).continpc.lock().unwrap() = Some(new_val); };
     } else {
         { let new_val = 0 as usize; *(*frame.lock().unwrap().as_ref().unwrap()).continpc.lock().unwrap() = Some(new_val); };
     }
@@ -1507,7 +1517,13 @@ pub fn func_name_pieces_for_print(name: Arc<Mutex<Option<String>>>) -> (Arc<Mute
 /// funcNameForPrint returns the function name for printing to the user.
 pub fn func_name_for_print(name: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
     let (mut a, mut b, mut c) = func_name_pieces_for_print(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-    return Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s })));
+    return Arc::new(Mutex::new(Some({
+        let mut __s = String::new();
+        __s.push_str(&format!("{}", { let __v = (*a.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+        __s.push_str(&format!("{}", { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+        __s.push_str(&format!("{}", { let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+        __s
+    })));
 }
 
 /// printFuncName prints a function name. name is the function name in

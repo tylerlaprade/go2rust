@@ -780,7 +780,11 @@ pub fn have_identical_type(T: Arc<Mutex<Option<internal_abi::r#type::Type>>>, V:
     }
 
     if {
-        let __go_cond_0 = { let __tmp_x = (*{ let __recv = to_r_type(GoPtr::local(T.clone())); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*{ let __recv = to_r_type(GoPtr::local(V.clone())); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name(); __result }.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y };
+        let __go_cond_0 = {
+            let __tmp_x = (*{ let __recv = to_r_type(GoPtr::local(T.clone())); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name(); __result }.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = (*{ let __recv = to_r_type(GoPtr::local(V.clone())); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name(); __result }.lock().unwrap().as_ref().unwrap()).clone();
+            __tmp_x != __tmp_y
+        };
         if __go_cond_0 {
             true
         } else {

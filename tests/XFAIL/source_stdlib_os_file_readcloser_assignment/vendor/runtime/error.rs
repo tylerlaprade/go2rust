@@ -651,14 +651,34 @@ impl TypeAssertionError {
     }
         let mut r#as = { let __recv = to_r_type(GoPtr::local(self.asserted.clone())); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result };
         if { let __ptr_field = self.concrete.clone(); __ptr_field.is_nil() } {
-        return Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "interface conversion: ".to_string())); __s.push_str(&format!("{}", { let __v = (*inter.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", " is nil, not ".to_string())); __s.push_str(&format!("{}", { let __v = (*r#as.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s })));
+        return Arc::new(Mutex::new(Some({
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", "interface conversion: ".to_string()));
+            __s.push_str(&format!("{}", { let __v = (*inter.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+            __s.push_str(&format!("{}", " is nil, not ".to_string()));
+            __s.push_str(&format!("{}", { let __v = (*r#as.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+            __s
+        })));
     }
         let mut cs = { let __recv = to_r_type(self.concrete.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result };
         if { let __tmp_x = (*self.missing_method.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } {
-        let mut msg = Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "interface conversion: ".to_string())); __s.push_str(&format!("{}", { let __v = (*inter.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", " is ".to_string())); __s.push_str(&format!("{}", { let __v = (*cs.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", ", not ".to_string())); __s.push_str(&format!("{}", { let __v = (*r#as.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s })));
+        let mut msg = Arc::new(Mutex::new(Some({
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", "interface conversion: ".to_string()));
+            __s.push_str(&format!("{}", { let __v = (*inter.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+            __s.push_str(&format!("{}", " is ".to_string()));
+            __s.push_str(&format!("{}", { let __v = (*cs.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+            __s.push_str(&format!("{}", ", not ".to_string()));
+            __s.push_str(&format!("{}", { let __v = (*r#as.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+            __s
+        })));
         if { let __tmp_x = (*cs.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*r#as.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } {
                 // provide slightly clearer error message
-        if { let __tmp_x = (*{ let __recv = to_r_type(self.concrete.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).pkgpath(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*{ let __recv = to_r_type(GoPtr::local(self.asserted.clone())); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).pkgpath(); __result }.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = (*{ let __recv = to_r_type(self.concrete.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).pkgpath(); __result }.lock().unwrap().as_ref().unwrap()).clone();
+            let __tmp_y = (*{ let __recv = to_r_type(GoPtr::local(self.asserted.clone())); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).pkgpath(); __result }.lock().unwrap().as_ref().unwrap()).clone();
+            __tmp_x != __tmp_y
+        } {
         { (*msg.lock().unwrap().as_mut().unwrap()).push_str(&" (types from different packages)".to_string()); };
     } else {
         { (*msg.lock().unwrap().as_mut().unwrap()).push_str(&" (types from different scopes)".to_string()); };
@@ -668,7 +688,16 @@ impl TypeAssertionError {
         return { let __owned = msg.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
     }
                 // provide slightly clearer error message
-        return Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "interface conversion: ".to_string())); __s.push_str(&format!("{}", { let __v = (*cs.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", " is not ".to_string())); __s.push_str(&format!("{}", { let __v = (*r#as.lock().unwrap().as_ref().unwrap()).clone(); __v })); __s.push_str(&format!("{}", ": missing method ".to_string())); __s.push_str(&format!("{}", (*self.missing_method.clone().lock().unwrap().as_ref().unwrap()))); __s })));
+        return Arc::new(Mutex::new(Some({
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", "interface conversion: ".to_string()));
+            __s.push_str(&format!("{}", { let __v = (*cs.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+            __s.push_str(&format!("{}", " is not ".to_string()));
+            __s.push_str(&format!("{}", { let __v = (*r#as.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+            __s.push_str(&format!("{}", ": missing method ".to_string()));
+            __s.push_str(&format!("{}", (*self.missing_method.clone().lock().unwrap().as_ref().unwrap())));
+            __s
+        })));
     }
 }
 

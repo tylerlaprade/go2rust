@@ -491,7 +491,13 @@ impl flag {
         std::panic::panic_any(Box::new(Arc::new(Mutex::new(Some(ValueError { method: method_name(), kind: Arc::new(Mutex::new(Some(internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(0 as u8))))))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>);
     }
         if { let __tmp_x = flag(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & FLAG_R_O as usize))))); let __tmp_y = flag(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
-        std::panic::panic_any(Box::new({ let mut __s = String::new(); __s.push_str(&format!("{}", "reflect: ".to_string())); __s.push_str(&format!("{}", (*method_name().lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", " using value obtained using unexported field".to_string())); __s }) as Box<dyn Any + Send + Sync>);
+        std::panic::panic_any(Box::new({
+    let mut __s = String::new();
+    __s.push_str(&format!("{}", "reflect: ".to_string()));
+    __s.push_str(&format!("{}", (*method_name().lock().unwrap().as_ref().unwrap())));
+    __s.push_str(&format!("{}", " using value obtained using unexported field".to_string()));
+    __s
+}) as Box<dyn Any + Send + Sync>);
     }
     }
 
@@ -504,10 +510,22 @@ impl flag {
     }
                 // Assignable if addressable and not read-only.
         if { let __tmp_x = flag(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & FLAG_R_O as usize))))); let __tmp_y = flag(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
-        std::panic::panic_any(Box::new({ let mut __s = String::new(); __s.push_str(&format!("{}", "reflect: ".to_string())); __s.push_str(&format!("{}", (*method_name().lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", " using value obtained using unexported field".to_string())); __s }) as Box<dyn Any + Send + Sync>);
+        std::panic::panic_any(Box::new({
+    let mut __s = String::new();
+    __s.push_str(&format!("{}", "reflect: ".to_string()));
+    __s.push_str(&format!("{}", (*method_name().lock().unwrap().as_ref().unwrap())));
+    __s.push_str(&format!("{}", " using value obtained using unexported field".to_string()));
+    __s
+}) as Box<dyn Any + Send + Sync>);
     }
         if { let __tmp_x = flag(Arc::new(Mutex::new(Some(((*self.0.lock().unwrap().as_ref().unwrap()) & FLAG_ADDR as usize))))); let __tmp_y = flag(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x == __tmp_y } {
-        std::panic::panic_any(Box::new({ let mut __s = String::new(); __s.push_str(&format!("{}", "reflect: ".to_string())); __s.push_str(&format!("{}", (*method_name().lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", " using unaddressable value".to_string())); __s }) as Box<dyn Any + Send + Sync>);
+        std::panic::panic_any(Box::new({
+    let mut __s = String::new();
+    __s.push_str(&format!("{}", "reflect: ".to_string()));
+    __s.push_str(&format!("{}", (*method_name().lock().unwrap().as_ref().unwrap())));
+    __s.push_str(&format!("{}", " using unaddressable value".to_string()));
+    __s
+}) as Box<dyn Any + Send + Sync>);
     }
     }
 }
@@ -515,9 +533,23 @@ impl flag {
 impl ValueError {
     pub fn error(&self) -> Arc<Mutex<Option<String>>> {
         if { let __tmp_x = (*self.kind.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x == __tmp_y } {
-        return Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "reflect: call of ".to_string())); __s.push_str(&format!("{}", (*self.method.clone().lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", " on zero Value".to_string())); __s })));
+        return Arc::new(Mutex::new(Some({
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", "reflect: call of ".to_string()));
+            __s.push_str(&format!("{}", (*self.method.clone().lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", " on zero Value".to_string()));
+            __s
+        })));
     }
-        return Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "reflect: call of ".to_string())); __s.push_str(&format!("{}", (*self.method.clone().lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", " on ".to_string())); __s.push_str(&format!("{}", (*internal_abi::r#type::Kind::string(&(*self.kind.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", " Value".to_string())); __s })));
+        return Arc::new(Mutex::new(Some({
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", "reflect: call of ".to_string()));
+            __s.push_str(&format!("{}", (*self.method.clone().lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", " on ".to_string()));
+            __s.push_str(&format!("{}", (*internal_abi::r#type::Kind::string(&(*self.kind.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", " Value".to_string()));
+            __s
+        })));
     }
 }
 

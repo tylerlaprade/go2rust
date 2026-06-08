@@ -288,7 +288,11 @@ impl poolDequeue {
     pub fn push_head(&self, mut val: Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>) -> bool {
         let mut ptrs = (*self.head_tail.lock().unwrap().as_mut().unwrap()).load();
         let (mut head, mut tail) = self.unpack(Arc::new(StdMutex::new(Some(ptrs))));
-        if { let __tmp_x = { let __tmp_x = ({ let __tmp_x = tail; let __tmp_y = (*Arc::new(StdMutex::new(Some(({ let __len_target = { let __field = self.vals.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }); let __tmp_y = (((1 as u64) << (DEQUEUE_BITS as u64)) - (1 as u64)) as u32; __tmp_x & __tmp_y }; let __tmp_y = head; __tmp_x == __tmp_y } {
+        if {
+            let __tmp_x = { let __tmp_x = ({ let __tmp_x = tail; let __tmp_y = (*Arc::new(StdMutex::new(Some(({ let __len_target = { let __field = self.vals.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y }); let __tmp_y = (((1 as u64) << (DEQUEUE_BITS as u64)) - (1 as u64)) as u32; __tmp_x & __tmp_y };
+            let __tmp_y = head;
+            __tmp_x == __tmp_y
+        } {
                 // Queue is full.
         return false;
     }
@@ -426,7 +430,13 @@ impl poolChain {
         { let new_val = 1073741824; *newSize.lock().unwrap() = Some(new_val); };
     }
                 // Can't make it any bigger.
-        let mut d2 = { let __owner = Arc::new(StdMutex::new(Some(poolChainElt { ..Default::default() }))); let __embedded_key = { let __owner_guard = __owner.lock().unwrap(); let __embedded = __owner_guard.as_ref().unwrap().pool_dequeue.clone(); let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) }; go_register_embedded_owner(__embedded_key, __owner.clone()); __owner };
+        let mut d2 = {
+            let __owner = Arc::new(StdMutex::new(Some(poolChainElt { ..Default::default() })));
+            let __embedded = { let __owner_guard = __owner.lock().unwrap(); __owner_guard.as_ref().unwrap().pool_dequeue.clone() };
+            let __embedded_key = { let __embedded_guard = __embedded.lock().unwrap(); __embedded_guard.as_ref().map(|__v| __v as *const _ as usize).unwrap_or(0) };
+            go_register_embedded_owner(__embedded_key, __owner.clone());
+            __owner
+        };
         (*(*d2.lock().unwrap().as_ref().unwrap()).prev.lock().unwrap().as_mut().unwrap()).store(sync_atomic::GoPtr::local(d.clone()));
         { let new_val = Arc::new(StdMutex::new(Some(vec![Default::default(); ({ let __v = (*newSize.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize]))); (*(*d2.lock().unwrap().as_mut().unwrap()).pool_dequeue.lock().unwrap().as_mut().unwrap()).vals = new_val; };
         { let new_val = d2.clone(); self.head = new_val; };

@@ -1045,7 +1045,19 @@ pub fn adjustframe(frame: Arc<Mutex<Option<stkframe>>>, adjinfo: Arc<Mutex<Optio
         {
     let mut i = Arc::new(Mutex::new(Some(0 as usize)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ptrBytes; __tmp_x < __tmp_y } {
-        if { let __tmp_x = { let __tmp_x = { let __tmp_x = { let __ptr_handle = addb(gcData.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((8 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x / __tmp_y })))); let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() }; let __tmp_y = ({ let __tmp_x = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }; let __tmp_y = 7 as usize; __tmp_x & __tmp_y }); __tmp_x >> __tmp_y }; let __tmp_y = 1 as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = {
+                let __tmp_x = {
+                    let __tmp_x = { let __ptr_handle = addb(gcData.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((8 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x / __tmp_y })))); let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() };
+                    let __tmp_y = ({ let __tmp_x = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }; let __tmp_y = 7 as usize; __tmp_x & __tmp_y });
+                    __tmp_x >> __tmp_y
+                };
+                let __tmp_y = 1 as u8;
+                __tmp_x & __tmp_y
+            };
+            let __tmp_y = 0 as u8;
+            __tmp_x != __tmp_y
+        } {
         adjustpointer(adjinfo.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))));
     }
         { let __rhs = internal_goarch::PTR_SIZE as usize; let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };

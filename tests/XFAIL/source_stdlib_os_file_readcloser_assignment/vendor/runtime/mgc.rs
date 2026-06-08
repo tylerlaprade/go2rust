@@ -2147,7 +2147,11 @@ pub fn gc_start(trigger: Arc<Mutex<Option<gcTrigger>>>) {
 
                 // Assists and workers can start the moment we start
                 // the world.
-        (*gcController.lock().unwrap().as_mut().unwrap()).start_cycle(Arc::new(Mutex::new(Some(now))), Arc::new(Mutex::new(Some((*gomaxprocs.lock().unwrap().as_ref().unwrap()) as i32))), Arc::new(Mutex::new(Some({ let __arg_holder = trigger.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        (*gcController.lock().unwrap().as_mut().unwrap()).start_cycle(
+            Arc::new(Mutex::new(Some(now))),
+            Arc::new(Mutex::new(Some((*gomaxprocs.lock().unwrap().as_ref().unwrap()) as i32))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = trigger.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        );
 
                 // Notify the CPU limiter that assists may begin.
         (*gcCPULimiter.lock().unwrap().as_mut().unwrap()).start_g_c_transition(Arc::new(Mutex::new(Some(true))), Arc::new(Mutex::new(Some(now))));
@@ -2413,7 +2417,11 @@ pub fn gc_mark_done() {
                 // endCycle depends on all gcWork cache stats being flushed.
                 // The termination algorithm above ensured that up to
                 // allocations since the ragged barrier.
-        (*gcController.lock().unwrap().as_mut().unwrap()).end_cycle(Arc::new(Mutex::new(Some(now))), Arc::new(Mutex::new(Some((*gomaxprocs.lock().unwrap().as_ref().unwrap()) as i32))), Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).user_forced.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+        (*gcController.lock().unwrap().as_mut().unwrap()).end_cycle(
+            Arc::new(Mutex::new(Some(now))),
+            Arc::new(Mutex::new(Some((*gomaxprocs.lock().unwrap().as_ref().unwrap()) as i32))),
+            Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).user_forced.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+        );
 
                 // Perform mark termination. This will restart the world.
         gc_mark_termination(Arc::new(Mutex::new(Some({ let __arg_holder = stw.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
@@ -2525,7 +2533,11 @@ pub fn gc_mark_termination(stw: Arc<Mutex<Option<worldStop>>>) {
 
         // Compute overall GC CPU utilization.
         // Omit idle marking time from the overall utilization here since it's "free".
-    { let new_val = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*(*(*work.lock().unwrap().as_ref().unwrap()).cpu_stats.lock().unwrap().as_ref().unwrap()).g_c_total_time.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*(*work.lock().unwrap().as_ref().unwrap()).cpu_stats.lock().unwrap().as_ref().unwrap()).g_c_idle_time.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*(*work.lock().unwrap().as_ref().unwrap()).cpu_stats.lock().unwrap().as_ref().unwrap()).total_time.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as f64))).lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y }; *(*memstats.lock().unwrap().as_ref().unwrap()).gc_cpu_fraction.lock().unwrap() = Some(new_val); };
+    { let new_val = {
+        let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*(*(*work.lock().unwrap().as_ref().unwrap()).cpu_stats.lock().unwrap().as_ref().unwrap()).g_c_total_time.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*(*work.lock().unwrap().as_ref().unwrap()).cpu_stats.lock().unwrap().as_ref().unwrap()).g_c_idle_time.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as f64))).lock().unwrap().as_ref().unwrap());
+        let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*(*work.lock().unwrap().as_ref().unwrap()).cpu_stats.lock().unwrap().as_ref().unwrap()).total_time.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as f64))).lock().unwrap().as_ref().unwrap());
+        __tmp_x / __tmp_y
+    }; *(*memstats.lock().unwrap().as_ref().unwrap()).gc_cpu_fraction.lock().unwrap() = Some(new_val); };
 
         // Reset assist time and background time stats.
         //

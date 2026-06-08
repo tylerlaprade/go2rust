@@ -619,7 +619,15 @@ impl FileMode {
 
 impl PathError {
     pub fn error(&self) -> Arc<Mutex<Option<String>>> {
-        return Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", (*self.op.clone().lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", " ".to_string())); __s.push_str(&format!("{}", (*self.path.clone().lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", ": ".to_string())); __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", self.err.lock().unwrap().as_ref().unwrap())))).lock().unwrap().as_ref().unwrap()))); __s })));
+        return Arc::new(Mutex::new(Some({
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", (*self.op.clone().lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", " ".to_string()));
+            __s.push_str(&format!("{}", (*self.path.clone().lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", ": ".to_string()));
+            __s.push_str(&format!("{}", (*Arc::new(Mutex::new(Some(format!("{}", self.err.lock().unwrap().as_ref().unwrap())))).lock().unwrap().as_ref().unwrap())));
+            __s
+        })));
     }
 
     pub fn unwrap(&self) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {

@@ -127,7 +127,11 @@ pub fn mrandinit(mp: Arc<Mutex<Option<m>>>) {
 ///go:linkname randn
 pub fn randn(n: Arc<Mutex<Option<u32>>>) -> u32 {
         // See https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
-    (*Arc::new(Mutex::new(Some(({ let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some(rand() as u32 as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }); let __tmp_y = 32; __tmp_x >> __tmp_y }) as u32))).lock().unwrap().as_ref().unwrap())
+    (*Arc::new(Mutex::new(Some(({
+        let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some(rand() as u32 as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y });
+        let __tmp_y = 32;
+        __tmp_x >> __tmp_y
+    }) as u32))).lock().unwrap().as_ref().unwrap())
 }
 
 /// cheaprand is a non-cryptographic-quality 32-bit random generator
@@ -155,7 +159,27 @@ pub fn cheaprand() -> u32 {
         // Implement wyrand: https://github.com/wangyi-fudan/wyhash
         // Only the platform that math.Mul64 can be lowered
         // by the compiler should be in this list.
-    if { let __tmp_x = { let __tmp_x = { let __tmp_x = { let __tmp_x = { let __tmp_x = { let __tmp_x = { let __tmp_x = { let __tmp_x = { let __tmp_x = internal_goarch::IS_AMD64; let __tmp_y = internal_goarch::IS_ARM64; __tmp_x | __tmp_y }; let __tmp_y = internal_goarch::IS_PPC64; __tmp_x | __tmp_y }; let __tmp_y = internal_goarch::IS_PPC64LE; __tmp_x | __tmp_y }; let __tmp_y = internal_goarch::IS_MIPS64; __tmp_x | __tmp_y }; let __tmp_y = internal_goarch::IS_MIPS64LE; __tmp_x | __tmp_y }; let __tmp_y = internal_goarch::IS_S390X; __tmp_x | __tmp_y }; let __tmp_y = internal_goarch::IS_RISCV64; __tmp_x | __tmp_y }; let __tmp_y = internal_goarch::IS_LOONG64; __tmp_x | __tmp_y }; let __tmp_y = 1; __tmp_x == __tmp_y } {
+    if {
+        let __tmp_x = {
+            let __tmp_x = {
+                let __tmp_x = {
+                    let __tmp_x = {
+                        let __tmp_x = { let __tmp_x = { let __tmp_x = { let __tmp_x = { let __tmp_x = internal_goarch::IS_AMD64; let __tmp_y = internal_goarch::IS_ARM64; __tmp_x | __tmp_y }; let __tmp_y = internal_goarch::IS_PPC64; __tmp_x | __tmp_y }; let __tmp_y = internal_goarch::IS_PPC64LE; __tmp_x | __tmp_y }; let __tmp_y = internal_goarch::IS_MIPS64; __tmp_x | __tmp_y };
+                        let __tmp_y = internal_goarch::IS_MIPS64LE;
+                        __tmp_x | __tmp_y
+                    };
+                    let __tmp_y = internal_goarch::IS_S390X;
+                    __tmp_x | __tmp_y
+                };
+                let __tmp_y = internal_goarch::IS_RISCV64;
+                __tmp_x | __tmp_y
+            };
+            let __tmp_y = internal_goarch::IS_LOONG64;
+            __tmp_x | __tmp_y
+        };
+        let __tmp_y = 1;
+        __tmp_x == __tmp_y
+    } {
         { let __target = (*mp.lock().unwrap().as_ref().unwrap()).cheaprand.clone(); let __rhs = 0xa0761d6478bd642f as u64; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         let (mut hi, mut lo) = internal_runtime_math::mul64(Arc::new(Mutex::new(Some({ let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).cheaprand.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).cheaprand.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0xe7037ed1a0b428db as u64; __tmp_x ^ __tmp_y }))));
         return (*Arc::new(Mutex::new(Some(({ let __tmp_x = hi; let __tmp_y = lo; __tmp_x ^ __tmp_y }) as u32))).lock().unwrap().as_ref().unwrap());
@@ -198,7 +222,11 @@ pub fn cheaprand() -> u32 {
 ///go:linkname cheaprand64
 ///go:nosplit
 pub fn cheaprand64() -> i64 {
-    return { let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(cheaprand() as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 31; __tmp_x << __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some(cheaprand() as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x ^ __tmp_y };
+    return {
+        let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(cheaprand() as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 31; __tmp_x << __tmp_y };
+        let __tmp_y = (*Arc::new(Mutex::new(Some(cheaprand() as i64))).lock().unwrap().as_ref().unwrap());
+        __tmp_x ^ __tmp_y
+    };
 }
 
 /// cheaprandn is like cheaprand() % n but faster.

@@ -1173,13 +1173,33 @@ impl sweepLocked {
                 // Check the first bitmap byte, where we have to be
                 // careful with freeindex.
         let mut obj = Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.freeindex.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize)));
-        if { let __tmp_x = { let __tmp_x = ({ let __tmp_x = { let __ptr_handle = { let __recv_field = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.gcmark_bits.clone()); __ptr_value }.clone(); let __result = __recv_field.with_mut(|__recv_value| __recv_value.bytep(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*obj.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y }))))); __result }; let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() }; let __tmp_y = { let __ptr_handle = { let __recv_field = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.alloc_bits.clone()); __ptr_value }.clone(); let __result = __recv_field.with_mut(|__recv_value| __recv_value.bytep(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*obj.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y }))))); __result }; let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() }; __tmp_x & ! __tmp_y }); let __tmp_y = ({ let __tmp_x = { let __v = (*obj.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x % __tmp_y }); __tmp_x >> __tmp_y }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = {
+                let __tmp_x = ({
+                    let __tmp_x = { let __ptr_handle = { let __recv_field = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.gcmark_bits.clone()); __ptr_value }.clone(); let __result = __recv_field.with_mut(|__recv_value| __recv_value.bytep(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*obj.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y }))))); __result }; let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() };
+                    let __tmp_y = { let __ptr_handle = { let __recv_field = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.alloc_bits.clone()); __ptr_value }.clone(); let __result = __recv_field.with_mut(|__recv_value| __recv_value.bytep(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*obj.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y }))))); __result }; let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() };
+                    __tmp_x & ! __tmp_y
+                });
+                let __tmp_y = ({ let __tmp_x = { let __v = (*obj.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x % __tmp_y });
+                __tmp_x >> __tmp_y
+            };
+            let __tmp_y = 0 as u8;
+            __tmp_x != __tmp_y
+        } {
         { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).report_zombies(); __result };
     }
                 // Check remaining bytes.
         let mut i = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __v = (*obj.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y }; let __tmp_y = 1 as usize; __tmp_x + __tmp_y })));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = div_round_up(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.nelems.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))), Arc::new(Mutex::new(Some(8 as usize)))); __tmp_x < __tmp_y } {
-        if { let __tmp_x = { let __tmp_x = { let __ptr_handle = { let __recv_field = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.gcmark_bits.clone()); __ptr_value }.clone(); let __result = __recv_field.with_mut(|__recv_value| __recv_value.bytep(Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))); __result }; let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() }; let __tmp_y = { let __ptr_handle = { let __recv_field = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.alloc_bits.clone()); __ptr_value }.clone(); let __result = __recv_field.with_mut(|__recv_value| __recv_value.bytep(Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))); __result }; let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() }; __tmp_x & ! __tmp_y }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y } {
+        if {
+            let __tmp_x = {
+                let __tmp_x = { let __ptr_handle = { let __recv_field = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.gcmark_bits.clone()); __ptr_value }.clone(); let __result = __recv_field.with_mut(|__recv_value| __recv_value.bytep(Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))); __result }; let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() };
+                let __tmp_y = { let __ptr_handle = { let __recv_field = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.alloc_bits.clone()); __ptr_value }.clone(); let __result = __recv_field.with_mut(|__recv_value| __recv_value.bytep(Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))); __result }; let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() };
+                __tmp_x & ! __tmp_y
+            };
+            let __tmp_y = 0 as u8;
+            __tmp_x != __tmp_y
+        } {
         { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).report_zombies(); __result };
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }

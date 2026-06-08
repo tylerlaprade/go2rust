@@ -1094,7 +1094,12 @@ impl pageAlloc {
                 // Update summaries accordingly. The grow acts like a free, so
                 // we need to ensure this newly-free memory is visible in the
                 // summaries.
-        self.update(Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PAGE_SIZE as usize; __tmp_x / __tmp_y }))), Arc::new(Mutex::new(Some(true))), Arc::new(Mutex::new(Some(false))));
+        self.update(
+            Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PAGE_SIZE as usize; __tmp_x / __tmp_y }))),
+            Arc::new(Mutex::new(Some(true))),
+            Arc::new(Mutex::new(Some(false))),
+        );
     }
 
     /// enableChunkHugePages enables huge pages for the chunk bitmap mappings (disabled by default).
@@ -1135,7 +1140,11 @@ impl pageAlloc {
                 // exactly 1 call to sysHugePage.
         { let __range_holder = (*self.in_use.lock().unwrap().as_ref().unwrap()).ranges.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for r in __range_values.iter() {
         let mut i = chunkIdx::l1(&(*chunk_index(Arc::new(Mutex::new(Some((*r.base.lock().unwrap().as_ref().unwrap()).addr())))).lock().unwrap().as_ref().unwrap()));
-    while { let __tmp_x = i; let __tmp_y = chunkIdx::l1(&(*chunk_index(Arc::new(Mutex::new(Some({ let __tmp_x = (*r.limit.lock().unwrap().as_ref().unwrap()).addr(); let __tmp_y = 1 as usize; __tmp_x - __tmp_y })))).lock().unwrap().as_ref().unwrap())); __tmp_x < __tmp_y } {
+    while {
+        let __tmp_x = i;
+        let __tmp_y = chunkIdx::l1(&(*chunk_index(Arc::new(Mutex::new(Some({ let __tmp_x = (*r.limit.lock().unwrap().as_ref().unwrap()).addr(); let __tmp_y = 1 as usize; __tmp_x - __tmp_y })))).lock().unwrap().as_ref().unwrap()));
+        __tmp_x < __tmp_y
+    } {
                 // N.B. We can assume that p.chunks[i] is non-nil and in a mapped part of p.chunks
                 // because it's derived from inUse, which never shrinks.
         sys_huge_page(Arc::new(Mutex::new(Some(Arc::as_ptr(&{ let __seq = { let __seq_holder = self.chunks.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }) as usize))), Arc::new(Mutex::new(Some(std::mem::size_of::<[crate::mpallocbits::pallocData; 8192]>()))));
@@ -1728,7 +1737,11 @@ impl pageAlloc {
                 // search it directly.
         let mut searchAddr = { let __owned = minOffAddr.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
         'found: {
-            if { let __tmp_x = { let __tmp_x = PALLOC_CHUNK_PAGES as u64; let __tmp_y = chunk_page_index(Arc::new(Mutex::new(Some((*self.search_addr.lock().unwrap().as_ref().unwrap()).addr())))); __tmp_x - __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some((*npages.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y } {
+            if {
+                let __tmp_x = { let __tmp_x = PALLOC_CHUNK_PAGES as u64; let __tmp_y = chunk_page_index(Arc::new(Mutex::new(Some((*self.search_addr.lock().unwrap().as_ref().unwrap()).addr())))); __tmp_x - __tmp_y };
+                let __tmp_y = (*Arc::new(Mutex::new(Some((*npages.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap());
+                __tmp_x >= __tmp_y
+            } {
                 // npages is guaranteed to be no greater than pallocChunkPages here.
         let mut i = chunk_index(Arc::new(Mutex::new(Some((*self.search_addr.lock().unwrap().as_ref().unwrap()).addr()))));
         {
@@ -1831,11 +1844,19 @@ impl pageAlloc {
         if { let __tmp_x = (*sc.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*ec.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x == __tmp_y } {
                 // The range doesn't cross any chunk boundaries.
         { let __recv = self.chunk_of(Arc::new(Mutex::new(Some({ let __arg_holder = sc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).free(Arc::new(Mutex::new(Some(si))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = ei; let __tmp_y = 1 as u64; __tmp_x + __tmp_y }; let __tmp_y = si; __tmp_x - __tmp_y })))); __result };
-        (*(*self.scav.lock().unwrap().as_ref().unwrap()).index.lock().unwrap().as_mut().unwrap()).free(Arc::new(Mutex::new(Some({ let __arg_holder = sc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(si))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = ei; let __tmp_y = 1 as u64; __tmp_x + __tmp_y }; let __tmp_y = si; __tmp_x - __tmp_y }))));
+        (*(*self.scav.lock().unwrap().as_ref().unwrap()).index.lock().unwrap().as_mut().unwrap()).free(
+            Arc::new(Mutex::new(Some({ let __arg_holder = sc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(si))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = ei; let __tmp_y = 1 as u64; __tmp_x + __tmp_y }; let __tmp_y = si; __tmp_x - __tmp_y }))),
+        );
     } else {
                 // The range crosses at least one chunk boundary.
         { let __recv = self.chunk_of(Arc::new(Mutex::new(Some({ let __arg_holder = sc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).free(Arc::new(Mutex::new(Some(si))), Arc::new(Mutex::new(Some({ let __tmp_x = PALLOC_CHUNK_PAGES as u64; let __tmp_y = si; __tmp_x - __tmp_y })))); __result };
-        (*(*self.scav.lock().unwrap().as_ref().unwrap()).index.lock().unwrap().as_mut().unwrap()).free(Arc::new(Mutex::new(Some({ let __arg_holder = sc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(si))), Arc::new(Mutex::new(Some({ let __tmp_x = PALLOC_CHUNK_PAGES as u64; let __tmp_y = si; __tmp_x - __tmp_y }))));
+        (*(*self.scav.lock().unwrap().as_ref().unwrap()).index.lock().unwrap().as_mut().unwrap()).free(
+            Arc::new(Mutex::new(Some({ let __arg_holder = sc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(si))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = PALLOC_CHUNK_PAGES as u64; let __tmp_y = si; __tmp_x - __tmp_y }))),
+        );
         let mut c = Arc::new(Mutex::new(Some(chunkIdx(Arc::new(Mutex::new(Some(((*{ let __v = (*sc.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) + 1))))))));
     while { let __tmp_x = (*c.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*ec.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x < __tmp_y } {
         { let __recv = self.chunk_of(Arc::new(Mutex::new(Some({ let __arg_holder = c.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).free_all(); __result };
@@ -1843,7 +1864,11 @@ impl pageAlloc {
         { let mut guard = c.lock().unwrap(); *guard = Some(guard.as_ref().unwrap().clone() + 1 as u64); }
     }
         { let __recv = self.chunk_of(Arc::new(Mutex::new(Some({ let __arg_holder = ec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).free(Arc::new(Mutex::new(Some(0 as u64))), Arc::new(Mutex::new(Some({ let __tmp_x = ei; let __tmp_y = 1 as u64; __tmp_x + __tmp_y })))); __result };
-        (*(*self.scav.lock().unwrap().as_ref().unwrap()).index.lock().unwrap().as_mut().unwrap()).free(Arc::new(Mutex::new(Some({ let __arg_holder = ec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(0 as u64))), Arc::new(Mutex::new(Some({ let __tmp_x = ei; let __tmp_y = 1 as u64; __tmp_x + __tmp_y }))));
+        (*(*self.scav.lock().unwrap().as_ref().unwrap()).index.lock().unwrap().as_mut().unwrap()).free(
+            Arc::new(Mutex::new(Some({ let __arg_holder = ec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(0 as u64))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = ei; let __tmp_y = 1 as u64; __tmp_x + __tmp_y }))),
+        );
     }
     }
                 // Fast path: we're clearing a single bit, and we know exactly
@@ -1966,7 +1991,15 @@ pub fn pack_palloc_sum(start: Arc<Mutex<Option<u64>>>, max: Arc<Mutex<Option<u64
     if { let __tmp_x = { let __v = (*max.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MAX_PACKED_VALUE as u64; __tmp_x == __tmp_y } {
         return Arc::new(Mutex::new(Some(pallocSum(Arc::new(Mutex::new(Some((((1 as u64) << (63 as u64))) as u64 as u64)))))));
     }
-    Arc::new(Mutex::new(Some(pallocSum(Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*start.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ((MAX_PACKED_VALUE as u64) - (1 as u64)) as u64; __tmp_x & __tmp_y }); let __tmp_y = ({ let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*max.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ((MAX_PACKED_VALUE as u64) - (1 as u64)) as u64; __tmp_x & __tmp_y }); let __tmp_y = LOG_MAX_PACKED_VALUE; __tmp_x << __tmp_y }); __tmp_x | __tmp_y }; let __tmp_y = ({ let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*end.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ((MAX_PACKED_VALUE as u64) - (1 as u64)) as u64; __tmp_x & __tmp_y }); let __tmp_y = ({ let __tmp_x = 2; let __tmp_y = LOG_MAX_PACKED_VALUE; __tmp_x * __tmp_y }); __tmp_x << __tmp_y }); __tmp_x | __tmp_y } as u64)))))))
+    Arc::new(Mutex::new(Some(pallocSum(Arc::new(Mutex::new(Some({
+        let __tmp_x = {
+            let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*start.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ((MAX_PACKED_VALUE as u64) - (1 as u64)) as u64; __tmp_x & __tmp_y });
+            let __tmp_y = ({ let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*max.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ((MAX_PACKED_VALUE as u64) - (1 as u64)) as u64; __tmp_x & __tmp_y }); let __tmp_y = LOG_MAX_PACKED_VALUE; __tmp_x << __tmp_y });
+            __tmp_x | __tmp_y
+        };
+        let __tmp_y = ({ let __tmp_x = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*end.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ((MAX_PACKED_VALUE as u64) - (1 as u64)) as u64; __tmp_x & __tmp_y }); let __tmp_y = ({ let __tmp_x = 2; let __tmp_y = LOG_MAX_PACKED_VALUE; __tmp_x * __tmp_y }); __tmp_x << __tmp_y });
+        __tmp_x | __tmp_y
+    } as u64)))))))
 }
 
 /// mergeSummaries merges consecutive summaries which may each represent at

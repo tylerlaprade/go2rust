@@ -730,7 +730,13 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
         throw(Arc::new(Mutex::new(Some("runtime.SetFinalizer: first argument is nil".to_string()))));
     }
     if { let __tmp_x = { let __tmp_x = { let __selector_holder = { let __ptr_value = etyp.with_mut(|__ptr_value| __ptr_value.kind_.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::KIND_MASK as u8)))); __tmp_x & __tmp_y }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::POINTER as u8)))); __tmp_x != __tmp_y } {
-        throw(Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "runtime.SetFinalizer: first argument is ".to_string())); __s.push_str(&format!("{}", (*{ let __recv = to_r_type(etyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", ", not pointer".to_string())); __s }))));
+        throw(Arc::new(Mutex::new(Some({
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", "runtime.SetFinalizer: first argument is ".to_string()));
+            __s.push_str(&format!("{}", (*{ let __recv = to_r_type(etyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", ", not pointer".to_string()));
+            __s
+        }))));
     }
     let mut ot: GoPtr<internal_abi::r#type::PtrType> = { let __ptr = Arc::new(Mutex::new(Some(etyp.addr()))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<internal_abi::r#type::PtrType>(*__ptr_guard.as_ref().unwrap(), "internal_abi::r#type::PtrType")) } };
     if { let __nil_target = { let __ptr_value = ot.with_mut(|__ptr_value| __ptr_value.elem.clone()); __ptr_value }.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
@@ -786,14 +792,35 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
 
         // switch to system stack and remove finalizer
     if { let __tmp_x = { let __tmp_x = { let __selector_holder = { let __ptr_value = ftyp.with_mut(|__ptr_value| __ptr_value.kind_.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::KIND_MASK as u8)))); __tmp_x & __tmp_y }; let __tmp_y = internal_abi::r#type::Kind(Arc::new(Mutex::new(Some(internal_abi::FUNC as u8)))); __tmp_x != __tmp_y } {
-        throw(Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "runtime.SetFinalizer: second argument is ".to_string())); __s.push_str(&format!("{}", (*{ let __recv = to_r_type(ftyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", ", not a function".to_string())); __s }))));
+        throw(Arc::new(Mutex::new(Some({
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", "runtime.SetFinalizer: second argument is ".to_string()));
+            __s.push_str(&format!("{}", (*{ let __recv = to_r_type(ftyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", ", not a function".to_string()));
+            __s
+        }))));
     }
     let mut ft: GoPtr<internal_abi::r#type::FuncType> = { let __ptr = Arc::new(Mutex::new(Some(ftyp.addr()))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { GoPtr::nil() } else { GoPtr::local(go_lookup_embedded_owner::<internal_abi::r#type::FuncType>(*__ptr_guard.as_ref().unwrap(), "internal_abi::r#type::FuncType")) } };
     if { let __recv_value = ft.borrow(); let __result = (*__recv_value.as_ref().unwrap()).is_variadic(); __result } {
-        throw(Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "runtime.SetFinalizer: cannot pass ".to_string())); __s.push_str(&format!("{}", (*{ let __recv = to_r_type(etyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", " to finalizer ".to_string())); __s.push_str(&format!("{}", (*{ let __recv = to_r_type(ftyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", " because dotdotdot".to_string())); __s }))));
+        throw(Arc::new(Mutex::new(Some({
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", "runtime.SetFinalizer: cannot pass ".to_string()));
+            __s.push_str(&format!("{}", (*{ let __recv = to_r_type(etyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", " to finalizer ".to_string()));
+            __s.push_str(&format!("{}", (*{ let __recv = to_r_type(ftyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", " because dotdotdot".to_string()));
+            __s
+        }))));
     }
     if { let __tmp_x = (*{ let __ptr_value = ft.borrow(); __ptr_value.as_ref().unwrap().in_count.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as u16; __tmp_x != __tmp_y } {
-        throw(Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "runtime.SetFinalizer: cannot pass ".to_string())); __s.push_str(&format!("{}", (*{ let __recv = to_r_type(etyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", " to finalizer ".to_string())); __s.push_str(&format!("{}", (*{ let __recv = to_r_type(ftyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap()))); __s }))));
+        throw(Arc::new(Mutex::new(Some({
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", "runtime.SetFinalizer: cannot pass ".to_string()));
+            __s.push_str(&format!("{}", (*{ let __recv = to_r_type(etyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", " to finalizer ".to_string()));
+            __s.push_str(&format!("{}", (*{ let __recv = to_r_type(ftyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap())));
+            __s
+        }))));
     }
     let mut fint = { let __seq = { let __seq_holder = { let __result = ft.with_mut(|__recv_value| __recv_value.in_slice()); __result }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.clone();
     'okarg: {
@@ -824,7 +851,14 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
                 // ok - not same type, but both pointers,
                 // one or the other is unnamed, and same element type, so assignable.
                 // ok - satisfies empty interface
-        throw(Arc::new(Mutex::new(Some({ let mut __s = String::new(); __s.push_str(&format!("{}", "runtime.SetFinalizer: cannot pass ".to_string())); __s.push_str(&format!("{}", (*{ let __recv = to_r_type(etyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap()))); __s.push_str(&format!("{}", " to finalizer ".to_string())); __s.push_str(&format!("{}", (*{ let __recv = to_r_type(ftyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap()))); __s }))));
+        throw(Arc::new(Mutex::new(Some({
+            let mut __s = String::new();
+            __s.push_str(&format!("{}", "runtime.SetFinalizer: cannot pass ".to_string()));
+            __s.push_str(&format!("{}", (*{ let __recv = to_r_type(etyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap())));
+            __s.push_str(&format!("{}", " to finalizer ".to_string()));
+            __s.push_str(&format!("{}", (*{ let __recv = to_r_type(ftyp.clone()); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).string(); __result }.lock().unwrap().as_ref().unwrap())));
+            __s
+        }))));
     }
         // compute size needed for return parameters
     let mut nret = Arc::new(Mutex::new(Some(0 as usize)));
