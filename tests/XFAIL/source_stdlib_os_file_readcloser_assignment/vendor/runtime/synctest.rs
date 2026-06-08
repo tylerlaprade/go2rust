@@ -1607,7 +1607,7 @@ impl synctestGroup {
                 // A goroutine is blocked in Wait. Wake it.
                 // All goroutines in the group are durably blocked, and nothing has called Wait.
                 // Wake the root goroutine.
-        self.root.clone()
+        GoPtr::local(self.root.clone())
     }
 
     pub fn raceaddr(&self) -> Arc<Mutex<Option<usize>>> {

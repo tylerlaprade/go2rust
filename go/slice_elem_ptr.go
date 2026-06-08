@@ -47,6 +47,7 @@ var currentGoPtrReturnInfos map[int]goPtrResultInfo
 var currentFuncLitGoPtrParamInfos map[*ast.FuncLit]map[int]goPtrResultInfo
 var arrayElemPtrResultInfoInProgress map[*ast.FuncDecl]bool
 var goPtrResultInfoInProgress map[*ast.FuncDecl]bool
+var collectingSliceElemPtrFacts bool
 
 type sliceElemPtrReturnInfo struct {
 	elemRustType string
@@ -589,7 +590,7 @@ func goPtrResultInfosForFunc(fn *ast.FuncDecl) map[int]goPtrResultInfo {
 			result[index] = info
 			for _, candidate := range fieldReturnCandidates[index] {
 				fieldInfo := goPtrResultInfo{elemRustType: candidate.info.elemRustType, elemType: candidate.info.elemType}
-				if goPtrResultElemCompatible(fieldInfo, info) {
+				if collectingSliceElemPtrFacts && goPtrResultElemCompatible(fieldInfo, info) {
 					registerSliceElemPtrFieldInfoForKey(candidate.key, candidate.info)
 				}
 			}
@@ -698,6 +699,45 @@ func goPtrResultInfosForFuncObject(fn *types.Func) (map[int]goPtrResultInfo, boo
 		return result, true
 	}
 	return nil, false
+}
+
+func registeredGoPtrResultInfosForFuncObject(fn *types.Func) (map[int]goPtrResultInfo, bool) {
+	ctx := GetTranspileContext()
+	if fn == nil || ctx == nil {
+		return nil, false
+	}
+	if ctx.Package != nil {
+		if result, ok := ctx.Package.GoPtrReturnFuncs[fn]; ok {
+			return result, true
+		}
+		if key := methodOverrideKey(fn); key != "" {
+			if result, ok := ctx.Package.GoPtrReturnFuncNames[key]; ok {
+				return result, true
+			}
+		}
+		if result, ok := ctx.Package.GoPtrReturnFuncNames[fn.FullName()]; ok {
+			return result, true
+		}
+	}
+	if ctx.Session != nil {
+		if key := methodOverrideKey(fn); key != "" {
+			if result, ok := ctx.Session.GoPtrReturnFuncNames[key]; ok {
+				return result, true
+			}
+		}
+		if result, ok := ctx.Session.GoPtrReturnFuncNames[fn.FullName()]; ok {
+			return result, true
+		}
+	}
+	return nil, false
+}
+
+func registeredGoPtrResultInfosForDecl(fn *ast.FuncDecl) (map[int]goPtrResultInfo, bool) {
+	fnObj, ok := sliceElemPtrReturnFuncObject(fn)
+	if !ok {
+		return nil, false
+	}
+	return registeredGoPtrResultInfosForFuncObject(fnObj)
 }
 
 func goPtrResultInfosForLocalInterfaceMethod(fn *types.Func) (map[int]goPtrResultInfo, bool) {
@@ -912,7 +952,10 @@ func writeArrayElemPtrFuncDeclResultTypes(out *strings.Builder, fn *ast.FuncDecl
 }
 
 func writeGoPtrFuncDeclResultTypes(out *strings.Builder, fn *ast.FuncDecl) bool {
-	resultInfos := goPtrResultInfosForFunc(fn)
+	resultInfos, ok := registeredGoPtrResultInfosForDecl(fn)
+	if !ok || len(resultInfos) == 0 {
+		resultInfos = goPtrResultInfosForFunc(fn)
+	}
 	if len(resultInfos) == 0 {
 		return false
 	}
@@ -1013,6 +1056,10 @@ func registerSliceElemPtrReturnsFromFiles(files []*ast.File) {
 }
 
 func registerSliceElemPtrFactsFromFiles(files []*ast.File) {
+	prevCollectingFacts := collectingSliceElemPtrFacts
+	collectingSliceElemPtrFacts = true
+	defer func() { collectingSliceElemPtrFacts = prevCollectingFacts }()
+
 	registerSliceElemPtrReturnsFromFiles(files)
 	registerSliceElemPtrFieldsFromFiles(files)
 	// Field-backed pointer result facts depend on the field prepass above,
@@ -4219,7 +4266,9 @@ func pushCurrentSliceElemPtrReturn(fn *ast.FuncDecl) func() {
 	} else {
 		currentArrayElemPtrReturnInfos = nil
 	}
-	if infos := goPtrResultInfosForFunc(fn); len(infos) > 0 {
+	if infos, ok := registeredGoPtrResultInfosForDecl(fn); ok && len(infos) > 0 {
+		currentGoPtrReturnInfos = infos
+	} else if infos := goPtrResultInfosForFunc(fn); len(infos) > 0 {
 		currentGoPtrReturnInfos = infos
 	} else {
 		currentGoPtrReturnInfos = nil

@@ -3443,7 +3443,7 @@ pub fn goroutineheader(gp: GoPtr<crate::runtime2::g>) {
     {
         let mut sg = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.sync_group.clone()); __ptr_value }.clone();;
         if { let __nil_result = (*sg.lock().unwrap()).is_some(); __nil_result } {
-            eprint!("{}{}", format!("{}", ", synctest group ".to_string()), format!("{}", (*{ let __ptr_value = (*sg.lock().unwrap().as_ref().unwrap()).root.borrow(); __ptr_value.as_ref().unwrap().goid.clone() }.lock().unwrap().as_ref().unwrap())));;
+            eprint!("{}{}", format!("{}", ", synctest group ".to_string()), format!("{}", (*(*(*sg.lock().unwrap().as_ref().unwrap()).root.lock().unwrap().as_ref().unwrap()).goid.lock().unwrap().as_ref().unwrap())));;
         }
     }
     eprint!("{}", format!("{}", "]:\n".to_string()));

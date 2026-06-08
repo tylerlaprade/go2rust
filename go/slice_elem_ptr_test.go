@@ -3696,6 +3696,175 @@ func find(m *ITab, typ *Type) bool {
 	}
 }
 
+func TestGoPtrResultAnalysisDoesNotLatePromoteFieldStorage(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type node struct {
+	id int
+}
+
+type group struct {
+	root *node
+	waiter *node
+}
+
+func (g *group) wake() *node {
+	if p := g.waiter; p != nil {
+		return p
+	}
+	return g.root
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	var wake *ast.FuncDecl
+	var rootSel, waiterSel *ast.SelectorExpr
+	ast.Inspect(file, func(node ast.Node) bool {
+		switch n := node.(type) {
+		case *ast.FuncDecl:
+			if n.Name.Name == "wake" {
+				wake = n
+			}
+		case *ast.SelectorExpr:
+			switch n.Sel.Name {
+			case "root":
+				rootSel = n
+			case "waiter":
+				waiterSel = n
+			}
+		}
+		return true
+	})
+	if wake == nil || rootSel == nil || waiterSel == nil {
+		t.Fatalf("fixture missing wake/root/waiter nodes")
+	}
+
+	prevTypeInfo := GetTypeInfo()
+	prevCtx := GetTranspileContext()
+	t.Cleanup(func() {
+		SetTypeInfo(prevTypeInfo)
+		SetTranspileContext(prevCtx)
+	})
+	ctx := &TranspileContext{
+		Session: NewTranspileSession(typeInfo, nil),
+		Package: NewPackageState(),
+	}
+	SetTypeInfo(typeInfo)
+	SetTranspileContext(ctx)
+
+	waiterKey, waiterInfo, ok := sliceElemPtrFieldKeyForSelector(waiterSel)
+	if !ok {
+		t.Fatalf("fixture waiter selector should expose pointer field metadata")
+	}
+	rootKey, _, ok := sliceElemPtrFieldKeyForSelector(rootSel)
+	if !ok {
+		t.Fatalf("fixture root selector should expose pointer field metadata")
+	}
+	registerSliceElemPtrFieldInfoForKey(waiterKey, waiterInfo)
+	if generatedGoPtrFieldForKey(rootKey) {
+		t.Fatalf("fixture root field should start as ordinary pointer storage")
+	}
+
+	infos := goPtrResultInfosForFunc(wake)
+	if _, ok := infos[0]; !ok {
+		t.Fatalf("wake should infer a GoPtr result from the generated waiter field")
+	}
+	if generatedGoPtrFieldForKey(rootKey) {
+		t.Fatalf("result analysis outside the package fact prepass must not mutate field storage")
+	}
+}
+
+func TestRegisteredGoPtrResultInfoDrivesDeclAndReturnContext(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+type node struct {
+	id int
+}
+
+type group struct {
+	root *node
+}
+
+func (g *group) wake() *node {
+	return g.root
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	var wake *ast.FuncDecl
+	var rootSel *ast.SelectorExpr
+	ast.Inspect(file, func(node ast.Node) bool {
+		switch n := node.(type) {
+		case *ast.FuncDecl:
+			if n.Name.Name == "wake" {
+				wake = n
+			}
+		case *ast.SelectorExpr:
+			if n.Sel.Name == "root" {
+				rootSel = n
+			}
+		}
+		return true
+	})
+	if wake == nil || rootSel == nil {
+		t.Fatalf("fixture missing wake/root nodes")
+	}
+
+	prevTypeInfo := GetTypeInfo()
+	prevCtx := GetTranspileContext()
+	t.Cleanup(func() {
+		SetTypeInfo(prevTypeInfo)
+		SetTranspileContext(prevCtx)
+	})
+	ctx := &TranspileContext{
+		Session: NewTranspileSession(typeInfo, nil),
+		Package: NewPackageState(),
+	}
+	SetTypeInfo(typeInfo)
+	SetTranspileContext(ctx)
+
+	fnObj, ok := sliceElemPtrReturnFuncObject(wake)
+	if !ok {
+		t.Fatalf("fixture wake function should have a go/types object")
+	}
+	info, ok := goPtrInfoForPointerType(typeInfo.GetType(rootSel))
+	if !ok {
+		t.Fatalf("fixture root selector should have pointer type info")
+	}
+	resultInfos := map[int]goPtrResultInfo{0: info}
+	ctx.Package.GoPtrReturnFuncs[fnObj] = resultInfos
+	ctx.Package.GoPtrReturnFuncNames[fnObj.FullName()] = resultInfos
+	ctx.Session.GoPtrReturnFuncNames[fnObj.FullName()] = resultInfos
+
+	var out strings.Builder
+	if !writeGoPtrFuncDeclResultTypes(&out, wake) {
+		t.Fatalf("registered GoPtr result info should drive function result type")
+	}
+	if !strings.Contains(out.String(), " -> GoPtr<node>") {
+		t.Fatalf("registered GoPtr result should emit GoPtr result type, got %q", out.String())
+	}
+
+	restore := pushCurrentSliceElemPtrReturn(wake)
+	defer restore()
+	if _, ok := goPtrReturnInfoForFuncResult(nil, 0); !ok {
+		t.Fatalf("registered GoPtr result info should drive active return context")
+	}
+}
+
 func TestGoPtrGeneratedForeignFieldCallArgumentConvertsHelperType(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main
