@@ -467,9 +467,15 @@ func has(err error) bool {
 		strings.Contains(rust, "let x: Rc<RefCell<Option<Box<dyn Any>>>> = unimplemented!(\"type info required: type switch on interface case with 0 concrete implementors") {
 		t.Fatalf("unreachable anonymous interface case binding should still use its method-set trait type:\n%s", rust)
 	}
+	if strings.Contains(rust, "type switch on interface case with 0 concrete implementors needs a synthesized trait object") {
+		t.Fatalf("unreachable anonymous interface case binding should use a typed nil handle, not unimplemented!:\n%s", rust)
+	}
 	if !strings.Contains(rust, "let x: Arc<Mutex<Option<Box<dyn GoAnonymousInterface") &&
 		!strings.Contains(rust, "let x: Rc<RefCell<Option<Box<dyn GoAnonymousInterface") {
 		t.Fatalf("anonymous interface type-switch binding should synthesize a method-set trait object:\n%s", rust)
+	}
+	if !strings.Contains(rust, "None::<Box<dyn GoAnonymousInterface") {
+		t.Fatalf("anonymous interface type-switch binding should initialize unreachable cases with typed nil:\n%s", rust)
 	}
 }
 

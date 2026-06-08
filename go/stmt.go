@@ -3349,6 +3349,19 @@ func typeSwitchInterfaceBindingTraitName(typeInfo *TypeInfo, typeExpr ast.Expr, 
 	return transpiledNamedInterfaceTypeNameFromTypes(typ)
 }
 
+func writeTypedWrappedNone(out *strings.Builder, rustType string) {
+	trackWrapperImports()
+	if NeedsConcurrentWrapper() {
+		out.WriteString("Arc::new(Mutex::new(None::<")
+		out.WriteString(rustType)
+		out.WriteString(">))")
+		return
+	}
+	out.WriteString("Rc::new(RefCell::new(None::<")
+	out.WriteString(rustType)
+	out.WriteString(">))")
+}
+
 // writeTypeSwitchInterfaceCaseBinding binds the case variable for an interface
 // case (named or anonymous). Go gives the case variable the case type, even when
 // the matched value is rewrapped from a statically known interface subject.
@@ -3395,6 +3408,17 @@ func writeTypeSwitchInterfaceCaseBinding(out *strings.Builder, typeInfo *TypeInf
 			out.WriteString(" else {\n")
 			out.WriteString("            panic!(\"type switch interface case condition matched no concrete implementor\")\n")
 			out.WriteString("        };\n")
+			return true
+		}
+	}
+	if len(candidates) == 0 {
+		if ifaceName, ok := typeSwitchInterfaceBindingTraitName(typeInfo, typeExpr, subjectType, iface, candidates); ok {
+			traitObject := rustLocalInterfaceTraitObject(ifaceName)
+			out.WriteString(": ")
+			out.WriteString(goTypesWrappedRustType(traitObject))
+			out.WriteString(" = ")
+			writeTypedWrappedNone(out, traitObject)
+			out.WriteString(";\n")
 			return true
 		}
 	}
