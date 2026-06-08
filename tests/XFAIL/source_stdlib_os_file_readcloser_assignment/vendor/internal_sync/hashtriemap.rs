@@ -336,7 +336,23 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                         // Set up root node, derive the hash function for the key, and the
                         // equal function for the value, if any.
             let mut m: Arc<StdMutex<Option<BTreeMap<K, Arc<StdMutex<Option<V>>>>>>> = Arc::new(StdMutex::new(Some(BTreeMap::new())));
-            let mut mapType: GoPtr<internal_abi::map_swiss::SwissMapType> = GoPtr::local(Arc::new(StdMutex::new(Some({ let mut __type = internal_abi::Type::default(); *__type.kind_.lock().unwrap() = Some(internal_abi::Kind(Arc::new(StdMutex::new(Some(internal_abi::MAP as u8))))); let mut __elem_type = internal_abi::Type::default(); let mut __map_type = internal_abi::SwissMapType::default(); *__map_type.r#type.lock().unwrap() = Some(__type); *__map_type.elem.lock().unwrap() = Some(__elem_type); let __hasher: Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = Box::new(|__key, __seed| { let __key_value = __key.lock().unwrap().as_ref().copied().expect("internal/abi map hasher requires a key pointer"); let __seed_value = __seed.lock().unwrap().as_ref().copied().unwrap_or(0); let __key_ref = unsafe { &*(__key_value as *const StdMutex<Option<K>>) }; let __key_guard = __key_ref.lock().unwrap(); match __key_guard.as_ref() { Some(__key_value) => GoComparable::go_hash(__key_value, __seed_value), None => __seed_value } }); *__map_type.hasher.lock().unwrap() = Some(__hasher); __map_type }))));
+            let mut mapType: GoPtr<internal_abi::map_swiss::SwissMapType> = GoPtr::local(Arc::new(StdMutex::new(Some({
+                let mut __type = internal_abi::Type::default();
+                *__type.kind_.lock().unwrap() = Some(internal_abi::Kind(Arc::new(StdMutex::new(Some(internal_abi::MAP as u8)))));
+                let mut __elem_type = internal_abi::Type::default();
+                let mut __map_type = internal_abi::SwissMapType::default();
+                *__map_type.r#type.lock().unwrap() = Some(__type);
+                *__map_type.elem.lock().unwrap() = Some(__elem_type);
+                let __hasher: Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> usize + Send + Sync> = Box::new(|__key, __seed| {
+                    let __key_value = __key.lock().unwrap().as_ref().copied().expect("internal/abi map hasher requires a key pointer");
+                    let __seed_value = __seed.lock().unwrap().as_ref().copied().unwrap_or(0);
+                    let __key_ref = unsafe { &*(__key_value as *const StdMutex<Option<K>>) };
+                    let __key_guard = __key_ref.lock().unwrap();
+                    match __key_guard.as_ref() { Some(__key_value) => GoComparable::go_hash(__key_value, __seed_value), None => __seed_value }
+                });
+                *__map_type.hasher.lock().unwrap() = Some(__hasher);
+                __map_type
+            }))));
             (*self.root.lock().unwrap().as_mut().unwrap()).store(sync_atomic::GoPtr::local(new_indirect_node::<K, V>(GoPtr::nil())));
             { let new_val = { let __ptr_value = mapType.with_mut(|__ptr_value| __ptr_value.hasher.clone()); __ptr_value }.clone(); self.key_hash = new_val; };
             { let new_val = (*{ let __ptr_value = mapType.with_mut(|__ptr_value| __ptr_value.elem.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).equal.clone(); self.val_equal = new_val; };

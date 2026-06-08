@@ -5657,13 +5657,22 @@ func TestInternalABITypeOfMapTypeGoPtrValueUsesLocalHandle(t *testing.T) {
 	}
 	got := out.String()
 
+	for _, line := range strings.Split(got, "\n") {
+		if strings.Contains(line, "let mut __type =") && strings.Contains(line, "let __hasher:") {
+			t.Fatalf("internal/abi.TypeOf(map).MapType GoPtr value should not keep the full map type initializer on one line:\n%s", got)
+		}
+		if strings.Contains(line, "let __hasher:") && strings.Contains(line, "GoComparable::go_hash") {
+			t.Fatalf("internal/abi.TypeOf(map).MapType GoPtr hasher should not stay on one line:\n%s", got)
+		}
+	}
 	for _, forbidden := range []string{"match __go_ptr", "internal_abi::GoPtr::Nil", "internal_abi::GoPtr::Local"} {
 		if strings.Contains(got, forbidden) {
 			t.Fatalf("typed map intrinsic should not convert an ordinary pointer handle as a GoPtr via %q:\n%s", forbidden, got)
 		}
 	}
 	for _, want := range []string{
-		"GoPtr::local(Arc::new(Mutex::new(Some({ let mut __type = internal_abi::Type::default()",
+		"GoPtr::local(Arc::new(Mutex::new(Some({\n",
+		"let mut __type = internal_abi::Type::default();",
 		"internal_abi::SwissMapType::default()",
 		"GoComparable::go_hash(__key_value, __seed_value)",
 	} {
