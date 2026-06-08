@@ -251,19 +251,25 @@ func TestTestScriptRefusesFixtureCargoUnderSevereMemoryPressure(t *testing.T) {
 		`GO2RUST_TEST_SKIP_PRESSURE_GUARD`,
 		`enforce_available_memory_floor`,
 		`available memory is ${available_mb} MiB`,
-		`Refusing to start fixture Cargo work while the machine is under memory pressure.`,
+		`Refusing to start $work_label while the machine is under memory pressure.`,
 		`./cleanup.sh --pressure --quick`,
 		`GO2RUST_TEST_SKIP_PRESSURE_GUARD=1`,
+		`enforce_available_memory_floor GO2RUST_TEST_MIN_AVAILABLE_MEM_MB 1024 "fixture Cargo work"`,
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("test.sh should refuse fixture Cargo work under severe memory pressure; missing %q", want)
 		}
 	}
 
-	guardIndex := strings.Index(script, "\n    enforce_available_memory_floor\n")
+	guardIndex := strings.Index(script, `enforce_available_memory_floor GO2RUST_TEST_MIN_AVAILABLE_MEM_MB 1024 "fixture Cargo work"`)
 	buildIndex := strings.Index(script, `go build -o "$BUILT_TEST_BINARY" ./go`)
 	if guardIndex < 0 || buildIndex < 0 || guardIndex > buildIndex {
 		t.Fatalf("test.sh should run the memory-pressure guard before building the fixture transpiler")
+	}
+
+	transpileOnlyGuardIndex := strings.Index(script, `enforce_available_memory_floor GO2RUST_TEST_TRANSPILE_ONLY_MIN_AVAILABLE_MEM_MB 256 "transpile-only fixture work"`)
+	if transpileOnlyGuardIndex < 0 || buildIndex < 0 || transpileOnlyGuardIndex > buildIndex {
+		t.Fatalf("test.sh should run the transpile-only memory-pressure guard before building the fixture transpiler")
 	}
 }
 
@@ -279,12 +285,12 @@ func TestTestScriptTranspileOnlySkipsCargoPressureGuard(t *testing.T) {
 		`export GO2RUST_TEST_TRANSPILE_ONLY=1`,
 		`Transpile-only mode: skipping fixture Cargo build/run.`,
 		`if [ "$TRANSPILE_ONLY" = true ]; then`,
-		`else
-    enforce_available_memory_floor
-fi`,
+		`GO2RUST_TEST_TRANSPILE_ONLY_MIN_AVAILABLE_MEM_MB`,
+		`enforce_available_memory_floor GO2RUST_TEST_TRANSPILE_ONLY_MIN_AVAILABLE_MEM_MB 256 "transpile-only fixture work"`,
+		`enforce_available_memory_floor GO2RUST_TEST_MIN_AVAILABLE_MEM_MB 1024 "fixture Cargo work"`,
 	} {
 		if !strings.Contains(script, want) {
-			t.Fatalf("test.sh should expose transpile-only mode without Cargo pressure gating; missing %q", want)
+			t.Fatalf("test.sh should expose transpile-only mode with a lighter pressure gate; missing %q", want)
 		}
 	}
 }

@@ -103,6 +103,8 @@ if [ "$HELP" = true ]; then
     echo "Environment:"
     echo "  GO2RUST_TEST_CARGO_TARGET_DIR  Reuse a Cargo target dir instead of per-test temp targets"
     echo "  GO2RUST_TEST_MIN_AVAILABLE_MEM_MB  Minimum available memory before Cargo fixture work (default: 1024; 0 disables)"
+    echo "  GO2RUST_TEST_TRANSPILE_ONLY_MIN_AVAILABLE_MEM_MB"
+    echo "                                Minimum available memory before transpile-only fixture work (default: 256; 0 disables)"
     echo "  GO2RUST_TEST_SKIP_PRESSURE_GUARD   Set to 1 to bypass the available-memory guard"
     echo ""
     echo "Arguments:"
@@ -284,16 +286,20 @@ detect_available_memory_bytes() {
 }
 
 enforce_available_memory_floor() {
+    local min_var="${1:-GO2RUST_TEST_MIN_AVAILABLE_MEM_MB}"
+    local default_min_mb="${2:-1024}"
+    local work_label="${3:-fixture Cargo work}"
+
     case "${GO2RUST_TEST_SKIP_PRESSURE_GUARD:-0}" in
         1|true|TRUE|yes|YES)
             return
             ;;
     esac
 
-    local min_mb="${GO2RUST_TEST_MIN_AVAILABLE_MEM_MB:-1024}"
+    local min_mb="${!min_var:-$default_min_mb}"
     case "$min_mb" in
         ''|*[!0-9]*)
-            echo "error: GO2RUST_TEST_MIN_AVAILABLE_MEM_MB must be a non-negative integer" >&2
+            echo "error: $min_var must be a non-negative integer" >&2
             exit 2
             ;;
     esac
@@ -310,8 +316,8 @@ enforce_available_memory_floor() {
     local min_bytes=$(( min_mb * 1024 * 1024 ))
     if [ "$available_bytes" -lt "$min_bytes" ]; then
         local available_mb=$(( available_bytes / 1024 / 1024 ))
-        echo "Error: available memory is ${available_mb} MiB, below GO2RUST_TEST_MIN_AVAILABLE_MEM_MB=${min_mb} MiB." >&2
-        echo "Refusing to start fixture Cargo work while the machine is under memory pressure." >&2
+        echo "Error: available memory is ${available_mb} MiB, below ${min_var}=${min_mb} MiB." >&2
+        echo "Refusing to start $work_label while the machine is under memory pressure." >&2
         echo "Run ./cleanup.sh --pressure --quick to inspect current pressure, or set GO2RUST_TEST_SKIP_PRESSURE_GUARD=1 to force the run." >&2
         exit 1
     fi
@@ -359,9 +365,10 @@ if [ -z "${GOCACHE:-}" ]; then
 fi
 
 if [ "$TRANSPILE_ONLY" = true ]; then
+    enforce_available_memory_floor GO2RUST_TEST_TRANSPILE_ONLY_MIN_AVAILABLE_MEM_MB 256 "transpile-only fixture work"
     export GO2RUST_TEST_TRANSPILE_ONLY=1
 else
-    enforce_available_memory_floor
+    enforce_available_memory_floor GO2RUST_TEST_MIN_AVAILABLE_MEM_MB 1024 "fixture Cargo work"
 fi
 
 # Build the transpiler once before running the suite. Bats parallelism is
