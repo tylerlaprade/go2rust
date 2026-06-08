@@ -221,7 +221,10 @@ impl RWMutex {
     }
         return false;
     }
-        if (*self.reader_count.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(StdMutex::new(Some(c))), Arc::new(StdMutex::new(Some({ let __tmp_x = c; let __tmp_y = 1 as i32; __tmp_x + __tmp_y })))) {
+        if (*self.reader_count.lock().unwrap().as_mut().unwrap()).compare_and_swap(
+            Arc::new(StdMutex::new(Some(c))),
+            Arc::new(StdMutex::new(Some({ let __tmp_x = c; let __tmp_y = 1 as i32; __tmp_x + __tmp_y }))),
+        ) {
         if internal_race::ENABLED {
         internal_race::enable();
         internal_race::acquire(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.reader_sem.clone()) as usize))));

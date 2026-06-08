@@ -66,7 +66,10 @@ pub fn init_local() {
         // /usr/share/zoneinfo/foo will be used.
     let (mut tz, mut ok) = syscall::getenv(Arc::new(Mutex::new(Some("TZ".to_string()))));
     if !ok {
-            let (mut z, mut err) = load_location_1(Arc::new(Mutex::new(Some("localtime".to_string()))), Arc::new(Mutex::new(Some(vec!["/etc".to_string()]))));
+            let (mut z, mut err) = load_location_1(
+                Arc::new(Mutex::new(Some("localtime".to_string()))),
+                Arc::new(Mutex::new(Some(vec!["/etc".to_string()])))
+            );
             if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = { let __v = (*z.lock().unwrap().as_ref().unwrap()).clone(); __v }; *localLoc.lock().unwrap() = Some(new_val); };
         { let new_val = "Local".to_string(); *(*localLoc.lock().unwrap().as_ref().unwrap()).name.lock().unwrap() = Some(new_val); };
@@ -78,7 +81,10 @@ pub fn init_local() {
     }
             if { let __tmp_x = (*tz.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } && { let __tmp_x = { let __s = &((*tz.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('/' as i32) as u8; __tmp_x == __tmp_y } {
         {
-        let (mut z, mut err) = load_location_1(Arc::new(Mutex::new(Some({ let __arg_holder = tz.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(vec!["".to_string()]))));;
+        let (mut z, mut err) = load_location_1(
+            Arc::new(Mutex::new(Some({ let __arg_holder = tz.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(vec!["".to_string()])))
+        );;
         if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } {
             { let new_val = { let __v = (*z.lock().unwrap().as_ref().unwrap()).clone(); __v }; *localLoc.lock().unwrap() = Some(new_val); };;
             if { let __tmp_x = (*tz.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "/etc/localtime".to_string(); __tmp_x == __tmp_y } {

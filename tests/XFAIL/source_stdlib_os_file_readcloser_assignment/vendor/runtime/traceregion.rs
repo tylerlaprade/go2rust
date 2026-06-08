@@ -239,7 +239,10 @@ impl traceRegionAlloc {
     }
                 // Add the existing block to the full list.
                 // Allocate a new block.
-        block = GoPtr::raw({ let __ptr = sys_alloc(Arc::new(Mutex::new(Some(std::mem::size_of::<traceRegionAllocBlock>()))), (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone()).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
+        block = GoPtr::raw({ let __ptr = sys_alloc(
+            Arc::new(Mutex::new(Some(std::mem::size_of::<traceRegionAllocBlock>()))),
+            (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone()
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         if block.is_nil() {
         throw(Arc::new(Mutex::new(Some("traceRegion: out of memory".to_string()))));
     }

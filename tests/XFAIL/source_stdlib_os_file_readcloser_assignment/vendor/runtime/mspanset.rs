@@ -899,7 +899,13 @@ impl spanSet {
                 // tail, so keep trying while the head isn't changing.
         let mut want = { let __owned = head.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
         while { let __tmp_x = { let __v = (*want.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*head.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } {
-        if (*self.index.lock().unwrap().as_ref().unwrap()).cas(Arc::new(Mutex::new(Some({ let __arg_holder = headtail.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), make_head_tail_index(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*want.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u32; __tmp_x + __tmp_y }))), Arc::new(Mutex::new(Some({ let __arg_holder = tail.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))) {
+        if (*self.index.lock().unwrap().as_ref().unwrap()).cas(
+            Arc::new(Mutex::new(Some({ let __arg_holder = headtail.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            make_head_tail_index(
+                Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*want.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u32; __tmp_x + __tmp_y }))),
+                Arc::new(Mutex::new(Some({ let __arg_holder = tail.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+            ),
+        ) {
         break 'claim_loop
     }
         { let new_val = (*self.index.lock().unwrap().as_ref().unwrap()).load(); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *headtail.lock().unwrap() = __moved_val; };
@@ -1076,7 +1082,10 @@ impl atomicSpanSetSpinePointer {
 impl spanSetSpinePointer {
     /// lookup returns &s[idx].
     pub fn lookup(&self, idx: Arc<Mutex<Option<usize>>>) -> GoPtr<internal_runtime_atomic::types::Pointer<spanSetBlock>> {
-        GoPtr::raw({ let __ptr = add(Arc::new(Mutex::new(Some({ let __selector_holder = self.p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __tmp_x = internal_goarch::PTR_SIZE as usize; let __tmp_y = { let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y })))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) })
+        GoPtr::raw({ let __ptr = add(
+            Arc::new(Mutex::new(Some({ let __selector_holder = self.p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = internal_goarch::PTR_SIZE as usize; let __tmp_y = { let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y })))
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) })
     }
 }
 
@@ -1135,7 +1144,10 @@ impl atomicHeadTailIndex {
 
     /// cas atomically compares-and-swaps a headTailIndex value.
     pub fn cas(&self, old: Arc<Mutex<Option<headTailIndex>>>, new: Arc<Mutex<Option<headTailIndex>>>) -> bool {
-        (*self.u.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some((*{ let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64))), Arc::new(Mutex::new(Some((*{ let __v = (*new.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64))))
+        (*self.u.lock().unwrap().as_mut().unwrap()).compare_and_swap(
+            Arc::new(Mutex::new(Some((*{ let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64))),
+            Arc::new(Mutex::new(Some((*{ let __v = (*new.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64))),
+        )
     }
 
     /// incHead atomically increments the head of a headTailIndex.

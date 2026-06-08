@@ -735,7 +735,10 @@ impl activeSweep {
         if { let __tmp_x = { let __tmp_x = state; let __tmp_y = SWEEP_DRAINED_MASK as u32; __tmp_x & __tmp_y }; let __tmp_y = 0 as u32; __tmp_x != __tmp_y } {
         return Arc::new(Mutex::new(Some(sweepLocker { sweep_gen: Arc::new(Mutex::new(Some({ let __selector_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).sweepgen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), valid: Arc::new(Mutex::new(Some(false))), ..Default::default() })));
     }
-        if (*self.state.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some(state))), Arc::new(Mutex::new(Some({ let __tmp_x = state; let __tmp_y = 1 as u32; __tmp_x + __tmp_y })))) {
+        if (*self.state.lock().unwrap().as_mut().unwrap()).compare_and_swap(
+            Arc::new(Mutex::new(Some(state))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = state; let __tmp_y = 1 as u32; __tmp_x + __tmp_y }))),
+        ) {
         return Arc::new(Mutex::new(Some(sweepLocker { sweep_gen: Arc::new(Mutex::new(Some({ let __selector_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).sweepgen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), valid: Arc::new(Mutex::new(Some(true))), ..Default::default() })));
     }
     }
@@ -752,7 +755,10 @@ impl activeSweep {
         if { let __tmp_x = { let __tmp_x = ({ let __tmp_x = state; let __tmp_y = SWEEP_DRAINED_MASK as u32; __tmp_x & ! __tmp_y }); let __tmp_y = 1 as u32; __tmp_x - __tmp_y }; let __tmp_y = SWEEP_DRAINED_MASK as u32; __tmp_x >= __tmp_y } {
         throw(Arc::new(Mutex::new(Some("mismatched begin/end of activeSweep".to_string()))));
     }
-        if (*self.state.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some(state))), Arc::new(Mutex::new(Some({ let __tmp_x = state; let __tmp_y = 1 as u32; __tmp_x - __tmp_y })))) {
+        if (*self.state.lock().unwrap().as_mut().unwrap()).compare_and_swap(
+            Arc::new(Mutex::new(Some(state))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = state; let __tmp_y = 1 as u32; __tmp_x - __tmp_y }))),
+        ) {
         if { let __tmp_x = state; let __tmp_y = SWEEP_DRAINED_MASK as u32; __tmp_x != __tmp_y } {
         return;
     }
@@ -788,7 +794,10 @@ impl activeSweep {
         if { let __tmp_x = { let __tmp_x = state; let __tmp_y = SWEEP_DRAINED_MASK as u32; __tmp_x & __tmp_y }; let __tmp_y = 0 as u32; __tmp_x != __tmp_y } {
         return false;
     }
-        if (*self.state.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some(state))), Arc::new(Mutex::new(Some({ let __tmp_x = state; let __tmp_y = SWEEP_DRAINED_MASK as u32; __tmp_x | __tmp_y })))) {
+        if (*self.state.lock().unwrap().as_mut().unwrap()).compare_and_swap(
+            Arc::new(Mutex::new(Some(state))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = state; let __tmp_y = SWEEP_DRAINED_MASK as u32; __tmp_x | __tmp_y }))),
+        ) {
         return true;
     }
     }
@@ -1236,17 +1245,29 @@ impl sweepLocked {
     }
     }
         if { let __tmp_x = (*{ let __field = (*debug.lock().unwrap().as_ref().unwrap()).clobberfree.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x != __tmp_y } {
-        clobberfree(Arc::new(Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        clobberfree(
+            Arc::new(Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap())))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        );
     }
                 // User arenas are handled on explicit free.
         if RACEENABLED && !(*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().is_user_arena_chunk.clone() }.lock().unwrap().as_ref().unwrap()) {
-        racefree(Arc::new(Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        racefree(
+            Arc::new(Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap())))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        );
     }
         if MSANENABLED && !(*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().is_user_arena_chunk.clone() }.lock().unwrap().as_ref().unwrap()) {
-        msanfree(Arc::new(Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        msanfree(
+            Arc::new(Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap())))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        );
     }
         if ASANENABLED && !(*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().is_user_arena_chunk.clone() }.lock().unwrap().as_ref().unwrap()) {
-        asanpoison(Arc::new(Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        asanpoison(
+            Arc::new(Mutex::new(Some((*x.lock().unwrap().as_ref().unwrap())))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        );
     }
     }
                 // User arenas are handled on explicit free.
@@ -1282,7 +1303,15 @@ impl sweepLocked {
     }
                 // Check remaining bytes.
         let mut i = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __v = (*obj.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y }; let __tmp_y = 1 as usize; __tmp_x + __tmp_y })));
-    while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = div_round_up(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.nelems.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))), Arc::new(Mutex::new(Some(8 as usize)))); __tmp_x < __tmp_y } {
+    while {
+        let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v };
+        let __tmp_y =
+            div_round_up(
+                Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.nelems.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))),
+                Arc::new(Mutex::new(Some(8 as usize)))
+            );
+        __tmp_x < __tmp_y
+    } {
         if {
             let __tmp_x = {
                 let __tmp_x = { let __ptr_handle = { let __recv_field = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.gcmark_bits.clone()); __ptr_value }.clone(); let __result = __recv_field.with_mut(|__recv_value| __recv_value.bytep(Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))); __result }; let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() };
@@ -1468,7 +1497,10 @@ impl sweepLocked {
         (*(*gcController.lock().unwrap().as_ref().unwrap()).total_free.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some((*size.lock().unwrap().as_ref().unwrap()) as i64))));
         if { let __tmp_x = (*{ let __field = (*debug.lock().unwrap().as_ref().unwrap()).efence.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x > __tmp_y } {
         { let new_val = 0 as usize; *{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.limit.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
-        sys_fault(Arc::new(Mutex::new(Some({ let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result }))), Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        sys_fault(
+            Arc::new(Mutex::new(Some({ let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        );
     } else {
         (*mheap_.lock().unwrap().as_mut().unwrap()).free_span(s.clone());
     }

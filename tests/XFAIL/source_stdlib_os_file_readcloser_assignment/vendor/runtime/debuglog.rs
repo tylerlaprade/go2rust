@@ -1058,7 +1058,10 @@ impl debugLogReader {
             eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
         };
         } else if _switch_val == (DEBUG_LOG_P_C as u8) {
-            print_debug_log_p_c(Arc::new(Mutex::new(Some(self.uvarint() as usize))), Arc::new(Mutex::new(Some(false))));
+            print_debug_log_p_c(
+                Arc::new(Mutex::new(Some(self.uvarint() as usize))),
+                Arc::new(Mutex::new(Some(false)))
+            );
         } else if _switch_val == (DEBUG_LOG_TRACEBACK as u8) {
             let mut n = Arc::new(Mutex::new(Some(self.uvarint() as i32)));
             let mut i = Arc::new(Mutex::new(Some(0)));
@@ -1072,7 +1075,10 @@ impl debugLogReader {
                 // Convert them to call PCs.
                 //
                 // TODO(austin): Expand inlined frames.
-        print_debug_log_p_c(Arc::new(Mutex::new(Some(self.uvarint() as usize))), Arc::new(Mutex::new(Some(true))));
+        print_debug_log_p_c(
+            Arc::new(Mutex::new(Some(self.uvarint() as usize))),
+            Arc::new(Mutex::new(Some(true)))
+        );
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         } else {
@@ -1247,7 +1253,10 @@ pub fn print_debug_log_impl() {
             Arc::new(Mutex::new(Some(9)))
         );
         {
-            let __go_print_arg_0 = format!("{}", (*slicebytetostringtmp(GoPtr::raw({ let __ptr = noescape(Arc::new(Mutex::new(Some({ let __seq_holder = pnanoBytes.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize })))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) }), Arc::new(Mutex::new(Some((*pnanoBytes.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)))).lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_0 = format!("{}", (*slicebytetostringtmp(
+                GoPtr::raw({ let __ptr = noescape(Arc::new(Mutex::new(Some({ let __seq_holder = pnanoBytes.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize })))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) }),
+                Arc::new(Mutex::new(Some((*pnanoBytes.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)))
+            ).lock().unwrap().as_ref().unwrap()));
             eprint!("{}", __go_print_arg_0)
         };
         {

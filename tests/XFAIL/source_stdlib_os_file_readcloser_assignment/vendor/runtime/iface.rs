@@ -1448,7 +1448,10 @@ impl itabTableType {
         let mut h = Arc::new(Mutex::new(Some({ let __tmp_x = itab_hash_func(inter.clone(), typ.clone()); let __tmp_y = { let __v = (*mask.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x & __tmp_y })));
         let mut i = Arc::new(Mutex::new(Some(1 as usize)));
     loop {
-        let mut p: GoPtr<GoPtr<internal_abi::iface::ITab>> = GoPtr::raw({ let __ptr = add(Arc::new(Mutex::new(Some(Arc::as_ptr(&self.entries.clone()) as usize))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y })))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
+        let mut p: GoPtr<GoPtr<internal_abi::iface::ITab>> = GoPtr::raw({ let __ptr = add(
+            Arc::new(Mutex::new(Some(Arc::as_ptr(&self.entries.clone()) as usize))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y })))
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
 
                 // Use atomic read here so if we see m != nil, we also see
                 // the initializations of the fields of m.
@@ -1473,13 +1476,20 @@ impl itabTableType {
                 // Insert new itab in the first empty spot in the probe sequence.
         let mut mask = Arc::new(Mutex::new(Some({ let __tmp_x = (*self.size.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as usize; __tmp_x - __tmp_y })));
         let mut h = Arc::new(Mutex::new(Some({
-            let __tmp_x = itab_hash_func({ let __go_ptr = { let __ptr_value = m.with_mut(|__ptr_value| __ptr_value.inter.clone()); __ptr_value }.clone(); match __go_ptr { internal_abi::GoPtr::Nil => GoPtr::nil(), internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()), internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr), internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }, { let __go_ptr = { let __ptr_value = m.with_mut(|__ptr_value| __ptr_value.r#type.clone()); __ptr_value }.clone(); match __go_ptr { internal_abi::GoPtr::Nil => GoPtr::nil(), internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()), internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr), internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } });
+            let __tmp_x =
+                itab_hash_func(
+                    { let __go_ptr = { let __ptr_value = m.with_mut(|__ptr_value| __ptr_value.inter.clone()); __ptr_value }.clone(); match __go_ptr { internal_abi::GoPtr::Nil => GoPtr::nil(), internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()), internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr), internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } },
+                    { let __go_ptr = { let __ptr_value = m.with_mut(|__ptr_value| __ptr_value.r#type.clone()); __ptr_value }.clone(); match __go_ptr { internal_abi::GoPtr::Nil => GoPtr::nil(), internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()), internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr), internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }
+                );
             let __tmp_y = { let __v = (*mask.lock().unwrap().as_ref().unwrap()).clone(); __v };
             __tmp_x & __tmp_y
         })));
         let mut i = Arc::new(Mutex::new(Some(1 as usize)));
     loop {
-        let mut p: GoPtr<GoPtr<internal_abi::iface::ITab>> = GoPtr::raw({ let __ptr = add(Arc::new(Mutex::new(Some(Arc::as_ptr(&self.entries.clone()) as usize))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y })))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
+        let mut p: GoPtr<GoPtr<internal_abi::iface::ITab>> = GoPtr::raw({ let __ptr = add(
+            Arc::new(Mutex::new(Some(Arc::as_ptr(&self.entries.clone()) as usize))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*h.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y })))
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         let mut m2: GoPtr<internal_abi::iface::ITab> = { let __ptr_slot = p.borrow(); __ptr_slot.as_ref().unwrap().clone() };
         if { let __left_addr = m2.addr(); let __right_addr = m.addr(); let __eq = __left_addr == __right_addr; __eq } {
                 // A given itab may be used in more than one module
@@ -1663,7 +1673,10 @@ pub fn itab_add(m: GoPtr<internal_abi::iface::ITab>) {
         throw(Arc::new(Mutex::new(Some("mismatched count during itab table copy".to_string()))));
     }
                 // Publish new hash table. Use an atomic write: see comment in getitab.
-        atomicstorep(Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(itabTable.clone())))) as usize))), Arc::new(Mutex::new(Some(t2.addr()))));
+        atomicstorep(
+            Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(itabTable.clone())))) as usize))),
+            Arc::new(Mutex::new(Some(t2.addr())))
+        );
                 // Adopt the new table as our own.
         { let new_val = (*itabTable.lock().unwrap().as_ref().unwrap()).clone(); t = new_val; };
     }
@@ -1699,7 +1712,10 @@ pub fn itab_init(m: GoPtr<internal_abi::iface::ITab>, firstTime: Arc<Mutex<Optio
     let mut ni = Arc::new(Mutex::new(Some(({ let __len_target = { let __field = { let __ptr_value = inter.with_mut(|__ptr_value| __ptr_value.methods.clone()); __ptr_value }.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32)));
     let mut nt = Arc::new(Mutex::new(Some({ let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).mcount.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32)));
     let mut xmhdr = Arc::new(Mutex::new(Some({
-        let mut __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add(Arc::new(Mutex::new(Some(Arc::as_ptr(&x) as usize))), Arc::new(Mutex::new(Some({ let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).moff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize)))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[internal_abi::r#type::Method; 65536]>(unimplemented!("unsafe.Pointer conversion to [internal_abi::r#type::Method; 65536]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
+        let mut __seq = { let __seq_holder = Arc::new(Mutex::new({ let __ptr = add(
+            Arc::new(Mutex::new(Some(Arc::as_ptr(&x) as usize))),
+            Arc::new(Mutex::new(Some({ let __selector_holder = (*x.lock().unwrap().as_ref().unwrap()).moff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize)))
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<[internal_abi::r#type::Method; 65536]>(unimplemented!("unsafe.Pointer conversion to [internal_abi::r#type::Method; 65536]")) } })).clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned };
         let __low = 0;
         let __high = ({ let __v = (*nt.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
         let __max = ({ let __v = (*nt.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
@@ -1796,7 +1812,10 @@ pub fn iterate_itabs(r#fn: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<inter
     let mut t = (*itabTable.lock().unwrap().as_ref().unwrap()).clone();
     let mut i = Arc::new(Mutex::new(Some(0 as usize)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).size.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
-        let mut m = (*Arc::new(Mutex::new({ let __ptr = add(Arc::new(Mutex::new(Some(Arc::as_ptr(&(*t.lock().unwrap().as_ref().unwrap()).entries.clone()) as usize))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y })))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<Arc<Mutex<Option<internal_abi::iface::ITab>>>>(unimplemented!("unsafe.Pointer conversion to Arc<Mutex<Option<internal_abi::iface::ITab>>>")) } })).lock().unwrap().as_mut().unwrap()).clone();
+        let mut m = (*Arc::new(Mutex::new({ let __ptr = add(
+            Arc::new(Mutex::new(Some(Arc::as_ptr(&(*t.lock().unwrap().as_ref().unwrap()).entries.clone()) as usize))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y })))
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<Arc<Mutex<Option<internal_abi::iface::ITab>>>>(unimplemented!("unsafe.Pointer conversion to Arc<Mutex<Option<internal_abi::iface::ITab>>>")) } })).lock().unwrap().as_mut().unwrap()).clone();
         if { let __nil_result = (*m.lock().unwrap()).is_some(); __nil_result } {
         { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<internal_abi::iface::ITab>>>) -> () + Send + Sync> = { let mut __f_guard = r#fn.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<internal_abi::iface::ITab>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(m.clone()) };
     }

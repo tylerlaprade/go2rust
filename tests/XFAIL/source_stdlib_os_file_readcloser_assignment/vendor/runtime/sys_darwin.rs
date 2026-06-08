@@ -40,7 +40,10 @@ use std::sync::{Arc, Mutex};
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn pthread_attr_init(attr: Arc<Mutex<Option<pthreadattr>>>) -> i32 {
-    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_attr_init_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(attr.clone())))) as usize))));
+    let mut ret = libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_attr_init_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(attr.clone())))) as usize)))
+    );
     keep_alive(Arc::new(Mutex::new(Some(Box::new(attr.clone()) as Box<dyn Any + Send + Sync>))));
     ret
 }
@@ -53,7 +56,10 @@ pub fn pthread_attr_init_trampoline() {
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn pthread_attr_getstacksize(attr: Arc<Mutex<Option<pthreadattr>>>, size: Arc<Mutex<Option<usize>>>) -> i32 {
-    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_attr_getstacksize_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(attr.clone())))) as usize))));
+    let mut ret = libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_attr_getstacksize_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(attr.clone())))) as usize)))
+    );
     keep_alive(Arc::new(Mutex::new(Some(Box::new(attr.clone()) as Box<dyn Any + Send + Sync>))));
     keep_alive(Arc::new(Mutex::new(Some(Box::new(size.clone()) as Box<dyn Any + Send + Sync>))));
     ret
@@ -67,7 +73,10 @@ pub fn pthread_attr_getstacksize_trampoline() {
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn pthread_attr_setdetachstate(attr: Arc<Mutex<Option<pthreadattr>>>, state: Arc<Mutex<Option<i32>>>) -> i32 {
-    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_attr_setdetachstate_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(attr.clone())))) as usize))));
+    let mut ret = libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_attr_setdetachstate_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(attr.clone())))) as usize)))
+    );
     keep_alive(Arc::new(Mutex::new(Some(Box::new(attr.clone()) as Box<dyn Any + Send + Sync>))));
     ret
 }
@@ -80,7 +89,10 @@ pub fn pthread_attr_setdetachstate_trampoline() {
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn pthread_create(attr: Arc<Mutex<Option<pthreadattr>>>, start: Arc<Mutex<Option<usize>>>, arg: Arc<Mutex<Option<usize>>>) -> i32 {
-    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_create_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(attr.clone())))) as usize))));
+    let mut ret = libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_create_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(attr.clone())))) as usize)))
+    );
     keep_alive(Arc::new(Mutex::new(Some(Box::new(attr.clone()) as Box<dyn Any + Send + Sync>))));
     keep_alive(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = arg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>))));
     ret
@@ -94,7 +106,10 @@ pub fn pthread_create_trampoline() {
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn raise(sig_local: Arc<Mutex<Option<u32>>>) {
-    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(raise_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&sig_local.clone()) as usize))));
+    libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(raise_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&sig_local.clone()) as usize)))
+    );
 }
 
 pub fn raise_trampoline() {
@@ -107,7 +122,10 @@ pub fn raise_trampoline() {
 pub fn pthread_self() -> Arc<Mutex<Option<crate::defs_darwin_arm64::pthread>>> {
     let mut t: Arc<Mutex<Option<pthread>>> = Arc::new(Mutex::new(Some(Default::default())));
 
-    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_self_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&t.clone()) as usize))));
+    libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_self_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&t.clone()) as usize)))
+    );
     t.clone()
 }
 
@@ -119,7 +137,10 @@ pub fn pthread_self_trampoline() {
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn pthread_kill(t: Arc<Mutex<Option<pthread>>>, sig_local: Arc<Mutex<Option<u32>>>) {
-    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_kill_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&t.clone()) as usize))));
+    libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_kill_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&t.clone()) as usize)))
+    );
     ()
 }
 
@@ -135,7 +156,10 @@ pub fn pthread_kill_trampoline() {
 ///go:nosplit
 pub fn mmap(addr: Arc<Mutex<Option<usize>>>, n: Arc<Mutex<Option<usize>>>, prot: Arc<Mutex<Option<i32>>>, flags: Arc<Mutex<Option<i32>>>, fd: Arc<Mutex<Option<i32>>>, off: Arc<Mutex<Option<u32>>>) -> (Arc<Mutex<Option<usize>>>, i32) {
     let mut args = Arc::new(Mutex::new(Some(AnonymousStruct34 { addr: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), n: Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), prot: Arc::new(Mutex::new(Some({ let __arg_holder = prot.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), flags: Arc::new(Mutex::new(Some({ let __arg_holder = flags.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), fd: Arc::new(Mutex::new(Some({ let __arg_holder = fd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), off: Arc::new(Mutex::new(Some({ let __arg_holder = off.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ret1: Default::default(), ret2: Arc::new(Mutex::new(Some(0))) })));
-    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(mmap_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&args.clone()) as usize))));
+    libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(mmap_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&args.clone()) as usize)))
+    );
     return ({ let __return_value_0 = Arc::new(Mutex::new(Some({ let __selector_holder = (*args.lock().unwrap().as_ref().unwrap()).ret1.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))); __return_value_0 }, (*(*args.lock().unwrap().as_ref().unwrap()).ret2.lock().unwrap().as_ref().unwrap()));
 }
 
@@ -147,7 +171,10 @@ pub fn mmap_trampoline() {
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn munmap(addr: Arc<Mutex<Option<usize>>>, n: Arc<Mutex<Option<usize>>>) {
-    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(munmap_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&addr.clone()) as usize))));
+    libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(munmap_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&addr.clone()) as usize)))
+    );
     keep_alive(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>))));
 }
 
@@ -159,7 +186,10 @@ pub fn munmap_trampoline() {
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn madvise(addr: Arc<Mutex<Option<usize>>>, n: Arc<Mutex<Option<usize>>>, flags: Arc<Mutex<Option<i32>>>) {
-    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(madvise_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&addr.clone()) as usize))));
+    libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(madvise_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&addr.clone()) as usize)))
+    );
     keep_alive(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>))));
 }
 
@@ -171,7 +201,10 @@ pub fn madvise_trampoline() {
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn mlock(addr: Arc<Mutex<Option<usize>>>, n: Arc<Mutex<Option<usize>>>) {
-    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(mlock_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&addr.clone()) as usize))));
+    libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(mlock_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&addr.clone()) as usize)))
+    );
     keep_alive(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>))));
 }
 
@@ -186,7 +219,10 @@ pub fn mlock_trampoline() {
 ///go:cgo_unsafe_args
 ///go:linkname exit
 pub fn exit(code: Arc<Mutex<Option<i32>>>) {
-    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(exit_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&code.clone()) as usize))));
+    libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(exit_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&code.clone()) as usize)))
+    );
 }
 
 pub fn exit_trampoline() {
@@ -197,7 +233,10 @@ pub fn exit_trampoline() {
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn usleep(usec: Arc<Mutex<Option<u32>>>) {
-    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(usleep_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&usec.clone()) as usize))));
+    libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(usleep_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&usec.clone()) as usize)))
+    );
 }
 
 pub fn usleep_trampoline() {
@@ -208,13 +247,19 @@ pub fn usleep_trampoline() {
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn usleep_no_g(usec: Arc<Mutex<Option<u32>>>) {
-    asmcgocall_no_g(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(usleep_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&usec.clone()) as usize))));
+    asmcgocall_no_g(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(usleep_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&usec.clone()) as usize)))
+    );
 }
 
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn write1(fd: Arc<Mutex<Option<usize>>>, p: Arc<Mutex<Option<usize>>>, n: Arc<Mutex<Option<i32>>>) -> i32 {
-    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(write_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&fd.clone()) as usize))));
+    let mut ret = libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(write_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&fd.clone()) as usize)))
+    );
     keep_alive(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = p.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>))));
     ret
 }
@@ -230,7 +275,10 @@ pub fn nanotime1() -> i64 {
     let mut r: Arc<Mutex<Option<AnonymousStruct35>>> = Arc::new(Mutex::new(Some(Default::default())));
         // raw timer
         // conversion factors. nanoseconds = t * numer / denom.
-    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(nanotime_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&r.clone()) as usize))));
+    libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(nanotime_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&r.clone()) as usize)))
+    );
 
         // Note: Apple seems unconcerned about overflow here. See
         // https://developer.apple.com/library/content/qa/qa1398/_index.html
@@ -263,7 +311,10 @@ pub fn nanotime_trampoline() {
 ///go:cgo_unsafe_args
 pub fn walltime() -> (i64, i32) {
     let mut t: Arc<Mutex<Option<timespec>>> = Arc::new(Mutex::new(Some(Default::default())));
-    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(walltime_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&t.clone()) as usize))));
+    libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(walltime_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&t.clone()) as usize)))
+    );
     return (
         (*(*t.lock().unwrap().as_ref().unwrap()).tv_sec.lock().unwrap().as_ref().unwrap()),
         (*Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).tv_nsec.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))).lock().unwrap().as_ref().unwrap())
@@ -278,7 +329,10 @@ pub fn walltime_trampoline() {
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn sigaction(sig_local: Arc<Mutex<Option<u32>>>, new: Arc<Mutex<Option<usigactiont>>>, old: Arc<Mutex<Option<usigactiont>>>) {
-    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(sigaction_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&sig_local.clone()) as usize))));
+    libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(sigaction_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&sig_local.clone()) as usize)))
+    );
     keep_alive(Arc::new(Mutex::new(Some(Box::new(new.clone()) as Box<dyn Any + Send + Sync>))));
     keep_alive(Arc::new(Mutex::new(Some(Box::new(old.clone()) as Box<dyn Any + Send + Sync>))));
 }
@@ -291,7 +345,10 @@ pub fn sigaction_trampoline() {
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn sigprocmask(how: Arc<Mutex<Option<u32>>>, new: Arc<Mutex<Option<sigset>>>, old: Arc<Mutex<Option<sigset>>>) {
-    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(sigprocmask_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&how.clone()) as usize))));
+    libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(sigprocmask_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&how.clone()) as usize)))
+    );
     keep_alive(Arc::new(Mutex::new(Some(Box::new(new.clone()) as Box<dyn Any + Send + Sync>))));
     keep_alive(Arc::new(Mutex::new(Some(Box::new(old.clone()) as Box<dyn Any + Send + Sync>))));
 }
@@ -315,7 +372,10 @@ pub fn sigaltstack(new: Arc<Mutex<Option<stackt>>>, old: Arc<Mutex<Option<stackt
         // when SS_DISABLE is set, it doesn't. sigaltstack returns ENOMEM
         // if we don't give it a reasonable size.
         // ref: http://lists.llvm.org/pipermail/llvm-commits/Week-of-Mon-20140421/214296.html
-    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(sigaltstack_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(new.clone())))) as usize))));
+    libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(sigaltstack_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(new.clone())))) as usize)))
+    );
     keep_alive(Arc::new(Mutex::new(Some(Box::new(new.clone()) as Box<dyn Any + Send + Sync>))));
     keep_alive(Arc::new(Mutex::new(Some(Box::new(old.clone()) as Box<dyn Any + Send + Sync>))));
 }
@@ -328,7 +388,10 @@ pub fn sigaltstack_trampoline() {
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn raiseproc(sig_local: Arc<Mutex<Option<u32>>>) {
-    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(raiseproc_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&sig_local.clone()) as usize))));
+    libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(raiseproc_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&sig_local.clone()) as usize)))
+    );
 }
 
 pub fn raiseproc_trampoline() {
@@ -343,7 +406,10 @@ pub fn fcntl(fd: Arc<Mutex<Option<i32>>>, cmd: Arc<Mutex<Option<i32>>>, arg: Arc
     let mut errno: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
 
     let mut args = Arc::new(Mutex::new(Some(AnonymousStruct36 { fd: Arc::new(Mutex::new(Some({ let __arg_holder = fd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), cmd: Arc::new(Mutex::new(Some({ let __arg_holder = cmd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), arg: Arc::new(Mutex::new(Some({ let __arg_holder = arg.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ret: Arc::new(Mutex::new(Some(0 as i32))), errno: Arc::new(Mutex::new(Some(0 as i32))) })));
-    libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(fcntl_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&args.clone()) as usize))));
+    libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(fcntl_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&args.clone()) as usize)))
+    );
     return ((*(*args.lock().unwrap().as_ref().unwrap()).ret.lock().unwrap().as_ref().unwrap()), (*(*args.lock().unwrap().as_ref().unwrap()).errno.lock().unwrap().as_ref().unwrap()));
 }
 
@@ -355,7 +421,10 @@ pub fn fcntl_trampoline() {
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn kqueue() -> i32 {
-    let mut v = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(kqueue_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(None)));
+    let mut v = libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(kqueue_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(None))
+    );
     v
 }
 
@@ -367,7 +436,10 @@ pub fn kqueue_trampoline() {
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn kevent(kq_local: Arc<Mutex<Option<i32>>>, ch: GoPtr<crate::defs_darwin_arm64::keventt>, nch: Arc<Mutex<Option<i32>>>, ev: GoPtr<crate::defs_darwin_arm64::keventt>, nev: Arc<Mutex<Option<i32>>>, ts: Arc<Mutex<Option<timespec>>>) -> i32 {
-    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(kevent_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&kq_local.clone()) as usize))));
+    let mut ret = libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(kevent_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&kq_local.clone()) as usize)))
+    );
     keep_alive(Arc::new(Mutex::new(Some(Box::new(ch.clone()) as Box<dyn Any + Send + Sync>))));
     keep_alive(Arc::new(Mutex::new(Some(Box::new(ev.clone()) as Box<dyn Any + Send + Sync>))));
     keep_alive(Arc::new(Mutex::new(Some(Box::new(ts.clone()) as Box<dyn Any + Send + Sync>))));
@@ -382,7 +454,10 @@ pub fn kevent_trampoline() {
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn pthread_mutex_init(m: Arc<Mutex<Option<pthreadmutex>>>, attr: Arc<Mutex<Option<pthreadmutexattr>>>) -> i32 {
-    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_mutex_init_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(m.clone())))) as usize))));
+    let mut ret = libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_mutex_init_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(m.clone())))) as usize)))
+    );
     keep_alive(Arc::new(Mutex::new(Some(Box::new(m.clone()) as Box<dyn Any + Send + Sync>))));
     keep_alive(Arc::new(Mutex::new(Some(Box::new(attr.clone()) as Box<dyn Any + Send + Sync>))));
     ret
@@ -396,7 +471,10 @@ pub fn pthread_mutex_init_trampoline() {
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn pthread_mutex_lock(m: Arc<Mutex<Option<pthreadmutex>>>) -> i32 {
-    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_mutex_lock_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(m.clone())))) as usize))));
+    let mut ret = libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_mutex_lock_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(m.clone())))) as usize)))
+    );
     keep_alive(Arc::new(Mutex::new(Some(Box::new(m.clone()) as Box<dyn Any + Send + Sync>))));
     ret
 }
@@ -409,7 +487,10 @@ pub fn pthread_mutex_lock_trampoline() {
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn pthread_mutex_unlock(m: Arc<Mutex<Option<pthreadmutex>>>) -> i32 {
-    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_mutex_unlock_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(m.clone())))) as usize))));
+    let mut ret = libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_mutex_unlock_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(m.clone())))) as usize)))
+    );
     keep_alive(Arc::new(Mutex::new(Some(Box::new(m.clone()) as Box<dyn Any + Send + Sync>))));
     ret
 }
@@ -422,7 +503,10 @@ pub fn pthread_mutex_unlock_trampoline() {
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn pthread_cond_init(c: Arc<Mutex<Option<pthreadcond>>>, attr: Arc<Mutex<Option<pthreadcondattr>>>) -> i32 {
-    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_cond_init_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(c.clone())))) as usize))));
+    let mut ret = libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_cond_init_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(c.clone())))) as usize)))
+    );
     keep_alive(Arc::new(Mutex::new(Some(Box::new(c.clone()) as Box<dyn Any + Send + Sync>))));
     keep_alive(Arc::new(Mutex::new(Some(Box::new(attr.clone()) as Box<dyn Any + Send + Sync>))));
     ret
@@ -436,7 +520,10 @@ pub fn pthread_cond_init_trampoline() {
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn pthread_cond_wait(c: Arc<Mutex<Option<pthreadcond>>>, m: Arc<Mutex<Option<pthreadmutex>>>) -> i32 {
-    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_cond_wait_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(c.clone())))) as usize))));
+    let mut ret = libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_cond_wait_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(c.clone())))) as usize)))
+    );
     keep_alive(Arc::new(Mutex::new(Some(Box::new(c.clone()) as Box<dyn Any + Send + Sync>))));
     keep_alive(Arc::new(Mutex::new(Some(Box::new(m.clone()) as Box<dyn Any + Send + Sync>))));
     ret
@@ -450,7 +537,10 @@ pub fn pthread_cond_wait_trampoline() {
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn pthread_cond_timedwait_relative_np(c: Arc<Mutex<Option<pthreadcond>>>, m: Arc<Mutex<Option<pthreadmutex>>>, t: Arc<Mutex<Option<timespec>>>) -> i32 {
-    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_cond_timedwait_relative_np_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(c.clone())))) as usize))));
+    let mut ret = libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_cond_timedwait_relative_np_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(c.clone())))) as usize)))
+    );
     keep_alive(Arc::new(Mutex::new(Some(Box::new(c.clone()) as Box<dyn Any + Send + Sync>))));
     keep_alive(Arc::new(Mutex::new(Some(Box::new(m.clone()) as Box<dyn Any + Send + Sync>))));
     keep_alive(Arc::new(Mutex::new(Some(Box::new(t.clone()) as Box<dyn Any + Send + Sync>))));
@@ -465,7 +555,10 @@ pub fn pthread_cond_timedwait_relative_np_trampoline() {
 ///go:nosplit
 ///go:cgo_unsafe_args
 pub fn pthread_cond_signal(c: Arc<Mutex<Option<pthreadcond>>>) -> i32 {
-    let mut ret = libc_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_cond_signal_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(c.clone())))) as usize))));
+    let mut ret = libc_call(
+        Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(pthread_cond_signal_trampoline.clone()) as Box<dyn Any + Send + Sync>))))))),
+        Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(c.clone())))) as usize)))
+    );
     keep_alive(Arc::new(Mutex::new(Some(Box::new(c.clone()) as Box<dyn Any + Send + Sync>))));
     ret
 }

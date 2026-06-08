@@ -218,7 +218,10 @@ impl traceMap {
         if newNode.is_nil() {
         newNode = { let __method_arg0 = Arc::new(Mutex::new(Some({ let __arg_holder = data.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))); let __method_arg1 = Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))); let __method_arg2 = Arc::new(Mutex::new(Some(hash))); let __method_arg3 = Arc::new(Mutex::new(Some((*self.seq.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(1 as i64))))))); self.new_trace_map_node(__method_arg0, __method_arg1, __method_arg2, __method_arg3) };
     }
-        if { let __result = m.with_mut(|__recv_value| __recv_value.compare_and_swap_no_w_b(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(newNode.addr()))))); __result } {
+        if { let __result = m.with_mut(|__recv_value| __recv_value.compare_and_swap_no_w_b(
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(Some(newNode.addr()))),
+        )); __result } {
         return ((*{ let __ptr_value = newNode.with_mut(|__ptr_value| __ptr_value.id.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()), true);
     }
                 // Reload n. Because pointers are only stored once,

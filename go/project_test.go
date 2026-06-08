@@ -7661,6 +7661,68 @@ func main() {
 	}
 }
 
+func TestCrossPackageGoPtrFieldCallOperandUsesMultilineBinaryTemp(t *testing.T) {
+	tempDir := t.TempDir()
+	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod
+
+go 1.22
+`)
+	writeTestFile(t, filepath.Join(tempDir, "abi", "abi.go"), `package abi
+
+type Holder struct {
+	Left  *byte
+	Right *byte
+}
+
+func Set(h *Holder, left []byte, right []byte) {
+	h.Left = &left[0]
+	h.Right = &right[0]
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "rt", "rt.go"), `package rt
+
+import "example.com/mainmod/abi"
+
+func hash(left *byte, right *byte) int {
+	return 0
+}
+
+func Use(h *abi.Holder, mask int) int {
+	go func() {}()
+	return hash(h.Left, h.Right) & mask
+}
+`)
+	writeTestFile(t, filepath.Join(tempDir, "main.go"), `package main
+
+import (
+	"example.com/mainmod/abi"
+	"example.com/mainmod/rt"
+)
+
+func main() {
+	var h abi.Holder
+	left := []byte{1}
+	right := []byte{2}
+	abi.Set(&h, left, right)
+	_ = rt.Use(&h, 1)
+}
+`)
+
+	generator := NewProjectGenerator([]string{filepath.Join(tempDir, "main.go")})
+	generator.SetExternalPackageMode(ModeTranspile)
+	if err := generator.Generate(); err != nil {
+		t.Fatalf("Generate() error = %v", err)
+	}
+
+	rtRS := mustReadFile(t, filepath.Join(tempDir, "vendor", "example_com_mainmod_rt", "mod.rs"))
+	if strings.Contains(rtRS, "let __tmp_x = hash(") {
+		t.Fatalf("cross-package GoPtr field call operand should not stay on the binary temp assignment line:\n%s", rtRS)
+	}
+	if !strings.Contains(rtRS, "let __tmp_x =\n") || !strings.Contains(rtRS, "hash(\n") {
+		t.Fatalf("cross-package GoPtr field call operand should use multiline binary temp and call syntax:\n%s", rtRS)
+	}
+}
+
 func TestImportedConstSelectorCastsToUint8StructField(t *testing.T) {
 	tempDir := t.TempDir()
 	writeTestFile(t, filepath.Join(tempDir, "go.mod"), `module example.com/mainmod

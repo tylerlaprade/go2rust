@@ -5960,7 +5960,18 @@ func concurrentBinaryTempBlockShouldUseMultiline(expr *ast.BinaryExpr) bool {
 	if expr == nil || !NeedsConcurrentWrapper() || expr.Op == token.LAND || expr.Op == token.LOR {
 		return false
 	}
+	if binaryTempOperandShouldUseOwnLine(expr.X) || binaryTempOperandShouldUseOwnLine(expr.Y) {
+		return true
+	}
 	return countLogicalConditionOperandComplexity(expr) >= minStatementBuiltLogicalConditionOperandComplexity
+}
+
+func binaryTempOperandShouldUseOwnLine(expr ast.Expr) bool {
+	if !NeedsConcurrentWrapper() {
+		return false
+	}
+	call, ok := unwrapParens(expr).(*ast.CallExpr)
+	return ok && functionCallArgumentsShouldUseMultiline(call)
 }
 
 func writeStatementBuiltLogicalExpressionValue(out *strings.Builder, expr *ast.BinaryExpr) bool {
@@ -9976,7 +9987,7 @@ func exprContainsTypedFieldSelector(expr ast.Expr) bool {
 }
 
 func callArgumentsShouldUseMultiline(args []ast.Expr) bool {
-	if !NeedsConcurrentWrapper() || len(args) < 3 {
+	if !NeedsConcurrentWrapper() || len(args) < 2 {
 		return false
 	}
 	return callArgumentsContainComplex(args)
@@ -10007,11 +10018,31 @@ func methodCallArgumentsShouldUseMultiline(call *ast.CallExpr) bool {
 }
 
 func functionCallArgumentsShouldUseMultiline(call *ast.CallExpr) bool {
-	if call == nil || !callArgumentsShouldUseMultiline(call.Args) {
+	if call == nil || (!callArgumentsShouldUseMultiline(call.Args) && !callArgumentsUseQualifiedGoPtrSelectorConversion(call)) {
 		return false
 	}
 	sig, ok := callSignatureFromTypeInfo(call)
 	return !ok || !sig.Variadic()
+}
+
+func callArgumentsUseQualifiedGoPtrSelectorConversion(call *ast.CallExpr) bool {
+	if call == nil || !NeedsConcurrentWrapper() {
+		return false
+	}
+	helperQualifier := goPtrHelperQualifierForCall(call)
+	for i, arg := range call.Args {
+		if info, ok := goPtrSlotParamGoPtrResultInfoForCall(call, i); ok {
+			if goPtrCallArgumentUsesQualifiedSelectorConversion(arg, info, helperQualifier) {
+				return true
+			}
+		}
+		if info, ok := goPtrParamResultInfoForCall(call, i); ok {
+			if goPtrCallArgumentUsesQualifiedSelectorConversion(arg, info, helperQualifier) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func functionValueSelectorCallShouldUseMultiline(call *ast.CallExpr) bool {
@@ -12904,15 +12935,25 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 
 			if concurrentBinaryTempBlockShouldUseMultiline(e) {
 				indent := currentLineIndent(out)
+				writeTempAssignment := func(name string, expr ast.Expr, other ast.Expr, isStringLit bool, needsUnwrap bool) {
+					out.WriteString(indent)
+					out.WriteString("    let ")
+					out.WriteString(name)
+					out.WriteString(" =")
+					if binaryTempOperandShouldUseOwnLine(expr) {
+						out.WriteString("\n")
+						out.WriteString(indent)
+						out.WriteString("        ")
+					} else {
+						out.WriteString(" ")
+					}
+					writeTempOperand(expr, other, isStringLit, needsUnwrap)
+					out.WriteString(";\n")
+				}
+
 				out.WriteString("{\n")
-				out.WriteString(indent)
-				out.WriteString("    let __tmp_x = ")
-				writeTempOperand(e.X, e.Y, xIsStringLit, needsUnwrapX)
-				out.WriteString(";\n")
-				out.WriteString(indent)
-				out.WriteString("    let __tmp_y = ")
-				writeTempOperand(e.Y, e.X, yIsStringLit, needsUnwrapY)
-				out.WriteString(";\n")
+				writeTempAssignment("__tmp_x", e.X, e.Y, xIsStringLit, needsUnwrapX)
+				writeTempAssignment("__tmp_y", e.Y, e.X, yIsStringLit, needsUnwrapY)
 				out.WriteString(indent)
 				out.WriteString("    __tmp_x ")
 				out.WriteString(rustBinaryOp(e.Op))

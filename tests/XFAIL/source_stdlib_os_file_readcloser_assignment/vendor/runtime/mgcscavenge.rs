@@ -1050,7 +1050,10 @@ impl scavengerState {
                 // because we can't close over any variables without
                 // failing escape analysis.
         let mut start = nanotime();
-        (*self.timer.lock().unwrap().as_mut().unwrap()).reset(Arc::new(Mutex::new(Some({ let __tmp_x = start; let __tmp_y = { let __v = (*sleepTime.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))), Arc::new(Mutex::new(Some(0 as i64))));
+        (*self.timer.lock().unwrap().as_mut().unwrap()).reset(
+            Arc::new(Mutex::new(Some({ let __tmp_x = start; let __tmp_y = { let __v = (*sleepTime.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))),
+            Arc::new(Mutex::new(Some(0 as i64))),
+        );
                 // Mark ourselves as asleep and go to sleep.
         { let new_val = true; *self.parked.lock().unwrap() = Some(new_val); };
         goparkunlock(self.lock.clone(), Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_SLEEP as u8))))))), Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_SLEEP as u8))))))), Arc::new(Mutex::new(Some(2))));
@@ -1346,7 +1349,10 @@ impl crate::mpagealloc::pageAlloc {
         if !(*self.test.clone().lock().unwrap().as_ref().unwrap()) {
                 // Only perform sys* operations if we're not in a test.
                 // It's dangerous to do so otherwise.
-        sys_unused(Arc::new(Mutex::new(Some((*addr.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(npages as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y }))));
+        sys_unused(
+            Arc::new(Mutex::new(Some((*addr.lock().unwrap().as_ref().unwrap())))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(npages as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y })))
+        );
                 // Update global accounting only when not in test, otherwise
                 // the runtime's accounting will be wrong.
         let mut nbytes = Arc::new(Mutex::new(Some(({ let __tmp_x = npages; let __tmp_y = PAGE_SIZE as u64; __tmp_x * __tmp_y }) as i64)));
@@ -1459,11 +1465,14 @@ impl crate::mpallocbits::pallocData {
                 // Start by quickly skipping over blocks of non-free or scavenged pages.
         while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } {
                 // 1s are scavenged OR non-free => 0s are unscavenged AND free
-        let mut x = fill_aligned(Arc::new(Mutex::new(Some({
-            let __tmp_x = { let __seq_holder = { let __named_array = (*self.scavenged.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
-            let __tmp_y = { let __seq_holder = { let __named_array = (*self.palloc_bits.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); let __seq_inner_holder_0 = __seq.0.clone(); let __seq_inner_guard_0 = __seq_inner_holder_0.lock().unwrap(); let __seq = __seq_inner_guard_0.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
-            __tmp_x | __tmp_y
-        }))), Arc::new(Mutex::new(Some((*minimum.lock().unwrap().as_ref().unwrap()) as u64))));
+        let mut x = fill_aligned(
+            Arc::new(Mutex::new(Some({
+                let __tmp_x = { let __seq_holder = { let __named_array = (*self.scavenged.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+                let __tmp_y = { let __seq_holder = { let __named_array = (*self.palloc_bits.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); let __seq_inner_holder_0 = __seq.0.clone(); let __seq_inner_guard_0 = __seq_inner_holder_0.lock().unwrap(); let __seq = __seq_inner_guard_0.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+                __tmp_x | __tmp_y
+            }))),
+            Arc::new(Mutex::new(Some((*minimum.lock().unwrap().as_ref().unwrap()) as u64)))
+        );
         if { let __tmp_x = x; let __tmp_y = !(0 as u64) as u64; __tmp_x != __tmp_y } {
         break
     }
@@ -1478,11 +1487,14 @@ impl crate::mpallocbits::pallocData {
                 // We have something in the 64-bit chunk at i, but it could
                 // extend further. Loop until we find the extent of it.
                 // 1s are scavenged OR non-free => 0s are unscavenged AND free
-        let mut x = fill_aligned(Arc::new(Mutex::new(Some({
-            let __tmp_x = { let __seq_holder = { let __named_array = (*self.scavenged.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
-            let __tmp_y = { let __seq_holder = { let __named_array = (*self.palloc_bits.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); let __seq_inner_holder_0 = __seq.0.clone(); let __seq_inner_guard_0 = __seq_inner_holder_0.lock().unwrap(); let __seq = __seq_inner_guard_0.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
-            __tmp_x | __tmp_y
-        }))), Arc::new(Mutex::new(Some((*minimum.lock().unwrap().as_ref().unwrap()) as u64))));
+        let mut x = fill_aligned(
+            Arc::new(Mutex::new(Some({
+                let __tmp_x = { let __seq_holder = { let __named_array = (*self.scavenged.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+                let __tmp_y = { let __seq_holder = { let __named_array = (*self.palloc_bits.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); let __seq_inner_holder_0 = __seq.0.clone(); let __seq_inner_guard_0 = __seq_inner_holder_0.lock().unwrap(); let __seq = __seq_inner_guard_0.as_ref().unwrap(); __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+                __tmp_x | __tmp_y
+            }))),
+            Arc::new(Mutex::new(Some((*minimum.lock().unwrap().as_ref().unwrap()) as u64)))
+        );
         let mut z1 = Arc::new(Mutex::new(Some(internal_runtime_sys::leading_zeros64(Arc::new(Mutex::new(Some(!x)))) as u64)));
         let (mut run, mut end) = (Arc::new(Mutex::new(Some(0 as u64))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 64 as u64; __tmp_x * __tmp_y }; let __tmp_y = ({ let __tmp_x = 64 as u64; let __tmp_y = { let __v = (*z1.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }); __tmp_x + __tmp_y }))));
         if { let __tmp_x = { let __tmp_x = x; let __tmp_y = { let __v = (*z1.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
@@ -1496,11 +1508,14 @@ impl crate::mpallocbits::pallocData {
         { let new_val = { let __tmp_x = 64 as u64; let __tmp_y = { let __v = (*z1.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }; *run.lock().unwrap() = Some(new_val); };
         let mut j = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y })));
     while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } {
-        let mut x = fill_aligned(Arc::new(Mutex::new(Some({
-            let __tmp_x = { let __seq_holder = { let __named_array = (*self.scavenged.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
-            let __tmp_y = { let __seq_holder = { let __named_array = (*self.palloc_bits.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); let __seq_inner_holder_0 = __seq.0.clone(); let __seq_inner_guard_0 = __seq_inner_holder_0.lock().unwrap(); let __seq = __seq_inner_guard_0.as_ref().unwrap(); __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
-            __tmp_x | __tmp_y
-        }))), Arc::new(Mutex::new(Some((*minimum.lock().unwrap().as_ref().unwrap()) as u64))));
+        let mut x = fill_aligned(
+            Arc::new(Mutex::new(Some({
+                let __tmp_x = { let __seq_holder = { let __named_array = (*self.scavenged.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+                let __tmp_y = { let __seq_holder = { let __named_array = (*self.palloc_bits.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); let __seq_inner_holder_0 = __seq.0.clone(); let __seq_inner_guard_0 = __seq_inner_holder_0.lock().unwrap(); let __seq = __seq_inner_guard_0.as_ref().unwrap(); __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+                __tmp_x | __tmp_y
+            }))),
+            Arc::new(Mutex::new(Some((*minimum.lock().unwrap().as_ref().unwrap()) as u64)))
+        );
         { let __rhs = (*Arc::new(Mutex::new(Some(internal_runtime_sys::leading_zeros64(Arc::new(Mutex::new(Some(x)))) as u64))).lock().unwrap().as_ref().unwrap()); let mut guard = run.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         if { let __tmp_x = x; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
                 // The run stopped in this word.
@@ -1531,12 +1546,18 @@ impl crate::mpallocbits::pallocData {
                 // to include that huge page.
                 // Compute the huge page boundary above our candidate.
         let mut pagesPerHugePage = Arc::new(Mutex::new(Some({ let __tmp_x = (*physHugePageSize.lock().unwrap().as_ref().unwrap()); let __tmp_y = PAGE_SIZE as usize; __tmp_x / __tmp_y })));
-        let mut hugePageAbove = Arc::new(Mutex::new(Some(align_up(Arc::new(Mutex::new(Some((*start.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = pagesPerHugePage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) as u64)));
+        let mut hugePageAbove = Arc::new(Mutex::new(Some(align_up(
+            Arc::new(Mutex::new(Some((*start.lock().unwrap().as_ref().unwrap()) as usize))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = pagesPerHugePage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        ) as u64)));
                 // If that boundary is within our current candidate, then we may be breaking
                 // a huge page.
         if { let __tmp_x = { let __v = (*hugePageAbove.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*end.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y } {
                 // Compute the huge page boundary below our candidate.
-        let mut hugePageBelow = Arc::new(Mutex::new(Some(align_down(Arc::new(Mutex::new(Some((*start.lock().unwrap().as_ref().unwrap()) as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = pagesPerHugePage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) as u64)));
+        let mut hugePageBelow = Arc::new(Mutex::new(Some(align_down(
+            Arc::new(Mutex::new(Some((*start.lock().unwrap().as_ref().unwrap()) as usize))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = pagesPerHugePage.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        ) as u64)));
         if { let __tmp_x = { let __v = (*hugePageBelow.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = { let __v = (*end.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*run.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }; __tmp_x >= __tmp_y } {
                 // We're in danger of breaking apart a huge page since start+size crosses
                 // a huge page boundary and rounding down start to the nearest huge

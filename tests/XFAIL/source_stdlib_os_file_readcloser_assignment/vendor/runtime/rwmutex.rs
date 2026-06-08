@@ -171,7 +171,10 @@ impl rwmutex {
                 // deadlock (issue #20903). Alternatively, we could drop the P
                 // while sleeping.
         acquire_lock_rank_and_m(Arc::new(Mutex::new(Some({ let __selector_holder = self.read_rank.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
-        lock_with_rank_may_acquire(self.r_lock.clone(), get_lock_rank(GoPtr::local(self.r_lock.clone())));
+        lock_with_rank_may_acquire(
+            self.r_lock.clone(),
+            get_lock_rank(GoPtr::local(self.r_lock.clone()))
+        );
         if { let __tmp_x = (*self.reader_count.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(1 as i32)))); let __tmp_y = 0 as i32; __tmp_x < __tmp_y } {
                 // A writer is pending. Park on the reader queue.
         let mut rw_closure_clone = (*self).clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {

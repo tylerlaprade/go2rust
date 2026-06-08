@@ -387,7 +387,10 @@ impl poolDequeue {
                 // Confirm head and tail (for our speculative check
                 // above) and increment tail. If this succeeds, then
                 // we own the slot at tail.
-        let mut ptrs2 = self.pack(Arc::new(StdMutex::new(Some(head))), Arc::new(StdMutex::new(Some({ let __tmp_x = tail; let __tmp_y = 1 as u32; __tmp_x + __tmp_y }))));
+        let mut ptrs2 = self.pack(
+            Arc::new(StdMutex::new(Some(head))),
+            Arc::new(StdMutex::new(Some({ let __tmp_x = tail; let __tmp_y = 1 as u32; __tmp_x + __tmp_y }))),
+        );
         if (*self.head_tail.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(StdMutex::new(Some(ptrs))), Arc::new(StdMutex::new(Some(ptrs2)))) {
                 // Success.
         slot = Some(GoSliceElemPtr::new(self.vals.clone(), ({

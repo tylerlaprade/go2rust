@@ -1449,7 +1449,10 @@ impl profBuf {
     }
 
                 // Increment generation, clear overflow count in low bits.
-        if (*self.overflow.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some(overflow))), Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = ({ let __tmp_x = overflow; let __tmp_y = 32; __tmp_x >> __tmp_y }); let __tmp_y = 1 as u64; __tmp_x + __tmp_y }); let __tmp_y = 32; __tmp_x << __tmp_y })))) {
+        if (*self.overflow.lock().unwrap().as_mut().unwrap()).compare_and_swap(
+            Arc::new(Mutex::new(Some(overflow))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = ({ let __tmp_x = overflow; let __tmp_y = 32; __tmp_x >> __tmp_y }); let __tmp_y = 1 as u64; __tmp_x + __tmp_y }); let __tmp_y = 32; __tmp_x << __tmp_y }))),
+        ) {
         break
     }
         { let new_val = (*self.overflow.lock().unwrap().as_mut().unwrap()).load(); overflow = new_val; };
@@ -1485,7 +1488,10 @@ impl profBuf {
         if { let __tmp_x = (*Arc::new(Mutex::new(Some(overflow as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = -1 as i32; __tmp_x == __tmp_y } {
         break
     }
-        if (*self.overflow.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some(overflow))), Arc::new(Mutex::new(Some({ let __tmp_x = overflow; let __tmp_y = 1 as u64; __tmp_x + __tmp_y })))) {
+        if (*self.overflow.lock().unwrap().as_mut().unwrap()).compare_and_swap(
+            Arc::new(Mutex::new(Some(overflow))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = overflow; let __tmp_y = 1 as u64; __tmp_x + __tmp_y }))),
+        ) {
         break
     }
     }
@@ -1499,7 +1505,11 @@ impl profBuf {
                 // room for tag?
         if {
             let __tmp_x = ({
-                let __tmp_x = (count_sub(Arc::new(Mutex::new(Some(profIndex::tag_count(&(*br.lock().unwrap().as_ref().unwrap()))))), Arc::new(Mutex::new(Some(profIndex::tag_count(&(*bw.lock().unwrap().as_ref().unwrap())))))) as i32);
+                let __tmp_x =
+                    (count_sub(
+                        Arc::new(Mutex::new(Some(profIndex::tag_count(&(*br.lock().unwrap().as_ref().unwrap()))))),
+                        Arc::new(Mutex::new(Some(profIndex::tag_count(&(*bw.lock().unwrap().as_ref().unwrap())))))
+                    ) as i32);
                 let __tmp_y = (({ let __len_target = { let __field = self.tags.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32);
                 __tmp_x + __tmp_y
             } as i32);
@@ -1510,7 +1520,11 @@ impl profBuf {
     }
                 // room for data?
         let mut nd = Arc::new(Mutex::new(Some({
-            let __tmp_x = (count_sub(Arc::new(Mutex::new(Some(profIndex::data_count(&(*br.lock().unwrap().as_ref().unwrap()))))), Arc::new(Mutex::new(Some(profIndex::data_count(&(*bw.lock().unwrap().as_ref().unwrap())))))) as i32);
+            let __tmp_x =
+                (count_sub(
+                    Arc::new(Mutex::new(Some(profIndex::data_count(&(*br.lock().unwrap().as_ref().unwrap()))))),
+                    Arc::new(Mutex::new(Some(profIndex::data_count(&(*bw.lock().unwrap().as_ref().unwrap())))))
+                ) as i32);
             let __tmp_y = (({ let __len_target = { let __field = self.data.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32);
             __tmp_x + __tmp_y
         })));
@@ -1541,7 +1555,11 @@ impl profBuf {
                 // room for tag?
         if {
             let __tmp_x = ({
-                let __tmp_x = (count_sub(Arc::new(Mutex::new(Some(profIndex::tag_count(&(*br.lock().unwrap().as_ref().unwrap()))))), Arc::new(Mutex::new(Some(profIndex::tag_count(&(*bw.lock().unwrap().as_ref().unwrap())))))) as i32);
+                let __tmp_x =
+                    (count_sub(
+                        Arc::new(Mutex::new(Some(profIndex::tag_count(&(*br.lock().unwrap().as_ref().unwrap()))))),
+                        Arc::new(Mutex::new(Some(profIndex::tag_count(&(*bw.lock().unwrap().as_ref().unwrap())))))
+                    ) as i32);
                 let __tmp_y = (({ let __len_target = { let __field = self.tags.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32);
                 __tmp_x + __tmp_y
             } as i32);
@@ -1552,7 +1570,11 @@ impl profBuf {
     }
                 // room for data?
         let mut nd = Arc::new(Mutex::new(Some({
-            let __tmp_x = (count_sub(Arc::new(Mutex::new(Some(profIndex::data_count(&(*br.lock().unwrap().as_ref().unwrap()))))), Arc::new(Mutex::new(Some(profIndex::data_count(&(*bw.lock().unwrap().as_ref().unwrap())))))) as i32);
+            let __tmp_x =
+                (count_sub(
+                    Arc::new(Mutex::new(Some(profIndex::data_count(&(*br.lock().unwrap().as_ref().unwrap()))))),
+                    Arc::new(Mutex::new(Some(profIndex::data_count(&(*bw.lock().unwrap().as_ref().unwrap())))))
+                ) as i32);
             let __tmp_y = (({ let __len_target = { let __field = self.data.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32);
             __tmp_x + __tmp_y
         })));
@@ -1600,7 +1622,10 @@ impl profBuf {
     }
         {
         let mut hasOverflow = self.has_overflow();;
-        if hasOverflow && self.can_write_two_records(Arc::new(Mutex::new(Some(1))), Arc::new(Mutex::new(Some((*stk.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32)))) {
+        if hasOverflow && self.can_write_two_records(
+            Arc::new(Mutex::new(Some(1))),
+            Arc::new(Mutex::new(Some((*stk.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32))),
+        ) {
             let (mut count, mut time) = self.take_overflow();;
             if { let __tmp_x = count; let __tmp_y = 0 as u32; __tmp_x > __tmp_y } {
         let mut stk: Arc<Mutex<Option<[usize; 1]>>> = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
@@ -1672,7 +1697,11 @@ impl profBuf {
             __tmp_x % __tmp_y
         }) as i32)));
         let mut nd = Arc::new(Mutex::new(Some({
-            let __tmp_x = (count_sub(Arc::new(Mutex::new(Some(profIndex::data_count(&(*br.lock().unwrap().as_ref().unwrap()))))), Arc::new(Mutex::new(Some(profIndex::data_count(&(*bw.lock().unwrap().as_ref().unwrap())))))) as i32);
+            let __tmp_x =
+                (count_sub(
+                    Arc::new(Mutex::new(Some(profIndex::data_count(&(*br.lock().unwrap().as_ref().unwrap()))))),
+                    Arc::new(Mutex::new(Some(profIndex::data_count(&(*bw.lock().unwrap().as_ref().unwrap())))))
+                ) as i32);
             let __tmp_y = (({ let __len_target = { let __field = self.data.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32);
             __tmp_x + __tmp_y
         })));
@@ -1801,7 +1830,10 @@ impl profBuf {
                 // nil tag entries (see comment in b.write).
         let mut rPrev = (*self.r.lock().unwrap().as_ref().unwrap()).load();
         if { let __tmp_x = (*rPrev.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*br.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } {
-        let mut ntag = count_sub(Arc::new(Mutex::new(Some(profIndex::tag_count(&(*br.lock().unwrap().as_ref().unwrap()))))), Arc::new(Mutex::new(Some(profIndex::tag_count(&(*rPrev.lock().unwrap().as_ref().unwrap()))))));
+        let mut ntag = count_sub(
+            Arc::new(Mutex::new(Some(profIndex::tag_count(&(*br.lock().unwrap().as_ref().unwrap()))))),
+            Arc::new(Mutex::new(Some(profIndex::tag_count(&(*rPrev.lock().unwrap().as_ref().unwrap())))))
+        );
         let mut ti = Arc::new(Mutex::new(Some(({
             let __tmp_x = profIndex::tag_count(&(*rPrev.lock().unwrap().as_ref().unwrap()));
             let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.tags.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap());
@@ -1823,7 +1855,10 @@ impl profBuf {
 
         'read: loop {
             let mut bw = (*self.w.lock().unwrap().as_ref().unwrap()).load();
-            let mut numData = count_sub(Arc::new(Mutex::new(Some(profIndex::data_count(&(*bw.lock().unwrap().as_ref().unwrap()))))), Arc::new(Mutex::new(Some(profIndex::data_count(&(*br.lock().unwrap().as_ref().unwrap()))))));
+            let mut numData = count_sub(
+                Arc::new(Mutex::new(Some(profIndex::data_count(&(*bw.lock().unwrap().as_ref().unwrap()))))),
+                Arc::new(Mutex::new(Some(profIndex::data_count(&(*br.lock().unwrap().as_ref().unwrap())))))
+            );
             if { let __tmp_x = numData; let __tmp_y = 0; __tmp_x == __tmp_y } {
         if self.has_overflow() {
                 // No data to read, but there is overflow to report.
@@ -1891,7 +1926,10 @@ impl profBuf {
                 // Attempt to clear notification and then check again.
                 // If we fail to clear the notification it means b.w changed,
                 // so we still need to check again.
-        (*self.w.lock().unwrap().as_ref().unwrap()).cas(Arc::new(Mutex::new(Some({ let __arg_holder = bw.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = (*bw.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = profIndex(Arc::new(Mutex::new(Some(PROF_WRITE_EXTRA as u64)))); __tmp_x & ! __tmp_y }))));
+        (*self.w.lock().unwrap().as_ref().unwrap()).cas(
+            Arc::new(Mutex::new(Some({ let __arg_holder = bw.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = (*bw.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = profIndex(Arc::new(Mutex::new(Some(PROF_WRITE_EXTRA as u64)))); __tmp_x & ! __tmp_y }))),
+        );
         continue 'read;
     }
                 // Writer claims to have published extra information (overflow or eof).
@@ -1905,7 +1943,10 @@ impl profBuf {
         return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)), false);
     }
                 // Necessary on Darwin, notetsleepg below does not work in signal handler, root cause of #61768.
-        if !(*self.w.lock().unwrap().as_ref().unwrap()).cas(Arc::new(Mutex::new(Some({ let __arg_holder = bw.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(profIndex(Arc::new(Mutex::new(Some(((*{ let __v = (*bw.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) | PROF_READER_SLEEPING as u64))))))))) {
+        if !(*self.w.lock().unwrap().as_ref().unwrap()).cas(
+            Arc::new(Mutex::new(Some({ let __arg_holder = bw.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(profIndex(Arc::new(Mutex::new(Some(((*{ let __v = (*bw.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) | PROF_READER_SLEEPING as u64)))))))),
+        ) {
         continue 'read;
     }
                 // Committed to sleeping.
@@ -1990,7 +2031,10 @@ impl profBuf {
     }
 
                         // Wraparound record. Go back to the beginning of the ring.
-            let mut ntag = count_sub(Arc::new(Mutex::new(Some(profIndex::tag_count(&(*bw.lock().unwrap().as_ref().unwrap()))))), Arc::new(Mutex::new(Some(profIndex::tag_count(&(*br.lock().unwrap().as_ref().unwrap()))))));
+            let mut ntag = count_sub(
+                Arc::new(Mutex::new(Some(profIndex::tag_count(&(*bw.lock().unwrap().as_ref().unwrap()))))),
+                Arc::new(Mutex::new(Some(profIndex::tag_count(&(*br.lock().unwrap().as_ref().unwrap())))))
+            );
             if { let __tmp_x = ntag; let __tmp_y = 0; __tmp_x == __tmp_y } {
         throw(Arc::new(Mutex::new(Some("runtime: malformed profBuf buffer - tag and data out of sync".to_string()))));
     }

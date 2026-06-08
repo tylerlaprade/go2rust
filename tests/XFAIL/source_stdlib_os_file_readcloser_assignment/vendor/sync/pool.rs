@@ -325,7 +325,10 @@ impl Pool {
                 // Try to steal one element from other procs.
         let mut i = Arc::new(StdMutex::new(Some(0)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(StdMutex::new(Some(size as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
-        let mut l: GoPtr<poolLocal> = index_local(Arc::new(StdMutex::new(Some({ let __arg_holder = locals.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __tmp_x = { let __v = (*pid.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y }); let __tmp_y = (*Arc::new(StdMutex::new(Some(size as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }))));
+        let mut l: GoPtr<poolLocal> = index_local(
+            Arc::new(StdMutex::new(Some({ let __arg_holder = locals.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(StdMutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __tmp_x = { let __v = (*pid.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = 1; __tmp_x + __tmp_y }); let __tmp_y = (*Arc::new(StdMutex::new(Some(size as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y })))
+        );
         {
         let (mut x, _) = (*{ let __ptr_value = l.with_mut(|__ptr_value| { let __field = __ptr_value.pool_local_internal.lock().unwrap().as_ref().unwrap().shared.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()).pop_tail();;
         if { let __nil_result = (*x.lock().unwrap()).is_some(); __nil_result } {
@@ -352,7 +355,10 @@ impl Pool {
     }
         let mut i = Arc::new(StdMutex::new(Some(0)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(StdMutex::new(Some(size as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
-        let mut l: GoPtr<poolLocal> = index_local(Arc::new(StdMutex::new(Some({ let __arg_holder = locals.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __v = (*pid.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }); let __tmp_y = (*Arc::new(StdMutex::new(Some(size as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }))));
+        let mut l: GoPtr<poolLocal> = index_local(
+            Arc::new(StdMutex::new(Some({ let __arg_holder = locals.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(StdMutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __v = (*pid.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }); let __tmp_y = (*Arc::new(StdMutex::new(Some(size as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y })))
+        );
         {
         let (mut x, _) = (*{ let __ptr_value = l.with_mut(|__ptr_value| { let __field = __ptr_value.pool_local_internal.lock().unwrap().as_ref().unwrap().shared.clone(); __field }); __ptr_value }.lock().unwrap().as_ref().unwrap()).pop_tail();;
         if { let __nil_result = (*x.lock().unwrap()).is_some(); __nil_result } {
@@ -429,7 +435,10 @@ impl Pool {
             let mut size = runtime::g_o_m_a_x_p_r_o_c_s(Arc::new(StdMutex::new(Some(0))));
             let mut local: Arc<StdMutex<Option<Vec<poolLocal>>>> = Arc::new(StdMutex::new(Some(vec![Default::default(); (size) as usize])));
             sync_atomic::store_pointer(self.local.clone(), Arc::new(StdMutex::new(Some({ let __seq_holder = local.clone(); let __seq_guard = __seq_holder.lock().unwrap(); &__seq_guard.as_ref().unwrap()[(0) as usize] as *const _ as usize }))));
-            runtime__store_reluintptr(self.local_size.clone(), Arc::new(StdMutex::new(Some(size as usize))));
+            runtime__store_reluintptr(
+                self.local_size.clone(),
+                Arc::new(StdMutex::new(Some(size as usize)))
+            );
             {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {

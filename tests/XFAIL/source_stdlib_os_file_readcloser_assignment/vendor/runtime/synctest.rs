@@ -174,7 +174,10 @@ impl synctestGroup {
     } else {
         { let __target = self.running.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
         if RACEENABLED && { let __tmp_x = { let __v = (*newval.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = __GDEAD as u32; __tmp_x != __tmp_y } {
-        racereleasemergeg(gp.clone(), self.raceaddr());
+        racereleasemergeg(
+            gp.clone(),
+            self.raceaddr()
+        );
     }
     }
     }

@@ -165,7 +165,10 @@ pub fn mutex_prefer_low_latency(l: GoPtr<crate::runtime2::mutex>) -> bool {
 }
 
 pub fn lock(l: GoPtr<crate::runtime2::mutex>) {
-    lock_with_rank(l.clone(), get_lock_rank(l.clone()));
+    lock_with_rank(
+        l.clone(),
+        get_lock_rank(l.clone())
+    );
 }
 
 pub fn lock2(l: GoPtr<crate::runtime2::mutex>) {

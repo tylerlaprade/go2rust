@@ -7438,6 +7438,21 @@ func writeGoPtrCallArgumentWithQualifierForInfo(out *strings.Builder, arg ast.Ex
 	return false
 }
 
+func goPtrCallArgumentUsesQualifiedSelectorConversion(arg ast.Expr, info goPtrResultInfo, helperQualifier string) bool {
+	sel, ok := unwrapParens(arg).(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	fieldInfo, ok := sliceElemPtrFieldInfoForSelector(sel)
+	if !ok || !generatedGoPtrFieldForSelector(sel) {
+		return false
+	}
+	if !goPtrResultElemCompatible(goPtrResultInfo{elemRustType: fieldInfo.elemRustType, elemType: fieldInfo.elemType}, info) {
+		return false
+	}
+	return goPtrHelperQualifierForOwnerPackage(fieldInfo.ownerPkgPath) != helperQualifier
+}
+
 func goPtrResultElemCompatible(actual goPtrResultInfo, expected goPtrResultInfo) bool {
 	if actual.elemType != nil && expected.elemType != nil && types.Identical(coreType(actual.elemType), coreType(expected.elemType)) {
 		return true

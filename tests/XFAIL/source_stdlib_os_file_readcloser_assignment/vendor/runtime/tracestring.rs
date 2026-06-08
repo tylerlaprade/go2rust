@@ -101,7 +101,10 @@ impl traceStringTable {
     pub fn put(&mut self, gen: Arc<Mutex<Option<usize>>>, s: Arc<Mutex<Option<String>>>) -> u64 {
                 // Put the string in the table.
         let mut ss: GoPtr<crate::string::stringStruct> = string_struct_of(s.clone());
-        let (mut id, mut added) = (*self.tab.lock().unwrap().as_ref().unwrap()).put(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = ss.with_mut(|__ptr_value| __ptr_value.str.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = ss.with_mut(|__ptr_value| __ptr_value.len.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))));
+        let (mut id, mut added) = (*self.tab.lock().unwrap().as_ref().unwrap()).put(
+            Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = ss.with_mut(|__ptr_value| __ptr_value.str.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = ss.with_mut(|__ptr_value| __ptr_value.len.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))),
+        );
         if added {
                 // Write the string to the buffer.
         let gen_closure_clone = gen.clone(); let id_closure_clone = id.clone(); let s_closure_clone = s.clone(); let mut t_closure_clone = (*self).clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {

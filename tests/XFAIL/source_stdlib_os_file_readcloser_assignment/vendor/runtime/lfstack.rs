@@ -484,7 +484,10 @@ pub fn lfnode_validate(node: Arc<Mutex<Option<lfnode>>>) {
             throw(Arc::new(Mutex::new(Some("lfstack node allocated from the heap".to_string()))));;
         }
     }
-    if { let __left_addr = lfstack_unpack(Arc::new(Mutex::new(Some(lfstack_pack(node.clone(), Arc::new(Mutex::new(Some(!(0 as usize) as usize)))))))).addr(); let __right_addr = { let __ptr = GoPtr::local(node.clone()); __ptr.addr() }; let __eq = __left_addr == __right_addr; !__eq } {
+    if { let __left_addr = lfstack_unpack(Arc::new(Mutex::new(Some(lfstack_pack(
+    node.clone(),
+    Arc::new(Mutex::new(Some(!(0 as usize) as usize)))
+))))).addr(); let __right_addr = { let __ptr = GoPtr::local(node.clone()); __ptr.addr() }; let __eq = __left_addr == __right_addr; !__eq } {
         printlock();
         {
             let __go_print_arg_0 = format!("{}", "runtime: bad lfnode address".to_string());
@@ -496,7 +499,10 @@ pub fn lfnode_validate(node: Arc<Mutex<Option<lfnode>>>) {
 }
 
 pub fn lfstack_pack(node: Arc<Mutex<Option<lfnode>>>, cnt: Arc<Mutex<Option<usize>>>) -> u64 {
-    (*Arc::new(Mutex::new(Some((*(*tagged_pointer_pack(Arc::new(Mutex::new(Some(Arc::as_ptr(&node) as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = cnt.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap())
+    (*Arc::new(Mutex::new(Some((*(*tagged_pointer_pack(
+    Arc::new(Mutex::new(Some(Arc::as_ptr(&node) as usize))),
+    Arc::new(Mutex::new(Some({ let __arg_holder = cnt.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+).lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap())
 }
 
 pub fn lfstack_unpack(val: Arc<Mutex<Option<u64>>>) -> GoPtr<crate::runtime2::lfnode> {

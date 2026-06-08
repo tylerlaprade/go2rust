@@ -1816,7 +1816,10 @@ impl pTraceState {
 ///
 ///go:nosplit
 pub fn lock_rank_may_trace_flush() {
-    lock_with_rank_may_acquire((*trace.lock().unwrap().as_ref().unwrap()).lock.clone(), get_lock_rank(GoPtr::local((*trace.lock().unwrap().as_ref().unwrap()).lock.clone())));
+    lock_with_rank_may_acquire(
+        (*trace.lock().unwrap().as_ref().unwrap()).lock.clone(),
+        get_lock_rank(GoPtr::local((*trace.lock().unwrap().as_ref().unwrap()).lock.clone()))
+    );
 }
 
 /// traceEnabled returns true if the trace is currently enabled.
@@ -1975,7 +1978,10 @@ pub fn trace_thread_destroy(mp: Arc<Mutex<Option<m>>>) {
         for i in 0..(({ let __range_holder = (*(*mp_closure_clone.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).buf.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
         for (exp, buf_local) in { let __seq = { let __seq_holder = (*(*mp_closure_clone.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }.iter().enumerate() {
         if { let __nil_result = (*buf_local.lock().unwrap()).is_some(); __nil_result } {
-        trace_buf_flush((*buf_local).clone(), Arc::new(Mutex::new(Some(i as usize))));
+        trace_buf_flush(
+            (*buf_local).clone(),
+            Arc::new(Mutex::new(Some(i as usize)))
+        );
         (*(*(*mp_closure_clone.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).buf.lock().unwrap().as_mut().unwrap())[(i) as usize][(exp) as usize] = Default::default();
     }
     }

@@ -269,7 +269,10 @@ pub(crate) fn __go_init_order_26() {
 /// lockRankMayQueueFinalizer records the lock ranking effects of a
 /// function that may call queuefinalizer.
 pub fn lock_rank_may_queue_finalizer() {
-    lock_with_rank_may_acquire(finlock.clone(), get_lock_rank(GoPtr::local(finlock.clone())));
+    lock_with_rank_may_acquire(
+        finlock.clone(),
+        get_lock_rank(GoPtr::local(finlock.clone()))
+    );
 }
 
 pub fn queuefinalizer(p: Arc<Mutex<Option<usize>>>, r#fn: Arc<Mutex<Option<funcval>>>, nret: Arc<Mutex<Option<usize>>>, fint: Arc<Mutex<Option<internal_abi::r#type::Type>>>, ot: GoPtr<internal_abi::r#type::PtrType>) {
@@ -396,7 +399,10 @@ pub fn queuefinalizer(p: Arc<Mutex<Option<usize>>>, r#fn: Arc<Mutex<Option<funcv
 
 pub fn wakefing() -> Arc<Mutex<Option<crate::runtime2::g>>> {
     {
-        let mut ok = (*fingStatus.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = FING_CREATED as u32; let __tmp_y = FING_WAIT as u32; __tmp_x | __tmp_y } as u32; let __tmp_y = FING_WAKE as u32; __tmp_x | __tmp_y } as u32))), Arc::new(Mutex::new(Some(FING_CREATED as u32))));;
+        let mut ok = (*fingStatus.lock().unwrap().as_mut().unwrap()).compare_and_swap(
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = FING_CREATED as u32; let __tmp_y = FING_WAIT as u32; __tmp_x | __tmp_y } as u32; let __tmp_y = FING_WAKE as u32; __tmp_x | __tmp_y } as u32))),
+            Arc::new(Mutex::new(Some(FING_CREATED as u32))),
+        );;
         if ok {
             return (*fing.lock().unwrap().as_ref().unwrap()).clone();;
         }
@@ -533,7 +539,10 @@ pub fn runfinq() {
             if { let __tmp_x = (({ let __len_target = { let __field = { let __ptr_value = ityp.with_mut(|__ptr_value| __ptr_value.methods.clone()); __ptr_value }.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x != __tmp_y } {
                 // convert to interface with methods
                 // this conversion is guaranteed to succeed - we checked in SetFinalizer
-        { let new_val = assert_e2_i(ityp.clone(), (*Arc::new(Mutex::new({ let __ptr = r.clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<eface>(unimplemented!("unsafe.Pointer conversion to eface")) } })).lock().unwrap().as_ref().unwrap())._type.clone()); (*Arc::new(Mutex::new({ let __ptr = r.clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<iface>(unimplemented!("unsafe.Pointer conversion to iface")) } })).lock().unwrap().as_mut().unwrap()).tab = new_val; };
+        { let new_val = assert_e2_i(
+            ityp.clone(),
+            (*Arc::new(Mutex::new({ let __ptr = r.clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<eface>(unimplemented!("unsafe.Pointer conversion to eface")) } })).lock().unwrap().as_ref().unwrap())._type.clone()
+        ); (*Arc::new(Mutex::new({ let __ptr = r.clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<iface>(unimplemented!("unsafe.Pointer conversion to iface")) } })).lock().unwrap().as_mut().unwrap()).tab = new_val; };
     }
         } else {
             throw(Arc::new(Mutex::new(Some("bad kind in runfinq".to_string()))));
@@ -927,7 +936,10 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
     }
                         // ok - satisfies empty interface
             {
-        let mut itab: GoPtr<internal_abi::iface::ITab> = assert_e2_i2(ityp.clone(), { let __ptr = eface_of(obj.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap()._type.clone() }.clone());;
+        let mut itab: GoPtr<internal_abi::iface::ITab> = assert_e2_i2(
+            ityp.clone(),
+            { let __ptr = eface_of(obj.clone()); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap()._type.clone() }.clone()
+        );;
         if !itab.is_nil() {
             break 'okarg;;
         }
@@ -950,7 +962,11 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
     let mut nret = Arc::new(Mutex::new(Some(0 as usize)));
     { let __range_holder = { let __result = ft.with_mut(|__recv_value| __recv_value.out_slice()); __result }.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for t in __range_values.iter() {
         { let new_val = {
-            let __tmp_x = align_up(Arc::new(Mutex::new(Some({ let __arg_holder = nret.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).align_.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))));
+            let __tmp_x =
+                align_up(
+                    Arc::new(Mutex::new(Some({ let __arg_holder = nret.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                    Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).align_.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize)))
+                );
             let __tmp_y = (*{ let __field = (*t.lock().unwrap().as_ref().unwrap()).size_.clone(); __field }.lock().unwrap().as_ref().unwrap());
             __tmp_x + __tmp_y
         }; *nret.lock().unwrap() = Some(new_val); };

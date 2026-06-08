@@ -4864,6 +4864,52 @@ func writeAll(fd int, p []byte, nn int, max int) int {
 	}
 }
 
+func TestConcurrentFunctionCallBreaksTwoComplexArgumentsAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func hash(left []byte, right []byte) int {
+	return 0
+}
+
+func call(left []byte, right []byte, i int, j int) int {
+	go func() {}()
+	return hash(left[i:j], right[i:j])
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "hash(") && strings.Contains(line, "let __seq_holder") {
+			t.Fatalf("two complex function-call arguments should not stay on the opening call line:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "hash(\n") {
+		t.Fatalf("two complex function-call arguments should use multiline call syntax:\n%s", rust)
+	}
+}
+
+func TestConcurrentBinaryOperandBreaksComplexCallArgumentsAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func hash(left []byte, right []byte) int {
+	return 0
+}
+
+func call(left []byte, right []byte, i int, j int, mask int) int {
+	go func() {}()
+	return hash(left[i:j], right[i:j]) & mask
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "let __tmp_x = hash(") {
+			t.Fatalf("complex call operand should not stay on the binary temp assignment line:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "let __tmp_x =\n") || !strings.Contains(rust, "hash(\n") {
+		t.Fatalf("complex call operand should use multiline binary temp and call syntax:\n%s", rust)
+	}
+}
+
 func TestConcurrentMultiReturnBreaksComplexResultsAcrossLines(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

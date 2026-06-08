@@ -115,10 +115,16 @@ pub fn slicebytetostringtmp(ptr: GoPtr<u8>, n: Arc<Mutex<Option<i32>>>) -> Arc<M
         );
     }
     if MSANENABLED && { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
-        msanread(Arc::new(Mutex::new(Some(ptr.addr()))), Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as usize))));
+        msanread(
+            Arc::new(Mutex::new(Some(ptr.addr()))),
+            Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as usize)))
+        );
     }
     if ASANENABLED && { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
-        asanread(Arc::new(Mutex::new(Some(ptr.addr()))), Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as usize))));
+        asanread(
+            Arc::new(Mutex::new(Some(ptr.addr()))),
+            Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as usize)))
+        );
     }
     { let __go_unsafe_result: Arc<Mutex<Option<String>>> = unimplemented!("unsafe.String requires unsafe intrinsic support"); __go_unsafe_result }
 }

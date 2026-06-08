@@ -319,7 +319,10 @@ pub fn ticks_per_second() -> i64 {
 ///
 ///go:nosplit
 pub fn write_err_str(s: Arc<Mutex<Option<String>>>) {
-    write_err_data(GoPtr::local({ let __go_unsafe_result: Arc<Mutex<Option<u8>>> = unimplemented!("unsafe.StringData requires unsafe intrinsic support"); __go_unsafe_result }), Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).len() as i32))));
+    write_err_data(
+        GoPtr::local({ let __go_unsafe_result: Arc<Mutex<Option<u8>>> = unimplemented!("unsafe.StringData requires unsafe intrinsic support"); __go_unsafe_result }),
+        Arc::new(Mutex::new(Some((*s.lock().unwrap().as_ref().unwrap()).len() as i32)))
+    );
 }
 
 /// writeErrData is the common parts of writeErr{,Str}.

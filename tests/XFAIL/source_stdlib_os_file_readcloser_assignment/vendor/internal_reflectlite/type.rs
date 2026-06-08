@@ -195,7 +195,10 @@ impl name {
         let mut v = Arc::new(Mutex::new(Some(0)));
         let mut i = Arc::new(Mutex::new(Some(0)));
     loop {
-        let mut x = Arc::new(Mutex::new(Some({ let __ptr_handle = self.data(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))), Arc::new(Mutex::new(Some("read varint".to_string())))); let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() })));
+        let mut x = Arc::new(Mutex::new(Some({ let __ptr_handle = self.data(
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))),
+            Arc::new(Mutex::new(Some("read varint".to_string()))),
+        ); let __ptr_value = __ptr_handle.borrow(); __ptr_value.as_ref().unwrap().clone() })));
         { let __rhs = { let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0x7f as u8; __tmp_x & __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = 7; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x * __tmp_y }); __tmp_x << __tmp_y }; let mut guard = v.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         if { let __tmp_x = { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0x80 as u8; __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x == __tmp_y } {
         return (
@@ -227,11 +230,17 @@ impl name {
 
 impl rtype {
     pub fn name_off(&self, off: nameOff) -> Arc<Mutex<Option<internal_abi::r#type::Name>>> {
-        Arc::new(Mutex::new(Some(internal_abi::r#type::Name { bytes: internal_abi::GoPtr::local(Arc::new(Mutex::new({ let __ptr = resolve_name_off(Arc::new(Mutex::new(Some(self.r#type.addr()))), Arc::new(Mutex::new(Some((*{ let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32)))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<u8>(unimplemented!("unsafe.Pointer conversion to u8")) } })).clone()), ..Default::default() })))
+        Arc::new(Mutex::new(Some(internal_abi::r#type::Name { bytes: internal_abi::GoPtr::local(Arc::new(Mutex::new({ let __ptr = resolve_name_off(
+            Arc::new(Mutex::new(Some(self.r#type.addr()))),
+            Arc::new(Mutex::new(Some((*{ let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32)))
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<u8>(unimplemented!("unsafe.Pointer conversion to u8")) } })).clone()), ..Default::default() })))
     }
 
     pub fn type_off(&self, off: typeOff) -> GoPtr<internal_abi::r#type::Type> {
-        GoPtr::raw({ let __ptr = resolve_type_off(Arc::new(Mutex::new(Some(self.r#type.addr()))), Arc::new(Mutex::new(Some((*{ let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32)))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) })
+        GoPtr::raw({ let __ptr = resolve_type_off(
+            Arc::new(Mutex::new(Some(self.r#type.addr()))),
+            Arc::new(Mutex::new(Some((*{ let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32)))
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) })
     }
 
     pub fn uncommon(&self) -> Arc<Mutex<Option<internal_abi::r#type::UncommonType>>> {
@@ -376,7 +385,10 @@ impl rtype {
         } {
         std::panic::panic_any(Box::new("reflect: non-interface type passed to Type.Implements".to_string()) as Box<dyn Any + Send + Sync>);
     }
-        implements((*u.lock().unwrap().as_ref().unwrap()).common(), self.common())
+        implements(
+            (*u.lock().unwrap().as_ref().unwrap()).common(),
+            self.common()
+        )
     }
 
     pub fn assignable_to(&self, u: Arc<Mutex<Option<Box<dyn Type + Send + Sync>>>>) -> bool {
@@ -635,7 +647,10 @@ pub fn pkg_path(n: Arc<Mutex<Option<internal_abi::r#type::Name>>>) -> Arc<Mutex<
         }
         Arc::new(Mutex::new(Some(_n as i32)))
     };
-    let mut pkgPathName = Arc::new(Mutex::new(Some(name { bytes: Arc::new(Mutex::new({ let __ptr = resolve_type_off(Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()).bytes.addr()))), Arc::new(Mutex::new(Some({ let __arg_holder = nameOff.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<u8>(unimplemented!("unsafe.Pointer conversion to u8")) } })).clone(), ..Default::default() })));
+    let mut pkgPathName = Arc::new(Mutex::new(Some(name { bytes: Arc::new(Mutex::new({ let __ptr = resolve_type_off(
+        Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()).bytes.addr()))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = nameOff.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+    ).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<u8>(unimplemented!("unsafe.Pointer conversion to u8")) } })).clone(), ..Default::default() })));
     return (*pkgPathName.lock().unwrap().as_ref().unwrap()).name();
 }
 

@@ -971,7 +971,10 @@ pub fn fixed_zone(name: Arc<Mutex<Option<String>>>, offset: Arc<Mutex<Option<i32
         { let new_val = { let __collection_holder = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(None)); ({ let __tmp_x = { let __tmp_x = hoursBeforeUTC; let __tmp_y = 1; __tmp_x + __tmp_y }; let __tmp_y = hoursAfterUTC; __tmp_x + __tmp_y }) as usize]))).clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *unnamedFixedZones.lock().unwrap() = new_val; };
         let mut hr = Arc::new(Mutex::new(Some(-(hoursBeforeUTC))));
     while { let __tmp_x = { let __v = (*hr.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 14; __tmp_x <= __tmp_y } {
-        (*unnamedFixedZones.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = { let __v = (*hr.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 12; __tmp_x + __tmp_y }) as usize] = fixed_zone_1(Arc::new(Mutex::new(Some("".to_string()))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __v = (*hr.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60; __tmp_x * __tmp_y }; let __tmp_y = 60; __tmp_x * __tmp_y }))));
+        (*unnamedFixedZones.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = { let __v = (*hr.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 12; __tmp_x + __tmp_y }) as usize] = fixed_zone_1(
+            Arc::new(Mutex::new(Some("".to_string()))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __v = (*hr.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60; __tmp_x * __tmp_y }; let __tmp_y = 60; __tmp_x * __tmp_y })))
+        );
         { let mut guard = hr.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     }) as Box<dyn FnMut() -> () + Send + Sync>)))) };
@@ -1451,7 +1454,11 @@ let mut dow = Arc::new(Mutex::new(Some(__go_binary_24)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*r.lock().unwrap().as_ref().unwrap()).week.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
         if {
             let __tmp_x = { let __tmp_x = { let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 7; __tmp_x + __tmp_y };
-            let __tmp_y = days_in(Arc::new(Mutex::new(Some(crate::r#mod::Month(Arc::new(Mutex::new(Some({ let __selector_holder = (*r.lock().unwrap().as_ref().unwrap()).mon.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))))))), Arc::new(Mutex::new(Some({ let __arg_holder = year.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            let __tmp_y =
+                days_in(
+                    Arc::new(Mutex::new(Some(crate::r#mod::Month(Arc::new(Mutex::new(Some({ let __selector_holder = (*r.lock().unwrap().as_ref().unwrap()).mon.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i32))))))),
+                    Arc::new(Mutex::new(Some({ let __arg_holder = year.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+                );
             __tmp_x >= __tmp_y
         } {
         break

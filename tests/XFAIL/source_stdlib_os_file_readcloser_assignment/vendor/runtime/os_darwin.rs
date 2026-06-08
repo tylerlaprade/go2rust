@@ -690,11 +690,14 @@ pub fn mpreinit(mp: Arc<Mutex<Option<m>>>) {
                 // mlock the signal stack to work around a kernel bug where it may
                 // SIGILL when the signal stack is not faulted in while a signal
                 // arrives. See issue 42774.
-        mlock(Arc::new(Mutex::new(Some({
-            let __tmp_x = (*(*(*(*mp.lock().unwrap().as_ref().unwrap()).gsignal.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.lock().unwrap().as_ref().unwrap());
-            let __tmp_y = (*physPageSize.lock().unwrap().as_ref().unwrap());
-            __tmp_x - __tmp_y
-        }))), Arc::new(Mutex::new(Some({ let __arg_holder = physPageSize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        mlock(
+            Arc::new(Mutex::new(Some({
+                let __tmp_x = (*(*(*(*mp.lock().unwrap().as_ref().unwrap()).gsignal.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.lock().unwrap().as_ref().unwrap());
+                let __tmp_y = (*physPageSize.lock().unwrap().as_ref().unwrap());
+                __tmp_x - __tmp_y
+            }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = physPageSize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        );
     }
 }
 
@@ -788,7 +791,10 @@ pub fn valid_s_i_g_p_r_o_f(mp: Arc<Mutex<Option<m>>>, c: Arc<Mutex<Option<sigctx
 }
 
 pub fn signal_m(mp: GoPtr<crate::runtime2::m>, sig_local: Arc<Mutex<Option<i32>>>) {
-    pthread_kill(Arc::new(Mutex::new(Some(crate::defs_darwin_arm64::pthread(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.procid.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))))))), Arc::new(Mutex::new(Some((*sig_local.lock().unwrap().as_ref().unwrap()) as u32))));
+    pthread_kill(
+        Arc::new(Mutex::new(Some(crate::defs_darwin_arm64::pthread(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.procid.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))))))),
+        Arc::new(Mutex::new(Some((*sig_local.lock().unwrap().as_ref().unwrap()) as u32)))
+    );
 }
 
 ///go:nosplit

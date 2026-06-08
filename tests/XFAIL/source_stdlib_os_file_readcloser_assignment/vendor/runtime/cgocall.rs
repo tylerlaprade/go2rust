@@ -254,7 +254,10 @@ pub fn callback_update_system_stack(mp: GoPtr<crate::runtime2::m>, sp: Arc<Mutex
                 // we're getting out of the signal handler very soon
                 // anyway. Not worth it.)
         let mut bounds: Arc<Mutex<Option<[usize; 2]>>> = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
-        asmcgocall(Arc::new(Mutex::new(Some({ let __arg_holder = _cgo_getstackbound.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(Arc::as_ptr(&bounds.clone()) as usize))));
+        asmcgocall(
+            Arc::new(Mutex::new(Some({ let __arg_holder = _cgo_getstackbound.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(Arc::as_ptr(&bounds.clone()) as usize)))
+        );
                 // getstackbound is an unsupported no-op on Windows.
                 //
                 // On Unix systems, if the API to get accurate stack bounds is

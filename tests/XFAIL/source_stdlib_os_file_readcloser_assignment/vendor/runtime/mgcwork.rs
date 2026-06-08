@@ -560,7 +560,10 @@ pub fn getempty() -> GoPtr<workbuf> {
     }
         if s.is_nil() {
         let mut s_closure_clone = s.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
-        s_closure_clone = (*mheap_.lock().unwrap().as_mut().unwrap()).alloc_manual(Arc::new(Mutex::new(Some(((WORKBUF_ALLOC as usize) / (PAGE_SIZE as usize)) as usize))), Arc::new(Mutex::new(Some(crate::mheap::spanAllocType(Arc::new(Mutex::new(Some(SPAN_ALLOC_WORK_BUF as u8))))))));
+        s_closure_clone = (*mheap_.lock().unwrap().as_mut().unwrap()).alloc_manual(
+            Arc::new(Mutex::new(Some(((WORKBUF_ALLOC as usize) / (PAGE_SIZE as usize)) as usize))),
+            Arc::new(Mutex::new(Some(crate::mheap::spanAllocType(Arc::new(Mutex::new(Some(SPAN_ALLOC_WORK_BUF as u8))))))),
+        );
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
         if s.is_nil() {
         throw(Arc::new(Mutex::new(Some("out of memory".to_string()))));

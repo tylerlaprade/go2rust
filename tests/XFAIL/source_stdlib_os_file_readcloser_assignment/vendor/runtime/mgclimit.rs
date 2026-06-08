@@ -1234,7 +1234,10 @@ impl gcCPULimiterState {
                 // unnecessary, as the GC has way more CPU time to outpace the 1 goroutine that's
                 // running.
         { let __rhs = idleTime; let mut guard = windowTotalTime.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
-        self.accumulate(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*windowTotalTime.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*windowGCTime.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))), Arc::new(Mutex::new(Some({ let __arg_holder = windowGCTime.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        self.accumulate(
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*windowTotalTime.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*windowGCTime.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = windowGCTime.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        );
     }
 
     /// accumulate adds time to the bucket and signals whether the limiter is enabled.
@@ -1412,7 +1415,10 @@ impl limiterEvent {
                 // 2^(64-limiterEventBits) boundary in the clock readings.
                 // Just ignore it.
         let mut new = make_limiter_event_stamp(Arc::new(Mutex::new(Some({ let __arg_holder = typ.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = now.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-        if (*self.stamp.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some((*{ let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64))), Arc::new(Mutex::new(Some((*{ let __v = (*new.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64)))) {
+        if (*self.stamp.lock().unwrap().as_mut().unwrap()).compare_and_swap(
+            Arc::new(Mutex::new(Some((*{ let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64))),
+            Arc::new(Mutex::new(Some((*{ let __v = (*new.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64))),
+        ) {
         break
     }
     }
@@ -1445,7 +1451,10 @@ impl limiterEvent {
         };
         throw(Arc::new(Mutex::new(Some("limiterEvent.stop: found wrong event in p's limiter event slot".to_string()))));
     }
-        if (*self.stamp.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some((*{ let __v = (*stamp.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64))), Arc::new(Mutex::new(Some(LIMITER_EVENT_STAMP_NONE as u64 as u64)))) {
+        if (*self.stamp.lock().unwrap().as_mut().unwrap()).compare_and_swap(
+            Arc::new(Mutex::new(Some((*{ let __v = (*stamp.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64))),
+            Arc::new(Mutex::new(Some(LIMITER_EVENT_STAMP_NONE as u64 as u64))),
+        ) {
         break
     }
     }

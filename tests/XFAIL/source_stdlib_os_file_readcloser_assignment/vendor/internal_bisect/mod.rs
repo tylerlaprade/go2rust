@@ -1285,20 +1285,23 @@ pub fn append_file_line(mut dst: Arc<Mutex<Option<Vec<u8>>>>, file: Arc<Mutex<Op
 /// It is appropriate to use when [Matcher.ShouldPrint] and [Matcher.MarkerOnly] both return true.
 pub fn print_marker(w: Arc<Mutex<Option<Box<dyn Writer + Send + Sync>>>>, h: Arc<Mutex<Option<u64>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
     let mut buf: Arc<Mutex<Option<[u8; 50]>>> = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
-    let mut b = append_marker(Arc::new(Mutex::new(Some({
-        let __seq_holder = buf.clone();
-        let __seq_guard = __seq_holder.lock().unwrap();
-        let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
-        let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
-        drop(__seq_guard);
-        let __low = 0;
-        let __high = (0) as usize;
-        let __max = __source_cap;
-        let _slice = &__seq[__low..__high];
-        let mut _v = Vec::with_capacity((__max - __low) as usize);
-        _v.extend_from_slice(_slice);
-        _v
-    }))), Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    let mut b = append_marker(
+        Arc::new(Mutex::new(Some({
+            let __seq_holder = buf.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+            let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+            drop(__seq_guard);
+            let __low = 0;
+            let __high = (0) as usize;
+            let __max = __source_cap;
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+    );
     { let new_val = { let __append_target = b.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(('\n' as i32) as u8); __append_target.clone() }; b = new_val; };
     let (_, mut err) = (*w.lock().unwrap().as_mut().unwrap()).write(b.clone());
     return err.clone();
@@ -1310,20 +1313,23 @@ pub fn print_stack(w: Arc<Mutex<Option<Box<dyn Writer + Send + Sync>>>>, h: Arc<
     let mut buf = Arc::new(Mutex::new(Some(Vec::<u8>::with_capacity((2048) as usize))));
 
     let mut prefixBuf: Arc<Mutex<Option<[u8; 100]>>> = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
-    let mut prefix = append_marker(Arc::new(Mutex::new(Some({
-        let __seq_holder = prefixBuf.clone();
-        let __seq_guard = __seq_holder.lock().unwrap();
-        let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
-        let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
-        drop(__seq_guard);
-        let __low = 0;
-        let __high = (0) as usize;
-        let __max = __source_cap;
-        let _slice = &__seq[__low..__high];
-        let mut _v = Vec::with_capacity((__max - __low) as usize);
-        _v.extend_from_slice(_slice);
-        _v
-    }))), Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    let mut prefix = append_marker(
+        Arc::new(Mutex::new(Some({
+            let __seq_holder = prefixBuf.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+            let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+            drop(__seq_guard);
+            let __low = 0;
+            let __high = (0) as usize;
+            let __max = __source_cap;
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+    );
 
     let mut frames = runtime::callers_frames(stk.clone());
     loop {
@@ -1400,25 +1406,40 @@ pub fn hash(data: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> u64 {
         { let new_val = fnv(Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); *h.lock().unwrap() = Some(new_val); };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
         let v = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i32>()).unwrap().clone())));
-        { let new_val = fnv_uint64(Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()) as u64)))); *h.lock().unwrap() = Some(new_val); };;
+        { let new_val = fnv_uint64(
+            Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()) as u64)))
+        ); *h.lock().unwrap() = Some(new_val); };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<u64>()).is_some() {
         let v = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<u64>()).unwrap().clone())));
-        { let new_val = fnv_uint64(Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()) as u64)))); *h.lock().unwrap() = Some(new_val); };;
+        { let new_val = fnv_uint64(
+            Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()) as u64)))
+        ); *h.lock().unwrap() = Some(new_val); };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<i32>()).is_some() {
         let v = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i32>()).unwrap().clone())));
-        { let new_val = fnv_uint32(Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()) as u32)))); *h.lock().unwrap() = Some(new_val); };;
+        { let new_val = fnv_uint32(
+            Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()) as u32)))
+        ); *h.lock().unwrap() = Some(new_val); };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<u32>()).is_some() {
         let v = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<u32>()).unwrap().clone())));
         { let new_val = fnv_uint32(Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); *h.lock().unwrap() = Some(new_val); };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<i64>()).is_some() {
         let v = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<i64>()).unwrap().clone())));
-        { let new_val = fnv_uint64(Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()) as u64)))); *h.lock().unwrap() = Some(new_val); };;
+        { let new_val = fnv_uint64(
+            Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()) as u64)))
+        ); *h.lock().unwrap() = Some(new_val); };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<u64>()).is_some() {
         let v = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<u64>()).unwrap().clone())));
         { let new_val = fnv_uint64(Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); *h.lock().unwrap() = Some(new_val); };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<usize>()).is_some() {
         let v = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<usize>()).unwrap().clone())));
-        { let new_val = fnv_uint64(Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()) as u64)))); *h.lock().unwrap() = Some(new_val); };;
+        { let new_val = fnv_uint64(
+            Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()) as u64)))
+        ); *h.lock().unwrap() = Some(new_val); };;
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Vec<String>>()).is_some() {
         let v = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Vec<String>>()).unwrap().clone())));
         { let __range_holder = v.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter() {
@@ -1432,17 +1453,26 @@ pub fn hash(data: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> u64 {
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Vec<i32>>()).is_some() {
         let v = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Vec<i32>>()).unwrap().clone())));
         { let __range_holder = v.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter().copied() {
-        { let new_val = fnv_uint64(Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(x as u64)))); *h.lock().unwrap() = Some(new_val); };
+        { let new_val = fnv_uint64(
+            Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(x as u64)))
+        ); *h.lock().unwrap() = Some(new_val); };
     } };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Vec<u64>>()).is_some() {
         let v = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Vec<u64>>()).unwrap().clone())));
         { let __range_holder = v.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter().copied() {
-        { let new_val = fnv_uint64(Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(x as u64)))); *h.lock().unwrap() = Some(new_val); };
+        { let new_val = fnv_uint64(
+            Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(x as u64)))
+        ); *h.lock().unwrap() = Some(new_val); };
     } };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Vec<i32>>()).is_some() {
         let v = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Vec<i32>>()).unwrap().clone())));
         { let __range_holder = v.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter().copied() {
-        { let new_val = fnv_uint32(Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(x as u32)))); *h.lock().unwrap() = Some(new_val); };
+        { let new_val = fnv_uint32(
+            Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(x as u32)))
+        ); *h.lock().unwrap() = Some(new_val); };
     } };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Vec<u32>>()).is_some() {
         let v = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Vec<u32>>()).unwrap().clone())));
@@ -1452,7 +1482,10 @@ pub fn hash(data: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> u64 {
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Vec<i64>>()).is_some() {
         let v = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Vec<i64>>()).unwrap().clone())));
         { let __range_holder = v.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter().copied() {
-        { let new_val = fnv_uint64(Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(x as u64)))); *h.lock().unwrap() = Some(new_val); };
+        { let new_val = fnv_uint64(
+            Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(x as u64)))
+        ); *h.lock().unwrap() = Some(new_val); };
     } };
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Vec<u64>>()).is_some() {
         let v = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Vec<u64>>()).unwrap().clone())));
@@ -1462,7 +1495,10 @@ pub fn hash(data: Arc<Mutex<Option<Vec<Box<dyn Any + Send + Sync>>>>>) -> u64 {
     } else if _ts_val.and_then(|__v| __v.downcast_ref::<Vec<usize>>()).is_some() {
         let v = Arc::new(Mutex::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<Vec<usize>>()).unwrap().clone())));
         { let __range_holder = v.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter().copied() {
-        { let new_val = fnv_uint64(Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(x as u64)))); *h.lock().unwrap() = Some(new_val); };
+        { let new_val = fnv_uint64(
+            Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(x as u64)))
+        ); *h.lock().unwrap() = Some(new_val); };
     } };
     } else {
         let v = _ts_val.unwrap();

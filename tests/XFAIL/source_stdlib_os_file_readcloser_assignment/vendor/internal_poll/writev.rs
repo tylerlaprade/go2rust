@@ -126,7 +126,10 @@ impl crate::fd_unix::FD {
     }
         { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> () + Send + Sync> = { let mut __f_guard = TestHookDidWritev.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some((*wrote.lock().unwrap().as_ref().unwrap()) as i32)))) };
         { let __rhs = (*Arc::new(Mutex::new(Some((*wrote.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap()); let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-        consume(v.clone(), Arc::new(Mutex::new(Some((*wrote.lock().unwrap().as_ref().unwrap()) as i64))));
+        consume(
+            v.clone(),
+            Arc::new(Mutex::new(Some((*wrote.lock().unwrap().as_ref().unwrap()) as i64)))
+        );
         { let __clear_holder = iovecs.clone(); let mut __clear_guard = __clear_holder.lock().unwrap(); if let Some(__clear_seq) = __clear_guard.as_mut() { for __clear_elem in __clear_seq.iter_mut() { *__clear_elem = Default::default(); } } };
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         if { let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); let __matched = __err_guard.as_ref().and_then(|__e| __e.downcast_ref::<syscall::syscall_unix::Errno>()).map(|__e| *__e.0.lock().unwrap().as_ref().unwrap() == (syscall::E_I_N_T_R as usize)).unwrap_or(false); __matched } {

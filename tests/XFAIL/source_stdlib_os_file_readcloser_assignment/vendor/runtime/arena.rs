@@ -342,7 +342,10 @@ impl crate::mheap::mspan {
                 // Actually set the arena chunk to fault, so we'll get dangling pointer errors.
                 // sysFault currently uses a method on each OS that forces it to evacuate all
                 // memory backing the chunk.
-        sys_fault(Arc::new(Mutex::new(Some(self.base()))), Arc::new(Mutex::new(Some({ let __tmp_x = (*self.npages.lock().unwrap().as_ref().unwrap()); let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y }))));
+        sys_fault(
+            Arc::new(Mutex::new(Some(self.base()))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = (*self.npages.lock().unwrap().as_ref().unwrap()); let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y })))
+        );
                 // Everything on the list is counted as in-use, however sysFault transitions to
                 // Reserved, not Prepared, so we skip updating heapFree or heapReleased and just
                 // remove the memory from the total altogether; it's just address space now.
@@ -363,10 +366,16 @@ impl crate::mheap::mspan {
         internal_runtime_atomic::xadd64((*stats.as_ref().unwrap().borrow().as_ref().unwrap()).large_free.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = self.elemsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))));
         (*(*memstats.lock().unwrap().as_ref().unwrap()).heap_stats.lock().unwrap().as_mut().unwrap()).release();
                 // This counts as a free, so update heapLive.
-        (*gcController.lock().unwrap().as_ref().unwrap()).update(Arc::new(Mutex::new(Some(-({ let __selector_holder = self.elemsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64)))), Arc::new(Mutex::new(Some(0 as i64))));
+        (*gcController.lock().unwrap().as_ref().unwrap()).update(
+            Arc::new(Mutex::new(Some(-({ let __selector_holder = self.elemsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64)))),
+            Arc::new(Mutex::new(Some(0 as i64))),
+        );
                 // Mark it as free for the race detector.
         if RACEENABLED {
-        racefree(Arc::new(Mutex::new(Some(self.base()))), Arc::new(Mutex::new(Some({ let __selector_holder = self.elemsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+        racefree(
+            Arc::new(Mutex::new(Some(self.base()))),
+            Arc::new(Mutex::new(Some({ let __selector_holder = self.elemsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))
+        );
     }
         let mut s_closure_clone = (*self).clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
         lock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).lock.clone()));
@@ -540,7 +549,10 @@ impl crate::mheap::mheap {
         let mut i = Arc::new(Mutex::new(Some(USER_ARENA_CHUNK_BYTES)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = size; __tmp_x < __tmp_y } {
         let mut s: GoPtr<crate::mheap::mspan> = self.alloc_m_span_locked();
-        { let __result = s.with_mut(|__recv_value| __recv_value.init(Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))), Arc::new(Mutex::new(Some(USER_ARENA_CHUNK_PAGES as usize))))); __result };
+        { let __result = s.with_mut(|__recv_value| __recv_value.init(
+            Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*v.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))),
+            Arc::new(Mutex::new(Some(USER_ARENA_CHUNK_PAGES as usize))),
+        )); __result };
         (*(*self.user_arena.lock().unwrap().as_ref().unwrap()).ready_list.lock().unwrap().as_mut().unwrap()).insert_back(s.clone());
         { let __rhs = USER_ARENA_CHUNK_BYTES as usize; let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
@@ -625,7 +637,10 @@ impl crate::mheap::mheap {
                 // Count the alloc in inconsistent, internal stats.
         (*(*gcController.lock().unwrap().as_ref().unwrap()).total_alloc.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.elemsize.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))));
                 // Update heapLive.
-        (*gcController.lock().unwrap().as_ref().unwrap()).update(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.elemsize.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))), Arc::new(Mutex::new(Some(0 as i64))));
+        (*gcController.lock().unwrap().as_ref().unwrap()).update(
+            Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.elemsize.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))),
+            Arc::new(Mutex::new(Some(0 as i64))),
+        );
                 // This must clear the entire heap bitmap so that it's safe
                 // to allocate noscan data without writing anything out.
         { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).init_heap_bits(); __result };
@@ -638,11 +653,17 @@ impl crate::mheap::mheap {
                 // gains are almost always worth it. Note: it's important that we
                 // clear even if it's freshly mapped and we know there's no point
                 // to zeroing as *that* is the critical signal to use huge pages.
-        memclr_no_heap_pointers(Arc::new(Mutex::new(Some({ let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result }))), Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.elemsize.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+        memclr_no_heap_pointers(
+            Arc::new(Mutex::new(Some({ let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result }))),
+            Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.elemsize.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))
+        );
         { let new_val = 0 as u8; *{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.needzero.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
         { let new_val = 1 as u16; *{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.free_index_for_scan.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
                 // Set up the range for allocation.
-        { let new_val = make_addr_range(Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().elemsize.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.user_arena_chunk_free.clone()); __ptr_value }.lock().unwrap() = __moved_val; };
+        { let new_val = make_addr_range(
+            Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().elemsize.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })))
+        ); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.user_arena_chunk_free.clone()); __ptr_value }.lock().unwrap() = __moved_val; };
                 // Put the large span in the mcentral swept list so that it's
                 // visible to the background sweeper.
         { let __recv = (*{ let __seq = { let __seq_holder = self.central.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*spc.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.mcentral.lock().unwrap().as_ref().unwrap()).full_swept(Arc::new(Mutex::new(Some({ let __selector_holder = self.sweepgen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __result = (*__recv.as_ref().unwrap().borrow_mut().as_mut().unwrap()).push(s.clone()); __result };
@@ -909,7 +930,10 @@ pub fn user_arena_heap_bits_set_slice_type(typ: GoPtr<internal_abi::r#type::Type
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
         user_arena_heap_bits_set_type(
             typ.clone(),
-            add(Arc::new(Mutex::new(Some({ let __arg_holder = ptr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y })))),
+            add(
+                Arc::new(Mutex::new(Some({ let __arg_holder = ptr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y })))
+            ),
             s.clone()
         );
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -942,7 +966,10 @@ pub fn user_arena_heap_bits_set_type(typ: GoPtr<internal_abi::r#type::Type>, ptr
                 // a dummy type.
         { let new_val = (*h.lock().unwrap().as_ref().unwrap()).write(
             s.clone(),
-            Arc::new(Mutex::new(Some(read_uintptr(addb(p.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y })))))))),
+            Arc::new(Mutex::new(Some(read_uintptr(addb(
+                p.clone(),
+                Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x / __tmp_y })))
+            ))))),
             Arc::new(Mutex::new(Some({ let __arg_holder = k.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
         ); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *h.lock().unwrap() = __moved_val; };
         { let __rhs = PTR_BITS as usize; let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
@@ -960,7 +987,10 @@ pub fn user_arena_heap_bits_set_type(typ: GoPtr<internal_abi::r#type::Type>, ptr
         // to clear. We don't need to do this to clear stale noMorePtrs
         // markers from previous uses because arena chunk pointer bitmaps
         // are always fully cleared when reused.
-    { let new_val = (*h.lock().unwrap().as_ref().unwrap()).pad(s.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *h.lock().unwrap() = __moved_val; };
+    { let new_val = (*h.lock().unwrap().as_ref().unwrap()).pad(
+        s.clone(),
+        Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().size_.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = typ.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }))),
+    ); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *h.lock().unwrap() = __moved_val; };
     (*h.lock().unwrap().as_ref().unwrap()).flush(
         s.clone(),
         Arc::new(Mutex::new(Some((*ptr.lock().unwrap().as_ref().unwrap()) as usize))),

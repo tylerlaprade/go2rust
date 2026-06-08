@@ -342,7 +342,11 @@ impl addrRange {
     /// taken and true.
     pub fn take_from_front(&mut self, len: Arc<Mutex<Option<usize>>>, align: Arc<Mutex<Option<u8>>>) -> (usize, bool) {
         let mut base = Arc::new(Mutex::new(Some({
-            let __tmp_x = align_up(Arc::new(Mutex::new(Some((*self.base.lock().unwrap().as_ref().unwrap()).addr()))), Arc::new(Mutex::new(Some((*align.lock().unwrap().as_ref().unwrap()) as usize))));
+            let __tmp_x =
+                align_up(
+                    Arc::new(Mutex::new(Some((*self.base.lock().unwrap().as_ref().unwrap()).addr()))),
+                    Arc::new(Mutex::new(Some((*align.lock().unwrap().as_ref().unwrap()) as usize)))
+                );
             let __tmp_y = { let __v = (*len.lock().unwrap().as_ref().unwrap()).clone(); __v };
             __tmp_x + __tmp_y
         })));
@@ -360,7 +364,10 @@ impl addrRange {
     /// the limit to align after subtracting len. On success, returns the aligned
     /// start of the region taken and true.
     pub fn take_from_back(&mut self, len: Arc<Mutex<Option<usize>>>, align: Arc<Mutex<Option<u8>>>) -> (usize, bool) {
-        let mut limit = align_down(Arc::new(Mutex::new(Some({ let __tmp_x = (*self.limit.lock().unwrap().as_ref().unwrap()).addr(); let __tmp_y = { let __v = (*len.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))), Arc::new(Mutex::new(Some((*align.lock().unwrap().as_ref().unwrap()) as usize))));
+        let mut limit = align_down(
+            Arc::new(Mutex::new(Some({ let __tmp_x = (*self.limit.lock().unwrap().as_ref().unwrap()).addr(); let __tmp_y = { let __v = (*len.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))),
+            Arc::new(Mutex::new(Some((*align.lock().unwrap().as_ref().unwrap()) as usize)))
+        );
         if { let __tmp_x = (*self.base.lock().unwrap().as_ref().unwrap()).addr(); let __tmp_y = limit; __tmp_x > __tmp_y } {
         return (0, false);
     }
@@ -377,7 +384,10 @@ impl addrRange {
         if (*self.limit.lock().unwrap().as_ref().unwrap()).less_equal(Arc::new(Mutex::new(Some(offAddr { a: Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })))) {
         return Arc::new(Mutex::new(Some(self.clone())));
     }
-        make_addr_range(Arc::new(Mutex::new(Some((*self.base.lock().unwrap().as_ref().unwrap()).addr()))), Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))
+        make_addr_range(
+            Arc::new(Mutex::new(Some((*self.base.lock().unwrap().as_ref().unwrap()).addr()))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        )
     }
 }
 
@@ -440,7 +450,10 @@ impl atomicOffAddr {
         if { let __tmp_x = old; let __tmp_y = 0 as i64; __tmp_x < __tmp_y } {
         return;
     }
-        if (*self.a.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some(old))), Arc::new(Mutex::new(Some(({ let __tmp_x = (*minOffAddr.lock().unwrap().as_ref().unwrap()).addr(); let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x - __tmp_y }) as i64)))) {
+        if (*self.a.lock().unwrap().as_mut().unwrap()).compare_and_swap(
+            Arc::new(Mutex::new(Some(old))),
+            Arc::new(Mutex::new(Some(({ let __tmp_x = (*minOffAddr.lock().unwrap().as_ref().unwrap()).addr(); let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x - __tmp_y }) as i64))),
+        ) {
         return;
     }
     }
@@ -466,7 +479,10 @@ impl atomicOffAddr {
     /// returned by Load. This function will not store newAddr if the
     /// box no longer contains markedAddr.
     pub fn store_unmark(&self, markedAddr: Arc<Mutex<Option<usize>>>, newAddr: Arc<Mutex<Option<usize>>>) {
-        (*self.a.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some(-(({ let __tmp_x = { let __v = (*markedAddr.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x - __tmp_y }) as i64)))), Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*newAddr.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x - __tmp_y }) as i64))));
+        (*self.a.lock().unwrap().as_mut().unwrap()).compare_and_swap(
+            Arc::new(Mutex::new(Some(-(({ let __tmp_x = { let __v = (*markedAddr.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x - __tmp_y }) as i64)))),
+            Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*newAddr.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ARENA_BASE_OFFSET as usize; __tmp_x - __tmp_y }) as i64))),
+        );
     }
 
     /// StoreMarked stores addr but first converted to the offset address

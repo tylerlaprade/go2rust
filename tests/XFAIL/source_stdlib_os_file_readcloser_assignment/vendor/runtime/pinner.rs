@@ -308,7 +308,10 @@ impl pinnerBits {
 
 impl crate::mheap::mspan {
     pub fn pinner_bit_size(&self) -> usize {
-        div_round_up(Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.nelems.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x * __tmp_y }))), Arc::new(Mutex::new(Some(8 as usize))))
+        div_round_up(
+            Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.nelems.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x * __tmp_y }))),
+            Arc::new(Mutex::new(Some(8 as usize)))
+        )
     }
 
     /// newPinnerBits returns a pointer to 8 byte aligned bytes to be used for this
@@ -326,7 +329,10 @@ impl crate::mheap::mspan {
     }
 
     pub fn set_pinner_bits(&self, p: GoPtr<pinnerBits>) {
-        atomicstorep(Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(self.pinner_bits.clone())))) as usize))), Arc::new(Mutex::new(Some(p.addr()))));
+        atomicstorep(
+            Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(self.pinner_bits.clone())))) as usize))),
+            Arc::new(Mutex::new(Some(p.addr())))
+        );
     }
 
     /// refreshPinnerBits replaces pinnerBits with a fresh copy in the arenas for the
@@ -338,7 +344,10 @@ impl crate::mheap::mspan {
         return;
     }
         let mut hasPins = Arc::new(Mutex::new(Some(false)));
-        let mut bytes = align_up(Arc::new(Mutex::new(Some(self.pinner_bit_size()))), Arc::new(Mutex::new(Some(8 as usize))));
+        let mut bytes = align_up(
+            Arc::new(Mutex::new(Some(self.pinner_bit_size()))),
+            Arc::new(Mutex::new(Some(8 as usize)))
+        );
                 // Iterate over each 8-byte chunk and check for pins. Note that
                 // newPinnerBits guarantees that pinnerBits will be 8-byte aligned, so we
                 // don't have to worry about edge cases, irrelevant bits will simply be

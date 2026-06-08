@@ -52,7 +52,10 @@ pub fn gogetenv(key: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
         throw(Arc::new(Mutex::new(Some("getenv before env init".to_string()))));
     }
     { let __range_holder = env.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for s in __range_values.iter() {
-        if { let __tmp_x = (s.len() as i32); let __tmp_y = ((*key.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x > __tmp_y } && { let __tmp_x = { let __s = &(s); __s.as_bytes()[((*key.lock().unwrap().as_ref().unwrap()).len()) as usize] }; let __tmp_y = ('=' as i32) as u8; __tmp_x == __tmp_y } && env_key_equal(Arc::new(Mutex::new(Some({ let __s = &(s); let __high = ((*key.lock().unwrap().as_ref().unwrap()).len()) as usize; __s[..__high].to_string() }))), Arc::new(Mutex::new(Some({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
+        if { let __tmp_x = (s.len() as i32); let __tmp_y = ((*key.lock().unwrap().as_ref().unwrap()).len() as i32); __tmp_x > __tmp_y } && { let __tmp_x = { let __s = &(s); __s.as_bytes()[((*key.lock().unwrap().as_ref().unwrap()).len()) as usize] }; let __tmp_y = ('=' as i32) as u8; __tmp_x == __tmp_y } && env_key_equal(
+            Arc::new(Mutex::new(Some({ let __s = &(s); let __high = ((*key.lock().unwrap().as_ref().unwrap()).len()) as usize; __s[..__high].to_string() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = key.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        ) {
         return Arc::new(Mutex::new(Some({ let __s = &(s); let __low = ({ let __tmp_x = ((*key.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() })));
     }
     } }

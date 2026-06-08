@@ -291,7 +291,10 @@ impl hchan {
 ///
 ///go:linkname chanbuf
 pub fn chanbuf(c: GoPtr<hchan>, i: Arc<Mutex<Option<u64>>>) -> Arc<Mutex<Option<usize>>> {
-    add(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.buf.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.elemsize.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }))))
+    add(
+        Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.buf.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+        Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*i.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.elemsize.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y })))
+    )
 }
 
 /// full reports whether a send on c would block (that is, the channel is full).
@@ -476,7 +479,10 @@ pub fn chansend(c: Arc<Mutex<Option<hchan>>>, ep: Arc<Mutex<Option<usize>>>, blo
     let mut closed = Arc::new(Mutex::new(Some(!(*{ let __field = (*mysg.lock().unwrap().as_ref().unwrap()).success.clone(); __field }.lock().unwrap().as_ref().unwrap()))));
     *(*gp.lock().unwrap().as_ref().unwrap()).param.lock().unwrap() = None;
     if { let __tmp_x = (*{ let __field = (*mysg.lock().unwrap().as_ref().unwrap()).releasetime.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i64; __tmp_x > __tmp_y } {
-        blockevent(Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*mysg.lock().unwrap().as_ref().unwrap()).releasetime.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*t0.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))), Arc::new(Mutex::new(Some(2))));
+        blockevent(
+            Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*mysg.lock().unwrap().as_ref().unwrap()).releasetime.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*t0.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))),
+            Arc::new(Mutex::new(Some(2)))
+        );
     }
     *(*mysg.lock().unwrap().as_ref().unwrap()).c.lock().unwrap() = None;
     release_sudog(mysg.clone());
@@ -539,7 +545,10 @@ pub fn send(c: Arc<Mutex<Option<hchan>>>, sg: GoPtr<crate::runtime2::sudog>, ep:
     if { let __tmp_x = (*{ let __ptr_value = sg.borrow(); __ptr_value.as_ref().unwrap().releasetime.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i64; __tmp_x != __tmp_y } {
         { let new_val = cputicks(); *{ let __ptr_value = sg.with_mut(|__ptr_value| __ptr_value.releasetime.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
     }
-    goready(GoPtr::local(gp.clone()), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*skip.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }))));
+    goready(
+        GoPtr::local(gp.clone()),
+        Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*skip.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y })))
+    );
 }
 
 /// timerchandrain removes all elements in channel c's buffer.
@@ -560,7 +569,10 @@ pub fn timerchandrain(c: GoPtr<hchan>) -> bool {
     let mut any = Arc::new(Mutex::new(Some(false)));
     while { let __tmp_x = (*{ let __ptr_value = c.borrow(); __ptr_value.as_ref().unwrap().qcount.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u64; __tmp_x > __tmp_y } {
         { let new_val = true; *any.lock().unwrap() = Some(new_val); };
-        typedmemclr({ let __field = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.elemtype.clone()); __ptr_value }.clone(); __field }, chanbuf(c.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.recvx.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))));
+        typedmemclr(
+            { let __field = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.elemtype.clone()); __ptr_value }.clone(); __field },
+            chanbuf(c.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.recvx.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))))
+        );
         { let __target = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.recvx.clone()); __ptr_value }.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         if { let __tmp_x = (*{ let __ptr_value = c.borrow(); __ptr_value.as_ref().unwrap().recvx.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = c.borrow(); __ptr_value.as_ref().unwrap().dataqsiz.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } {
         { let new_val = 0 as u64; *{ let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.recvx.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
@@ -830,7 +842,10 @@ pub fn chanrecv(c: Arc<Mutex<Option<hchan>>>, ep: Arc<Mutex<Option<usize>>>, blo
     *(*gp.lock().unwrap().as_ref().unwrap()).waiting.lock().unwrap() = None;
     { let new_val = false; *(*gp.lock().unwrap().as_ref().unwrap()).active_stack_chans.lock().unwrap() = Some(new_val); };
     if { let __tmp_x = (*{ let __field = (*mysg.lock().unwrap().as_ref().unwrap()).releasetime.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i64; __tmp_x > __tmp_y } {
-        blockevent(Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*mysg.lock().unwrap().as_ref().unwrap()).releasetime.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*t0.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))), Arc::new(Mutex::new(Some(2))));
+        blockevent(
+            Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*mysg.lock().unwrap().as_ref().unwrap()).releasetime.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*t0.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))),
+            Arc::new(Mutex::new(Some(2)))
+        );
     }
     let mut success = Arc::new(Mutex::new(Some({ let __selector_holder = (*mysg.lock().unwrap().as_ref().unwrap()).success.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     *(*gp.lock().unwrap().as_ref().unwrap()).param.lock().unwrap() = None;
@@ -912,7 +927,10 @@ pub fn recv(c: Arc<Mutex<Option<hchan>>>, sg: GoPtr<crate::runtime2::sudog>, ep:
     if { let __tmp_x = (*{ let __ptr_value = sg.borrow(); __ptr_value.as_ref().unwrap().releasetime.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i64; __tmp_x != __tmp_y } {
         { let new_val = cputicks(); *{ let __ptr_value = sg.with_mut(|__ptr_value| __ptr_value.releasetime.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
     }
-    goready(GoPtr::local(gp.clone()), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*skip.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }))));
+    goready(
+        GoPtr::local(gp.clone()),
+        Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*skip.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y })))
+    );
 }
 
 pub fn chanparkcommit(gp: Arc<Mutex<Option<g>>>, chanLock: Arc<Mutex<Option<usize>>>) -> bool {
@@ -939,8 +957,14 @@ pub fn chanparkcommit(gp: Arc<Mutex<Option<g>>>, chanLock: Arc<Mutex<Option<usiz
 
 pub fn racesync(c: Arc<Mutex<Option<hchan>>>, sg: GoPtr<crate::runtime2::sudog>) {
     racerelease(chanbuf(GoPtr::local(c.clone()), Arc::new(Mutex::new(Some(0 as u64)))));
-    raceacquireg({ let __field = { let __ptr_value = sg.with_mut(|__ptr_value| __ptr_value.g.clone()); __ptr_value }.clone(); __field }, chanbuf(GoPtr::local(c.clone()), Arc::new(Mutex::new(Some(0 as u64)))));
-    racereleaseg({ let __field = { let __ptr_value = sg.with_mut(|__ptr_value| __ptr_value.g.clone()); __ptr_value }.clone(); __field }, chanbuf(GoPtr::local(c.clone()), Arc::new(Mutex::new(Some(0 as u64)))));
+    raceacquireg(
+        { let __field = { let __ptr_value = sg.with_mut(|__ptr_value| __ptr_value.g.clone()); __ptr_value }.clone(); __field },
+        chanbuf(GoPtr::local(c.clone()), Arc::new(Mutex::new(Some(0 as u64))))
+    );
+    racereleaseg(
+        { let __field = { let __ptr_value = sg.with_mut(|__ptr_value| __ptr_value.g.clone()); __ptr_value }.clone(); __field },
+        chanbuf(GoPtr::local(c.clone()), Arc::new(Mutex::new(Some(0 as u64))))
+    );
     raceacquire(chanbuf(GoPtr::local(c.clone()), Arc::new(Mutex::new(Some(0 as u64)))));
 }
 

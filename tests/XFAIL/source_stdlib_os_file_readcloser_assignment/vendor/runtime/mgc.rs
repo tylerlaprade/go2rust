@@ -2271,7 +2271,10 @@ pub fn gc_start(trigger: Arc<Mutex<Option<gcTrigger>>>) {
                 // Use maxprocs instead of stwprocs here because the total time
                 // computed in the CPU stats is based on maxprocs, and we want them
                 // to be comparable.
-        (*(*work.lock().unwrap().as_ref().unwrap()).cpu_stats.lock().unwrap().as_mut().unwrap()).accumulate_g_c_pause_time(Arc::new(Mutex::new(Some({ let __tmp_x = nanotime(); let __tmp_y = (*{ let __field = (*stw.lock().unwrap().as_ref().unwrap()).finished_stopping.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).maxprocs.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+        (*(*work.lock().unwrap().as_ref().unwrap()).cpu_stats.lock().unwrap().as_mut().unwrap()).accumulate_g_c_pause_time(
+            Arc::new(Mutex::new(Some({ let __tmp_x = nanotime(); let __tmp_y = (*{ let __field = (*stw.lock().unwrap().as_ref().unwrap()).finished_stopping.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }))),
+            Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).maxprocs.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+        );
 
                 // Concurrent mark.
         let mut now_closure_clone = now.clone(); let stw_closure_clone = stw.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
@@ -2364,14 +2367,17 @@ pub fn gc_mark_done() {
 
                 // Flush all local buffers and collect flushedWork flags.
         { let new_val = 0 as u32; *gcMarkDoneFlushed.lock().unwrap() = Some(new_val); };
-        for_each_p(Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_G_C_MARK_TERMINATION as u8))))))), Arc::new(Mutex::new(Some(Box::new(move |pp: GoPtr<crate::runtime2::p>| {
+        for_each_p(
+            Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_G_C_MARK_TERMINATION as u8))))))),
+            Arc::new(Mutex::new(Some(Box::new(move |pp: GoPtr<crate::runtime2::p>| {
         wb_buf_flush1(pp.clone());
         (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.gcw.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).dispose();
         if (*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.gcw.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).flushed_work.lock().unwrap().as_ref().unwrap()) {
         internal_runtime_atomic::xadd(internal_runtime_atomic::GoPtr::local(gcMarkDoneFlushed.clone()), Arc::new(Mutex::new(Some(1 as i32))));
         { let new_val = false; *(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.gcw.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).flushed_work.lock().unwrap() = Some(new_val); };
     }
-    }) as Box<dyn FnMut(GoPtr<crate::runtime2::p>) -> () + Send + Sync>))));
+    }) as Box<dyn FnMut(GoPtr<crate::runtime2::p>) -> () + Send + Sync>)))
+        );
 
                 // Flush the write barrier buffer, since this may add
                 // work to the gcWork.
@@ -2441,7 +2447,10 @@ pub fn gc_mark_done() {
         { let new_val = true; *(*gcDebugMarkDone.lock().unwrap().as_ref().unwrap()).restarted_due_to27993.lock().unwrap() = Some(new_val); };
         { let new_val = "".to_string(); *(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).preemptoff.lock().unwrap() = Some(new_val); };
         let stw_closure_clone = stw.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
-        (*(*work.lock().unwrap().as_ref().unwrap()).cpu_stats.lock().unwrap().as_mut().unwrap()).accumulate_g_c_pause_time(Arc::new(Mutex::new(Some({ let __tmp_x = nanotime(); let __tmp_y = (*{ let __field = (*stw_closure_clone.lock().unwrap().as_ref().unwrap()).finished_stopping.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).maxprocs.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+        (*(*work.lock().unwrap().as_ref().unwrap()).cpu_stats.lock().unwrap().as_mut().unwrap()).accumulate_g_c_pause_time(
+            Arc::new(Mutex::new(Some({ let __tmp_x = nanotime(); let __tmp_y = (*{ let __field = (*stw_closure_clone.lock().unwrap().as_ref().unwrap()).finished_stopping.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }))),
+            Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).maxprocs.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+        );
         let mut now = start_the_world_with_sema(Arc::new(Mutex::new(Some(0 as i64))), Arc::new(Mutex::new(Some({ let __arg_holder = stw_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         { let __target = (*work.lock().unwrap().as_ref().unwrap()).pause_n_s.clone(); let __rhs = { let __tmp_x = now; let __tmp_y = (*{ let __field = (*stw_closure_clone.lock().unwrap().as_ref().unwrap()).started_stopping.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
@@ -2602,7 +2611,10 @@ pub fn gc_mark_termination(stw: Arc<Mutex<Option<worldStop>>>) {
         //
         // Pass gcMarkPhase=true to accumulate so we can get all the latest GC CPU stats
         // in there too.
-    (*(*work.lock().unwrap().as_ref().unwrap()).cpu_stats.lock().unwrap().as_mut().unwrap()).accumulate_g_c_pause_time(Arc::new(Mutex::new(Some({ let __tmp_x = now; let __tmp_y = (*{ let __field = (*stw.lock().unwrap().as_ref().unwrap()).finished_stopping.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).maxprocs.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+    (*(*work.lock().unwrap().as_ref().unwrap()).cpu_stats.lock().unwrap().as_mut().unwrap()).accumulate_g_c_pause_time(
+        Arc::new(Mutex::new(Some({ let __tmp_x = now; let __tmp_y = (*{ let __field = (*stw.lock().unwrap().as_ref().unwrap()).finished_stopping.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }))),
+        Arc::new(Mutex::new(Some({ let __selector_holder = (*work.lock().unwrap().as_ref().unwrap()).maxprocs.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+    );
     (*(*work.lock().unwrap().as_ref().unwrap()).cpu_stats.lock().unwrap().as_mut().unwrap()).accumulate(Arc::new(Mutex::new(Some(now))), Arc::new(Mutex::new(Some(true))));
 
         // Compute overall GC CPU utilization.
@@ -2707,7 +2719,9 @@ pub fn gc_mark_termination(stw: Arc<Mutex<Option<worldStop>>>) {
         //
         // Also, flush the pinner cache, to avoid leaking that memory
         // indefinitely.
-    for_each_p(Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_FLUSH_PROC_CACHES as u8))))))), Arc::new(Mutex::new(Some(Box::new(move |pp: GoPtr<crate::runtime2::p>| {
+    for_each_p(
+        Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_FLUSH_PROC_CACHES as u8))))))),
+        Arc::new(Mutex::new(Some(Box::new(move |pp: GoPtr<crate::runtime2::p>| {
         { let __recv_field = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.mcache.clone()); __ptr_value }.clone(); let __result = __recv_field.with_mut(|__recv_value| __recv_value.prepare_for_sweep()); __result };
         if { let __tmp_x = (*{ let __ptr_value = pp.borrow(); __ptr_value.as_ref().unwrap().status.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __PIDLE as u32; __tmp_x == __tmp_y } {
         let pp_closure_clone = pp.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
@@ -2717,7 +2731,8 @@ pub fn gc_mark_termination(stw: Arc<Mutex<Option<worldStop>>>) {
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
     }
         *{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.pinner_cache.clone()); __ptr_value }.lock().unwrap() = None;
-    }) as Box<dyn FnMut(GoPtr<crate::runtime2::p>) -> () + Send + Sync>))));
+    }) as Box<dyn FnMut(GoPtr<crate::runtime2::p>) -> () + Send + Sync>)))
+    );
     if (*{ let __field = (*sl.lock().unwrap().as_ref().unwrap()).valid.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
                 // Now that we've swept stale spans in mcaches, they don't
                 // count against unswept spans.
@@ -2777,20 +2792,23 @@ pub fn gc_mark_termination(stw: Arc<Mutex<Option<worldStop>>>) {
         };
     }
         {
-            let __go_print_arg_0 = format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8((*fmt_n_s_as_m_s(Arc::new(Mutex::new(Some({
-                let __seq_holder = sbuf.clone();
-                let __seq_guard = __seq_holder.lock().unwrap();
-                let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
-                let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
-                drop(__seq_guard);
-                let __low = 0;
-                let __high = __seq.len();
-                let __max = __source_cap;
-                let _slice = &__seq[__low..__high];
-                let mut _v = Vec::with_capacity((__max - __low) as usize);
-                _v.extend_from_slice(_slice);
-                _v
-            }))), Arc::new(Mutex::new(Some(({ let __tmp_x = ns; let __tmp_y = { let __v = (*prev.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }) as u64)))).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_0 = format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8((*fmt_n_s_as_m_s(
+                Arc::new(Mutex::new(Some({
+                    let __seq_holder = sbuf.clone();
+                    let __seq_guard = __seq_holder.lock().unwrap();
+                    let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+                    let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+                    drop(__seq_guard);
+                    let __low = 0;
+                    let __high = __seq.len();
+                    let __max = __source_cap;
+                    let _slice = &__seq[__low..__high];
+                    let mut _v = Vec::with_capacity((__max - __low) as usize);
+                    _v.extend_from_slice(_slice);
+                    _v
+                }))),
+                Arc::new(Mutex::new(Some(({ let __tmp_x = ns; let __tmp_y = { let __v = (*prev.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }) as u64)))
+            ).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap()));
             eprint!("{}", __go_print_arg_0)
         };
         { let new_val = ns.clone(); *prev.lock().unwrap() = Some(new_val); };
@@ -2832,20 +2850,23 @@ pub fn gc_mark_termination(stw: Arc<Mutex<Option<worldStop>>>) {
     }
                 // Separate mark time components with /.
         {
-            let __go_print_arg_0 = format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8((*fmt_n_s_as_m_s(Arc::new(Mutex::new(Some({
-                let __seq_holder = sbuf.clone();
-                let __seq_guard = __seq_holder.lock().unwrap();
-                let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
-                let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
-                drop(__seq_guard);
-                let __low = 0;
-                let __high = __seq.len();
-                let __max = __source_cap;
-                let _slice = &__seq[__low..__high];
-                let mut _v = Vec::with_capacity((__max - __low) as usize);
-                _v.extend_from_slice(_slice);
-                _v
-            }))), Arc::new(Mutex::new(Some(ns as u64)))).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_0 = format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8((*fmt_n_s_as_m_s(
+                Arc::new(Mutex::new(Some({
+                    let __seq_holder = sbuf.clone();
+                    let __seq_guard = __seq_holder.lock().unwrap();
+                    let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+                    let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+                    drop(__seq_guard);
+                    let __low = 0;
+                    let __high = __seq.len();
+                    let __max = __source_cap;
+                    let _slice = &__seq[__low..__high];
+                    let mut _v = Vec::with_capacity((__max - __low) as usize);
+                    _v.extend_from_slice(_slice);
+                    _v
+                }))),
+                Arc::new(Mutex::new(Some(ns as u64)))
+            ).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap()));
             eprint!("{}", __go_print_arg_0)
         };
     }
@@ -3104,7 +3125,10 @@ pub fn gc_bg_mark_worker(ready: GoChannel<AnonymousStruct12>) {
         let (mut drainQ, mut n) = runqdrain(pp_closure_clone.clone());;
         if { let __tmp_x = n; let __tmp_y = 0 as u32; __tmp_x > __tmp_y } {
             lock(GoPtr::local((*sched.lock().unwrap().as_ref().unwrap()).lock.clone()));;
-            globrunqputbatch(drainQ.clone(), Arc::new(Mutex::new(Some(n as i32))));;
+            globrunqputbatch(
+                drainQ.clone(),
+                Arc::new(Mutex::new(Some(n as i32)))
+            );;
             unlock(GoPtr::local((*sched.lock().unwrap().as_ref().unwrap()).lock.clone()));;
         }
     }

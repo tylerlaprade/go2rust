@@ -221,7 +221,10 @@ pub fn netpoll(delay: Arc<Mutex<Option<i64>>>) -> (Arc<Mutex<Option<crate::proc:
     }
                 // No sequence protection on 32-bit systems.
                 // See netpollopen for details.
-        { let __recv_value = pd.borrow(); let __result = (*__recv_value.as_ref().unwrap()).set_event_err(Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*ev.as_ref().unwrap().borrow().as_ref().unwrap()).flags.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __E_V__E_R_R_O_R as u16; __tmp_x == __tmp_y }))), Arc::new(Mutex::new(Some({ let __arg_holder = tag.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); __result };
+        { let __recv_value = pd.borrow(); let __result = (*__recv_value.as_ref().unwrap()).set_event_err(
+            Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*ev.as_ref().unwrap().borrow().as_ref().unwrap()).flags.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __E_V__E_R_R_O_R as u16; __tmp_x == __tmp_y }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = tag.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        ); __result };
         { let __rhs = netpollready(toRun.clone(), pd.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = mode.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let mut guard = delta.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }

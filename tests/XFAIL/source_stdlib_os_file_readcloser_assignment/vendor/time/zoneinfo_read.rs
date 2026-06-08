@@ -1192,7 +1192,10 @@ pub fn load_location_1(name: Arc<Mutex<Option<String>>>, sources: Arc<Mutex<Opti
         let (mut zoneData, mut err) = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync> = { let mut __f_guard = loadFromEmbeddedTZData.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<String>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) };
         if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } {
         {
-        { let (__tmp_0, __tmp_1) = load_location_from_t_z_data(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(({ let __v = (*zoneData.lock().unwrap().as_ref().unwrap()).clone(); __v }).as_bytes().to_vec())))); z = __tmp_0.clone(); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };;
+        { let (__tmp_0, __tmp_1) = load_location_from_t_z_data(
+            Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(({ let __v = (*zoneData.lock().unwrap().as_ref().unwrap()).clone(); __v }).as_bytes().to_vec())))
+        ); z = __tmp_0.clone(); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };;
         if { let __nil_result = (*err.lock().unwrap()).is_none(); __nil_result } {
             return (z.clone(), Arc::new(Mutex::new(None)));;
         }
@@ -1269,20 +1272,23 @@ pub fn read_file(name: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<Vec<u8>>
     }));
         let mut buf: Arc<Mutex<Option<[u8; 4096]>>> = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));let mut ret: Arc<Mutex<Option<Vec<u8>>>> = Arc::new(Mutex::new(None));let mut n: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
         loop {
-        { let (__tmp_0, __tmp_1) = read(Arc::new(Mutex::new(Some(f))), Arc::new(Mutex::new(Some({
-            let __seq_holder = buf.clone();
-            let __seq_guard = __seq_holder.lock().unwrap();
-            let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
-            let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
-            drop(__seq_guard);
-            let __low = 0;
-            let __high = __seq.len();
-            let __max = __source_cap;
-            let _slice = &__seq[__low..__high];
-            let mut _v = Vec::with_capacity((__max - __low) as usize);
-            _v.extend_from_slice(_slice);
-            _v
-        })))); *n.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
+        { let (__tmp_0, __tmp_1) = read(
+            Arc::new(Mutex::new(Some(f))),
+            Arc::new(Mutex::new(Some({
+                let __seq_holder = buf.clone();
+                let __seq_guard = __seq_holder.lock().unwrap();
+                let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+                let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+                drop(__seq_guard);
+                let __low = 0;
+                let __high = __seq.len();
+                let __max = __source_cap;
+                let _slice = &__seq[__low..__high];
+                let mut _v = Vec::with_capacity((__max - __low) as usize);
+                _v.extend_from_slice(_slice);
+                _v
+            })))
+        ); *n.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
         { let new_val = { let __append_target = ret.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend({ let __slice_holder = Arc::new(Mutex::new(Some({
             let __seq_holder = buf.clone();

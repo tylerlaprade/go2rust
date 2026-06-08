@@ -985,7 +985,10 @@ impl UnsafePointer {
     ///
     ///go:nosplit
     pub fn store_no_w_b(&self, value: Arc<Mutex<Option<usize>>>) {
-        storep_no_w_b(Arc::new(Mutex::new(Some(Arc::as_ptr(&self.value.clone()) as usize))), Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        storep_no_w_b(
+            Arc::new(Mutex::new(Some(Arc::as_ptr(&self.value.clone()) as usize))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        );
     }
 
     /// Store updates the value atomically.
@@ -1058,7 +1061,10 @@ impl<T: Any + Send + Sync + 'static> Pointer<T> {
     ///
     ///go:nosplit
     pub fn compare_and_swap_no_w_b(&self, old: Arc<Mutex<Option<T>>>, new: Arc<Mutex<Option<T>>>) -> bool {
-        (*self.u.lock().unwrap().as_mut().unwrap()).compare_and_swap_no_w_b(Arc::new(Mutex::new(Some(Arc::as_ptr(&old) as usize))), Arc::new(Mutex::new(Some(Arc::as_ptr(&new) as usize))))
+        (*self.u.lock().unwrap().as_mut().unwrap()).compare_and_swap_no_w_b(
+            Arc::new(Mutex::new(Some(Arc::as_ptr(&old) as usize))),
+            Arc::new(Mutex::new(Some(Arc::as_ptr(&new) as usize))),
+        )
     }
 
     /// CompareAndSwap atomically (with respect to other methods)
@@ -1066,7 +1072,10 @@ impl<T: Any + Send + Sync + 'static> Pointer<T> {
     /// swaps u's value with new.
     /// It reports whether the swap ran.
     pub fn compare_and_swap(&self, old: Arc<Mutex<Option<T>>>, new: GoPtr<T>) -> bool {
-        (*self.u.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some(Arc::as_ptr(&old) as usize))), Arc::new(Mutex::new(Some(new.addr()))))
+        (*self.u.lock().unwrap().as_mut().unwrap()).compare_and_swap(
+            Arc::new(Mutex::new(Some(Arc::as_ptr(&old) as usize))),
+            Arc::new(Mutex::new(Some(new.addr()))),
+        )
     }
 }
 

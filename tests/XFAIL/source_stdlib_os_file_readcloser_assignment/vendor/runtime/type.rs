@@ -237,11 +237,17 @@ impl rtype {
     }
 
     pub fn name_off(&self, off: nameOff) -> Arc<Mutex<Option<internal_abi::r#type::Name>>> {
-        resolve_name_off(Arc::new(Mutex::new(Some(self.r#type.addr()))), Arc::new(Mutex::new(Some({ let __arg_holder = off.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))
+        resolve_name_off(
+            Arc::new(Mutex::new(Some(self.r#type.addr()))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = off.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        )
     }
 
     pub fn type_off(&self, off: typeOff) -> GoPtr<internal_abi::r#type::Type> {
-        resolve_type_off(Arc::new(Mutex::new(Some(self.r#type.addr()))), Arc::new(Mutex::new(Some({ let __arg_holder = off.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))
+        resolve_type_off(
+            Arc::new(Mutex::new(Some(self.r#type.addr()))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = off.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        )
     }
 
     pub fn text_off(&self, off: textOff) -> Arc<Mutex<Option<usize>>> {
@@ -409,7 +415,10 @@ impl bitCursor {
     /// Requires cnt>0.
     pub fn write(&self, mut data: GoPtr<u8>, mut cnt: Arc<Mutex<Option<usize>>>) {
                 // Starting byte for writing.
-        let mut p: GoPtr<u8> = addb(self.ptr.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = (*self.n.lock().unwrap().as_ref().unwrap()); let __tmp_y = 8 as usize; __tmp_x / __tmp_y }))));
+        let mut p: GoPtr<u8> = addb(
+            self.ptr.clone(),
+            Arc::new(Mutex::new(Some({ let __tmp_x = (*self.n.lock().unwrap().as_ref().unwrap()); let __tmp_y = 8 as usize; __tmp_x / __tmp_y })))
+        );
                 // Note: if we're starting halfway through a byte, we load the
                 // existing lower bits so we don't clobber them.
         let mut n = Arc::new(Mutex::new(Some({ let __tmp_x = (*self.n.lock().unwrap().as_ref().unwrap()); let __tmp_y = 8 as usize; __tmp_x % __tmp_y })));
@@ -480,7 +489,10 @@ pub fn get_g_c_mask_on_demand(t: GoPtr<internal_abi::r#type::Type>) -> GoPtr<u8>
     let mut addr = Arc::new(Mutex::new(Some({ let __ptr_value = t.with_mut(|__ptr_value| __ptr_value.g_c_data.clone()); __ptr_value }.addr())));
 
     if { let __tmp_x = "darwin".to_string(); let __tmp_y = "aix".to_string(); __tmp_x == __tmp_y } {
-        { let new_val = add(Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*firstmoduledata.lock().unwrap().as_ref().unwrap()).data.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*aixStaticDataBase.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *addr.lock().unwrap() = __moved_val; };
+        { let new_val = add(
+            Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*firstmoduledata.lock().unwrap().as_ref().unwrap()).data.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*aixStaticDataBase.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })))
+        ); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *addr.lock().unwrap() = __moved_val; };
     }
 
     loop {
@@ -499,12 +511,19 @@ pub fn get_g_c_mask_on_demand(t: GoPtr<internal_abi::r#type::Type>) -> GoPtr<u8>
                         // Build gcmask for this type.
             let mut bytes = Arc::new(Mutex::new(Some({
                 let __tmp_x = internal_goarch::PTR_SIZE as usize;
-                let __tmp_y = div_round_up(Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __ptr_value = t.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }))), Arc::new(Mutex::new(Some(((8 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize))));
+                let __tmp_y =
+                    div_round_up(
+                        Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __ptr_value = t.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }))),
+                        Arc::new(Mutex::new(Some(((8 as usize) * (internal_goarch::PTR_SIZE as usize)) as usize)))
+                    );
                 __tmp_x * __tmp_y
             })));
             p = GoPtr::raw({ let __ptr = persistentalloc(Arc::new(Mutex::new(Some({ let __arg_holder = bytes.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))), (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone()).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
             let p_closure_clone = p.clone(); let t_closure_clone = t.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
-        build_g_c_mask(t_closure_clone.clone(), Arc::new(Mutex::new(Some(bitCursor { ptr: p_closure_clone.clone(), n: Arc::new(Mutex::new(Some(0 as usize))), ..Default::default() }))));
+        build_g_c_mask(
+            t_closure_clone.clone(),
+            Arc::new(Mutex::new(Some(bitCursor { ptr: p_closure_clone.clone(), n: Arc::new(Mutex::new(Some(0 as usize))), ..Default::default() })))
+        );
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
                         // Store the newly-built gcmask for future callers.
             internal_runtime_atomic::storep_no_w_b(Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(p.addr()))));
@@ -536,7 +555,10 @@ pub fn build_g_c_mask(mut t: GoPtr<internal_abi::r#type::Type>, mut dst: Arc<Mut
             __tmp_x == __tmp_y
         } {
                 // copy t.GCData to dst
-        (*dst.lock().unwrap().as_ref().unwrap()).write({ let __go_ptr = { let __ptr_value = t.with_mut(|__ptr_value| __ptr_value.g_c_data.clone()); __ptr_value }.clone(); match __go_ptr { internal_abi::GoPtr::Nil => GoPtr::nil(), internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()), internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr), internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }, Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __ptr_value = t.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }))));
+        (*dst.lock().unwrap().as_ref().unwrap()).write(
+            { let __go_ptr = { let __ptr_value = t.with_mut(|__ptr_value| __ptr_value.g_c_data.clone()); __ptr_value }.clone(); match __go_ptr { internal_abi::GoPtr::Nil => GoPtr::nil(), internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()), internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr), internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } },
+            Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __ptr_value = t.borrow(); __ptr_value.as_ref().unwrap().ptr_bytes.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }))),
+        );
         return;
     }
 
@@ -583,7 +605,10 @@ pub fn build_g_c_mask(mut t: GoPtr<internal_abi::r#type::Type>, mut dst: Arc<Mut
                 // Avoid recursive call for field type that
                 // is larger than half of the parent type.
                 // There can be only one.
-        build_g_c_mask(GoPtr::local(ft.clone()), (*dst.lock().unwrap().as_ref().unwrap()).offset(Arc::new(Mutex::new(Some({ let __tmp_x = (*f.offset.lock().unwrap().as_ref().unwrap()); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y })))));
+        build_g_c_mask(
+            GoPtr::local(ft.clone()),
+            (*dst.lock().unwrap().as_ref().unwrap()).offset(Arc::new(Mutex::new(Some({ let __tmp_x = (*f.offset.lock().unwrap().as_ref().unwrap()); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }))))
+        );
     } }
                         // Avoid recursive call for field type that
                         // is larger than half of the parent type.
@@ -785,7 +810,10 @@ pub fn pkg_path(n: name) -> Arc<Mutex<Option<String>>> {
         }
         Arc::new(Mutex::new(Some(_n as i32)))
     };
-    let mut pkgPathName = resolve_name_off(Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()).bytes.addr()))), Arc::new(Mutex::new(Some({ let __arg_holder = nameOff.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    let mut pkgPathName = resolve_name_off(
+        Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()).bytes.addr()))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = nameOff.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+    );
     return (*pkgPathName.lock().unwrap().as_ref().unwrap()).name();
 }
 

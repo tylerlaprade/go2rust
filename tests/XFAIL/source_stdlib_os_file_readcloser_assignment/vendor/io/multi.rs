@@ -246,7 +246,10 @@ impl multiReader {
     let mut sum: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
     let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
-        self.write_to_with_buffer(w.clone(), Arc::new(Mutex::new(Some(vec![0; ({ let __tmp_x = 1024; let __tmp_y = 32; __tmp_x * __tmp_y }) as usize]))))
+        self.write_to_with_buffer(
+            w.clone(),
+            Arc::new(Mutex::new(Some(vec![0; ({ let __tmp_x = 1024; let __tmp_y = 32; __tmp_x * __tmp_y }) as usize]))),
+        )
     }
 
     pub fn write_to_with_buffer(&mut self, w: Arc<Mutex<Option<Box<dyn Writer + Send + Sync>>>>, buf: Arc<Mutex<Option<Vec<u8>>>>) -> (i64, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {

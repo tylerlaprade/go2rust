@@ -66,7 +66,10 @@ pub fn caller(skip: Arc<Mutex<Option<i32>>>) -> (usize, Arc<Mutex<Option<String>
     let mut ok: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(Some(false)));
 
     let mut rpc = Arc::new(Mutex::new(Some(vec![0; (1) as usize])));
-    let mut n = callers_1(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*skip.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }))), rpc.clone());
+    let mut n = callers_1(
+        Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*skip.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }))),
+        rpc.clone()
+    );
     if { let __tmp_x = n; let __tmp_y = 1; __tmp_x < __tmp_y } {
         return ((*pc.lock().unwrap().as_ref().unwrap()), file.clone(), (*line.lock().unwrap().as_ref().unwrap()), (*ok.lock().unwrap().as_ref().unwrap()));
     }

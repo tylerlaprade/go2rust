@@ -453,7 +453,10 @@ impl pallocBits {
     }
 
                 // Next, check the interior of the 64-bit chunk.
-        let mut j = find_bit_range64(Arc::new(Mutex::new(Some(!(*bi.lock().unwrap().as_ref().unwrap())))), Arc::new(Mutex::new(Some((*npages.lock().unwrap().as_ref().unwrap()) as u64))));
+        let mut j = find_bit_range64(
+            Arc::new(Mutex::new(Some(!(*bi.lock().unwrap().as_ref().unwrap())))),
+            Arc::new(Mutex::new(Some((*npages.lock().unwrap().as_ref().unwrap()) as u64)))
+        );
         if { let __tmp_x = j; let __tmp_y = 64 as u64; __tmp_x < __tmp_y } {
         return (
             { let __tmp_x = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 64 as u64; __tmp_x * __tmp_y }; let __tmp_y = j; __tmp_x + __tmp_y },

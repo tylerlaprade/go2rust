@@ -796,13 +796,16 @@ impl Setting {
         if { let __ptr_field = (*self.setting.lock().unwrap().as_ref().unwrap()).info.clone(); __ptr_field.is_nil() } || (*{ let __ptr_value = (*self.setting.lock().unwrap().as_ref().unwrap()).info.borrow(); __ptr_value.as_ref().unwrap().opaque.clone() }.lock().unwrap().as_ref().unwrap()) {
         std::panic::panic_any(Box::new(format!("{}{}", "godebug: unexpected IncNonDefault of ".to_string(), (*self.name.clone().lock().unwrap().as_ref().unwrap()))) as Box<dyn Any + Send + Sync>);
     }
-        register_metric(Arc::new(Mutex::new(Some({
-            let mut __s = String::new();
-            __s.push_str(&format!("{}", "/godebug/non-default-behavior/".to_string()));
-            __s.push_str(&format!("{}", (*self.name().lock().unwrap().as_ref().unwrap())));
-            __s.push_str(&format!("{}", ":events".to_string()));
-            __s
-        }))), Arc::new(Mutex::new(Some({ let __recv = (*self.setting.lock().unwrap().as_ref().unwrap()).non_default.clone(); Box::new(move || -> u64 { (*__recv.lock().unwrap().as_mut().unwrap()).load() }) as Box<dyn FnMut() -> u64 + Send + Sync> }))));
+        register_metric(
+            Arc::new(Mutex::new(Some({
+                let mut __s = String::new();
+                __s.push_str(&format!("{}", "/godebug/non-default-behavior/".to_string()));
+                __s.push_str(&format!("{}", (*self.name().lock().unwrap().as_ref().unwrap())));
+                __s.push_str(&format!("{}", ":events".to_string()));
+                __s
+            }))),
+            Arc::new(Mutex::new(Some({ let __recv = (*self.setting.lock().unwrap().as_ref().unwrap()).non_default.clone(); Box::new(move || -> u64 { (*__recv.lock().unwrap().as_mut().unwrap()).load() }) as Box<dyn FnMut() -> u64 + Send + Sync> })))
+        );
     }
 
     /// Value returns the current value for the GODEBUG setting s.

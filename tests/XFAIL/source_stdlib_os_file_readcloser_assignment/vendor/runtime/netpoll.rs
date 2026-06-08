@@ -777,7 +777,10 @@ impl pollDesc {
         }; let mut guard = info.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
                 // Set all of x except the pollEventErr bit.
         let mut x = (*self.atomic_info.lock().unwrap().as_mut().unwrap()).load();
-        while !(*self.atomic_info.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some(x))), Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = x; let __tmp_y = POLL_EVENT_ERR as u32; __tmp_x & __tmp_y }); let __tmp_y = { let __v = (*info.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x | __tmp_y })))) {
+        while !(*self.atomic_info.lock().unwrap().as_mut().unwrap()).compare_and_swap(
+            Arc::new(Mutex::new(Some(x))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = x; let __tmp_y = POLL_EVENT_ERR as u32; __tmp_x & __tmp_y }); let __tmp_y = { let __v = (*info.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x | __tmp_y }))),
+        ) {
         { let new_val = (*self.atomic_info.lock().unwrap().as_mut().unwrap()).load(); x = new_val; };
     }
     }
@@ -792,7 +795,10 @@ impl pollDesc {
         if { let __tmp_x = { let __v = (*seq.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } && { let __tmp_x = { let __v = (*xSeq.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*mSeq.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x != __tmp_y } {
         return;
     }
-        while { let __tmp_x = ({ let __tmp_x = { let __tmp_x = x; let __tmp_y = POLL_EVENT_ERR as u32; __tmp_x & __tmp_y }; let __tmp_y = 0 as u32; __tmp_x != __tmp_y }); let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x != __tmp_y } && !(*self.atomic_info.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some(x))), Arc::new(Mutex::new(Some({ let __tmp_x = x; let __tmp_y = POLL_EVENT_ERR as u32; __tmp_x ^ __tmp_y })))) {
+        while { let __tmp_x = ({ let __tmp_x = { let __tmp_x = x; let __tmp_y = POLL_EVENT_ERR as u32; __tmp_x & __tmp_y }; let __tmp_y = 0 as u32; __tmp_x != __tmp_y }); let __tmp_y = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x != __tmp_y } && !(*self.atomic_info.lock().unwrap().as_mut().unwrap()).compare_and_swap(
+            Arc::new(Mutex::new(Some(x))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = x; let __tmp_y = POLL_EVENT_ERR as u32; __tmp_x ^ __tmp_y }))),
+        ) {
         { let new_val = (*self.atomic_info.lock().unwrap().as_mut().unwrap()).load(); x = new_val; };
         let mut xSeq = Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = x; let __tmp_y = POLL_F_D_SEQ; __tmp_x >> __tmp_y }); let __tmp_y = POLL_F_D_SEQ_MASK as u32; __tmp_x & __tmp_y })));
         if { let __tmp_x = { let __v = (*seq.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } && { let __tmp_x = { let __v = (*xSeq.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*mSeq.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x != __tmp_y } {
@@ -852,7 +858,10 @@ impl pollCache {
         );
         let mut i = Arc::new(Mutex::new(Some(0 as usize)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
-        let mut pd: GoPtr<pollDesc> = GoPtr::raw({ let __ptr = add(Arc::new(Mutex::new(Some({ let __arg_holder = mem.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = pdSize as usize; __tmp_x * __tmp_y })))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
+        let mut pd: GoPtr<pollDesc> = GoPtr::raw({ let __ptr = add(
+            Arc::new(Mutex::new(Some({ let __arg_holder = mem.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = pdSize as usize; __tmp_x * __tmp_y })))
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         lock_init(GoPtr::local({ let __ptr_value = pd.with_mut(|__ptr_value| __ptr_value.lock.clone()); __ptr_value }.clone()), Arc::new(Mutex::new(Some(crate::lockrank::lockRank(Arc::new(Mutex::new(Some(LOCK_RANK_POLL_DESC as i32))))))));
         (*{ let __ptr_value = pd.with_mut(|__ptr_value| __ptr_value.rt.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).init(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)));
         (*{ let __ptr_value = pd.with_mut(|__ptr_value| __ptr_value.wt.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).init(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)));

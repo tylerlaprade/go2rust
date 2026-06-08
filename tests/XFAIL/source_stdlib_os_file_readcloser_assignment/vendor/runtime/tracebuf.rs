@@ -394,7 +394,10 @@ impl traceWriter {
         unlock(GoPtr::local((*trace.lock().unwrap().as_ref().unwrap()).lock.clone()));
     } else {
         unlock(GoPtr::local((*trace.lock().unwrap().as_ref().unwrap()).lock.clone()));
-        { let new_val = Arc::new(Mutex::new({ let __ptr = sys_alloc(Arc::new(Mutex::new(Some(std::mem::size_of::<traceBuf>()))), (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone()).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<traceBuf>(unimplemented!("unsafe.Pointer conversion to traceBuf")) } })).clone(); w_closure_clone.trace_buf = new_val; };
+        { let new_val = Arc::new(Mutex::new({ let __ptr = sys_alloc(
+            Arc::new(Mutex::new(Some(std::mem::size_of::<traceBuf>()))),
+            (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone()
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<traceBuf>(unimplemented!("unsafe.Pointer conversion to traceBuf")) } })).clone(); w_closure_clone.trace_buf = new_val; };
         if { let __nil_target = w_closure_clone.trace_buf.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
         throw(Arc::new(Mutex::new(Some("trace: out of memory".to_string()))));
     }
@@ -1051,11 +1054,14 @@ pub fn trace_buf_flush(buf_local: Arc<Mutex<Option<traceBuf>>>, gen: Arc<Mutex<O
         // quite difficult to preserve, and if we include the header we
         // force serializers to do more work. Nothing else actually needs
         // padding.
-    { let __recv = buf_local.clone(); let __recv_ptr: *mut traceBuf = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut traceBuf }; let __result = unsafe { &mut *__recv_ptr }.varint_at(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*buf_local.lock().unwrap().as_mut().unwrap()).trace_buf_header.lock().unwrap().as_mut().unwrap()).len_pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(({
-        let __tmp_x = (*(*(*buf_local.lock().unwrap().as_ref().unwrap()).trace_buf_header.lock().unwrap().as_ref().unwrap()).pos.lock().unwrap().as_ref().unwrap());
-        let __tmp_y = ({ let __tmp_x = (*(*(*buf_local.lock().unwrap().as_ref().unwrap()).trace_buf_header.lock().unwrap().as_ref().unwrap()).len_pos.lock().unwrap().as_ref().unwrap()); let __tmp_y = 10; __tmp_x + __tmp_y });
-        __tmp_x - __tmp_y
-    }) as u64)))); __result };
+    { let __recv = buf_local.clone(); let __recv_ptr: *mut traceBuf = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut traceBuf }; let __result = unsafe { &mut *__recv_ptr }.varint_at(
+        Arc::new(Mutex::new(Some({ let __selector_holder = (*(*buf_local.lock().unwrap().as_mut().unwrap()).trace_buf_header.lock().unwrap().as_mut().unwrap()).len_pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+        Arc::new(Mutex::new(Some(({
+            let __tmp_x = (*(*(*buf_local.lock().unwrap().as_ref().unwrap()).trace_buf_header.lock().unwrap().as_ref().unwrap()).pos.lock().unwrap().as_ref().unwrap());
+            let __tmp_y = ({ let __tmp_x = (*(*(*buf_local.lock().unwrap().as_ref().unwrap()).trace_buf_header.lock().unwrap().as_ref().unwrap()).len_pos.lock().unwrap().as_ref().unwrap()); let __tmp_y = 10; __tmp_x + __tmp_y });
+            __tmp_x - __tmp_y
+        }) as u64))),
+    ); __result };
     { let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).full.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }.push(buf_local.clone());
 
         // Notify the scheduler that there's work available and that the trace

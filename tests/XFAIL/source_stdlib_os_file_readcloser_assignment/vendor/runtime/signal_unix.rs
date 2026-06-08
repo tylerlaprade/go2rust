@@ -308,7 +308,10 @@ pub fn do_sig_preempt(gp: GoPtr<crate::runtime2::g>, ctxt: Arc<Mutex<Option<sigc
             Arc::new(Mutex::new(Some({ let __recv = ctxt.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.siglr(); __result })))
         );;
         if ok {
-            { let __recv = ctxt.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.push_call(Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(async_preempt.clone()) as Box<dyn Any + Send + Sync>))))))), Arc::new(Mutex::new(Some(newpc)))); __result };;
+            { let __recv = ctxt.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.push_call(
+                Arc::new(Mutex::new(Some(internal_abi::func_p_c_a_b_i0(Arc::new(Mutex::new(Some(Box::new(async_preempt.clone()) as Box<dyn Any + Send + Sync>))))))),
+                Arc::new(Mutex::new(Some(newpc))),
+            ); __result };;
         }
     }
     }
@@ -1043,7 +1046,10 @@ pub fn sigblock(exiting: Arc<Mutex<Option<bool>>>) {
 ///go:nowritebarrierrec
 pub fn unblocksig(sig_local: Arc<Mutex<Option<u32>>>) {
     let mut set: Arc<Mutex<Option<sigset>>> = Arc::new(Mutex::new(Some(crate::os_darwin::sigset(Arc::new(Mutex::new(Some(0)))))));
-    sigaddset(set.clone(), Arc::new(Mutex::new(Some((*sig_local.lock().unwrap().as_ref().unwrap()) as i32))));
+    sigaddset(
+        set.clone(),
+        Arc::new(Mutex::new(Some((*sig_local.lock().unwrap().as_ref().unwrap()) as i32)))
+    );
     sigprocmask(Arc::new(Mutex::new(Some(__S_I_G__U_N_B_L_O_C_K as u32))), set.clone(), Arc::new(Mutex::new(None)));
 }
 

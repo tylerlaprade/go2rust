@@ -287,9 +287,18 @@ fn __go_init_globals() {
     *errWriteAtInAppendMode.lock().unwrap() = None;
     *errPathEscapes.lock().unwrap() = None;
     *checkWrapErr.lock().unwrap() = Some(false);
-    *Stdin.lock().unwrap() = Some(new_file(Arc::new(Mutex::new(Some({ let __selector_holder = syscall::Stdin.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))), Arc::new(Mutex::new(Some("/dev/stdin".to_string())))));
-    *Stdout.lock().unwrap() = Some(new_file(Arc::new(Mutex::new(Some({ let __selector_holder = syscall::Stdout.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))), Arc::new(Mutex::new(Some("/dev/stdout".to_string())))));
-    *Stderr.lock().unwrap() = Some(new_file(Arc::new(Mutex::new(Some({ let __selector_holder = syscall::Stderr.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))), Arc::new(Mutex::new(Some("/dev/stderr".to_string())))));
+    *Stdin.lock().unwrap() = Some(new_file(
+        Arc::new(Mutex::new(Some({ let __selector_holder = syscall::Stdin.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))),
+        Arc::new(Mutex::new(Some("/dev/stdin".to_string())))
+    ));
+    *Stdout.lock().unwrap() = Some(new_file(
+        Arc::new(Mutex::new(Some({ let __selector_holder = syscall::Stdout.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))),
+        Arc::new(Mutex::new(Some("/dev/stdout".to_string())))
+    ));
+    *Stderr.lock().unwrap() = Some(new_file(
+        Arc::new(Mutex::new(Some({ let __selector_holder = syscall::Stderr.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))),
+        Arc::new(Mutex::new(Some("/dev/stderr".to_string())))
+    ));
     { let __rhs_holder = errors::new(Arc::new(Mutex::new(Some("os: invalid use of WriteAt on file opened with O_APPEND".to_string())))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *errWriteAtInAppendMode.lock().unwrap() = new_val; }
     { let __rhs_holder = errors::new(Arc::new(Mutex::new(Some("path escapes from parent".to_string())))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *errPathEscapes.lock().unwrap() = new_val; }
     *lstat_1.lock().unwrap() = Some(Box::new(lstat));
@@ -308,17 +317,26 @@ pub(crate) fn __go_zero_globals() {
 
 
 pub(crate) fn __go_init_order_10() {
-    *Stdin.lock().unwrap() = Some(new_file(Arc::new(Mutex::new(Some({ let __selector_holder = syscall::Stdin.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))), Arc::new(Mutex::new(Some("/dev/stdin".to_string())))));
+    *Stdin.lock().unwrap() = Some(new_file(
+        Arc::new(Mutex::new(Some({ let __selector_holder = syscall::Stdin.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))),
+        Arc::new(Mutex::new(Some("/dev/stdin".to_string())))
+    ));
 }
 
 
 pub(crate) fn __go_init_order_11() {
-    *Stdout.lock().unwrap() = Some(new_file(Arc::new(Mutex::new(Some({ let __selector_holder = syscall::Stdout.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))), Arc::new(Mutex::new(Some("/dev/stdout".to_string())))));
+    *Stdout.lock().unwrap() = Some(new_file(
+        Arc::new(Mutex::new(Some({ let __selector_holder = syscall::Stdout.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))),
+        Arc::new(Mutex::new(Some("/dev/stdout".to_string())))
+    ));
 }
 
 
 pub(crate) fn __go_init_order_12() {
-    *Stderr.lock().unwrap() = Some(new_file(Arc::new(Mutex::new(Some({ let __selector_holder = syscall::Stderr.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))), Arc::new(Mutex::new(Some("/dev/stderr".to_string())))));
+    *Stderr.lock().unwrap() = Some(new_file(
+        Arc::new(Mutex::new(Some({ let __selector_holder = syscall::Stderr.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))),
+        Arc::new(Mutex::new(Some("/dev/stderr".to_string())))
+    ));
 }
 
 
@@ -1433,7 +1451,10 @@ pub fn set_sticky_bit(name: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<Box<
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         return err.clone();
     }
-    return chmod(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = (*(*fi.lock().unwrap().as_ref().unwrap()).mode().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(MODE_STICKY as u32)))); __tmp_x | __tmp_y }))));
+    return chmod(
+        Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __tmp_x = (*(*fi.lock().unwrap().as_ref().unwrap()).mode().lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = io_fs::r#mod::FileMode(Arc::new(Mutex::new(Some(MODE_STICKY as u32)))); __tmp_x | __tmp_y })))
+    );
 }
 
 /// Open opens the named file for reading. If successful, methods on

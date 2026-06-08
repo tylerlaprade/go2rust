@@ -728,11 +728,14 @@ impl mcache {
             let __tmp_y = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().elemsize.clone() }.lock().unwrap().as_ref().unwrap());
             __tmp_x * __tmp_y
         })));
-        (*gcController.lock().unwrap().as_ref().unwrap()).update(Arc::new(Mutex::new(Some({
-            let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().npages.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y }) as i64))).lock().unwrap().as_ref().unwrap());
-            let __tmp_y = (*Arc::new(Mutex::new(Some((*usedBytes.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap());
-            __tmp_x - __tmp_y
-        }))), Arc::new(Mutex::new(Some({ let __selector_holder = self.scan_alloc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))));
+        (*gcController.lock().unwrap().as_ref().unwrap()).update(
+            Arc::new(Mutex::new(Some({
+                let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().npages.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y }) as i64))).lock().unwrap().as_ref().unwrap());
+                let __tmp_y = (*Arc::new(Mutex::new(Some((*usedBytes.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap());
+                __tmp_x - __tmp_y
+            }))),
+            Arc::new(Mutex::new(Some({ let __selector_holder = self.scan_alloc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))),
+        );
         { let new_val = 0 as usize; *self.scan_alloc.lock().unwrap() = Some(new_val); };
         (*self.alloc.lock().unwrap().as_mut().unwrap())[(*{ let __v = (*spc.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize] = s.clone();
     }
@@ -749,7 +752,10 @@ impl mcache {
                 // Deduct credit for this span allocation and sweep if
                 // necessary. mHeap_Alloc will also sweep npages, so this only
                 // pays the debt down to npage pages.
-        deduct_sweep_credit(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = __PAGE_SIZE as usize; __tmp_x * __tmp_y }))), Arc::new(Mutex::new(Some({ let __arg_holder = npages.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        deduct_sweep_credit(
+            Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = __PAGE_SIZE as usize; __tmp_x * __tmp_y }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = npages.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        );
         let mut spc = make_span_class(Arc::new(Mutex::new(Some(0 as u8))), Arc::new(Mutex::new(Some({ let __arg_holder = noscan.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         let mut s: GoPtr<crate::mheap::mspan> = (*mheap_.lock().unwrap().as_mut().unwrap()).alloc(Arc::new(Mutex::new(Some({ let __arg_holder = npages.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = spc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         if s.is_nil() {
@@ -763,7 +769,10 @@ impl mcache {
                 // Count the alloc in inconsistent, internal stats.
         (*(*gcController.lock().unwrap().as_ref().unwrap()).total_alloc.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y }) as i64))));
                 // Update heapLive.
-        (*gcController.lock().unwrap().as_ref().unwrap()).update(Arc::new(Mutex::new(Some(({ let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().npages.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y }) as i64))), Arc::new(Mutex::new(Some(0 as i64))));
+        (*gcController.lock().unwrap().as_ref().unwrap()).update(
+            Arc::new(Mutex::new(Some(({ let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().npages.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y }) as i64))),
+            Arc::new(Mutex::new(Some(0 as i64))),
+        );
                 // Put the large span in the mcentral swept list so that it's
                 // visible to the background sweeper.
         { let __recv = (*{ let __seq = { let __seq_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).central.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(*{ let __v = (*spc.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone() }.mcentral.lock().unwrap().as_ref().unwrap()).full_swept(Arc::new(Mutex::new(Some({ let __selector_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).sweepgen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); let __result = (*__recv.as_ref().unwrap().borrow_mut().as_mut().unwrap()).push(s.clone()); __result };

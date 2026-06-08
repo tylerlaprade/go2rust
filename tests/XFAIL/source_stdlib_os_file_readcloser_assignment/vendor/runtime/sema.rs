@@ -963,7 +963,10 @@ pub fn semacquire1(addr: GoPtr<u32>, lifo: Arc<Mutex<Option<bool>>>, profile: Ar
         // Any semrelease after the cansemacquire knows we're waiting
         // (we set nwait above), so go to sleep.
     if { let __tmp_x = (*{ let __field = (*s.lock().unwrap().as_ref().unwrap()).releasetime.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i64; __tmp_x > __tmp_y } {
-        blockevent(Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*s.lock().unwrap().as_ref().unwrap()).releasetime.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*t0.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))), Arc::new(Mutex::new(Some({ let __tmp_x = 3; let __tmp_y = { let __v = (*skipframes.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))));
+        blockevent(
+            Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*s.lock().unwrap().as_ref().unwrap()).releasetime.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*t0.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = 3; let __tmp_y = { let __v = (*skipframes.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })))
+        );
     }
     release_sudog(s.clone());
 }
@@ -1022,7 +1025,10 @@ pub fn semrelease1(addr: GoPtr<u32>, handoff: Arc<Mutex<Option<bool>>>, skipfram
         let mut dtail = Arc::new(Mutex::new(Some({ let __tmp_x = t0; let __tmp_y = tailtime; __tmp_x - __tmp_y })));
         { let __rhs = { let __tmp_x = { let __tmp_x = ({ let __tmp_x = { let __v = (*dtail.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*dt0.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }); let __tmp_y = 2 as i64; __tmp_x / __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = (*s.lock().unwrap().as_ref().unwrap()).waiters.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; let mut guard = dt.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
-        mutexevent(Arc::new(Mutex::new(Some({ let __arg_holder = dt.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = 3; let __tmp_y = { let __v = (*skipframes.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))));
+        mutexevent(
+            Arc::new(Mutex::new(Some({ let __arg_holder = dt.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = 3; let __tmp_y = { let __v = (*skipframes.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })))
+        );
     }
                 // Charge contention that this (delayed) unlock caused.
                 // If there are N more goroutines waiting beyond the
@@ -1045,7 +1051,10 @@ pub fn semrelease1(addr: GoPtr<u32>, handoff: Arc<Mutex<Option<bool>>>, skipfram
         if { let __v = (*handoff.lock().unwrap().as_ref().unwrap()).clone(); __v } && cansemacquire(addr.clone()) {
         { let new_val = 1 as u32; *(*s.lock().unwrap().as_ref().unwrap()).ticket.lock().unwrap() = Some(new_val); };
     }
-        ready_with_time(s.clone(), Arc::new(Mutex::new(Some({ let __tmp_x = 5; let __tmp_y = { let __v = (*skipframes.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))));
+        ready_with_time(
+            s.clone(),
+            Arc::new(Mutex::new(Some({ let __tmp_x = 5; let __tmp_y = { let __v = (*skipframes.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })))
+        );
         if {
             let __go_cond_0 = { let __tmp_x = (*{ let __field = (*s.lock().unwrap().as_ref().unwrap()).ticket.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as u32; __tmp_x == __tmp_y };
             if __go_cond_0 {

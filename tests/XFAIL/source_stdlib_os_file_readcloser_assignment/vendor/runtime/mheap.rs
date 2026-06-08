@@ -3476,7 +3476,10 @@ impl mheap {
             if { let __tmp_x = { let __v = (*take.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*npage.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y } {
         { let new_val = npage.lock().unwrap().as_ref().unwrap().clone(); *take.lock().unwrap() = Some(new_val); };
     };
-            if (*self.reclaim_credit.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some(credit))), Arc::new(Mutex::new(Some({ let __tmp_x = credit; let __tmp_y = { let __v = (*take.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y })))) {
+            if (*self.reclaim_credit.lock().unwrap().as_mut().unwrap()).compare_and_swap(
+                Arc::new(Mutex::new(Some(credit))),
+                Arc::new(Mutex::new(Some({ let __tmp_x = credit; let __tmp_y = { let __v = (*take.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))),
+            ) {
         { let __rhs = (*take.lock().unwrap().as_ref().unwrap()); let mut guard = npage.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
     };
             continue;
@@ -4430,7 +4433,10 @@ impl mheap {
                 // We know this won't overflow, because sysAlloc returned
                 // a valid region starting at h.curArena.base which is at
                 // least ask bytes in size.
-        { let new_val = align_up(Arc::new(Mutex::new(Some({ let __tmp_x = (*(*self.cur_arena.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*ask.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))), Arc::new(Mutex::new(Some({ let __arg_holder = physPageSize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); nBase = new_val; };
+        { let new_val = align_up(
+            Arc::new(Mutex::new(Some({ let __tmp_x = (*(*self.cur_arena.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*ask.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = physPageSize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        ); nBase = new_val; };
     }
                 // Not enough room in the current arena. Allocate more
                 // arena space. This may not be contiguous with the
@@ -4471,7 +4477,10 @@ impl mheap {
         (*(*memstats.lock().unwrap().as_ref().unwrap()).heap_stats.lock().unwrap().as_mut().unwrap()).release();
                 // Update the page allocator's structures to make this
                 // space ready for allocation.
-        (*self.pages.lock().unwrap().as_mut().unwrap()).grow(Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __tmp_x = nBase; let __tmp_y = { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))));
+        (*self.pages.lock().unwrap().as_mut().unwrap()).grow(
+            Arc::new(Mutex::new(Some({ let __arg_holder = v.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __tmp_x = nBase; let __tmp_y = { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }))),
+        );
         { let __rhs = { let __tmp_x = nBase; let __tmp_y = { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }; let mut guard = totalGrowth.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         return ({ let __v = (*totalGrowth.lock().unwrap().as_ref().unwrap()).clone(); __v }, true);
     }
@@ -4588,7 +4597,10 @@ impl mheap {
     }
         (*(*memstats.lock().unwrap().as_ref().unwrap()).heap_stats.lock().unwrap().as_mut().unwrap()).release();
                 // Mark the space as free.
-        (*self.pages.lock().unwrap().as_mut().unwrap()).free(Arc::new(Mutex::new(Some({ let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result }))), Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.npages.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+        (*self.pages.lock().unwrap().as_mut().unwrap()).free(
+            Arc::new(Mutex::new(Some({ let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result }))),
+            Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.npages.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+        );
                 // Free the span structure. We no longer have a use for it.
         (*{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.state.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).set(Arc::new(Mutex::new(Some(mSpanState(Arc::new(Mutex::new(Some(M_SPAN_DEAD as u8))))))));
         self.free_m_span_locked(s.clone());
@@ -4855,7 +4867,10 @@ pub fn recordspan(vh: Arc<Mutex<Option<usize>>>, p: Arc<Mutex<Option<usize>>>) {
     }
         let mut new: Arc<Mutex<Option<Vec<GoPtr<mspan>>>>> = Arc::new(Mutex::new(None));
         let mut sp: GoPtr<crate::slice::slice> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&new.clone()) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
-        { let new_val = sys_alloc(Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y }))), (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone()); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *{ let __ptr_value = sp.with_mut(|__ptr_value| __ptr_value.array.clone()); __ptr_value }.lock().unwrap() = __moved_val; };
+        { let new_val = sys_alloc(
+            Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y }))),
+            (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone()
+        ); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *{ let __ptr_value = sp.with_mut(|__ptr_value| __ptr_value.array.clone()); __ptr_value }.lock().unwrap() = __moved_val; };
         if { let __nil_target = { let __ptr_value = sp.with_mut(|__ptr_value| __ptr_value.array.clone()); __ptr_value }.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
         throw(Arc::new(Mutex::new(Some("runtime: cannot allocate memory".to_string()))));
     }
@@ -5432,7 +5447,10 @@ pub fn new_arena_may_unlock() -> GoPtr<gcBitsArena> {
     } else {
         result = (*gcBitsArenas.lock().unwrap().as_ref().unwrap()).free.clone();
         { let new_val = { let __ptr_value = (*gcBitsArenas.lock().unwrap().as_ref().unwrap()).free.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.clone(); (*gcBitsArenas.lock().unwrap().as_mut().unwrap()).free = new_val; };
-        memclr_no_heap_pointers(Arc::new(Mutex::new(Some(result.addr()))), Arc::new(Mutex::new(Some(GC_BITS_CHUNK_BYTES as usize))));
+        memclr_no_heap_pointers(
+            Arc::new(Mutex::new(Some(result.addr()))),
+            Arc::new(Mutex::new(Some(GC_BITS_CHUNK_BYTES as usize)))
+        );
     }
     { let new_val = GoPtr::nil(); result.with_mut(|__ptr_value| { __ptr_value.next = new_val; }); };
 

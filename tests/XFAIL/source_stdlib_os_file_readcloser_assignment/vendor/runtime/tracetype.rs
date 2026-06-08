@@ -89,7 +89,10 @@ impl traceTypeTable {
         return 0;
     }
                 // Insert the pointer to the type itself.
-        let (mut id, _) = (*self.tab.lock().unwrap().as_ref().unwrap()).put(noescape(Arc::new(Mutex::new(Some(&typ as *const _ as usize)))), Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))));
+        let (mut id, _) = (*self.tab.lock().unwrap().as_ref().unwrap()).put(
+            noescape(Arc::new(Mutex::new(Some(&typ as *const _ as usize)))),
+            Arc::new(Mutex::new(Some(internal_goarch::PTR_SIZE as usize))),
+        );
         id
     }
 
@@ -143,7 +146,10 @@ pub fn dump_types_rec(node: GoPtr<crate::tracemap::traceMapNode>, mut w: Arc<Mut
         if { let __nil_result = (*child.lock().unwrap()).is_none(); __nil_result } {
         continue
     }
-        { let new_val = dump_types_rec(GoPtr::raw({ let __ptr = child.clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) }), Arc::new(Mutex::new(Some({ let __arg_holder = w.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *w.lock().unwrap() = __moved_val; };
+        { let new_val = dump_types_rec(
+            GoPtr::raw({ let __ptr = child.clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) }),
+            Arc::new(Mutex::new(Some({ let __arg_holder = w.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        ); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *w.lock().unwrap() = __moved_val; };
     }
     return { let __owned = w.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
 }

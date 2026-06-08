@@ -742,7 +742,10 @@ impl crate::runtime2::_panic {
         if { let __tmp_x = (*(*(*u.lock().unwrap().as_ref().unwrap()).frame.lock().unwrap().as_ref().unwrap()).sp.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*limit.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } {
         break
     }
-        if p_closure_clone.init_open_coded_defers(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*u.lock().unwrap().as_ref().unwrap()).frame.lock().unwrap().as_ref().unwrap()).r#fn.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some({ let __selector_holder = (*(*u.lock().unwrap().as_ref().unwrap()).frame.lock().unwrap().as_ref().unwrap()).varp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) {
+        if p_closure_clone.init_open_coded_defers(
+            Arc::new(Mutex::new(Some({ let __selector_holder = (*(*u.lock().unwrap().as_ref().unwrap()).frame.lock().unwrap().as_ref().unwrap()).r#fn.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            Arc::new(Mutex::new(Some({ let __selector_holder = (*(*u.lock().unwrap().as_ref().unwrap()).frame.lock().unwrap().as_ref().unwrap()).varp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+        ) {
         break
     }
         (*u.lock().unwrap().as_mut().unwrap()).next();
@@ -771,7 +774,10 @@ impl crate::runtime2::_panic {
         throw(Arc::new(Mutex::new(Some("missing deferreturn".to_string()))));
     }
         let (mut deferBitsOffset, __tmp_1) = readvarint_unsafe(Arc::new(Mutex::new(Some({ let __arg_holder = fd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *fd.lock().unwrap() = __moved_tmp_1;;
-        let mut deferBitsPtr: GoPtr<u8> = GoPtr::raw({ let __ptr = add(Arc::new(Mutex::new(Some({ let __arg_holder = varp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some((deferBitsOffset as usize).wrapping_neg())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
+        let mut deferBitsPtr: GoPtr<u8> = GoPtr::raw({ let __ptr = add(
+            Arc::new(Mutex::new(Some({ let __arg_holder = varp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some((deferBitsOffset as usize).wrapping_neg())))
+        ).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         if { let __tmp_x = { let __ptr_value = deferBitsPtr.borrow(); __ptr_value.as_ref().unwrap().clone() }; let __tmp_y = 0 as u8; __tmp_x == __tmp_y } {
         return false;
     }
@@ -783,7 +789,10 @@ impl crate::runtime2::_panic {
             __tmp_x + __tmp_y
         }; *self.retpc.lock().unwrap() = Some(new_val); };
         { let new_val = deferBitsPtr.clone(); self.defer_bits_ptr = new_val; };
-        { let new_val = add(Arc::new(Mutex::new(Some({ let __arg_holder = varp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some((slotsOffset as usize).wrapping_neg())))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *self.slots_ptr.lock().unwrap() = __moved_val; };
+        { let new_val = add(
+            Arc::new(Mutex::new(Some({ let __arg_holder = varp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some((slotsOffset as usize).wrapping_neg())))
+        ); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *self.slots_ptr.lock().unwrap() = __moved_val; };
         true
     }
 }
@@ -851,7 +860,10 @@ pub fn deferconvert(d0: Arc<Mutex<Option<_defer>>>) {
     let mut d: Arc<Mutex<Option<_defer>>> = Arc::new(Mutex::new(None));
     loop {
         { let new_val = { let __recv = head.clone(); let __recv_ptr: *const internal_runtime_atomic::types::Pointer<crate::runtime2::_defer> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const internal_runtime_atomic::types::Pointer<crate::runtime2::_defer> }; let __result = unsafe { &*__recv_ptr }.load(); __result }.clone(); d = new_val; };
-        if { let __recv = head.clone(); let __recv_ptr: *const internal_runtime_atomic::types::Pointer<crate::runtime2::_defer> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const internal_runtime_atomic::types::Pointer<crate::runtime2::_defer> }; let __result = unsafe { &*__recv_ptr }.compare_and_swap(d.clone(), { let __go_ptr = bad_defer().clone(); match __go_ptr { GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(), GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }); __result } {
+        if { let __recv = head.clone(); let __recv_ptr: *const internal_runtime_atomic::types::Pointer<crate::runtime2::_defer> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const internal_runtime_atomic::types::Pointer<crate::runtime2::_defer> }; let __result = unsafe { &*__recv_ptr }.compare_and_swap(
+            d.clone(),
+            { let __go_ptr = bad_defer().clone(); match __go_ptr { GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(), GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } },
+        ); __result } {
         break
     }
     }
@@ -958,7 +970,10 @@ pub fn readvarint_unsafe(mut fd: Arc<Mutex<Option<usize>>>) -> (u32, Arc<Mutex<O
     let mut shift: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(Some(0)));
     loop {
         let mut b = Arc::new(Mutex::new(Some({ let __v = (*Arc::new(Mutex::new({ let __ptr = fd.clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<u8>(unimplemented!("unsafe.Pointer conversion to u8")) } })).lock().unwrap().as_ref().unwrap()).clone(); __v })));
-        { let new_val = add(Arc::new(Mutex::new(Some({ let __arg_holder = fd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(std::mem::size_of::<u8>())))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *fd.lock().unwrap() = __moved_val; };
+        { let new_val = add(
+            Arc::new(Mutex::new(Some({ let __arg_holder = fd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(std::mem::size_of::<u8>())))
+        ); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *fd.lock().unwrap() = __moved_val; };
         if { let __tmp_x = { let __v = (*b.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 128 as u8; __tmp_x < __tmp_y } {
         return (
             { let __tmp_x = { let __v = (*r.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some((*b.lock().unwrap().as_ref().unwrap()) as u32))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*shift.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }; __tmp_x + __tmp_y },
