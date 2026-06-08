@@ -241,15 +241,20 @@ impl crate::mpagealloc::pageAlloc {
         if { let __tmp_x = j; let __tmp_y = !(0 as u64) as u64; __tmp_x == __tmp_y } {
         throw(Arc::new(Mutex::new(Some("bad summary data".to_string()))));
     }
-        { let new_val = pageCache { base: Arc::new(Mutex::new(Some({ let __tmp_x = chunk_base(Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __tmp_y = {
-            let __tmp_x =
-                align_down(
-                    Arc::new(Mutex::new(Some(j as usize))),
-                    Arc::new(Mutex::new(Some(64 as usize)))
-                );
-            let __tmp_y = PAGE_SIZE as usize;
-            __tmp_x * __tmp_y
-        }; __tmp_x + __tmp_y }))), cache: Arc::new(Mutex::new(Some(!{ let __promoted_recv = (*chunk.as_ref().unwrap().borrow().as_ref().unwrap()).palloc_bits.clone(); let __promoted_guard = __promoted_recv.lock().unwrap(); let __promoted_ref = __promoted_guard.as_ref().unwrap(); let __result = __promoted_ref.pages64(Arc::new(Mutex::new(Some(j)))); __result }))), scav: Arc::new(Mutex::new(Some((*(*chunk.as_ref().unwrap().borrow().as_ref().unwrap()).scavenged.lock().unwrap().as_ref().unwrap()).block64(Arc::new(Mutex::new(Some(j))))))), ..Default::default() }; *c.lock().unwrap() = Some(new_val); };
+        { let new_val = pageCache {
+            base: Arc::new(Mutex::new(Some({ let __tmp_x = chunk_base(Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __tmp_y = {
+                let __tmp_x =
+                    align_down(
+                        Arc::new(Mutex::new(Some(j as usize))),
+                        Arc::new(Mutex::new(Some(64 as usize)))
+                    );
+                let __tmp_y = PAGE_SIZE as usize;
+                __tmp_x * __tmp_y
+            }; __tmp_x + __tmp_y }))),
+            cache: Arc::new(Mutex::new(Some(!{ let __promoted_recv = (*chunk.as_ref().unwrap().borrow().as_ref().unwrap()).palloc_bits.clone(); let __promoted_guard = __promoted_recv.lock().unwrap(); let __promoted_ref = __promoted_guard.as_ref().unwrap(); let __result = __promoted_ref.pages64(Arc::new(Mutex::new(Some(j)))); __result }))),
+            scav: Arc::new(Mutex::new(Some((*(*chunk.as_ref().unwrap().borrow().as_ref().unwrap()).scavenged.lock().unwrap().as_ref().unwrap()).block64(Arc::new(Mutex::new(Some(j))))))),
+            ..Default::default()
+        }; *c.lock().unwrap() = Some(new_val); };
     } else {
                 // Slow path: the searchAddr address had nothing there, so go find
                 // the first free page the slow way.
@@ -264,10 +269,15 @@ impl crate::mpagealloc::pageAlloc {
                 // and return an empty pageCache.
         { let new_val = chunk_index(Arc::new(Mutex::new(Some(addr)))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *ci.lock().unwrap() = __moved_val; };
         chunk = self.chunk_of(Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-        { let new_val = pageCache { base: Arc::new(Mutex::new(Some(align_down(
-            Arc::new(Mutex::new(Some(addr))),
-            Arc::new(Mutex::new(Some(((64 as usize) * (PAGE_SIZE as usize)) as usize)))
-        )))), cache: Arc::new(Mutex::new(Some(!{ let __promoted_recv = (*chunk.as_ref().unwrap().borrow().as_ref().unwrap()).palloc_bits.clone(); let __promoted_guard = __promoted_recv.lock().unwrap(); let __promoted_ref = __promoted_guard.as_ref().unwrap(); let __result = __promoted_ref.pages64(Arc::new(Mutex::new(Some(chunk_page_index(Arc::new(Mutex::new(Some(addr)))))))); __result }))), scav: Arc::new(Mutex::new(Some((*(*chunk.as_ref().unwrap().borrow().as_ref().unwrap()).scavenged.lock().unwrap().as_ref().unwrap()).block64(Arc::new(Mutex::new(Some(chunk_page_index(Arc::new(Mutex::new(Some(addr))))))))))), ..Default::default() }; *c.lock().unwrap() = Some(new_val); };
+        { let new_val = pageCache {
+            base: Arc::new(Mutex::new(Some(align_down(
+                Arc::new(Mutex::new(Some(addr))),
+                Arc::new(Mutex::new(Some(((64 as usize) * (PAGE_SIZE as usize)) as usize)))
+            )))),
+            cache: Arc::new(Mutex::new(Some(!{ let __promoted_recv = (*chunk.as_ref().unwrap().borrow().as_ref().unwrap()).palloc_bits.clone(); let __promoted_guard = __promoted_recv.lock().unwrap(); let __promoted_ref = __promoted_guard.as_ref().unwrap(); let __result = __promoted_ref.pages64(Arc::new(Mutex::new(Some(chunk_page_index(Arc::new(Mutex::new(Some(addr)))))))); __result }))),
+            scav: Arc::new(Mutex::new(Some((*(*chunk.as_ref().unwrap().borrow().as_ref().unwrap()).scavenged.lock().unwrap().as_ref().unwrap()).block64(Arc::new(Mutex::new(Some(chunk_page_index(Arc::new(Mutex::new(Some(addr))))))))))),
+            ..Default::default()
+        }; *c.lock().unwrap() = Some(new_val); };
     }
                 // Fast path: there's free pages at or near the searchAddr address.
                 // Slow path: the searchAddr address had nothing there, so go find

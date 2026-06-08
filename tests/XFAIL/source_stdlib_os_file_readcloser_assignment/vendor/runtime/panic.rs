@@ -1236,15 +1236,20 @@ pub fn recovery(gp: Arc<Mutex<Option<g>>>) {
                 // If we're returning to deferreturn and there are more open-coded
                 // defers for it to call, save enough state for it to be able to
                 // pick up where p0 left off.
-        { let new_val = Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(savedOpenDeferState { retpc: Arc::new(Mutex::new(Some({ let __selector_holder = (*p0.lock().unwrap().as_ref().unwrap()).retpc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), defer_bits_offset: Arc::new(Mutex::new(Some({
-            let __tmp_x = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some((*p0.lock().unwrap().as_ref().unwrap()).defer_bits_ptr.addr()))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
-            let __tmp_y = (*Arc::new(Mutex::new(Some((*(*p0.lock().unwrap().as_ref().unwrap()).sp.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
-            __tmp_x - __tmp_y
-        }))), slots_offset: Arc::new(Mutex::new(Some({
-            let __tmp_x = (*Arc::new(Mutex::new(Some((*(*p0.lock().unwrap().as_ref().unwrap()).slots_ptr.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
-            let __tmp_y = (*Arc::new(Mutex::new(Some((*(*p0.lock().unwrap().as_ref().unwrap()).sp.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
-            __tmp_x - __tmp_y
-        }))), ..Default::default() })))) as usize))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *(*gp.lock().unwrap().as_ref().unwrap()).param.lock().unwrap() = __moved_val; };
+        { let new_val = Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(savedOpenDeferState {
+            retpc: Arc::new(Mutex::new(Some({ let __selector_holder = (*p0.lock().unwrap().as_ref().unwrap()).retpc.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            defer_bits_offset: Arc::new(Mutex::new(Some({
+                let __tmp_x = (*Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some((*p0.lock().unwrap().as_ref().unwrap()).defer_bits_ptr.addr()))).lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+                let __tmp_y = (*Arc::new(Mutex::new(Some((*(*p0.lock().unwrap().as_ref().unwrap()).sp.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+                __tmp_x - __tmp_y
+            }))),
+            slots_offset: Arc::new(Mutex::new(Some({
+                let __tmp_x = (*Arc::new(Mutex::new(Some((*(*p0.lock().unwrap().as_ref().unwrap()).slots_ptr.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+                let __tmp_y = (*Arc::new(Mutex::new(Some((*(*p0.lock().unwrap().as_ref().unwrap()).sp.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap());
+                __tmp_x - __tmp_y
+            }))),
+            ..Default::default()
+        })))) as usize))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *(*gp.lock().unwrap().as_ref().unwrap()).param.lock().unwrap() = __moved_val; };
     }
 
         // If we're returning to deferreturn and there are more open-coded

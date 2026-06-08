@@ -8219,6 +8219,41 @@ func pick(h *heap, i int, j int, k int) *node {
 	}
 }
 
+func TestConcurrentStructLiteralWithMultipleComplexFieldsBreaksAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type fd struct {
+	sysfd int
+	isStream bool
+	zeroReadIsEOF bool
+}
+
+type file struct {
+	pfd fd
+	name string
+	stdoutOrErr bool
+}
+
+func build(raw int, name string) file {
+	go func() {}()
+	return file{
+		pfd: fd{sysfd: raw, isStream: true, zeroReadIsEOF: true},
+		name: name,
+		stdoutOrErr: raw == 1 || raw == 2,
+	}
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "file {") && strings.Contains(line, "stdout_or_err:") {
+			t.Fatalf("struct literal with multiple complex fields should split fields across lines:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "file {\n") || !strings.Contains(rust, "\n        stdout_or_err:") {
+		t.Fatalf("struct literal with multiple complex fields should use multiline struct syntax:\n%s", rust)
+	}
+}
+
 func TestMethodReceiverShadowShortDeclUsesLocalIdent(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

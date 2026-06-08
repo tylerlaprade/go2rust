@@ -9916,10 +9916,29 @@ func structCompositeLiteralShouldUseMultiline(elts []ast.Expr) bool {
 			values = append(values, elt)
 		}
 	}
-	if compositeLiteralValuesShouldUseMultiline(values) {
+	if structCompositeLiteralValuesShouldUseMultiline(values) {
 		return true
 	}
 	return structCompositeLiteralSelectorFieldsShouldUseMultiline(values)
+}
+
+func structCompositeLiteralValuesShouldUseMultiline(values []ast.Expr) bool {
+	if compositeLiteralValuesShouldUseMultiline(values) {
+		return true
+	}
+	if !NeedsConcurrentWrapper() || len(values) < 3 {
+		return false
+	}
+	complexCount := 0
+	for _, value := range values {
+		if compositeLiteralElementIsComplex(value) {
+			complexCount++
+			if complexCount >= 2 {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func typesStructCompositeLiteralShouldUseMultiline(elts []ast.Expr, structUnder *types.Struct) bool {

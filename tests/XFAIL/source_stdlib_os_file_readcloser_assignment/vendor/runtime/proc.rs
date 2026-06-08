@@ -1624,11 +1624,16 @@ impl randomOrder {
     }
 
     pub fn start(&self, i: Arc<Mutex<Option<u32>>>) -> Arc<Mutex<Option<randomEnum>>> {
-        Arc::new(Mutex::new(Some(randomEnum { count: Arc::new(Mutex::new(Some({ let __selector_holder = self.count.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), pos: Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.count.lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }))), inc: Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.coprimes.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({
-            let __tmp_x = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.count.lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y };
-            let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.coprimes.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap());
-            __tmp_x % __tmp_y
-        }) as usize].clone() }))), ..Default::default() })))
+        Arc::new(Mutex::new(Some(randomEnum {
+            count: Arc::new(Mutex::new(Some({ let __selector_holder = self.count.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            pos: Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.count.lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }))),
+            inc: Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.coprimes.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({
+                let __tmp_x = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.count.lock().unwrap().as_ref().unwrap()); __tmp_x / __tmp_y };
+                let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.coprimes.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as u32))).lock().unwrap().as_ref().unwrap());
+                __tmp_x % __tmp_y
+            }) as usize].clone() }))),
+            ..Default::default()
+        })))
     }
 }
 

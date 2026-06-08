@@ -6108,7 +6108,12 @@ pub fn runtime_nano() -> i64 {
 pub fn now() -> Arc<Mutex<Option<Time>>> {
     let (mut sec, mut nsec, mut mono) = runtime_now();
     if { let __tmp_x = mono; let __tmp_y = 0 as i64; __tmp_x == __tmp_y } {
-        return Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(nsec as u64))), ext: Arc::new(Mutex::new(Some({ let __tmp_x = sec; let __tmp_y = UNIX_TO_INTERNAL as i64; __tmp_x + __tmp_y }))), loc: (*Local.lock().unwrap().as_ref().unwrap()).clone(), ..Default::default() })));
+        return Arc::new(Mutex::new(Some(Time {
+            wall: Arc::new(Mutex::new(Some(nsec as u64))),
+            ext: Arc::new(Mutex::new(Some({ let __tmp_x = sec; let __tmp_y = UNIX_TO_INTERNAL as i64; __tmp_x + __tmp_y }))),
+            loc: (*Local.lock().unwrap().as_ref().unwrap()).clone(),
+            ..Default::default()
+        })));
     }
     { let __rhs = (*startNano.lock().unwrap().as_ref().unwrap()); mono = mono - __rhs; };
     { let __rhs = { let __tmp_x = UNIX_TO_INTERNAL as i64; let __tmp_y = MIN_WALL as i64; __tmp_x - __tmp_y } as i64; sec = sec + __rhs; };
@@ -6116,7 +6121,12 @@ pub fn now() -> Arc<Mutex<Option<Time>>> {
                 // Seconds field overflowed the 33 bits available when
                 // storing a monotonic time. This will be true after
                 // March 16, 2157.
-        return Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some(nsec as u64))), ext: Arc::new(Mutex::new(Some({ let __tmp_x = sec; let __tmp_y = MIN_WALL as i64; __tmp_x + __tmp_y }))), loc: (*Local.lock().unwrap().as_ref().unwrap()).clone(), ..Default::default() })));
+        return Arc::new(Mutex::new(Some(Time {
+            wall: Arc::new(Mutex::new(Some(nsec as u64))),
+            ext: Arc::new(Mutex::new(Some({ let __tmp_x = sec; let __tmp_y = MIN_WALL as i64; __tmp_x + __tmp_y }))),
+            loc: (*Local.lock().unwrap().as_ref().unwrap()).clone(),
+            ..Default::default()
+        })));
     }
         // Seconds field overflowed the 33 bits available when
         // storing a monotonic time. This will be true after
@@ -6125,7 +6135,12 @@ pub fn now() -> Arc<Mutex<Option<Time>>> {
 }
 
 pub fn unix_time(sec: Arc<Mutex<Option<i64>>>, nsec: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Time>>> {
-    Arc::new(Mutex::new(Some(Time { wall: Arc::new(Mutex::new(Some((*nsec.lock().unwrap().as_ref().unwrap()) as u64))), ext: Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*sec.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = UNIX_TO_INTERNAL as i64; __tmp_x + __tmp_y }))), loc: (*Local.lock().unwrap().as_ref().unwrap()).clone(), ..Default::default() })))
+    Arc::new(Mutex::new(Some(Time {
+        wall: Arc::new(Mutex::new(Some((*nsec.lock().unwrap().as_ref().unwrap()) as u64))),
+        ext: Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*sec.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = UNIX_TO_INTERNAL as i64; __tmp_x + __tmp_y }))),
+        loc: (*Local.lock().unwrap().as_ref().unwrap()).clone(),
+        ..Default::default()
+    })))
 }
 
 /// Unix returns the local Time corresponding to the given Unix time,

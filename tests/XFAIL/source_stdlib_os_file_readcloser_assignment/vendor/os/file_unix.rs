@@ -764,7 +764,12 @@ pub fn new_file(fd: Arc<Mutex<Option<usize>>>, name: Arc<Mutex<Option<String>>>)
 pub fn new_file_1(fd: Arc<Mutex<Option<i32>>>, name: Arc<Mutex<Option<String>>>, kind: Arc<Mutex<Option<newFileKind>>>, nonBlocking: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<crate::types::File>>> {
     let mut f = {
         let __owner = Arc::new(Mutex::new(Some(crate::types::File {
-            file: Arc::new(Mutex::new(Some(file { pfd: Arc::new(Mutex::new(Some(internal_poll::fd_unix::FD { sysfd: Arc::new(Mutex::new(Some({ let __arg_holder = fd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), is_stream: Arc::new(Mutex::new(Some(true))), zero_read_is_e_o_f: Arc::new(Mutex::new(Some(true))), ..Default::default() }))), name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), stdout_or_err: Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*fd.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x == __tmp_y } || { let __tmp_x = { let __v = (*fd.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x == __tmp_y }))), ..Default::default() }))).clone(),
+            file: Arc::new(Mutex::new(Some(file {
+                pfd: Arc::new(Mutex::new(Some(internal_poll::fd_unix::FD { sysfd: Arc::new(Mutex::new(Some({ let __arg_holder = fd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), is_stream: Arc::new(Mutex::new(Some(true))), zero_read_is_e_o_f: Arc::new(Mutex::new(Some(true))), ..Default::default() }))),
+                name: Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                stdout_or_err: Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*fd.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x == __tmp_y } || { let __tmp_x = { let __v = (*fd.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2; __tmp_x == __tmp_y }))),
+                ..Default::default()
+            }))).clone(),
             ..Default::default()
         })));
         let __embedded = { let __owner_guard = __owner.lock().unwrap(); __owner_guard.as_ref().unwrap().file.clone() };
