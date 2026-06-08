@@ -193,7 +193,8 @@ func TestSelfTranspileBehaviorSuiteCopiesCleanupScript(t *testing.T) {
 	for _, want := range []string{
 		`cp "$repo_root/cleanup.sh" "$suite/cleanup.sh"`,
 		`cp "$repo_root/pressure_guard.sh" "$suite/pressure_guard.sh"`,
-		`chmod +x "$suite/test.sh" "$suite/cleanup.sh" "$suite/pressure_guard.sh"`,
+		`cp "$repo_root/pressure_run.sh" "$suite/pressure_run.sh"`,
+		`chmod +x "$suite/test.sh" "$suite/cleanup.sh" "$suite/pressure_guard.sh" "$suite/pressure_run.sh"`,
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("self_transpile_check.sh behavior suite should copy cleanup tooling; missing %q", want)

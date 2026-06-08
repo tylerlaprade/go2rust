@@ -133,9 +133,24 @@ enforce_fixture_memory_floor() {
 
 if [ "$TRANSPILE_ONLY" = true ]; then
     enforce_fixture_memory_floor GO2RUST_TEST_TRANSPILE_ONLY_MIN_AVAILABLE_MEM_MB 256 "transpile-only fixture work"
+    PRESSURE_RUN_MIN_ENV=GO2RUST_TEST_TRANSPILE_ONLY_MIN_AVAILABLE_MEM_MB
+    PRESSURE_RUN_DEFAULT_MIN_MB=256
+    PRESSURE_RUN_LABEL="transpile-only fixture work"
 else
     enforce_fixture_memory_floor GO2RUST_TEST_MIN_AVAILABLE_MEM_MB 1024 "fixture Cargo work"
+    PRESSURE_RUN_MIN_ENV=GO2RUST_TEST_MIN_AVAILABLE_MEM_MB
+    PRESSURE_RUN_DEFAULT_MIN_MB=1024
+    PRESSURE_RUN_LABEL="fixture Cargo work"
 fi
+
+run_with_pressure_monitor() {
+    "$SCRIPT_DIR/pressure_run.sh" \
+        --min-env "$PRESSURE_RUN_MIN_ENV" \
+        --default-min-mb "$PRESSURE_RUN_DEFAULT_MIN_MB" \
+        --skip-env GO2RUST_TEST_SKIP_PRESSURE_GUARD \
+        --label "$PRESSURE_RUN_LABEL" \
+        -- "$@"
+}
 
 # Single-instance lock. Concurrent ./test.sh runs would corrupt the in-place
 # tests.bats rewrite below and the startup sweep would clobber active per-test
@@ -317,7 +332,7 @@ else
     BUILT_TEST_BINARY_DIR=$(mktemp -d "${TMPDIR:-/tmp}/go2rust-test-binary.XXXXXX")
     echo "$$" > "$BUILT_TEST_BINARY_DIR/go2rust-test.pid"
     BUILT_TEST_BINARY="$BUILT_TEST_BINARY_DIR/go2rust"
-    go build -o "$BUILT_TEST_BINARY" ./go
+    run_with_pressure_monitor go build -o "$BUILT_TEST_BINARY" ./go
     chmod +x "$BUILT_TEST_BINARY"
     GO2RUST_TEST_BINARY="$BUILT_TEST_BINARY"
     export GO2RUST_TEST_BINARY
@@ -554,7 +569,7 @@ if [ -n "$FILTER_PATTERN" ]; then
 fi
 
 # Run tests and capture output
-TEST_OUTPUT=$(bats "${BATS_ARGS[@]}" "${BATS_TARGETS[@]}" 2>&1)
+TEST_OUTPUT=$(run_with_pressure_monitor bats "${BATS_ARGS[@]}" "${BATS_TARGETS[@]}" 2>&1)
 BATS_STATUS=$?
 
 # Display the output with colors

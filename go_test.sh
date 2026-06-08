@@ -64,4 +64,9 @@ if [ -z "${GOCACHE:-}" ]; then
     export GOCACHE="$GO_TEST_GOCACHE_DIR"
 fi
 
-go test ./go "$@"
+"$repo_root/pressure_run.sh" \
+    --min-env GO2RUST_GO_TEST_MIN_AVAILABLE_MEM_MB \
+    --default-min-mb 512 \
+    --skip-env GO2RUST_GO_TEST_SKIP_PRESSURE_GUARD \
+    --label "go test" \
+    -- go test ./go "$@"

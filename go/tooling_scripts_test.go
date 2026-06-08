@@ -320,6 +320,87 @@ func TestPressureGuardScriptOwnsAvailableMemoryDetection(t *testing.T) {
 	}
 }
 
+func TestPressureRunScriptTerminatesWorkWhenMemoryCollapses(t *testing.T) {
+	data, err := os.ReadFile("../pressure_run.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(pressure_run.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`--interval-seconds`,
+		`GO2RUST_PRESSURE_RUN_INTERVAL_SECONDS`,
+		`"$repo_root/pressure_guard.sh" --available-bytes`,
+		`terminate_tree()`,
+		`kill_tree()`,
+		`ps -o pid= -P "$pid"`,
+		`Terminating $label to prevent deeper memory pressure.`,
+		`Run ./cleanup.sh --pressure --quick to inspect current pressure.`,
+		`exit 137`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("pressure_run.sh should monitor and terminate child work under memory pressure; missing %q", want)
+		}
+	}
+}
+
+func TestValidationScriptsUsePressureRunForLongCommands(t *testing.T) {
+	testScript, err := os.ReadFile("../test.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(test.sh) error = %v", err)
+	}
+	goTestScript, err := os.ReadFile("../go_test.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(go_test.sh) error = %v", err)
+	}
+	goVetScript, err := os.ReadFile("../go_vet.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(go_vet.sh) error = %v", err)
+	}
+	selfScript, err := os.ReadFile("../self_transpile_check.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(self_transpile_check.sh) error = %v", err)
+	}
+	for _, want := range []string{
+		`run_with_pressure_monitor()`,
+		`"$SCRIPT_DIR/pressure_run.sh"`,
+		`run_with_pressure_monitor go build -o "$BUILT_TEST_BINARY" ./go`,
+		`TEST_OUTPUT=$(run_with_pressure_monitor bats "${BATS_ARGS[@]}" "${BATS_TARGETS[@]}" 2>&1)`,
+	} {
+		if !strings.Contains(string(testScript), want) {
+			t.Fatalf("test.sh should run long fixture commands through pressure_run.sh; missing %q", want)
+		}
+	}
+	for _, want := range []string{
+		`"$repo_root/pressure_run.sh"`,
+		`-- go test ./go "$@"`,
+	} {
+		if !strings.Contains(string(goTestScript), want) {
+			t.Fatalf("go_test.sh should run go test through pressure_run.sh; missing %q", want)
+		}
+	}
+	for _, want := range []string{
+		`"$repo_root/pressure_run.sh"`,
+		`-- go vet ./go "$@"`,
+	} {
+		if !strings.Contains(string(goVetScript), want) {
+			t.Fatalf("go_vet.sh should run go vet through pressure_run.sh; missing %q", want)
+		}
+	}
+	for _, want := range []string{
+		`run_self_with_pressure_monitor()`,
+		`"$repo_root/pressure_run.sh"`,
+		`run_self_with_pressure_monitor go build -o "$work/go2rust" "$repo_root/go"`,
+		`run_self_with_pressure_monitor cargo "${cargo_offline_args[@]}" check`,
+		`run_self_with_pressure_monitor cargo "${cargo_offline_args[@]}" build`,
+		`run_self_with_pressure_monitor ./test.sh "${behavior_args[@]}" "${behavior_tests[@]}"`,
+		`cp "$repo_root/pressure_run.sh" "$suite/pressure_run.sh"`,
+	} {
+		if !strings.Contains(string(selfScript), want) {
+			t.Fatalf("self_transpile_check.sh should run long commands through pressure_run.sh; missing %q", want)
+		}
+	}
+}
+
 func TestTestScriptDefaultJobsRespectMemoryHeadroom(t *testing.T) {
 	data, err := os.ReadFile("../test.sh")
 	if err != nil {

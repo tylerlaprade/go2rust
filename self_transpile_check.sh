@@ -124,10 +124,26 @@ enforce_available_memory_floor() {
 
 cleanup_stale_self_workspaces
 if [ "$cargo_check" = true ] || [ "$behavior_suite" = true ]; then
+    SELF_PRESSURE_MIN_ENV=GO2RUST_SELF_CARGO_MIN_AVAILABLE_MEM_MB
+    SELF_PRESSURE_DEFAULT_MIN_MB=2048
+    SELF_PRESSURE_LABEL="self-transpile Cargo validation"
     enforce_available_memory_floor GO2RUST_SELF_CARGO_MIN_AVAILABLE_MEM_MB 2048 "self-transpile Cargo validation"
 else
+    SELF_PRESSURE_MIN_ENV=GO2RUST_SELF_MIN_AVAILABLE_MEM_MB
+    SELF_PRESSURE_DEFAULT_MIN_MB=1024
+    SELF_PRESSURE_LABEL="self-transpile work"
     enforce_available_memory_floor GO2RUST_SELF_MIN_AVAILABLE_MEM_MB 1024 "self-transpile work"
 fi
+
+run_self_with_pressure_monitor() {
+    "$repo_root/pressure_run.sh" \
+        --min-env "$SELF_PRESSURE_MIN_ENV" \
+        --default-min-mb "$SELF_PRESSURE_DEFAULT_MIN_MB" \
+        --skip-env GO2RUST_SELF_SKIP_PRESSURE_GUARD \
+        --label "$SELF_PRESSURE_LABEL" \
+        -- "$@"
+}
+
 work=$(mktemp -d "$tmp_root/go2rust-self.XXXXXX")
 keep=${KEEP_SELF_TRANSPILE:-0}
 echo "$$" > "$work/self_transpile_check.pid"
@@ -175,11 +191,11 @@ case "${GO2RUST_CARGO_OFFLINE:-auto}" in
         exit 2
         ;;
 esac
-go build -o "$work/go2rust" "$repo_root/go"
+run_self_with_pressure_monitor go build -o "$work/go2rust" "$repo_root/go"
 
 (
     cd "$work"
-    ./go2rust go
+    run_self_with_pressure_monitor ./go2rust go
 )
 
 if [ "$cargo_check" = true ]; then
@@ -187,13 +203,13 @@ if [ "$cargo_check" = true ]; then
     if [ "${#packages[@]}" -eq 0 ]; then
         (
             cd "$work/go"
-            cargo "${cargo_offline_args[@]}" check --workspace --message-format=short
+            run_self_with_pressure_monitor cargo "${cargo_offline_args[@]}" check --workspace --message-format=short
         )
     else
         for package in "${packages[@]}"; do
             (
                 cd "$work/go"
-                cargo "${cargo_offline_args[@]}" check -p "$package" --message-format=short
+                run_self_with_pressure_monitor cargo "${cargo_offline_args[@]}" check -p "$package" --message-format=short
             )
         done
     fi
@@ -203,7 +219,7 @@ if [ "$behavior_suite" = true ]; then
     export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$work/cargo-target}"
     (
         cd "$work/go"
-        cargo "${cargo_offline_args[@]}" build -p go --bin go
+        run_self_with_pressure_monitor cargo "${cargo_offline_args[@]}" build -p go --bin go
     )
 
     suite="$work/behavior-suite"
@@ -211,7 +227,8 @@ if [ "$behavior_suite" = true ]; then
     cp "$repo_root/test.sh" "$suite/test.sh"
     cp "$repo_root/cleanup.sh" "$suite/cleanup.sh"
     cp "$repo_root/pressure_guard.sh" "$suite/pressure_guard.sh"
-    chmod +x "$suite/test.sh" "$suite/cleanup.sh" "$suite/pressure_guard.sh"
+    cp "$repo_root/pressure_run.sh" "$suite/pressure_run.sh"
+    chmod +x "$suite/test.sh" "$suite/cleanup.sh" "$suite/pressure_guard.sh" "$suite/pressure_run.sh"
     cp "$repo_root/tests.bats" "$suite/tests.bats"
     cp "$repo_root/go.mod" "$suite/go.mod"
     cp "$repo_root/go.sum" "$suite/go.sum"
@@ -228,9 +245,9 @@ if [ "$behavior_suite" = true ]; then
         if [ -n "${GO2RUST_BEHAVIOR_JOBS:-}" ]; then
             behavior_args=(-n "$GO2RUST_BEHAVIOR_JOBS" "${behavior_args[@]}")
         fi
-        GO2RUST_TEST_BINARY="$CARGO_TARGET_DIR/debug/go" \
-            GOCACHE="${GOCACHE:-$work/go-build-cache}" \
-            ./test.sh "${behavior_args[@]}" "${behavior_tests[@]}"
+        export GO2RUST_TEST_BINARY="$CARGO_TARGET_DIR/debug/go"
+        export GOCACHE="${GOCACHE:-$work/go-build-cache}"
+        run_self_with_pressure_monitor ./test.sh "${behavior_args[@]}" "${behavior_tests[@]}"
     )
 fi
 

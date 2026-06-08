@@ -64,4 +64,9 @@ if [ -z "${GOCACHE:-}" ]; then
     export GOCACHE="$GO_VET_GOCACHE_DIR"
 fi
 
-go vet ./go "$@"
+"$repo_root/pressure_run.sh" \
+    --min-env GO2RUST_GO_VET_MIN_AVAILABLE_MEM_MB \
+    --default-min-mb 512 \
+    --skip-env GO2RUST_GO_VET_SKIP_PRESSURE_GUARD \
+    --label "go vet" \
+    -- go vet ./go "$@"
