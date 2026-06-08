@@ -610,6 +610,40 @@ func label(rc reader) string {
 	}
 }
 
+func TestAnonymousInterfaceAssertionWithSingleImplementorKeepsInterfaceShape(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type person struct {
+	name string
+}
+
+func (p person) Name() string {
+	return p.name
+}
+
+func label(p person) string {
+	n, ok := any(p).(interface{ Name() string })
+	if ok {
+		return n.Name()
+	}
+	return ""
+}
+`)
+
+	if !strings.Contains(rust, "pub trait GoAnonymousInterface1") {
+		t.Fatalf("single-implementor anonymous interface assertion should synthesize a trait:\n%s", rust)
+	}
+	if !strings.Contains(rust, "impl GoAnonymousInterface1 for person") {
+		t.Fatalf("single-implementor anonymous interface assertion should implement the synthesized trait:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Box::new(typed_val.clone()) as Box<dyn GoAnonymousInterface1") {
+		t.Fatalf("single-implementor anonymous interface assertion should box success as the anonymous interface:\n%s", rust)
+	}
+	if strings.Contains(rust, "let __asserted = p.clone()") {
+		t.Fatalf("any(...) anonymous interface assertion should not use the concrete static shortcut:\n%s", rust)
+	}
+}
+
 func TestAnyAssertionToPackageInterfaceUsesConcreteCandidates(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

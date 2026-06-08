@@ -18976,6 +18976,9 @@ func staticallyKnownAnyInterfaceAssertionSource(e *ast.TypeAssertExpr) (ast.Expr
 	if typeInfo == nil || e.Type == nil {
 		return nil, false
 	}
+	if _, ok := anonInterfaceMethodSet(e.Type); ok {
+		return nil, false
+	}
 	call, ok := e.X.(*ast.CallExpr)
 	if !ok || len(call.Args) != 1 {
 		return nil, false
@@ -19810,85 +19813,21 @@ func typeAssertionTargetIsInterface(e *ast.TypeAssertExpr) bool {
 }
 
 // writeAnonInterfaceAssertionCommaOk lowers `x.(interface{...})` in comma-ok
-// position. A single matching concrete implementor can bind directly; multiple
-// possible implementors use a synthesized trait object for the anonymous method
-// set so the success arm has one Rust type.
+// position. The result keeps the anonymous interface shape even when only one
+// concrete implementor is visible to the transpiler.
 func writeAnonInterfaceAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, sourceType types.Type, iface *types.Interface, candidates []localInterfaceAssertionCandidate) {
 	sourceTrait := localInterfaceAssertionSourceTrait(sourceType)
-	if len(candidates) != 1 {
-		ifaceName := registerAnonymousInterfaceAssertionTrait(iface, candidates)
-		writeAnonInterfaceTraitAssertionCommaOk(out, e, sourceTrait, ifaceName, candidates)
-		return
-	}
-	out.WriteString("({\n")
-	out.WriteString("        let val = ")
-	writeTypeAssertionInputClone(out, e.X)
-	out.WriteString(";\n")
-	out.WriteString("        let guard = val")
-	WriteBorrowMethod(out, false)
-	out.WriteString(";\n")
-	out.WriteString("        if let Some(ref any_val) = *guard {\n")
-	out.WriteString("            if let Some(typed_val) = ")
-	writeLocalInterfaceAssertionDowncast(out, sourceTrait, candidates[0].rustType)
-	out.WriteString(" {\n")
-	out.WriteString("                (")
-	WriteWrapperPrefix(out)
-	out.WriteString("typed_val.clone()")
-	WriteWrapperSuffix(out)
-	out.WriteString(", ")
-	out.WriteString("true")
-	out.WriteString(")\n")
-	out.WriteString("            } else {\n")
-	out.WriteString("                (")
-	writeTypedWrappedNone(out, candidates[0].rustType)
-	out.WriteString(", ")
-	out.WriteString("false")
-	out.WriteString(")\n")
-	out.WriteString("            }\n")
-	out.WriteString("        } else {\n")
-	out.WriteString("            (")
-	writeTypedWrappedNone(out, candidates[0].rustType)
-	out.WriteString(", ")
-	out.WriteString("false")
-	out.WriteString(")\n")
-	out.WriteString("        }\n")
-	out.WriteString("    })")
+	ifaceName := registerAnonymousInterfaceAssertionTrait(iface, candidates)
+	writeAnonInterfaceTraitAssertionCommaOk(out, e, sourceTrait, ifaceName, candidates)
 }
 
 // writeAnonInterfaceAssertionValue lowers `x.(interface{...})` in value
-// position (panicking on failure). A single matching concrete implementor can
-// bind directly; multiple possible implementors use a synthesized trait object
-// for the anonymous method set.
+// position (panicking on failure). The result keeps the anonymous interface
+// shape even when only one concrete implementor is visible to the transpiler.
 func writeAnonInterfaceAssertionValue(out *strings.Builder, e *ast.TypeAssertExpr, sourceType types.Type, iface *types.Interface, candidates []localInterfaceAssertionCandidate) {
 	sourceTrait := localInterfaceAssertionSourceTrait(sourceType)
-	if len(candidates) != 1 {
-		ifaceName := registerAnonymousInterfaceAssertionTrait(iface, candidates)
-		writeAnonInterfaceTraitAssertionValue(out, e, sourceTrait, ifaceName, candidates)
-		return
-	}
-	out.WriteString("({\n")
-	out.WriteString("        let val = ")
-	writeTypeAssertionInputClone(out, e.X)
-	out.WriteString(";\n")
-	out.WriteString("        let guard = val")
-	WriteBorrowMethod(out, false)
-	out.WriteString(";\n")
-	out.WriteString("        if let Some(ref any_val) = *guard {\n")
-	out.WriteString("            if let Some(typed_val) = ")
-	writeLocalInterfaceAssertionDowncast(out, sourceTrait, candidates[0].rustType)
-	out.WriteString(" {\n")
-	out.WriteString("                ")
-	WriteWrapperPrefix(out)
-	out.WriteString("typed_val.clone()")
-	WriteWrapperSuffix(out)
-	out.WriteString("\n")
-	out.WriteString("            } else {\n")
-	out.WriteString("                panic!(\"type assertion failed\")\n")
-	out.WriteString("            }\n")
-	out.WriteString("        } else {\n")
-	out.WriteString("            panic!(\"type assertion on nil interface\")\n")
-	out.WriteString("        }\n")
-	out.WriteString("    })")
+	ifaceName := registerAnonymousInterfaceAssertionTrait(iface, candidates)
+	writeAnonInterfaceTraitAssertionValue(out, e, sourceTrait, ifaceName, candidates)
 }
 
 func writeAnonInterfaceTraitAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, sourceTrait string, ifaceName string, candidates []localInterfaceAssertionCandidate) {

@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::cell::{RefCell};
 use std::rc::{Rc};
 
@@ -89,12 +90,53 @@ fn main() {
     }
     if false {
         let (mut withRhs, mut ok) = ({
-        let __asserted = alias.clone();
-        (__asserted.clone(), Rc::new(RefCell::new(Some(true))))
+        let val = Rc::new(RefCell::new(Some(Box::new((*alias.borrow().as_ref().unwrap()).clone()) as Box<dyn Any>)));
+        let guard = val.borrow();
+        if let Some(ref any_val) = *guard {
+            if let Some(typed_val) = any_val.downcast_ref::<types_Alias>() {
+                (Rc::new(RefCell::new(Some(Box::new(typed_val.clone()) as Box<dyn GoAnonymousInterface1>))), Rc::new(RefCell::new(Some(true))))
+            } else {
+                (Rc::new(RefCell::new(None::<Box<dyn GoAnonymousInterface1>>)), Rc::new(RefCell::new(Some(false))))
+            }
+        } else {
+            (Rc::new(RefCell::new(None::<Box<dyn GoAnonymousInterface1>>)), Rc::new(RefCell::new(Some(false))))
+        }
     });
         if (*ok.borrow().as_ref().unwrap()) {
         println!("{}", format!("{}", format!("{}", (*((*withRhs.borrow().as_ref().unwrap()).rhs()).borrow().as_ref().unwrap()))));
     }
     }
     println!("{}", format!("{}", "ok".to_string()));
+}
+
+pub trait GoAnonymousInterface1: std::fmt::Display + Any {
+    fn __go_clone_box_go_anonymous_interface1(&self) -> Box<dyn GoAnonymousInterface1>;
+    fn __go_as_any(&self) -> &dyn Any;
+    fn __go_eq_go_anonymous_interface1(&self, other: &dyn GoAnonymousInterface1) -> bool;
+    fn rhs(&self) -> Rc<RefCell<Option<types_Type>>>;
+}
+
+impl Clone for Box<dyn GoAnonymousInterface1> {
+    fn clone(&self) -> Self {
+        GoAnonymousInterface1::__go_clone_box_go_anonymous_interface1(self.as_ref())
+    }
+}
+
+impl GoAnonymousInterface1 for types_Alias {
+    fn rhs(&self) -> Rc<RefCell<Option<types_Type>>> {
+        types_Alias::rhs(self)
+    }
+    fn __go_clone_box_go_anonymous_interface1(&self) -> Box<dyn GoAnonymousInterface1> {
+        Box::new(self.clone()) as Box<dyn GoAnonymousInterface1>
+    }
+    fn __go_as_any(&self) -> &dyn Any {
+        self
+    }
+    fn __go_eq_go_anonymous_interface1(&self, other: &dyn GoAnonymousInterface1) -> bool {
+        if let Some(__other) = other.__go_as_any().downcast_ref::<types_Alias>() {
+            false
+        } else {
+            false
+        }
+    }
 }
