@@ -233,12 +233,22 @@ process_snapshot_by_cpu() {
         printf '%s\n' "$snapshot"
         return
     fi
+    snapshot=$(ps -axo pid,ppid,%cpu,%mem,rss,comm -r 2>/dev/null || true)
+    if [ -n "$snapshot" ]; then
+        printf '%s\n' "$snapshot"
+        return
+    fi
     process_snapshot_from_aux || true
 }
 
 process_snapshot_by_memory() {
     local snapshot
     snapshot=$(ps -axo pid,ppid,%mem,%cpu,rss,command -m 2>/dev/null || true)
+    if [ -n "$snapshot" ]; then
+        printf '%s\n' "$snapshot"
+        return
+    fi
+    snapshot=$(ps -axo pid,ppid,%mem,%cpu,rss,comm -m 2>/dev/null || true)
     if [ -n "$snapshot" ]; then
         printf '%s\n' "$snapshot"
         return

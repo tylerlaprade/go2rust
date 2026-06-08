@@ -733,6 +733,8 @@ func TestCleanupPressureReportShowsProcessAndDiskPressure(t *testing.T) {
 		`vm_stat`,
 		`vm_stat_pages_for_label()`,
 		`echo "Compressed: $(format_pages_kib "$compressed_pages" "$page_size") stored / $(format_pages_kib "$compressor_pages" "$page_size") occupied"`,
+		`ps -axo pid,ppid,%cpu,%mem,rss,comm -r`,
+		`ps -axo pid,ppid,%mem,%cpu,rss,comm -m`,
 		`echo "Top CPU processes:"`,
 		`echo "Top memory processes:"`,
 		`echo "Active go2rust validation processes:"`,
