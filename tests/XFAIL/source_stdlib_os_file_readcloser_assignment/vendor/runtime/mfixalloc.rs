@@ -217,7 +217,10 @@ impl fixalloc {
 
     pub fn alloc(&mut self) -> Arc<Mutex<Option<usize>>> {
         if { let __tmp_x = (*self.size.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
-        eprint!("{}", format!("{}", "runtime: use of FixAlloc_Alloc before FixAlloc_Init\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: use of FixAlloc_Alloc before FixAlloc_Init\n".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
         throw(Arc::new(Mutex::new(Some("runtime: internal error".to_string()))));
     }
         if { let __ptr_field = self.list.clone(); !__ptr_field.is_nil() } {

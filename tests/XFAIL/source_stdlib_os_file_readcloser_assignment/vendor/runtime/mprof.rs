@@ -1951,7 +1951,11 @@ pub fn saveblockevent(cycles: Arc<Mutex<Option<i64>>>, rate: Arc<Mutex<Option<i6
         // profstackdepth is set to 0 by the user, so mp.profStack is nil and we
         // can't record a stack trace.
     if { let __tmp_x = { let __v = (*skip.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 6; __tmp_x > __tmp_y } {
-        eprint!("{}{}", format!("{}", "requested skip=".to_string()), format!("{}", { let __v = (*skip.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+        {
+            let __go_print_arg_0 = format!("{}", "requested skip=".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*skip.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            eprint!("{}{}", __go_print_arg_0, __go_print_arg_1)
+        };
         throw(Arc::new(Mutex::new(Some("invalid skip value".to_string()))));
     }
     let mut gp = getg();
@@ -2177,7 +2181,12 @@ pub fn do_record_goroutine_profile(gp1: GoPtr<crate::runtime2::g>, pcbuf: Arc<Mu
         // goroutines to participate in the same state machine on gp1.goroutineProfiled as
         // everything else, we just don't record the stack in the profile.
     if { let __tmp_x = readgstatus(gp1.clone()); let __tmp_y = __GRUNNING as u32; __tmp_x == __tmp_y } {
-        eprint!("{}{}{}", format!("{}", "doRecordGoroutineProfile gp1=".to_string()), format!("{}", (*{ let __ptr_value = gp1.borrow(); __ptr_value.as_ref().unwrap().goid.clone() }.lock().unwrap().as_ref().unwrap())), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "doRecordGoroutineProfile gp1=".to_string());
+            let __go_print_arg_1 = format!("{}", (*{ let __ptr_value = gp1.borrow(); __ptr_value.as_ref().unwrap().goid.clone() }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_2 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
         throw(Arc::new(Mutex::new(Some("cannot read stack of running goroutine".to_string()))));
     }
 

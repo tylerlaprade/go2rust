@@ -154,8 +154,20 @@ pub fn end_checkmarks() {
 pub fn set_checkmark(obj: Arc<Mutex<Option<usize>>>, base: Arc<Mutex<Option<usize>>>, off: Arc<Mutex<Option<usize>>>, mbits: Arc<Mutex<Option<markBits>>>) -> bool {
     if !(*mbits.lock().unwrap().as_ref().unwrap()).is_marked() {
         printlock();
-        eprint!("{}{}{}", format!("{}", "runtime: checkmarks found unexpected unmarked object obj=".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*obj.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", "\n".to_string()));
-        eprint!("{}{}{}{}{}", format!("{}", "runtime: found obj at *(".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", "+".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*off.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", ")\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: checkmarks found unexpected unmarked object obj=".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*obj.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_2 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: found obj at *(".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_2 = format!("{}", "+".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*off.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_4 = format!("{}", ")\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
                 // Dump the source (base) object
         gc_dump_object(Arc::new(Mutex::new(Some("base".to_string()))), Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = off.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
                 // Dump the object

@@ -227,7 +227,11 @@ pub fn convert_err(res: Arc<Mutex<Option<i32>>>, isFile: Arc<Mutex<Option<bool>>
             return ErrNotPollable.clone();
         }
     }
-    eprintln!("{} {}", format!("{}", "unreachable: ".to_string()), format!("{}", { let __v = (*res.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    {
+            let __go_print_arg_0 = format!("{}", "unreachable: ".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*res.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            eprintln!("{} {}", __go_print_arg_0, __go_print_arg_1)
+        };
     std::panic::panic_any(Box::new("unreachable".to_string()) as Box<dyn Any + Send + Sync>);
 }
 

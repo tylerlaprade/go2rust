@@ -259,10 +259,23 @@ impl rtype {
         let mut res = Arc::new(Mutex::new(Some({ let __map = { let __map_holder = (*reflectOffs.lock().unwrap().as_ref().unwrap()).m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&{ let __v = Arc::new(Mutex::new(Some((*{ let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))); let __guard = __v.lock().unwrap(); let __owned = (*__guard.as_ref().unwrap()).clone(); __owned })).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) })));
         reflect_offs_unlock();
         if { let __nil_result = (*res.lock().unwrap()).is_none(); __nil_result } {
-        eprintln!("{} {} {} {} {}", format!("{}", "runtime: textOff".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*{ let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", "base".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", "not in ranges:".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: textOff".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*{ let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_2 = format!("{}", "base".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_4 = format!("{}", "not in ranges:".to_string());
+            eprintln!("{} {} {} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         let mut next = firstmoduledata.clone();
     while { let __nil_result = (*next.lock().unwrap()).is_some(); __nil_result } {
-        eprintln!("{} {} {} {}", format!("{}", "\ttypes".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*next.lock().unwrap().as_ref().unwrap()).types.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", "etypes".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*next.lock().unwrap().as_ref().unwrap()).etypes.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))));
+        {
+            let __go_print_arg_0 = format!("{}", "\ttypes".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*next.lock().unwrap().as_ref().unwrap()).types.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_2 = format!("{}", "etypes".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*next.lock().unwrap().as_ref().unwrap()).etypes.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            eprintln!("{} {} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3)
+        };
         { let new_val = (*next.lock().unwrap().as_ref().unwrap()).next.clone(); next = new_val; };
     }
         throw(Arc::new(Mutex::new(Some("runtime: text offset base pointer out of range".to_string()))));
@@ -585,7 +598,15 @@ pub fn resolve_name_off(ptrInModule: Arc<Mutex<Option<usize>>>, off: nameOff) ->
         if { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*md.lock().unwrap().as_ref().unwrap()).types.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y } && { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*md.lock().unwrap().as_ref().unwrap()).etypes.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
         let mut res = Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*md.lock().unwrap().as_ref().unwrap()).types.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })));
         if { let __tmp_x = { let __v = (*res.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*md.lock().unwrap().as_ref().unwrap()).etypes.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
-        eprintln!("{} {} {} {} {} {}", format!("{}", "runtime: nameOff".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*{ let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", "out of range".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*md.lock().unwrap().as_ref().unwrap()).types.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", "-".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*md.lock().unwrap().as_ref().unwrap()).etypes.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: nameOff".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*{ let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_2 = format!("{}", "out of range".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*md.lock().unwrap().as_ref().unwrap()).types.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_4 = format!("{}", "-".to_string());
+            let __go_print_arg_5 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*md.lock().unwrap().as_ref().unwrap()).etypes.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            eprintln!("{} {} {} {} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5)
+        };
         throw(Arc::new(Mutex::new(Some("runtime: name offset out of range".to_string()))));
     }
         return Arc::new(Mutex::new(Some(internal_abi::r#type::Name { bytes: internal_abi::GoPtr::local(Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some((*res.lock().unwrap().as_ref().unwrap())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<u8>(unimplemented!("unsafe.Pointer conversion to u8")) } })).clone()), ..Default::default() })));
@@ -598,10 +619,23 @@ pub fn resolve_name_off(ptrInModule: Arc<Mutex<Option<usize>>>, off: nameOff) ->
     let (mut res, mut found) = { let __map = { let __map_holder = (*reflectOffs.lock().unwrap().as_ref().unwrap()).m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; match __map.as_ref().and_then(|__map| __map.get(&{ let __v = Arc::new(Mutex::new(Some((*{ let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))); let __guard = __v.lock().unwrap(); let __owned = (*__guard.as_ref().unwrap()).clone(); __owned })) { /* MAP_COMMA_OK */ Some(v) => (v.clone(), true), None => (Arc::new(Mutex::new(Some(0))), false) } };
     reflect_offs_unlock();
     if !found {
-        eprintln!("{} {} {} {} {}", format!("{}", "runtime: nameOff".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*{ let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", "base".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", "not in ranges:".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: nameOff".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*{ let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_2 = format!("{}", "base".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_4 = format!("{}", "not in ranges:".to_string());
+            eprintln!("{} {} {} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         let mut next = firstmoduledata.clone();
     while { let __nil_result = (*next.lock().unwrap()).is_some(); __nil_result } {
-        eprintln!("{} {} {} {}", format!("{}", "\ttypes".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*next.lock().unwrap().as_ref().unwrap()).types.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", "etypes".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*next.lock().unwrap().as_ref().unwrap()).etypes.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))));
+        {
+            let __go_print_arg_0 = format!("{}", "\ttypes".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*next.lock().unwrap().as_ref().unwrap()).types.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_2 = format!("{}", "etypes".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*next.lock().unwrap().as_ref().unwrap()).etypes.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            eprintln!("{} {} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3)
+        };
         { let new_val = (*next.lock().unwrap().as_ref().unwrap()).next.clone(); next = new_val; };
     }
         throw(Arc::new(Mutex::new(Some("runtime: name offset base pointer out of range".to_string()))));
@@ -632,10 +666,23 @@ pub fn resolve_type_off(ptrInModule: Arc<Mutex<Option<usize>>>, off: typeOff) ->
         let mut res = Arc::new(Mutex::new(Some({ let __map = { let __map_holder = (*reflectOffs.lock().unwrap().as_ref().unwrap()).m.clone(); let __map_guard = __map_holder.lock().unwrap(); let __cloned = __map_guard.as_ref().cloned(); drop(__map_guard); __cloned }; __map.as_ref().and_then(|__map| __map.get(&{ let __v = Arc::new(Mutex::new(Some((*{ let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as i32))); let __guard = __v.lock().unwrap(); let __owned = (*__guard.as_ref().unwrap()).clone(); __owned })).map(|__v| __v.lock().unwrap().as_ref().unwrap().clone()).unwrap_or_else(|| 0) })));
         reflect_offs_unlock();
         if { let __nil_result = (*res.lock().unwrap()).is_none(); __nil_result } {
-        eprintln!("{} {} {} {} {}", format!("{}", "runtime: typeOff".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*{ let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", "base".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", "not in ranges:".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: typeOff".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*{ let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_2 = format!("{}", "base".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_4 = format!("{}", "not in ranges:".to_string());
+            eprintln!("{} {} {} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         let mut next = firstmoduledata.clone();
     while { let __nil_result = (*next.lock().unwrap()).is_some(); __nil_result } {
-        eprintln!("{} {} {} {}", format!("{}", "\ttypes".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*next.lock().unwrap().as_ref().unwrap()).types.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", "etypes".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*next.lock().unwrap().as_ref().unwrap()).etypes.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))));
+        {
+            let __go_print_arg_0 = format!("{}", "\ttypes".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*next.lock().unwrap().as_ref().unwrap()).types.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_2 = format!("{}", "etypes".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*next.lock().unwrap().as_ref().unwrap()).etypes.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            eprintln!("{} {} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3)
+        };
         { let new_val = (*next.lock().unwrap().as_ref().unwrap()).next.clone(); next = new_val; };
     }
         throw(Arc::new(Mutex::new(Some("runtime: type offset base pointer out of range".to_string()))));
@@ -650,7 +697,15 @@ pub fn resolve_type_off(ptrInModule: Arc<Mutex<Option<usize>>>, off: typeOff) ->
     }
     let mut res = Arc::new(Mutex::new(Some({ let __tmp_x = (*{ let __field = (*md.lock().unwrap().as_ref().unwrap()).types.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some((*{ let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })));
     if { let __tmp_x = { let __v = (*res.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*md.lock().unwrap().as_ref().unwrap()).etypes.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
-        eprintln!("{} {} {} {} {} {}", format!("{}", "runtime: typeOff".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*{ let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", "out of range".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*md.lock().unwrap().as_ref().unwrap()).types.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", "-".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*md.lock().unwrap().as_ref().unwrap()).etypes.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: typeOff".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*{ let __v = (*off.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_2 = format!("{}", "out of range".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*md.lock().unwrap().as_ref().unwrap()).types.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_4 = format!("{}", "-".to_string());
+            let __go_print_arg_5 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*md.lock().unwrap().as_ref().unwrap()).etypes.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            eprintln!("{} {} {} {} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5)
+        };
         throw(Arc::new(Mutex::new(Some("runtime: type offset out of range".to_string()))));
     }
     return GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some((*res.lock().unwrap().as_ref().unwrap())))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });

@@ -93,7 +93,18 @@ pub fn sys_map_o_s(v: Arc<Mutex<Option<usize>>>, n: Arc<Mutex<Option<usize>>>) {
         throw(Arc::new(Mutex::new(Some("runtime: out of memory".to_string()))));
     }
     if { let __tmp_x = (*p.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*v.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } || { let __tmp_x = err; let __tmp_y = 0; __tmp_x != __tmp_y } {
-        eprint!("{}{}{}{}{}{}{}{}{}", format!("{}", "runtime: mmap(".to_string()), format!("{}", { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ", ".to_string()), format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ") returned ".to_string()), format!("{}", { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ", ".to_string()), format!("{}", err), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: mmap(".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", ", ".to_string());
+            let __go_print_arg_3 = format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_4 = format!("{}", ") returned ".to_string());
+            let __go_print_arg_5 = format!("{}", { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_6 = format!("{}", ", ".to_string());
+            let __go_print_arg_7 = format!("{}", err);
+            let __go_print_arg_8 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8)
+        };
         throw(Arc::new(Mutex::new(Some("runtime: cannot map pages in arena address space".to_string()))));
     }
 }

@@ -287,46 +287,47 @@ func isEmptyInterfaceSliceArgument(arg ast.Expr) bool {
 }
 
 func transpileBuiltinPrintln(out *strings.Builder, call *ast.CallExpr) {
-	// Go's builtin `println` write to stderr, not stdout
-	out.WriteString("eprintln!")
-	out.WriteString("(")
-
-	if len(call.Args) > 0 {
-		out.WriteString("\"")
-		for i := range call.Args {
-			if i > 0 {
-				out.WriteString(" ")
-			}
-			out.WriteString("{}")
-		}
-		out.WriteString("\"")
-
-		for _, arg := range call.Args {
-			out.WriteString(", ")
-			transpilePrintArgString(out, arg)
-		}
-	}
-
-	out.WriteString(")")
+	transpileBuiltinPrintMacro(out, call, "eprintln!", " ")
 }
 
 func transpileBuiltinPrint(out *strings.Builder, call *ast.CallExpr) {
-	// Go's builtin `print` writes to stderr without adding separators or a newline.
-	out.WriteString("eprint!")
-	out.WriteString("(")
+	transpileBuiltinPrintMacro(out, call, "eprint!", "")
+}
 
-	out.WriteString("\"")
-	for range call.Args {
+func transpileBuiltinPrintMacro(out *strings.Builder, call *ast.CallExpr, macro string, separator string) {
+	// Go's builtin print and println write to stderr.
+	if len(call.Args) == 0 {
+		if macro == "eprint!" {
+			out.WriteString(`eprint!("")`)
+		} else {
+			out.WriteString("eprintln!()")
+		}
+		return
+	}
+
+	out.WriteString("{\n")
+	for i, arg := range call.Args {
+		out.WriteString("            let __go_print_arg_")
+		out.WriteString(strconv.Itoa(i))
+		out.WriteString(" = ")
+		transpilePrintArgString(out, arg)
+		out.WriteString(";\n")
+	}
+	out.WriteString("            ")
+	out.WriteString(macro)
+	out.WriteString("(\"")
+	for i := range call.Args {
+		if i > 0 {
+			out.WriteString(separator)
+		}
 		out.WriteString("{}")
 	}
 	out.WriteString("\"")
-
-	for _, arg := range call.Args {
-		out.WriteString(", ")
-		transpilePrintArgString(out, arg)
+	for i := range call.Args {
+		out.WriteString(", __go_print_arg_")
+		out.WriteString(strconv.Itoa(i))
 	}
-
-	out.WriteString(")")
+	out.WriteString(")\n        }")
 }
 
 func transpilePrintArgString(out *strings.Builder, arg ast.Expr) {

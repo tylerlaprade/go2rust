@@ -428,7 +428,18 @@ impl lfstack {
         {
         let mut node1: GoPtr<crate::runtime2::lfnode> = lfstack_unpack(Arc::new(Mutex::new(Some(new))));;
         if { let __left_addr = node1.addr(); let __right_addr = { let __ptr = GoPtr::local(node.clone()); __ptr.addr() }; let __eq = __left_addr == __right_addr; !__eq } {
-            eprint!("{}{}{}{}{}{}{}{}{}", format!("{}", "runtime: lfstack.push invalid packing: node=".to_string()), format!("{}", format!("&{}", (*node.lock().unwrap().as_ref().unwrap()))), format!("{}", " cnt=".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*node.lock().unwrap().as_ref().unwrap()).pushcnt.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", " packed=".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some(new as u64))))), format!("{}", " -> node=".to_string()), format!("{}", format!("0x{:x}", node1.addr())), format!("{}", "\n".to_string()));;
+            {
+            let __go_print_arg_0 = format!("{}", "runtime: lfstack.push invalid packing: node=".to_string());
+            let __go_print_arg_1 = format!("{}", format!("&{}", (*node.lock().unwrap().as_ref().unwrap())));
+            let __go_print_arg_2 = format!("{}", " cnt=".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*node.lock().unwrap().as_ref().unwrap()).pushcnt.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_4 = format!("{}", " packed=".to_string());
+            let __go_print_arg_5 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some(new as u64)))));
+            let __go_print_arg_6 = format!("{}", " -> node=".to_string());
+            let __go_print_arg_7 = format!("{}", format!("0x{:x}", node1.addr()));
+            let __go_print_arg_8 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8)
+        };;
             throw(Arc::new(Mutex::new(Some("lfstack.push".to_string()))));;
         }
     }
@@ -471,7 +482,11 @@ pub fn lfnode_validate(node: Arc<Mutex<Option<lfnode>>>) {
     }
     if { let __left_addr = lfstack_unpack(Arc::new(Mutex::new(Some(lfstack_pack(node.clone(), Arc::new(Mutex::new(Some(!(0 as usize) as usize)))))))).addr(); let __right_addr = { let __ptr = GoPtr::local(node.clone()); __ptr.addr() }; let __eq = __left_addr == __right_addr; !__eq } {
         printlock();
-        eprintln!("{} {}", format!("{}", "runtime: bad lfnode address".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&node) as usize))).lock().unwrap().as_ref().unwrap()) as usize as u64))))));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: bad lfnode address".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&node) as usize))).lock().unwrap().as_ref().unwrap()) as usize as u64)))));
+            eprintln!("{} {}", __go_print_arg_0, __go_print_arg_1)
+        };
         throw(Arc::new(Mutex::new(Some("bad lfnode address".to_string()))));
     }
 }

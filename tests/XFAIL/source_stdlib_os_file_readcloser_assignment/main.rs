@@ -64,5 +64,8 @@ fn main() {
             std::panic::panic_any({ let __err_holder = err.clone(); let __err_guard = __err_holder.lock().unwrap(); match __err_guard.as_ref() { None => panic!("nil error-to-any lowering requires nil interface representation"), Some(__err) => if let Some(typed_val) = __err.downcast_ref::<io_fs::r#mod::PathError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<os::error::SyscallError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<os::file::LinkError>() { go_box_any_with_metadata(typed_val.clone(), "pointer", true) } else if let Some(typed_val) = __err.downcast_ref::<syscall::syscall_unix::Errno>() { go_box_any_with_metadata(typed_val.clone(), "basic", true) } else { panic!("type info required: error-to-any for unknown dynamic error type") } } });;
         }
     }
-    eprintln!("{}", format!("{}", "closed".to_string()));
+    {
+            let __go_print_arg_0 = format!("{}", "closed".to_string());
+            eprintln!("{}", __go_print_arg_0)
+        };
 }

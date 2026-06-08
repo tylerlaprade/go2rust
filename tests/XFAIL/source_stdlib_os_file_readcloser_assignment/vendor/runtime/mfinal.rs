@@ -776,7 +776,10 @@ pub fn keep_alive(x: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>) {
         // This makes sure x is alive on entry. We need x to be alive
         // on entry for "defer runtime.KeepAlive(x)"; see issue 21402.
     if (*cgoAlwaysFalse.lock().unwrap().as_ref().unwrap()) {
-        eprintln!("{}", format!("{}", format_any(x.lock().unwrap().as_ref().unwrap().as_ref())));
+        {
+            let __go_print_arg_0 = format!("{}", format_any(x.lock().unwrap().as_ref().unwrap().as_ref()));
+            eprintln!("{}", __go_print_arg_0)
+        };
     }
 }
 

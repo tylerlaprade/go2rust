@@ -614,7 +614,20 @@ pub fn sig_note_wakeup(__arg0: Arc<Mutex<Option<note>>>) {
 pub fn newosproc(mp: GoPtr<crate::runtime2::m>) {
     let mut stk = Arc::new(Mutex::new(Some({ let __selector_holder = (*(*{ let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.g0.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
     if false {
-        eprint!("{}{}{}{}{}{}{}{}{}{}{}", format!("{}", "newosproc stk=".to_string()), format!("{}", { let __v = (*stk.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", " m=".to_string()), format!("{}", format!("0x{:x}", mp.addr())), format!("{}", " g=".to_string()), format!("{}", format!("&{}", (*{ let __field = { let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.g0.clone()); __ptr_value }.clone(); __field }.lock().unwrap().as_ref().unwrap()))), format!("{}", " id=".to_string()), format!("{}", (*{ let __ptr_value = mp.borrow(); __ptr_value.as_ref().unwrap().id.clone() }.lock().unwrap().as_ref().unwrap())), format!("{}", " ostk=".to_string()), format!("{}", format!("0x{:x}", &mp as *const _ as usize)), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "newosproc stk=".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*stk.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", " m=".to_string());
+            let __go_print_arg_3 = format!("{}", format!("0x{:x}", mp.addr()));
+            let __go_print_arg_4 = format!("{}", " g=".to_string());
+            let __go_print_arg_5 = format!("{}", format!("&{}", (*{ let __field = { let __ptr_value = mp.with_mut(|__ptr_value| __ptr_value.g0.clone()); __ptr_value }.clone(); __field }.lock().unwrap().as_ref().unwrap())));
+            let __go_print_arg_6 = format!("{}", " id=".to_string());
+            let __go_print_arg_7 = format!("{}", (*{ let __ptr_value = mp.borrow(); __ptr_value.as_ref().unwrap().id.clone() }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_8 = format!("{}", " ostk=".to_string());
+            let __go_print_arg_9 = format!("{}", format!("0x{:x}", &mp as *const _ as usize));
+            let __go_print_arg_10 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8, __go_print_arg_9, __go_print_arg_10)
+        };
     }
 
         // Initialize an attribute object.

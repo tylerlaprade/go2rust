@@ -317,7 +317,12 @@ pub fn chansend(c: Arc<Mutex<Option<hchan>>>, ep: Arc<Mutex<Option<usize>>>, blo
     }
 
     if DEBUG_CHAN {
-        eprint!("{}{}{}", format!("{}", "chansend: chan=".to_string()), format!("{}", format!("&{}", (*c.lock().unwrap().as_ref().unwrap()))), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "chansend: chan=".to_string());
+            let __go_print_arg_1 = format!("{}", format!("&{}", (*c.lock().unwrap().as_ref().unwrap())));
+            let __go_print_arg_2 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
     }
 
     if RACEENABLED {
@@ -579,7 +584,12 @@ pub fn chanrecv(c: Arc<Mutex<Option<hchan>>>, ep: Arc<Mutex<Option<usize>>>, blo
         // raceenabled: don't need to check ep, as it is always on the stack
         // or is new memory allocated by reflect.
     if DEBUG_CHAN {
-        eprint!("{}{}{}", format!("{}", "chanrecv: chan=".to_string()), format!("{}", format!("&{}", (*c.lock().unwrap().as_ref().unwrap()))), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "chanrecv: chan=".to_string());
+            let __go_print_arg_1 = format!("{}", format!("&{}", (*c.lock().unwrap().as_ref().unwrap())));
+            let __go_print_arg_2 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
     }
 
     if { let __nil_result = (*c.lock().unwrap()).is_none(); __nil_result } {

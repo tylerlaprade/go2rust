@@ -823,7 +823,13 @@ impl mcache {
         if { let __tmp_x = flushGen; let __tmp_y = { let __v = (*sg.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } {
         return;
     } else if { let __tmp_x = flushGen; let __tmp_y = { let __tmp_x = { let __v = (*sg.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as u32; __tmp_x - __tmp_y }; __tmp_x != __tmp_y } {
-        eprintln!("{} {} {} {}", format!("{}", "bad flushGen".to_string()), format!("{}", flushGen), format!("{}", "in prepareForSweep; sweepgen".to_string()), format!("{}", { let __v = (*sg.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+        {
+            let __go_print_arg_0 = format!("{}", "bad flushGen".to_string());
+            let __go_print_arg_1 = format!("{}", flushGen);
+            let __go_print_arg_2 = format!("{}", "in prepareForSweep; sweepgen".to_string());
+            let __go_print_arg_3 = format!("{}", { let __v = (*sg.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            eprintln!("{} {} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3)
+        };
         throw(Arc::new(Mutex::new(Some("bad flushGen".to_string()))));
     }
         self.release_all();

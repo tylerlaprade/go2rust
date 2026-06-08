@@ -1561,7 +1561,10 @@ pub fn forcegchelper() {
 
                 // this goroutine is explicitly resumed by sysmon
         if { let __tmp_x = (*{ let __field = (*debug.lock().unwrap().as_ref().unwrap()).gctrace.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x > __tmp_y } {
-        eprintln!("{}", format!("{}", "GC forced".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "GC forced".to_string());
+            eprintln!("{}", __go_print_arg_0)
+        };
     }
 
                 // Time-triggered, fully concurrent.
@@ -1808,8 +1811,26 @@ pub fn for_each_g_race(r#fn: Arc<Mutex<Option<Box<dyn FnMut(Arc<Mutex<Option<g>>
 
 pub fn dumpgstatus(gp: GoPtr<crate::runtime2::g>) {
     let mut thisg = getg();
-    eprint!("{}{}{}{}{}{}{}", format!("{}", "runtime:   gp: gp=".to_string()), format!("{}", format!("0x{:x}", gp.addr())), format!("{}", ", goid=".to_string()), format!("{}", (*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().goid.clone() }.lock().unwrap().as_ref().unwrap())), format!("{}", ", gp->atomicstatus=".to_string()), format!("{}", readgstatus(gp.clone())), format!("{}", "\n".to_string()));
-    eprint!("{}{}{}{}{}{}{}", format!("{}", "runtime: getg:  g=".to_string()), format!("{}", format!("&{}", (*thisg.lock().unwrap().as_ref().unwrap()))), format!("{}", ", goid=".to_string()), format!("{}", (*{ let __field = (*thisg.lock().unwrap().as_ref().unwrap()).goid.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", ",  g->atomicstatus=".to_string()), format!("{}", readgstatus(GoPtr::local(thisg.clone()))), format!("{}", "\n".to_string()));
+    {
+            let __go_print_arg_0 = format!("{}", "runtime:   gp: gp=".to_string());
+            let __go_print_arg_1 = format!("{}", format!("0x{:x}", gp.addr()));
+            let __go_print_arg_2 = format!("{}", ", goid=".to_string());
+            let __go_print_arg_3 = format!("{}", (*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().goid.clone() }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_4 = format!("{}", ", gp->atomicstatus=".to_string());
+            let __go_print_arg_5 = format!("{}", readgstatus(gp.clone()));
+            let __go_print_arg_6 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6)
+        };
+    {
+            let __go_print_arg_0 = format!("{}", "runtime: getg:  g=".to_string());
+            let __go_print_arg_1 = format!("{}", format!("&{}", (*thisg.lock().unwrap().as_ref().unwrap())));
+            let __go_print_arg_2 = format!("{}", ", goid=".to_string());
+            let __go_print_arg_3 = format!("{}", (*{ let __field = (*thisg.lock().unwrap().as_ref().unwrap()).goid.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_4 = format!("{}", ",  g->atomicstatus=".to_string());
+            let __go_print_arg_5 = format!("{}", readgstatus(GoPtr::local(thisg.clone())));
+            let __go_print_arg_6 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6)
+        };
 }
 
 /// sched.lock must be held.
@@ -1826,7 +1847,12 @@ pub fn checkmcount() {
         // exclude them from the limit. See https://go.dev/issue/60004.
     let mut count = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = mcount(); let __tmp_y = (*Arc::new(Mutex::new(Some((*extraMInUse.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some((*extraMLength.lock().unwrap().as_mut().unwrap()).load() as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })));
     if { let __tmp_x = { let __v = (*count.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).maxmcount.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
-        eprint!("{}{}{}", format!("{}", "runtime: program exceeds ".to_string()), format!("{}", (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).maxmcount.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", "-thread limit\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: program exceeds ".to_string());
+            let __go_print_arg_1 = format!("{}", (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).maxmcount.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_2 = format!("{}", "-thread limit\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
         throw(Arc::new(Mutex::new(Some("thread exhaustion".to_string()))));
     }
 }
@@ -2052,13 +2078,31 @@ pub fn casfrom__gscanstatus(gp: GoPtr<crate::runtime2::g>, oldval: Arc<Mutex<Opt
         { let new_val = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.atomicstatus.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some({ let __arg_holder = oldval.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = newval.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); *success.lock().unwrap() = Some(new_val); };
     }
         } else {
-            eprint!("{}{}{}{}{}{}{}", format!("{}", "runtime: casfrom_Gscanstatus bad oldval gp=".to_string()), format!("{}", format!("0x{:x}", gp.addr())), format!("{}", ", oldval=".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*oldval.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", ", newval=".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*newval.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", "\n".to_string()));
+            {
+            let __go_print_arg_0 = format!("{}", "runtime: casfrom_Gscanstatus bad oldval gp=".to_string());
+            let __go_print_arg_1 = format!("{}", format!("0x{:x}", gp.addr()));
+            let __go_print_arg_2 = format!("{}", ", oldval=".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*oldval.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_4 = format!("{}", ", newval=".to_string());
+            let __go_print_arg_5 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*newval.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_6 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6)
+        };
             dumpgstatus(gp.clone());
             throw(Arc::new(Mutex::new(Some("casfrom_Gscanstatus:top gp->status is not in scan state".to_string()))));
         }
     }
     if !{ let __v = (*success.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        eprint!("{}{}{}{}{}{}{}", format!("{}", "runtime: casfrom_Gscanstatus failed gp=".to_string()), format!("{}", format!("0x{:x}", gp.addr())), format!("{}", ", oldval=".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*oldval.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", ", newval=".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*newval.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: casfrom_Gscanstatus failed gp=".to_string());
+            let __go_print_arg_1 = format!("{}", format!("0x{:x}", gp.addr()));
+            let __go_print_arg_2 = format!("{}", ", oldval=".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*oldval.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_4 = format!("{}", ", newval=".to_string());
+            let __go_print_arg_5 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*newval.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_6 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6)
+        };
         dumpgstatus(gp.clone());
         throw(Arc::new(Mutex::new(Some("casfrom_Gscanstatus: gp->status is not in scan state".to_string()))));
     }
@@ -2079,7 +2123,14 @@ pub fn castogscanstatus(gp: Arc<Mutex<Option<g>>>, oldval: Arc<Mutex<Option<u32>
     }
         }
     }
-    eprint!("{}{}{}{}{}", format!("{}", "runtime: castogscanstatus oldval=".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*oldval.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", " newval=".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*newval.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", "\n".to_string()));
+    {
+            let __go_print_arg_0 = format!("{}", "runtime: castogscanstatus oldval=".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*oldval.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_2 = format!("{}", " newval=".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*newval.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
     throw(Arc::new(Mutex::new(Some("castogscanstatus".to_string()))));
     std::panic::panic_any(Box::new("not reached".to_string()) as Box<dyn Any + Send + Sync>);
 }
@@ -2093,7 +2144,14 @@ pub fn castogscanstatus(gp: Arc<Mutex<Option<g>>>, oldval: Arc<Mutex<Option<u32>
 pub fn casgstatus(gp: GoPtr<crate::runtime2::g>, oldval: Arc<Mutex<Option<u32>>>, newval: Arc<Mutex<Option<u32>>>) {
     if ({ let __tmp_x = { let __tmp_x = { let __v = (*oldval.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = __GSCAN as u32; __tmp_x & __tmp_y }; let __tmp_y = 0 as u32; __tmp_x != __tmp_y }) || ({ let __tmp_x = { let __tmp_x = { let __v = (*newval.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = __GSCAN as u32; __tmp_x & __tmp_y }; let __tmp_y = 0 as u32; __tmp_x != __tmp_y }) || { let __tmp_x = { let __v = (*oldval.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*newval.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } {
         let newval_closure_clone = newval.clone(); let oldval_closure_clone = oldval.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
-        eprint!("{}{}{}{}{}", format!("{}", "runtime: casgstatus: oldval=".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*oldval_closure_clone.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", " newval=".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*newval_closure_clone.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: casgstatus: oldval=".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*oldval_closure_clone.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_2 = format!("{}", " newval=".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*newval_closure_clone.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         throw(Arc::new(Mutex::new(Some("casgstatus: bad incoming values".to_string()))));
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
     }
@@ -3635,7 +3693,12 @@ pub fn stoplockedm() {
     m_park();
     let mut status = readgstatus(crate::runtime2::guintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).lockedg.lock().unwrap().as_ref().unwrap())));
     if { let __tmp_x = { let __tmp_x = status; let __tmp_y = __GSCAN as u32; __tmp_x & ! __tmp_y }; let __tmp_y = __GRUNNABLE as u32; __tmp_x != __tmp_y } {
-        eprint!("{}{}{}", format!("{}", "runtime:stoplockedm: lockedg (atomicstatus=".to_string()), format!("{}", status), format!("{}", ") is not Grunnable or Gscanrunnable\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime:stoplockedm: lockedg (atomicstatus=".to_string());
+            let __go_print_arg_1 = format!("{}", status);
+            let __go_print_arg_2 = format!("{}", ") is not Grunnable or Gscanrunnable\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
         dumpgstatus(crate::runtime2::guintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).lockedg.lock().unwrap().as_ref().unwrap())));
         throw(Arc::new(Mutex::new(Some("stoplockedm: not runnable".to_string()))));
     }
@@ -4815,7 +4878,12 @@ pub fn preempt_park(gp: GoPtr<crate::runtime2::g>) {
         throw(Arc::new(Mutex::new(Some("preempt at unknown pc".to_string()))));
     }
         if { let __tmp_x = { let __tmp_x = { let __selector_holder = (*(*f.lock().unwrap().as_mut().unwrap())._func.lock().unwrap().as_mut().unwrap()).flag.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = internal_abi::symtab::FuncFlag(Arc::new(Mutex::new(Some(internal_abi::FUNC_FLAG_S_P_WRITE as u8)))); __tmp_x & __tmp_y }; let __tmp_y = internal_abi::symtab::FuncFlag(Arc::new(Mutex::new(Some(0 as u8)))); __tmp_x != __tmp_y } {
-        eprintln!("{} {} {}", format!("{}", "runtime: unexpected SPWRITE function".to_string()), format!("{}", (*funcname(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap())), format!("{}", "in async preempt".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: unexpected SPWRITE function".to_string());
+            let __go_print_arg_1 = format!("{}", (*funcname(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_2 = format!("{}", "in async preempt".to_string());
+            eprintln!("{} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
         throw(Arc::new(Mutex::new(Some("preempt SPWRITE".to_string()))));
     }
     }
@@ -4991,13 +5059,31 @@ pub fn reentersyscall(pc: Arc<Mutex<Option<usize>>>, sp: Arc<Mutex<Option<usize>
         // systemstack which clobbers g.sched.
     if { let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).syscallsp.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*(*gp.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } || { let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).syscallsp.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
         let gp_closure_clone = gp.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
-        eprint!("{}{}{}{}{}{}{}", format!("{}", "entersyscall inconsistent sp ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*gp_closure_clone.lock().unwrap().as_ref().unwrap()).syscallsp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", " [".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", ",".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", "]\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "entersyscall inconsistent sp ".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*gp_closure_clone.lock().unwrap().as_ref().unwrap()).syscallsp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_2 = format!("{}", " [".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_4 = format!("{}", ",".to_string());
+            let __go_print_arg_5 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_6 = format!("{}", "]\n".to_string());
+            eprint!("{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6)
+        };
         throw(Arc::new(Mutex::new(Some("entersyscall".to_string()))));
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
     }
     if { let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).syscallbp.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y } && { let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).syscallbp.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*(*gp.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } || { let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).syscallbp.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
         let gp_closure_clone = gp.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
-        eprint!("{}{}{}{}{}{}{}", format!("{}", "entersyscall inconsistent bp ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*gp_closure_clone.lock().unwrap().as_ref().unwrap()).syscallbp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", " [".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", ",".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", "]\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "entersyscall inconsistent bp ".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*gp_closure_clone.lock().unwrap().as_ref().unwrap()).syscallbp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_2 = format!("{}", " [".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_4 = format!("{}", ",".to_string());
+            let __go_print_arg_5 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_6 = format!("{}", "]\n".to_string());
+            eprint!("{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6)
+        };
         throw(Arc::new(Mutex::new(Some("entersyscall".to_string()))));
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
     }
@@ -5158,20 +5244,59 @@ pub fn entersyscallblock() {
         let mut sp2 = Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).sched.lock().unwrap().as_ref().unwrap()).sp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         let mut sp3 = Arc::new(Mutex::new(Some({ let __selector_holder = (*gp.lock().unwrap().as_ref().unwrap()).syscallsp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         let gp_closure_clone = gp.clone(); let sp1_closure_clone = sp1.clone(); let sp2_closure_clone = sp2.clone(); let sp3_closure_clone = sp3.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
-        eprint!("{}{}{}{}{}{}{}{}{}{}{}", format!("{}", "entersyscallblock inconsistent sp ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*sp1_closure_clone.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", " ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*sp2_closure_clone.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", " ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*sp3_closure_clone.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", " [".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", ",".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", "]\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "entersyscallblock inconsistent sp ".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*sp1_closure_clone.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_2 = format!("{}", " ".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*sp2_closure_clone.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_4 = format!("{}", " ".to_string());
+            let __go_print_arg_5 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*sp3_closure_clone.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_6 = format!("{}", " [".to_string());
+            let __go_print_arg_7 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_8 = format!("{}", ",".to_string());
+            let __go_print_arg_9 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_10 = format!("{}", "]\n".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8, __go_print_arg_9, __go_print_arg_10)
+        };
         throw(Arc::new(Mutex::new(Some("entersyscallblock".to_string()))));
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
     }
     casgstatus(GoPtr::local(gp.clone()), Arc::new(Mutex::new(Some(__GRUNNING as u32))), Arc::new(Mutex::new(Some(__GSYSCALL as u32))));
     if { let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).syscallsp.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*(*gp.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } || { let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).syscallsp.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
         let gp_closure_clone = gp.clone(); let sp_closure_clone = sp.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
-        eprint!("{}{}{}{}{}{}{}{}{}{}{}", format!("{}", "entersyscallblock inconsistent sp ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some(sp_closure_clone as u64))))), format!("{}", " ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).sched.lock().unwrap().as_ref().unwrap()).sp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", " ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*gp_closure_clone.lock().unwrap().as_ref().unwrap()).syscallsp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", " [".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", ",".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", "]\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "entersyscallblock inconsistent sp ".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some(sp_closure_clone as u64)))));
+            let __go_print_arg_2 = format!("{}", " ".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).sched.lock().unwrap().as_ref().unwrap()).sp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_4 = format!("{}", " ".to_string());
+            let __go_print_arg_5 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*gp_closure_clone.lock().unwrap().as_ref().unwrap()).syscallsp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_6 = format!("{}", " [".to_string());
+            let __go_print_arg_7 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_8 = format!("{}", ",".to_string());
+            let __go_print_arg_9 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_10 = format!("{}", "]\n".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8, __go_print_arg_9, __go_print_arg_10)
+        };
         throw(Arc::new(Mutex::new(Some("entersyscallblock".to_string()))));
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
     }
     if { let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).syscallbp.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y } && { let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).syscallbp.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*(*gp.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } || { let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).syscallbp.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
         let bp_closure_clone = bp.clone(); let gp_closure_clone = gp.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
-        eprint!("{}{}{}{}{}{}{}{}{}{}{}", format!("{}", "entersyscallblock inconsistent bp ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some(bp_closure_clone as u64))))), format!("{}", " ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).sched.lock().unwrap().as_ref().unwrap()).bp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", " ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*gp_closure_clone.lock().unwrap().as_ref().unwrap()).syscallbp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", " [".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", ",".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", "]\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "entersyscallblock inconsistent bp ".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some(bp_closure_clone as u64)))));
+            let __go_print_arg_2 = format!("{}", " ".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).sched.lock().unwrap().as_ref().unwrap()).bp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_4 = format!("{}", " ".to_string());
+            let __go_print_arg_5 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*gp_closure_clone.lock().unwrap().as_ref().unwrap()).syscallbp.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_6 = format!("{}", " [".to_string());
+            let __go_print_arg_7 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_8 = format!("{}", ",".to_string());
+            let __go_print_arg_9 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*gp_closure_clone.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_10 = format!("{}", "]\n".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8, __go_print_arg_9, __go_print_arg_10)
+        };
         throw(Arc::new(Mutex::new(Some("entersyscallblock".to_string()))));
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
     }
@@ -5905,7 +6030,16 @@ pub fn wirep(pp: GoPtr<crate::runtime2::p>) {
         if { let __tmp_x = { let __selector_holder = { let __ptr_value = pp_closure_clone.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::muintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
         { let new_val = { let __selector_holder = { let __ptr = crate::runtime2::muintptr::ptr(&(*{ let __ptr_value = pp_closure_clone.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().id.clone() }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *id.lock().unwrap() = Some(new_val); };
     }
-        eprint!("{}{}{}{}{}{}{}", format!("{}", "wirep: p->m=".to_string()), format!("{}", (*{ let __ptr_value = pp_closure_clone.borrow(); __ptr_value.as_ref().unwrap().m.clone() }.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", "(".to_string()), format!("{}", { let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ") p->status=".to_string()), format!("{}", (*{ let __ptr_value = pp_closure_clone.borrow(); __ptr_value.as_ref().unwrap().status.clone() }.lock().unwrap().as_ref().unwrap())), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "wirep: p->m=".to_string());
+            let __go_print_arg_1 = format!("{}", (*{ let __ptr_value = pp_closure_clone.borrow(); __ptr_value.as_ref().unwrap().m.clone() }.lock().unwrap().as_ref().unwrap()).clone());
+            let __go_print_arg_2 = format!("{}", "(".to_string());
+            let __go_print_arg_3 = format!("{}", { let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_4 = format!("{}", ") p->status=".to_string());
+            let __go_print_arg_5 = format!("{}", (*{ let __ptr_value = pp_closure_clone.borrow(); __ptr_value.as_ref().unwrap().status.clone() }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_6 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6)
+        };
         throw(Arc::new(Mutex::new(Some("wirep: invalid p state".to_string()))));
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
     }
@@ -5935,7 +6069,18 @@ pub fn releasep_no_trace() -> GoPtr<crate::runtime2::p> {
     }
     let mut pp: GoPtr<crate::runtime2::p> = crate::runtime2::puintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()));
     if { let __left_addr = crate::runtime2::muintptr::ptr(&(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap())).addr(); let __right_addr = { let __ptr = GoPtr::local((*gp.lock().unwrap().as_ref().unwrap()).m.clone()); __ptr.addr() }; let __eq = __left_addr == __right_addr; !__eq } || { let __tmp_x = (*{ let __ptr_value = pp.borrow(); __ptr_value.as_ref().unwrap().status.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __PRUNNING as u32; __tmp_x != __tmp_y } {
-        eprint!("{}{}{}{}{}{}{}{}{}", format!("{}", "releasep: m=".to_string()), format!("{}", format!("&{}", (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).m.clone(); __field }.lock().unwrap().as_ref().unwrap()))), format!("{}", " m->p=".to_string()), format!("{}", { let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); format!("0x{:x}", __ptr.addr()) }), format!("{}", " p->m=".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", " p->status=".to_string()), format!("{}", (*{ let __ptr_value = pp.borrow(); __ptr_value.as_ref().unwrap().status.clone() }.lock().unwrap().as_ref().unwrap())), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "releasep: m=".to_string());
+            let __go_print_arg_1 = format!("{}", format!("&{}", (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).m.clone(); __field }.lock().unwrap().as_ref().unwrap())));
+            let __go_print_arg_2 = format!("{}", " m->p=".to_string());
+            let __go_print_arg_3 = format!("{}", { let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); format!("0x{:x}", __ptr.addr()) });
+            let __go_print_arg_4 = format!("{}", " p->m=".to_string());
+            let __go_print_arg_5 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_6 = format!("{}", " p->status=".to_string());
+            let __go_print_arg_7 = format!("{}", (*{ let __ptr_value = pp.borrow(); __ptr_value.as_ref().unwrap().status.clone() }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_8 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8)
+        };
         throw(Arc::new(Mutex::new(Some("releasep: invalid p state".to_string()))));
     }
     { let new_val = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize)))); *(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap() = Some(new_val); };
@@ -5990,7 +6135,18 @@ pub fn checkdead() {
         return;
     }
     if { let __tmp_x = { let __v = (*run.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i32; __tmp_x < __tmp_y } {
-        eprint!("{}{}{}{}{}{}{}{}{}", format!("{}", "runtime: checkdead: nmidle=".to_string()), format!("{}", (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).nmidle.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", " nmidlelocked=".to_string()), format!("{}", (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).nmidlelocked.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", " mcount=".to_string()), format!("{}", mcount()), format!("{}", " nmsys=".to_string()), format!("{}", (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).nmsys.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: checkdead: nmidle=".to_string());
+            let __go_print_arg_1 = format!("{}", (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).nmidle.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_2 = format!("{}", " nmidlelocked=".to_string());
+            let __go_print_arg_3 = format!("{}", (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).nmidlelocked.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_4 = format!("{}", " mcount=".to_string());
+            let __go_print_arg_5 = format!("{}", mcount());
+            let __go_print_arg_6 = format!("{}", " nmsys=".to_string());
+            let __go_print_arg_7 = format!("{}", (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).nmsys.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_8 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8)
+        };
         unlock(GoPtr::local((*sched.lock().unwrap().as_ref().unwrap()).lock.clone()));
         throw(Arc::new(Mutex::new(Some("checkdead: inconsistent counts".to_string()))));
     }
@@ -6005,7 +6161,14 @@ pub fn checkdead() {
     if _switch_val == (__GWAITING as u32) || _switch_val == (__GPREEMPTED as u32) {
             { let mut guard = grunning_closure_clone.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         } else if _switch_val == (__GRUNNABLE as u32) || _switch_val == (__GRUNNING as u32) || _switch_val == (__GSYSCALL as u32) {
-            eprint!("{}{}{}{}{}", format!("{}", "runtime: checkdead: find g ".to_string()), format!("{}", (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).goid.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", " in status ".to_string()), format!("{}", s), format!("{}", "\n".to_string()));
+            {
+            let __go_print_arg_0 = format!("{}", "runtime: checkdead: find g ".to_string());
+            let __go_print_arg_1 = format!("{}", (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).goid.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_2 = format!("{}", " in status ".to_string());
+            let __go_print_arg_3 = format!("{}", s);
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
             unlock(GoPtr::local((*sched.lock().unwrap().as_ref().unwrap()).lock.clone()));
             throw(Arc::new(Mutex::new(Some("checkdead: runnable g".to_string()))));
         }
@@ -6123,9 +6286,38 @@ pub fn schedtrace(detailed: Arc<Mutex<Option<bool>>>) {
     }
 
     lock(GoPtr::local((*sched.lock().unwrap().as_ref().unwrap()).lock.clone()));
-    eprint!("{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}", format!("{}", "SCHED ".to_string()), format!("{}", { let __tmp_x = ({ let __tmp_x = now; let __tmp_y = (*starttime.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); let __tmp_y = 1e6 as i64; __tmp_x / __tmp_y }), format!("{}", "ms: gomaxprocs=".to_string()), format!("{}", { let __v = (*gomaxprocs.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", " idleprocs=".to_string()), format!("{}", (*(*sched.lock().unwrap().as_ref().unwrap()).npidle.lock().unwrap().as_mut().unwrap()).load()), format!("{}", " threads=".to_string()), format!("{}", mcount()), format!("{}", " spinningthreads=".to_string()), format!("{}", (*(*sched.lock().unwrap().as_ref().unwrap()).nmspinning.lock().unwrap().as_mut().unwrap()).load()), format!("{}", " needspinning=".to_string()), format!("{}", (*(*sched.lock().unwrap().as_ref().unwrap()).needspinning.lock().unwrap().as_mut().unwrap()).load()), format!("{}", " idlethreads=".to_string()), format!("{}", (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).nmidle.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", " runqueue=".to_string()), format!("{}", (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).runqsize.clone(); __field }.lock().unwrap().as_ref().unwrap())));
+    {
+            let __go_print_arg_0 = format!("{}", "SCHED ".to_string());
+            let __go_print_arg_1 = format!("{}", { let __tmp_x = ({ let __tmp_x = now; let __tmp_y = (*starttime.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); let __tmp_y = 1e6 as i64; __tmp_x / __tmp_y });
+            let __go_print_arg_2 = format!("{}", "ms: gomaxprocs=".to_string());
+            let __go_print_arg_3 = format!("{}", { let __v = (*gomaxprocs.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_4 = format!("{}", " idleprocs=".to_string());
+            let __go_print_arg_5 = format!("{}", (*(*sched.lock().unwrap().as_ref().unwrap()).npidle.lock().unwrap().as_mut().unwrap()).load());
+            let __go_print_arg_6 = format!("{}", " threads=".to_string());
+            let __go_print_arg_7 = format!("{}", mcount());
+            let __go_print_arg_8 = format!("{}", " spinningthreads=".to_string());
+            let __go_print_arg_9 = format!("{}", (*(*sched.lock().unwrap().as_ref().unwrap()).nmspinning.lock().unwrap().as_mut().unwrap()).load());
+            let __go_print_arg_10 = format!("{}", " needspinning=".to_string());
+            let __go_print_arg_11 = format!("{}", (*(*sched.lock().unwrap().as_ref().unwrap()).needspinning.lock().unwrap().as_mut().unwrap()).load());
+            let __go_print_arg_12 = format!("{}", " idlethreads=".to_string());
+            let __go_print_arg_13 = format!("{}", (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).nmidle.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_14 = format!("{}", " runqueue=".to_string());
+            let __go_print_arg_15 = format!("{}", (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).runqsize.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            eprint!("{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8, __go_print_arg_9, __go_print_arg_10, __go_print_arg_11, __go_print_arg_12, __go_print_arg_13, __go_print_arg_14, __go_print_arg_15)
+        };
     if { let __v = (*detailed.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        eprint!("{}{}{}{}{}{}{}{}{}", format!("{}", " gcwaiting=".to_string()), format!("{}", (*(*sched.lock().unwrap().as_ref().unwrap()).gcwaiting.lock().unwrap().as_ref().unwrap()).load()), format!("{}", " nmidlelocked=".to_string()), format!("{}", (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).nmidlelocked.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", " stopwait=".to_string()), format!("{}", (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).stopwait.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", " sysmonwait=".to_string()), format!("{}", (*(*sched.lock().unwrap().as_ref().unwrap()).sysmonwait.lock().unwrap().as_ref().unwrap()).load()), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", " gcwaiting=".to_string());
+            let __go_print_arg_1 = format!("{}", (*(*sched.lock().unwrap().as_ref().unwrap()).gcwaiting.lock().unwrap().as_ref().unwrap()).load());
+            let __go_print_arg_2 = format!("{}", " nmidlelocked=".to_string());
+            let __go_print_arg_3 = format!("{}", (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).nmidlelocked.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_4 = format!("{}", " stopwait=".to_string());
+            let __go_print_arg_5 = format!("{}", (*{ let __field = (*sched.lock().unwrap().as_ref().unwrap()).stopwait.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_6 = format!("{}", " sysmonwait=".to_string());
+            let __go_print_arg_7 = format!("{}", (*(*sched.lock().unwrap().as_ref().unwrap()).sysmonwait.lock().unwrap().as_ref().unwrap()).load());
+            let __go_print_arg_8 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8)
+        };
     }
 
         // We must be careful while reading data from P's, M's and G's.
@@ -6136,23 +6328,61 @@ pub fn schedtrace(detailed: Arc<Mutex<Option<bool>>>) {
         let mut h = internal_runtime_atomic::load(internal_runtime_atomic::GoPtr::local((*pp.lock().unwrap().as_ref().unwrap()).runqhead.clone()));
         let mut t = internal_runtime_atomic::load(internal_runtime_atomic::GoPtr::local((*pp.lock().unwrap().as_ref().unwrap()).runqtail.clone()));
         if { let __v = (*detailed.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        eprint!("{}{}{}{}{}{}{}{}{}", format!("{}", "  P".to_string()), format!("{}", i), format!("{}", ": status=".to_string()), format!("{}", (*{ let __field = (*pp.lock().unwrap().as_ref().unwrap()).status.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", " schedtick=".to_string()), format!("{}", (*{ let __field = (*pp.lock().unwrap().as_ref().unwrap()).schedtick.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", " syscalltick=".to_string()), format!("{}", (*{ let __field = (*pp.lock().unwrap().as_ref().unwrap()).syscalltick.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", " m=".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "  P".to_string());
+            let __go_print_arg_1 = format!("{}", i);
+            let __go_print_arg_2 = format!("{}", ": status=".to_string());
+            let __go_print_arg_3 = format!("{}", (*{ let __field = (*pp.lock().unwrap().as_ref().unwrap()).status.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_4 = format!("{}", " schedtick=".to_string());
+            let __go_print_arg_5 = format!("{}", (*{ let __field = (*pp.lock().unwrap().as_ref().unwrap()).schedtick.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_6 = format!("{}", " syscalltick=".to_string());
+            let __go_print_arg_7 = format!("{}", (*{ let __field = (*pp.lock().unwrap().as_ref().unwrap()).syscalltick.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_8 = format!("{}", " m=".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8)
+        };
         if !mp.is_nil() {
-        eprint!("{}", format!("{}", (*{ let __ptr_value = mp.borrow(); __ptr_value.as_ref().unwrap().id.clone() }.lock().unwrap().as_ref().unwrap())));
+        {
+            let __go_print_arg_0 = format!("{}", (*{ let __ptr_value = mp.borrow(); __ptr_value.as_ref().unwrap().id.clone() }.lock().unwrap().as_ref().unwrap()));
+            eprint!("{}", __go_print_arg_0)
+        };
     } else {
-        eprint!("{}", format!("{}", "nil".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "nil".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
     }
-        eprint!("{}{}{}{}{}{}{}", format!("{}", " runqsize=".to_string()), format!("{}", { let __tmp_x = t; let __tmp_y = h; __tmp_x - __tmp_y }), format!("{}", " gfreecnt=".to_string()), format!("{}", (*(*(*pp.lock().unwrap().as_ref().unwrap()).g_free.lock().unwrap().as_ref().unwrap()).n.lock().unwrap().as_ref().unwrap())), format!("{}", " timerslen=".to_string()), format!("{}", ({ let __len_target = { let __field = (*(*pp.lock().unwrap().as_ref().unwrap()).timers.lock().unwrap().as_ref().unwrap()).heap.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", " runqsize=".to_string());
+            let __go_print_arg_1 = format!("{}", { let __tmp_x = t; let __tmp_y = h; __tmp_x - __tmp_y });
+            let __go_print_arg_2 = format!("{}", " gfreecnt=".to_string());
+            let __go_print_arg_3 = format!("{}", (*(*(*pp.lock().unwrap().as_ref().unwrap()).g_free.lock().unwrap().as_ref().unwrap()).n.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_4 = format!("{}", " timerslen=".to_string());
+            let __go_print_arg_5 = format!("{}", ({ let __len_target = { let __field = (*(*pp.lock().unwrap().as_ref().unwrap()).timers.lock().unwrap().as_ref().unwrap()).heap.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }));
+            let __go_print_arg_6 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6)
+        };
     } else {
                 // In non-detailed mode format lengths of per-P run queues as:
                 // [len1 len2 len3 len4]
-        eprint!("{}", format!("{}", " ".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", " ".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
         if { let __tmp_x = i as i32; let __tmp_y = 0; __tmp_x == __tmp_y } {
-        eprint!("{}", format!("{}", "[".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "[".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
     }
-        eprint!("{}", format!("{}", { let __tmp_x = t; let __tmp_y = h; __tmp_x - __tmp_y }));
+        {
+            let __go_print_arg_0 = format!("{}", { let __tmp_x = t; let __tmp_y = h; __tmp_x - __tmp_y });
+            eprint!("{}", __go_print_arg_0)
+        };
         if { let __tmp_x = (i as i32); let __tmp_y = ({ let __tmp_x = ((*allp.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 1; __tmp_x - __tmp_y } as i32); __tmp_x == __tmp_y } {
-        eprint!("{}", format!("{}", "]\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "]\n".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
     }
     }
     } }
@@ -6167,48 +6397,121 @@ pub fn schedtrace(detailed: Arc<Mutex<Option<bool>>>) {
     let mut mp = (*allm.lock().unwrap().as_ref().unwrap()).clone();
     while { let __nil_result = (*mp.lock().unwrap()).is_some(); __nil_result } {
         let mut pp: GoPtr<crate::runtime2::p> = crate::runtime2::puintptr::ptr(&(*(*mp.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()));
-        eprint!("{}{}{}", format!("{}", "  M".to_string()), format!("{}", (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).id.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", ": p=".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "  M".to_string());
+            let __go_print_arg_1 = format!("{}", (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).id.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_2 = format!("{}", ": p=".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
         if !pp.is_nil() {
-        eprint!("{}", format!("{}", (*{ let __ptr_value = pp.borrow(); __ptr_value.as_ref().unwrap().id.clone() }.lock().unwrap().as_ref().unwrap())));
+        {
+            let __go_print_arg_0 = format!("{}", (*{ let __ptr_value = pp.borrow(); __ptr_value.as_ref().unwrap().id.clone() }.lock().unwrap().as_ref().unwrap()));
+            eprint!("{}", __go_print_arg_0)
+        };
     } else {
-        eprint!("{}", format!("{}", "nil".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "nil".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
     }
-        eprint!("{}", format!("{}", " curg=".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", " curg=".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
         if { let __ptr_field = (*mp.lock().unwrap().as_ref().unwrap()).curg.clone(); !__ptr_field.is_nil() } {
-        eprint!("{}", format!("{}", (*{ let __ptr_value = (*mp.lock().unwrap().as_ref().unwrap()).curg.borrow(); __ptr_value.as_ref().unwrap().goid.clone() }.lock().unwrap().as_ref().unwrap())));
+        {
+            let __go_print_arg_0 = format!("{}", (*{ let __ptr_value = (*mp.lock().unwrap().as_ref().unwrap()).curg.borrow(); __ptr_value.as_ref().unwrap().goid.clone() }.lock().unwrap().as_ref().unwrap()));
+            eprint!("{}", __go_print_arg_0)
+        };
     } else {
-        eprint!("{}", format!("{}", "nil".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "nil".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
     }
-        eprint!("{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}", format!("{}", " mallocing=".to_string()), format!("{}", (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).mallocing.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", " throwing=".to_string()), format!("{}", (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).throwing.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", " preemptoff=".to_string()), format!("{}", (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).preemptoff.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", " locks=".to_string()), format!("{}", (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).locks.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", " dying=".to_string()), format!("{}", (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).dying.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", " spinning=".to_string()), format!("{}", (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).spinning.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", " blocked=".to_string()), format!("{}", (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).blocked.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", " lockedg=".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", " mallocing=".to_string());
+            let __go_print_arg_1 = format!("{}", (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).mallocing.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_2 = format!("{}", " throwing=".to_string());
+            let __go_print_arg_3 = format!("{}", (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).throwing.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone());
+            let __go_print_arg_4 = format!("{}", " preemptoff=".to_string());
+            let __go_print_arg_5 = format!("{}", (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).preemptoff.clone(); __field }.lock().unwrap().as_ref().unwrap()).clone());
+            let __go_print_arg_6 = format!("{}", " locks=".to_string());
+            let __go_print_arg_7 = format!("{}", (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).locks.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_8 = format!("{}", " dying=".to_string());
+            let __go_print_arg_9 = format!("{}", (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).dying.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_10 = format!("{}", " spinning=".to_string());
+            let __go_print_arg_11 = format!("{}", (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).spinning.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_12 = format!("{}", " blocked=".to_string());
+            let __go_print_arg_13 = format!("{}", (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).blocked.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_14 = format!("{}", " lockedg=".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8, __go_print_arg_9, __go_print_arg_10, __go_print_arg_11, __go_print_arg_12, __go_print_arg_13, __go_print_arg_14)
+        };
         {
         let mut lockedg: GoPtr<crate::runtime2::g> = crate::runtime2::guintptr::ptr(&(*(*mp.lock().unwrap().as_ref().unwrap()).lockedg.lock().unwrap().as_ref().unwrap()));;
         if !lockedg.is_nil() {
-            eprint!("{}", format!("{}", (*{ let __ptr_value = lockedg.borrow(); __ptr_value.as_ref().unwrap().goid.clone() }.lock().unwrap().as_ref().unwrap())));;
+            {
+            let __go_print_arg_0 = format!("{}", (*{ let __ptr_value = lockedg.borrow(); __ptr_value.as_ref().unwrap().goid.clone() }.lock().unwrap().as_ref().unwrap()));
+            eprint!("{}", __go_print_arg_0)
+        };;
         } else {
-            eprint!("{}", format!("{}", "nil".to_string()));;
+            {
+            let __go_print_arg_0 = format!("{}", "nil".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };;
         }
     }
-        eprint!("{}", format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "\n".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
         { let new_val = (*mp.lock().unwrap().as_ref().unwrap()).alllink.clone(); mp = new_val; };
     }
 
     for_each_g(Arc::new(Mutex::new(Some(Box::new(move |gp: Arc<Mutex<Option<g>>>| {
-        eprint!("{}{}{}{}{}{}{}", format!("{}", "  G".to_string()), format!("{}", (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).goid.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", ": status=".to_string()), format!("{}", readgstatus(GoPtr::local(gp.clone()))), format!("{}", "(".to_string()), format!("{}", (*crate::runtime2::waitReason::string(&(*(*gp.lock().unwrap().as_ref().unwrap()).waitreason.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap())), format!("{}", ") m=".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "  G".to_string());
+            let __go_print_arg_1 = format!("{}", (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).goid.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_2 = format!("{}", ": status=".to_string());
+            let __go_print_arg_3 = format!("{}", readgstatus(GoPtr::local(gp.clone())));
+            let __go_print_arg_4 = format!("{}", "(".to_string());
+            let __go_print_arg_5 = format!("{}", (*crate::runtime2::waitReason::string(&(*(*gp.lock().unwrap().as_ref().unwrap()).waitreason.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_6 = format!("{}", ") m=".to_string());
+            eprint!("{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6)
+        };
         if { let __nil_target = (*gp.lock().unwrap().as_ref().unwrap()).m.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
-        eprint!("{}", format!("{}", (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).id.lock().unwrap().as_ref().unwrap())));
+        {
+            let __go_print_arg_0 = format!("{}", (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).id.lock().unwrap().as_ref().unwrap()));
+            eprint!("{}", __go_print_arg_0)
+        };
     } else {
-        eprint!("{}", format!("{}", "nil".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "nil".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
     }
-        eprint!("{}", format!("{}", " lockedm=".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", " lockedm=".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
         {
         let mut lockedm: GoPtr<crate::runtime2::m> = crate::runtime2::muintptr::ptr(&(*(*gp.lock().unwrap().as_ref().unwrap()).lockedm.lock().unwrap().as_ref().unwrap()));;
         if !lockedm.is_nil() {
-            eprint!("{}", format!("{}", (*{ let __ptr_value = lockedm.borrow(); __ptr_value.as_ref().unwrap().id.clone() }.lock().unwrap().as_ref().unwrap())));;
+            {
+            let __go_print_arg_0 = format!("{}", (*{ let __ptr_value = lockedm.borrow(); __ptr_value.as_ref().unwrap().id.clone() }.lock().unwrap().as_ref().unwrap()));
+            eprint!("{}", __go_print_arg_0)
+        };;
         } else {
-            eprint!("{}", format!("{}", "nil".to_string()));;
+            {
+            let __go_print_arg_0 = format!("{}", "nil".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };;
         }
     }
-        eprint!("{}", format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "\n".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
     }) as Box<dyn FnMut(Arc<Mutex<Option<g>>>) -> () + Send + Sync>))));
     unlock(GoPtr::local((*sched.lock().unwrap().as_ref().unwrap()).lock.clone()));
 }

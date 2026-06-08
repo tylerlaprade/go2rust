@@ -440,7 +440,12 @@ fn __go_init_0() {
                 // stack, then grab its context object and spill into
                 // it. When it enters the runtime, it would allocate a
                 // new context for the P.
-        eprint!("{}{}{}", format!("{}", "runtime: asyncPreemptStack=".to_string()), format!("{}", { let __v = (*asyncPreemptStack.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: asyncPreemptStack=".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*asyncPreemptStack.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
         throw(Arc::new(Mutex::new(Some("async stack too large".to_string()))));
     }
 }

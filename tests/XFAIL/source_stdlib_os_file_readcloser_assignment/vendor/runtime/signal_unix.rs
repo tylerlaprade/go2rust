@@ -276,7 +276,14 @@ fn __go_init_0() {
         // _NSIG is the number of signals on this operating system.
         // sigtable should describe what to do for all the possible signals.
     if { let __tmp_x = 32; let __tmp_y = 32; __tmp_x != __tmp_y } {
-        eprint!("{}{}{}{}{}", format!("{}", "runtime: len(sigtable)=".to_string()), format!("{}", (*sigtable.lock().unwrap().as_ref().unwrap()).len()), format!("{}", " _NSIG=".to_string()), format!("{}", __N_S_I_G), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: len(sigtable)=".to_string());
+            let __go_print_arg_1 = format!("{}", (*sigtable.lock().unwrap().as_ref().unwrap()).len());
+            let __go_print_arg_2 = format!("{}", " _NSIG=".to_string());
+            let __go_print_arg_3 = format!("{}", __N_S_I_G);
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         throw(Arc::new(Mutex::new(Some("bad sigtable len".to_string()))));
     }
 }
@@ -523,7 +530,10 @@ pub fn sighandler(sig_local: Arc<Mutex<Option<u32>>>, info: Arc<Mutex<Option<sig
         traceback(Arc::new(Mutex::new(Some(!(0 as usize) as usize))), Arc::new(Mutex::new(Some(!(0 as usize) as usize))), Arc::new(Mutex::new(Some(0 as usize))), (*mp.lock().unwrap().as_ref().unwrap()).curg.clone());
     } else if { let __tmp_x = (*crashing.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 0 as i32; __tmp_x == __tmp_y } {
         tracebackothers(gp.clone());
-        eprint!("{}", format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "\n".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
     }
                 // tracebackothers on original m skipped this one; trace it now.
         dumpregs(c.clone());
@@ -552,7 +562,10 @@ pub fn sighandler(sig_local: Arc<Mutex<Option<u32>>>, info: Arc<Mutex<Option<sig
                 // and then run crash/exit and the process is gone.
                 // However, if it spends more than 10 seconds to send SIGQUIT to all ms,
                 // any of ms may crash/exit the process after waiting for 10 seconds.
-        eprint!("{}", format!("{}", "\n-----\n\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "\n-----\n\n".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
         raiseproc(Arc::new(Mutex::new(Some(__S_I_G_Q_U_I_T as u32))));
     }
                 // There are other m's that need to dump their stacks.
@@ -625,22 +638,49 @@ pub fn sighandler(sig_local: Arc<Mutex<Option<u32>>>, info: Arc<Mutex<Option<sig
 
 pub fn fatalsignal(sig_local: Arc<Mutex<Option<u32>>>, c: Arc<Mutex<Option<sigctxt>>>, mut gp: GoPtr<crate::runtime2::g>, mp: Arc<Mutex<Option<m>>>) -> GoPtr<crate::runtime2::g> {
     if { let __tmp_x = { let __v = (*sig_local.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*sigtable.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32; __tmp_x < __tmp_y } {
-        eprint!("{}{}", format!("{}", (*{ let __seq = { let __seq_holder = sigtable.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*sig_local.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.name.lock().unwrap().as_ref().unwrap()).clone()), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", (*{ let __seq = { let __seq_holder = sigtable.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*sig_local.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.name.lock().unwrap().as_ref().unwrap()).clone());
+            let __go_print_arg_1 = format!("{}", "\n".to_string());
+            eprint!("{}{}", __go_print_arg_0, __go_print_arg_1)
+        };
     } else {
-        eprint!("{}{}{}", format!("{}", "Signal ".to_string()), format!("{}", { let __v = (*sig_local.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "Signal ".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*sig_local.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
     }
 
     if is_secure_mode() {
         exit(Arc::new(Mutex::new(Some(2 as i32))));
     }
 
-    eprint!("{}{}{}{}{}{}", format!("{}", "PC=".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __recv = c.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.sigpc(); __result } as u64))))), format!("{}", " m=".to_string()), format!("{}", (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).id.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", " sigcode=".to_string()), format!("{}", { let __recv = c.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.sigcode(); __result }));
+    {
+            let __go_print_arg_0 = format!("{}", "PC=".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __recv = c.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.sigpc(); __result } as u64)))));
+            let __go_print_arg_2 = format!("{}", " m=".to_string());
+            let __go_print_arg_3 = format!("{}", (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).id.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_4 = format!("{}", " sigcode=".to_string());
+            let __go_print_arg_5 = format!("{}", { let __recv = c.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.sigcode(); __result });
+            eprint!("{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5)
+        };
     if { let __tmp_x = { let __v = (*sig_local.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = __S_I_G_S_E_G_V as u32; __tmp_x == __tmp_y } || { let __tmp_x = { let __v = (*sig_local.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = __S_I_G_B_U_S as u32; __tmp_x == __tmp_y } {
-        eprint!("{}{}", format!("{}", " addr=".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __recv = c.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.fault(); __result } as u64))))));
+        {
+            let __go_print_arg_0 = format!("{}", " addr=".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __recv = c.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.fault(); __result } as u64)))));
+            eprint!("{}{}", __go_print_arg_0, __go_print_arg_1)
+        };
     }
-    eprint!("{}", format!("{}", "\n".to_string()));
+    {
+            let __go_print_arg_0 = format!("{}", "\n".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
     if (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).incgo.clone(); __field }.lock().unwrap().as_ref().unwrap()) && { let __left_addr = gp.addr(); let __right_addr = { let __ptr = GoPtr::local((*mp.lock().unwrap().as_ref().unwrap()).g0.clone()); __ptr.addr() }; let __eq = __left_addr == __right_addr; __eq } && { let __ptr_field = (*mp.lock().unwrap().as_ref().unwrap()).curg.clone(); !__ptr_field.is_nil() } {
-        eprint!("{}", format!("{}", "signal arrived during cgo execution\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "signal arrived during cgo execution\n".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
                 // Switch to curg so that we get a traceback of the Go code
                 // leading up to the cgocall, which switched from curg to g0.
         gp = (*mp.lock().unwrap().as_ref().unwrap()).curg.clone();
@@ -665,11 +705,18 @@ pub fn fatalsignal(sig_local: Arc<Mutex<Option<u32>>>, c: Arc<Mutex<Option<sigct
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = (*physPageSize.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = pc; let __tmp_y = (*physPageSize.lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }; __tmp_x - __tmp_y }; __tmp_x > __tmp_y } {
         { let new_val = { let __tmp_x = (*physPageSize.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = pc; let __tmp_y = (*physPageSize.lock().unwrap().as_ref().unwrap()); __tmp_x % __tmp_y }; __tmp_x - __tmp_y }; *n.lock().unwrap() = Some(new_val); };
     }
-        eprint!("{}", format!("{}", "instruction bytes:".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "instruction bytes:".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
         let mut b: GoPtr<[u8; 16]> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(pc))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         let mut i = Arc::new(Mutex::new(Some(0 as usize)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
-        eprint!("{}{}", format!("{}", " ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __seq = b.borrow(); __seq.as_ref().unwrap()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() } as u64))))));
+        {
+            let __go_print_arg_0 = format!("{}", " ".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __seq = b.borrow(); __seq.as_ref().unwrap()[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() } as u64)))));
+            eprint!("{}{}", __go_print_arg_0, __go_print_arg_1)
+        };
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         eprintln!();
@@ -684,7 +731,10 @@ pub fn fatalsignal(sig_local: Arc<Mutex<Option<u32>>>, c: Arc<Mutex<Option<sigct
         // that could lead to printing an incomplete instruction).
         // We're assuming here we can read at least the page containing the PC.
         // I suppose it is possible that the page is mapped executable but not readable?
-    eprint!("{}", format!("{}", "\n".to_string()));
+    {
+            let __go_print_arg_0 = format!("{}", "\n".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
     gp.clone()
 }
 
@@ -720,7 +770,12 @@ pub fn sigpanic() {
             if (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).paniconfault.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
         panicmem_addr(Arc::new(Mutex::new(Some({ let __selector_holder = (*gp.lock().unwrap().as_ref().unwrap()).sigcode1.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
     }
-            eprint!("{}{}{}", format!("{}", "unexpected fault address ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*gp.lock().unwrap().as_ref().unwrap()).sigcode1.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", "\n".to_string()));
+            {
+            let __go_print_arg_0 = format!("{}", "unexpected fault address ".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*gp.lock().unwrap().as_ref().unwrap()).sigcode1.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_2 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
             throw(Arc::new(Mutex::new(Some("fault".to_string()))));
         } else if _switch_val == (__S_I_G_S_E_G_V as u32) {
             if ({ let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).sigcode0.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x == __tmp_y } || { let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).sigcode0.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __S_E_G_V__M_A_P_E_R_R as usize; __tmp_x == __tmp_y } || { let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).sigcode0.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = __S_E_G_V__A_C_C_E_R_R as usize; __tmp_x == __tmp_y }) && { let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).sigcode1.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0x1000 as usize; __tmp_x < __tmp_y } {
@@ -734,9 +789,19 @@ pub fn sigpanic() {
                 // We could check that the arena chunk is explicitly set to fault,
                 // but the fact that we faulted on accessing it is enough to prove
                 // that it is.
-        eprint!("{}{}{}", format!("{}", "accessed data from freed user arena ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*gp.lock().unwrap().as_ref().unwrap()).sigcode1.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "accessed data from freed user arena ".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*gp.lock().unwrap().as_ref().unwrap()).sigcode1.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_2 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
     } else {
-        eprint!("{}{}{}", format!("{}", "unexpected fault address ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*gp.lock().unwrap().as_ref().unwrap()).sigcode1.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "unexpected fault address ".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*gp.lock().unwrap().as_ref().unwrap()).sigcode1.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_2 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
     }
                         // We could check that the arena chunk is explicitly set to fault,
                         // but the fact that we faulted on accessing it is enough to prove
@@ -810,7 +875,12 @@ pub fn crash() {
 /// This can only happen if non-Go code calls sigaltstack to disable the
 /// signal stack.
 pub fn no_signal_stack(sig_local: Arc<Mutex<Option<u32>>>) {
-    eprintln!("{} {} {}", format!("{}", "signal".to_string()), format!("{}", { let __v = (*sig_local.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "received on thread with no signal stack".to_string()));
+    {
+            let __go_print_arg_0 = format!("{}", "signal".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*sig_local.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", "received on thread with no signal stack".to_string());
+            eprintln!("{} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
     throw(Arc::new(Mutex::new(Some("non-Go code disabled sigaltstack".to_string()))));
 }
 
@@ -818,9 +888,30 @@ pub fn no_signal_stack(sig_local: Arc<Mutex<Option<u32>>>) {
 /// but we are not on it. This can only happen if non-Go code called
 /// sigaction without setting the SS_ONSTACK flag.
 pub fn sig_not_on_stack(sig_local: Arc<Mutex<Option<u32>>>, sp: Arc<Mutex<Option<usize>>>, mp: Arc<Mutex<Option<m>>>) {
-    eprintln!("{} {} {}", format!("{}", "signal".to_string()), format!("{}", { let __v = (*sig_local.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "received but handler not on signal stack".to_string()));
-    eprint!("{}{}{}{}{}", format!("{}", "mp.gsignal stack [".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*(*mp.lock().unwrap().as_ref().unwrap()).gsignal.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", " ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*(*mp.lock().unwrap().as_ref().unwrap()).gsignal.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", "], ".to_string()));
-    eprint!("{}{}{}{}{}{}{}", format!("{}", "mp.g0 stack [".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*(*mp.lock().unwrap().as_ref().unwrap()).g0.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", " ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*(*mp.lock().unwrap().as_ref().unwrap()).g0.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))), format!("{}", "], sp=".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*sp.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", "\n".to_string()));
+    {
+            let __go_print_arg_0 = format!("{}", "signal".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*sig_local.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", "received but handler not on signal stack".to_string());
+            eprintln!("{} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
+    {
+            let __go_print_arg_0 = format!("{}", "mp.gsignal stack [".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*(*mp.lock().unwrap().as_ref().unwrap()).gsignal.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_2 = format!("{}", " ".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*(*mp.lock().unwrap().as_ref().unwrap()).gsignal.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_4 = format!("{}", "], ".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
+    {
+            let __go_print_arg_0 = format!("{}", "mp.g0 stack [".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*(*mp.lock().unwrap().as_ref().unwrap()).g0.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).lo.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_2 = format!("{}", " ".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __selector_holder = (*(*(*mp.lock().unwrap().as_ref().unwrap()).g0.lock().unwrap().as_ref().unwrap()).stack.lock().unwrap().as_ref().unwrap()).hi.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))));
+            let __go_print_arg_4 = format!("{}", "], sp=".to_string());
+            let __go_print_arg_5 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*sp.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_6 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6)
+        };
     throw(Arc::new(Mutex::new(Some("non-Go code set up signal handler without SA_ONSTACK flag".to_string()))));
 }
 

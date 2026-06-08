@@ -743,7 +743,18 @@ impl activeSweep {
     }
         if { let __tmp_x = (*{ let __field = (*debug.lock().unwrap().as_ref().unwrap()).gcpacertrace.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x > __tmp_y } {
         let mut live = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_live.lock().unwrap().as_mut().unwrap()).load();
-        eprint!("{}{}{}{}{}{}{}{}{}", format!("{}", "pacer: sweep done at heap size ".to_string()), format!("{}", { let __tmp_x = live; let __tmp_y = 20; __tmp_x >> __tmp_y }), format!("{}", "MB; allocated ".to_string()), format!("{}", { let __tmp_x = ({ let __tmp_x = live; let __tmp_y = (*{ let __field = (*mheap_.lock().unwrap().as_ref().unwrap()).sweep_heap_live_basis.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); let __tmp_y = 20; __tmp_x >> __tmp_y }), format!("{}", "MB during sweep; swept ".to_string()), format!("{}", (*(*mheap_.lock().unwrap().as_ref().unwrap()).pages_swept.lock().unwrap().as_mut().unwrap()).load()), format!("{}", " pages at ".to_string()), format!("{}", (*{ let __field = (*mheap_.lock().unwrap().as_ref().unwrap()).sweep_pages_per_byte.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", " pages/byte\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "pacer: sweep done at heap size ".to_string());
+            let __go_print_arg_1 = format!("{}", { let __tmp_x = live; let __tmp_y = 20; __tmp_x >> __tmp_y });
+            let __go_print_arg_2 = format!("{}", "MB; allocated ".to_string());
+            let __go_print_arg_3 = format!("{}", { let __tmp_x = ({ let __tmp_x = live; let __tmp_y = (*{ let __field = (*mheap_.lock().unwrap().as_ref().unwrap()).sweep_heap_live_basis.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); let __tmp_y = 20; __tmp_x >> __tmp_y });
+            let __go_print_arg_4 = format!("{}", "MB during sweep; swept ".to_string());
+            let __go_print_arg_5 = format!("{}", (*(*mheap_.lock().unwrap().as_ref().unwrap()).pages_swept.lock().unwrap().as_mut().unwrap()).load());
+            let __go_print_arg_6 = format!("{}", " pages at ".to_string());
+            let __go_print_arg_7 = format!("{}", (*{ let __field = (*mheap_.lock().unwrap().as_ref().unwrap()).sweep_pages_per_byte.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_8 = format!("{}", " pages/byte\n".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8)
+        };
     }
         return;
     }
@@ -865,29 +876,59 @@ impl crate::mheap::mspan {
     /// pointer to that object and marked it.
     pub fn report_zombies(&self) {
         printlock();
-        eprint!("{}{}{}{}{}{}{}", format!("{}", "runtime: marked free object in span ".to_string()), format!("{}", format!("{:p}", self)), format!("{}", ", elemsize=".to_string()), format!("{}", (*self.elemsize.lock().unwrap().as_ref().unwrap())), format!("{}", " freeindex=".to_string()), format!("{}", (*self.freeindex.lock().unwrap().as_ref().unwrap())), format!("{}", " (bad use of unsafe.Pointer or having race conditions? try -d=checkptr or -race)\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: marked free object in span ".to_string());
+            let __go_print_arg_1 = format!("{}", format!("{:p}", self));
+            let __go_print_arg_2 = format!("{}", ", elemsize=".to_string());
+            let __go_print_arg_3 = format!("{}", (*self.elemsize.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_4 = format!("{}", " freeindex=".to_string());
+            let __go_print_arg_5 = format!("{}", (*self.freeindex.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_6 = format!("{}", " (bad use of unsafe.Pointer or having race conditions? try -d=checkptr or -race)\n".to_string());
+            eprint!("{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6)
+        };
         let mut mbits = self.mark_bits_for_base();
         let mut abits = self.alloc_bits_for_index(Arc::new(Mutex::new(Some(0 as usize))));
         let mut i = Arc::new(Mutex::new(Some(0 as usize)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.nelems.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
         let mut addr = Arc::new(Mutex::new(Some({ let __tmp_x = self.base(); let __tmp_y = { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.elemsize.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; __tmp_x + __tmp_y })));
-        eprint!("{}", format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*addr.lock().unwrap().as_ref().unwrap()) as u64))))));
+        {
+            let __go_print_arg_0 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*addr.lock().unwrap().as_ref().unwrap()) as u64)))));
+            eprint!("{}", __go_print_arg_0)
+        };
         let mut alloc = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.freeindex.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as usize))).lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } || (*abits.lock().unwrap().as_ref().unwrap()).is_marked())));
         if { let __v = (*alloc.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        eprint!("{}", format!("{}", " alloc".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", " alloc".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
     } else {
-        eprint!("{}", format!("{}", " free ".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", " free ".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
     }
         if (*mbits.lock().unwrap().as_ref().unwrap()).is_marked() {
-        eprint!("{}", format!("{}", " marked  ".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", " marked  ".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
     } else {
-        eprint!("{}", format!("{}", " unmarked".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", " unmarked".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
     }
         let mut zombie = Arc::new(Mutex::new(Some((*mbits.lock().unwrap().as_ref().unwrap()).is_marked() && !{ let __v = (*alloc.lock().unwrap().as_ref().unwrap()).clone(); __v })));
         if { let __v = (*zombie.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        eprint!("{}", format!("{}", " zombie".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", " zombie".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
     }
-        eprint!("{}", format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "\n".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
         if { let __v = (*zombie.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         let mut length = Arc::new(Mutex::new(Some({ let __selector_holder = self.elemsize.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         if { let __tmp_x = { let __v = (*length.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1024 as usize; __tmp_x > __tmp_y } {
@@ -928,7 +969,16 @@ impl sweepLocked {
         {
         let mut state = (*{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.state.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).get();;
         if { let __tmp_x = (*state.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::mheap::mSpanState(Arc::new(Mutex::new(Some(M_SPAN_IN_USE as u8)))); __tmp_x != __tmp_y } || { let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().sweepgen.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = { let __v = (*sweepgen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u32; __tmp_x - __tmp_y }; __tmp_x != __tmp_y } {
-            eprint!("{}{}{}{}{}{}{}", format!("{}", "mspan.sweep: state=".to_string()), format!("{}", { let __v = (*state.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", " sweepgen=".to_string()), format!("{}", (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().sweepgen.clone() }.lock().unwrap().as_ref().unwrap())), format!("{}", " mheap.sweepgen=".to_string()), format!("{}", { let __v = (*sweepgen.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));;
+            {
+            let __go_print_arg_0 = format!("{}", "mspan.sweep: state=".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*state.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", " sweepgen=".to_string());
+            let __go_print_arg_3 = format!("{}", (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().sweepgen.clone() }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_4 = format!("{}", " mheap.sweepgen=".to_string());
+            let __go_print_arg_5 = format!("{}", { let __v = (*sweepgen.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_6 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6)
+        };;
             throw(Arc::new(Mutex::new(Some("mspan.sweep: bad span state".to_string()))));;
         }
     }
@@ -1107,7 +1157,18 @@ impl sweepLocked {
         if { let __tmp_x = { let __v = (*nalloc.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().alloc_count.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
                 // The zombie check above should have caught this in
                 // more detail.
-        eprint!("{}{}{}{}{}{}{}{}{}", format!("{}", "runtime: nelems=".to_string()), format!("{}", (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().nelems.clone() }.lock().unwrap().as_ref().unwrap())), format!("{}", " nalloc=".to_string()), format!("{}", { let __v = (*nalloc.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", " previous allocCount=".to_string()), format!("{}", (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().alloc_count.clone() }.lock().unwrap().as_ref().unwrap())), format!("{}", " nfreed=".to_string()), format!("{}", { let __v = (*nfreed.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: nelems=".to_string());
+            let __go_print_arg_1 = format!("{}", (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().nelems.clone() }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_2 = format!("{}", " nalloc=".to_string());
+            let __go_print_arg_3 = format!("{}", { let __v = (*nalloc.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_4 = format!("{}", " previous allocCount=".to_string());
+            let __go_print_arg_5 = format!("{}", (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().alloc_count.clone() }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_6 = format!("{}", " nfreed=".to_string());
+            let __go_print_arg_7 = format!("{}", { let __v = (*nfreed.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_8 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8)
+        };
         throw(Arc::new(Mutex::new(Some("sweep increased allocation count".to_string()))));
     }
                 // The zombie check above should have caught this in
@@ -1133,7 +1194,16 @@ impl sweepLocked {
         {
         let mut state = (*{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.state.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).get();;
         if { let __tmp_x = (*state.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::mheap::mSpanState(Arc::new(Mutex::new(Some(M_SPAN_IN_USE as u8)))); __tmp_x != __tmp_y } || { let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().sweepgen.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = { let __v = (*sweepgen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u32; __tmp_x - __tmp_y }; __tmp_x != __tmp_y } {
-            eprint!("{}{}{}{}{}{}{}", format!("{}", "mspan.sweep: state=".to_string()), format!("{}", { let __v = (*state.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", " sweepgen=".to_string()), format!("{}", (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().sweepgen.clone() }.lock().unwrap().as_ref().unwrap())), format!("{}", " mheap.sweepgen=".to_string()), format!("{}", { let __v = (*sweepgen.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));;
+            {
+            let __go_print_arg_0 = format!("{}", "mspan.sweep: state=".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*state.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", " sweepgen=".to_string());
+            let __go_print_arg_3 = format!("{}", (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().sweepgen.clone() }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_4 = format!("{}", " mheap.sweepgen=".to_string());
+            let __go_print_arg_5 = format!("{}", { let __v = (*sweepgen.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_6 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6)
+        };;
             throw(Arc::new(Mutex::new(Some("mspan.sweep: bad span state after sweep".to_string()))));;
         }
     }
@@ -1582,7 +1652,16 @@ pub fn sweepone() -> usize {
         let mut state = (*{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.state.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).get();;
         if { let __tmp_x = (*state.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::mheap::mSpanState(Arc::new(Mutex::new(Some(M_SPAN_IN_USE as u8)))); __tmp_x != __tmp_y } {
             if !({ let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().sweepgen.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __field = (*sl.lock().unwrap().as_ref().unwrap()).sweep_gen.clone(); __field }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } || { let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().sweepgen.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = (*{ let __field = (*sl.lock().unwrap().as_ref().unwrap()).sweep_gen.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 3 as u32; __tmp_x + __tmp_y }; __tmp_x == __tmp_y }) {
-        eprint!("{}{}{}{}{}{}{}", format!("{}", "runtime: bad span s.state=".to_string()), format!("{}", { let __v = (*state.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", " s.sweepgen=".to_string()), format!("{}", (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().sweepgen.clone() }.lock().unwrap().as_ref().unwrap())), format!("{}", " sweepgen=".to_string()), format!("{}", (*{ let __field = (*sl.lock().unwrap().as_ref().unwrap()).sweep_gen.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: bad span s.state=".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*state.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", " s.sweepgen=".to_string());
+            let __go_print_arg_3 = format!("{}", (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().sweepgen.clone() }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_4 = format!("{}", " sweepgen=".to_string());
+            let __go_print_arg_5 = format!("{}", (*{ let __field = (*sl.lock().unwrap().as_ref().unwrap()).sweep_gen.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_6 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6)
+        };
         throw(Arc::new(Mutex::new(Some("non in-use span in unswept list".to_string()))));
     };
             continue;

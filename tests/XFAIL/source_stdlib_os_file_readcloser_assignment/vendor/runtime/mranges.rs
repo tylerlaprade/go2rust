@@ -550,7 +550,14 @@ impl addrRanges {
                 // An empty range has no effect on the set of addresses represented
                 // by a, but passing a zero-sized range is almost always a bug.
         if { let __tmp_x = (*r.lock().unwrap().as_ref().unwrap()).size(); let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
-        eprint!("{}{}{}{}{}", format!("{}", "runtime: range = {".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*(*r.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).addr() as u64))))), format!("{}", ", ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*(*r.lock().unwrap().as_ref().unwrap()).limit.lock().unwrap().as_ref().unwrap()).addr() as u64))))), format!("{}", "}\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: range = {".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*(*r.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).addr() as u64)))));
+            let __go_print_arg_2 = format!("{}", ", ".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*(*r.lock().unwrap().as_ref().unwrap()).limit.lock().unwrap().as_ref().unwrap()).addr() as u64)))));
+            let __go_print_arg_4 = format!("{}", "}\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         throw(Arc::new(Mutex::new(Some("attempted to add zero-sized address range".to_string()))));
     }
                 // Because we assume r is not currently represented in a,

@@ -902,7 +902,14 @@ impl sysMemStat {
     pub fn add(&self, n: Arc<Mutex<Option<i64>>>) {
         let mut val = internal_runtime_atomic::xadd64(Arc::new(Mutex::new(Some(u64::default()))), Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         if ({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x > __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some(val as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y }) || ({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x < __tmp_y } && { let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(val as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y }) {
-        eprint!("{}{}{}{}{}", format!("{}", "runtime: val=".to_string()), format!("{}", val), format!("{}", " n=".to_string()), format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: val=".to_string());
+            let __go_print_arg_1 = format!("{}", val);
+            let __go_print_arg_2 = format!("{}", " n=".to_string());
+            let __go_print_arg_3 = format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         throw(Arc::new(Mutex::new(Some("sysMemStat overflow".to_string()))));
     }
     }
@@ -955,7 +962,12 @@ impl consistentHeapStats {
         if !pp.is_nil() {
             let mut seq = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.stats_seq.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(1 as i32))));;
             if { let __tmp_x = { let __tmp_x = seq; let __tmp_y = 2 as u32; __tmp_x % __tmp_y }; let __tmp_y = 0 as u32; __tmp_x == __tmp_y } {
-        eprint!("{}{}{}", format!("{}", "runtime: seq=".to_string()), format!("{}", seq), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: seq=".to_string());
+            let __go_print_arg_1 = format!("{}", seq);
+            let __go_print_arg_2 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
         throw(Arc::new(Mutex::new(Some("bad sequence number".to_string()))));
     };
         } else {
@@ -987,7 +999,12 @@ impl consistentHeapStats {
         if !pp.is_nil() {
             let mut seq = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.stats_seq.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(1 as i32))));;
             if { let __tmp_x = { let __tmp_x = seq; let __tmp_y = 2 as u32; __tmp_x % __tmp_y }; let __tmp_y = 0 as u32; __tmp_x != __tmp_y } {
-        eprint!("{}{}{}", format!("{}", "runtime: seq=".to_string()), format!("{}", seq), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: seq=".to_string());
+            let __go_print_arg_1 = format!("{}", seq);
+            let __go_print_arg_2 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
         throw(Arc::new(Mutex::new(Some("bad sequence number".to_string()))));
     };
         } else {
@@ -1133,7 +1150,10 @@ fn __go_init_0() {
     {
         let mut offset = Arc::new(Mutex::new(Some::<usize>(unimplemented!("unsafe.Offsetof requires struct layout support"))));;
         if { let __tmp_x = { let __tmp_x = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x % __tmp_y }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
-            eprintln!("{}", format!("{}", { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }));;
+            {
+            let __go_print_arg_0 = format!("{}", { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            eprintln!("{}", __go_print_arg_0)
+        };;
             throw(Arc::new(Mutex::new(Some("memstats.heapStats not aligned to 8 bytes".to_string()))));;
         }
     }
@@ -1143,7 +1163,10 @@ fn __go_init_0() {
     {
         let mut size = Arc::new(Mutex::new(Some(std::mem::size_of::<heapStatsDelta>())));;
         if { let __tmp_x = { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as usize; __tmp_x % __tmp_y }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
-            eprintln!("{}", format!("{}", { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }));;
+            {
+            let __go_print_arg_0 = format!("{}", { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            eprintln!("{}", __go_print_arg_0)
+        };;
             throw(Arc::new(Mutex::new(Some("heapStatsDelta not a multiple of 8 bytes in size".to_string()))));;
         }
     }

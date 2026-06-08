@@ -350,7 +350,21 @@ impl timer {
         if !(*self.is_chan.clone().lock().unwrap().as_ref().unwrap()) {
         (*bits.lock().unwrap().as_mut().unwrap())[(3) as usize] = "-".to_string();
     }
-        eprint!("{}{}{}{}{}{}{}{}{}{}{}{}", format!("{}", "T ".to_string()), format!("{}", format!("{:p}", self)), format!("{}", " ".to_string()), format!("{}", { let __seq = { let __seq_holder = bits.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = bits.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = bits.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() }), format!("{}", { let __seq = { let __seq_holder = bits.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(3) as usize].clone() }), format!("{}", " b=".to_string()), format!("{}", (*self.blocked.lock().unwrap().as_ref().unwrap())), format!("{}", " ".to_string()), format!("{}", { let __v = (*op.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "T ".to_string());
+            let __go_print_arg_1 = format!("{}", format!("{:p}", self));
+            let __go_print_arg_2 = format!("{}", " ".to_string());
+            let __go_print_arg_3 = format!("{}", { let __seq = { let __seq_holder = bits.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() });
+            let __go_print_arg_4 = format!("{}", { let __seq = { let __seq_holder = bits.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() });
+            let __go_print_arg_5 = format!("{}", { let __seq = { let __seq_holder = bits.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(2) as usize].clone() });
+            let __go_print_arg_6 = format!("{}", { let __seq = { let __seq_holder = bits.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(3) as usize].clone() });
+            let __go_print_arg_7 = format!("{}", " b=".to_string());
+            let __go_print_arg_8 = format!("{}", (*self.blocked.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_9 = format!("{}", " ".to_string());
+            let __go_print_arg_10 = format!("{}", { let __v = (*op.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_11 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8, __go_print_arg_9, __go_print_arg_10, __go_print_arg_11)
+        };
     }
 
     /// lock locks the timer, allowing reading or writing any of the timer fields.
@@ -897,7 +911,12 @@ impl timers {
 
     pub fn trace(&self, op: Arc<Mutex<Option<String>>>) {
         if TIMER_DEBUG {
-        eprintln!("{} {} {}", format!("{}", "TS".to_string()), format!("{}", format!("{:p}", self)), format!("{}", { let __v = (*op.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+        {
+            let __go_print_arg_0 = format!("{}", "TS".to_string());
+            let __go_print_arg_1 = format!("{}", format!("{:p}", self));
+            let __go_print_arg_2 = format!("{}", { let __v = (*op.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            eprintln!("{} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
     }
     }
 
@@ -1325,7 +1344,20 @@ impl timers {
                 // The heap is timerHeapN-ary. See siftupTimer and siftdownTimer.
         let mut p = Arc::new(Mutex::new(Some(({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = i as i32; let __tmp_y = 1; __tmp_x - __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = TIMER_HEAP_N as u64; __tmp_x / __tmp_y }) as i32)));
         if { let __tmp_x = (*tw.when.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __seq = { let __seq_holder = self.heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.when.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
-        eprint!("{}{}{}{}{}{}{}{}{}{}{}", format!("{}", "bad timer heap at ".to_string()), format!("{}", i), format!("{}", ": ".to_string()), format!("{}", { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ": ".to_string()), format!("{}", (*{ let __seq = { let __seq_holder = self.heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.when.lock().unwrap().as_ref().unwrap())), format!("{}", ", ".to_string()), format!("{}", i), format!("{}", ": ".to_string()), format!("{}", (*tw.when.lock().unwrap().as_ref().unwrap())), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "bad timer heap at ".to_string());
+            let __go_print_arg_1 = format!("{}", i);
+            let __go_print_arg_2 = format!("{}", ": ".to_string());
+            let __go_print_arg_3 = format!("{}", { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_4 = format!("{}", ": ".to_string());
+            let __go_print_arg_5 = format!("{}", (*{ let __seq = { let __seq_holder = self.heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.when.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_6 = format!("{}", ", ".to_string());
+            let __go_print_arg_7 = format!("{}", i);
+            let __go_print_arg_8 = format!("{}", ": ".to_string());
+            let __go_print_arg_9 = format!("{}", (*tw.when.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_10 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8, __go_print_arg_9, __go_print_arg_10)
+        };
         throw(Arc::new(Mutex::new(Some("bad timer heap".to_string()))));
     }
     } }
@@ -1334,7 +1366,13 @@ impl timers {
         {
         let mut n = Arc::new(Mutex::new(Some((*self.len.lock().unwrap().as_mut().unwrap()).load() as i32)));;
         if { let __tmp_x = (({ let __len_target = { let __field = self.heap.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); __tmp_x != __tmp_y } {
-            eprintln!("{} {} {} {}", format!("{}", "timer heap len".to_string()), format!("{}", ({ let __len_target = { let __field = self.heap.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })), format!("{}", "!= atomic len".to_string()), format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }));;
+            {
+            let __go_print_arg_0 = format!("{}", "timer heap len".to_string());
+            let __go_print_arg_1 = format!("{}", ({ let __len_target = { let __field = self.heap.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }));
+            let __go_print_arg_2 = format!("{}", "!= atomic len".to_string());
+            let __go_print_arg_3 = format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            eprintln!("{} {} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3)
+        };;
             throw(Arc::new(Mutex::new(Some("bad timer heap len".to_string()))));;
         }
     }

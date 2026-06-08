@@ -527,7 +527,11 @@ pub fn hexdump_words(p: Arc<Mutex<Option<usize>>>, end: Arc<Mutex<Option<usize>>
         if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
         eprintln!();
     }
-        eprint!("{}{}", format!("{}", hex(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y } as u64))))), format!("{}", ": ".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", hex(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y } as u64)))));
+            let __go_print_arg_1 = format!("{}", ": ".to_string());
+            eprint!("{}{}", __go_print_arg_0, __go_print_arg_1)
+        };
     }
 
         if { let __nil_result = (*mark.lock().unwrap()).is_some(); __nil_result } {
@@ -538,13 +542,26 @@ pub fn hexdump_words(p: Arc<Mutex<Option<usize>>>, end: Arc<Mutex<Option<usize>>
     }
         gwrite(Arc::new(Mutex::new(Some({ let __seq_holder = markbuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))));
         let mut val = Arc::new(Mutex::new(Some({ let __v = (*Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<usize>(unimplemented!("unsafe.Pointer conversion to usize")) } })).lock().unwrap().as_ref().unwrap()).clone(); __v })));
-        eprint!("{}", format!("{}", hex(Arc::new(Mutex::new(Some((*val.lock().unwrap().as_ref().unwrap()) as u64))))));
-        eprint!("{}", format!("{}", " ".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", hex(Arc::new(Mutex::new(Some((*val.lock().unwrap().as_ref().unwrap()) as u64)))));
+            eprint!("{}", __go_print_arg_0)
+        };
+        {
+            let __go_print_arg_0 = format!("{}", " ".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
 
                 // Can we symbolize val?
         let mut r#fn = findfunc(Arc::new(Mutex::new(Some({ let __arg_holder = val.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         if (*r#fn.lock().unwrap().as_ref().unwrap()).valid() {
-        eprint!("{}{}{}{}{}", format!("{}", "<".to_string()), format!("{}", (*funcname(Arc::new(Mutex::new(Some({ let __arg_holder = r#fn.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap())), format!("{}", "+".to_string()), format!("{}", hex(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*r#fn.lock().unwrap().as_ref().unwrap()).entry(); __tmp_x - __tmp_y } as u64))))), format!("{}", "> ".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "<".to_string());
+            let __go_print_arg_1 = format!("{}", (*funcname(Arc::new(Mutex::new(Some({ let __arg_holder = r#fn.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_2 = format!("{}", "+".to_string());
+            let __go_print_arg_3 = format!("{}", hex(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*r#fn.lock().unwrap().as_ref().unwrap()).entry(); __tmp_x - __tmp_y } as u64)))));
+            let __go_print_arg_4 = format!("{}", "> ".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
     }
         { let __rhs = internal_goarch::PTR_SIZE as usize; let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }

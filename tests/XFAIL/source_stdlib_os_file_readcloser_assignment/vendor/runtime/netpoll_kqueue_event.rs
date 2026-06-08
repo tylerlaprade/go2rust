@@ -52,7 +52,11 @@ pub fn add_wakeup_event(kq_local: Arc<Mutex<Option<i32>>>) {
                 // All changes contained in the changelist should have been applied
                 // before returning EINTR. But let's be skeptical and retry it anyway,
                 // to make a 100% commitment.
-        eprintln!("{} {}", format!("{}", "runtime: kevent for EVFILT_USER failed with".to_string()), format!("{}", -(n)));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: kevent for EVFILT_USER failed with".to_string());
+            let __go_print_arg_1 = format!("{}", -(n));
+            eprintln!("{} {}", __go_print_arg_0, __go_print_arg_1)
+        };
         throw(Arc::new(Mutex::new(Some("runtime: kevent failed".to_string()))));
     }
 }
@@ -69,7 +73,11 @@ pub fn wake_netpoll(kq_local: Arc<Mutex<Option<i32>>>) {
         continue
     }
                 // Check out the comment in addWakeupEvent.
-        eprintln!("{} {}", format!("{}", "runtime: netpollBreak write failed with".to_string()), format!("{}", -(n)));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: netpollBreak write failed with".to_string());
+            let __go_print_arg_1 = format!("{}", -(n));
+            eprintln!("{} {}", __go_print_arg_0, __go_print_arg_1)
+        };
         throw(Arc::new(Mutex::new(Some("runtime: netpollBreak write failed".to_string()))));
     }
 }
@@ -79,7 +87,11 @@ pub fn is_wakeup(ev: GoPtr<crate::defs_darwin_arm64::keventt>) -> bool {
         if { let __tmp_x = (*{ let __ptr_value = ev.borrow(); __ptr_value.as_ref().unwrap().ident.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = KQ_IDENT as u64; __tmp_x == __tmp_y } {
         return true;
     }
-        eprintln!("{} {}", format!("{}", "runtime: netpoll: break fd ready for".to_string()), format!("{}", (*{ let __ptr_value = ev.borrow(); __ptr_value.as_ref().unwrap().ident.clone() }.lock().unwrap().as_ref().unwrap())));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: netpoll: break fd ready for".to_string());
+            let __go_print_arg_1 = format!("{}", (*{ let __ptr_value = ev.borrow(); __ptr_value.as_ref().unwrap().ident.clone() }.lock().unwrap().as_ref().unwrap()));
+            eprintln!("{} {}", __go_print_arg_0, __go_print_arg_1)
+        };
         throw(Arc::new(Mutex::new(Some("runtime: netpoll: break fd ready for something unexpected".to_string()))));
     }
     false

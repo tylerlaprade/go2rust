@@ -868,7 +868,12 @@ impl crate::tracebuf::traceWriter {
         let mut __self = self.clone();
                 // The status should never be bad. Some invariant must have been violated.
         if { let __tmp_x = (*status.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_BAD as u8)))); __tmp_x == __tmp_y } {
-        eprint!("{}{}{}", format!("{}", "runtime: goid=".to_string()), format!("{}", { let __v = (*goid.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: goid=".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*goid.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
         throw(Arc::new(Mutex::new(Some("attempted to trace a bad status for a goroutine".to_string()))));
     }
                 // Trace the status.
@@ -945,7 +950,12 @@ impl crate::tracebuf::traceWriter {
         let mut __self = self.clone();
                 // The status should never be bad. Some invariant must have been violated.
         if { let __tmp_x = (*status.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_BAD as u8)))); __tmp_x == __tmp_y } {
-        eprint!("{}{}{}", format!("{}", "runtime: pid=".to_string()), format!("{}", { let __v = (*pid.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: pid=".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*pid.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
         throw(Arc::new(Mutex::new(Some("attempted to trace a bad status for a proc".to_string()))));
     }
                 // Trace the status.

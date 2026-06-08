@@ -955,8 +955,18 @@ impl pageAlloc {
                 // We can't represent 1<<levelLogPages[0] pages, the maximum number
                 // of pages we need to represent at the root level, in a summary, which
                 // is a big problem. Throw.
-        eprint!("{}{}{}", format!("{}", "runtime: root level max pages = ".to_string()), format!("{}", { let __tmp_x = 1; let __tmp_y = { let __seq = { let __seq_holder = levelLogPages.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; __tmp_x << __tmp_y }), format!("{}", "\n".to_string()));
-        eprint!("{}{}{}", format!("{}", "runtime: summary max pages = ".to_string()), format!("{}", MAX_PACKED_VALUE), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: root level max pages = ".to_string());
+            let __go_print_arg_1 = format!("{}", { let __tmp_x = 1; let __tmp_y = { let __seq = { let __seq_holder = levelLogPages.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; __tmp_x << __tmp_y });
+            let __go_print_arg_2 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: summary max pages = ".to_string());
+            let __go_print_arg_1 = format!("{}", MAX_PACKED_VALUE);
+            let __go_print_arg_2 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
         throw(Arc::new(Mutex::new(Some("root level max pages doesn't fit in summary".to_string()))));
     }
                 // We can't represent 1<<levelLogPages[0] pages, the maximum number
@@ -1366,8 +1376,22 @@ impl pageAlloc {
         { let new_val = addr.lock().unwrap().as_ref().unwrap().clone(); *(*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).base.lock().unwrap() = Some(new_val); };
         { let new_val = (*addr.lock().unwrap().as_ref().unwrap()).add(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *(*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).bound.lock().unwrap() = __moved_val; };
     } else if !({ let __recv = (*addr.lock().unwrap().as_ref().unwrap()).add(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).less_than(Arc::new(Mutex::new(Some({ let __selector_holder = (*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))); __result } || (*(*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).bound.lock().unwrap().as_ref().unwrap()).less_than(Arc::new(Mutex::new(Some({ let __arg_holder = addr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))) {
-        eprint!("{}{}{}{}{}", format!("{}", "runtime: addr = ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*addr.lock().unwrap().as_ref().unwrap()).addr() as u64))))), format!("{}", ", size = ".to_string()), format!("{}", { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));
-        eprint!("{}{}{}{}{}", format!("{}", "runtime: base = ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*(*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).addr() as u64))))), format!("{}", ", bound = ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*(*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).bound.lock().unwrap().as_ref().unwrap()).addr() as u64))))), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: addr = ".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*addr.lock().unwrap().as_ref().unwrap()).addr() as u64)))));
+            let __go_print_arg_2 = format!("{}", ", size = ".to_string());
+            let __go_print_arg_3 = format!("{}", { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: base = ".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*(*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).addr() as u64)))));
+            let __go_print_arg_2 = format!("{}", ", bound = ".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*(*firstFree_closure_clone.lock().unwrap().as_ref().unwrap()).bound.lock().unwrap().as_ref().unwrap()).addr() as u64)))));
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         throw(Arc::new(Mutex::new(Some("range partially overlaps".to_string()))));
     }
     }) as Box<dyn FnMut(Arc<Mutex<Option<offAddr>>>, Arc<Mutex<Option<usize>>>) -> () + Send + Sync>)));
@@ -1512,14 +1536,63 @@ impl pageAlloc {
                 // We're not at level zero, and we exhausted the level we were looking in.
                 // This means that either our calculations were wrong or the level above
                 // lied to us. In either case, dump some useful state and throw.
-        eprint!("{}{}{}{}{}{}{}{}{}{}{}", format!("{}", "runtime: summary[".to_string()), format!("{}", { let __tmp_x = { let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }), format!("{}", "][".to_string()), format!("{}", { let __v = (*lastSumIdx.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "] = ".to_string()), format!("{}", pallocSum::start(&(*lastSum.lock().unwrap().as_ref().unwrap()))), format!("{}", ", ".to_string()), format!("{}", pallocSum::max(&(*lastSum.lock().unwrap().as_ref().unwrap()))), format!("{}", ", ".to_string()), format!("{}", pallocSum::end(&(*lastSum.lock().unwrap().as_ref().unwrap()))), format!("{}", "\n".to_string()));
-        eprint!("{}{}{}{}{}{}{}", format!("{}", "runtime: level = ".to_string()), format!("{}", { let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ", npages = ".to_string()), format!("{}", { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ", j0 = ".to_string()), format!("{}", { let __v = (*j0.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));
-        eprint!("{}{}{}{}{}", format!("{}", "runtime: p.searchAddr = ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*self.search_addr.lock().unwrap().as_ref().unwrap()).addr() as u64))))), format!("{}", ", i = ".to_string()), format!("{}", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));
-        eprint!("{}{}{}{}{}", format!("{}", "runtime: levelShift[level] = ".to_string()), format!("{}", { let __seq = { let __seq_holder = levelShift.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }), format!("{}", ", levelBits[level] = ".to_string()), format!("{}", { let __seq = { let __seq_holder = levelBits.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: summary[".to_string());
+            let __go_print_arg_1 = format!("{}", { let __tmp_x = { let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y });
+            let __go_print_arg_2 = format!("{}", "][".to_string());
+            let __go_print_arg_3 = format!("{}", { let __v = (*lastSumIdx.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_4 = format!("{}", "] = ".to_string());
+            let __go_print_arg_5 = format!("{}", pallocSum::start(&(*lastSum.lock().unwrap().as_ref().unwrap())));
+            let __go_print_arg_6 = format!("{}", ", ".to_string());
+            let __go_print_arg_7 = format!("{}", pallocSum::max(&(*lastSum.lock().unwrap().as_ref().unwrap())));
+            let __go_print_arg_8 = format!("{}", ", ".to_string());
+            let __go_print_arg_9 = format!("{}", pallocSum::end(&(*lastSum.lock().unwrap().as_ref().unwrap())));
+            let __go_print_arg_10 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8, __go_print_arg_9, __go_print_arg_10)
+        };
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: level = ".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", ", npages = ".to_string());
+            let __go_print_arg_3 = format!("{}", { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_4 = format!("{}", ", j0 = ".to_string());
+            let __go_print_arg_5 = format!("{}", { let __v = (*j0.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_6 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6)
+        };
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: p.searchAddr = ".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*self.search_addr.lock().unwrap().as_ref().unwrap()).addr() as u64)))));
+            let __go_print_arg_2 = format!("{}", ", i = ".to_string());
+            let __go_print_arg_3 = format!("{}", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: levelShift[level] = ".to_string());
+            let __go_print_arg_1 = format!("{}", { let __seq = { let __seq_holder = levelShift.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() });
+            let __go_print_arg_2 = format!("{}", ", levelBits[level] = ".to_string());
+            let __go_print_arg_3 = format!("{}", { let __seq = { let __seq_holder = levelBits.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() });
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         let mut j = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = ({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*entries.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x < __tmp_y } {
         let mut sum = Arc::new(Mutex::new(Some(pallocSum(Arc::new(Mutex::new(Some((*{ let __seq = { let __seq_holder = entries.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.0.lock().unwrap().as_ref().unwrap()))))))));
-        eprint!("{}{}{}{}{}{}{}{}{}{}{}", format!("{}", "runtime: summary[".to_string()), format!("{}", { let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "][".to_string()), format!("{}", { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }), format!("{}", "] = (".to_string()), format!("{}", pallocSum::start(&(*sum.lock().unwrap().as_ref().unwrap()))), format!("{}", ", ".to_string()), format!("{}", pallocSum::max(&(*sum.lock().unwrap().as_ref().unwrap()))), format!("{}", ", ".to_string()), format!("{}", pallocSum::end(&(*sum.lock().unwrap().as_ref().unwrap()))), format!("{}", ")\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: summary[".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", "][".to_string());
+            let __go_print_arg_3 = format!("{}", { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y });
+            let __go_print_arg_4 = format!("{}", "] = (".to_string());
+            let __go_print_arg_5 = format!("{}", pallocSum::start(&(*sum.lock().unwrap().as_ref().unwrap())));
+            let __go_print_arg_6 = format!("{}", ", ".to_string());
+            let __go_print_arg_7 = format!("{}", pallocSum::max(&(*sum.lock().unwrap().as_ref().unwrap())));
+            let __go_print_arg_8 = format!("{}", ", ".to_string());
+            let __go_print_arg_9 = format!("{}", pallocSum::end(&(*sum.lock().unwrap().as_ref().unwrap())));
+            let __go_print_arg_10 = format!("{}", ")\n".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8, __go_print_arg_9, __go_print_arg_10)
+        };
         { let mut guard = j.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
         throw(Arc::new(Mutex::new(Some("bad summary data".to_string()))));
@@ -1578,8 +1651,26 @@ impl pageAlloc {
                 // We couldn't find any space in this chunk despite the summaries telling
                 // us it should be there. There's likely a bug, so dump some state and throw.
         let mut sum = Arc::new(Mutex::new(Some(pallocSum(Arc::new(Mutex::new(Some((*{ let __seq = { let __seq_holder = self.summary.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = 5; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone().0.lock().unwrap().as_ref().unwrap()))))))));
-        eprint!("{}{}{}{}{}{}{}{}{}{}{}", format!("{}", "runtime: summary[".to_string()), format!("{}", { let __tmp_x = 5; let __tmp_y = 1; __tmp_x - __tmp_y }), format!("{}", "][".to_string()), format!("{}", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "] = (".to_string()), format!("{}", pallocSum::start(&(*sum.lock().unwrap().as_ref().unwrap()))), format!("{}", ", ".to_string()), format!("{}", pallocSum::max(&(*sum.lock().unwrap().as_ref().unwrap()))), format!("{}", ", ".to_string()), format!("{}", pallocSum::end(&(*sum.lock().unwrap().as_ref().unwrap()))), format!("{}", ")\n".to_string()));
-        eprint!("{}{}{}", format!("{}", "runtime: npages = ".to_string()), format!("{}", { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: summary[".to_string());
+            let __go_print_arg_1 = format!("{}", { let __tmp_x = 5; let __tmp_y = 1; __tmp_x - __tmp_y });
+            let __go_print_arg_2 = format!("{}", "][".to_string());
+            let __go_print_arg_3 = format!("{}", { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_4 = format!("{}", "] = (".to_string());
+            let __go_print_arg_5 = format!("{}", pallocSum::start(&(*sum.lock().unwrap().as_ref().unwrap())));
+            let __go_print_arg_6 = format!("{}", ", ".to_string());
+            let __go_print_arg_7 = format!("{}", pallocSum::max(&(*sum.lock().unwrap().as_ref().unwrap())));
+            let __go_print_arg_8 = format!("{}", ", ".to_string());
+            let __go_print_arg_9 = format!("{}", pallocSum::end(&(*sum.lock().unwrap().as_ref().unwrap())));
+            let __go_print_arg_10 = format!("{}", ")\n".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8, __go_print_arg_9, __go_print_arg_10)
+        };
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: npages = ".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
         throw(Arc::new(Mutex::new(Some("bad summary data".to_string()))));
     }
                 // We couldn't find any space in this chunk despite the summaries telling
@@ -1629,8 +1720,22 @@ impl pageAlloc {
         if { let __tmp_x = max; let __tmp_y = (*Arc::new(Mutex::new(Some((*npages.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y } {
             let (mut j, mut searchIdx) = { let __recv = self.chunk_of(Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).find(Arc::new(Mutex::new(Some({ let __arg_holder = npages.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(chunk_page_index(Arc::new(Mutex::new(Some((*self.search_addr.lock().unwrap().as_ref().unwrap()).addr())))))))); __result };;
             if { let __tmp_x = j; let __tmp_y = !(0 as u64) as u64; __tmp_x == __tmp_y } {
-        eprint!("{}{}{}{}{}", format!("{}", "runtime: max = ".to_string()), format!("{}", max), format!("{}", ", npages = ".to_string()), format!("{}", { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));
-        eprint!("{}{}{}{}{}", format!("{}", "runtime: searchIdx = ".to_string()), format!("{}", chunk_page_index(Arc::new(Mutex::new(Some((*self.search_addr.lock().unwrap().as_ref().unwrap()).addr()))))), format!("{}", ", p.searchAddr = ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*self.search_addr.lock().unwrap().as_ref().unwrap()).addr() as u64))))), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: max = ".to_string());
+            let __go_print_arg_1 = format!("{}", max);
+            let __go_print_arg_2 = format!("{}", ", npages = ".to_string());
+            let __go_print_arg_3 = format!("{}", { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: searchIdx = ".to_string());
+            let __go_print_arg_1 = format!("{}", chunk_page_index(Arc::new(Mutex::new(Some((*self.search_addr.lock().unwrap().as_ref().unwrap()).addr())))));
+            let __go_print_arg_2 = format!("{}", ", p.searchAddr = ".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*self.search_addr.lock().unwrap().as_ref().unwrap()).addr() as u64)))));
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         throw(Arc::new(Mutex::new(Some("bad summary data".to_string()))));
     };
             { let new_val = { let __tmp_x = chunk_base(Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some(j as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y }; __tmp_x + __tmp_y }; *addr.lock().unwrap() = Some(new_val); };;

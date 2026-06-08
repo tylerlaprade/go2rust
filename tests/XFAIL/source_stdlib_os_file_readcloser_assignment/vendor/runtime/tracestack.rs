@@ -226,7 +226,16 @@ pub fn trace_stack(skip: Arc<Mutex<Option<i32>>>, mut gp: GoPtr<crate::runtime2:
         if !_matched || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            eprint!("{}{}{}{}{}{}{}", format!("{}", "runtime: gp=".to_string()), format!("{}", (*Arc::new(Mutex::new(Some(gp.addr()))).lock().unwrap().as_ref().unwrap())), format!("{}", " gp.goid=".to_string()), format!("{}", (*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().goid.clone() }.lock().unwrap().as_ref().unwrap())), format!("{}", " status=".to_string()), format!("{}", { let __seq = { let __seq_holder = gStatusStrings.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(status) as usize].clone() }), format!("{}", "\n".to_string()));
+            {
+            let __go_print_arg_0 = format!("{}", "runtime: gp=".to_string());
+            let __go_print_arg_1 = format!("{}", (*Arc::new(Mutex::new(Some(gp.addr()))).lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_2 = format!("{}", " gp.goid=".to_string());
+            let __go_print_arg_3 = format!("{}", (*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().goid.clone() }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_4 = format!("{}", " status=".to_string());
+            let __go_print_arg_5 = format!("{}", { let __seq = { let __seq_holder = gStatusStrings.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(status) as usize].clone() });
+            let __go_print_arg_6 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6)
+        };
             throw(Arc::new(Mutex::new(Some("attempted to trace stack of a goroutine this thread does not own".to_string()))));
         }
     };

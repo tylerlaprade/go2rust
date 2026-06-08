@@ -1105,6 +1105,29 @@ func warn(field string) {
 	}
 }
 
+func TestBuiltinPrintBuildsArgumentsWithStatements(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func warn(buf []byte, i int) {
+	go func() {}()
+	print("prefix ", int(buf[i])+int(buf[i+1]), ":", int(buf[i+2])<<8, " # ", i, "\n")
+}
+`)
+
+	if strings.Contains(rust, `eprint!("{}{}{}{}{}{}{}", format!`) {
+		t.Fatalf("complex builtin print should not inline every formatted argument in one macro expression:\n%s", rust)
+	}
+	for _, want := range []string{
+		"let __go_print_arg_0 = format!",
+		"let __go_print_arg_1 = format!",
+		`eprint!("{}{}{}{}{}{}{}", __go_print_arg_0`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("complex builtin print should build formatted arguments with statements, missing %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestBuiltinPrintPointerSelectorFormatsHandleOnce(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

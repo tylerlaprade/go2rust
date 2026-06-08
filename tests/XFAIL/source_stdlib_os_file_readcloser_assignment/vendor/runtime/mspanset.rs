@@ -965,7 +965,14 @@ impl spanSet {
     pub fn reset(&self) {
         let (mut head, mut tail) = headTailIndex::split(&(*(*self.index.lock().unwrap().as_ref().unwrap()).load().lock().unwrap().as_ref().unwrap()));
         if { let __tmp_x = head; let __tmp_y = tail; __tmp_x < __tmp_y } {
-        eprint!("{}{}{}{}{}", format!("{}", "head = ".to_string()), format!("{}", head), format!("{}", ", tail = ".to_string()), format!("{}", tail), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "head = ".to_string());
+            let __go_print_arg_1 = format!("{}", head);
+            let __go_print_arg_2 = format!("{}", ", tail = ".to_string());
+            let __go_print_arg_3 = format!("{}", tail);
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         throw(Arc::new(Mutex::new(Some("attempt to clear non-empty span set".to_string()))));
     }
         let mut top = Arc::new(Mutex::new(Some({ let __tmp_x = head; let __tmp_y = SPAN_SET_BLOCK_ENTRIES as u32; __tmp_x / __tmp_y })));
@@ -1111,7 +1118,14 @@ impl atomicHeadTailIndex {
         let mut ht = Arc::new(Mutex::new(Some(headTailIndex(Arc::new(Mutex::new(Some((*self.u.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(1 as i64)))) as u64)))))));
                 // Check for overflow.
         if { let __tmp_x = headTailIndex::tail(&(*ht.lock().unwrap().as_ref().unwrap())); let __tmp_y = 0 as u32; __tmp_x == __tmp_y } {
-        eprint!("{}{}{}{}{}", format!("{}", "runtime: head = ".to_string()), format!("{}", headTailIndex::head(&(*ht.lock().unwrap().as_ref().unwrap()))), format!("{}", ", tail = ".to_string()), format!("{}", headTailIndex::tail(&(*ht.lock().unwrap().as_ref().unwrap()))), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: head = ".to_string());
+            let __go_print_arg_1 = format!("{}", headTailIndex::head(&(*ht.lock().unwrap().as_ref().unwrap())));
+            let __go_print_arg_2 = format!("{}", ", tail = ".to_string());
+            let __go_print_arg_3 = format!("{}", headTailIndex::tail(&(*ht.lock().unwrap().as_ref().unwrap())));
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         throw(Arc::new(Mutex::new(Some("headTailIndex overflow".to_string()))));
     }
         return { let __owned = ht.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };

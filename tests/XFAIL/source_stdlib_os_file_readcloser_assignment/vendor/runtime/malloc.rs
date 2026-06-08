@@ -437,7 +437,16 @@ impl crate::mheap::mheap {
                 if { let __tmp_x = (*bad.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
                 // This should be impossible on most architectures,
                 // but it would be really confusing to debug.
-        eprint!("{}{}{}{}{}{}{}", format!("{}", "runtime: memory allocated by OS [".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", ", ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y } as u64))))), format!("{}", ") not in usable address space: ".to_string()), format!("{}", { let __v = (*bad.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: memory allocated by OS [".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*p.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_2 = format!("{}", ", ".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y } as u64)))));
+            let __go_print_arg_4 = format!("{}", ") not in usable address space: ".to_string());
+            let __go_print_arg_5 = format!("{}", { let __v = (*bad.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_6 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6)
+        };
         throw(Arc::new(Mutex::new(Some("memory reservation exceeds address space limit".to_string()))));
     }
             }
@@ -615,7 +624,13 @@ impl crate::mcache::mcache {
         if { let __tmp_x = freeIndex; let __tmp_y = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().nelems.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } {
                 // The span is full.
         if { let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().alloc_count.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().nelems.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x != __tmp_y } {
-        eprintln!("{} {} {} {}", format!("{}", "runtime: s.allocCount=".to_string()), format!("{}", (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().alloc_count.clone() }.lock().unwrap().as_ref().unwrap())), format!("{}", "s.nelems=".to_string()), format!("{}", (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().nelems.clone() }.lock().unwrap().as_ref().unwrap())));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: s.allocCount=".to_string());
+            let __go_print_arg_1 = format!("{}", (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().alloc_count.clone() }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_2 = format!("{}", "s.nelems=".to_string());
+            let __go_print_arg_3 = format!("{}", (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().nelems.clone() }.lock().unwrap().as_ref().unwrap()));
+            eprintln!("{} {} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3)
+        };
         throw(Arc::new(Mutex::new(Some("s.allocCount != s.nelems && freeIndex == s.nelems".to_string()))));
     }
         self.refill(Arc::new(Mutex::new(Some({ let __arg_holder = spc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
@@ -630,7 +645,13 @@ impl crate::mcache::mcache {
         { let new_val = crate::mcache::gclinkptr(Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(freeIndex as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().elemsize.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x * __tmp_y }; let __tmp_y = { let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result }; __tmp_x + __tmp_y } as usize)))); *v.lock().unwrap() = Some(new_val); };
         { let __target = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.alloc_count.clone()); __ptr_value }.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         if { let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().alloc_count.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().nelems.clone() }.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
-        eprintln!("{} {} {} {}", format!("{}", "s.allocCount=".to_string()), format!("{}", (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().alloc_count.clone() }.lock().unwrap().as_ref().unwrap())), format!("{}", "s.nelems=".to_string()), format!("{}", (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().nelems.clone() }.lock().unwrap().as_ref().unwrap())));
+        {
+            let __go_print_arg_0 = format!("{}", "s.allocCount=".to_string());
+            let __go_print_arg_1 = format!("{}", (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().alloc_count.clone() }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_2 = format!("{}", "s.nelems=".to_string());
+            let __go_print_arg_3 = format!("{}", (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().nelems.clone() }.lock().unwrap().as_ref().unwrap()));
+            eprintln!("{} {} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3)
+        };
         throw(Arc::new(Mutex::new(Some("s.allocCount > s.nelems".to_string()))));
     }
         return (v.clone(), s.clone(), (*checkGCTrigger.lock().unwrap().as_ref().unwrap()));

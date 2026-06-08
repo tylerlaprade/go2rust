@@ -442,7 +442,23 @@ impl gcControllerState {
         if { let __tmp_x = (*{ let __field = (*debug.lock().unwrap().as_ref().unwrap()).gcpacertrace.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x > __tmp_y } {
         let mut heapGoal = self.heap_goal();
         let mut assistRatio = (*self.assist_work_per_byte.lock().unwrap().as_ref().unwrap()).load();
-        eprint!("{}{}{}{}{}{}{}{}{}{}{}{}{}{}", format!("{}", "pacer: assist ratio=".to_string()), format!("{}", assistRatio), format!("{}", " (scan ".to_string()), format!("{}", { let __tmp_x = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_scan.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 20; __tmp_x >> __tmp_y }), format!("{}", " MB in ".to_string()), format!("{}", { let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).initial_heap_live.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 20; __tmp_x >> __tmp_y }), format!("{}", "->".to_string()), format!("{}", { let __tmp_x = heapGoal; let __tmp_y = 20; __tmp_x >> __tmp_y }), format!("{}", " MB)".to_string()), format!("{}", " workers=".to_string()), format!("{}", { let __v = (*dedicatedMarkWorkersNeeded.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "+".to_string()), format!("{}", (*self.fractional_utilization_goal.lock().unwrap().as_ref().unwrap())), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "pacer: assist ratio=".to_string());
+            let __go_print_arg_1 = format!("{}", assistRatio);
+            let __go_print_arg_2 = format!("{}", " (scan ".to_string());
+            let __go_print_arg_3 = format!("{}", { let __tmp_x = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_scan.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 20; __tmp_x >> __tmp_y });
+            let __go_print_arg_4 = format!("{}", " MB in ".to_string());
+            let __go_print_arg_5 = format!("{}", { let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).initial_heap_live.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 20; __tmp_x >> __tmp_y });
+            let __go_print_arg_6 = format!("{}", "->".to_string());
+            let __go_print_arg_7 = format!("{}", { let __tmp_x = heapGoal; let __tmp_y = 20; __tmp_x >> __tmp_y });
+            let __go_print_arg_8 = format!("{}", " MB)".to_string());
+            let __go_print_arg_9 = format!("{}", " workers=".to_string());
+            let __go_print_arg_10 = format!("{}", { let __v = (*dedicatedMarkWorkersNeeded.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_11 = format!("{}", "+".to_string());
+            let __go_print_arg_12 = format!("{}", (*self.fractional_utilization_goal.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_13 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8, __go_print_arg_9, __go_print_arg_10, __go_print_arg_11, __go_print_arg_12, __go_print_arg_13)
+        };
     }
     }
 
@@ -683,10 +699,38 @@ impl gcControllerState {
         if { let __tmp_x = (*{ let __field = (*debug.lock().unwrap().as_ref().unwrap()).gcpacertrace.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x > __tmp_y } {
         printlock();
         let mut goal = Arc::new(Mutex::new(Some({ let __tmp_x = GC_GOAL_UTILIZATION as f64; let __tmp_y = 100.0; __tmp_x * __tmp_y })));
-        eprint!("{}{}{}{}{}", format!("{}", "pacer: ".to_string()), format!("{}", (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*utilization.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 100.0; __tmp_x * __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap())), format!("{}", "% CPU (".to_string()), format!("{}", (*Arc::new(Mutex::new(Some((*goal.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap())), format!("{}", " exp.) for ".to_string()));
-        eprint!("{}{}{}{}{}{}{}{}", format!("{}", (*self.heap_scan_work.lock().unwrap().as_mut().unwrap()).load()), format!("{}", "+".to_string()), format!("{}", (*self.stack_scan_work.lock().unwrap().as_mut().unwrap()).load()), format!("{}", "+".to_string()), format!("{}", (*self.globals_scan_work.lock().unwrap().as_mut().unwrap()).load()), format!("{}", " B work (".to_string()), format!("{}", { let __tmp_x = { let __tmp_x = (*self.last_heap_scan.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.last_stack_scan.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y }; let __tmp_y = (*self.globals_scan.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y }), format!("{}", " B exp.) ".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "pacer: ".to_string());
+            let __go_print_arg_1 = format!("{}", (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*utilization.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 100.0; __tmp_x * __tmp_y }) as i32))).lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_2 = format!("{}", "% CPU (".to_string());
+            let __go_print_arg_3 = format!("{}", (*Arc::new(Mutex::new(Some((*goal.lock().unwrap().as_ref().unwrap()) as i32))).lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_4 = format!("{}", " exp.) for ".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
+        {
+            let __go_print_arg_0 = format!("{}", (*self.heap_scan_work.lock().unwrap().as_mut().unwrap()).load());
+            let __go_print_arg_1 = format!("{}", "+".to_string());
+            let __go_print_arg_2 = format!("{}", (*self.stack_scan_work.lock().unwrap().as_mut().unwrap()).load());
+            let __go_print_arg_3 = format!("{}", "+".to_string());
+            let __go_print_arg_4 = format!("{}", (*self.globals_scan_work.lock().unwrap().as_mut().unwrap()).load());
+            let __go_print_arg_5 = format!("{}", " B work (".to_string());
+            let __go_print_arg_6 = format!("{}", { let __tmp_x = { let __tmp_x = (*self.last_heap_scan.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.last_stack_scan.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y }; let __tmp_y = (*self.globals_scan.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y });
+            let __go_print_arg_7 = format!("{}", " B exp.) ".to_string());
+            eprint!("{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7)
+        };
         let mut live = (*self.heap_live.lock().unwrap().as_mut().unwrap()).load();
-        eprint!("{}{}{}{}{}{}{}{}{}", format!("{}", "in ".to_string()), format!("{}", (*self.triggered.lock().unwrap().as_ref().unwrap())), format!("{}", " B -> ".to_string()), format!("{}", live), format!("{}", " B (\u{2206}goal ".to_string()), format!("{}", { let __tmp_x = (*Arc::new(Mutex::new(Some(live as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.last_heap_goal.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }), format!("{}", ", cons/mark ".to_string()), format!("{}", { let __v = (*oldConsMark.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", ")".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "in ".to_string());
+            let __go_print_arg_1 = format!("{}", (*self.triggered.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_2 = format!("{}", " B -> ".to_string());
+            let __go_print_arg_3 = format!("{}", live);
+            let __go_print_arg_4 = format!("{}", " B (\u{2206}goal ".to_string());
+            let __go_print_arg_5 = format!("{}", { let __tmp_x = (*Arc::new(Mutex::new(Some(live as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.last_heap_goal.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y });
+            let __go_print_arg_6 = format!("{}", ", cons/mark ".to_string());
+            let __go_print_arg_7 = format!("{}", { let __v = (*oldConsMark.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_8 = format!("{}", ")".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8)
+        };
         eprintln!();
         printunlock();
     }
@@ -1194,8 +1238,22 @@ let mut maxTrigger = Arc::new(Mutex::new(Some(__go_binary_8)));
         { let new_val = std::cmp::max(({ let __v = (*trigger.lock().unwrap().as_ref().unwrap()).clone(); __v } as u64), (minTrigger as u64)); *trigger.lock().unwrap() = Some(new_val); };
         { let new_val = std::cmp::min(({ let __v = (*trigger.lock().unwrap().as_ref().unwrap()).clone(); __v } as u64), ({ let __v = (*maxTrigger.lock().unwrap().as_ref().unwrap()).clone(); __v } as u64)); *trigger.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = { let __v = (*trigger.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = goal; __tmp_x > __tmp_y } {
-        eprint!("{}{}{}{}{}", format!("{}", "trigger=".to_string()), format!("{}", { let __v = (*trigger.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", " heapGoal=".to_string()), format!("{}", goal), format!("{}", "\n".to_string()));
-        eprint!("{}{}{}{}{}", format!("{}", "minTrigger=".to_string()), format!("{}", minTrigger), format!("{}", " maxTrigger=".to_string()), format!("{}", { let __v = (*maxTrigger.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "trigger=".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*trigger.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", " heapGoal=".to_string());
+            let __go_print_arg_3 = format!("{}", goal);
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
+        {
+            let __go_print_arg_0 = format!("{}", "minTrigger=".to_string());
+            let __go_print_arg_1 = format!("{}", minTrigger);
+            let __go_print_arg_2 = format!("{}", " maxTrigger=".to_string());
+            let __go_print_arg_3 = format!("{}", { let __v = (*maxTrigger.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         throw(Arc::new(Mutex::new(Some("produced a trigger greater than the heap goal".to_string()))));
     }
         return ({ let __v = (*trigger.lock().unwrap().as_ref().unwrap()).clone(); __v }, goal);
@@ -1333,7 +1391,14 @@ let mut maxTrigger = Arc::new(Mutex::new(Some(__go_binary_8)));
                 // See the comment on idleMarkWorkers for why
                 // n > max is tolerated.
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i32; __tmp_x < __tmp_y } {
-        eprint!("{}{}{}{}{}", format!("{}", "n=".to_string()), format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", " max=".to_string()), format!("{}", { let __v = (*max.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "n=".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", " max=".to_string());
+            let __go_print_arg_3 = format!("{}", { let __v = (*max.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         throw(Arc::new(Mutex::new(Some("negative idle mark workers".to_string()))));
     }
         let mut new = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as i32; __tmp_x + __tmp_y }) as u32 as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*max.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 32; __tmp_x << __tmp_y }); __tmp_x | __tmp_y })));
@@ -1363,7 +1428,14 @@ let mut maxTrigger = Arc::new(Mutex::new(Some(__go_binary_8)));
         let mut old = (*self.idle_mark_workers.lock().unwrap().as_mut().unwrap()).load();
         let (mut n, mut max) = (Arc::new(Mutex::new(Some(({ let __tmp_x = old; let __tmp_y = (*Arc::new(Mutex::new(Some(!(((0 as u32) as u32)) as u64))).lock().unwrap().as_ref().unwrap()) as u64; __tmp_x & __tmp_y }) as i32))), Arc::new(Mutex::new(Some(({ let __tmp_x = old; let __tmp_y = 32; __tmp_x >> __tmp_y }) as i32))));
         if { let __tmp_x = { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as i32; __tmp_x - __tmp_y }; let __tmp_y = 0 as i32; __tmp_x < __tmp_y } {
-        eprint!("{}{}{}{}{}", format!("{}", "n=".to_string()), format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", " max=".to_string()), format!("{}", { let __v = (*max.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "n=".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", " max=".to_string());
+            let __go_print_arg_3 = format!("{}", { let __v = (*max.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         throw(Arc::new(Mutex::new(Some("negative idle mark workers".to_string()))));
     }
         let mut new = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as i32; __tmp_x - __tmp_y }) as u32 as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*max.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 32; __tmp_x << __tmp_y }); __tmp_x | __tmp_y })));
@@ -1383,7 +1455,14 @@ let mut maxTrigger = Arc::new(Mutex::new(Some(__go_binary_8)));
         let mut old = (*self.idle_mark_workers.lock().unwrap().as_mut().unwrap()).load();
         let mut n = Arc::new(Mutex::new(Some(({ let __tmp_x = old; let __tmp_y = (*Arc::new(Mutex::new(Some(!(((0 as u32) as u32)) as u64))).lock().unwrap().as_ref().unwrap()) as u64; __tmp_x & __tmp_y }) as i32)));
         if { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i32; __tmp_x < __tmp_y } {
-        eprint!("{}{}{}{}{}", format!("{}", "n=".to_string()), format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", " max=".to_string()), format!("{}", { let __v = (*max.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "n=".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", " max=".to_string());
+            let __go_print_arg_3 = format!("{}", { let __v = (*max.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         throw(Arc::new(Mutex::new(Some("negative idle mark workers".to_string()))));
     }
         let mut new = Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as u32 as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = ({ let __tmp_x = (*Arc::new(Mutex::new(Some((*max.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 32; __tmp_x << __tmp_y }); __tmp_x | __tmp_y })));

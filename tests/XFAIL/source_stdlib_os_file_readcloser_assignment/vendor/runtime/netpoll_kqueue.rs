@@ -64,7 +64,11 @@ pub(crate) fn __go_init_order_40() {
 pub fn netpollinit() {
     { let new_val = kqueue(); *kq.lock().unwrap() = Some(new_val); };
     if { let __tmp_x = (*kq.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x < __tmp_y } {
-        eprintln!("{} {}", format!("{}", "runtime: kqueue failed with".to_string()), format!("{}", -((*kq.lock().unwrap().as_ref().unwrap()))));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: kqueue failed with".to_string());
+            let __go_print_arg_1 = format!("{}", -((*kq.lock().unwrap().as_ref().unwrap())));
+            eprintln!("{} {}", __go_print_arg_0, __go_print_arg_1)
+        };
         throw(Arc::new(Mutex::new(Some("runtime: netpollinit failed".to_string()))));
     }
     closeonexec(Arc::new(Mutex::new(Some({ let __arg_holder = kq.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
@@ -115,7 +119,13 @@ pub fn netpoll(delay: Arc<Mutex<Option<i64>>>) -> (Arc<Mutex<Option<crate::proc:
                 // figure out what really happened with n == ETIMEOUT,
                 // see https://go.dev/issue/59679 for details.
         if { let __tmp_x = n; let __tmp_y = -__E_I_N_T_R as i32; __tmp_x != __tmp_y } && { let __tmp_x = n; let __tmp_y = -__E_T_I_M_E_D_O_U_T as i32; __tmp_x != __tmp_y } {
-        eprintln!("{} {} {} {}", format!("{}", "runtime: kevent on fd".to_string()), format!("{}", { let __v = (*kq.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "failed with".to_string()), format!("{}", -(n)));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: kevent on fd".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*kq.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", "failed with".to_string());
+            let __go_print_arg_3 = format!("{}", -(n));
+            eprintln!("{} {} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3)
+        };
         throw(Arc::new(Mutex::new(Some("runtime: netpoll failed".to_string()))));
     }
                 // If a timed sleep was interrupted, just return to

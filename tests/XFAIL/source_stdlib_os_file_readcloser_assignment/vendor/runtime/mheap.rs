@@ -4144,7 +4144,14 @@ impl mheap {
         let (mut av, mut asize) = { let __method_arg0 = Arc::new(Mutex::new(Some({ let __arg_holder = ask.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))); let __method_arg1 = GoPtr::local(Arc::new(Mutex::new(Some(self.arena_hints.clone())))); let __method_arg2 = Arc::new(Mutex::new(Some(true))); self.sys_alloc(__method_arg0, __method_arg1, __method_arg2) };
         if { let __nil_result = (*av.lock().unwrap()).is_none(); __nil_result } {
         let mut inUse = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_free.lock().unwrap().as_ref().unwrap()).load(); let __tmp_y = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_released.lock().unwrap().as_ref().unwrap()).load(); __tmp_x + __tmp_y }; let __tmp_y = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_in_use.lock().unwrap().as_ref().unwrap()).load(); __tmp_x + __tmp_y })));
-        eprint!("{}{}{}{}{}", format!("{}", "runtime: out of memory: cannot allocate ".to_string()), format!("{}", { let __v = (*ask.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "-byte block (".to_string()), format!("{}", { let __v = (*inUse.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", " in use)\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: out of memory: cannot allocate ".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*ask.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", "-byte block (".to_string());
+            let __go_print_arg_3 = format!("{}", { let __v = (*inUse.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_4 = format!("{}", " in use)\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         return (0, false);
     }
         if { let __tmp_x = (*Arc::new(Mutex::new(Some((*av.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*self.cur_arena.lock().unwrap().as_ref().unwrap()).end.lock().unwrap().as_ref().unwrap()); __tmp_x == __tmp_y } {
@@ -4298,7 +4305,20 @@ impl mheap {
         throw(Arc::new(Mutex::new(Some("mheap.freeSpanLocked - invalid free of user arena chunk".to_string()))));
     }
             if { let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().alloc_count.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as u16; __tmp_x != __tmp_y } || { let __tmp_x = (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().sweepgen.clone() }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.sweepgen.lock().unwrap().as_ref().unwrap()); __tmp_x != __tmp_y } {
-        eprint!("{}{}{}{}{}{}{}{}{}{}{}", format!("{}", "mheap.freeSpanLocked - span ".to_string()), format!("{}", format!("0x{:x}", s.addr())), format!("{}", " ptr ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result } as u64))))), format!("{}", " allocCount ".to_string()), format!("{}", (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().alloc_count.clone() }.lock().unwrap().as_ref().unwrap())), format!("{}", " sweepgen ".to_string()), format!("{}", (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().sweepgen.clone() }.lock().unwrap().as_ref().unwrap())), format!("{}", "/".to_string()), format!("{}", (*self.sweepgen.lock().unwrap().as_ref().unwrap())), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "mheap.freeSpanLocked - span ".to_string());
+            let __go_print_arg_1 = format!("{}", format!("0x{:x}", s.addr()));
+            let __go_print_arg_2 = format!("{}", " ptr ".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some({ let __recv_value = s.borrow(); let __result = (*__recv_value.as_ref().unwrap()).base(); __result } as u64)))));
+            let __go_print_arg_4 = format!("{}", " allocCount ".to_string());
+            let __go_print_arg_5 = format!("{}", (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().alloc_count.clone() }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_6 = format!("{}", " sweepgen ".to_string());
+            let __go_print_arg_7 = format!("{}", (*{ let __ptr_value = s.borrow(); __ptr_value.as_ref().unwrap().sweepgen.clone() }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_8 = format!("{}", "/".to_string());
+            let __go_print_arg_9 = format!("{}", (*self.sweepgen.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_10 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8, __go_print_arg_9, __go_print_arg_10)
+        };
         throw(Arc::new(Mutex::new(Some("mheap.freeSpanLocked - invalid free".to_string()))));
     }
             (*self.pages_in_use.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.npages.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }).wrapping_neg()))));
@@ -4377,7 +4397,20 @@ impl mSpanList {
 
     pub fn remove(&mut self, span: GoPtr<mspan>) {
         if { let __peer = { let __ptr_value = span.borrow(); let __field_value = __ptr_value.as_ref().unwrap().list.clone(); __field_value }; let __peer_guard = __peer.lock().unwrap(); let __peer_ptr = __peer_guard.as_ref().map(|__v| __v as *const _ as usize); let __self_ptr = self as *const _ as usize; let __eq = __peer_ptr == Some(__self_ptr); !__eq } {
-        eprint!("{}{}{}{}{}{}{}{}{}{}{}", format!("{}", "runtime: failed mSpanList.remove span.npages=".to_string()), format!("{}", (*{ let __ptr_value = span.borrow(); __ptr_value.as_ref().unwrap().npages.clone() }.lock().unwrap().as_ref().unwrap())), format!("{}", " span=".to_string()), format!("{}", format!("0x{:x}", span.addr())), format!("{}", " prev=".to_string()), format!("{}", { let __ptr = { let __ptr_value = span.borrow(); let __field_value = __ptr_value.as_ref().unwrap().prev.clone(); __field_value }; format!("0x{:x}", __ptr.addr()) }), format!("{}", " span.list=".to_string()), format!("{}", format!("&{}", (*{ let __field = { let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.list.clone()); __ptr_value }.clone(); __field }.lock().unwrap().as_ref().unwrap()))), format!("{}", " list=".to_string()), format!("{}", format!("{:p}", self)), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: failed mSpanList.remove span.npages=".to_string());
+            let __go_print_arg_1 = format!("{}", (*{ let __ptr_value = span.borrow(); __ptr_value.as_ref().unwrap().npages.clone() }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_2 = format!("{}", " span=".to_string());
+            let __go_print_arg_3 = format!("{}", format!("0x{:x}", span.addr()));
+            let __go_print_arg_4 = format!("{}", " prev=".to_string());
+            let __go_print_arg_5 = format!("{}", { let __ptr = { let __ptr_value = span.borrow(); let __field_value = __ptr_value.as_ref().unwrap().prev.clone(); __field_value }; format!("0x{:x}", __ptr.addr()) });
+            let __go_print_arg_6 = format!("{}", " span.list=".to_string());
+            let __go_print_arg_7 = format!("{}", format!("&{}", (*{ let __field = { let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.list.clone()); __ptr_value }.clone(); __field }.lock().unwrap().as_ref().unwrap())));
+            let __go_print_arg_8 = format!("{}", " list=".to_string());
+            let __go_print_arg_9 = format!("{}", format!("{:p}", self));
+            let __go_print_arg_10 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8, __go_print_arg_9, __go_print_arg_10)
+        };
         throw(Arc::new(Mutex::new(Some("mSpanList.remove".to_string()))));
     }
         if { let __left_addr = self.first.addr(); let __right_addr = span.addr(); let __eq = __left_addr == __right_addr; __eq } {
@@ -4401,7 +4434,14 @@ impl mSpanList {
 
     pub fn insert(&mut self, span: GoPtr<mspan>) {
         if { let __ptr_field = { let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.clone(); !__ptr_field.is_nil() } || { let __ptr_field = { let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.prev.clone()); __ptr_value }.clone(); !__ptr_field.is_nil() } || { let __nil_target = { let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.list.clone()); __ptr_value }.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
-        eprintln!("{} {} {} {} {}", format!("{}", "runtime: failed mSpanList.insert".to_string()), format!("{}", format!("0x{:x}", span.addr())), format!("{}", { let __ptr = { let __ptr_value = span.borrow(); let __field_value = __ptr_value.as_ref().unwrap().next.clone(); __field_value }; format!("0x{:x}", __ptr.addr()) }), format!("{}", { let __ptr = { let __ptr_value = span.borrow(); let __field_value = __ptr_value.as_ref().unwrap().prev.clone(); __field_value }; format!("0x{:x}", __ptr.addr()) }), format!("{}", format!("&{}", (*{ let __field = { let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.list.clone()); __ptr_value }.clone(); __field }.lock().unwrap().as_ref().unwrap()))));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: failed mSpanList.insert".to_string());
+            let __go_print_arg_1 = format!("{}", format!("0x{:x}", span.addr()));
+            let __go_print_arg_2 = format!("{}", { let __ptr = { let __ptr_value = span.borrow(); let __field_value = __ptr_value.as_ref().unwrap().next.clone(); __field_value }; format!("0x{:x}", __ptr.addr()) });
+            let __go_print_arg_3 = format!("{}", { let __ptr = { let __ptr_value = span.borrow(); let __field_value = __ptr_value.as_ref().unwrap().prev.clone(); __field_value }; format!("0x{:x}", __ptr.addr()) });
+            let __go_print_arg_4 = format!("{}", format!("&{}", (*{ let __field = { let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.list.clone()); __ptr_value }.clone(); __field }.lock().unwrap().as_ref().unwrap())));
+            eprintln!("{} {} {} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         throw(Arc::new(Mutex::new(Some("mSpanList.insert".to_string()))));
     }
         { let new_val = self.first.clone(); span.with_mut(|__ptr_value| { __ptr_value.next = new_val; }); };
@@ -4422,7 +4462,14 @@ impl mSpanList {
 
     pub fn insert_back(&mut self, span: GoPtr<mspan>) {
         if { let __ptr_field = { let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.clone(); !__ptr_field.is_nil() } || { let __ptr_field = { let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.prev.clone()); __ptr_value }.clone(); !__ptr_field.is_nil() } || { let __nil_target = { let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.list.clone()); __ptr_value }.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
-        eprintln!("{} {} {} {} {}", format!("{}", "runtime: failed mSpanList.insertBack".to_string()), format!("{}", format!("0x{:x}", span.addr())), format!("{}", { let __ptr = { let __ptr_value = span.borrow(); let __field_value = __ptr_value.as_ref().unwrap().next.clone(); __field_value }; format!("0x{:x}", __ptr.addr()) }), format!("{}", { let __ptr = { let __ptr_value = span.borrow(); let __field_value = __ptr_value.as_ref().unwrap().prev.clone(); __field_value }; format!("0x{:x}", __ptr.addr()) }), format!("{}", format!("&{}", (*{ let __field = { let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.list.clone()); __ptr_value }.clone(); __field }.lock().unwrap().as_ref().unwrap()))));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: failed mSpanList.insertBack".to_string());
+            let __go_print_arg_1 = format!("{}", format!("0x{:x}", span.addr()));
+            let __go_print_arg_2 = format!("{}", { let __ptr = { let __ptr_value = span.borrow(); let __field_value = __ptr_value.as_ref().unwrap().next.clone(); __field_value }; format!("0x{:x}", __ptr.addr()) });
+            let __go_print_arg_3 = format!("{}", { let __ptr = { let __ptr_value = span.borrow(); let __field_value = __ptr_value.as_ref().unwrap().prev.clone(); __field_value }; format!("0x{:x}", __ptr.addr()) });
+            let __go_print_arg_4 = format!("{}", format!("&{}", (*{ let __field = { let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.list.clone()); __ptr_value }.clone(); __field }.lock().unwrap().as_ref().unwrap())));
+            eprintln!("{} {} {} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         throw(Arc::new(Mutex::new(Some("mSpanList.insertBack".to_string()))));
     }
         { let new_val = self.last.clone(); span.with_mut(|__ptr_value| { __ptr_value.prev = new_val; }); };

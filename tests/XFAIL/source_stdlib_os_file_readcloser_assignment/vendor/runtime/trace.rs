@@ -509,10 +509,18 @@ pub fn trace_advance(stopTrace: Arc<Mutex<Option<bool>>>) {
         if debugDeadlock {
         if { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 100000; __tmp_x > __tmp_y } && !{ let __v = (*detectedDeadlock.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         { let new_val = true; *detectedDeadlock.lock().unwrap() = Some(new_val); };
-        eprintln!("{}", format!("{}", "runtime: failing to flush".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: failing to flush".to_string());
+            eprintln!("{}", __go_print_arg_0)
+        };
         let mut mp = mToFlush_closure_clone.clone();
     while { let __nil_result = (*mp.lock().unwrap()).is_some(); __nil_result } {
-        eprint!("{}{}{}", format!("{}", "runtime: m=".to_string()), format!("{}", (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).id.clone(); __field }.lock().unwrap().as_ref().unwrap())), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: m=".to_string());
+            let __go_print_arg_1 = format!("{}", (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).id.clone(); __field }.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_2 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
         { let new_val = (*(*mp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).link.clone(); mp = new_val; };
     }
     }

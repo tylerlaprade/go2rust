@@ -112,19 +112,40 @@ impl Display for IntArgRegBitmap {
 
 impl RegArgs {
     pub fn dump(&self) {
-        eprint!("{}", format!("{}", "Ints:".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "Ints:".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
         { let __range_holder = self.ints.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter().copied() {
-        eprint!("{}{}", format!("{}", " ".to_string()), format!("{}", x));
+        {
+            let __go_print_arg_0 = format!("{}", " ".to_string());
+            let __go_print_arg_1 = format!("{}", x);
+            eprint!("{}{}", __go_print_arg_0, __go_print_arg_1)
+        };
     } }
         eprintln!();
-        eprint!("{}", format!("{}", "Floats:".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "Floats:".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
         { let __range_holder = self.floats.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter().copied() {
-        eprint!("{}{}", format!("{}", " ".to_string()), format!("{}", x));
+        {
+            let __go_print_arg_0 = format!("{}", " ".to_string());
+            let __go_print_arg_1 = format!("{}", x);
+            eprint!("{}{}", __go_print_arg_0, __go_print_arg_1)
+        };
     } }
         eprintln!();
-        eprint!("{}", format!("{}", "Ptrs:".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "Ptrs:".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
         { let __range_holder = self.ptrs.clone(); let __range_guard = __range_holder.lock().unwrap(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for x in __range_values.iter() {
-        eprint!("{}{}", format!("{}", " ".to_string()), format!("{}", x));
+        {
+            let __go_print_arg_0 = format!("{}", " ".to_string());
+            let __go_print_arg_1 = format!("{}", x);
+            eprint!("{}{}", __go_print_arg_0, __go_print_arg_1)
+        };
     } }
         eprintln!();
     }

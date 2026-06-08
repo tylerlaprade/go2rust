@@ -1705,7 +1705,12 @@ pub fn trace_release(tl: Arc<Mutex<Option<traceLocker>>>) {
     } else {
         let mut seq = (*(*(*(*tl.lock().unwrap().as_ref().unwrap()).mp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).seqlock.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(1 as usize))));
         if DEBUG_TRACE_REENTRANCY && { let __tmp_x = { let __tmp_x = seq; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
-        eprint!("{}{}{}", format!("{}", "runtime: seq=".to_string()), format!("{}", seq), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: seq=".to_string());
+            let __go_print_arg_1 = format!("{}", seq);
+            let __go_print_arg_2 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
         throw(Arc::new(Mutex::new(Some("bad use of trace.seqlock".to_string()))));
     }
     }
@@ -1760,7 +1765,12 @@ pub fn trace_thread_destroy(mp: Arc<Mutex<Option<m>>>) {
         // really just cares about gen%2.
     let mut seq1 = (*(*(*mp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).seqlock.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(1 as usize))));
     if { let __tmp_x = seq1; let __tmp_y = { let __tmp_x = seq; let __tmp_y = 1 as usize; __tmp_x + __tmp_y }; __tmp_x != __tmp_y } {
-        eprint!("{}{}{}", format!("{}", "runtime: seq1=".to_string()), format!("{}", seq1), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: seq1=".to_string());
+            let __go_print_arg_1 = format!("{}", seq1);
+            let __go_print_arg_2 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
         throw(Arc::new(Mutex::new(Some("bad use of trace.seqlock".to_string()))));
     }
 }

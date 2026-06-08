@@ -95,7 +95,13 @@ pub fn cgo_check_ptr_write(dst: Arc<Mutex<Option<usize>>>, src: Arc<Mutex<Option
     }
 
     let dst_closure_clone = dst.clone(); let src_closure_clone = src.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
-        eprintln!("{} {} {} {}", format!("{}", "write of unpinned Go pointer".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*src_closure_clone.lock().unwrap().as_ref().unwrap()) as usize as u64))))), format!("{}", "to non-Go memory".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&dst) as usize))).lock().unwrap().as_ref().unwrap()) as usize as u64))))));
+        {
+            let __go_print_arg_0 = format!("{}", "write of unpinned Go pointer".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*src_closure_clone.lock().unwrap().as_ref().unwrap()) as usize as u64)))));
+            let __go_print_arg_2 = format!("{}", "to non-Go memory".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*Arc::new(Mutex::new(Some(Arc::as_ptr(&dst) as usize))).lock().unwrap().as_ref().unwrap()) as usize as u64)))));
+            eprintln!("{} {} {} {}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3)
+        };
         throw(Arc::new(Mutex::new(Some(CGO_WRITE_BARRIER_FAIL.to_string()))));
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
 }

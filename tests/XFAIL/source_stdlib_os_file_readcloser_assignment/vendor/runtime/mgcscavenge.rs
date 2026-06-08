@@ -1363,10 +1363,20 @@ impl crate::mpallocbits::pallocData {
     /// max == min.
     pub fn find_scavenge_candidate(&self, searchIdx: Arc<Mutex<Option<u64>>>, minimum: Arc<Mutex<Option<usize>>>, mut max: Arc<Mutex<Option<usize>>>) -> (u64, u64) {
         if { let __tmp_x = { let __tmp_x = { let __v = (*minimum.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = { let __v = (*minimum.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y }); __tmp_x & __tmp_y }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } || { let __tmp_x = { let __v = (*minimum.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
-        eprint!("{}{}{}", format!("{}", "runtime: min = ".to_string()), format!("{}", { let __v = (*minimum.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: min = ".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*minimum.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
         throw(Arc::new(Mutex::new(Some("min must be a non-zero power of 2".to_string()))));
     } else if { let __tmp_x = { let __v = (*minimum.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MAX_PAGES_PER_PHYS_PAGE as usize; __tmp_x > __tmp_y } {
-        eprint!("{}{}{}", format!("{}", "runtime: min = ".to_string()), format!("{}", { let __v = (*minimum.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: min = ".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*minimum.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2)
+        };
         throw(Arc::new(Mutex::new(Some("min too large".to_string()))));
     }
                 // max may not be min-aligned, so we might accidentally truncate to
@@ -1707,7 +1717,14 @@ impl scavChunkData {
     /// alloc updates sc given that npages were allocated in the corresponding chunk.
     pub fn alloc(&mut self, npages: Arc<Mutex<Option<u64>>>, newGen: Arc<Mutex<Option<u32>>>) {
         if { let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.in_use.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = PALLOC_CHUNK_PAGES as u64; __tmp_x > __tmp_y } {
-        eprint!("{}{}{}{}{}", format!("{}", "runtime: inUse=".to_string()), format!("{}", (*self.in_use.lock().unwrap().as_ref().unwrap())), format!("{}", " npages=".to_string()), format!("{}", { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: inUse=".to_string());
+            let __go_print_arg_1 = format!("{}", (*self.in_use.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_2 = format!("{}", " npages=".to_string());
+            let __go_print_arg_3 = format!("{}", { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         throw(Arc::new(Mutex::new(Some("too many pages allocated in chunk?".to_string()))));
     }
         if { let __tmp_x = (*self.gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*newGen.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x != __tmp_y } {
@@ -1724,7 +1741,14 @@ impl scavChunkData {
     /// free updates sc given that npages was freed in the corresponding chunk.
     pub fn free(&mut self, npages: Arc<Mutex<Option<u64>>>, newGen: Arc<Mutex<Option<u32>>>) {
         if { let __tmp_x = (*Arc::new(Mutex::new(Some({ let __selector_holder = self.in_use.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
-        eprint!("{}{}{}{}{}", format!("{}", "runtime: inUse=".to_string()), format!("{}", (*self.in_use.lock().unwrap().as_ref().unwrap())), format!("{}", " npages=".to_string()), format!("{}", { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: inUse=".to_string());
+            let __go_print_arg_1 = format!("{}", (*self.in_use.lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_2 = format!("{}", " npages=".to_string());
+            let __go_print_arg_3 = format!("{}", { let __v = (*npages.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         throw(Arc::new(Mutex::new(Some("allocated pages below zero?".to_string()))));
     }
         if { let __tmp_x = (*self.gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*newGen.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x != __tmp_y } {
@@ -1936,11 +1960,28 @@ pub fn print_scav_trace(releasedBg: Arc<Mutex<Option<usize>>>, releasedEager: Ar
     assert_lock_held(GoPtr::local((*scavenger.lock().unwrap().as_ref().unwrap()).lock.clone()));
 
     printlock();
-    eprint!("{}{}{}{}{}{}{}{}{}", format!("{}", "scav ".to_string()), format!("{}", { let __tmp_x = { let __v = (*releasedBg.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x >> __tmp_y }), format!("{}", " KiB work (bg), ".to_string()), format!("{}", { let __tmp_x = { let __v = (*releasedEager.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x >> __tmp_y }), format!("{}", " KiB work (eager), ".to_string()), format!("{}", { let __tmp_x = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_released.lock().unwrap().as_ref().unwrap()).load(); let __tmp_y = 10; __tmp_x >> __tmp_y }), format!("{}", " KiB now, ".to_string()), format!("{}", { let __tmp_x = ({ let __tmp_x = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_in_use.lock().unwrap().as_ref().unwrap()).load(); let __tmp_y = 100 as u64; __tmp_x * __tmp_y }); let __tmp_y = heap_retained(); __tmp_x / __tmp_y }), format!("{}", "% util".to_string()));
+    {
+            let __go_print_arg_0 = format!("{}", "scav ".to_string());
+            let __go_print_arg_1 = format!("{}", { let __tmp_x = { let __v = (*releasedBg.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x >> __tmp_y });
+            let __go_print_arg_2 = format!("{}", " KiB work (bg), ".to_string());
+            let __go_print_arg_3 = format!("{}", { let __tmp_x = { let __v = (*releasedEager.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x >> __tmp_y });
+            let __go_print_arg_4 = format!("{}", " KiB work (eager), ".to_string());
+            let __go_print_arg_5 = format!("{}", { let __tmp_x = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_released.lock().unwrap().as_ref().unwrap()).load(); let __tmp_y = 10; __tmp_x >> __tmp_y });
+            let __go_print_arg_6 = format!("{}", " KiB now, ".to_string());
+            let __go_print_arg_7 = format!("{}", { let __tmp_x = ({ let __tmp_x = (*(*gcController.lock().unwrap().as_ref().unwrap()).heap_in_use.lock().unwrap().as_ref().unwrap()).load(); let __tmp_y = 100 as u64; __tmp_x * __tmp_y }); let __tmp_y = heap_retained(); __tmp_x / __tmp_y });
+            let __go_print_arg_8 = format!("{}", "% util".to_string());
+            eprint!("{}{}{}{}{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4, __go_print_arg_5, __go_print_arg_6, __go_print_arg_7, __go_print_arg_8)
+        };
     if { let __v = (*forced.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        eprint!("{}", format!("{}", " (forced)".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", " (forced)".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
     } else if (*{ let __field = (*scavenger.lock().unwrap().as_ref().unwrap()).print_controller_reset.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
-        eprint!("{}", format!("{}", " [controller reset]".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", " [controller reset]".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
         { let new_val = false; *(*scavenger.lock().unwrap().as_ref().unwrap()).print_controller_reset.lock().unwrap() = Some(new_val); };
     }
     eprintln!();

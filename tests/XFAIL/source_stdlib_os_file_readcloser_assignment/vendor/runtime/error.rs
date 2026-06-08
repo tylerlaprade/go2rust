@@ -728,11 +728,20 @@ pub fn printindented(mut s: Arc<Mutex<Option<String>>>) {
         break
     }
         { let __rhs = 1; i = i + __rhs; };
-        eprint!("{}", format!("{}", (*Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __high = (i) as usize; __s[..__high].to_string() }))).lock().unwrap().as_ref().unwrap())));
-        eprint!("{}", format!("{}", "\t".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", (*Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __high = (i) as usize; __s[..__high].to_string() }))).lock().unwrap().as_ref().unwrap()));
+            eprint!("{}", __go_print_arg_0)
+        };
+        {
+            let __go_print_arg_0 = format!("{}", "\t".to_string());
+            eprint!("{}", __go_print_arg_0)
+        };
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*s.lock().unwrap().as_ref().unwrap()).clone()); let __low = (i) as usize; __s[__low..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *s.lock().unwrap() = __moved_val; };
     }
-    eprint!("{}", format!("{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v }));
+    {
+            let __go_print_arg_0 = format!("{}", { let __v = (*s.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            eprint!("{}", __go_print_arg_0)
+        };
 }
 
 pub(crate) fn __go_init_functions() {

@@ -1387,7 +1387,14 @@ impl limiterEvent {
         loop {
         { let new_val = limiterEventStamp(Arc::new(Mutex::new(Some((*self.stamp.lock().unwrap().as_mut().unwrap()).load() as u64)))); *stamp.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = (*limiterEventStamp::typ(&(*stamp.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*typ.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } {
-        eprint!("{}{}{}{}{}", format!("{}", "runtime: want=".to_string()), format!("{}", { let __v = (*typ.lock().unwrap().as_ref().unwrap()).clone(); __v }), format!("{}", " got=".to_string()), format!("{}", (*limiterEventStamp::typ(&(*stamp.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap())), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: want=".to_string());
+            let __go_print_arg_1 = format!("{}", { let __v = (*typ.lock().unwrap().as_ref().unwrap()).clone(); __v });
+            let __go_print_arg_2 = format!("{}", " got=".to_string());
+            let __go_print_arg_3 = format!("{}", (*limiterEventStamp::typ(&(*stamp.lock().unwrap().as_ref().unwrap())).lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         throw(Arc::new(Mutex::new(Some("limiterEvent.stop: found wrong event in p's limiter event slot".to_string()))));
     }
         if (*self.stamp.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some((*{ let __v = (*stamp.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64))), Arc::new(Mutex::new(Some(LIMITER_EVENT_STAMP_NONE as u64 as u64)))) {

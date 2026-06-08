@@ -173,7 +173,14 @@ impl crate::mpagealloc::pageAlloc {
     /// The caller must update p.start and p.end after calling sysGrow.
     pub fn sys_grow(&mut self, base: Arc<Mutex<Option<usize>>>, limit: Arc<Mutex<Option<usize>>>) {
         if { let __tmp_x = { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PALLOC_CHUNK_BYTES as usize; __tmp_x % __tmp_y }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } || { let __tmp_x = { let __tmp_x = { let __v = (*limit.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PALLOC_CHUNK_BYTES as usize; __tmp_x % __tmp_y }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
-        eprint!("{}{}{}{}{}", format!("{}", "runtime: base = ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", ", limit = ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*limit.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: base = ".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_2 = format!("{}", ", limit = ".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*limit.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         throw(Arc::new(Mutex::new(Some("sysGrow bounds not aligned to pallocChunkBytes".to_string()))));
     }
                 // addrRangeToSummaryRange converts a range of addresses into a range
@@ -266,7 +273,14 @@ impl crate::mgcscavenge::scavengeIndex {
     /// Returns the amount of memory added to sysStat.
     pub fn sys_grow(&self, base: Arc<Mutex<Option<usize>>>, limit: Arc<Mutex<Option<usize>>>, sysStat: Arc<Mutex<Option<sysMemStat>>>) -> usize {
         if { let __tmp_x = { let __tmp_x = { let __v = (*base.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PALLOC_CHUNK_BYTES as usize; __tmp_x % __tmp_y }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } || { let __tmp_x = { let __tmp_x = { let __v = (*limit.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PALLOC_CHUNK_BYTES as usize; __tmp_x % __tmp_y }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
-        eprint!("{}{}{}{}{}", format!("{}", "runtime: base = ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", ", limit = ".to_string()), format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*limit.lock().unwrap().as_ref().unwrap()) as u64))))), format!("{}", "\n".to_string()));
+        {
+            let __go_print_arg_0 = format!("{}", "runtime: base = ".to_string());
+            let __go_print_arg_1 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_2 = format!("{}", ", limit = ".to_string());
+            let __go_print_arg_3 = format!("{}", crate::print::hex(Arc::new(Mutex::new(Some((*limit.lock().unwrap().as_ref().unwrap()) as u64)))));
+            let __go_print_arg_4 = format!("{}", "\n".to_string());
+            eprint!("{}{}{}{}{}", __go_print_arg_0, __go_print_arg_1, __go_print_arg_2, __go_print_arg_3, __go_print_arg_4)
+        };
         throw(Arc::new(Mutex::new(Some("sysGrow bounds not aligned to pallocChunkBytes".to_string()))));
     }
         let mut scSize = Arc::new(Mutex::new(Some(std::mem::size_of::<crate::mgcscavenge::atomicScavChunkData>())));
