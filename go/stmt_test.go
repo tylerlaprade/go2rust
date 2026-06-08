@@ -9050,6 +9050,39 @@ func swap() int {
 	}
 }
 
+func TestParallelAssignmentCurrentReceiverValueFieldsSnapshotValues(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type box struct {
+	a int
+	b int
+}
+
+func (x *box) rotate(v int) int {
+	old := x.a
+	x.a, x.b, v = x.b, v, x.a
+	return old + x.a + x.b + v
+}
+`)
+
+	if strings.Contains(rust, "let __tmp_0 = self.b.clone()") ||
+		strings.Contains(rust, "let __tmp_2 = self.a.clone()") {
+		t.Fatalf("parallel assignment should snapshot current receiver value fields, not their handles:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __tmp_0 = { let __selector_holder = self.b.clone()") ||
+		!strings.Contains(rust, "let __tmp_2 = { let __selector_holder = self.a.clone()") {
+		t.Fatalf("parallel assignment should clone current receiver field values through selector holders:\n%s", rust)
+	}
+	if strings.Contains(rust, "*v.borrow_mut() = __tmp_2.borrow_mut().take()") ||
+		strings.Contains(rust, "*v.lock().unwrap() = __tmp_2.lock().unwrap().take()") {
+		t.Fatalf("parallel assignment should not move a receiver field handle into a scalar local:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*v.borrow_mut() = Some(__tmp_2);") &&
+		!strings.Contains(rust, "*v.lock().unwrap() = Some(__tmp_2);") {
+		t.Fatalf("parallel assignment should store the receiver field value snapshot into the scalar local:\n%s", rust)
+	}
+}
+
 func TestCompoundAssignRangeIndexCastsToIntField(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
