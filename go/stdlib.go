@@ -4069,6 +4069,9 @@ func transpileUnsafeSlice(out *strings.Builder, call *ast.CallExpr) {
 }
 
 func transpileUnsafeString(out *strings.Builder, call *ast.CallExpr) {
+	if writeUnsafeStringFromSliceData(out, call) {
+		return
+	}
 	if writeUnsafeStringFromByteSliceAddress(out, call) {
 		return
 	}
@@ -4160,6 +4163,55 @@ func unsafeStringLengthUsesBorrowedSlice(length ast.Expr, slice ast.Expr) bool {
 		return false
 	}
 	return sameExpressionSyntax(call.Args[0], slice)
+}
+
+func writeUnsafeStringFromSliceData(out *strings.Builder, call *ast.CallExpr) bool {
+	if call == nil || len(call.Args) != 2 {
+		return false
+	}
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil {
+		return false
+	}
+	sliceExpr, ok := unsafeSliceDataCallArg(call.Args[0], typeInfo)
+	if !ok {
+		return false
+	}
+	resultType := typeInfo.GetType(call)
+	sliceType := typeInfo.GetType(sliceExpr)
+	if resultType == nil || sliceType == nil {
+		WriteWrapperPrefix(out)
+		out.WriteString(`unimplemented!("type info required for unsafe.String slice-data source")`)
+		WriteWrapperSuffix(out)
+		return true
+	}
+	if !typeInfo.IsString(call) {
+		return false
+	}
+	slice, ok := types.Unalias(sliceType).Underlying().(*types.Slice)
+	if !ok || !isByteType(slice.Elem()) {
+		return false
+	}
+
+	WriteWrapperPrefix(out)
+	out.WriteString("{ let __bytes_holder = ")
+	if _, _, ok := namedSliceTypeForExpr(sliceExpr); ok {
+		writeNamedSliceInnerHandleClone(out, sliceExpr)
+	} else {
+		TranspileExpressionContext(out, sliceExpr, LValue)
+		out.WriteString(".clone()")
+	}
+	out.WriteString("; let __bytes_guard = __bytes_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; let __bytes = __bytes_guard.as_ref().unwrap(); let __len = ")
+	if unsafeStringLengthUsesBorrowedSlice(call.Args[1], sliceExpr) {
+		out.WriteString("__bytes.len()")
+	} else {
+		writeExpressionAsUsize(out, call.Args[1])
+	}
+	out.WriteString("; String::from_utf8(__bytes[..__len].to_vec()).unwrap() }")
+	WriteWrapperSuffix(out)
+	return true
 }
 
 func writeUnsafeSliceFromStringData(out *strings.Builder, call *ast.CallExpr) bool {

@@ -6005,6 +6005,35 @@ func text(b []byte) string {
 	}
 }
 
+func TestUnsafeStringFromSliceDataUsesSliceBytes(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+func text(b []byte) string {
+	return unsafe.String(unsafe.SliceData(b), len(b))
+}
+`)
+
+	if strings.Contains(rust, `unimplemented!("unsafe.String requires unsafe intrinsic support")`) ||
+		strings.Contains(rust, `unimplemented!("unsafe.SliceData requires unsafe intrinsic support")`) {
+		t.Fatalf("unsafe.String(unsafe.SliceData(bytes), len(bytes)) should lower through the typed slice-data path:\n%s", rust)
+	}
+	if !strings.Contains(rust, `let __bytes_holder = b.clone()`) {
+		t.Fatalf("unsafe.String slice-data path should borrow the slice handle:\n%s", rust)
+	}
+	if strings.Contains(rust, `let __len = ((*b.borrow()`) ||
+		strings.Contains(rust, `let __len = ((*b.lock()`) {
+		t.Fatalf("unsafe.String slice-data path should not relock the borrowed slice for len(b):\n%s", rust)
+	}
+	if !strings.Contains(rust, `let __len = __bytes.len()`) {
+		t.Fatalf("unsafe.String slice-data path should reuse the borrowed slice length:\n%s", rust)
+	}
+	if !strings.Contains(rust, `String::from_utf8(__bytes[..__len].to_vec()).unwrap()`) {
+		t.Fatalf("unsafe.String slice-data path should build a String from the borrowed bytes:\n%s", rust)
+	}
+}
+
 func TestUnsafeSliceFromStringDataUsesStringBytes(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
