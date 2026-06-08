@@ -3087,6 +3087,54 @@ func mustDecl(node ast.Node) ast.Decl {
 	}
 }
 
+func TestSourceMappedInterfaceAssertionToEmbeddedInterfaceChecksNilAndUpcasts(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", `package main
+
+import "go/ast"
+
+func asNode(decl ast.Decl) (ast.Node, bool) {
+	n, ok := decl.(ast.Node)
+	return n, ok
+}
+
+func mustNode(decl ast.Decl) ast.Node {
+	return decl.(ast.Node)
+}
+`, 0)
+	if err != nil {
+		t.Fatalf("ParseFile(main.go) error = %v", err)
+	}
+	typeInfo, err := NewTypeInfo([]*ast.File{file}, fset)
+	if err != nil {
+		t.Fatalf("NewTypeInfo() error = %v", err)
+	}
+
+	rust, _, _ := TranspileWithMapping(file, fset, typeInfo, map[string]string{"go/ast": "go_ast"})
+	if strings.Contains(rust, "downcast_ref::<go_ast::r#mod::GenDeclPtr>()") ||
+		strings.Contains(rust, "downcast_ref::<go_ast::GenDeclPtr>()") {
+		t.Fatalf("statically known embedded-interface assertion should not search concrete candidates:\n%s", rust)
+	}
+	if !strings.Contains(rust, "if let Some(ref __iface_val) = *guard") {
+		t.Fatalf("statically known interface assertion should still check nil source interfaces:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __inner: Box<dyn go_ast::r#mod::Node + Send + Sync>") &&
+		!strings.Contains(rust, "let __inner: Box<dyn go_ast::Node + Send + Sync>") &&
+		!strings.Contains(rust, "let __inner: Box<dyn go_ast::r#mod::Node>") &&
+		!strings.Contains(rust, "let __inner: Box<dyn go_ast::Node>") {
+		t.Fatalf("statically known embedded-interface assertion should rewrap as the target interface:\n%s", rust)
+	}
+	if !strings.Contains(rust, "None::<Box<dyn go_ast::r#mod::Node + Send + Sync>>") &&
+		!strings.Contains(rust, "None::<Box<dyn go_ast::Node + Send + Sync>>") &&
+		!strings.Contains(rust, "None::<Box<dyn go_ast::r#mod::Node>>") &&
+		!strings.Contains(rust, "None::<Box<dyn go_ast::Node>>") {
+		t.Fatalf("comma-ok embedded-interface assertion should type the nil false branch:\n%s", rust)
+	}
+	if !strings.Contains(rust, "panic!(\"type assertion on nil interface\")") {
+		t.Fatalf("single-value embedded-interface assertion should panic on nil source interface:\n%s", rust)
+	}
+}
+
 func TestLocalInterfaceWrappedIdentArgumentPassesHandle(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

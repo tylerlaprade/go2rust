@@ -14904,6 +14904,10 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		// Handle type assertions like value.(Type)
 		// Type assertions work on interface{} values (Box<dyn Any>)
 		if e.Type != nil {
+			if ifaceName, ok := staticallyKnownInterfaceAssertionRewrapTarget(e); ok {
+				writeStaticallyKnownInterfaceAssertionValue(out, e, ifaceName)
+				return
+			}
 			if ifaceName, _, sourceType, candidates, ok := localInterfaceAssertionTarget(e); ok {
 				writeLocalInterfaceAssertionValue(out, e, ifaceName, sourceType, candidates)
 				return
@@ -19001,27 +19005,62 @@ func staticallyKnownAnyInterfaceAssertionSource(e *ast.TypeAssertExpr) (ast.Expr
 }
 
 func staticallyKnownInterfaceAssertionSource(e *ast.TypeAssertExpr) (ast.Expr, bool) {
+	source, _, _, ok := staticallyKnownInterfaceAssertionSourceAndTarget(e)
+	return source, ok
+}
+
+func staticallyKnownInterfaceAssertionSourceAndTarget(e *ast.TypeAssertExpr) (ast.Expr, types.Type, types.Type, bool) {
 	typeInfo := GetTypeInfo()
 	if typeInfo == nil || e.Type == nil {
-		return nil, false
+		return nil, nil, nil, false
 	}
 	targetType := typeInfo.GetType(e.Type)
 	if targetType == nil {
-		return nil, false
+		return nil, nil, nil, false
 	}
 	targetInterface, ok := targetType.Underlying().(*types.Interface)
 	if !ok || targetInterface.NumMethods() == 0 {
-		return nil, false
+		return nil, nil, nil, false
 	}
 	sourceType := typeInfo.GetType(e.X)
 	if sourceType == nil {
-		return nil, false
+		return nil, nil, nil, false
+	}
+	sourceInterface, ok := sourceType.Underlying().(*types.Interface)
+	if !ok || sourceInterface.NumMethods() == 0 {
+		return nil, nil, nil, false
 	}
 	targetInterface.Complete()
 	if !types.Implements(sourceType, targetInterface) {
-		return nil, false
+		return nil, nil, nil, false
 	}
-	return e.X, true
+	return e.X, sourceType, targetType, true
+}
+
+func staticallyKnownInterfaceAssertionRewrapTarget(e *ast.TypeAssertExpr) (string, bool) {
+	_, sourceType, targetType, ok := staticallyKnownInterfaceAssertionSourceAndTarget(e)
+	if !ok {
+		return "", false
+	}
+	ifaceName, ok := transpiledNamedInterfaceTypeNameFromTypes(targetType)
+	if !ok {
+		return "", false
+	}
+	if types.Identical(types.Unalias(sourceType), types.Unalias(targetType)) {
+		return ifaceName, true
+	}
+	sourceInterface, ok := types.Unalias(sourceType).Underlying().(*types.Interface)
+	if !ok {
+		return "", false
+	}
+	targetNamed, ok := types.Unalias(targetType).(*types.Named)
+	if !ok {
+		return "", false
+	}
+	if !interfaceTypeExplicitlyEmbedsNamed(sourceInterface, targetNamed) {
+		return "", false
+	}
+	return ifaceName, true
 }
 
 func writeInterfaceAssertionSourceClone(out *strings.Builder, expr ast.Expr) {
@@ -19032,6 +19071,59 @@ func writeInterfaceAssertionSourceClone(out *strings.Builder, expr ast.Expr) {
 	}
 	TranspileExpressionContext(out, expr, LValue)
 	out.WriteString(".clone()")
+}
+
+func writeStaticallyKnownInterfaceAssertionWrappedSome(out *strings.Builder, valueName string, ifaceName string) {
+	outer := GetOuterWrapperType()
+	inner := GetInnerWrapperType()
+	trackWrapperImports()
+	out.WriteString("{ let __inner: ")
+	out.WriteString(rustLocalInterfaceTraitObject(ifaceName))
+	out.WriteString(" = (*")
+	out.WriteString(valueName)
+	out.WriteString(").clone(); ")
+	out.WriteString(outer)
+	out.WriteString("::new(")
+	out.WriteString(inner)
+	out.WriteString("::new(Some(__inner))) }")
+}
+
+func writeStaticallyKnownInterfaceAssertionValue(out *strings.Builder, e *ast.TypeAssertExpr, ifaceName string) {
+	out.WriteString("({\n")
+	out.WriteString("        let val = ")
+	writeTypeAssertionInputClone(out, e.X)
+	out.WriteString(";\n")
+	out.WriteString("        let guard = val")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString("        if let Some(ref __iface_val) = *guard {\n")
+	out.WriteString("            ")
+	writeStaticallyKnownInterfaceAssertionWrappedSome(out, "__iface_val", ifaceName)
+	out.WriteString("\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            panic!(\"type assertion on nil interface\")\n")
+	out.WriteString("        }\n")
+	out.WriteString("    })")
+}
+
+func writeStaticallyKnownInterfaceAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr, ifaceName string) {
+	out.WriteString("({\n")
+	out.WriteString("        let val = ")
+	writeTypeAssertionInputClone(out, e.X)
+	out.WriteString(";\n")
+	out.WriteString("        let guard = val")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString("        if let Some(ref __iface_val) = *guard {\n")
+	out.WriteString("            (")
+	writeStaticallyKnownInterfaceAssertionWrappedSome(out, "__iface_val", ifaceName)
+	out.WriteString(", true)\n")
+	out.WriteString("        } else {\n")
+	out.WriteString("            (")
+	writeLocalInterfaceAssertionWrappedNone(out, ifaceName)
+	out.WriteString(", false)\n")
+	out.WriteString("        }\n")
+	out.WriteString("    })")
 }
 
 func writeTypeAssertionInputClone(out *strings.Builder, expr ast.Expr) {
@@ -20171,6 +20263,11 @@ func writePointerHandleTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAss
 // TranspileTypeAssertionCommaOk generates code for type assertion with comma-ok form
 func TranspileTypeAssertionCommaOk(out *strings.Builder, e *ast.TypeAssertExpr) {
 	if e.Type == nil {
+		return
+	}
+
+	if ifaceName, ok := staticallyKnownInterfaceAssertionRewrapTarget(e); ok {
+		writeStaticallyKnownInterfaceAssertionCommaOk(out, e, ifaceName)
 		return
 	}
 

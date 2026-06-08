@@ -256,6 +256,26 @@ func interfaceTypeHasNamedEmbedded(iface *types.Interface) bool {
 	return false
 }
 
+func interfaceTypeExplicitlyEmbedsNamed(iface *types.Interface, target *types.Named) bool {
+	if iface == nil || target == nil {
+		return false
+	}
+	for i := 0; i < iface.NumEmbeddeds(); i++ {
+		named, ok := types.Unalias(iface.EmbeddedType(i)).(*types.Named)
+		if !ok {
+			continue
+		}
+		if types.Identical(named, target) {
+			return true
+		}
+		embedded, ok := named.Underlying().(*types.Interface)
+		if ok && interfaceTypeExplicitlyEmbedsNamed(embedded, target) {
+			return true
+		}
+	}
+	return false
+}
+
 func goTypeParamConstraintToRust(t types.Type) (string, bool) {
 	tp, ok := types.Unalias(t).(*types.TypeParam)
 	if !ok || tp.Constraint() == nil {

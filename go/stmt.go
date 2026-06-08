@@ -2327,9 +2327,10 @@ func varInfoForStaticallyKnownInterfaceAssertionSource(typeAssert *ast.TypeAsser
 	if typeInfo == nil || typeAssert == nil {
 		return nil, false
 	}
-	source, ok := staticallyKnownAnyInterfaceAssertionSource(typeAssert)
+	var targetType types.Type
+	source, _, targetType, ok := staticallyKnownInterfaceAssertionSourceAndTarget(typeAssert)
 	if !ok {
-		source, ok = staticallyKnownInterfaceAssertionSource(typeAssert)
+		source, ok = staticallyKnownAnyInterfaceAssertionSource(typeAssert)
 	}
 	if !ok || source == nil {
 		return nil, false
@@ -2338,17 +2339,22 @@ func varInfoForStaticallyKnownInterfaceAssertionSource(typeAssert *ast.TypeAsser
 	if sourceType == nil {
 		return nil, false
 	}
+	resultType := sourceType
+	if targetType != nil {
+		resultType = targetType
+	}
 	info := &VarInfo{
 		WrapLevel: WrapFull,
-		RustType:  goTypesTypeToRust(sourceType),
+		RustType:  goTypesTypeToRust(resultType),
 		Source:    SourceLocal,
-		GoType:    sourceType,
+		GoType:    resultType,
 	}
 	if ident, ok := source.(*ast.Ident); ok {
 		if sourceInfo := lookupVarInfo(ident.Name); sourceInfo != nil {
 			clone := *sourceInfo
 			clone.Source = SourceLocal
-			clone.GoType = sourceType
+			clone.RustType = goTypesTypeToRust(resultType)
+			clone.GoType = resultType
 			info = &clone
 		}
 	}
