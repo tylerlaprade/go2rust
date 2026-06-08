@@ -6152,6 +6152,42 @@ func emit(t traceWriter, skip int) {
 	}
 }
 
+func TestConcurrentVariadicMethodCallWithComplexPackedArgsBreaksAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type eventWriter struct{}
+
+func (eventWriter) event(kind int, args ...uint) {}
+
+type g struct {
+	goid uint
+	seq uint
+}
+
+func traceArg(v uint) uint {
+	return v
+}
+
+func (gp *g) nextSeq(gen uint) uint {
+	return gp.seq + gen
+}
+
+func emit(w eventWriter, nextg *g, gen uint) {
+	go func() {}()
+	w.event(3, traceArg(nextg.goid), nextg.nextSeq(gen))
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, ".event(") && strings.Contains(line, "vec![") {
+			t.Fatalf("variadic method call with complex packed args should split the packed vec:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, ".event(\n") || !strings.Contains(rust, "vec![\n") {
+		t.Fatalf("variadic method call with complex packed args should use multiline method arguments:\n%s", rust)
+	}
+}
+
 func TestConcurrentVariadicMethodCallWithNoVariadicArgsDoesNotDoubleComma(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

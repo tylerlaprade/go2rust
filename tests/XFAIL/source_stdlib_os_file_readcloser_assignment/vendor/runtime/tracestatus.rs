@@ -878,9 +878,24 @@ impl crate::tracebuf::traceWriter {
     }
                 // Trace the status.
         if { let __tmp_x = { let __v = (*stackID.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u64; __tmp_x == __tmp_y } {
-        { let new_val = __self.event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_GO_STATUS as u8))))))), Arc::new(Mutex::new(Some(vec![crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*goid.lock().unwrap().as_ref().unwrap()) as u64)))), crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*mid.lock().unwrap().as_ref().unwrap()) as u64 as u64)))), crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*{ let __v = (*status.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64))))])))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
+        { let new_val = __self.event(
+            Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_GO_STATUS as u8))))))),
+            Arc::new(Mutex::new(Some(vec![
+                crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*goid.lock().unwrap().as_ref().unwrap()) as u64)))),
+                crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*mid.lock().unwrap().as_ref().unwrap()) as u64 as u64)))),
+                crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*{ let __v = (*status.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64)))),
+            ]))),
+        ); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
     } else {
-        { let new_val = __self.event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_GO_STATUS_STACK as u8))))))), Arc::new(Mutex::new(Some(vec![crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*goid.lock().unwrap().as_ref().unwrap()) as u64)))), crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*mid.lock().unwrap().as_ref().unwrap()) as u64 as u64)))), crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*{ let __v = (*status.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64)))), crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*stackID.lock().unwrap().as_ref().unwrap()) as u64))))])))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
+        { let new_val = __self.event(
+            Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_GO_STATUS_STACK as u8))))))),
+            Arc::new(Mutex::new(Some(vec![
+                crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*goid.lock().unwrap().as_ref().unwrap()) as u64)))),
+                crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*mid.lock().unwrap().as_ref().unwrap()) as u64 as u64)))),
+                crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*{ let __v = (*status.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64)))),
+                crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*stackID.lock().unwrap().as_ref().unwrap()) as u64)))),
+            ]))),
+        ); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
     }
                 // Trace any special ranges that are in-progress.
         if { let __v = (*markAssist.lock().unwrap().as_ref().unwrap()).clone(); __v } {
@@ -987,7 +1002,13 @@ impl crate::tracebuf::traceWriter {
         throw(Arc::new(Mutex::new(Some("attempted to trace a bad status for a proc".to_string()))));
     }
                 // Trace the status.
-        { let new_val = __self.event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_PROC_STATUS as u8))))))), Arc::new(Mutex::new(Some(vec![crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*pid.lock().unwrap().as_ref().unwrap()) as u64)))), crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*{ let __v = (*status.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64))))])))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
+        { let new_val = __self.event(
+            Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_PROC_STATUS as u8))))))),
+            Arc::new(Mutex::new(Some(vec![
+                crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*pid.lock().unwrap().as_ref().unwrap()) as u64)))),
+                crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*{ let __v = (*status.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u64)))),
+            ]))),
+        ); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
                 // Trace any special ranges that are in-progress.
         if { let __v = (*inSweep.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         { let new_val = __self.event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_G_C_SWEEP_ACTIVE as u8))))))), Arc::new(Mutex::new(Some(vec![crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*pid.lock().unwrap().as_ref().unwrap()) as u64))))])))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };

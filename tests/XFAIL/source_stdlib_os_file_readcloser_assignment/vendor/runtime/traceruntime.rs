@@ -1470,7 +1470,13 @@ impl traceLocker {
         let mut gp: GoPtr<crate::runtime2::g> = (*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.clone();
         let mut pp = Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         let mut w = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNABLE as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8))))))));
-        (*w.lock().unwrap().as_ref().unwrap()).event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_GO_START as u8))))))), Arc::new(Mutex::new(Some(vec![crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.goid.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))), (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).next_seq(Arc::new(Mutex::new(Some({ let __selector_holder = __self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap()).clone()]))));
+        (*w.lock().unwrap().as_ref().unwrap()).event(
+            Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_GO_START as u8))))))),
+            Arc::new(Mutex::new(Some(vec![
+                crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.goid.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))),
+                (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).next_seq(Arc::new(Mutex::new(Some({ let __selector_holder = __self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap()).clone(),
+            ]))),
+        );
         if {
             let __tmp_x = { let __selector_holder = { let __ptr = crate::runtime2::puintptr::ptr(&(*pp.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().gc_mark_worker_mode.clone() }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
             let __tmp_y = crate::mgc::gcMarkWorkerMode(Arc::new(Mutex::new(Some(GC_MARK_WORKER_NOT_WORKER as i32))));
@@ -1565,7 +1571,13 @@ impl traceLocker {
         if { let __v = (*destroy.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         { let new_val = crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_GO_SWITCH_DESTROY as u8)))); *ev.lock().unwrap() = Some(new_val); };
     }
-        (*w.lock().unwrap().as_ref().unwrap()).event(Arc::new(Mutex::new(Some({ let __arg_holder = ev.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(vec![crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = nextg.with_mut(|__ptr_value| __ptr_value.goid.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))), (*(*{ let __ptr_value = nextg.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).next_seq(Arc::new(Mutex::new(Some({ let __selector_holder = __self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap()).clone()]))));
+        (*w.lock().unwrap().as_ref().unwrap()).event(
+            Arc::new(Mutex::new(Some({ let __arg_holder = ev.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(vec![
+                crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = nextg.with_mut(|__ptr_value| __ptr_value.goid.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))),
+                (*(*{ let __ptr_value = nextg.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).next_seq(Arc::new(Mutex::new(Some({ let __selector_holder = __self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap()).clone(),
+            ]))),
+        );
     }
 
     /// emitUnblockStatus emits a GoStatus GoWaiting event for a goroutine about to be

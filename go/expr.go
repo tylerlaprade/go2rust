@@ -10247,7 +10247,21 @@ func methodCallArgumentsShouldUseMultiline(call *ast.CallExpr) bool {
 		return false
 	}
 	sig, ok := callSignatureFromTypeInfo(call)
-	return !ok || !sig.Variadic()
+	if !ok || !sig.Variadic() {
+		return true
+	}
+	return variadicPackedMethodArgsShouldUseMultiline(call, sig)
+}
+
+func variadicPackedMethodArgsShouldUseMultiline(call *ast.CallExpr, sig *types.Signature) bool {
+	if call == nil || sig == nil || call.Ellipsis.IsValid() || sig.Params() == nil || sig.Params().Len() == 0 {
+		return false
+	}
+	variadicStart := sig.Params().Len() - 1
+	if variadicStart >= len(call.Args) {
+		return false
+	}
+	return callArgumentsShouldUseMultiline(call.Args[variadicStart:])
 }
 
 func functionCallArgumentsShouldUseMultiline(call *ast.CallExpr) bool {
