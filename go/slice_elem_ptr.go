@@ -5320,6 +5320,9 @@ func goPtrAssignmentValueInfo(expr ast.Expr, resultIndex int, candidates map[typ
 		if info, ok := goPtrResultInfoForCall(call, resultIndex); ok {
 			return info, true, true
 		}
+		if _, info, ok := unsafeStringDataGoPtrValueInfo(call, typeInfo); ok {
+			return info, true, true
+		}
 		if info, ok := goPtrRawPointerValueInfo(call, typeInfo); ok {
 			return info, true, true
 		}
@@ -7782,24 +7785,9 @@ func writeGoPtrCallArgumentWithQualifierForInfo(out *strings.Builder, arg ast.Ex
 }
 
 func writeUnsafeStringDataGoPtrCallArgument(out *strings.Builder, call *ast.CallExpr, info goPtrResultInfo, helperQualifier string) bool {
-	elemRustType := goPtrResultElemRustType(info)
-	if elemRustType != "u8" {
-		return false
-	}
-	if info.elemType != nil && !isByteType(info.elemType) {
-		return false
-	}
 	typeInfo := GetTypeInfo()
-	stringExpr, ok := unsafeStringDataCallArg(call, typeInfo)
-	if !ok || !typeInfo.IsString(stringExpr) {
-		return false
-	}
-	callType := typeInfo.GetType(call)
-	if callType == nil {
-		return false
-	}
-	ptr, ok := types.Unalias(callType).Underlying().(*types.Pointer)
-	if !ok || !isByteType(ptr.Elem()) {
+	stringExpr, stringDataInfo, ok := unsafeStringDataGoPtrValueInfo(call, typeInfo)
+	if !ok || !goPtrResultElemCompatible(stringDataInfo, info) {
 		return false
 	}
 
@@ -7822,6 +7810,22 @@ func writeUnsafeStringDataGoPtrCallArgument(out *strings.Builder, call *ast.Call
 	out.WriteString("; match __string_guard.as_ref() { Some(__s) => (__s.as_ptr() as *const (), 0usize), None => (std::ptr::null(), 0usize) } } })")
 	out.WriteString(") }")
 	return true
+}
+
+func unsafeStringDataGoPtrValueInfo(call *ast.CallExpr, typeInfo *TypeInfo) (ast.Expr, goPtrResultInfo, bool) {
+	stringExpr, ok := unsafeStringDataCallArg(call, typeInfo)
+	if !ok || !typeInfo.IsString(stringExpr) {
+		return nil, goPtrResultInfo{}, false
+	}
+	callType := typeInfo.GetType(call)
+	if callType == nil {
+		return nil, goPtrResultInfo{}, false
+	}
+	ptr, ok := types.Unalias(callType).Underlying().(*types.Pointer)
+	if !ok || !isByteType(ptr.Elem()) {
+		return nil, goPtrResultInfo{}, false
+	}
+	return stringExpr, goPtrResultInfo{elemRustType: "u8", elemType: ptr.Elem()}, true
 }
 
 func unsafeStringDataCallArg(expr ast.Expr, typeInfo *TypeInfo) (ast.Expr, bool) {

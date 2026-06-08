@@ -4612,6 +4612,28 @@ func call(s string) byte {
 	}
 }
 
+func TestGoPtrLocalKeepsUnsafeStringDataProvenance(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+func addr(s string) uintptr {
+	p := unsafe.StringData(s)
+	return uintptr(unsafe.Pointer(p))
+}
+`)
+
+	if strings.Contains(rust, `unimplemented!("unsafe.StringData requires unsafe intrinsic support")`) {
+		t.Fatalf("unsafe.StringData local should not use the unsupported intrinsic fallback:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut p: GoPtr<u8> = GoPtr::array_elem_foreign(") {
+		t.Fatalf("unsafe.StringData local should lower to GoPtr storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, "p.addr()") {
+		t.Fatalf("unsafe.Pointer conversion from unsafe.StringData local should use the GoPtr address token:\n%s", rust)
+	}
+}
+
 func TestReadOnlyPointerParamAcceptsRangeSliceElemAddress(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
