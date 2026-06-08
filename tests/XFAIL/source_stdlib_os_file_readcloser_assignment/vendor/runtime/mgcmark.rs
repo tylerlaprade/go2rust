@@ -922,7 +922,11 @@ pub fn markroot_spans(gcw: Arc<Mutex<Option<gcWork>>>, shard: Arc<Mutex<Option<i
                 // specials implies that the span is in-use, and since we're
                 // currently marking we can be sure that we don't have to worry
                 // about the span being freed and re-used.
-        let mut s: GoPtr<crate::mheap::mspan> = (*ha.lock().unwrap().as_ref().unwrap()).spans.lock().unwrap().as_ref().unwrap()[({ let __tmp_x = { let __tmp_x = { let __v = (*arenaPage.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some(i as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 8 as u64; __tmp_x * __tmp_y }; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone();
+        let mut s: GoPtr<crate::mheap::mspan> = {
+            let __seq_holder = (*ha.lock().unwrap().as_ref().unwrap()).spans.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            __seq_guard.as_ref().unwrap()[({ let __tmp_x = { let __tmp_x = { let __v = (*arenaPage.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some(i as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 8 as u64; __tmp_x * __tmp_y }; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone()
+        };
 
                 // The state must be mSpanInUse if the specials bit is set, so
                 // sanity check that.

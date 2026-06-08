@@ -7412,11 +7412,7 @@ func writeGoPtrCallArgumentWithQualifierForInfo(out *strings.Builder, arg ast.Ex
 			if goPtrHelperQualifierForOwnerPackage(fieldInfo.ownerPkgPath) != helperQualifier {
 				return false
 			}
-			TranspileExpressionContext(out, indexExpr.X, LValue)
-			WriteBorrowMethod(out, false)
-			out.WriteString(".as_ref().unwrap()[")
-			writeExpressionAsUsize(out, indexExpr.Index)
-			out.WriteString("].clone()")
+			writeGoPtrArrayFieldIndexRead(out, indexExpr)
 			return true
 		}
 	}
@@ -7436,6 +7432,44 @@ func writeGoPtrCallArgumentWithQualifierForInfo(out *strings.Builder, arg ast.Ex
 		return true
 	}
 	return false
+}
+
+func writeGoPtrArrayFieldIndexRead(out *strings.Builder, indexExpr *ast.IndexExpr) {
+	if goPtrArrayFieldIndexShouldUseMultiline(indexExpr) {
+		writeGoPtrArrayFieldIndexReadMultiline(out, indexExpr)
+		return
+	}
+	TranspileExpressionContext(out, indexExpr.X, LValue)
+	WriteBorrowMethod(out, false)
+	out.WriteString(".as_ref().unwrap()[")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("].clone()")
+}
+
+func goPtrArrayFieldIndexShouldUseMultiline(indexExpr *ast.IndexExpr) bool {
+	if indexExpr == nil || !NeedsConcurrentWrapper() {
+		return false
+	}
+	return compositeLiteralElementIsComplex(indexExpr.X) || compositeLiteralElementIsComplex(indexExpr.Index)
+}
+
+func writeGoPtrArrayFieldIndexReadMultiline(out *strings.Builder, indexExpr *ast.IndexExpr) {
+	indent := currentLineIndent(out)
+	out.WriteString("{\n")
+	out.WriteString(indent)
+	out.WriteString("    let __seq_holder = ")
+	TranspileExpressionContext(out, indexExpr.X, LValue)
+	out.WriteString(".clone();\n")
+	out.WriteString(indent)
+	out.WriteString("    let __seq_guard = __seq_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("    __seq_guard.as_ref().unwrap()[")
+	writeExpressionAsUsize(out, indexExpr.Index)
+	out.WriteString("].clone()\n")
+	out.WriteString(indent)
+	out.WriteString("}")
 }
 
 func goPtrCallArgumentUsesQualifiedSelectorConversion(arg ast.Expr, info goPtrResultInfo, helperQualifier string) bool {

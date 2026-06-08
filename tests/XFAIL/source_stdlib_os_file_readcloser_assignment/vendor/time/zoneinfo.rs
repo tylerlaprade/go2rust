@@ -982,7 +982,10 @@ pub fn fixed_zone(name: Arc<Mutex<Option<String>>>, offset: Arc<Mutex<Option<i32
         { let mut guard = hr.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     }) as Box<dyn FnMut() -> () + Send + Sync>)))) };
-        return { let __seq = { let __seq_holder = unnamedFixedZones.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*hour.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 12; __tmp_x + __tmp_y }) as usize].clone() };
+        return {
+            let __seq = { let __seq_holder = unnamedFixedZones.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+            __seq[({ let __tmp_x = { let __v = (*hour.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 12; __tmp_x + __tmp_y }) as usize].clone()
+        };
     }
     fixed_zone_1(Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = offset.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))
 }

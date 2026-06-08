@@ -8188,6 +8188,37 @@ func decode(buf []byte) uint64 {
 	}
 }
 
+func TestConcurrentPointerReturnBuildsComplexSequenceIndexAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type node struct {
+	value int
+}
+
+type arena struct {
+	spans [8]*node
+}
+
+type heap struct {
+	arenas [][]*arena
+}
+
+func pick(h *heap, i int, j int, k int) *node {
+	go func() {}()
+	return h.arenas[i][j].spans[k]
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "; __seq[({ let __v = (*k") {
+			t.Fatalf("complex pointer return sequence index should split sequence setup across lines:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "{\n        let __seq =") || !strings.Contains(rust, "\n        __seq[") {
+		t.Fatalf("complex pointer return sequence index should build the sequence in a return block:\n%s", rust)
+	}
+}
+
 func TestMethodReceiverShadowShortDeclUsesLocalIdent(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

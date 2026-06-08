@@ -3773,7 +3773,10 @@ impl InterfaceType {
 
 impl FuncType {
     pub fn r#in(&self, i: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Type>>> {
-        { let __seq = { let __seq_holder = self.in_slice().clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }
+        {
+            let __seq = { let __seq_holder = self.in_slice().clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+            __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone()
+        }
     }
 
     pub fn num_in(&self) -> i32 {
@@ -3785,7 +3788,10 @@ impl FuncType {
     }
 
     pub fn out(&self, i: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<Type>>> {
-        ({ let __seq = { let __seq_holder = self.out_slice().clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })
+        {
+            let __seq = { let __seq_holder = self.out_slice().clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned };
+            __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone()
+        }
     }
 
     pub fn in_slice(&self) -> Arc<Mutex<Option<Vec<Arc<Mutex<Option<Type>>>>>>> {

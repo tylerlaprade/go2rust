@@ -6229,6 +6229,35 @@ func find(s *state, a int) *node {
 	}
 }
 
+func TestGoPtrArrayFieldReturnBuildsComplexIndexAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type node struct {
+	value int
+}
+
+type arena struct {
+	spans [8]*node
+}
+
+func seed(a *arena, nodes []node) {
+	a.spans[0] = &nodes[0]
+}
+
+func pick(a *arena, i int) *node {
+	go func() {}()
+	return a.spans[(i+1)%8]
+}
+`)
+
+	if !strings.Contains(rust, "pub fn pick(") || !strings.Contains(rust, " -> GoPtr<node>") {
+		t.Fatalf("array field pointer return should use GoPtr result type:\n%s", rust)
+	}
+	if !strings.Contains(rust, "{\n        let __seq_holder =") || !strings.Contains(rust, "\n        let __seq_guard =") {
+		t.Fatalf("GoPtr array field pointer return should build the indexed field read across lines:\n%s", rust)
+	}
+}
+
 func TestGoPtrNamedResultsAssignedFromGoPtrCallsUseGoPtrSlots(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

@@ -5682,6 +5682,12 @@ func writePointerReturnValue(out *strings.Builder, result ast.Expr, expected ast
 	if writeSliceElemPtrReturnValue(out, result) {
 		return true
 	}
+	if indexExpr, ok := unwrapParens(result).(*ast.IndexExpr); ok {
+		indent := currentLineIndent(out)
+		if writeMultilineGenericConcurrentSequenceIndexValue(out, indexExpr, indent) {
+			return true
+		}
+	}
 	if isSliceElementAddress(result) {
 		out.WriteString(`unimplemented!("slice element pointer return requires pointer representation support")`)
 		return true

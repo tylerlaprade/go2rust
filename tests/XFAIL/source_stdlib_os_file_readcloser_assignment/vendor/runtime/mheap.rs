@@ -3667,7 +3667,11 @@ impl mheap {
         let mut j = Arc::new(Mutex::new(Some(0 as u64)));
     while { let __tmp_x = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as u64; __tmp_x < __tmp_y } {
         if { let __tmp_x = { let __tmp_x = { let __v = (*inUseUnmarked.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = (1 as u8); let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }); __tmp_x & __tmp_y }; let __tmp_y = 0 as u8; __tmp_x != __tmp_y } {
-        let mut s: GoPtr<mspan> = (*ha.lock().unwrap().as_ref().unwrap()).spans.lock().unwrap().as_ref().unwrap()[({ let __tmp_x = { let __tmp_x = { let __v = (*arenaPage.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some(i as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 8 as u64; __tmp_x * __tmp_y }; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone();
+        let mut s: GoPtr<mspan> = {
+            let __seq_holder = (*ha.lock().unwrap().as_ref().unwrap()).spans.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            __seq_guard.as_ref().unwrap()[({ let __tmp_x = { let __tmp_x = { let __v = (*arenaPage.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some(i as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 8 as u64; __tmp_x * __tmp_y }; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize].clone()
+        };
         {
         let (mut s, mut ok) = (*sl.lock().unwrap().as_ref().unwrap()).try_acquire(s.clone());;
         if ok {
@@ -3904,7 +3908,11 @@ impl mheap {
         return GoPtr::nil();
     }
                 // Pull off the last entry in the cache.
-        let mut s: GoPtr<mspan> = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.mspancache.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).buf.lock().unwrap().as_ref().unwrap()[({ let __tmp_x = (*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.mspancache.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone();
+        let mut s: GoPtr<mspan> = {
+            let __seq_holder = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.mspancache.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).buf.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            __seq_guard.as_ref().unwrap()[({ let __tmp_x = (*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.mspancache.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone()
+        };
         { let __target = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.mspancache.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
         s.clone()
     }
@@ -3939,7 +3947,11 @@ impl mheap {
         { let new_val = 64; *(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.mspancache.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len.lock().unwrap() = Some(new_val); };
     }
                 // Pull off the last entry in the cache.
-        let mut s: GoPtr<mspan> = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.mspancache.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).buf.lock().unwrap().as_ref().unwrap()[({ let __tmp_x = (*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.mspancache.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone();
+        let mut s: GoPtr<mspan> = {
+            let __seq_holder = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.mspancache.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).buf.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            __seq_guard.as_ref().unwrap()[({ let __tmp_x = (*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.mspancache.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone()
+        };
         { let __target = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.mspancache.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
         s.clone()
     }
@@ -5052,7 +5064,11 @@ pub fn span_of(p: Arc<Mutex<Option<usize>>>) -> GoPtr<mspan> {
     if { let __nil_result = (*ha.lock().unwrap()).is_none(); __nil_result } {
         return GoPtr::nil();
     }
-    return (*ha.lock().unwrap().as_ref().unwrap()).spans.lock().unwrap().as_ref().unwrap()[({ let __tmp_x = ({ let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PAGE_SIZE as usize; __tmp_x / __tmp_y }); let __tmp_y = PAGES_PER_ARENA as usize; __tmp_x % __tmp_y }) as usize].clone();
+    return {
+        let __seq_holder = (*ha.lock().unwrap().as_ref().unwrap()).spans.clone();
+        let __seq_guard = __seq_holder.lock().unwrap();
+        __seq_guard.as_ref().unwrap()[({ let __tmp_x = ({ let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PAGE_SIZE as usize; __tmp_x / __tmp_y }); let __tmp_y = PAGES_PER_ARENA as usize; __tmp_x % __tmp_y }) as usize].clone()
+    };
 }
 
 /// spanOfUnchecked is equivalent to spanOf, but the caller must ensure
@@ -5063,7 +5079,11 @@ pub fn span_of(p: Arc<Mutex<Option<usize>>>) -> GoPtr<mspan> {
 ///go:nosplit
 pub fn span_of_unchecked(p: Arc<Mutex<Option<usize>>>) -> GoPtr<mspan> {
     let mut ai = arena_index(Arc::new(Mutex::new(Some({ let __arg_holder = p.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-    return (*{ let __seq = { let __seq_holder = { let __seq = { let __seq_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).arenas.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(arenaIdx::l1(&(*ai.lock().unwrap().as_ref().unwrap()))) as usize].clone() }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(arenaIdx::l2(&(*ai.lock().unwrap().as_ref().unwrap()))) as usize].clone() }.lock().unwrap().as_ref().unwrap()).spans.lock().unwrap().as_ref().unwrap()[({ let __tmp_x = ({ let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PAGE_SIZE as usize; __tmp_x / __tmp_y }); let __tmp_y = PAGES_PER_ARENA as usize; __tmp_x % __tmp_y }) as usize].clone();
+    return {
+        let __seq_holder = (*{ let __seq = { let __seq_holder = { let __seq = { let __seq_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).arenas.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(arenaIdx::l1(&(*ai.lock().unwrap().as_ref().unwrap()))) as usize].clone() }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(arenaIdx::l2(&(*ai.lock().unwrap().as_ref().unwrap()))) as usize].clone() }.lock().unwrap().as_ref().unwrap()).spans.clone();
+        let __seq_guard = __seq_holder.lock().unwrap();
+        __seq_guard.as_ref().unwrap()[({ let __tmp_x = ({ let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PAGE_SIZE as usize; __tmp_x / __tmp_y }); let __tmp_y = PAGES_PER_ARENA as usize; __tmp_x % __tmp_y }) as usize].clone()
+    };
 }
 
 /// spanOfHeap is like spanOf, but returns nil if p does not point to a
