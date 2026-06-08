@@ -395,7 +395,13 @@ func isSourceTranspilableStdlibPackage(importPath string) bool {
 	// unsafe is a compiler-provided language package. Its public surface is
 	// declarations for intrinsic operations, not ordinary Go source bodies, and
 	// codegen already lowers it through the unsafe intrinsic path.
-	return importPath != "unsafe"
+	//
+	// runtime is also compiler/runtime implementation infrastructure, not an
+	// ordinary source dependency. Source-stdlib +deps expansion can reach it
+	// through os, but transpiling runtime pulls in compiler intrinsics and
+	// assembly-backed declarations instead of moving user-visible stdlib
+	// packages toward bridge retirement.
+	return importPath != "unsafe" && importPath != "runtime"
 }
 
 func (pl *PackageLoader) isSourceStdlibPackage(importPath string) bool {

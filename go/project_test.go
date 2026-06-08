@@ -5824,9 +5824,11 @@ func TestPackageLoaderSourceStdlibDepsPatternIncludesTransitiveStdlibImports(t *
 	t.Setenv(sourceStdlibPackagesEnv, "go/types+deps")
 	tokenPkg := &packages.Package{Name: "token", PkgPath: "go/token", Imports: make(map[string]*packages.Package)}
 	unsafePkg := &packages.Package{Name: "unsafe", PkgPath: "unsafe", Imports: make(map[string]*packages.Package)}
+	runtimePkg := &packages.Package{Name: "runtime", PkgPath: "runtime", Imports: make(map[string]*packages.Package)}
 	typesPkg := &packages.Package{Name: "types", PkgPath: "go/types", Imports: map[string]*packages.Package{
 		"go/token": tokenPkg,
 		"unsafe":   unsafePkg,
+		"runtime":  runtimePkg,
 	}}
 	mainPkg := &packages.Package{Name: "main", PkgPath: "main", Imports: map[string]*packages.Package{
 		"go/types": typesPkg,
@@ -5850,6 +5852,9 @@ func TestPackageLoaderSourceStdlibDepsPatternIncludesTransitiveStdlibImports(t *
 	if loader.allPackages["unsafe"] != nil || loader.packageMapping["unsafe"] != "" || loader.sourceStdlibPackages["unsafe"] {
 		t.Fatalf("collectAllPackages() should keep unsafe on the compiler-intrinsic path, not source-map it")
 	}
+	if loader.allPackages["runtime"] != nil || loader.packageMapping["runtime"] != "" || loader.sourceStdlibPackages["runtime"] {
+		t.Fatalf("collectAllPackages() should keep runtime on the compiler/runtime path, not source-map it")
+	}
 }
 
 func TestUnsafeStdlibPackageIsCompilerIntrinsic(t *testing.T) {
@@ -5859,6 +5864,19 @@ func TestUnsafeStdlibPackageIsCompilerIntrinsic(t *testing.T) {
 	}
 	if (&PackageLoader{sourceStdlibPackages: map[string]bool{"unsafe": true}}).isSourceStdlibPackage("unsafe") {
 		t.Fatalf("unsafe should not be treated as a source stdlib package from loader state")
+	}
+}
+
+func TestRuntimeStdlibPackageIsCompilerInfrastructure(t *testing.T) {
+	t.Setenv(sourceStdlibPackagesEnv, "runtime,all")
+	if shouldTranspileStdlibPackage("runtime") {
+		t.Fatalf("runtime should not be source-transpiled as a normal stdlib package")
+	}
+	if (&PackageLoader{sourceStdlibPackages: map[string]bool{"runtime": true}}).isSourceStdlibPackage("runtime") {
+		t.Fatalf("runtime should not be treated as a source stdlib package from loader state")
+	}
+	if !shouldTranspileStdlibPackage("runtime/debug") {
+		t.Fatalf("runtime/debug should remain source-transpilable when explicitly selected")
 	}
 }
 

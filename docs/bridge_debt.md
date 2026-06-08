@@ -64,8 +64,9 @@ the stdlib source and routes calls to the resulting `vendor/<crate>/`
 module instead of the bridge. Exact paths stay exact; suffix `+deps`
 follows the loaded stdlib import graph recursively for fixtures that are
 trying to retire a package bridge rather than hand-curating its dependency
-list. The compiler-provided `unsafe` package is not a source crate; it stays
-on the existing intrinsic lowering path.
+list. The compiler-provided `unsafe` package and top-level `runtime` package
+are not ordinary source crates; they stay on the existing intrinsic/runtime
+lowering path.
 
 `path/filepath` has gone all the way through this pipeline:
 `tests/source_stdlib_path_filepath_isabs/` transpiles it from source
