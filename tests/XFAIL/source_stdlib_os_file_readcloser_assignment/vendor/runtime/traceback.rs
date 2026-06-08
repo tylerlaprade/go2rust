@@ -994,7 +994,13 @@ impl unwinder {
                 }
             };
             if __go_cond_0 {
-                let __go_cond_5 = { let __left = { let __ptr_value = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).curg.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.clone(); let __right = { let __ptr_value = gp.borrow(); let __field_value = __ptr_value.as_ref().unwrap().m.clone(); __field_value }; let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq };
+                let __go_cond_5 = {
+                    let __left = { let __ptr_value = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).curg.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.clone();
+                    let __right = { let __ptr_value = gp.borrow(); let __field_value = __ptr_value.as_ref().unwrap().m.clone(); __field_value };
+                    let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+                    let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+                    __eq
+                };
                 __go_cond_5
             } else {
                 false
@@ -3044,7 +3050,13 @@ pub fn tracebackothers(me: GoPtr<crate::runtime2::g>) {
         };
         goroutineheader(GoPtr::local(gp.clone()));
         if {
-            let __go_cond_0 = { let __left = (*gp.lock().unwrap().as_ref().unwrap()).m.clone(); let __right = (*getg().lock().unwrap().as_ref().unwrap()).m.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq };
+            let __go_cond_0 = {
+                let __left = (*gp.lock().unwrap().as_ref().unwrap()).m.clone();
+                let __right = (*getg().lock().unwrap().as_ref().unwrap()).m.clone();
+                let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+                let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+                !__eq
+            };
             if __go_cond_0 {
                 let __go_cond_1 = { let __tmp_x = { let __tmp_x = readgstatus(GoPtr::local(gp.clone())); let __tmp_y = __GSCAN as u32; __tmp_x & ! __tmp_y }; let __tmp_y = __GRUNNING as u32; __tmp_x == __tmp_y };
                 __go_cond_1

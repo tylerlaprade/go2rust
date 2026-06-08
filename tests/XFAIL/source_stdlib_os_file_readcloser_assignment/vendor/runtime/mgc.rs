@@ -2062,7 +2062,13 @@ pub fn gc_start(trigger: Arc<Mutex<Option<gcTrigger>>>) {
         let mut mp = acquirem();
         {
         let mut gp = getg();;
-        if { let __left = gp.clone(); let __right = (*mp.lock().unwrap().as_ref().unwrap()).g0.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } || { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).locks.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as i32; __tmp_x > __tmp_y } || { let __tmp_x = { let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).preemptoff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
+        if {
+            let __left = gp.clone();
+            let __right = (*mp.lock().unwrap().as_ref().unwrap()).g0.clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            __eq
+        } || { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).locks.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1 as i32; __tmp_x > __tmp_y } || { let __tmp_x = { let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).preemptoff.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = "".to_string(); __tmp_x != __tmp_y } {
             releasem(GoPtr::local(mp.clone()));;
             {
         // Execute deferred functions

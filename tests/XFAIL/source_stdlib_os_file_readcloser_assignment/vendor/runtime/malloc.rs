@@ -1068,7 +1068,13 @@ pub fn mallocgc_tiny(size: Arc<Mutex<Option<usize>>>, typ: GoPtr<internal_abi::r
         if { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).mallocing.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x != __tmp_y } {
         throw(Arc::new(Mutex::new(Some("malloc deadlock".to_string()))));
     }
-        if { let __left = (*mp.lock().unwrap().as_ref().unwrap()).gsignal.clone(); let __right = getg(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if {
+            let __left = (*mp.lock().unwrap().as_ref().unwrap()).gsignal.clone();
+            let __right = getg();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            __eq
+        } {
         throw(Arc::new(Mutex::new(Some("malloc during signal".to_string()))));
     }
         if !typ.is_nil() && { let __recv_value = typ.borrow(); let __result = (*__recv_value.as_ref().unwrap()).pointers(); __result } {
@@ -1251,7 +1257,13 @@ pub fn mallocgc_small_noscan(mut size: Arc<Mutex<Option<usize>>>, typ: GoPtr<int
         if { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).mallocing.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x != __tmp_y } {
         throw(Arc::new(Mutex::new(Some("malloc deadlock".to_string()))));
     }
-        if { let __left = (*mp.lock().unwrap().as_ref().unwrap()).gsignal.clone(); let __right = getg(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if {
+            let __left = (*mp.lock().unwrap().as_ref().unwrap()).gsignal.clone();
+            let __right = getg();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            __eq
+        } {
         throw(Arc::new(Mutex::new(Some("malloc during signal".to_string()))));
     }
         if !typ.is_nil() && { let __recv_value = typ.borrow(); let __result = (*__recv_value.as_ref().unwrap()).pointers(); __result } {
@@ -1347,7 +1359,13 @@ pub fn mallocgc_small_scan_no_header(mut size: Arc<Mutex<Option<usize>>>, typ: G
         if { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).mallocing.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x != __tmp_y } {
         throw(Arc::new(Mutex::new(Some("malloc deadlock".to_string()))));
     }
-        if { let __left = (*mp.lock().unwrap().as_ref().unwrap()).gsignal.clone(); let __right = getg(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if {
+            let __left = (*mp.lock().unwrap().as_ref().unwrap()).gsignal.clone();
+            let __right = getg();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            __eq
+        } {
         throw(Arc::new(Mutex::new(Some("malloc during signal".to_string()))));
     }
         if typ.is_nil() || !{ let __recv_value = typ.borrow(); let __result = (*__recv_value.as_ref().unwrap()).pointers(); __result } {
@@ -1452,7 +1470,13 @@ pub fn mallocgc_small_scan_header(mut size: Arc<Mutex<Option<usize>>>, typ: GoPt
         if { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).mallocing.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x != __tmp_y } {
         throw(Arc::new(Mutex::new(Some("malloc deadlock".to_string()))));
     }
-        if { let __left = (*mp.lock().unwrap().as_ref().unwrap()).gsignal.clone(); let __right = getg(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if {
+            let __left = (*mp.lock().unwrap().as_ref().unwrap()).gsignal.clone();
+            let __right = getg();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            __eq
+        } {
         throw(Arc::new(Mutex::new(Some("malloc during signal".to_string()))));
     }
         if typ.is_nil() || !{ let __recv_value = typ.borrow(); let __result = (*__recv_value.as_ref().unwrap()).pointers(); __result } {
@@ -1561,7 +1585,13 @@ pub fn mallocgc_large(mut size: Arc<Mutex<Option<usize>>>, typ: GoPtr<internal_a
         if { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).mallocing.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x != __tmp_y } {
         throw(Arc::new(Mutex::new(Some("malloc deadlock".to_string()))));
     }
-        if { let __left = (*mp.lock().unwrap().as_ref().unwrap()).gsignal.clone(); let __right = getg(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if {
+            let __left = (*mp.lock().unwrap().as_ref().unwrap()).gsignal.clone();
+            let __right = getg();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            __eq
+        } {
         throw(Arc::new(Mutex::new(Some("malloc during signal".to_string()))));
     }
     }
@@ -1879,7 +1909,13 @@ pub fn next_sample() -> i64 {
                 // Plan 9 doesn't support floating point in note handler.
         {
         let mut gp = getg();;
-        if { let __left = gp.clone(); let __right = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).gsignal.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if {
+            let __left = gp.clone();
+            let __right = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).gsignal.clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            __eq
+        } {
             return next_sample_no_f_p();;
         }
     }
@@ -2006,7 +2042,13 @@ pub fn persistentalloc1(size: Arc<Mutex<Option<usize>>>, mut align: Arc<Mutex<Op
     if { let __tmp_x = { let __tmp_x = (*{ let __field = (*persistent.lock().unwrap().as_ref().unwrap()).off.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = PERSISTENT_CHUNK_SIZE as usize; __tmp_x > __tmp_y } || { let __nil_target = (*persistent.lock().unwrap().as_ref().unwrap()).base.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = Arc::new(Mutex::new({ let __ptr = sys_alloc(Arc::new(Mutex::new(Some(PERSISTENT_CHUNK_SIZE as usize))), (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone()).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<notInHeap>(unimplemented!("unsafe.Pointer conversion to notInHeap")) } })).clone(); (*persistent.lock().unwrap().as_mut().unwrap()).base = new_val; };
         if { let __nil_target = (*persistent.lock().unwrap().as_ref().unwrap()).base.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_none(); __nil_result } {
-        if { let __left = persistent.clone(); let __right = (*globalAlloc.lock().unwrap().as_ref().unwrap()).persistent_alloc.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if {
+            let __left = persistent.clone();
+            let __right = (*globalAlloc.lock().unwrap().as_ref().unwrap()).persistent_alloc.clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            __eq
+        } {
         unlock(GoPtr::local((*globalAlloc.lock().unwrap().as_ref().unwrap()).mutex.clone()));
     }
         throw(Arc::new(Mutex::new(Some("runtime: cannot allocate memory".to_string()))));
@@ -2025,11 +2067,23 @@ pub fn persistentalloc1(size: Arc<Mutex<Option<usize>>>, mut align: Arc<Mutex<Op
     let mut p: GoPtr<notInHeap> = (*(*persistent.lock().unwrap().as_ref().unwrap()).base.lock().unwrap().as_ref().unwrap()).add(Arc::new(Mutex::new(Some({ let __selector_holder = (*persistent.lock().unwrap().as_ref().unwrap()).off.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
     { let __target = (*persistent.lock().unwrap().as_ref().unwrap()).off.clone(); let __rhs = (*size.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     releasem(GoPtr::local(mp.clone()));
-    if { let __left = persistent.clone(); let __right = (*globalAlloc.lock().unwrap().as_ref().unwrap()).persistent_alloc.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+    if {
+        let __left = persistent.clone();
+        let __right = (*globalAlloc.lock().unwrap().as_ref().unwrap()).persistent_alloc.clone();
+        let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+        let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+        __eq
+    } {
         unlock(GoPtr::local((*globalAlloc.lock().unwrap().as_ref().unwrap()).mutex.clone()));
     }
 
-    if { let __left = sysStat.clone(); let __right = (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
+    if {
+        let __left = sysStat.clone();
+        let __right = (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone();
+        let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+        let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+        !__eq
+    } {
         { let __recv = sysStat.clone(); let __recv_ptr: *const crate::mstats::sysMemStat = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::mstats::sysMemStat }; let __result = unsafe { &*__recv_ptr }.add(Arc::new(Mutex::new(Some((*size.lock().unwrap().as_ref().unwrap()) as i64)))); __result };
         (*(*memstats.lock().unwrap().as_ref().unwrap()).other_sys.lock().unwrap().as_ref().unwrap()).add(Arc::new(Mutex::new(Some(-((*size.lock().unwrap().as_ref().unwrap()) as i64)))));
     }

@@ -69,7 +69,13 @@ pub fn notewakeup(n: Arc<Mutex<Option<note>>>) {
 
 pub fn notesleep(n: Arc<Mutex<Option<note>>>) {
     let mut gp = getg();
-    if { let __left = gp.clone(); let __right = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).g0.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
+    if {
+        let __left = gp.clone();
+        let __right = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).g0.clone();
+        let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+        let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+        !__eq
+    } {
         throw(Arc::new(Mutex::new(Some("notesleep not on g0".to_string()))));
     }
     semacreate({ let __field = (*gp.lock().unwrap().as_ref().unwrap()).m.clone(); __field });
@@ -198,7 +204,13 @@ pub fn notetsleep_internal(n: Arc<Mutex<Option<note>>>, mut ns: Arc<Mutex<Option
 
 pub fn notetsleep(n: Arc<Mutex<Option<note>>>, ns: Arc<Mutex<Option<i64>>>) -> bool {
     let mut gp = getg();
-    if { let __left = gp.clone(); let __right = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).g0.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
+    if {
+        let __left = gp.clone();
+        let __right = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).g0.clone();
+        let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+        let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+        !__eq
+    } {
         throw(Arc::new(Mutex::new(Some("notetsleep not on g0".to_string()))));
     }
     semacreate({ let __field = (*gp.lock().unwrap().as_ref().unwrap()).m.clone(); __field });
@@ -214,7 +226,13 @@ pub fn notetsleep(n: Arc<Mutex<Option<note>>>, ns: Arc<Mutex<Option<i64>>>) -> b
 /// calls only nosplit functions between entersyscallblock/exitsyscall.
 pub fn notetsleepg(n: Arc<Mutex<Option<note>>>, ns: Arc<Mutex<Option<i64>>>) -> bool {
     let mut gp = getg();
-    if { let __left = gp.clone(); let __right = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).g0.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+    if {
+        let __left = gp.clone();
+        let __right = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).g0.clone();
+        let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+        let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+        __eq
+    } {
         throw(Arc::new(Mutex::new(Some("notetsleepg on g0".to_string()))));
     }
     semacreate({ let __field = (*gp.lock().unwrap().as_ref().unwrap()).m.clone(); __field });

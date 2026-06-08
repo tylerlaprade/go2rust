@@ -5002,7 +5002,13 @@ impl Time {
         let mut offsetMin: Arc<Mutex<Option<i16>>> = Arc::new(Mutex::new(Some(0)));
         let mut offsetSec: Arc<Mutex<Option<i8>>> = Arc::new(Mutex::new(Some(0)));
         let mut version = Arc::new(Mutex::new(Some(TIME_BINARY_VERSION_V1)));
-        if { let __left = self.location(); let __right = (*UTC.lock().unwrap().as_ref().unwrap()).clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if {
+            let __left = self.location();
+            let __right = (*UTC.lock().unwrap().as_ref().unwrap()).clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            __eq
+        } {
         { let new_val = -1 as i16; *offsetMin.lock().unwrap() = Some(new_val); };
     } else {
         let (_, mut offset) = self.zone();

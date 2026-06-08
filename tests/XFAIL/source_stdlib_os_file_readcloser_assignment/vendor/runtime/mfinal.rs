@@ -955,7 +955,13 @@ pub fn set_finalizer(obj: Arc<Mutex<Option<Box<dyn Any + Send + Sync>>>>, finali
                     }
                 };
                 if __go_cond_0 {
-                    let __go_cond_3 = { let __left = (*{ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&fint) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { Arc::new(Mutex::new(None::<internal_abi::r#type::PtrType>)) } else { go_lookup_embedded_owner::<internal_abi::r#type::PtrType>(*__ptr_guard.as_ref().unwrap(), "internal_abi::r#type::PtrType") } }.lock().unwrap().as_ref().unwrap()).elem.clone(); let __right = { let __ptr_value = ot.borrow(); let __field_value = __ptr_value.as_ref().unwrap().elem.clone(); __field_value }; let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq };
+                    let __go_cond_3 = {
+                        let __left = (*{ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&fint) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { Arc::new(Mutex::new(None::<internal_abi::r#type::PtrType>)) } else { go_lookup_embedded_owner::<internal_abi::r#type::PtrType>(*__ptr_guard.as_ref().unwrap(), "internal_abi::r#type::PtrType") } }.lock().unwrap().as_ref().unwrap()).elem.clone();
+                        let __right = { let __ptr_value = ot.borrow(); let __field_value = __ptr_value.as_ref().unwrap().elem.clone(); __field_value };
+                        let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+                        let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+                        __eq
+                    };
                     __go_cond_3
                 } else {
                     false

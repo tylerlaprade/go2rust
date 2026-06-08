@@ -211,7 +211,13 @@ impl crate::mheap::mspan {
         if { let __tmp_x = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).mallocing.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x != __tmp_y } {
         throw(Arc::new(Mutex::new(Some("malloc deadlock".to_string()))));
     }
-        if { let __left = (*mp.lock().unwrap().as_ref().unwrap()).gsignal.clone(); let __right = getg(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if {
+            let __left = (*mp.lock().unwrap().as_ref().unwrap()).gsignal.clone();
+            let __right = getg();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            __eq
+        } {
         throw(Arc::new(Mutex::new(Some("malloc during signal".to_string()))));
     }
         { let new_val = 1 as i32; *(*mp.lock().unwrap().as_ref().unwrap()).mallocing.lock().unwrap() = Some(new_val); };

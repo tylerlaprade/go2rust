@@ -555,7 +555,13 @@ pub fn semasleep(ns: Arc<Mutex<Option<i64>>>) -> i32 {
     }
     let mut g = getg();
     let mut mp = (*g.lock().unwrap().as_ref().unwrap()).m.clone();
-    if { let __left = g.clone(); let __right = (*mp.lock().unwrap().as_ref().unwrap()).gsignal.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+    if {
+        let __left = g.clone();
+        let __right = (*mp.lock().unwrap().as_ref().unwrap()).gsignal.clone();
+        let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+        let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+        __eq
+    } {
                 // sema sleep/wakeup are implemented with pthreads, which are not async-signal-safe on Darwin.
         throw(Arc::new(Mutex::new(Some("semasleep on Darwin signal stack".to_string()))));
     }
@@ -590,7 +596,13 @@ pub fn semasleep(ns: Arc<Mutex<Option<i64>>>) -> i32 {
 pub fn semawakeup(mp: GoPtr<crate::runtime2::m>) {
     {
         let mut g = getg();;
-        if { let __left = g.clone(); let __right = (*(*g.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).gsignal.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if {
+            let __left = g.clone();
+            let __right = (*(*g.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).gsignal.clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            __eq
+        } {
             throw(Arc::new(Mutex::new(Some("semawakeup on Darwin signal stack".to_string()))));;
         }
     }

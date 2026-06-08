@@ -6720,10 +6720,20 @@ func writePointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 		return false
 	}
 	trackWrapperImports()
+	var left strings.Builder
+	writePointerHandleExpression(&left, expr.X)
+	var right strings.Builder
+	writePointerHandleExpression(&right, expr.Y)
+	leftText := left.String()
+	rightText := right.String()
+	if pointerEqualityShouldUseMultiline(leftText, rightText) {
+		writeMultilinePointerEquality(out, leftText, rightText, expr.Op)
+		return true
+	}
 	out.WriteString("{ let __left = ")
-	writePointerHandleExpression(out, expr.X)
+	out.WriteString(leftText)
 	out.WriteString("; let __right = ")
-	writePointerHandleExpression(out, expr.Y)
+	out.WriteString(rightText)
 	out.WriteString("; let __both_nil = (*__left")
 	WriteBorrowMethod(out, false)
 	out.WriteString(").is_none() && (*__right")
@@ -6736,6 +6746,48 @@ func writePointerEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {
 	}
 	out.WriteString("__eq }")
 	return true
+}
+
+func pointerEqualityShouldUseMultiline(leftText, rightText string) bool {
+	if !NeedsConcurrentWrapper() {
+		return false
+	}
+	inlineLen := len("{ let __left = ") + len(leftText) + len("; let __right = ") + len(rightText) +
+		len("; let __both_nil = (*__left") + len(".borrow().as_ref().unwrap()).is_none() && (*__right") +
+		len(".borrow().as_ref().unwrap()).is_none(); let __eq = __both_nil || ") +
+		len(GetOuterWrapperType()) + len("::ptr_eq(&__left, &__right); !__eq }")
+	return strings.Contains(leftText, "\n") || strings.Contains(rightText, "\n") || inlineLen > maxInlineWrappedSlotAssignmentLen
+}
+
+func writeMultilinePointerEquality(out *strings.Builder, leftText, rightText string, op token.Token) {
+	indent := currentLineIndent(out)
+	out.WriteString("{\n")
+	out.WriteString(indent)
+	out.WriteString("    let __left = ")
+	out.WriteString(leftText)
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("    let __right = ")
+	out.WriteString(rightText)
+	out.WriteString(";\n")
+	out.WriteString(indent)
+	out.WriteString("    let __both_nil = (*__left")
+	WriteBorrowMethod(out, false)
+	out.WriteString(").is_none() && (*__right")
+	WriteBorrowMethod(out, false)
+	out.WriteString(").is_none();\n")
+	out.WriteString(indent)
+	out.WriteString("    let __eq = __both_nil || ")
+	out.WriteString(GetOuterWrapperType())
+	out.WriteString("::ptr_eq(&__left, &__right);\n")
+	out.WriteString(indent)
+	out.WriteString("    ")
+	if op == token.NEQ {
+		out.WriteString("!")
+	}
+	out.WriteString("__eq\n")
+	out.WriteString(indent)
+	out.WriteString("}")
 }
 
 func writeTypeParamHandleEquality(out *strings.Builder, expr *ast.BinaryExpr) bool {

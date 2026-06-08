@@ -8511,6 +8511,31 @@ func same(tt *MapType) bool {
 	}
 }
 
+func TestConcurrentIndexedSelectorPointerEqualityBreaksAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type timer struct{}
+
+type timerWhen struct {
+	timer *timer
+}
+
+func same(heap []timerWhen, i int, tw timerWhen) bool {
+	go func() {}()
+	return heap[i].timer != tw.timer
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "let __left =") && strings.Contains(line, "let __right =") && strings.Contains(line, "Arc::ptr_eq") {
+			t.Fatalf("pointer equality with indexed selector operand should not stay on one line:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "let __left =") || !strings.Contains(rust, "Arc::ptr_eq(&__left, &__right)") {
+		t.Fatalf("test setup should lower pointer equality through handle comparison:\n%s", rust)
+	}
+}
+
 func TestNoTypeInfoPackageGlobalMapIndexUsesSyntaxKind(t *testing.T) {
 	prevTypeInfo := currentTypeInfo
 	prevGlobals := packageGlobalNames

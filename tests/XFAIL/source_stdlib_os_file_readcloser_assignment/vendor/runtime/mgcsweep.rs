@@ -873,7 +873,13 @@ impl crate::mheap::mspan {
                 // Otherwise when this function returns the span can become unswept again
                 // (if GC is triggered on another goroutine).
         let mut gp = getg();
-        if { let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).locks.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x == __tmp_y } && { let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).mallocing.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x == __tmp_y } && { let __left = gp.clone(); let __right = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).g0.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
+        if { let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).locks.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x == __tmp_y } && { let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).mallocing.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x == __tmp_y } && {
+            let __left = gp.clone();
+            let __right = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).g0.clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            !__eq
+        } {
         throw(Arc::new(Mutex::new(Some("mspan.ensureSwept: m is not locked".to_string()))));
     }
                 // If this operation fails, then that means that there are
@@ -1019,7 +1025,13 @@ impl sweepLocked {
                 // It's critical that we enter this function with preemption disabled,
                 // GC must not start while we are in the middle of this function.
         let mut gp = getg();
-        if { let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).locks.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x == __tmp_y } && { let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).mallocing.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x == __tmp_y } && { let __left = gp.clone(); let __right = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).g0.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
+        if { let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).locks.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x == __tmp_y } && { let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).mallocing.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x == __tmp_y } && {
+            let __left = gp.clone();
+            let __right = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).g0.clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            !__eq
+        } {
         throw(Arc::new(Mutex::new(Some("mspan.sweep: m is not locked".to_string()))));
     }
         let mut s: GoPtr<crate::mheap::mspan> = self.mspan.clone();
@@ -1473,7 +1485,13 @@ impl sweepLocked {
                 // The arena is ready to be recycled. Remove it from the quarantine list
                 // and place it on the ready list. Don't add it back to any sweep lists.
         let s_closure_clone = s.clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
-        if { let __left = { let __ptr_value = s_closure_clone.borrow(); let __field_value = __ptr_value.as_ref().unwrap().list.clone(); __field_value }; let __right = (*(*mheap_.lock().unwrap().as_ref().unwrap()).user_arena.lock().unwrap().as_ref().unwrap()).quarantine_list.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
+        if {
+            let __left = { let __ptr_value = s_closure_clone.borrow(); let __field_value = __ptr_value.as_ref().unwrap().list.clone(); __field_value };
+            let __right = (*(*mheap_.lock().unwrap().as_ref().unwrap()).user_arena.lock().unwrap().as_ref().unwrap()).quarantine_list.clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            !__eq
+        } {
         throw(Arc::new(Mutex::new(Some("user arena span is on the wrong list".to_string()))));
     }
         lock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).lock.clone()));

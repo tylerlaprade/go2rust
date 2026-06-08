@@ -278,7 +278,13 @@ pub fn suspend_g(gp: Arc<Mutex<Option<g>>>) -> Arc<Mutex<Option<suspendGState>>>
                         }
                     };
                     if __go_cond_1 {
-                        let __go_cond_6 = { let __left = asyncM.clone(); let __right = (*gp.lock().unwrap().as_ref().unwrap()).m.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq };
+                        let __go_cond_6 = {
+                            let __left = asyncM.clone();
+                            let __right = (*gp.lock().unwrap().as_ref().unwrap()).m.clone();
+                            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+                            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+                            __eq
+                        };
                         __go_cond_6
                     } else {
                         false
@@ -304,7 +310,13 @@ pub fn suspend_g(gp: Arc<Mutex<Option<g>>>) -> Arc<Mutex<Option<suspendGState>>>
                         // Prepare for asynchronous preemption.
             let mut asyncM2 = (*gp.lock().unwrap().as_ref().unwrap()).m.clone();
             let mut asyncGen2 = (*(*asyncM2.lock().unwrap().as_ref().unwrap()).preempt_gen.lock().unwrap().as_mut().unwrap()).load();
-            let mut needAsync = Arc::new(Mutex::new(Some({ let __left = asyncM.clone(); let __right = asyncM2.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } || { let __tmp_x = { let __v = (*asyncGen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = asyncGen2; __tmp_x != __tmp_y })));
+            let mut needAsync = Arc::new(Mutex::new(Some({
+                let __left = asyncM.clone();
+                let __right = asyncM2.clone();
+                let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+                let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+                !__eq
+            } || { let __tmp_x = { let __v = (*asyncGen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = asyncGen2; __tmp_x != __tmp_y })));
             { let new_val = asyncM2.clone(); asyncM = new_val; };
             { let new_val = asyncGen2; *asyncGen.lock().unwrap() = Some(new_val); };
             casfrom__gscanstatus(GoPtr::local(gp.clone()), Arc::new(Mutex::new(Some(__GSCANRUNNING as u32))), Arc::new(Mutex::new(Some(__GRUNNING as u32))));

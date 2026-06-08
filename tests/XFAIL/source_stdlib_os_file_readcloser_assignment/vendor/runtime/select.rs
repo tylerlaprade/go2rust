@@ -489,7 +489,13 @@ impl crate::chan::waitq {
                 // start of queue
                 // x==y==nil. Either sgp is the only element in the queue,
                 // or it has already been removed. Use q.first to disambiguate.
-        if { let __left = self.first.clone(); let __right = sgp.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if {
+            let __left = self.first.clone();
+            let __right = sgp.clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            __eq
+        } {
         *self.first.lock().unwrap() = None;
         *self.last.lock().unwrap() = None;
     }

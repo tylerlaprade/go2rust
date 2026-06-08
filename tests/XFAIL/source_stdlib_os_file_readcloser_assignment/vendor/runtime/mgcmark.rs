@@ -1071,7 +1071,13 @@ pub fn gc_assist_alloc(mut gp: GoPtr<crate::runtime2::g>) {
     let __go_panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 // Don't assist in non-preemptible contexts. These are
                 // generally fragile and won't allow the assist to block.
-        if { let __left = getg(); let __right = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).g0.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if {
+            let __left = getg();
+            let __right = (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.m.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).g0.clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            __eq
+        } {
         {
         // Execute deferred functions
         while let Some(f) = __defer_stack.pop() {

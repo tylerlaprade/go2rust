@@ -481,7 +481,13 @@ pub fn chansend(c: Arc<Mutex<Option<hchan>>>, ep: Arc<Mutex<Option<usize>>>, blo
     keep_alive(Arc::new(Mutex::new(Some(Box::new({ let __arg_holder = ep.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }) as Box<dyn Any + Send + Sync>))));
 
         // someone woke us up.
-    if { let __left = mysg.clone(); let __right = (*gp.lock().unwrap().as_ref().unwrap()).waiting.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
+    if {
+        let __left = mysg.clone();
+        let __right = (*gp.lock().unwrap().as_ref().unwrap()).waiting.clone();
+        let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+        let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+        !__eq
+    } {
         throw(Arc::new(Mutex::new(Some("G waiting list is corrupted".to_string()))));
     }
     *(*gp.lock().unwrap().as_ref().unwrap()).waiting.lock().unwrap() = None;
@@ -515,7 +521,13 @@ pub fn send(c: Arc<Mutex<Option<hchan>>>, sg: GoPtr<crate::runtime2::sudog>, ep:
     if {
         let __go_cond_0 = (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).synctest.clone(); __field }.lock().unwrap().as_ref().unwrap());
         if __go_cond_0 {
-            let __go_cond_1 = { let __left = (*{ let __ptr_value = sg.with_mut(|__ptr_value| __ptr_value.g.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).sync_group.clone(); let __right = (*getg().lock().unwrap().as_ref().unwrap()).sync_group.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq };
+            let __go_cond_1 = {
+                let __left = (*{ let __ptr_value = sg.with_mut(|__ptr_value| __ptr_value.g.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).sync_group.clone();
+                let __right = (*getg().lock().unwrap().as_ref().unwrap()).sync_group.clone();
+                let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+                let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+                !__eq
+            };
             __go_cond_1
         } else {
             false
@@ -867,7 +879,13 @@ pub fn chanrecv(c: Arc<Mutex<Option<hchan>>>, ep: Arc<Mutex<Option<usize>>>, blo
     );
 
         // someone woke us up
-    if { let __left = mysg.clone(); let __right = (*gp.lock().unwrap().as_ref().unwrap()).waiting.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
+    if {
+        let __left = mysg.clone();
+        let __right = (*gp.lock().unwrap().as_ref().unwrap()).waiting.clone();
+        let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+        let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+        !__eq
+    } {
         throw(Arc::new(Mutex::new(Some("G waiting list is corrupted".to_string()))));
     }
     if { let __nil_target = (*c.lock().unwrap().as_ref().unwrap()).timer.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
@@ -906,7 +924,13 @@ pub fn recv(c: Arc<Mutex<Option<hchan>>>, sg: GoPtr<crate::runtime2::sudog>, ep:
     if {
         let __go_cond_0 = (*{ let __field = (*c.lock().unwrap().as_ref().unwrap()).synctest.clone(); __field }.lock().unwrap().as_ref().unwrap());
         if __go_cond_0 {
-            let __go_cond_1 = { let __left = (*{ let __ptr_value = sg.with_mut(|__ptr_value| __ptr_value.g.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).sync_group.clone(); let __right = (*getg().lock().unwrap().as_ref().unwrap()).sync_group.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq };
+            let __go_cond_1 = {
+                let __left = (*{ let __ptr_value = sg.with_mut(|__ptr_value| __ptr_value.g.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).sync_group.clone();
+                let __right = (*getg().lock().unwrap().as_ref().unwrap()).sync_group.clone();
+                let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+                let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+                !__eq
+            };
             __go_cond_1
         } else {
             false

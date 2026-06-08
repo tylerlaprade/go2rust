@@ -620,7 +620,13 @@ pub fn stackalloc(mut n: Arc<Mutex<Option<u32>>>) -> Arc<Mutex<Option<crate::run
         // never try to grow the stack during the code that stackalloc runs.
         // Doing so would cause a deadlock (issue 1547).
     let mut thisg = getg();
-    if { let __left = thisg.clone(); let __right = (*(*thisg.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).g0.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
+    if {
+        let __left = thisg.clone();
+        let __right = (*(*thisg.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).g0.clone();
+        let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+        let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+        !__eq
+    } {
         throw(Arc::new(Mutex::new(Some("stackalloc not on scheduler stack".to_string()))));
     }
     if { let __tmp_x = { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1 as u32; __tmp_x - __tmp_y }); __tmp_x & __tmp_y }; let __tmp_y = 0 as u32; __tmp_x != __tmp_y } {
@@ -1428,7 +1434,13 @@ pub fn syncadjustsudogs(gp: GoPtr<crate::runtime2::g>, used: Arc<Mutex<Option<us
     let mut lastc: Arc<Mutex<Option<hchan>>> = Arc::new(Mutex::new(None));
     let mut sg = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.waiting.clone()); __ptr_value }.clone();
     while { let __nil_result = (*sg.lock().unwrap()).is_some(); __nil_result } {
-        if { let __left = (*sg.lock().unwrap().as_ref().unwrap()).c.clone(); let __right = lastc.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
+        if {
+            let __left = (*sg.lock().unwrap().as_ref().unwrap()).c.clone();
+            let __right = lastc.clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            !__eq
+        } {
                 // There is a ranking cycle here between gscan bit and
                 // hchan locks. Normally, we only allow acquiring hchan
                 // locks and then getting a gscan bit. In this case, we
@@ -1484,7 +1496,13 @@ pub fn syncadjustsudogs(gp: GoPtr<crate::runtime2::g>, used: Arc<Mutex<Option<us
     *lastc.lock().unwrap() = None;
     let mut sg = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.waiting.clone()); __ptr_value }.clone();
     while { let __nil_result = (*sg.lock().unwrap()).is_some(); __nil_result } {
-        if { let __left = (*sg.lock().unwrap().as_ref().unwrap()).c.clone(); let __right = lastc.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
+        if {
+            let __left = (*sg.lock().unwrap().as_ref().unwrap()).c.clone();
+            let __right = lastc.clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            !__eq
+        } {
         unlock(GoPtr::local((*(*sg.lock().unwrap().as_ref().unwrap()).c.lock().unwrap().as_ref().unwrap()).lock.clone()));
     }
         { let new_val = (*sg.lock().unwrap().as_ref().unwrap()).c.clone(); lastc = new_val; };

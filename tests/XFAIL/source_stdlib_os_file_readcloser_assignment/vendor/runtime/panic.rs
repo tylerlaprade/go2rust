@@ -1488,7 +1488,13 @@ pub fn dopanic_m(gp: Arc<Mutex<Option<g>>>, pc: Arc<Mutex<Option<usize>>>, sp: A
         if { let __left_addr = { let __ptr = GoPtr::local(gp.clone()); __ptr.addr() }; let __right_addr = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).curg.addr(); let __eq = __left_addr == __right_addr; !__eq } {
         { let new_val = true; all = new_val; };
     }
-        if { let __left = gp.clone(); let __right = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).g0.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
+        if {
+            let __left = gp.clone();
+            let __right = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).g0.clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            !__eq
+        } {
         {
             let __go_print_arg_0 = format!("{}", "\n".to_string());
             eprint!("{}", __go_print_arg_0)

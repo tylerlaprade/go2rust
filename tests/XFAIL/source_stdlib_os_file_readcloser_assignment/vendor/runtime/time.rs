@@ -974,7 +974,13 @@ impl timer {
         if { let __nil_result = (*sg.lock().unwrap()).is_none(); __nil_result } {
         std::panic::panic_any(Box::new(plainError(Arc::new(Mutex::new(Some("synctest timer accessed from outside bubble".to_string()))))) as Box<dyn Any + Send + Sync>);
     }
-        if { let __nil_result = (*timerGroup.lock().unwrap()).is_some(); __nil_result } && { let __left = sg.clone(); let __right = timerGroup.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
+        if { let __nil_result = (*timerGroup.lock().unwrap()).is_some(); __nil_result } && {
+            let __left = sg.clone();
+            let __right = timerGroup.clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            !__eq
+        } {
         std::panic::panic_any(Box::new(plainError(Arc::new(Mutex::new(Some("timer moved between synctest bubbles".to_string()))))) as Box<dyn Any + Send + Sync>);
     }
                 // No need to do anything here.
@@ -1052,7 +1058,13 @@ impl timers {
         { let new_val = Arc::new(Mutex::new(Some(self.clone()))); (*t.lock().unwrap().as_mut().unwrap()).ts = new_val; };
         { let new_val = { let __append_target = self.heap.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(timerWhen { timer: t.clone(), when: Arc::new(Mutex::new(Some({ let __selector_holder = (*t.lock().unwrap().as_ref().unwrap()).when.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() }); __append_target.clone() }; self.heap = new_val; };
         { let __method_arg0 = Arc::new(Mutex::new(Some({ let __tmp_x = (({ let __len_target = { let __field = self.heap.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 1; __tmp_x - __tmp_y }))); self.sift_up(__method_arg0) };
-        if { let __left = t.clone(); let __right = { let __seq = { let __seq_holder = self.heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.timer.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if {
+            let __left = t.clone();
+            let __right = { let __seq = { let __seq_holder = self.heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.timer.clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            __eq
+        } {
         self.update_min_when_heap();
     }
     }
@@ -1640,7 +1652,13 @@ impl timers {
         { let new_val = p.lock().unwrap().as_ref().unwrap().clone(); *i.lock().unwrap() = Some(new_val); };
     }
                 // parent
-        if { let __left = { let __seq = { let __seq_holder = heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.timer.clone(); let __right = (*tw.lock().unwrap().as_ref().unwrap()).timer.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
+        if {
+            let __left = { let __seq = { let __seq_holder = heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.timer.clone();
+            let __right = (*tw.lock().unwrap().as_ref().unwrap()).timer.clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            !__eq
+        } {
         (*heap.lock().unwrap().as_mut().unwrap())[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = { let __v = (*tw.lock().unwrap().as_ref().unwrap()).clone(); __v };
     }
     }
@@ -1694,7 +1712,13 @@ impl timers {
         (*heap.lock().unwrap().as_mut().unwrap())[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = { let __seq = { let __seq_holder = heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*c.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
         { let new_val = c.lock().unwrap().as_ref().unwrap().clone(); *i.lock().unwrap() = Some(new_val); };
     }
-        if { let __left = { let __seq = { let __seq_holder = heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.timer.clone(); let __right = (*tw.lock().unwrap().as_ref().unwrap()).timer.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
+        if {
+            let __left = { let __seq = { let __seq_holder = heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.timer.clone();
+            let __right = (*tw.lock().unwrap().as_ref().unwrap()).timer.clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            !__eq
+        } {
         (*heap.lock().unwrap().as_mut().unwrap())[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = { let __v = (*tw.lock().unwrap().as_ref().unwrap()).clone(); __v };
     }
     }

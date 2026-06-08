@@ -500,7 +500,13 @@ impl stackScanState {
         { let __target = (*(*buf_local.lock().unwrap().as_mut().unwrap()).stack_work_buf_hdr.lock().unwrap().as_mut().unwrap().workbufhdr.lock().unwrap().as_mut().unwrap()).nobj.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
         return (
             { let __seq = { let __seq_holder = (*buf_local.lock().unwrap().as_ref().unwrap()).obj.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[((*(*(*buf_local.lock().unwrap().as_ref().unwrap()).stack_work_buf_hdr.lock().unwrap().as_ref().unwrap().workbufhdr.lock().unwrap().as_ref().unwrap()).nobj.lock().unwrap().as_ref().unwrap())) as usize].clone() },
-            { let __left = head.clone(); let __right = Arc::new(Mutex::new(Some(self.cbuf.clone()))); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq }
+            {
+                let __left = head.clone();
+                let __right = Arc::new(Mutex::new(Some(self.cbuf.clone())));
+                let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+                let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+                __eq
+            }
         );
     }
                 // Never had any data.

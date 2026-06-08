@@ -679,10 +679,22 @@ impl semaRoot {
                 false
             }
         } {
-        if { let __left = (*(*s.lock().unwrap().as_ref().unwrap()).parent.lock().unwrap().as_ref().unwrap()).prev.clone(); let __right = s.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if {
+            let __left = (*(*s.lock().unwrap().as_ref().unwrap()).parent.lock().unwrap().as_ref().unwrap()).prev.clone();
+            let __right = s.clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            __eq
+        } {
         self.rotate_right({ let __field = (*s.lock().unwrap().as_ref().unwrap()).parent.clone(); __field });
     } else {
-        if { let __left = (*(*s.lock().unwrap().as_ref().unwrap()).parent.lock().unwrap().as_ref().unwrap()).next.clone(); let __right = s.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
+        if {
+            let __left = (*(*s.lock().unwrap().as_ref().unwrap()).parent.lock().unwrap().as_ref().unwrap()).next.clone();
+            let __right = s.clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            !__eq
+        } {
         std::panic::panic_any(Box::new("semaRoot queue".to_string()) as Box<dyn Any + Send + Sync>);
     }
         self.rotate_left({ let __field = (*s.lock().unwrap().as_ref().unwrap()).parent.clone(); __field });
@@ -784,7 +796,13 @@ impl semaRoot {
     }
     };
             if { let __nil_target = (*s.lock().unwrap().as_ref().unwrap()).parent.clone(); let __nil_result = (*__nil_target.lock().unwrap()).is_some(); __nil_result } {
-        if { let __left = (*(*s.lock().unwrap().as_ref().unwrap()).parent.lock().unwrap().as_ref().unwrap()).prev.clone(); let __right = s.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+        if {
+            let __left = (*(*s.lock().unwrap().as_ref().unwrap()).parent.lock().unwrap().as_ref().unwrap()).prev.clone();
+            let __right = s.clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            __eq
+        } {
         *(*(*s.lock().unwrap().as_ref().unwrap()).parent.lock().unwrap().as_ref().unwrap()).prev.lock().unwrap() = None;
     } else {
         *(*(*s.lock().unwrap().as_ref().unwrap()).parent.lock().unwrap().as_ref().unwrap()).next.lock().unwrap() = None;
@@ -826,10 +844,22 @@ impl semaRoot {
         { let new_val = p.clone(); (*y.lock().unwrap().as_mut().unwrap()).parent = new_val; };
         if { let __nil_result = (*p.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = y.clone(); self.treap = new_val; };
-    } else if { let __left = (*p.lock().unwrap().as_ref().unwrap()).prev.clone(); let __right = x.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+    } else if {
+        let __left = (*p.lock().unwrap().as_ref().unwrap()).prev.clone();
+        let __right = x.clone();
+        let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+        let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+        __eq
+    } {
         { let new_val = y.clone(); (*p.lock().unwrap().as_mut().unwrap()).prev = new_val; };
     } else {
-        if { let __left = (*p.lock().unwrap().as_ref().unwrap()).next.clone(); let __right = x.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
+        if {
+            let __left = (*p.lock().unwrap().as_ref().unwrap()).next.clone();
+            let __right = x.clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            !__eq
+        } {
         throw(Arc::new(Mutex::new(Some("semaRoot rotateLeft".to_string()))));
     }
         { let new_val = y.clone(); (*p.lock().unwrap().as_mut().unwrap()).next = new_val; };
@@ -852,10 +882,22 @@ impl semaRoot {
         { let new_val = p.clone(); (*x.lock().unwrap().as_mut().unwrap()).parent = new_val; };
         if { let __nil_result = (*p.lock().unwrap()).is_none(); __nil_result } {
         { let new_val = x.clone(); self.treap = new_val; };
-    } else if { let __left = (*p.lock().unwrap().as_ref().unwrap()).prev.clone(); let __right = y.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq } {
+    } else if {
+        let __left = (*p.lock().unwrap().as_ref().unwrap()).prev.clone();
+        let __right = y.clone();
+        let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+        let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+        __eq
+    } {
         { let new_val = x.clone(); (*p.lock().unwrap().as_mut().unwrap()).prev = new_val; };
     } else {
-        if { let __left = (*p.lock().unwrap().as_ref().unwrap()).next.clone(); let __right = y.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); !__eq } {
+        if {
+            let __left = (*p.lock().unwrap().as_ref().unwrap()).next.clone();
+            let __right = y.clone();
+            let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none();
+            let __eq = __both_nil || Arc::ptr_eq(&__left, &__right);
+            !__eq
+        } {
         throw(Arc::new(Mutex::new(Some("semaRoot rotateRight".to_string()))));
     }
         { let new_val = x.clone(); (*p.lock().unwrap().as_mut().unwrap()).next = new_val; };
