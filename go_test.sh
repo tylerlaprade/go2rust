@@ -47,24 +47,6 @@ if [ "${GO2RUST_GO_TEST_CLEAN_STALE:-1}" != "0" ]; then
 fi
 
 detect_available_memory_bytes() {
-    if command -v memory_pressure >/dev/null 2>&1; then
-        memory_pressure 2>/dev/null | awk '
-            /^The system has / {
-                total = $4
-            }
-            /System-wide memory free percentage:/ {
-                pct = $5
-                gsub(/%/, "", pct)
-            }
-            END {
-                if (total ~ /^[0-9]+$/ && pct ~ /^[0-9]+$/) {
-                    printf "%.0f\n", total * pct / 100
-                }
-            }
-        '
-        return
-    fi
-
     if [ -r /proc/meminfo ]; then
         awk '/MemAvailable/ { printf "%.0f\n", $2 * 1024 }' /proc/meminfo 2>/dev/null
         return
@@ -87,6 +69,24 @@ detect_available_memory_bytes() {
             END {
                 if (page_size > 0) {
                     printf "%.0f\n", (free_pages + speculative_pages) * page_size
+                }
+            }
+        '
+        return
+    fi
+
+    if command -v memory_pressure >/dev/null 2>&1; then
+        memory_pressure 2>/dev/null | awk '
+            /^The system has / {
+                total = $4
+            }
+            /System-wide memory free percentage:/ {
+                pct = $5
+                gsub(/%/, "", pct)
+            }
+            END {
+                if (total ~ /^[0-9]+$/ && pct ~ /^[0-9]+$/) {
+                    printf "%.0f\n", total * pct / 100
                 }
             }
         '

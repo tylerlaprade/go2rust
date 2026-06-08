@@ -34,6 +34,14 @@ Environment:
   GO2RUST_SELF_CLEAN_STALE=0
                       Disable startup cleanup of stale self-transpile workspaces
                       that were created with an owner pid marker.
+  GO2RUST_SELF_MIN_AVAILABLE_MEM_MB
+                      Minimum available memory before self-transpile work
+                      (default: 1024; 0 disables).
+  GO2RUST_SELF_CARGO_MIN_AVAILABLE_MEM_MB
+                      Minimum available memory before self-transpile Cargo
+                      validation (default: 2048; 0 disables).
+  GO2RUST_SELF_SKIP_PRESSURE_GUARD=1
+                      Bypass the available-memory guard.
   GO2RUST_SOURCE_STDLIB_PACKAGES=PATTERNS
                       Stdlib packages to transpile from GOROOT source
                       instead of semantic stubs (default: go/..., internal/...,
@@ -102,7 +110,98 @@ copy_behavior_suite_tests() {
     find "$suite/tests" -name "Cargo.lock" -type f -delete
 }
 
+detect_available_memory_bytes() {
+    if [ -r /proc/meminfo ]; then
+        awk '/MemAvailable/ { printf "%.0f\n", $2 * 1024 }' /proc/meminfo 2>/dev/null
+        return
+    fi
+
+    if command -v vm_stat >/dev/null 2>&1; then
+        vm_stat 2>/dev/null | awk '
+            /page size of/ {
+                page_size = $8
+                gsub(/[^0-9]/, "", page_size)
+            }
+            /Pages free:/ {
+                free_pages = $3
+                gsub(/[^0-9]/, "", free_pages)
+            }
+            /Pages speculative:/ {
+                speculative_pages = $3
+                gsub(/[^0-9]/, "", speculative_pages)
+            }
+            END {
+                if (page_size > 0) {
+                    printf "%.0f\n", (free_pages + speculative_pages) * page_size
+                }
+            }
+        '
+        return
+    fi
+
+    if command -v memory_pressure >/dev/null 2>&1; then
+        memory_pressure 2>/dev/null | awk '
+            /^The system has / {
+                total = $4
+            }
+            /System-wide memory free percentage:/ {
+                pct = $5
+                gsub(/%/, "", pct)
+            }
+            END {
+                if (total ~ /^[0-9]+$/ && pct ~ /^[0-9]+$/) {
+                    printf "%.0f\n", total * pct / 100
+                }
+            }
+        '
+        return
+    fi
+}
+
+enforce_available_memory_floor() {
+    local min_var="${1:-GO2RUST_SELF_MIN_AVAILABLE_MEM_MB}"
+    local default_min_mb="${2:-1024}"
+    local work_label="${3:-self-transpile work}"
+
+    case "${GO2RUST_SELF_SKIP_PRESSURE_GUARD:-0}" in
+        1|true|TRUE|yes|YES)
+            return
+            ;;
+    esac
+
+    local min_mb="${!min_var:-$default_min_mb}"
+    case "$min_mb" in
+        ''|*[!0-9]*)
+            echo "error: $min_var must be a non-negative integer" >&2
+            exit 2
+            ;;
+    esac
+    [ "$min_mb" -eq 0 ] && return
+
+    local available_bytes
+    available_bytes=$(detect_available_memory_bytes)
+    case "$available_bytes" in
+        ''|*[!0-9]*)
+            return
+            ;;
+    esac
+
+    local min_bytes=$(( min_mb * 1024 * 1024 ))
+    if [ "$available_bytes" -lt "$min_bytes" ]; then
+        local available_mb=$(( available_bytes / 1024 / 1024 ))
+        echo "Error: available memory is ${available_mb} MiB, below ${min_var}=${min_mb} MiB." >&2
+        echo "Refusing to start $work_label while the machine is under memory pressure." >&2
+        echo "Run ./cleanup.sh --pressure --quick to inspect current pressure, or set GO2RUST_SELF_SKIP_PRESSURE_GUARD=1 to force the run." >&2
+        exit 1
+    fi
+}
+
 cleanup_stale_self_workspaces
+if [ "$cargo_check" = true ] || [ "$behavior_suite" = true ]; then
+    enforce_available_memory_floor GO2RUST_SELF_CARGO_MIN_AVAILABLE_MEM_MB 2048 "self-transpile Cargo validation"
+else
+    enforce_available_memory_floor GO2RUST_SELF_MIN_AVAILABLE_MEM_MB 1024 "self-transpile work"
+fi
 work=$(mktemp -d "$tmp_root/go2rust-self.XXXXXX")
 keep=${KEEP_SELF_TRANSPILE:-0}
 echo "$$" > "$work/self_transpile_check.pid"

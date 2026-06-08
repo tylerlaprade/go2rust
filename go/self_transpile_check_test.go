@@ -147,6 +147,50 @@ func TestSelfTranspileCargoOfflineAutoUsesCachedIndex(t *testing.T) {
 	}
 }
 
+func TestSelfTranspileRefusesUnderMemoryPressure(t *testing.T) {
+	data, err := os.ReadFile("../self_transpile_check.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(self_transpile_check.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`GO2RUST_SELF_MIN_AVAILABLE_MEM_MB`,
+		`GO2RUST_SELF_CARGO_MIN_AVAILABLE_MEM_MB`,
+		`GO2RUST_SELF_SKIP_PRESSURE_GUARD=1`,
+		`detect_available_memory_bytes()`,
+		`memory_pressure`,
+		`System-wide memory free percentage:`,
+		`/MemAvailable/`,
+		`vm_stat`,
+		`enforce_available_memory_floor()`,
+		`available memory is ${available_mb} MiB`,
+		`Refusing to start $work_label while the machine is under memory pressure.`,
+		`./cleanup.sh --pressure --quick`,
+		`enforce_available_memory_floor GO2RUST_SELF_CARGO_MIN_AVAILABLE_MEM_MB 2048 "self-transpile Cargo validation"`,
+		`enforce_available_memory_floor GO2RUST_SELF_MIN_AVAILABLE_MEM_MB 1024 "self-transpile work"`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("self_transpile_check.sh should refuse to start under memory pressure; missing %q", want)
+		}
+	}
+
+	cargoGuardIndex := strings.Index(script, `enforce_available_memory_floor GO2RUST_SELF_CARGO_MIN_AVAILABLE_MEM_MB 2048 "self-transpile Cargo validation"`)
+	baseGuardIndex := strings.Index(script, `enforce_available_memory_floor GO2RUST_SELF_MIN_AVAILABLE_MEM_MB 1024 "self-transpile work"`)
+	workspaceIndex := strings.Index(script, `work=$(mktemp -d "$tmp_root/go2rust-self.XXXXXX")`)
+	if cargoGuardIndex < 0 || baseGuardIndex < 0 || workspaceIndex < 0 {
+		t.Fatalf("self_transpile_check.sh should guard before creating the self-transpile workspace")
+	}
+	if cargoGuardIndex > workspaceIndex || baseGuardIndex > workspaceIndex {
+		t.Fatalf("self_transpile_check.sh should run the memory-pressure guard before creating the self-transpile workspace")
+	}
+
+	vmStatIndex := strings.Index(script, `if command -v vm_stat`)
+	memoryPressureIndex := strings.Index(script, `if command -v memory_pressure`)
+	if vmStatIndex < 0 || memoryPressureIndex < 0 || vmStatIndex > memoryPressureIndex {
+		t.Fatalf("self_transpile_check.sh should prefer vm_stat over memory_pressure for current macOS pressure")
+	}
+}
+
 func TestSelfTranspileBehaviorSuiteCopiesCleanupScript(t *testing.T) {
 	data, err := os.ReadFile("../self_transpile_check.sh")
 	if err != nil {

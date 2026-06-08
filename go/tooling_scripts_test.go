@@ -231,6 +231,12 @@ func TestGoTestScriptRefusesUnderMemoryPressure(t *testing.T) {
 	if guardIndex > goTestIndex {
 		t.Fatalf("go_test.sh should run the memory-pressure guard before go test")
 	}
+
+	vmStatIndex := strings.Index(script, `if command -v vm_stat`)
+	memoryPressureIndex := strings.Index(script, `if command -v memory_pressure`)
+	if vmStatIndex < 0 || memoryPressureIndex < 0 || vmStatIndex > memoryPressureIndex {
+		t.Fatalf("go_test.sh should prefer vm_stat over memory_pressure for current macOS pressure")
+	}
 }
 
 func TestTestScriptDefaultJobsRespectMemoryHeadroom(t *testing.T) {
@@ -272,6 +278,12 @@ func TestTestScriptDefaultJobsRespectCurrentMemoryPressure(t *testing.T) {
 		if !strings.Contains(script, want) {
 			t.Fatalf("test.sh should cap default jobs by current memory pressure; missing %q", want)
 		}
+	}
+
+	vmStatIndex := strings.Index(script, `if command -v vm_stat`)
+	memoryPressureIndex := strings.Index(script, `if command -v memory_pressure`)
+	if vmStatIndex < 0 || memoryPressureIndex < 0 || vmStatIndex > memoryPressureIndex {
+		t.Fatalf("test.sh should prefer vm_stat over memory_pressure for current macOS pressure")
 	}
 }
 
