@@ -778,7 +778,31 @@ pub fn new_file_1(fd: Arc<Mutex<Option<i32>>>, name: Arc<Mutex<Option<String>>>,
         __owner
     };
 
-    let mut pollable = Arc::new(Mutex::new(Some({ let __tmp_x = (*kind.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = newFileKind(Arc::new(Mutex::new(Some(KIND_OPEN_FILE as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*kind.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = newFileKind(Arc::new(Mutex::new(Some(KIND_PIPE as i32)))); __tmp_x == __tmp_y } || { let __tmp_x = (*kind.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = newFileKind(Arc::new(Mutex::new(Some(KIND_SOCK as i32)))); __tmp_x == __tmp_y } || { let __v = (*nonBlocking.lock().unwrap().as_ref().unwrap()).clone(); __v })));
+    let mut pollable = Arc::new(Mutex::new(Some({
+        let __go_cond_0 = {
+            let __go_cond_1 = {
+                let __go_cond_2 = { let __tmp_x = (*kind.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = newFileKind(Arc::new(Mutex::new(Some(KIND_OPEN_FILE as i32)))); __tmp_x == __tmp_y };
+                if __go_cond_2 {
+                    true
+                } else {
+                    let __go_cond_3 = { let __tmp_x = (*kind.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = newFileKind(Arc::new(Mutex::new(Some(KIND_PIPE as i32)))); __tmp_x == __tmp_y };
+                    __go_cond_3
+                }
+            };
+            if __go_cond_1 {
+                true
+            } else {
+                let __go_cond_4 = { let __tmp_x = (*kind.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = newFileKind(Arc::new(Mutex::new(Some(KIND_SOCK as i32)))); __tmp_x == __tmp_y };
+                __go_cond_4
+            }
+        };
+        if __go_cond_0 {
+            true
+        } else {
+            let __go_cond_5 = { let __v = (*nonBlocking.lock().unwrap().as_ref().unwrap()).clone(); __v };
+            __go_cond_5
+        }
+    })));
 
         // Things like regular files and FIFOs in kqueue on *BSD/Darwin
         // may not work properly (or accurately according to its manual).

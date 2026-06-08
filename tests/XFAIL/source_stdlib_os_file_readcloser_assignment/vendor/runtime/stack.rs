@@ -1015,7 +1015,31 @@ pub fn adjustpointers(scanp: Arc<Mutex<Option<usize>>>, bv: Arc<Mutex<Option<bit
             Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x * __tmp_y })))
         ).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
         let mut p = Arc::new(Mutex::new(Some({ let __ptr_value = pp.borrow(); __ptr_value.as_ref().unwrap().clone() })));
-        if (*f.lock().unwrap().as_ref().unwrap()).valid() && { let __tmp_x = 0 as usize; let __tmp_y = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } && { let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MIN_LEGAL_POINTER as usize; __tmp_x < __tmp_y } && { let __tmp_x = (*{ let __field = (*debug.lock().unwrap().as_ref().unwrap()).invalidptr.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x != __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __go_cond_2 = (*f.lock().unwrap().as_ref().unwrap()).valid();
+                    if __go_cond_2 {
+                        let __go_cond_3 = { let __tmp_x = 0 as usize; let __tmp_y = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y };
+                        __go_cond_3
+                    } else {
+                        false
+                    }
+                };
+                if __go_cond_1 {
+                    let __go_cond_4 = { let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MIN_LEGAL_POINTER as usize; __tmp_x < __tmp_y };
+                    __go_cond_4
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_5 = { let __tmp_x = (*{ let __field = (*debug.lock().unwrap().as_ref().unwrap()).invalidptr.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x != __tmp_y };
+                __go_cond_5
+            } else {
+                false
+            }
+        } {
                 // Looks like a junk value in a pointer slot.
                 // Live analysis wrong?
         { let new_val = 2 as u8; *(*(*getg().lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).traceback.lock().unwrap() = Some(new_val); };

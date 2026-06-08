@@ -1527,6 +1527,10 @@ run_xfail_test() {
     run_test "tests/local_var_multi_names"
 }
 
+@test "logical_four_part_condition" {
+    run_test "tests/logical_four_part_condition"
+}
+
 @test "logical_short_circuit_return" {
     run_test "tests/logical_short_circuit_return"
 }

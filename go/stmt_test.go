@@ -4810,6 +4810,32 @@ func isRuntimeName(name string) bool {
 	}
 }
 
+func TestConcurrentIfBuildsFourPartLogicalConditionWithStatements(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func compareAndSwap(state int32, old int32, new int32) bool {
+	return true
+}
+
+func spin(awoke bool, old int32) bool {
+	go func() {}()
+	if !awoke && old&2 == 0 && old>>3 != 0 && compareAndSwap(old, old, old|2) {
+		return true
+	}
+	return false
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "if !") && strings.Contains(line, "compare_and_swap(") {
+			t.Fatalf("four-part logical condition should not stay on one if line:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "let __go_cond_") {
+		t.Fatalf("four-part logical condition should build condition operands with statements:\n%s", rust)
+	}
+}
+
 func TestConcurrentIfBuildsGoErrorComparisonChainWithStatements(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

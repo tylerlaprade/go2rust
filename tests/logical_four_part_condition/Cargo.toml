@@ -1,0 +1,8 @@
+[package]
+name = "logical_four_part_condition"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "logical_four_part_condition"
+path = "main.rs"

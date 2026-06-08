@@ -1819,7 +1819,31 @@ pub fn find_object(p: Arc<Mutex<Option<usize>>>, refBase: Arc<Mutex<Option<usize
         // If s is nil, the virtual address has never been part of the heap.
         // This pointer may be to some mmap'd region, so we allow it.
     if s.is_nil() {
-        if ({ let __tmp_x = "arm64".to_string(); let __tmp_y = "amd64".to_string(); __tmp_x == __tmp_y } || { let __tmp_x = "arm64".to_string(); let __tmp_y = "arm64".to_string(); __tmp_x == __tmp_y }) && { let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = CLOBBERDEAD_PTR as usize; __tmp_x == __tmp_y } && { let __tmp_x = (*{ let __field = (*debug.lock().unwrap().as_ref().unwrap()).invalidptr.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x != __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __go_cond_2 = { let __tmp_x = "arm64".to_string(); let __tmp_y = "amd64".to_string(); __tmp_x == __tmp_y };
+                    if __go_cond_2 {
+                        true
+                    } else {
+                        let __go_cond_3 = { let __tmp_x = "arm64".to_string(); let __tmp_y = "arm64".to_string(); __tmp_x == __tmp_y };
+                        __go_cond_3
+                    }
+                };
+                if __go_cond_1 {
+                    let __go_cond_4 = { let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = CLOBBERDEAD_PTR as usize; __tmp_x == __tmp_y };
+                    __go_cond_4
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_5 = { let __tmp_x = (*{ let __field = (*debug.lock().unwrap().as_ref().unwrap()).invalidptr.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x != __tmp_y };
+                __go_cond_5
+            } else {
+                false
+            }
+        } {
                 // Crash if clobberdeadPtr is seen. Only on AMD64 and ARM64 for now,
                 // as they are the only platform where compiler's clobberdead mode is
                 // implemented. On these platforms clobberdeadPtr cannot be a valid address.

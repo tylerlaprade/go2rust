@@ -795,7 +795,31 @@ impl unwinder {
                 // arm < 7. See internal/runtime/atomic/sys_linux_arm.s.
                 //
                 // Start in the caller's frame.
-        if { let __tmp_x = "arm64".to_string(); let __tmp_y = "arm".to_string(); __tmp_x == __tmp_y } && { let __tmp_x = (*goarm.lock().unwrap().as_ref().unwrap()); let __tmp_y = 7 as u8; __tmp_x < __tmp_y } && { let __tmp_x = "darwin".to_string(); let __tmp_y = "linux".to_string(); __tmp_x == __tmp_y } && { let __tmp_x = { let __tmp_x = (*{ let __field = (*frame.lock().unwrap().as_ref().unwrap()).pc.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0xffff0000 as usize; __tmp_x & __tmp_y }; let __tmp_y = 0xffff0000 as usize; __tmp_x == __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __go_cond_2 = { let __tmp_x = "arm64".to_string(); let __tmp_y = "arm".to_string(); __tmp_x == __tmp_y };
+                    if __go_cond_2 {
+                        let __go_cond_3 = { let __tmp_x = (*goarm.lock().unwrap().as_ref().unwrap()); let __tmp_y = 7 as u8; __tmp_x < __tmp_y };
+                        __go_cond_3
+                    } else {
+                        false
+                    }
+                };
+                if __go_cond_1 {
+                    let __go_cond_4 = { let __tmp_x = "darwin".to_string(); let __tmp_y = "linux".to_string(); __tmp_x == __tmp_y };
+                    __go_cond_4
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_5 = { let __tmp_x = { let __tmp_x = (*{ let __field = (*frame.lock().unwrap().as_ref().unwrap()).pc.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0xffff0000 as usize; __tmp_x & __tmp_y }; let __tmp_y = 0xffff0000 as usize; __tmp_x == __tmp_y };
+                __go_cond_5
+            } else {
+                false
+            }
+        } {
                 // Note that the calls are simple BL without pushing the return
                 // address, so we use LR directly.
                 //
@@ -2541,7 +2565,31 @@ pub fn is_exported_runtime(mut name: Arc<Mutex<Option<String>>>) -> bool {
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); let __high = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; __s[..__high].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *rcvr.lock().unwrap() = __moved_val; };
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*name.lock().unwrap().as_ref().unwrap()).clone()); let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; __s[__low..].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *name.lock().unwrap() = __moved_val; };
                 // Remove parentheses and star for pointer receivers.
-        if { let __tmp_x = ((*rcvr.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 3; __tmp_x >= __tmp_y } && { let __tmp_x = { let __s = &((*rcvr.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('(' as i32) as u8; __tmp_x == __tmp_y } && { let __tmp_x = { let __s = &((*rcvr.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] }; let __tmp_y = ('*' as i32) as u8; __tmp_x == __tmp_y } && { let __tmp_x = { let __s = &((*rcvr.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = ((*rcvr.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize] }; let __tmp_y = (')' as i32) as u8; __tmp_x == __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __go_cond_2 = { let __tmp_x = ((*rcvr.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 3; __tmp_x >= __tmp_y };
+                    if __go_cond_2 {
+                        let __go_cond_3 = { let __tmp_x = { let __s = &((*rcvr.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }; let __tmp_y = ('(' as i32) as u8; __tmp_x == __tmp_y };
+                        __go_cond_3
+                    } else {
+                        false
+                    }
+                };
+                if __go_cond_1 {
+                    let __go_cond_4 = { let __tmp_x = { let __s = &((*rcvr.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] }; let __tmp_y = ('*' as i32) as u8; __tmp_x == __tmp_y };
+                    __go_cond_4
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_5 = { let __tmp_x = { let __s = &((*rcvr.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[({ let __tmp_x = ((*rcvr.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize] }; let __tmp_y = (')' as i32) as u8; __tmp_x == __tmp_y };
+                __go_cond_5
+            } else {
+                false
+            }
+        } {
         { let new_val = Arc::new(Mutex::new(Some({ let __s = &((*rcvr.lock().unwrap().as_ref().unwrap()).clone()); let __low = (2) as usize; let __high = ({ let __tmp_x = ((*rcvr.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; __s[__low..__high].to_string() }))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *rcvr.lock().unwrap() = __moved_val; };
     }
     }

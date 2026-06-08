@@ -103,7 +103,31 @@ pub(crate) fn __go_zero_globals() {
 ///go:linkname cgocall
 ///go:nosplit
 pub fn cgocall(r#fn: Arc<Mutex<Option<usize>>>, arg: Arc<Mutex<Option<usize>>>) -> i32 {
-    if !(*iscgo.lock().unwrap().as_ref().unwrap()) && { let __tmp_x = "darwin".to_string(); let __tmp_y = "solaris".to_string(); __tmp_x != __tmp_y } && { let __tmp_x = "darwin".to_string(); let __tmp_y = "illumos".to_string(); __tmp_x != __tmp_y } && { let __tmp_x = "darwin".to_string(); let __tmp_y = "windows".to_string(); __tmp_x != __tmp_y } {
+    if {
+        let __go_cond_0 = {
+            let __go_cond_1 = {
+                let __go_cond_2 = !(*iscgo.lock().unwrap().as_ref().unwrap());
+                if __go_cond_2 {
+                    let __go_cond_3 = { let __tmp_x = "darwin".to_string(); let __tmp_y = "solaris".to_string(); __tmp_x != __tmp_y };
+                    __go_cond_3
+                } else {
+                    false
+                }
+            };
+            if __go_cond_1 {
+                let __go_cond_4 = { let __tmp_x = "darwin".to_string(); let __tmp_y = "illumos".to_string(); __tmp_x != __tmp_y };
+                __go_cond_4
+            } else {
+                false
+            }
+        };
+        if __go_cond_0 {
+            let __go_cond_5 = { let __tmp_x = "darwin".to_string(); let __tmp_y = "windows".to_string(); __tmp_x != __tmp_y };
+            __go_cond_5
+        } else {
+            false
+        }
+    } {
         throw(Arc::new(Mutex::new(Some("cgocall unavailable".to_string()))));
     }
 

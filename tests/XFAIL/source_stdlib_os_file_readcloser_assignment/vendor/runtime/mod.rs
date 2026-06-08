@@ -341,7 +341,31 @@ pub fn write_err_data(data: GoPtr<u8>, n: Arc<Mutex<Option<i32>>>) {
 
         // If crashing, print a copy to the SetCrashOutput fd.
     let mut gp = getg();
-    if { let __nil_result = (*gp.lock().unwrap()).is_some(); __nil_result } && { let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).dying.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x > __tmp_y } || { let __nil_result = (*gp.lock().unwrap()).is_none(); __nil_result } && { let __tmp_x = (*panicking.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 0 as u32; __tmp_x > __tmp_y } {
+    if {
+        let __go_cond_0 = {
+            let __go_cond_1 = { let __nil_result = (*gp.lock().unwrap()).is_some(); __nil_result };
+            if __go_cond_1 {
+                let __go_cond_2 = { let __tmp_x = (*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).dying.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x > __tmp_y };
+                __go_cond_2
+            } else {
+                false
+            }
+        };
+        if __go_cond_0 {
+            true
+        } else {
+            let __go_cond_3 = {
+                let __go_cond_4 = { let __nil_result = (*gp.lock().unwrap()).is_none(); __nil_result };
+                if __go_cond_4 {
+                    let __go_cond_5 = { let __tmp_x = (*panicking.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 0 as u32; __tmp_x > __tmp_y };
+                    __go_cond_5
+                } else {
+                    false
+                }
+            };
+            __go_cond_3
+        }
+    } {
         {
         let mut fd = (*crashFD.lock().unwrap().as_mut().unwrap()).load();;
         if { let __tmp_x = fd; let __tmp_y = !(0 as usize) as usize; __tmp_x != __tmp_y } {

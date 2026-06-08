@@ -2128,7 +2128,31 @@ pub fn mcommoninit(mp: Arc<Mutex<Option<m>>>, id: Arc<Mutex<Option<i64>>>) {
     unlock(GoPtr::local((*sched.lock().unwrap().as_ref().unwrap()).lock.clone()));
 
         // Allocate memory to hold a cgo traceback if the cgo call crashes.
-    if (*iscgo.lock().unwrap().as_ref().unwrap()) || { let __tmp_x = "darwin".to_string(); let __tmp_y = "solaris".to_string(); __tmp_x == __tmp_y } || { let __tmp_x = "darwin".to_string(); let __tmp_y = "illumos".to_string(); __tmp_x == __tmp_y } || { let __tmp_x = "darwin".to_string(); let __tmp_y = "windows".to_string(); __tmp_x == __tmp_y } {
+    if {
+        let __go_cond_0 = {
+            let __go_cond_1 = {
+                let __go_cond_2 = (*iscgo.lock().unwrap().as_ref().unwrap());
+                if __go_cond_2 {
+                    true
+                } else {
+                    let __go_cond_3 = { let __tmp_x = "darwin".to_string(); let __tmp_y = "solaris".to_string(); __tmp_x == __tmp_y };
+                    __go_cond_3
+                }
+            };
+            if __go_cond_1 {
+                true
+            } else {
+                let __go_cond_4 = { let __tmp_x = "darwin".to_string(); let __tmp_y = "illumos".to_string(); __tmp_x == __tmp_y };
+                __go_cond_4
+            }
+        };
+        if __go_cond_0 {
+            true
+        } else {
+            let __go_cond_5 = { let __tmp_x = "darwin".to_string(); let __tmp_y = "windows".to_string(); __tmp_x == __tmp_y };
+            __go_cond_5
+        }
+    } {
         { let new_val = Arc::new(Mutex::new(Some(cgoCallers::default()))).clone(); (*mp.lock().unwrap().as_mut().unwrap()).cgo_callers = new_val; };
     }
     m_prof_stack_init(mp.clone());
@@ -4512,7 +4536,31 @@ pub fn find_runnable() -> (GoPtr<crate::runtime2::g>, bool, bool) {
                 // adjusttimers which may need to allocate memory, and that isn't
                 // allowed when we don't have an active P.
                 // Poll network until next timer.
-        if netpollinited() && (netpoll_any_waiters() || { let __tmp_x = pollUntil; let __tmp_y = 0 as i64; __tmp_x != __tmp_y }) && { let __tmp_x = (*(*sched.lock().unwrap().as_ref().unwrap()).lastpoll.lock().unwrap().as_mut().unwrap()).swap(Arc::new(Mutex::new(Some(0 as i64)))); let __tmp_y = 0 as i64; __tmp_x != __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = netpollinited();
+                if __go_cond_1 {
+                    let __go_cond_2 = {
+                        let __go_cond_3 = netpoll_any_waiters();
+                        if __go_cond_3 {
+                            true
+                        } else {
+                            let __go_cond_4 = { let __tmp_x = pollUntil; let __tmp_y = 0 as i64; __tmp_x != __tmp_y };
+                            __go_cond_4
+                        }
+                    };
+                    __go_cond_2
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_5 = { let __tmp_x = (*(*sched.lock().unwrap().as_ref().unwrap()).lastpoll.lock().unwrap().as_mut().unwrap()).swap(Arc::new(Mutex::new(Some(0 as i64)))); let __tmp_y = 0 as i64; __tmp_x != __tmp_y };
+                __go_cond_5
+            } else {
+                false
+            }
+        } {
         (*(*sched.lock().unwrap().as_ref().unwrap()).poll_until.lock().unwrap().as_mut().unwrap()).store(Arc::new(Mutex::new(Some(pollUntil))));
         if {
             let __tmp_x = { let __selector_holder = (*mp.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
@@ -6251,7 +6299,31 @@ pub fn sigprof(mut pc: Arc<Mutex<Option<usize>>>, sp: Arc<Mutex<Option<usize>>>,
     };
         }
     }
-        if { let __tmp_x = "arm64".to_string(); let __tmp_y = "arm".to_string(); __tmp_x == __tmp_y } && { let __tmp_x = (*goarm.lock().unwrap().as_ref().unwrap()); let __tmp_y = 7 as u8; __tmp_x < __tmp_y } && { let __tmp_x = "darwin".to_string(); let __tmp_y = "linux".to_string(); __tmp_x == __tmp_y } && { let __tmp_x = { let __tmp_x = { let __v = (*pc.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0xffff0000 as usize; __tmp_x & __tmp_y }; let __tmp_y = 0xffff0000 as usize; __tmp_x == __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __go_cond_2 = { let __tmp_x = "arm64".to_string(); let __tmp_y = "arm".to_string(); __tmp_x == __tmp_y };
+                    if __go_cond_2 {
+                        let __go_cond_3 = { let __tmp_x = (*goarm.lock().unwrap().as_ref().unwrap()); let __tmp_y = 7 as u8; __tmp_x < __tmp_y };
+                        __go_cond_3
+                    } else {
+                        false
+                    }
+                };
+                if __go_cond_1 {
+                    let __go_cond_4 = { let __tmp_x = "darwin".to_string(); let __tmp_y = "linux".to_string(); __tmp_x == __tmp_y };
+                    __go_cond_4
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_5 = { let __tmp_x = { let __tmp_x = { let __v = (*pc.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0xffff0000 as usize; __tmp_x & __tmp_y }; let __tmp_y = 0xffff0000 as usize; __tmp_x == __tmp_y };
+                __go_cond_5
+            } else {
+                false
+            }
+        } {
                 // internal/runtime/atomic functions call into kernel
                 // helpers on arm < 7. See
                 // internal/runtime/atomic/sys_linux_arm.s.

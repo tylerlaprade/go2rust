@@ -1005,7 +1005,31 @@ pub fn mallocgc(mut size: Arc<Mutex<Option<usize>>>, typ: GoPtr<internal_abi::r#
                 // Poison the space between the end of the requested size of x
                 // and the end of the slot. Unpoison the requested allocation.
         let mut frag = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*elemsize.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y })));
-        if !typ.is_nil() && { let __recv_value = typ.borrow(); let __result = (*__recv_value.as_ref().unwrap()).pointers(); __result } && !heap_bits_in_span(Arc::new(Mutex::new(Some({ let __arg_holder = elemsize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) && { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((MAX_SMALL_SIZE as usize) - (MALLOC_HEADER_SIZE as usize)) as usize; __tmp_x <= __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __go_cond_2 = !typ.is_nil();
+                    if __go_cond_2 {
+                        let __go_cond_3 = { let __recv_value = typ.borrow(); let __result = (*__recv_value.as_ref().unwrap()).pointers(); __result };
+                        __go_cond_3
+                    } else {
+                        false
+                    }
+                };
+                if __go_cond_1 {
+                    let __go_cond_4 = !heap_bits_in_span(Arc::new(Mutex::new(Some({ let __arg_holder = elemsize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+                    __go_cond_4
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_5 = { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ((MAX_SMALL_SIZE as usize) - (MALLOC_HEADER_SIZE as usize)) as usize; __tmp_x <= __tmp_y };
+                __go_cond_5
+            } else {
+                false
+            }
+        } {
         { let __rhs = MALLOC_HEADER_SIZE as usize; let mut guard = frag.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
     }
         asanpoison(

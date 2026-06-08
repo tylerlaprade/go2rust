@@ -4767,7 +4767,31 @@ impl Time {
         __self.add_sec(Arc::new(Mutex::new(Some({ let __arg_holder = dsec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         if { let __tmp_x = { let __tmp_x = (*__self.wall.lock().unwrap().as_ref().unwrap()); let __tmp_y = HAS_MONOTONIC as u64; __tmp_x & __tmp_y }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
         let mut te = Arc::new(Mutex::new(Some({ let __tmp_x = (*__self.ext.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }).as_nanos() as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })));
-        if { let __tmp_x = (*d.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Duration(Arc::new(Mutex::new(Some(0 as i64)))); __tmp_x < __tmp_y } && { let __tmp_x = { let __v = (*te.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*__self.ext.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } || { let __tmp_x = (*d.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Duration(Arc::new(Mutex::new(Some(0 as i64)))); __tmp_x > __tmp_y } && { let __tmp_x = { let __v = (*te.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*__self.ext.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = { let __tmp_x = (*d.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Duration(Arc::new(Mutex::new(Some(0 as i64)))); __tmp_x < __tmp_y };
+                if __go_cond_1 {
+                    let __go_cond_2 = { let __tmp_x = { let __v = (*te.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*__self.ext.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y };
+                    __go_cond_2
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_3 = {
+                    let __go_cond_4 = { let __tmp_x = (*d.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Duration(Arc::new(Mutex::new(Some(0 as i64)))); __tmp_x > __tmp_y };
+                    if __go_cond_4 {
+                        let __go_cond_5 = { let __tmp_x = { let __v = (*te.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*__self.ext.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y };
+                        __go_cond_5
+                    } else {
+                        false
+                    }
+                };
+                __go_cond_3
+            }
+        } {
                 // Monotonic clock reading now out of range; degrade to wall-only.
         __self.strip_mono();
     } else {

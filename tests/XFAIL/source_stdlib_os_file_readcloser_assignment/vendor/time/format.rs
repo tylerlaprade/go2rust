@@ -785,7 +785,31 @@ impl crate::r#mod::Time {
                 Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*zone.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60; __tmp_x / __tmp_y }))),
                 Arc::new(Mutex::new(Some(2)))
             ); b = new_val; };
-            if { let __tmp_x = std; let __tmp_y = 27; __tmp_x == __tmp_y } || { let __tmp_x = std; let __tmp_y = 32; __tmp_x == __tmp_y } || { let __tmp_x = std; let __tmp_y = 28; __tmp_x == __tmp_y } || { let __tmp_x = std; let __tmp_y = 33; __tmp_x == __tmp_y } {
+            if {
+                let __go_cond_0 = {
+                    let __go_cond_1 = {
+                        let __go_cond_2 = { let __tmp_x = std; let __tmp_y = 27; __tmp_x == __tmp_y };
+                        if __go_cond_2 {
+                            true
+                        } else {
+                            let __go_cond_3 = { let __tmp_x = std; let __tmp_y = 32; __tmp_x == __tmp_y };
+                            __go_cond_3
+                        }
+                    };
+                    if __go_cond_1 {
+                        true
+                    } else {
+                        let __go_cond_4 = { let __tmp_x = std; let __tmp_y = 28; __tmp_x == __tmp_y };
+                        __go_cond_4
+                    }
+                };
+                if __go_cond_0 {
+                    true
+                } else {
+                    let __go_cond_5 = { let __tmp_x = std; let __tmp_y = 33; __tmp_x == __tmp_y };
+                    __go_cond_5
+                }
+            } {
         { let new_val = { let __append_target = b.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((':' as i32) as u8); __append_target.clone() }; b = new_val; };
     }
             if { let __tmp_x = std; let __tmp_y = 31; __tmp_x != __tmp_y } && { let __tmp_x = std; let __tmp_y = 26; __tmp_x != __tmp_y } {
@@ -796,7 +820,31 @@ impl crate::r#mod::Time {
         ); b = new_val; };
     }
                         // append seconds if appropriate
-            if { let __tmp_x = std; let __tmp_y = 25; __tmp_x == __tmp_y } || { let __tmp_x = std; let __tmp_y = 30; __tmp_x == __tmp_y } || { let __tmp_x = std; let __tmp_y = 33; __tmp_x == __tmp_y } || { let __tmp_x = std; let __tmp_y = 28; __tmp_x == __tmp_y } {
+            if {
+                let __go_cond_0 = {
+                    let __go_cond_1 = {
+                        let __go_cond_2 = { let __tmp_x = std; let __tmp_y = 25; __tmp_x == __tmp_y };
+                        if __go_cond_2 {
+                            true
+                        } else {
+                            let __go_cond_3 = { let __tmp_x = std; let __tmp_y = 30; __tmp_x == __tmp_y };
+                            __go_cond_3
+                        }
+                    };
+                    if __go_cond_1 {
+                        true
+                    } else {
+                        let __go_cond_4 = { let __tmp_x = std; let __tmp_y = 33; __tmp_x == __tmp_y };
+                        __go_cond_4
+                    }
+                };
+                if __go_cond_0 {
+                    true
+                } else {
+                    let __go_cond_5 = { let __tmp_x = std; let __tmp_y = 28; __tmp_x == __tmp_y };
+                    __go_cond_5
+                }
+            } {
         if { let __tmp_x = std; let __tmp_y = 33; __tmp_x == __tmp_y } || { let __tmp_x = std; let __tmp_y = 28; __tmp_x == __tmp_y } {
         { let new_val = { let __append_target = b.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push((':' as i32) as u8); __append_target.clone() }; b = new_val; };
     }
@@ -2064,7 +2112,31 @@ pub fn parse_1(mut layout: Arc<Mutex<Option<String>>>, mut value: Arc<Mutex<Opti
         if !_matched && (_switch_val == 35) || _fallthrough {
             _matched = true;
             _fallthrough = false;
-            if { let __tmp_x = ((*value.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 2; __tmp_x < __tmp_y } || !comma_or_period(Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] })))) || { let __tmp_x = { let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] }; let __tmp_y = ('0' as i32) as u8; __tmp_x < __tmp_y } || { let __tmp_x = ('9' as i32) as u8; let __tmp_y = { let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] }; __tmp_x < __tmp_y } {
+            if {
+                let __go_cond_0 = {
+                    let __go_cond_1 = {
+                        let __go_cond_2 = { let __tmp_x = ((*value.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 2; __tmp_x < __tmp_y };
+                        if __go_cond_2 {
+                            true
+                        } else {
+                            let __go_cond_3 = !comma_or_period(Arc::new(Mutex::new(Some({ let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(0) as usize] }))));
+                            __go_cond_3
+                        }
+                    };
+                    if __go_cond_1 {
+                        true
+                    } else {
+                        let __go_cond_4 = { let __tmp_x = { let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] }; let __tmp_y = ('0' as i32) as u8; __tmp_x < __tmp_y };
+                        __go_cond_4
+                    }
+                };
+                if __go_cond_0 {
+                    true
+                } else {
+                    let __go_cond_5 = { let __tmp_x = ('9' as i32) as u8; let __tmp_y = { let __s = &((*value.lock().unwrap().as_ref().unwrap()).clone()); __s.as_bytes()[(1) as usize] }; __tmp_x < __tmp_y };
+                    __go_cond_5
+                }
+            } {
                 // Fractional second omitted.
         break '__go_switch_2
     }

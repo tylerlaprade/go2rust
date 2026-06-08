@@ -1348,7 +1348,31 @@ impl Errno {
     }
 
     pub fn temporary(&self) -> bool {
-        return { let __tmp_x = (*self.0.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Errno(Arc::new(Mutex::new(Some(E_I_N_T_R as usize)))); __tmp_x == __tmp_y } || { let __tmp_x = (*self.0.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Errno(Arc::new(Mutex::new(Some(E_M_F_I_L_E as usize)))); __tmp_x == __tmp_y } || { let __tmp_x = (*self.0.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Errno(Arc::new(Mutex::new(Some(E_N_F_I_L_E as usize)))); __tmp_x == __tmp_y } || Errno::timeout(self);
+        return {
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __go_cond_2 = { let __tmp_x = (*self.0.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Errno(Arc::new(Mutex::new(Some(E_I_N_T_R as usize)))); __tmp_x == __tmp_y };
+                    if __go_cond_2 {
+                        true
+                    } else {
+                        let __go_cond_3 = { let __tmp_x = (*self.0.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Errno(Arc::new(Mutex::new(Some(E_M_F_I_L_E as usize)))); __tmp_x == __tmp_y };
+                        __go_cond_3
+                    }
+                };
+                if __go_cond_1 {
+                    true
+                } else {
+                    let __go_cond_4 = { let __tmp_x = (*self.0.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Errno(Arc::new(Mutex::new(Some(E_N_F_I_L_E as usize)))); __tmp_x == __tmp_y };
+                    __go_cond_4
+                }
+            };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_5 = Errno::timeout(self);
+                __go_cond_5
+            }
+        };
     }
 
     pub fn timeout(&self) -> bool {

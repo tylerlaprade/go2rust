@@ -951,7 +951,31 @@ impl sysMemStat {
     ///go:nosplit
     pub fn add(&self, n: Arc<Mutex<Option<i64>>>) {
         let mut val = internal_runtime_atomic::xadd64(Arc::new(Mutex::new(Some(u64::default()))), Arc::new(Mutex::new(Some({ let __arg_holder = n.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-        if ({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x > __tmp_y } && { let __tmp_x = (*Arc::new(Mutex::new(Some(val as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y }) || ({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x < __tmp_y } && { let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(val as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y }) {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x > __tmp_y };
+                if __go_cond_1 {
+                    let __go_cond_2 = { let __tmp_x = (*Arc::new(Mutex::new(Some(val as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y };
+                    __go_cond_2
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_3 = {
+                    let __go_cond_4 = { let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as i64; __tmp_x < __tmp_y };
+                    if __go_cond_4 {
+                        let __go_cond_5 = { let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some(val as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y };
+                        __go_cond_5
+                    } else {
+                        false
+                    }
+                };
+                __go_cond_3
+            }
+        } {
         {
             let __go_print_arg_0 = format!("{}", "runtime: val=".to_string());
             let __go_print_arg_1 = format!("{}", val);

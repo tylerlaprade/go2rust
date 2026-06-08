@@ -9553,7 +9553,7 @@ func transpileIfWithInitAsBlock(out *strings.Builder, stmt *ast.IfStmt, fnType *
 	out.WriteString("\n    }")
 }
 
-const minStatementBuiltLogicalConditionNodes = 4
+const minStatementBuiltLogicalConditionNodes = 3
 const minStatementBuiltLogicalConditionOperandComplexity = 10
 const minStatementBuiltLogicalConditionFieldComparisons = 4
 const minStatementBuiltLogicalConditionCallOperands = 4

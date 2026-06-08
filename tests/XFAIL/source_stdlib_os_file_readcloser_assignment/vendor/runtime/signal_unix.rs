@@ -501,7 +501,31 @@ pub fn sighandler(sig_local: Arc<Mutex<Option<u32>>>, info: Arc<Mutex<Option<sig
     if { let __tmp_x = { let __v = (*sig_local.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*sigtable.lock().unwrap().as_ref().unwrap()).len() as u32))).lock().unwrap().as_ref().unwrap()) as u32; __tmp_x < __tmp_y } {
         { let new_val = { let __selector_holder = { let __seq = { let __seq_holder = sigtable.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*sig_local.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.flags.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *flags.lock().unwrap() = Some(new_val); };
     }
-    if !{ let __recv = c.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.sig_from_user(); __result } && { let __tmp_x = { let __tmp_x = { let __v = (*flags.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = __SIG_PANIC as i32; __tmp_x & __tmp_y }; let __tmp_y = 0 as i32; __tmp_x != __tmp_y } && ((*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().throwsplit.clone() }.lock().unwrap().as_ref().unwrap()) || { let __left_addr = gp.addr(); let __right_addr = (*mp.lock().unwrap().as_ref().unwrap()).curg.addr(); let __eq = __left_addr == __right_addr; !__eq }) {
+    if {
+        let __go_cond_0 = {
+            let __go_cond_1 = !{ let __recv = c.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.sig_from_user(); __result };
+            if __go_cond_1 {
+                let __go_cond_2 = { let __tmp_x = { let __tmp_x = { let __v = (*flags.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = __SIG_PANIC as i32; __tmp_x & __tmp_y }; let __tmp_y = 0 as i32; __tmp_x != __tmp_y };
+                __go_cond_2
+            } else {
+                false
+            }
+        };
+        if __go_cond_0 {
+            let __go_cond_3 = {
+                let __go_cond_4 = (*{ let __ptr_value = gp.borrow(); __ptr_value.as_ref().unwrap().throwsplit.clone() }.lock().unwrap().as_ref().unwrap());
+                if __go_cond_4 {
+                    true
+                } else {
+                    let __go_cond_5 = { let __left_addr = gp.addr(); let __right_addr = (*mp.lock().unwrap().as_ref().unwrap()).curg.addr(); let __eq = __left_addr == __right_addr; !__eq };
+                    __go_cond_5
+                }
+            };
+            __go_cond_3
+        } else {
+            false
+        }
+    } {
                 // We can't safely sigpanic because it may grow the
                 // stack. Abort in the signal handler instead.
                 //
@@ -590,7 +614,31 @@ pub fn sighandler(sig_local: Arc<Mutex<Option<u32>>>, info: Arc<Mutex<Option<sig
             Arc::new(Mutex::new(Some({ let __recv = c.clone(); let __recv_ptr: *const crate::signal_darwin_arm64::sigctxt = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::signal_darwin_arm64::sigctxt }; let __result = unsafe { &*__recv_ptr }.siglr(); __result }))),
             gp.clone()
         );
-        if { let __tmp_x = (*crashing.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 0 as i32; __tmp_x > __tmp_y } && { let __left_addr = gp.addr(); let __right_addr = (*mp.lock().unwrap().as_ref().unwrap()).curg.addr(); let __eq = __left_addr == __right_addr; !__eq } && { let __ptr_field = (*mp.lock().unwrap().as_ref().unwrap()).curg.clone(); !__ptr_field.is_nil() } && { let __tmp_x = { let __tmp_x = readgstatus((*mp.lock().unwrap().as_ref().unwrap()).curg.clone()); let __tmp_y = __GSCAN as u32; __tmp_x & ! __tmp_y }; let __tmp_y = __GRUNNING as u32; __tmp_x == __tmp_y } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __go_cond_2 = { let __tmp_x = (*crashing.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = 0 as i32; __tmp_x > __tmp_y };
+                    if __go_cond_2 {
+                        let __go_cond_3 = { let __left_addr = gp.addr(); let __right_addr = (*mp.lock().unwrap().as_ref().unwrap()).curg.addr(); let __eq = __left_addr == __right_addr; !__eq };
+                        __go_cond_3
+                    } else {
+                        false
+                    }
+                };
+                if __go_cond_1 {
+                    let __go_cond_4 = { let __ptr_field = (*mp.lock().unwrap().as_ref().unwrap()).curg.clone(); !__ptr_field.is_nil() };
+                    __go_cond_4
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_5 = { let __tmp_x = { let __tmp_x = readgstatus((*mp.lock().unwrap().as_ref().unwrap()).curg.clone()); let __tmp_y = __GSCAN as u32; __tmp_x & ! __tmp_y }; let __tmp_y = __GRUNNING as u32; __tmp_x == __tmp_y };
+                __go_cond_5
+            } else {
+                false
+            }
+        } {
                 // tracebackothers on original m skipped this one; trace it now.
         goroutineheader((*mp.lock().unwrap().as_ref().unwrap()).curg.clone());
         traceback(

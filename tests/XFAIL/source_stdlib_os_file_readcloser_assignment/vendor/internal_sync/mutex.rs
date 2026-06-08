@@ -128,7 +128,31 @@ impl Mutex {
                 // Active spinning makes sense.
                 // Try to set mutexWoken flag to inform Unlock
                 // to not wake other blocked goroutines.
-        if !{ let __v = (*awoke.lock().unwrap().as_ref().unwrap()).clone(); __v } && { let __tmp_x = { let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MUTEX_WOKEN as i32; __tmp_x & __tmp_y }; let __tmp_y = 0 as i32; __tmp_x == __tmp_y } && { let __tmp_x = { let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MUTEX_WAITER_SHIFT; __tmp_x >> __tmp_y }; let __tmp_y = 0 as i32; __tmp_x != __tmp_y } && sync_atomic::compare_and_swap_int32(self.state.clone(), Arc::new(StdMutex::new(Some({ let __arg_holder = old.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some({ let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MUTEX_WOKEN as i32; __tmp_x | __tmp_y })))) {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = {
+                    let __go_cond_2 = !{ let __v = (*awoke.lock().unwrap().as_ref().unwrap()).clone(); __v };
+                    if __go_cond_2 {
+                        let __go_cond_3 = { let __tmp_x = { let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MUTEX_WOKEN as i32; __tmp_x & __tmp_y }; let __tmp_y = 0 as i32; __tmp_x == __tmp_y };
+                        __go_cond_3
+                    } else {
+                        false
+                    }
+                };
+                if __go_cond_1 {
+                    let __go_cond_4 = { let __tmp_x = { let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MUTEX_WAITER_SHIFT; __tmp_x >> __tmp_y }; let __tmp_y = 0 as i32; __tmp_x != __tmp_y };
+                    __go_cond_4
+                } else {
+                    false
+                }
+            };
+            if __go_cond_0 {
+                let __go_cond_5 = sync_atomic::compare_and_swap_int32(self.state.clone(), Arc::new(StdMutex::new(Some({ let __arg_holder = old.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(StdMutex::new(Some({ let __tmp_x = { let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = MUTEX_WOKEN as i32; __tmp_x | __tmp_y }))));
+                __go_cond_5
+            } else {
+                false
+            }
+        } {
         { let new_val = true; *awoke.lock().unwrap() = Some(new_val); };
     }
         runtime_do_spin();

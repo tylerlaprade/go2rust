@@ -970,7 +970,31 @@ pub fn fixed_zone(name: Arc<Mutex<Option<String>>>, offset: Arc<Mutex<Option<i32
     const hoursAfterUTC: i32 = 14;
 
     let mut hour = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60; __tmp_x / __tmp_y }; let __tmp_y = 60; __tmp_x / __tmp_y })));
-    if { let __tmp_x = (*name.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y } && { let __tmp_x = -12; let __tmp_y = { let __v = (*hour.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y } && { let __tmp_x = { let __v = (*hour.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 14; __tmp_x <= __tmp_y } && { let __tmp_x = { let __tmp_x = { let __tmp_x = { let __v = (*hour.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60; __tmp_x * __tmp_y }; let __tmp_y = 60; __tmp_x * __tmp_y }; let __tmp_y = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } {
+    if {
+        let __go_cond_0 = {
+            let __go_cond_1 = {
+                let __go_cond_2 = { let __tmp_x = (*name.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = "".to_string(); __tmp_x == __tmp_y };
+                if __go_cond_2 {
+                    let __go_cond_3 = { let __tmp_x = -12; let __tmp_y = { let __v = (*hour.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x <= __tmp_y };
+                    __go_cond_3
+                } else {
+                    false
+                }
+            };
+            if __go_cond_1 {
+                let __go_cond_4 = { let __tmp_x = { let __v = (*hour.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 14; __tmp_x <= __tmp_y };
+                __go_cond_4
+            } else {
+                false
+            }
+        };
+        if __go_cond_0 {
+            let __go_cond_5 = { let __tmp_x = { let __tmp_x = { let __tmp_x = { let __v = (*hour.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60; __tmp_x * __tmp_y }; let __tmp_y = 60; __tmp_x * __tmp_y }; let __tmp_y = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y };
+            __go_cond_5
+        } else {
+            false
+        }
+    } {
         { let __once = (*unnamedFixedZonesOnce.lock().unwrap().as_ref().unwrap()).clone(); __once.r#do(Arc::new(Mutex::new(Some(Box::new(move || {
         { let new_val = { let __collection_holder = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(None)); ({ let __tmp_x = { let __tmp_x = hoursBeforeUTC; let __tmp_y = 1; __tmp_x + __tmp_y }; let __tmp_y = hoursAfterUTC; __tmp_x + __tmp_y }) as usize]))).clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *unnamedFixedZones.lock().unwrap() = new_val; };
         let mut hr = Arc::new(Mutex::new(Some(-(hoursBeforeUTC))));
