@@ -260,10 +260,32 @@ func TestTestScriptRefusesFixtureCargoUnderSevereMemoryPressure(t *testing.T) {
 		}
 	}
 
-	guardIndex := strings.Index(script, "\nenforce_available_memory_floor\n")
+	guardIndex := strings.Index(script, "\n    enforce_available_memory_floor\n")
 	buildIndex := strings.Index(script, `go build -o "$BUILT_TEST_BINARY" ./go`)
 	if guardIndex < 0 || buildIndex < 0 || guardIndex > buildIndex {
 		t.Fatalf("test.sh should run the memory-pressure guard before building the fixture transpiler")
+	}
+}
+
+func TestTestScriptTranspileOnlySkipsCargoPressureGuard(t *testing.T) {
+	data, err := os.ReadFile("../test.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(test.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`--transpile-only`,
+		`TRANSPILE_ONLY=true`,
+		`export GO2RUST_TEST_TRANSPILE_ONLY=1`,
+		`Transpile-only mode: skipping fixture Cargo build/run.`,
+		`if [ "$TRANSPILE_ONLY" = true ]; then`,
+		`else
+    enforce_available_memory_floor
+fi`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("test.sh should expose transpile-only mode without Cargo pressure gating; missing %q", want)
+		}
 	}
 }
 
@@ -399,6 +421,39 @@ func TestBatsMarksPerTestTempRootOwner(t *testing.T) {
 		if !strings.Contains(script, want) {
 			t.Fatalf("tests.bats should mark per-test temp roots with their owner pid; missing %q", want)
 		}
+	}
+}
+
+func TestBatsTranspileOnlySkipsCargoWithoutXfailPromotion(t *testing.T) {
+	data, err := os.ReadFile("../tests.bats")
+	if err != nil {
+		t.Fatalf("ReadFile(tests.bats) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`if [ "${GO2RUST_TEST_TRANSPILE_ONLY:-0}" = "1" ]; then`,
+		`return 0`,
+		`note_fixture_phase "cargo build"`,
+		`Promoting XFAIL test`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("tests.bats should support transpile-only fixture runs; missing %q", want)
+		}
+	}
+
+	transpileOnlyIndex := strings.Index(script, `if [ "${GO2RUST_TEST_TRANSPILE_ONLY:-0}" = "1" ]; then`)
+	cargoBuildIndex := strings.Index(script, `note_fixture_phase "cargo build"`)
+	if transpileOnlyIndex < 0 || cargoBuildIndex < 0 || transpileOnlyIndex > cargoBuildIndex {
+		t.Fatalf("tests.bats should return from run_transpile_and_compare before Cargo in transpile-only mode")
+	}
+
+	promotionIndex := strings.Index(script, `Promoting XFAIL test`)
+	if promotionIndex < 0 {
+		t.Fatalf("tests.bats should still contain the normal XFAIL promotion path")
+	}
+	xfailGuardIndex := strings.LastIndex(script[:promotionIndex], `if [ "${GO2RUST_TEST_TRANSPILE_ONLY:-0}" = "1" ]; then`)
+	if xfailGuardIndex < 0 {
+		t.Fatalf("tests.bats should guard XFAIL promotion in transpile-only mode")
 	}
 }
 

@@ -24,6 +24,7 @@ JOBS_REASON=""
 TIMEOUT="15s"
 HELP=false
 LOW_MEMORY="${GO2RUST_LOW_MEMORY:-0}"
+TRANSPILE_ONLY=false
 TEST_NAMES=()
 
 i=1
@@ -44,6 +45,9 @@ for arg in "$@"; do
             ;;
         --low-memory)
             LOW_MEMORY=1
+            ;;
+        --transpile-only)
+            TRANSPILE_ONLY=true
             ;;
         -n|--jobs)
             # Next argument should be the number
@@ -93,6 +97,7 @@ if [ "$HELP" = true ]; then
     echo "  -n, --jobs N       Number of parallel jobs (default: auto-detect from CPU and memory)"
     echo "  -t, --timeout TIME Timeout per test (default: 15s)"
     echo "  --low-memory       Run one fixture at a time"
+    echo "  --transpile-only   Run Go and transpilation steps, then skip Cargo build/run"
     echo "  -h, --help         Show this help message"
     echo ""
     echo "Environment:"
@@ -353,7 +358,11 @@ if [ -z "${GOCACHE:-}" ]; then
     export GOCACHE="$TEST_GOCACHE_DIR"
 fi
 
-enforce_available_memory_floor
+if [ "$TRANSPILE_ONLY" = true ]; then
+    export GO2RUST_TEST_TRANSPILE_ONLY=1
+else
+    enforce_available_memory_floor
+fi
 
 # Build the transpiler once before running the suite. Bats parallelism is
 # file-level, so sharded runs would otherwise race multiple setup_file builds
@@ -598,6 +607,10 @@ else
     create_bats_shards "$SHARD_DIR" "$JOBS"
     BATS_ARGS+=(-j "$JOBS")
     BATS_TARGETS=("$SHARD_DIR"/tests-shard-*.bats)
+fi
+
+if [ "$TRANSPILE_ONLY" = true ]; then
+    echo "Transpile-only mode: skipping fixture Cargo build/run."
 fi
 
 # Add filter if specified

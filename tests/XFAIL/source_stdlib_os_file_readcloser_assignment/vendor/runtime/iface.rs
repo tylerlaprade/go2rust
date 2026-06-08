@@ -1721,7 +1721,13 @@ pub fn itab_init(m: GoPtr<internal_abi::iface::ITab>, firstTime: Arc<Mutex<Optio
 pub fn assert_e2_i(inter: GoPtr<internal_abi::r#type::InterfaceType>, t: GoPtr<internal_abi::r#type::Type>) -> GoPtr<internal_abi::iface::ITab> {
     if t.is_nil() {
                 // explicit conversions require non-nil interface value.
-        std::panic::panic_any(Box::new(Arc::new(Mutex::new(Some(crate::error::TypeAssertionError { _interface: Default::default(), concrete: GoPtr::nil(), asserted: { let __ptr_value = inter.with_mut(|__ptr_value| __ptr_value.r#type.clone()); __ptr_value }.clone().clone(), missing_method: Arc::new(Mutex::new(Some("".to_string()))), ..Default::default() }))).clone()) as Box<dyn Any + Send + Sync>);
+        std::panic::panic_any(Box::new(Arc::new(Mutex::new(Some(crate::error::TypeAssertionError {
+            _interface: Default::default(),
+            concrete: GoPtr::nil(),
+            asserted: { let __ptr_value = inter.with_mut(|__ptr_value| __ptr_value.r#type.clone()); __ptr_value }.clone().clone(),
+            missing_method: Arc::new(Mutex::new(Some("".to_string()))),
+            ..Default::default()
+        }))).clone()) as Box<dyn Any + Send + Sync>);
     }
         // explicit conversions require non-nil interface value.
     getitab(inter.clone(), t.clone(), Arc::new(Mutex::new(Some(false))))

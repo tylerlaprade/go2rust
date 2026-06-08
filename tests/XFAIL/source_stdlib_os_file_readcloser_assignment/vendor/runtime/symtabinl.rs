@@ -237,7 +237,13 @@ impl inlineUnwinder {
         return (*self.f.lock().unwrap().as_ref().unwrap()).src_func();
     }
         let mut t: Option<GoArrayElemPtr<inlinedCall, 1048576>> = Some(GoArrayElemPtr::from_go_ptr(self.inl_tree.clone(), ((*{ let __field = (*uf.lock().unwrap().as_ref().unwrap()).index.clone(); __field }.lock().unwrap().as_ref().unwrap())) as usize));
-        return Arc::new(Mutex::new(Some(srcFunc { datap: { let __field = (*self.f.lock().unwrap().as_ref().unwrap()).datap.clone(); __field }, name_off: Arc::new(Mutex::new(Some({ let __selector_holder = (*t.as_ref().unwrap().borrow().as_ref().unwrap()).name_off.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), start_line: Arc::new(Mutex::new(Some({ let __selector_holder = (*t.as_ref().unwrap().borrow().as_ref().unwrap()).start_line.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), func_i_d: Arc::new(Mutex::new(Some({ let __selector_holder = (*t.as_ref().unwrap().borrow().as_ref().unwrap()).func_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() })));
+        return Arc::new(Mutex::new(Some(srcFunc {
+            datap: { let __field = (*self.f.lock().unwrap().as_ref().unwrap()).datap.clone(); __field },
+            name_off: Arc::new(Mutex::new(Some({ let __selector_holder = (*t.as_ref().unwrap().borrow().as_ref().unwrap()).name_off.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            start_line: Arc::new(Mutex::new(Some({ let __selector_holder = (*t.as_ref().unwrap().borrow().as_ref().unwrap()).start_line.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            func_i_d: Arc::new(Mutex::new(Some({ let __selector_holder = (*t.as_ref().unwrap().borrow().as_ref().unwrap()).func_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            ..Default::default()
+        })));
     }
 
     /// fileLine returns the file name and line number of the call within the given

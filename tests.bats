@@ -200,6 +200,10 @@ run_transpile_and_compare() {
         rm -f "$diff_file"
     fi
 
+    if [ "${GO2RUST_TEST_TRANSPILE_ONLY:-0}" = "1" ]; then
+        return 0
+    fi
+
     # Run Rust version with faster compilation settings
     # -A warnings: Allow all warnings (don't spend time on lints)
     # -C opt-level=0: No optimizations (fastest compilation)
@@ -495,6 +499,9 @@ run_xfail_test() {
         return 0
     else
         rm -f "$phase_file" "$phase_detail_file"
+        if [ "${GO2RUST_TEST_TRANSPILE_ONLY:-0}" = "1" ]; then
+            return 0
+        fi
         # Test passed - promote it!
         echo "🎉 Promoting XFAIL test '$test_name' - it now passes!"
         mv "$test_dir" "tests/"

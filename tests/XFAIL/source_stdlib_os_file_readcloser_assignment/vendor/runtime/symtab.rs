@@ -1575,7 +1575,13 @@ impl funcInfo {
         if !self.valid() {
         return Arc::new(Mutex::new(Some(srcFunc { datap: Default::default(), name_off: Arc::new(Mutex::new(Some(0))), start_line: Arc::new(Mutex::new(Some(0))), func_i_d: Arc::new(Mutex::new(Some(internal_abi::symtab::FuncID(Arc::new(Mutex::new(Some(0))))))) })));
     }
-        Arc::new(Mutex::new(Some(srcFunc { datap: { let __field = self.datap.clone(); __field }, name_off: Arc::new(Mutex::new(Some({ let __selector_holder = (*self._func.lock().unwrap().as_ref().unwrap()).name_off.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), start_line: Arc::new(Mutex::new(Some({ let __selector_holder = (*self._func.lock().unwrap().as_ref().unwrap()).start_line.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), func_i_d: Arc::new(Mutex::new(Some({ let __selector_holder = (*self._func.lock().unwrap().as_ref().unwrap()).func_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), ..Default::default() })))
+        Arc::new(Mutex::new(Some(srcFunc {
+            datap: { let __field = self.datap.clone(); __field },
+            name_off: Arc::new(Mutex::new(Some({ let __selector_holder = (*self._func.lock().unwrap().as_ref().unwrap()).name_off.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            start_line: Arc::new(Mutex::new(Some({ let __selector_holder = (*self._func.lock().unwrap().as_ref().unwrap()).start_line.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            func_i_d: Arc::new(Mutex::new(Some({ let __selector_holder = (*self._func.lock().unwrap().as_ref().unwrap()).func_i_d.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            ..Default::default()
+        })))
     }
 
     pub fn func_info(&self) -> Arc<Mutex<Option<funcInfo>>> {
