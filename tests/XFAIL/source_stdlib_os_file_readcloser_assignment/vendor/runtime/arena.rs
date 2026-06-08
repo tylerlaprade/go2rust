@@ -449,21 +449,22 @@ impl writeUserArenaHeapBits {
     /// write appends the pointerness of the next valid pointer slots
     /// using the low valid bits of bits. 1=pointer, 0=scalar.
     pub fn write(&self, s: Arc<Mutex<Option<mspan>>>, bits: Arc<Mutex<Option<usize>>>, valid: Arc<Mutex<Option<usize>>>) -> Arc<Mutex<Option<writeUserArenaHeapBits>>> {
-        if { let __tmp_x = { let __tmp_x = (*self.valid.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*valid.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = PTR_BITS as usize; __tmp_x <= __tmp_y } {
+        let mut __self = self.clone();
+        if { let __tmp_x = { let __tmp_x = (*__self.valid.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*valid.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = PTR_BITS as usize; __tmp_x <= __tmp_y } {
                 // Fast path - just accumulate the bits.
-        { let __target = self.mask.clone(); let __rhs = { let __tmp_x = { let __v = (*bits.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.valid.lock().unwrap().as_ref().unwrap()); __tmp_x << __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
-        { let __target = self.valid.clone(); let __rhs = (*valid.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-        return Arc::new(Mutex::new(Some(self.clone())));
+        { let __target = __self.mask.clone(); let __rhs = { let __tmp_x = { let __v = (*bits.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*__self.valid.lock().unwrap().as_ref().unwrap()); __tmp_x << __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
+        { let __target = __self.valid.clone(); let __rhs = (*valid.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        return Arc::new(Mutex::new(Some(__self.clone())));
     }
                 // Fast path - just accumulate the bits.
                 // Too many bits to fit in this word. Write the current word
                 // out and move on to the next word.
-        let mut data = Arc::new(Mutex::new(Some({ let __tmp_x = (*self.mask.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = { let __v = (*bits.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.valid.lock().unwrap().as_ref().unwrap()); __tmp_x << __tmp_y }; __tmp_x | __tmp_y })));
-        { let new_val = { let __tmp_x = { let __v = (*bits.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = PTR_BITS as usize; let __tmp_y = (*self.valid.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); __tmp_x >> __tmp_y }; *self.mask.lock().unwrap() = Some(new_val); };
-        { let __target = self.valid.clone(); let __rhs = { let __tmp_x = { let __v = (*valid.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PTR_BITS as usize; __tmp_x - __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        let mut data = Arc::new(Mutex::new(Some({ let __tmp_x = (*__self.mask.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __tmp_x = { let __v = (*bits.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*__self.valid.lock().unwrap().as_ref().unwrap()); __tmp_x << __tmp_y }; __tmp_x | __tmp_y })));
+        { let new_val = { let __tmp_x = { let __v = (*bits.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ({ let __tmp_x = PTR_BITS as usize; let __tmp_y = (*__self.valid.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); __tmp_x >> __tmp_y }; *__self.mask.lock().unwrap() = Some(new_val); };
+        { let __target = __self.valid.clone(); let __rhs = { let __tmp_x = { let __v = (*valid.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PTR_BITS as usize; __tmp_x - __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
                 // Flush mask to the memory bitmap.
-        let mut idx = Arc::new(Mutex::new(Some({ let __tmp_x = (*self.offset.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x / __tmp_y })));
-        let mut m = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (1 as usize); let __tmp_y = (*self.low.lock().unwrap().as_ref().unwrap()); __tmp_x << __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })));
+        let mut idx = Arc::new(Mutex::new(Some({ let __tmp_x = (*__self.offset.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x / __tmp_y })));
+        let mut m = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (1 as usize); let __tmp_y = (*__self.low.lock().unwrap().as_ref().unwrap()); __tmp_x << __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })));
         let mut bitmap = { let __recv = s.clone(); let __recv_ptr: *const crate::mheap::mspan = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::mheap::mspan }; let __result = unsafe { &*__recv_ptr }.heap_bits(); __result };
         (*bitmap.lock().unwrap().as_mut().unwrap())[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = bitmap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))); let __tmp_y = { let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x & __tmp_y }; let __tmp_y = { let __v = (*data.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x | __tmp_y }))));
                 // Note: no synchronization required for this write because
@@ -471,9 +472,9 @@ impl writeUserArenaHeapBits {
                 // entries are all for a single page. Also, visibility of these
                 // writes is guaranteed by the publication barrier in mallocgc.
                 // Move to next word of bitmap.
-        { let __target = self.offset.clone(); let __rhs = ((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-        { let new_val = 0 as usize; *self.low.lock().unwrap() = Some(new_val); };
-        Arc::new(Mutex::new(Some(self.clone())))
+        { let __target = __self.offset.clone(); let __rhs = ((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let new_val = 0 as usize; *__self.low.lock().unwrap() = Some(new_val); };
+        Arc::new(Mutex::new(Some(__self.clone())))
     }
 
     /// Add padding of size bytes.
@@ -493,28 +494,29 @@ impl writeUserArenaHeapBits {
     /// Flush the bits that have been written, and add zeros as needed
     /// to cover the full object [addr, addr+size).
     pub fn flush(&self, s: Arc<Mutex<Option<mspan>>>, addr: Arc<Mutex<Option<usize>>>, size: Arc<Mutex<Option<usize>>>) {
+        let mut __self = self.clone();
         let mut offset = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*addr.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __recv = s.clone(); let __recv_ptr: *const crate::mheap::mspan = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::mheap::mspan }; let __result = unsafe { &*__recv_ptr }.base(); __result }; __tmp_x - __tmp_y })));
                 // zeros counts the number of bits needed to represent the object minus the
                 // number of bits we've already written. This is the number of 0 bits
                 // that need to be added.
-        let mut zeros = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = ({ let __tmp_x = { let __tmp_x = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = (*self.offset.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }; let __tmp_y = (*self.valid.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })));
+        let mut zeros = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = ({ let __tmp_x = { let __tmp_x = { let __v = (*offset.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = (*__self.offset.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }); let __tmp_y = internal_goarch::PTR_SIZE as usize; __tmp_x / __tmp_y }; let __tmp_y = (*__self.valid.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })));
                 // Add zero bits up to the bitmap word boundary
         if { let __tmp_x = { let __v = (*zeros.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as usize; __tmp_x > __tmp_y } {
-        let mut z = Arc::new(Mutex::new(Some({ let __tmp_x = PTR_BITS as usize; let __tmp_y = (*self.valid.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })));
+        let mut z = Arc::new(Mutex::new(Some({ let __tmp_x = PTR_BITS as usize; let __tmp_y = (*__self.valid.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y })));
         if { let __tmp_x = { let __v = (*z.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*zeros.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y } {
         { let new_val = zeros.lock().unwrap().as_ref().unwrap().clone(); *z.lock().unwrap() = Some(new_val); };
     }
-        { let __target = self.valid.clone(); let __rhs = (*z.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __target = __self.valid.clone(); let __rhs = (*z.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let __rhs = (*z.lock().unwrap().as_ref().unwrap()); let mut guard = zeros.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
     }
                 // Find word in bitmap that we're going to write.
         let mut bitmap = { let __recv = s.clone(); let __recv_ptr: *const crate::mheap::mspan = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::mheap::mspan }; let __result = unsafe { &*__recv_ptr }.heap_bits(); __result };
-        let mut idx = Arc::new(Mutex::new(Some({ let __tmp_x = (*self.offset.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x / __tmp_y })));
+        let mut idx = Arc::new(Mutex::new(Some({ let __tmp_x = (*__self.offset.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x / __tmp_y })));
                 // Write remaining bits.
-        if { let __tmp_x = (*self.valid.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.low.lock().unwrap().as_ref().unwrap()); __tmp_x != __tmp_y } {
-        let mut m = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (1 as usize); let __tmp_y = (*self.low.lock().unwrap().as_ref().unwrap()); __tmp_x << __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })));
-        { let __rhs = !({ let __tmp_x = { let __tmp_x = (1 as usize); let __tmp_y = (*self.valid.lock().unwrap().as_ref().unwrap()); __tmp_x << __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y }); let mut guard = m.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
-        (*bitmap.lock().unwrap().as_mut().unwrap())[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = bitmap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))); let __tmp_y = { let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x & __tmp_y }; let __tmp_y = (*self.mask.lock().unwrap().as_ref().unwrap()); __tmp_x | __tmp_y }))));
+        if { let __tmp_x = (*__self.valid.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*__self.low.lock().unwrap().as_ref().unwrap()); __tmp_x != __tmp_y } {
+        let mut m = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = (1 as usize); let __tmp_y = (*__self.low.lock().unwrap().as_ref().unwrap()); __tmp_x << __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y })));
+        { let __rhs = !({ let __tmp_x = { let __tmp_x = (1 as usize); let __tmp_y = (*__self.valid.lock().unwrap().as_ref().unwrap()); __tmp_x << __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y }); let mut guard = m.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() | __rhs); };
+        (*bitmap.lock().unwrap().as_mut().unwrap())[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = bitmap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))); let __tmp_y = { let __v = (*m.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x & __tmp_y }; let __tmp_y = (*__self.mask.lock().unwrap().as_ref().unwrap()); __tmp_x | __tmp_y }))));
     }
                 // don't clear existing bits below "low"
                 // don't clear existing bits above "valid"
@@ -522,7 +524,7 @@ impl writeUserArenaHeapBits {
         return;
     }
                 // Advance to next bitmap word.
-        { let __target = self.offset.clone(); let __rhs = ((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __target = __self.offset.clone(); let __rhs = ((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
                 // Continue on writing zeros for the rest of the object.
                 // For standard use of the ptr bits this is not required, as
                 // the bits are read from the beginning of the object. Some uses,
@@ -530,7 +532,7 @@ impl writeUserArenaHeapBits {
                 // start mid-object, so these writes are still required.
         loop {
                 // Write zero bits.
-        let mut idx = Arc::new(Mutex::new(Some({ let __tmp_x = (*self.offset.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x / __tmp_y })));
+        let mut idx = Arc::new(Mutex::new(Some({ let __tmp_x = (*__self.offset.lock().unwrap().as_ref().unwrap()); let __tmp_y = ((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; __tmp_x / __tmp_y })));
         if { let __tmp_x = { let __v = (*zeros.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = PTR_BITS as usize; __tmp_x < __tmp_y } {
         (*bitmap.lock().unwrap().as_mut().unwrap())[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __tmp_x = bswap_if_big_endian(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = bitmap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() })))); let __tmp_y = ({ let __tmp_x = { let __tmp_x = (1 as usize); let __tmp_y = { let __v = (*zeros.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }; let __tmp_y = 1 as usize; __tmp_x - __tmp_y }); __tmp_x & ! __tmp_y }))));
         break
@@ -541,7 +543,7 @@ impl writeUserArenaHeapBits {
         (*bitmap.lock().unwrap().as_mut().unwrap())[({ let __v = (*idx.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = 0 as usize;
         { let __rhs = PTR_BITS as usize; let mut guard = zeros.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
     }
-        { let __target = self.offset.clone(); let __rhs = ((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __target = __self.offset.clone(); let __rhs = ((PTR_BITS as usize) * (internal_goarch::PTR_SIZE as usize)) as usize; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
     }
 }

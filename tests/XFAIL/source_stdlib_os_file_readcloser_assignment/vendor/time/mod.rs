@@ -4666,8 +4666,9 @@ impl Time {
 
     /// Add returns the time t+d.
     pub fn add(&self, d: Arc<Mutex<Option<Duration>>>) -> Arc<Mutex<Option<Time>>> {
+        let mut __self = self.clone();
         let mut dsec = Arc::new(Mutex::new(Some(({ let __tmp_x = (*d.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Duration(Arc::new(Mutex::new(Some(1e9 as i64)))); __tmp_x / __tmp_y }).as_nanos() as i64)));
-        let mut nsec = Arc::new(Mutex::new(Some({ let __tmp_x = self.nsec(); let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*d.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Duration(Arc::new(Mutex::new(Some(1e9 as i64)))); __tmp_x % __tmp_y }).as_nanos() as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })));
+        let mut nsec = Arc::new(Mutex::new(Some({ let __tmp_x = __self.nsec(); let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*d.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Duration(Arc::new(Mutex::new(Some(1e9 as i64)))); __tmp_x % __tmp_y }).as_nanos() as i32))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })));
         if { let __tmp_x = { let __v = (*nsec.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1e9 as i32; __tmp_x >= __tmp_y } {
         { let mut guard = dsec.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
         { let __rhs = 1e9 as i32; let mut guard = nsec.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
@@ -4675,19 +4676,19 @@ impl Time {
         { let mut guard = dsec.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
         { let __rhs = 1e9 as i32; let mut guard = nsec.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
-        { let new_val = { let __tmp_x = { let __tmp_x = (*self.wall.lock().unwrap().as_ref().unwrap()); let __tmp_y = NSEC_MASK as u64; __tmp_x & ! __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some((*nsec.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x | __tmp_y }; *self.wall.lock().unwrap() = Some(new_val); };
-        self.add_sec(Arc::new(Mutex::new(Some({ let __arg_holder = dsec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-        if { let __tmp_x = { let __tmp_x = (*self.wall.lock().unwrap().as_ref().unwrap()); let __tmp_y = HAS_MONOTONIC as u64; __tmp_x & __tmp_y }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
-        let mut te = Arc::new(Mutex::new(Some({ let __tmp_x = (*self.ext.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }).as_nanos() as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })));
-        if { let __tmp_x = (*d.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Duration(Arc::new(Mutex::new(Some(0 as i64)))); __tmp_x < __tmp_y } && { let __tmp_x = { let __v = (*te.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.ext.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } || { let __tmp_x = (*d.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Duration(Arc::new(Mutex::new(Some(0 as i64)))); __tmp_x > __tmp_y } && { let __tmp_x = { let __v = (*te.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*self.ext.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
+        { let new_val = { let __tmp_x = { let __tmp_x = (*__self.wall.lock().unwrap().as_ref().unwrap()); let __tmp_y = NSEC_MASK as u64; __tmp_x & ! __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some((*nsec.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x | __tmp_y }; *__self.wall.lock().unwrap() = Some(new_val); };
+        __self.add_sec(Arc::new(Mutex::new(Some({ let __arg_holder = dsec.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        if { let __tmp_x = { let __tmp_x = (*__self.wall.lock().unwrap().as_ref().unwrap()); let __tmp_y = HAS_MONOTONIC as u64; __tmp_x & __tmp_y }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
+        let mut te = Arc::new(Mutex::new(Some({ let __tmp_x = (*__self.ext.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __v = (*d.lock().unwrap().as_ref().unwrap()).clone(); __v }).as_nanos() as i64))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y })));
+        if { let __tmp_x = (*d.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Duration(Arc::new(Mutex::new(Some(0 as i64)))); __tmp_x < __tmp_y } && { let __tmp_x = { let __v = (*te.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*__self.ext.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } || { let __tmp_x = (*d.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Duration(Arc::new(Mutex::new(Some(0 as i64)))); __tmp_x > __tmp_y } && { let __tmp_x = { let __v = (*te.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*__self.ext.lock().unwrap().as_ref().unwrap()); __tmp_x < __tmp_y } {
                 // Monotonic clock reading now out of range; degrade to wall-only.
-        self.strip_mono();
+        __self.strip_mono();
     } else {
-        { let new_val = te.lock().unwrap().as_ref().unwrap().clone(); *self.ext.lock().unwrap() = Some(new_val); };
+        { let new_val = te.lock().unwrap().as_ref().unwrap().clone(); *__self.ext.lock().unwrap() = Some(new_val); };
     }
     }
                 // Monotonic clock reading now out of range; degrade to wall-only.
-        Arc::new(Mutex::new(Some(self.clone())))
+        Arc::new(Mutex::new(Some(__self.clone())))
     }
 
     /// Sub returns the duration t-u. If the result exceeds the maximum (or minimum)
@@ -4734,14 +4735,16 @@ impl Time {
 
     /// UTC returns t with the location set to UTC.
     pub fn u_t_c(&self) -> Arc<Mutex<Option<Time>>> {
-        self.set_loc(utcLoc.clone());
-        Arc::new(Mutex::new(Some(self.clone())))
+        let mut __self = self.clone();
+        __self.set_loc(utcLoc.clone());
+        Arc::new(Mutex::new(Some(__self.clone())))
     }
 
     /// Local returns t with the location set to local time.
     pub fn local(&self) -> Arc<Mutex<Option<Time>>> {
-        self.set_loc({ let __arg_holder = Local.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
-        Arc::new(Mutex::new(Some(self.clone())))
+        let mut __self = self.clone();
+        __self.set_loc({ let __arg_holder = Local.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() });
+        Arc::new(Mutex::new(Some(__self.clone())))
     }
 
     /// In returns a copy of t representing the same time instant, but
@@ -4750,11 +4753,12 @@ impl Time {
     ///
     /// In panics if loc is nil.
     pub fn r#in(&self, loc: Arc<Mutex<Option<Location>>>) -> Arc<Mutex<Option<Time>>> {
+        let mut __self = self.clone();
         if { let __nil_result = (*loc.lock().unwrap()).is_none(); __nil_result } {
         std::panic::panic_any(Box::new("time: missing Location in call to Time.In".to_string()) as Box<dyn Any + Send + Sync>);
     }
-        self.set_loc(loc.clone());
-        Arc::new(Mutex::new(Some(self.clone())))
+        __self.set_loc(loc.clone());
+        Arc::new(Mutex::new(Some(__self.clone())))
     }
 
     /// Location returns the time zone information associated with t.
@@ -5005,12 +5009,13 @@ impl Time {
     /// time. Thus, Truncate(Hour) may return a time with a non-zero
     /// minute, depending on the time's Location.
     pub fn truncate(&self, d: Arc<Mutex<Option<Duration>>>) -> Arc<Mutex<Option<Time>>> {
-        self.strip_mono();
+        let mut __self = self.clone();
+        __self.strip_mono();
         if { let __tmp_x = (*d.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Duration(Arc::new(Mutex::new(Some(0 as i64)))); __tmp_x <= __tmp_y } {
-        return Arc::new(Mutex::new(Some(self.clone())));
+        return Arc::new(Mutex::new(Some(__self.clone())));
     }
-        let (_, mut r) = div(Arc::new(Mutex::new(Some(self.clone()))), Arc::new(Mutex::new(Some({ let __arg_holder = d.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-        return self.add(Arc::new(Mutex::new(Some(-((*r.lock().unwrap().as_ref().unwrap()).clone())))));
+        let (_, mut r) = div(Arc::new(Mutex::new(Some(__self.clone()))), Arc::new(Mutex::new(Some({ let __arg_holder = d.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        return __self.add(Arc::new(Mutex::new(Some(-((*r.lock().unwrap().as_ref().unwrap()).clone())))));
     }
 
     /// Round returns the result of rounding t to the nearest multiple of d (since the zero time).
@@ -5022,15 +5027,16 @@ impl Time {
     /// time. Thus, Round(Hour) may return a time with a non-zero
     /// minute, depending on the time's Location.
     pub fn round(&self, d: Arc<Mutex<Option<Duration>>>) -> Arc<Mutex<Option<Time>>> {
-        self.strip_mono();
+        let mut __self = self.clone();
+        __self.strip_mono();
         if { let __tmp_x = (*d.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = Duration(Arc::new(Mutex::new(Some(0 as i64)))); __tmp_x <= __tmp_y } {
-        return Arc::new(Mutex::new(Some(self.clone())));
+        return Arc::new(Mutex::new(Some(__self.clone())));
     }
-        let (_, mut r) = div(Arc::new(Mutex::new(Some(self.clone()))), Arc::new(Mutex::new(Some({ let __arg_holder = d.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        let (_, mut r) = div(Arc::new(Mutex::new(Some(__self.clone()))), Arc::new(Mutex::new(Some({ let __arg_holder = d.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         if less_than_half(Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = d.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
-        return self.add(Arc::new(Mutex::new(Some(-((*r.lock().unwrap().as_ref().unwrap()).clone())))));
+        return __self.add(Arc::new(Mutex::new(Some(-((*r.lock().unwrap().as_ref().unwrap()).clone())))));
     }
-        return self.add(Arc::new(Mutex::new(Some({ let __tmp_x = (*d.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*r.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x - __tmp_y }))));
+        return __self.add(Arc::new(Mutex::new(Some({ let __tmp_x = (*d.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*r.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x - __tmp_y }))));
     }
 }
 

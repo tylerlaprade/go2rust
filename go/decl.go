@@ -8073,6 +8073,16 @@ func methodReassignsValueReceiver(fn *ast.FuncDecl) bool {
 	return methodReassignsReceiver(fn)
 }
 
+func methodValueReceiverNeedsLocalAlias(fn *ast.FuncDecl) bool {
+	if fn == nil || fn.Recv == nil || len(fn.Recv.List) == 0 {
+		return false
+	}
+	if _, isPointer := fn.Recv.List[0].Type.(*ast.StarExpr); isPointer {
+		return false
+	}
+	return methodMutatesReceiver(fn, receiverNameForMethod(fn))
+}
+
 func collectMethodReceiverMutability(files []*ast.File, typeInfo *TypeInfo) map[string]bool {
 	mutableByMethod := make(map[string]bool)
 	if typeInfo == nil || typeInfo.info == nil {
@@ -8750,7 +8760,7 @@ func transpileMethodImplWithVisibility(out *strings.Builder, fn *ast.FuncDecl, a
 	currentReceiverRustAliasIsPointerHandle = false
 	currentReceiverRustAliasIsGoPtr = false
 	currentReceiverRustAliasGoPtrInfo = goPtrResultInfo{}
-	if methodReassignsReceiver(fn) {
+	if methodReassignsReceiver(fn) || methodValueReceiverNeedsLocalAlias(fn) {
 		currentReceiverRustAlias = "__self"
 		currentReceiverRustAliasIsPointerHandle = methodNeedsPointerReceiverHandleAlias(fn)
 		if info, ok := methodNeedsGoPtrReceiverAlias(fn); ok {

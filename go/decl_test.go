@@ -3419,6 +3419,40 @@ func TestMethodMutatesReceiverDetectsReceiverAssignments(t *testing.T) {
 	}
 }
 
+func TestValueReceiverCallingMutatingMethodUsesLocalReceiverCopy(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type writer struct {
+	n int
+}
+
+func (w *writer) byte(v int) {
+	w.n = v
+}
+
+func (w writer) refill() writer {
+	w.byte(1)
+	return w
+}
+`)
+
+	if !strings.Contains(rust, "pub fn refill(&self)") {
+		t.Fatalf("value receiver method should keep a shared Rust receiver:\n%s", rust)
+	}
+	if strings.Contains(rust, "pub fn refill(&mut self)") {
+		t.Fatalf("value receiver method should not require mutable access to the caller's receiver:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut __self = self.clone();") {
+		t.Fatalf("mutating value receiver method should create a mutable receiver copy:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__self.byte(") {
+		t.Fatalf("mutating value receiver method should call through the receiver copy:\n%s", rust)
+	}
+	if strings.Contains(rust, "\n        self.byte(") {
+		t.Fatalf("mutating value receiver method should not call mutating methods through shared self:\n%s", rust)
+	}
+}
+
 func TestMethodMutatesReceiverUsesPackageMethods(t *testing.T) {
 	caller := &ast.FuncDecl{
 		Name: ast.NewIdent("Read"),
