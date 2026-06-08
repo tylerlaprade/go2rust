@@ -3307,8 +3307,9 @@ func typeSwitchInterfaceBindingTraitName(typeInfo *TypeInfo, typeExpr ast.Expr, 
 // writeTypeSwitchInterfaceCaseBinding binds the case variable for an interface
 // case (named or anonymous). The condition has already matched a structural
 // candidate, so the bound value is the matched concrete implementor downcast
-// out of the subject. Multiple candidates use the interface method-set trait
-// object so the case variable has one Rust type.
+// out of the subject and then boxed back into the case interface type. Go gives
+// the case variable the case type, even when only one concrete implementor is
+// visible to the transpiler.
 func writeTypeSwitchInterfaceCaseBinding(out *strings.Builder, typeInfo *TypeInfo, varName string, typeExpr ast.Expr, subjectType types.Type, mutable bool) bool {
 	iface, ok := typeSwitchCaseInterface(typeInfo, typeExpr)
 	if !ok {
@@ -3320,7 +3321,7 @@ func writeTypeSwitchInterfaceCaseBinding(out *strings.Builder, typeInfo *TypeInf
 		out.WriteString("mut ")
 	}
 	out.WriteString(varName)
-	if len(candidates) > 1 {
+	if len(candidates) > 0 {
 		if ifaceName, ok := typeSwitchInterfaceBindingTraitName(typeInfo, typeExpr, iface, candidates); ok {
 			out.WriteString(": ")
 			out.WriteString(goTypesWrappedRustType(rustLocalInterfaceTraitObject(ifaceName)))

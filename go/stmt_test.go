@@ -729,6 +729,40 @@ func visit(x any) {
 	}
 }
 
+func TestTypeSwitchInterfaceSingleCandidateBindingUsesCaseInterface(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+type Positioner interface {
+	Pos() int
+}
+
+type A struct{}
+func (A) Pos() int { return 0 }
+
+func visit(x any) Positioner {
+	switch a := x.(type) {
+	case Positioner:
+		a = nil
+		return a
+	}
+	return nil
+}
+`)
+
+	if strings.Contains(rust, `let mut a = Rc::new(RefCell::new(Some(_ts_val.and_then(|__v| __v.downcast_ref::<A>()).unwrap().clone())))`) {
+		t.Fatalf("single-candidate interface case binding should not narrow the case variable to the concrete type:\n%s", rust)
+	}
+	for _, want := range []string{
+		`let mut a: Rc<RefCell<Option<Box<dyn Positioner>>>> = if let Some(typed_val) = _ts_val.and_then(|__v| __v.downcast_ref::<A>())`,
+		`Box::new(typed_val.clone()) as Box<dyn Positioner>`,
+		`panic!("type switch interface case condition matched no concrete implementor")`,
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("single-candidate interface case binding should contain %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestLocalInterfaceReturnBoxesSelectorPointerWrapper(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
