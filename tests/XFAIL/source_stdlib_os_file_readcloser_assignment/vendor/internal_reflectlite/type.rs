@@ -770,7 +770,15 @@ pub fn have_identical_type(T: Arc<Mutex<Option<internal_abi::r#type::Type>>>, V:
         return { let __left = T.clone(); let __right = V.clone(); let __both_nil = (*__left.lock().unwrap()).is_none() && (*__right.lock().unwrap()).is_none(); let __eq = __both_nil || Arc::ptr_eq(&__left, &__right); __eq };
     }
 
-    if { let __tmp_x = (*{ let __recv = to_r_type(GoPtr::local(T.clone())); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*{ let __recv = to_r_type(GoPtr::local(V.clone())); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name(); __result }.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } || { let __tmp_x = (*{ let __recv = T.clone(); let __recv_ptr: *const internal_abi::r#type::Type = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const internal_abi::r#type::Type }; let __result = unsafe { &*__recv_ptr }.kind(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*{ let __recv = V.clone(); let __recv_ptr: *const internal_abi::r#type::Type = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const internal_abi::r#type::Type }; let __result = unsafe { &*__recv_ptr }.kind(); __result }.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } {
+    if {
+        let __go_cond_0 = { let __tmp_x = (*{ let __recv = to_r_type(GoPtr::local(T.clone())); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*{ let __recv = to_r_type(GoPtr::local(V.clone())); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).name(); __result }.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y };
+        if __go_cond_0 {
+            true
+        } else {
+            let __go_cond_1 = { let __tmp_x = (*{ let __recv = T.clone(); let __recv_ptr: *const internal_abi::r#type::Type = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const internal_abi::r#type::Type }; let __result = unsafe { &*__recv_ptr }.kind(); __result }.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*{ let __recv = V.clone(); let __recv_ptr: *const internal_abi::r#type::Type = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const internal_abi::r#type::Type }; let __result = unsafe { &*__recv_ptr }.kind(); __result }.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y };
+            __go_cond_1
+        }
+    } {
         return false;
     }
 

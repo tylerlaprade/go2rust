@@ -650,7 +650,15 @@ impl sweepClass {
                 // Only update *s if its current value is less than sNew,
                 // since *s increases monotonically.
         let mut sOld = self.load();
-        while { let __tmp_x = (*sOld.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*sNew.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x < __tmp_y } && !internal_runtime_atomic::cas(internal_runtime_atomic::GoPtr::local(Arc::new(Mutex::new(Some(u32::default())))), Arc::new(Mutex::new(Some((*{ let __v = (*sOld.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u32))), Arc::new(Mutex::new(Some((*{ let __v = (*sNew.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u32)))) {
+        while {
+            let __go_cond_0 = { let __tmp_x = (*sOld.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*sNew.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x < __tmp_y };
+            if __go_cond_0 {
+                let __go_cond_1 = !internal_runtime_atomic::cas(internal_runtime_atomic::GoPtr::local(Arc::new(Mutex::new(Some(u32::default())))), Arc::new(Mutex::new(Some((*{ let __v = (*sOld.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u32))), Arc::new(Mutex::new(Some((*{ let __v = (*sNew.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u32))));
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         { let new_val = self.load(); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *sOld.lock().unwrap() = __moved_val; };
     }
     }

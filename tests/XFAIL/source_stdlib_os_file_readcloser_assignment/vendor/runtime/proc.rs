@@ -3607,7 +3607,15 @@ pub fn handoffp(pp: GoPtr<crate::runtime2::p>) {
 
         // no local work, check that there are no spinning/idle M's,
         // otherwise our help is not required
-    if { let __tmp_x = { let __tmp_x = (*(*sched.lock().unwrap().as_ref().unwrap()).nmspinning.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = (*(*sched.lock().unwrap().as_ref().unwrap()).npidle.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y }; let __tmp_y = 0 as i32; __tmp_x == __tmp_y } && (*(*sched.lock().unwrap().as_ref().unwrap()).nmspinning.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some(0 as i32))), Arc::new(Mutex::new(Some(1 as i32)))) {
+    if {
+        let __go_cond_0 = { let __tmp_x = { let __tmp_x = (*(*sched.lock().unwrap().as_ref().unwrap()).nmspinning.lock().unwrap().as_mut().unwrap()).load(); let __tmp_y = (*(*sched.lock().unwrap().as_ref().unwrap()).npidle.lock().unwrap().as_mut().unwrap()).load(); __tmp_x + __tmp_y }; let __tmp_y = 0 as i32; __tmp_x == __tmp_y };
+        if __go_cond_0 {
+            let __go_cond_1 = (*(*sched.lock().unwrap().as_ref().unwrap()).nmspinning.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some(0 as i32))), Arc::new(Mutex::new(Some(1 as i32))));
+            __go_cond_1
+        } else {
+            false
+        }
+    } {
         (*(*sched.lock().unwrap().as_ref().unwrap()).needspinning.lock().unwrap().as_mut().unwrap()).store(Arc::new(Mutex::new(Some(0 as u32))));
         startm(pp.clone(), Arc::new(Mutex::new(Some(true))), Arc::new(Mutex::new(Some(false))));
         return;
@@ -3710,7 +3718,15 @@ pub fn wakep() {
 pub fn stoplockedm() {
     let mut gp = getg();
 
-    if { let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).lockedg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x == __tmp_y } || { let __left_addr = crate::runtime2::muintptr::ptr(&(*{ let __ptr = crate::runtime2::guintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).lockedg.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().lockedm.clone() }.lock().unwrap().as_ref().unwrap())).addr(); let __right_addr = { let __ptr = GoPtr::local((*gp.lock().unwrap().as_ref().unwrap()).m.clone()); __ptr.addr() }; let __eq = __left_addr == __right_addr; !__eq } {
+    if {
+        let __go_cond_0 = { let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).lockedg.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::guintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x == __tmp_y };
+        if __go_cond_0 {
+            true
+        } else {
+            let __go_cond_1 = { let __left_addr = crate::runtime2::muintptr::ptr(&(*{ let __ptr = crate::runtime2::guintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).lockedg.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().lockedm.clone() }.lock().unwrap().as_ref().unwrap())).addr(); let __right_addr = { let __ptr = GoPtr::local((*gp.lock().unwrap().as_ref().unwrap()).m.clone()); __ptr.addr() }; let __eq = __left_addr == __right_addr; !__eq };
+            __go_cond_1
+        }
+    } {
         throw(Arc::new(Mutex::new(Some("stoplockedm: inconsistent locking".to_string()))));
     }
     if { let __tmp_x = { let __selector_holder = (*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; let __tmp_y = crate::runtime2::puintptr(Arc::new(Mutex::new(Some(0 as usize)))); __tmp_x != __tmp_y } {
@@ -3965,7 +3981,15 @@ pub fn find_runnable() -> (GoPtr<crate::runtime2::g>, bool, bool) {
                 // Limit the number of spinning Ms to half the number of busy Ps.
                 // This is necessary to prevent excessive CPU consumption when
                 // GOMAXPROCS>>1 but the program parallelism is low.
-        if (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).spinning.clone(); __field }.lock().unwrap().as_ref().unwrap()) || { let __tmp_x = { let __tmp_x = 2 as i32; let __tmp_y = (*(*sched.lock().unwrap().as_ref().unwrap()).nmspinning.lock().unwrap().as_mut().unwrap()).load(); __tmp_x * __tmp_y }; let __tmp_y = { let __tmp_x = (*gomaxprocs.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*sched.lock().unwrap().as_ref().unwrap()).npidle.lock().unwrap().as_mut().unwrap()).load(); __tmp_x - __tmp_y }; __tmp_x < __tmp_y } {
+        if {
+            let __go_cond_0 = (*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).spinning.clone(); __field }.lock().unwrap().as_ref().unwrap());
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_1 = { let __tmp_x = { let __tmp_x = 2 as i32; let __tmp_y = (*(*sched.lock().unwrap().as_ref().unwrap()).nmspinning.lock().unwrap().as_mut().unwrap()).load(); __tmp_x * __tmp_y }; let __tmp_y = { let __tmp_x = (*gomaxprocs.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*(*sched.lock().unwrap().as_ref().unwrap()).npidle.lock().unwrap().as_mut().unwrap()).load(); __tmp_x - __tmp_y }; __tmp_x < __tmp_y };
+                __go_cond_1
+            }
+        } {
         if !(*{ let __field = (*mp.lock().unwrap().as_ref().unwrap()).spinning.clone(); __field }.lock().unwrap().as_ref().unwrap()) {
         { let __recv = mp.clone(); let __recv_ptr: *mut crate::runtime2::m = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::runtime2::m }; let __result = unsafe { &mut *__recv_ptr }.become_spinning(); __result };
     }

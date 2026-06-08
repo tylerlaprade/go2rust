@@ -4633,6 +4633,44 @@ func inRange(p uintptr) bool {
 	}
 }
 
+func TestConcurrentIfBuildsComplexTwoPartLogicalConditionWithStatements(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type object struct {
+	off uint32
+	size uint32
+}
+
+type buf struct {
+	nobj int
+	obj [64]object
+}
+
+type stack struct {
+	lo uintptr
+}
+
+type state struct {
+	stack stack
+}
+
+func overlaps(x *buf, s *state, addr uintptr) bool {
+	go func() {}()
+	if x.nobj > 0 && uint32(addr-s.stack.lo) < x.obj[x.nobj-1].off+x.obj[x.nobj-1].size {
+		return true
+	}
+	return false
+}
+`)
+
+	if strings.Contains(rust, "} && {") {
+		t.Fatalf("complex two-part logical condition should not chain inline statement blocks:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let __go_cond_") {
+		t.Fatalf("complex two-part logical condition should build condition operands with statements:\n%s", rust)
+	}
+}
+
 func TestConcurrentFixedArrayCallArgumentBreaksComplexElementsAcrossLines(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

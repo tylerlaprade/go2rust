@@ -4557,7 +4557,15 @@ impl gcBitsArena {
     /// tryAlloc allocates from b or returns nil if b does not have enough room.
     /// This is safe to call concurrently.
     pub fn try_alloc(&self, bytes: Arc<Mutex<Option<usize>>>) -> Option<GoArrayElemPtr<gcBits, 65520>> {
-        if false || { let __tmp_x = { let __tmp_x = internal_runtime_atomic::loaduintptr(internal_runtime_atomic::GoPtr::local(self.free.clone())); let __tmp_y = { let __v = (*bytes.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some((*self.bits.lock().unwrap().as_ref().unwrap()).len() as usize))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x > __tmp_y } {
+        if {
+            let __go_cond_0 = false;
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_1 = { let __tmp_x = { let __tmp_x = internal_runtime_atomic::loaduintptr(internal_runtime_atomic::GoPtr::local(self.free.clone())); let __tmp_y = { let __v = (*bytes.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some((*self.bits.lock().unwrap().as_ref().unwrap()).len() as usize))).lock().unwrap().as_ref().unwrap()) as usize; __tmp_x > __tmp_y };
+                __go_cond_1
+            }
+        } {
         return None;
     }
                 // Try to allocate from this block.

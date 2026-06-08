@@ -1078,7 +1078,23 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
     pub fn lookup_with_value(&mut self, key: Arc<StdMutex<Option<K>>>, value: Arc<StdMutex<Option<V>>>, valEqual: equalFunc) -> (Arc<StdMutex<Option<V>>>, bool) {
         let mut __self = GoPtr::local(Arc::new(StdMutex::new(Some(self.clone()))));
         while !__self.is_nil() {
-        if { let __left = { let __ptr_value = __self.with_mut(|__ptr_value| __ptr_value.key.clone()); __ptr_value }.clone(); let __right = key.clone(); let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (None, None) => true, (Some(__left_value), Some(__right_value)) => GoComparable::go_eq(__left_value, __right_value), _ => false }; __eq } && ({ let __nil_result = (*valEqual.lock().unwrap()).is_none(); __nil_result } || { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&{ let __ptr_value = __self.with_mut(|__ptr_value| __ptr_value.value.clone()); __ptr_value }.clone()) as usize))), internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&value.clone()) as usize))))) }) {
+        if {
+            let __go_cond_0 = { let __left = { let __ptr_value = __self.with_mut(|__ptr_value| __ptr_value.key.clone()); __ptr_value }.clone(); let __right = key.clone(); let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (None, None) => true, (Some(__left_value), Some(__right_value)) => GoComparable::go_eq(__left_value, __right_value), _ => false }; __eq };
+            if __go_cond_0 {
+                let __go_cond_1 = {
+                    let __go_cond_2 = { let __nil_result = (*valEqual.lock().unwrap()).is_none(); __nil_result };
+                    if __go_cond_2 {
+                        true
+                    } else {
+                        let __go_cond_3 = { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&{ let __ptr_value = __self.with_mut(|__ptr_value| __ptr_value.value.clone()); __ptr_value }.clone()) as usize))), internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&value.clone()) as usize))))) };
+                        __go_cond_3
+                    }
+                };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         return ({ let __return_value_0 = { let __ptr_value = __self.with_mut(|__ptr_value| __ptr_value.value.clone()); __ptr_value }.clone(); __return_value_0 }, true);
     }
         { let new_val = { let __go_ptr = (*{ let __ptr_value = __self.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }; __self = new_val; };
@@ -1124,7 +1140,15 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
     ///
     /// compareAndSwap must be called under the mutex of the indirect node which e is a child of.
     pub fn compare_and_swap(&self, key: Arc<StdMutex<Option<K>>>, old: Arc<StdMutex<Option<V>>>, new: Arc<StdMutex<Option<V>>>, valEqual: equalFunc) -> (Arc<StdMutex<Option<entry<K, V>>>>, bool) {
-        if { let __left = self.key.clone(); let __right = key.clone(); let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (None, None) => true, (Some(__left_value), Some(__right_value)) => GoComparable::go_eq(__left_value, __right_value), _ => false }; __eq } && { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.value.clone()) as usize))), internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&old.clone()) as usize))))) } {
+        if {
+            let __go_cond_0 = { let __left = self.key.clone(); let __right = key.clone(); let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (None, None) => true, (Some(__left_value), Some(__right_value)) => GoComparable::go_eq(__left_value, __right_value), _ => false }; __eq };
+            if __go_cond_0 {
+                let __go_cond_1 = { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.value.clone()) as usize))), internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&old.clone()) as usize))))) };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
                 // Return the new head of the list.
         let mut e = new_entry_node::<K, V>(key.clone(), new.clone());
         {
@@ -1139,7 +1163,15 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         let mut i = self.overflow.clone();
         let mut e: GoPtr<entry<K, V>> = { let __go_ptr = { let __recv = i.clone(); let __recv_ptr: *mut sync_atomic::r#type::Pointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut sync_atomic::r#type::Pointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result }.clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
         while !e.is_nil() {
-        if { let __left = { let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.key.clone()); __ptr_value }.clone(); let __right = key.clone(); let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (None, None) => true, (Some(__left_value), Some(__right_value)) => GoComparable::go_eq(__left_value, __right_value), _ => false }; __eq } && { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&{ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.value.clone()); __ptr_value }.clone()) as usize))), internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&old.clone()) as usize))))) } {
+        if {
+            let __go_cond_0 = { let __left = { let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.key.clone()); __ptr_value }.clone(); let __right = key.clone(); let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (None, None) => true, (Some(__left_value), Some(__right_value)) => GoComparable::go_eq(__left_value, __right_value), _ => false }; __eq };
+            if __go_cond_0 {
+                let __go_cond_1 = { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&{ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.value.clone()); __ptr_value }.clone()) as usize))), internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&old.clone()) as usize))))) };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         let mut eNew = new_entry_node::<K, V>(key.clone(), new.clone());
         (*(*eNew.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).store((*{ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load());
         { let __recv = i.clone(); let __recv_ptr: *mut sync_atomic::r#type::Pointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut sync_atomic::r#type::Pointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.store(sync_atomic::GoPtr::local(eNew.clone())); __result };
@@ -1179,7 +1211,15 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
     ///
     /// compareAndDelete must be called under the mutex of the indirect node which e is a child of.
     pub fn compare_and_delete(&self, key: Arc<StdMutex<Option<K>>>, value: Arc<StdMutex<Option<V>>>, valEqual: equalFunc) -> (GoPtr<entry<K, V>>, bool) {
-        if { let __left = self.key.clone(); let __right = key.clone(); let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (None, None) => true, (Some(__left_value), Some(__right_value)) => GoComparable::go_eq(__left_value, __right_value), _ => false }; __eq } && { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.value.clone()) as usize))), internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&value.clone()) as usize))))) } {
+        if {
+            let __go_cond_0 = { let __left = self.key.clone(); let __right = key.clone(); let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (None, None) => true, (Some(__left_value), Some(__right_value)) => GoComparable::go_eq(__left_value, __right_value), _ => false }; __eq };
+            if __go_cond_0 {
+                let __go_cond_1 = { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&self.value.clone()) as usize))), internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&value.clone()) as usize))))) };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
                 // Drop the head of the list.
         return ({ let __go_ptr = (*self.overflow.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }, true);
     }
@@ -1187,7 +1227,15 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         let mut i = self.overflow.clone();
         let mut e: GoPtr<entry<K, V>> = { let __go_ptr = { let __recv = i.clone(); let __recv_ptr: *mut sync_atomic::r#type::Pointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut sync_atomic::r#type::Pointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result }.clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
         while !e.is_nil() {
-        if { let __left = { let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.key.clone()); __ptr_value }.clone(); let __right = key.clone(); let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (None, None) => true, (Some(__left_value), Some(__right_value)) => GoComparable::go_eq(__left_value, __right_value), _ => false }; __eq } && { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&{ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.value.clone()); __ptr_value }.clone()) as usize))), internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&value.clone()) as usize))))) } {
+        if {
+            let __go_cond_0 = { let __left = { let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.key.clone()); __ptr_value }.clone(); let __right = key.clone(); let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (None, None) => true, (Some(__left_value), Some(__right_value)) => GoComparable::go_eq(__left_value, __right_value), _ => false }; __eq };
+            if __go_cond_0 {
+                let __go_cond_1 = { let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> = { let mut __f_guard = valEqual.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<usize>>>, Arc<StdMutex<Option<usize>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(StdMutex::new(Some(Arc::as_ptr(&{ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.value.clone()); __ptr_value }.clone()) as usize))), internal_abi::no_escape(Arc::new(StdMutex::new(Some(Arc::as_ptr(&value.clone()) as usize))))) };
+                __go_cond_1
+            } else {
+                false
+            }
+        } {
         { let __recv = i.clone(); let __recv_ptr: *mut sync_atomic::r#type::Pointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut sync_atomic::r#type::Pointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.store((*{ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load()); __result };
         return (GoPtr::local(Arc::new(StdMutex::new(Some(self.clone())))), true);
     }

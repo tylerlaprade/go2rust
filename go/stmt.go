@@ -9505,6 +9505,7 @@ func transpileIfWithInitAsBlock(out *strings.Builder, stmt *ast.IfStmt, fnType *
 }
 
 const minStatementBuiltLogicalConditionNodes = 4
+const minStatementBuiltLogicalConditionOperandComplexity = 10
 
 func transpileCondition(out *strings.Builder, expr ast.Expr) {
 	if shouldStatementBuildLogicalCondition(expr) {
@@ -9516,8 +9517,13 @@ func transpileCondition(out *strings.Builder, expr ast.Expr) {
 }
 
 func shouldStatementBuildLogicalCondition(expr ast.Expr) bool {
-	return NeedsConcurrentWrapper() &&
-		countLogicalConditionNodes(expr) >= minStatementBuiltLogicalConditionNodes
+	if !NeedsConcurrentWrapper() {
+		return false
+	}
+	if countLogicalConditionNodes(expr) >= minStatementBuiltLogicalConditionNodes {
+		return true
+	}
+	return logicalConditionHasComplexOperand(expr)
 }
 
 func countLogicalConditionNodes(expr ast.Expr) int {
@@ -9528,6 +9534,65 @@ func countLogicalConditionNodes(expr ast.Expr) int {
 	return 1 +
 		countLogicalConditionNodes(binary.X) +
 		countLogicalConditionNodes(binary.Y)
+}
+
+func logicalConditionHasComplexOperand(expr ast.Expr) bool {
+	binary, ok := unwrapParens(expr).(*ast.BinaryExpr)
+	if !ok || (binary.Op != token.LAND && binary.Op != token.LOR) {
+		return false
+	}
+	if countLogicalConditionOperandComplexity(binary.X) >= minStatementBuiltLogicalConditionOperandComplexity {
+		return true
+	}
+	if countLogicalConditionOperandComplexity(binary.Y) >= minStatementBuiltLogicalConditionOperandComplexity {
+		return true
+	}
+	return logicalConditionHasComplexOperand(binary.X) || logicalConditionHasComplexOperand(binary.Y)
+}
+
+func countLogicalConditionOperandComplexity(expr ast.Expr) int {
+	switch e := unwrapParens(expr).(type) {
+	case *ast.BinaryExpr:
+		if e.Op == token.LAND || e.Op == token.LOR {
+			return 0
+		}
+		return 1 + countLogicalConditionOperandComplexity(e.X) + countLogicalConditionOperandComplexity(e.Y)
+	case *ast.CallExpr:
+		count := 2 + countLogicalConditionOperandComplexity(e.Fun)
+		for _, arg := range e.Args {
+			count += countLogicalConditionOperandComplexity(arg)
+		}
+		return count
+	case *ast.IndexExpr:
+		return 2 + countLogicalConditionOperandComplexity(e.X) + countLogicalConditionOperandComplexity(e.Index)
+	case *ast.SelectorExpr:
+		return 1 + countLogicalConditionOperandComplexity(e.X)
+	case *ast.SliceExpr:
+		count := 2 + countLogicalConditionOperandComplexity(e.X)
+		if e.Low != nil {
+			count += countLogicalConditionOperandComplexity(e.Low)
+		}
+		if e.High != nil {
+			count += countLogicalConditionOperandComplexity(e.High)
+		}
+		if e.Max != nil {
+			count += countLogicalConditionOperandComplexity(e.Max)
+		}
+		return count
+	case *ast.StarExpr:
+		return 1 + countLogicalConditionOperandComplexity(e.X)
+	case *ast.UnaryExpr:
+		return 1 + countLogicalConditionOperandComplexity(e.X)
+	case *ast.ParenExpr:
+		return countLogicalConditionOperandComplexity(e.X)
+	case *ast.Ident, *ast.BasicLit:
+		return 0
+	default:
+		if expr == nil {
+			return 0
+		}
+		return 1
+	}
 }
 
 func currentLineIndent(out *strings.Builder) string {

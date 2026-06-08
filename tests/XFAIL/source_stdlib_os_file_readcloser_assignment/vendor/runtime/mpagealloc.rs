@@ -1287,7 +1287,23 @@ impl pageAlloc {
                 // If we're not in a test, validate first by checking mheap_.arenas.
                 // This is a fast path which is only safe to use outside of testing.
         let mut ai = arena_index(Arc::new(Mutex::new(Some((*addr.lock().unwrap().as_ref().unwrap()).addr()))));
-        if (*self.test.clone().lock().unwrap().as_ref().unwrap()) || { let __nil_result = (*{ let __seq = { let __seq_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).arenas.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(crate::mheap::arenaIdx::l1(&(*ai.lock().unwrap().as_ref().unwrap()))) as usize].clone() }.lock().unwrap()).is_none(); __nil_result } || { let __nil_result = (*{ let __seq = { let __seq_holder = { let __seq = { let __seq_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).arenas.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(crate::mheap::arenaIdx::l1(&(*ai.lock().unwrap().as_ref().unwrap()))) as usize].clone() }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(crate::mheap::arenaIdx::l2(&(*ai.lock().unwrap().as_ref().unwrap()))) as usize].clone() }.lock().unwrap()).is_none(); __nil_result } {
+        if {
+            let __go_cond_0 = {
+                let __go_cond_1 = (*self.test.clone().lock().unwrap().as_ref().unwrap());
+                if __go_cond_1 {
+                    true
+                } else {
+                    let __go_cond_2 = { let __nil_result = (*{ let __seq = { let __seq_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).arenas.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(crate::mheap::arenaIdx::l1(&(*ai.lock().unwrap().as_ref().unwrap()))) as usize].clone() }.lock().unwrap()).is_none(); __nil_result };
+                    __go_cond_2
+                }
+            };
+            if __go_cond_0 {
+                true
+            } else {
+                let __go_cond_3 = { let __nil_result = (*{ let __seq = { let __seq_holder = { let __seq = { let __seq_holder = (*mheap_.lock().unwrap().as_ref().unwrap()).arenas.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(crate::mheap::arenaIdx::l1(&(*ai.lock().unwrap().as_ref().unwrap()))) as usize].clone() }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(crate::mheap::arenaIdx::l2(&(*ai.lock().unwrap().as_ref().unwrap()))) as usize].clone() }.lock().unwrap()).is_none(); __nil_result };
+                __go_cond_3
+            }
+        } {
         let (mut vAddr, mut ok) = (*self.in_use.lock().unwrap().as_ref().unwrap()).find_addr_greater_equal(Arc::new(Mutex::new(Some((*addr.lock().unwrap().as_ref().unwrap()).addr()))));
         if ok {
         return Arc::new(Mutex::new(Some(offAddr { a: Arc::new(Mutex::new(Some(vAddr))), ..Default::default() })));
