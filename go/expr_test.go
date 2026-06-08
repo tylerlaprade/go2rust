@@ -5922,13 +5922,16 @@ func unsafeValues(p *byte, n int, b []byte, s string) (string, []byte, unsafe.Po
 	if strings.Contains(rust, "unsafe::") {
 		t.Fatalf("unsafe compiler intrinsics should not be emitted as Rust module calls:\n%s", rust)
 	}
-	for _, name := range []string{"unsafe.String", "unsafe.Slice", "unsafe.Add", "unsafe.StringData"} {
+	for _, name := range []string{"unsafe.String", "unsafe.Slice", "unsafe.Add"} {
 		if !strings.Contains(rust, `unimplemented!("`+name+` requires unsafe intrinsic support")`) {
 			t.Fatalf("%s should emit a loud unsupported intrinsic marker:\n%s", name, rust)
 		}
 	}
 	if strings.Contains(rust, `unimplemented!("unsafe.SliceData requires unsafe intrinsic support")`) {
 		t.Fatalf("unsafe.Pointer(unsafe.SliceData(slice)) should lower through the typed slice-data pointer path:\n%s", rust)
+	}
+	if strings.Contains(rust, `unimplemented!("unsafe.StringData requires unsafe intrinsic support")`) {
+		t.Fatalf("unsafe.Pointer(unsafe.StringData(string)) should lower through the typed string-data pointer path:\n%s", rust)
 	}
 }
 
@@ -5950,6 +5953,27 @@ func call(s string) {
 	}
 	if !strings.Contains(rust, "let __go_unsafe_result: Arc<Mutex<Option<u8>>> = unimplemented!(\"unsafe.StringData requires unsafe intrinsic support\")") {
 		t.Fatalf("unsafe.StringData should keep the typed pointer handle shape:\n%s", rust)
+	}
+}
+
+func TestUnsafePointerStringDataConversionUsesStringAddress(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+import "unsafe"
+
+func addr(s string) uintptr {
+	return uintptr(unsafe.Pointer(unsafe.StringData(s)))
+}
+`)
+
+	if strings.Contains(rust, `unimplemented!("unsafe.StringData requires unsafe intrinsic support")`) {
+		t.Fatalf("uintptr(unsafe.Pointer(unsafe.StringData(s))) should lower through the typed string-data address path:\n%s", rust)
+	}
+	if !strings.Contains(rust, `let __string_data_holder = s.clone()`) {
+		t.Fatalf("unsafe.StringData address path should borrow the string handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, `__s.as_ptr() as usize`) {
+		t.Fatalf("unsafe.StringData address path should use the string backing pointer:\n%s", rust)
 	}
 }
 

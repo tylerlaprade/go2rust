@@ -18682,6 +18682,15 @@ func writeUnsafePointerConversion(out *strings.Builder, arg ast.Expr) {
 		WriteWrapperSuffix(out)
 		return
 	}
+	if stringDataArg, ok := unsafeStringDataCallArg(arg, typeInfo); ok {
+		if writeUnsafeStringDataPointerAddress(out, stringDataArg) {
+			WriteWrapperSuffix(out)
+			return
+		}
+		out.WriteString("/* ERROR: Type information required for unsafe.StringData */ unimplemented!(\"type info required for unsafe.StringData\")")
+		WriteWrapperSuffix(out)
+		return
+	}
 	if writeUnsafePointerAddressOfBareLocal(out, arg) {
 		WriteWrapperSuffix(out)
 		return
@@ -18841,6 +18850,20 @@ func writeUnsafeSliceDataPointer(out *strings.Builder, sliceExpr ast.Expr) bool 
 	out.WriteString("; let mut __slice_guard = __slice_holder")
 	WriteBorrowMethod(out, true)
 	out.WriteString("; match __slice_guard.as_mut() { Some(__v) => __v.as_mut_ptr() as usize, None => 0usize } }")
+	return true
+}
+
+func writeUnsafeStringDataPointerAddress(out *strings.Builder, stringExpr ast.Expr) bool {
+	typeInfo := GetTypeInfo()
+	if typeInfo == nil || !typeInfo.IsString(stringExpr) {
+		return false
+	}
+
+	out.WriteString("{ let __string_data_holder = ")
+	TranspileExpressionContext(out, stringExpr, LValue)
+	out.WriteString(".clone(); let __string_data_guard = __string_data_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; match __string_data_guard.as_ref() { Some(__s) => __s.as_ptr() as usize, None => 0usize } }")
 	return true
 }
 
