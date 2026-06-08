@@ -81,8 +81,9 @@ func (pl *PackageLoader) LoadWithDependencies(patterns []string) error {
 			packages.NeedTypes |
 			packages.NeedSyntax |
 			packages.NeedTypesInfo,
-		Dir:   pl.workDir,
-		Tests: false,
+		Dir:        pl.workDir,
+		Tests:      false,
+		BuildFlags: packageLoadBuildFlags(os.Getenv("GOFLAGS")),
 	}
 
 	// Load the packages
@@ -126,6 +127,22 @@ func (pl *PackageLoader) LoadWithDependencies(patterns []string) error {
 
 	fmt.Fprintf(os.Stderr, "Loaded %d packages with full type information\n", len(pl.allPackages))
 	return nil
+}
+
+func packageLoadBuildFlags(goFlags string) []string {
+	if goFlagsHasTags(goFlags) {
+		return nil
+	}
+	return []string{"-tags=purego"}
+}
+
+func goFlagsHasTags(goFlags string) bool {
+	for _, flag := range strings.Fields(goFlags) {
+		if flag == "-tags" || strings.HasPrefix(flag, "-tags=") {
+			return true
+		}
+	}
+	return false
 }
 
 // collectAllPackages recursively collects all packages
