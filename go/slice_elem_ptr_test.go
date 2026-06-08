@@ -2365,6 +2365,45 @@ func walk(t *table, flag bool) *indirect {
 	}
 }
 
+func TestGoPtrCurrentReceiverArgumentInFuncLitUsesCapturedClone(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type span struct {
+	value int
+}
+
+func insert(s *span) {
+}
+
+func seed(spans []span) {
+	insert(&spans[0])
+}
+
+func systemstack(fn func()) {
+	fn()
+}
+
+func (s *span) fault() {
+	systemstack(func() {
+		insert(s)
+	})
+}
+`)
+
+	if !strings.Contains(rust, "pub fn insert(s: GoPtr<span>)") {
+		t.Fatalf("callee receiving a slice element pointer should use a GoPtr parameter:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut s_closure_clone = (*self).clone();") {
+		t.Fatalf("function literal should clone the receiver before moving into the closure:\n%s", rust)
+	}
+	if strings.Contains(rust, "Some(self.clone())") {
+		t.Fatalf("GoPtr current receiver argument inside closure should not capture self directly:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some(s_closure_clone.clone())") {
+		t.Fatalf("GoPtr current receiver argument inside closure should use the captured receiver clone:\n%s", rust)
+	}
+}
+
 func TestGoPtrDerefCompoundAssignUsesGoPtrMutation(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

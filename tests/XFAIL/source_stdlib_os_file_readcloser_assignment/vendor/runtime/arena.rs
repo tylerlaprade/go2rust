@@ -439,7 +439,7 @@ impl crate::mheap::mspan {
     }
         let mut s_closure_clone = (*self).clone(); systemstack(Arc::new(Mutex::new(Some(Box::new(move || {
         lock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).lock.clone()));
-        (*(*(*mheap_.lock().unwrap().as_ref().unwrap()).user_arena.lock().unwrap().as_ref().unwrap()).quarantine_list.lock().unwrap().as_mut().unwrap()).insert(GoPtr::local(Arc::new(Mutex::new(Some(self.clone())))));
+        (*(*(*mheap_.lock().unwrap().as_ref().unwrap()).user_arena.lock().unwrap().as_ref().unwrap()).quarantine_list.lock().unwrap().as_mut().unwrap()).insert(GoPtr::local(Arc::new(Mutex::new(Some(s_closure_clone.clone())))));
         unlock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).lock.clone()));
     }) as Box<dyn FnMut() -> () + Send + Sync>))));
     }

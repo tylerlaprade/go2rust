@@ -7330,7 +7330,9 @@ func writeGoPtrCallArgumentWithQualifierForInfo(out *strings.Builder, arg ast.Ex
 			writeGoPtrQualifiedConstructor(out, helperQualifier, "local")
 			out.WriteString("(")
 			WriteWrapperOptionPrefix(out)
-			out.WriteString("Some(self.clone())")
+			out.WriteString("Some(")
+			writeCurrentReceiverClone(out, ident)
+			out.WriteString(")")
 			WriteWrapperOptionSuffix(out)
 			out.WriteString(")")
 			return true
