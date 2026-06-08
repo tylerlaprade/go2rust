@@ -10706,6 +10706,8 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 
 				if writeSliceElemPtrSliceReturnValue(out, result, i) {
 					// Pointer-slice return slot preserves slice-element pointer values.
+				} else if writeSliceElemPtrResultReturnValue(out, result, i) {
+					// Pointer return slots can preserve slice-element identity in multi-result tuples.
 				} else if writeArrayElemPtrReturnValue(out, result, i) {
 					// Array-element pointer return slots preserve array identity and index.
 				} else if writeSliceElemPtrReturnValue(out, result) {

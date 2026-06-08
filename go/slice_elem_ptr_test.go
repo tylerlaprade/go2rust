@@ -4283,6 +4283,35 @@ func pick(bucket []entry) *entry {
 	}
 }
 
+func TestSliceElemPointerMultiResultReturnUsesSliceElemPtrSlot(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+type entry struct {
+	value int
+}
+
+func pick(bucket []entry, ok bool) (*entry, bool) {
+	if !ok {
+		return nil, false
+	}
+	return &bucket[0], true
+}
+`)
+
+	if !strings.Contains(rust, "fn pick(") || !strings.Contains(rust, "-> (Option<GoSliceElemPtr<entry>>, bool)") {
+		t.Fatalf("multi-result slice element pointer return should expose the slice element pointer slot:\n%s", rust)
+	}
+	if strings.Contains(rust, `unimplemented!("slice element pointer return requires pointer representation support")`) {
+		t.Fatalf("multi-result slice element pointer return should not hit the loud fallback:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Some(GoSliceElemPtr::new(bucket.clone(), (0) as usize))") {
+		t.Fatalf("multi-result slice element pointer return should preserve slice/index identity:\n%s", rust)
+	}
+	if !strings.Contains(rust, "return (None, false);") {
+		t.Fatalf("nil multi-result pointer return should use None in the slice-element slot:\n%s", rust)
+	}
+}
+
 func TestSliceElemPointerLocalReturnUsesSliceElemPtr(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

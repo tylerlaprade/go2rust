@@ -42,9 +42,11 @@ var currentArrayElemPtrCandidates map[types.Object]arrayElemPtrInfo
 var currentGoPtrCandidates map[types.Object]goPtrResultInfo
 var currentSliceElemPtrReturn *sliceElemPtrReturnInfo
 var currentSliceElemPtrSliceReturn *sliceElemPtrSliceReturnInfo
+var currentSliceElemPtrResultInfos map[int]sliceElemPtrReturnInfo
 var currentArrayElemPtrReturnInfos map[int]arrayElemPtrInfo
 var currentGoPtrReturnInfos map[int]goPtrResultInfo
 var currentFuncLitGoPtrParamInfos map[*ast.FuncLit]map[int]goPtrResultInfo
+var sliceElemPtrResultInfoInProgress map[*ast.FuncDecl]bool
 var arrayElemPtrResultInfoInProgress map[*ast.FuncDecl]bool
 var goPtrResultInfoInProgress map[*ast.FuncDecl]bool
 var collectingSliceElemPtrFacts bool
@@ -196,6 +198,250 @@ func isGoPtrIdent(name *ast.Ident) bool {
 	return ok
 }
 
+func sliceElemPtrResultInfosForFunc(fn *ast.FuncDecl) map[int]sliceElemPtrReturnInfo {
+	typeInfo := GetTypeInfo()
+	if fn == nil || fn.Body == nil || fn.Type == nil || fn.Type.Results == nil || typeInfo == nil {
+		return nil
+	}
+	if sliceElemPtrResultInfoInProgress != nil && sliceElemPtrResultInfoInProgress[fn] {
+		return nil
+	}
+	if sliceElemPtrResultInfoInProgress == nil {
+		sliceElemPtrResultInfoInProgress = map[*ast.FuncDecl]bool{}
+	}
+	sliceElemPtrResultInfoInProgress[fn] = true
+	defer delete(sliceElemPtrResultInfoInProgress, fn)
+
+	sig, ok := funcDeclSignatureFromTypeInfo(fn)
+	if !ok || sig.Results() == nil || sig.Results().Len() == 0 {
+		return nil
+	}
+	expected := unnamedPointerResultElemTypes(fn, sig)
+	if len(expected) == 0 {
+		return nil
+	}
+	candidates := collectSliceElemPtrCandidates(fn.Body)
+	namedResultObjects := map[int]types.Object{}
+	if typeInfo.info != nil {
+		resultIndex := 0
+		for _, field := range fn.Type.Results.List {
+			if len(field.Names) == 0 {
+				resultIndex++
+				continue
+			}
+			for _, name := range field.Names {
+				if name != nil && name.Name != "_" {
+					if obj := typeInfo.GetObject(name); obj != nil {
+						namedResultObjects[resultIndex] = obj
+					}
+				}
+				resultIndex++
+			}
+		}
+	}
+
+	valid := map[int]bool{}
+	saw := map[int]bool{}
+	infos := map[int]sliceElemPtrReturnInfo{}
+	for index := range expected {
+		valid[index] = true
+	}
+	resultCount := sig.Results().Len()
+	ast.Inspect(fn.Body, func(node ast.Node) bool {
+		switch n := node.(type) {
+		case *ast.FuncLit:
+			return false
+		case *ast.ReturnStmt:
+			if len(n.Results) == 0 {
+				for index, elemRustType := range expected {
+					if !valid[index] {
+						continue
+					}
+					obj := namedResultObjects[index]
+					if obj == nil {
+						valid[index] = false
+						continue
+					}
+					typ, ok := candidates[obj]
+					if !ok || typ != elemRustType {
+						valid[index] = false
+						continue
+					}
+					elemType, _ := pointerElemType(sig.Results().At(index).Type())
+					info := sliceElemPtrReturnInfo{elemRustType: typ, elemType: elemType}
+					if prev, exists := infos[index]; exists && prev.elemRustType != info.elemRustType {
+						valid[index] = false
+						continue
+					}
+					infos[index] = info
+					saw[index] = true
+				}
+				return true
+			}
+			if len(n.Results) == 1 && resultCount > 1 {
+				if call, ok := unwrapParens(n.Results[0]).(*ast.CallExpr); ok {
+					for index, elemRustType := range expected {
+						if !valid[index] {
+							continue
+						}
+						info, ok := sliceElemPtrResultInfoForCall(call, index)
+						if !ok || info.elemRustType != elemRustType {
+							valid[index] = false
+							continue
+						}
+						if prev, exists := infos[index]; exists && prev.elemRustType != info.elemRustType {
+							valid[index] = false
+							continue
+						}
+						infos[index] = info
+						saw[index] = true
+					}
+					return true
+				}
+			}
+			if len(n.Results) != resultCount {
+				for index := range valid {
+					valid[index] = false
+				}
+				return true
+			}
+			for index, elemRustType := range expected {
+				if !valid[index] {
+					continue
+				}
+				info, valueSaw, ok := sliceElemPtrResultExprInfo(n.Results[index], candidates, typeInfo)
+				if !ok {
+					valid[index] = false
+					continue
+				}
+				if !valueSaw {
+					continue
+				}
+				if info.elemRustType != elemRustType {
+					valid[index] = false
+					continue
+				}
+				if prev, exists := infos[index]; exists && prev.elemRustType != info.elemRustType {
+					valid[index] = false
+					continue
+				}
+				infos[index] = info
+				saw[index] = true
+			}
+		}
+		return true
+	})
+
+	result := map[int]sliceElemPtrReturnInfo{}
+	for index, info := range infos {
+		if valid[index] && saw[index] {
+			result[index] = info
+		}
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	registerSliceElemPtrResultInfosForDecl(fn, result)
+	return result
+}
+
+func sliceElemPtrResultExprInfo(expr ast.Expr, candidates map[types.Object]string, typeInfo *TypeInfo) (sliceElemPtrReturnInfo, bool, bool) {
+	expr = unwrapParens(expr)
+	if ident, ok := expr.(*ast.Ident); ok {
+		if ident.Name == "nil" {
+			return sliceElemPtrReturnInfo{}, false, true
+		}
+		if typeInfo != nil && candidates != nil {
+			obj := typeInfo.GetObject(ident)
+			if obj != nil {
+				if elemRustType, ok := candidates[obj]; ok {
+					elemType, _ := sliceElemPtrPointerElemType(typeInfo.GetType(ident))
+					return sliceElemPtrReturnInfo{elemRustType: elemRustType, elemType: elemType}, true, true
+				}
+			}
+		}
+		return sliceElemPtrReturnInfo{}, false, false
+	}
+	if elemType, elemRustType, ok := sliceElemPtrAddressElemType(expr); ok {
+		return sliceElemPtrReturnInfo{elemRustType: elemRustType, elemType: elemType}, true, true
+	}
+	if call, ok := expr.(*ast.CallExpr); ok {
+		if info, ok := sliceElemPtrReturnInfoForCall(call); ok {
+			return info, true, true
+		}
+		if info, ok := sliceElemPtrResultInfoForCall(call, 0); ok {
+			return info, true, true
+		}
+	}
+	return sliceElemPtrReturnInfo{}, false, false
+}
+
+func registerSliceElemPtrResultInfosForDecl(fn *ast.FuncDecl, result map[int]sliceElemPtrReturnInfo) {
+	if len(result) == 0 {
+		return
+	}
+	fnObj, ok := sliceElemPtrReturnFuncObject(fn)
+	if !ok {
+		return
+	}
+	ctx := GetTranspileContext()
+	if ctx == nil || ctx.Package == nil {
+		return
+	}
+	if ctx.Package.SliceElemPtrResultFuncs == nil {
+		ctx.Package.SliceElemPtrResultFuncs = make(map[*types.Func]map[int]sliceElemPtrReturnInfo)
+	}
+	if ctx.Package.SliceElemPtrResultFuncNames == nil {
+		ctx.Package.SliceElemPtrResultFuncNames = make(map[string]map[int]sliceElemPtrReturnInfo)
+	}
+	ctx.Package.SliceElemPtrResultFuncs[fnObj] = result
+	ctx.Package.SliceElemPtrResultFuncNames[fnObj.FullName()] = result
+	if key := methodOverrideKey(fnObj); key != "" {
+		ctx.Package.SliceElemPtrResultFuncNames[key] = result
+	}
+}
+
+func sliceElemPtrResultInfosForFuncObject(fn *types.Func) (map[int]sliceElemPtrReturnInfo, bool) {
+	ctx := GetTranspileContext()
+	if fn == nil || ctx == nil || ctx.Package == nil {
+		return nil, false
+	}
+	if result, ok := ctx.Package.SliceElemPtrResultFuncs[fn]; ok {
+		return result, true
+	}
+	if key := methodOverrideKey(fn); key != "" {
+		if result, ok := ctx.Package.SliceElemPtrResultFuncNames[key]; ok {
+			return result, true
+		}
+	}
+	if result, ok := ctx.Package.SliceElemPtrResultFuncNames[fn.FullName()]; ok {
+		return result, true
+	}
+	typeInfo := GetTypeInfo()
+	if sourceFunctionDeclsByFunc != nil && typeInfo != nil {
+		if sourceInfo, ok := sourceFunctionDeclInfoForFunc(fn); ok && sourceInfo.decl != nil && sourceInfo.info == typeInfo.info {
+			if result := sliceElemPtrResultInfosForFunc(sourceInfo.decl); len(result) > 0 {
+				return result, true
+			}
+		}
+	}
+	return nil, false
+}
+
+func sliceElemPtrResultInfoForCall(call *ast.CallExpr, resultIndex int) (sliceElemPtrReturnInfo, bool) {
+	typeInfo := GetTypeInfo()
+	fn, ok := callFunctionObjectFromTypeInfo(typeInfo, call)
+	if !ok {
+		return sliceElemPtrReturnInfo{}, false
+	}
+	infos, ok := sliceElemPtrResultInfosForFuncObject(fn)
+	if !ok {
+		return sliceElemPtrReturnInfo{}, false
+	}
+	info, ok := infos[resultIndex]
+	return info, ok
+}
+
 func arrayElemPtrResultInfosForFunc(fn *ast.FuncDecl) map[int]arrayElemPtrInfo {
 	typeInfo := GetTypeInfo()
 	if fn == nil || fn.Type == nil || fn.Type.Results == nil || typeInfo == nil {
@@ -252,7 +498,7 @@ func arrayElemPtrUnnamedDirectResultInfosForFunc(fn *ast.FuncDecl, candidates ma
 	if !ok || sig.Results() == nil || sig.Results().Len() == 0 {
 		return nil
 	}
-	expected := arrayElemPtrUnnamedPointerResultElemTypes(fn, sig)
+	expected := unnamedPointerResultElemTypes(fn, sig)
 	if len(expected) == 0 {
 		return nil
 	}
@@ -315,7 +561,7 @@ func arrayElemPtrUnnamedDirectResultInfosForFunc(fn *ast.FuncDecl, candidates ma
 	return result
 }
 
-func arrayElemPtrUnnamedPointerResultElemTypes(fn *ast.FuncDecl, sig *types.Signature) map[int]string {
+func unnamedPointerResultElemTypes(fn *ast.FuncDecl, sig *types.Signature) map[int]string {
 	if fn == nil || fn.Type == nil || fn.Type.Results == nil || sig == nil || sig.Results() == nil {
 		return nil
 	}
@@ -910,6 +1156,57 @@ func refineGoPtrResultInfoFromCallType(call *ast.CallExpr, resultIndex int, info
 		return refined
 	}
 	return info
+}
+
+func writeSliceElemPtrFuncDeclResultTypes(out *strings.Builder, fn *ast.FuncDecl) bool {
+	resultInfos := sliceElemPtrResultInfosForFunc(fn)
+	if len(resultInfos) == 0 {
+		return false
+	}
+	arrayResultInfos := arrayElemPtrResultInfosForFunc(fn)
+	goPtrResultInfos := goPtrResultInfosForFunc(fn)
+	sig, ok := funcDeclSignatureFromTypeInfo(fn)
+	if !ok || sig.Results() == nil || sig.Results().Len() == 0 {
+		return false
+	}
+	results := sig.Results()
+	out.WriteString(" -> ")
+	if results.Len() == 1 {
+		if info, ok := resultInfos[0]; ok {
+			writeSliceElemPtrResultType(out, info)
+		} else if info, ok := arrayResultInfos[0]; ok {
+			out.WriteString(arrayElemPtrOptionRustType(info))
+		} else if info, ok := goPtrResultInfos[0]; ok {
+			writeGoPtrResultType(out, info)
+		} else {
+			out.WriteString(goTypesReturnTypeToRust(results.At(0).Type()))
+		}
+		return true
+	}
+	out.WriteString("(")
+	for i := 0; i < results.Len(); i++ {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		if info, ok := resultInfos[i]; ok {
+			writeSliceElemPtrResultType(out, info)
+		} else if info, ok := arrayResultInfos[i]; ok {
+			out.WriteString(arrayElemPtrOptionRustType(info))
+		} else if info, ok := goPtrResultInfos[i]; ok {
+			writeGoPtrResultType(out, info)
+		} else {
+			out.WriteString(goTypesReturnTypeToRust(results.At(i).Type()))
+		}
+	}
+	out.WriteString(")")
+	return true
+}
+
+func writeSliceElemPtrResultType(out *strings.Builder, info sliceElemPtrReturnInfo) {
+	NeedSliceElemPtr()
+	out.WriteString("Option<GoSliceElemPtr<")
+	out.WriteString(info.elemRustType)
+	out.WriteString(">>")
 }
 
 func writeArrayElemPtrFuncDeclResultTypes(out *strings.Builder, fn *ast.FuncDecl) bool {
@@ -2112,6 +2409,7 @@ func registerSliceElemPtrReturnsFromFile(file *ast.File) {
 			continue
 		}
 		registerSliceElemPtrReturnDecl(fn)
+		sliceElemPtrResultInfosForFunc(fn)
 		registerSliceElemPtrSliceReturnDecl(fn)
 		arrayElemPtrResultInfosForFunc(fn)
 		goPtrResultInfosForFunc(fn)
@@ -4249,6 +4547,7 @@ func sliceElemPtrSliceCallParamElemRustType(fn *types.Func, paramIndex int) (str
 func pushCurrentSliceElemPtrReturn(fn *ast.FuncDecl) func() {
 	prev := currentSliceElemPtrReturn
 	prevSlice := currentSliceElemPtrSliceReturn
+	prevResultInfos := currentSliceElemPtrResultInfos
 	prevArray := currentArrayElemPtrReturnInfos
 	prevGoPtr := currentGoPtrReturnInfos
 	if info, ok := sliceElemPtrReturnInfoForDeclObject(fn); ok {
@@ -4260,6 +4559,11 @@ func pushCurrentSliceElemPtrReturn(fn *ast.FuncDecl) func() {
 		currentSliceElemPtrSliceReturn = &info
 	} else {
 		currentSliceElemPtrSliceReturn = nil
+	}
+	if infos := sliceElemPtrResultInfosForFunc(fn); len(infos) > 0 {
+		currentSliceElemPtrResultInfos = infos
+	} else {
+		currentSliceElemPtrResultInfos = nil
 	}
 	if infos := arrayElemPtrResultInfosForFunc(fn); len(infos) > 0 {
 		currentArrayElemPtrReturnInfos = infos
@@ -4276,6 +4580,7 @@ func pushCurrentSliceElemPtrReturn(fn *ast.FuncDecl) func() {
 	return func() {
 		currentSliceElemPtrReturn = prev
 		currentSliceElemPtrSliceReturn = prevSlice
+		currentSliceElemPtrResultInfos = prevResultInfos
 		currentArrayElemPtrReturnInfos = prevArray
 		currentGoPtrReturnInfos = prevGoPtr
 	}
@@ -4284,15 +4589,18 @@ func pushCurrentSliceElemPtrReturn(fn *ast.FuncDecl) func() {
 func pushFuncLitReturnContext() func() {
 	prev := currentSliceElemPtrReturn
 	prevSlice := currentSliceElemPtrSliceReturn
+	prevResultInfos := currentSliceElemPtrResultInfos
 	prevArray := currentArrayElemPtrReturnInfos
 	prevGoPtr := currentGoPtrReturnInfos
 	currentSliceElemPtrReturn = nil
 	currentSliceElemPtrSliceReturn = nil
+	currentSliceElemPtrResultInfos = nil
 	currentArrayElemPtrReturnInfos = nil
 	currentGoPtrReturnInfos = nil
 	return func() {
 		currentSliceElemPtrReturn = prev
 		currentSliceElemPtrSliceReturn = prevSlice
+		currentSliceElemPtrResultInfos = prevResultInfos
 		currentArrayElemPtrReturnInfos = prevArray
 		currentGoPtrReturnInfos = prevGoPtr
 	}
@@ -5989,6 +6297,10 @@ func writeSliceElemPtrOptionValue(out *strings.Builder, rhs ast.Expr) bool {
 			TranspileExpression(out, rhs)
 			return true
 		}
+		if _, ok := sliceElemPtrResultInfoForCall(call, 0); ok {
+			TranspileExpression(out, rhs)
+			return true
+		}
 	}
 	if ident, ok := unwrapParens(rhs).(*ast.Ident); ok && isSliceElemPtrVar(ident.Name) {
 		out.WriteString(RustIdentForUse(ident))
@@ -6007,6 +6319,16 @@ func writeSliceElemPtrOptionValue(out *strings.Builder, rhs ast.Expr) bool {
 	TranspileExpression(out, rhs)
 	out.WriteString(")")
 	return true
+}
+
+func writeSliceElemPtrResultReturnValue(out *strings.Builder, result ast.Expr, resultIndex int) bool {
+	if currentSliceElemPtrResultInfos == nil {
+		return false
+	}
+	if _, ok := currentSliceElemPtrResultInfos[resultIndex]; !ok {
+		return false
+	}
+	return writeSliceElemPtrOptionValue(out, result)
 }
 
 func writeSliceElemPtrMapKeyExpression(out *strings.Builder, expr ast.Expr) bool {

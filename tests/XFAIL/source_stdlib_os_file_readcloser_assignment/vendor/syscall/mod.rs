@@ -84,13 +84,13 @@ pub fn byte_slice_from_string(s: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Optio
 /// BytePtrFromString returns a pointer to a NUL-terminated array of
 /// bytes containing the text of s. If s contains a NUL byte at any
 /// location, it returns (nil, [EINVAL]).
-pub fn byte_ptr_from_string(s: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<u8>>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
+pub fn byte_ptr_from_string(s: Arc<Mutex<Option<String>>>) -> (Option<GoSliceElemPtr<u8>>, Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>>) {
     let (mut a, mut err) = byte_slice_from_string(Arc::new(Mutex::new(Some({ let __arg_holder = s.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-        return (Arc::new(Mutex::new(None)), err.clone());
+        return (None, err.clone());
     }
     return (
-        unimplemented!("slice element pointer return requires pointer representation support"),
+        Some(GoSliceElemPtr::new(a.clone(), (0) as usize)),
         Arc::new(Mutex::new(None))
     );
 }

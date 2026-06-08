@@ -239,6 +239,9 @@ func writeFuncDeclResultTypes(out *strings.Builder, fn *ast.FuncDecl) {
 			return
 		}
 	}
+	if writeSliceElemPtrFuncDeclResultTypes(out, fn) {
+		return
+	}
 	if writeArrayElemPtrFuncDeclResultTypes(out, fn) {
 		return
 	}

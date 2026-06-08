@@ -44,6 +44,8 @@ type PackageState struct {
 	FunctionTypeAliasBoxTypes     map[string]string
 	SliceElemPtrReturnFuncs       map[*types.Func]sliceElemPtrReturnInfo
 	SliceElemPtrReturnFuncNames   map[string]sliceElemPtrReturnInfo
+	SliceElemPtrResultFuncs       map[*types.Func]map[int]sliceElemPtrReturnInfo
+	SliceElemPtrResultFuncNames   map[string]map[int]sliceElemPtrReturnInfo
 	SliceElemPtrSliceReturnFuncs  map[*types.Func]sliceElemPtrSliceReturnInfo
 	SliceElemPtrSliceParamFuncs   map[*types.Func]map[int]string
 	GoPtrParamFuncs               map[*types.Func]map[int]string
@@ -178,6 +180,8 @@ func NewPackageState() *PackageState {
 		FunctionTypeAliasBoxTypes:     make(map[string]string),
 		SliceElemPtrReturnFuncs:       make(map[*types.Func]sliceElemPtrReturnInfo),
 		SliceElemPtrReturnFuncNames:   make(map[string]sliceElemPtrReturnInfo),
+		SliceElemPtrResultFuncs:       make(map[*types.Func]map[int]sliceElemPtrReturnInfo),
+		SliceElemPtrResultFuncNames:   make(map[string]map[int]sliceElemPtrReturnInfo),
 		SliceElemPtrSliceReturnFuncs:  make(map[*types.Func]sliceElemPtrSliceReturnInfo),
 		SliceElemPtrSliceParamFuncs:   make(map[*types.Func]map[int]string),
 		GoPtrParamFuncs:               make(map[*types.Func]map[int]string),
