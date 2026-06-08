@@ -565,6 +565,10 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | **`unsafe` package** | |
 | └ `unsafe.Sizeof` / `unsafe.Alignof` for Rust representation layout | ✅ |
 | └ `unsafe.Sizeof` in integer comparisons and conversions | ✅ |
+| └ `unsafe.Offsetof` for go/types-proven struct field selectors | ✅ |
+| └ `unsafe.Add` as typed unsafe-pointer address arithmetic | ✅ |
+| └ `unsafe.String` / `unsafe.Slice` for supported byte-slice and string-data paths | ✅ |
+| └ `unsafe.SliceData` / `unsafe.StringData` address and `GoPtr` provenance paths | ✅ |
 | └ Named `unsafe.Pointer` definitions round-trip through `uintptr` and `any` | ✅ |
 | **`errors` package** | |
 | └ `errors.New` | ✅ |
