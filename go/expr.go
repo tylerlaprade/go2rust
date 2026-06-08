@@ -10400,14 +10400,13 @@ func methodCallArgumentsShouldUseMultiline(call *ast.CallExpr) bool {
 	if call == nil || !NeedsConcurrentWrapper() {
 		return false
 	}
-	if len(call.Args) < 5 && !callArgumentsShouldUseMultiline(call.Args) {
-		return false
-	}
 	sig, ok := callSignatureFromTypeInfo(call)
-	if !ok || !sig.Variadic() {
-		return true
+	if ok && sig.Variadic() {
+		return len(call.Args) >= 5 ||
+			callArgumentsShouldUseMultiline(call.Args) ||
+			variadicPackedMethodArgsShouldUseMultiline(call, sig)
 	}
-	return variadicPackedMethodArgsShouldUseMultiline(call, sig)
+	return len(call.Args) >= 5 || callArgumentsShouldUseMultiline(call.Args)
 }
 
 func variadicPackedMethodArgsShouldUseMultiline(call *ast.CallExpr, sig *types.Signature) bool {
@@ -10418,7 +10417,41 @@ func variadicPackedMethodArgsShouldUseMultiline(call *ast.CallExpr, sig *types.S
 	if variadicStart >= len(call.Args) {
 		return false
 	}
-	return callArgumentsShouldUseMultiline(call.Args[variadicStart:])
+	return variadicPackedElementsShouldUseMultiline(call.Args[variadicStart:])
+}
+
+func variadicPackedElementsShouldUseMultiline(args []ast.Expr) bool {
+	for _, arg := range args {
+		if variadicPackedElementShouldUseMultiline(arg) {
+			return true
+		}
+	}
+	return false
+}
+
+func variadicPackedElementShouldUseMultiline(expr ast.Expr) bool {
+	if !NeedsConcurrentWrapper() {
+		return false
+	}
+	if compositeLiteralElementIsComplex(expr) {
+		return true
+	}
+	found := false
+	ast.Inspect(expr, func(node ast.Node) bool {
+		if found {
+			return false
+		}
+		index, ok := node.(*ast.IndexExpr)
+		if !ok {
+			return true
+		}
+		if !isExpressionResultBare(index.X) {
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
 }
 
 func functionCallArgumentsShouldUseMultiline(call *ast.CallExpr) bool {

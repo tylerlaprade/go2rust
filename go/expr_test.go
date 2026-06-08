@@ -6263,6 +6263,44 @@ func emit(w eventWriter, nextg *g, gen uint) {
 	}
 }
 
+func TestConcurrentVariadicMethodCallWithIndexedPackedArgBreaksAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type eventWriter struct{}
+
+func (eventWriter) event(kind byte, args ...uint) {}
+
+type traceState struct {
+	labels [2][3]uint
+}
+
+type proc struct {
+	mode int
+}
+
+type locker struct {
+	gen uint
+	trace *traceState
+}
+
+func emit(w eventWriter, tl *locker, pp *proc) {
+	go func() {}()
+	if pp.mode != 0 {
+		w.event(7, tl.trace.labels[tl.gen%2][pp.mode])
+	}
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, ".event(") && strings.Contains(line, "vec![") {
+			t.Fatalf("variadic method call with indexed packed arg should split the packed vec:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, ".event(\n") || !strings.Contains(rust, "vec![\n") {
+		t.Fatalf("variadic method call with indexed packed arg should use multiline method arguments:\n%s", rust)
+	}
+}
+
 func TestConcurrentVariadicMethodCallWithNoVariadicArgsDoesNotDoubleComma(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

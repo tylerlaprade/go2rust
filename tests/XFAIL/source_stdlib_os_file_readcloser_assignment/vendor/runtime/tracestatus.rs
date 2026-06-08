@@ -899,7 +899,12 @@ impl crate::tracebuf::traceWriter {
     }
                 // Trace any special ranges that are in-progress.
         if { let __v = (*markAssist.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        { let new_val = __self.event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_G_C_MARK_ASSIST_ACTIVE as u8))))))), Arc::new(Mutex::new(Some(vec![crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*goid.lock().unwrap().as_ref().unwrap()) as u64))))])))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
+        { let new_val = __self.event(
+            Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_G_C_MARK_ASSIST_ACTIVE as u8))))))),
+            Arc::new(Mutex::new(Some(vec![
+                crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*goid.lock().unwrap().as_ref().unwrap()) as u64)))),
+            ]))),
+        ); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
     }
         Arc::new(Mutex::new(Some(__self.clone())))
     }
@@ -1011,7 +1016,12 @@ impl crate::tracebuf::traceWriter {
         ); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
                 // Trace any special ranges that are in-progress.
         if { let __v = (*inSweep.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        { let new_val = __self.event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_G_C_SWEEP_ACTIVE as u8))))))), Arc::new(Mutex::new(Some(vec![crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*pid.lock().unwrap().as_ref().unwrap()) as u64))))])))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
+        { let new_val = __self.event(
+            Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_G_C_SWEEP_ACTIVE as u8))))))),
+            Arc::new(Mutex::new(Some(vec![
+                crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*pid.lock().unwrap().as_ref().unwrap()) as u64)))),
+            ]))),
+        ); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take().unwrap() }; __self = __moved_val; };
     }
         Arc::new(Mutex::new(Some(__self.clone())))
     }

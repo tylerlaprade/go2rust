@@ -1503,7 +1503,12 @@ impl traceLocker {
             let __tmp_y = crate::mgc::gcMarkWorkerMode(Arc::new(Mutex::new(Some(GC_MARK_WORKER_NOT_WORKER as i32))));
             __tmp_x != __tmp_y
         } {
-        (*w.lock().unwrap().as_ref().unwrap()).event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_GO_LABEL as u8))))))), Arc::new(Mutex::new(Some(vec![{ let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).mark_worker_labels.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (*__self.gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }[(*(*{ let __ptr = crate::runtime2::puintptr::ptr(&(*pp.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().gc_mark_worker_mode.clone() }.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) as usize].clone()]))));
+        (*w.lock().unwrap().as_ref().unwrap()).event(
+            Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_GO_LABEL as u8))))))),
+            Arc::new(Mutex::new(Some(vec![
+                { let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).mark_worker_labels.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (*__self.gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }[(*(*{ let __ptr = crate::runtime2::puintptr::ptr(&(*pp.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().gc_mark_worker_mode.clone() }.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()) as usize].clone(),
+            ]))),
+        );
     }
     }
 
