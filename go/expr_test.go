@@ -5269,6 +5269,11 @@ func use() int {
 	if !strings.Contains(rust, "go_register_embedded_owner(__embedded_key, __owner.clone())") {
 		t.Fatalf("pointer composite literal should register its embedded field owner:\n%s", rust)
 	}
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "let __owner =") && strings.Contains(line, "let __embedded_key =") {
+			t.Fatalf("embedded owner composite literal should not keep owner registration on one line:\n%s", rust)
+		}
+	}
 	if !strings.Contains(rust, `go_lookup_embedded_owner::<entry>(*__ptr_guard.as_ref().unwrap(), "entry")`) {
 		t.Fatalf("embedded first-field unsafe conversion should use typed owner lookup:\n%s", rust)
 	}
