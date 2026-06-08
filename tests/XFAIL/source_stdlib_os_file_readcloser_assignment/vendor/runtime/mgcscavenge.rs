@@ -177,7 +177,24 @@ impl std::fmt::Display for scavengerState {
         let __go_fmt_11 = format!("{}", "<func>");
         let __go_fmt_12 = format!("{}", "<func>");
         let __go_fmt_13 = format!("{}", "<func>");
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12, __go_fmt_13)
+        write!(
+            f,
+            "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {}}}",
+            __go_fmt_0,
+            __go_fmt_1,
+            __go_fmt_2,
+            __go_fmt_3,
+            __go_fmt_4,
+            __go_fmt_5,
+            __go_fmt_6,
+            __go_fmt_7,
+            __go_fmt_8,
+            __go_fmt_9,
+            __go_fmt_10,
+            __go_fmt_11,
+            __go_fmt_12,
+            __go_fmt_13
+        )
     }
 }
 

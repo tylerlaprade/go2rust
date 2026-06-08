@@ -1190,6 +1190,41 @@ func use(n displayNode) {
 	}
 }
 
+func TestStructDisplayBreaksManyFieldWriteCallAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type displayNode struct {
+	a int
+	b int
+	c int
+	d int
+	e int
+	f int
+	g int
+	h int
+	i int
+	j int
+}
+
+func use(n displayNode) {
+	go func() {}()
+	_ = n
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, `write!(f, "{{`) && strings.Contains(line, "__go_fmt_9") {
+			t.Fatalf("large struct Display write call should break arguments across lines:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "        write!(\n            f,\n") {
+		t.Fatalf("large struct Display write call should use multiline macro syntax:\n%s", rust)
+	}
+	if !strings.Contains(rust, "            __go_fmt_9\n") {
+		t.Fatalf("large struct Display write call should put field arguments on separate lines:\n%s", rust)
+	}
+}
+
 func TestStructAliasUsedAsGoValueCloneGenericArgDoesNotEmitAliasTraitImpl(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

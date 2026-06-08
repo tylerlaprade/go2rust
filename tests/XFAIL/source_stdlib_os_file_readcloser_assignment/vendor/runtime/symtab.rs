@@ -350,7 +350,23 @@ impl std::fmt::Display for pcHeader {
         let __go_fmt_10 = format!("{}", (*self.filetab_offset.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_11 = format!("{}", (*self.pctab_offset.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_12 = format!("{}", (*self.pcln_offset.lock().unwrap().as_ref().unwrap()));
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12)
+        write!(
+            f,
+            "{{{} {} {} {} {} {} {} {} {} {} {} {} {}}}",
+            __go_fmt_0,
+            __go_fmt_1,
+            __go_fmt_2,
+            __go_fmt_3,
+            __go_fmt_4,
+            __go_fmt_5,
+            __go_fmt_6,
+            __go_fmt_7,
+            __go_fmt_8,
+            __go_fmt_9,
+            __go_fmt_10,
+            __go_fmt_11,
+            __go_fmt_12
+        )
     }
 }
 
@@ -659,7 +675,55 @@ impl std::fmt::Display for moduledata {
         let __go_fmt_42 = format!("{}", (*self.gcbssmask.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_43 = format!("{}", format_map(&self.typemap));
         let __go_fmt_44 = format!("{}", { let __guard = self.next.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12, __go_fmt_13, __go_fmt_14, __go_fmt_15, __go_fmt_16, __go_fmt_17, __go_fmt_18, __go_fmt_19, __go_fmt_20, __go_fmt_21, __go_fmt_22, __go_fmt_23, __go_fmt_24, __go_fmt_25, __go_fmt_26, __go_fmt_27, __go_fmt_28, __go_fmt_29, __go_fmt_30, __go_fmt_31, __go_fmt_32, __go_fmt_33, __go_fmt_34, __go_fmt_35, __go_fmt_36, __go_fmt_37, __go_fmt_38, __go_fmt_39, __go_fmt_40, __go_fmt_41, __go_fmt_42, __go_fmt_43, __go_fmt_44)
+        write!(
+            f,
+            "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}",
+            __go_fmt_0,
+            __go_fmt_1,
+            __go_fmt_2,
+            __go_fmt_3,
+            __go_fmt_4,
+            __go_fmt_5,
+            __go_fmt_6,
+            __go_fmt_7,
+            __go_fmt_8,
+            __go_fmt_9,
+            __go_fmt_10,
+            __go_fmt_11,
+            __go_fmt_12,
+            __go_fmt_13,
+            __go_fmt_14,
+            __go_fmt_15,
+            __go_fmt_16,
+            __go_fmt_17,
+            __go_fmt_18,
+            __go_fmt_19,
+            __go_fmt_20,
+            __go_fmt_21,
+            __go_fmt_22,
+            __go_fmt_23,
+            __go_fmt_24,
+            __go_fmt_25,
+            __go_fmt_26,
+            __go_fmt_27,
+            __go_fmt_28,
+            __go_fmt_29,
+            __go_fmt_30,
+            __go_fmt_31,
+            __go_fmt_32,
+            __go_fmt_33,
+            __go_fmt_34,
+            __go_fmt_35,
+            __go_fmt_36,
+            __go_fmt_37,
+            __go_fmt_38,
+            __go_fmt_39,
+            __go_fmt_40,
+            __go_fmt_41,
+            __go_fmt_42,
+            __go_fmt_43,
+            __go_fmt_44
+        )
     }
 }
 

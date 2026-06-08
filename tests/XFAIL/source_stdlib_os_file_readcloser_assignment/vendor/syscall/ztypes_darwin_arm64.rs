@@ -744,7 +744,29 @@ impl std::fmt::Display for Stat_t {
         let __go_fmt_16 = format!("{}", (*self.gen.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_17 = format!("{}", (*self.lspare.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_18 = format!("{}", format_slice(&self.qspare));
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12, __go_fmt_13, __go_fmt_14, __go_fmt_15, __go_fmt_16, __go_fmt_17, __go_fmt_18)
+        write!(
+            f,
+            "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}",
+            __go_fmt_0,
+            __go_fmt_1,
+            __go_fmt_2,
+            __go_fmt_3,
+            __go_fmt_4,
+            __go_fmt_5,
+            __go_fmt_6,
+            __go_fmt_7,
+            __go_fmt_8,
+            __go_fmt_9,
+            __go_fmt_10,
+            __go_fmt_11,
+            __go_fmt_12,
+            __go_fmt_13,
+            __go_fmt_14,
+            __go_fmt_15,
+            __go_fmt_16,
+            __go_fmt_17,
+            __go_fmt_18
+        )
     }
 }
 
@@ -2336,7 +2358,39 @@ impl std::fmt::Display for IfData {
         let __go_fmt_26 = format!("{}", (*self.hwassist.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_27 = format!("{}", (*self.reserved1.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_28 = format!("{}", (*self.reserved2.lock().unwrap().as_ref().unwrap()));
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12, __go_fmt_13, __go_fmt_14, __go_fmt_15, __go_fmt_16, __go_fmt_17, __go_fmt_18, __go_fmt_19, __go_fmt_20, __go_fmt_21, __go_fmt_22, __go_fmt_23, __go_fmt_24, __go_fmt_25, __go_fmt_26, __go_fmt_27, __go_fmt_28)
+        write!(
+            f,
+            "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}",
+            __go_fmt_0,
+            __go_fmt_1,
+            __go_fmt_2,
+            __go_fmt_3,
+            __go_fmt_4,
+            __go_fmt_5,
+            __go_fmt_6,
+            __go_fmt_7,
+            __go_fmt_8,
+            __go_fmt_9,
+            __go_fmt_10,
+            __go_fmt_11,
+            __go_fmt_12,
+            __go_fmt_13,
+            __go_fmt_14,
+            __go_fmt_15,
+            __go_fmt_16,
+            __go_fmt_17,
+            __go_fmt_18,
+            __go_fmt_19,
+            __go_fmt_20,
+            __go_fmt_21,
+            __go_fmt_22,
+            __go_fmt_23,
+            __go_fmt_24,
+            __go_fmt_25,
+            __go_fmt_26,
+            __go_fmt_27,
+            __go_fmt_28
+        )
     }
 }
 
@@ -2744,7 +2798,23 @@ impl std::fmt::Display for RtMsghdr {
         let __go_fmt_10 = format!("{}", (*self.r#use.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_11 = format!("{}", (*self.inits.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_12 = format!("{}", (*self.rmx.lock().unwrap().as_ref().unwrap()));
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12)
+        write!(
+            f,
+            "{{{} {} {} {} {} {} {} {} {} {} {} {} {}}}",
+            __go_fmt_0,
+            __go_fmt_1,
+            __go_fmt_2,
+            __go_fmt_3,
+            __go_fmt_4,
+            __go_fmt_5,
+            __go_fmt_6,
+            __go_fmt_7,
+            __go_fmt_8,
+            __go_fmt_9,
+            __go_fmt_10,
+            __go_fmt_11,
+            __go_fmt_12
+        )
     }
 }
 
@@ -2880,7 +2950,21 @@ impl std::fmt::Display for RtMetrics {
         let __go_fmt_8 = format!("{}", (*self.rttvar.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_9 = format!("{}", (*self.pksent.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_10 = format!("{}", format_slice(&self.filler));
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10)
+        write!(
+            f,
+            "{{{} {} {} {} {} {} {} {} {} {} {}}}",
+            __go_fmt_0,
+            __go_fmt_1,
+            __go_fmt_2,
+            __go_fmt_3,
+            __go_fmt_4,
+            __go_fmt_5,
+            __go_fmt_6,
+            __go_fmt_7,
+            __go_fmt_8,
+            __go_fmt_9,
+            __go_fmt_10
+        )
     }
 }
 

@@ -333,7 +333,33 @@ impl std::fmt::Display for AnonymousStruct1 {
         let __go_fmt_20 = format!("{}", (*self.has_s_s_e41.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_21 = format!("{}", (*self.has_s_s_e42.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_22 = format!("{}", (*self.__blank_22_0.lock().unwrap().as_ref().unwrap()));
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12, __go_fmt_13, __go_fmt_14, __go_fmt_15, __go_fmt_16, __go_fmt_17, __go_fmt_18, __go_fmt_19, __go_fmt_20, __go_fmt_21, __go_fmt_22)
+        write!(
+            f,
+            "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}",
+            __go_fmt_0,
+            __go_fmt_1,
+            __go_fmt_2,
+            __go_fmt_3,
+            __go_fmt_4,
+            __go_fmt_5,
+            __go_fmt_6,
+            __go_fmt_7,
+            __go_fmt_8,
+            __go_fmt_9,
+            __go_fmt_10,
+            __go_fmt_11,
+            __go_fmt_12,
+            __go_fmt_13,
+            __go_fmt_14,
+            __go_fmt_15,
+            __go_fmt_16,
+            __go_fmt_17,
+            __go_fmt_18,
+            __go_fmt_19,
+            __go_fmt_20,
+            __go_fmt_21,
+            __go_fmt_22
+        )
     }
 }
 
@@ -573,7 +599,22 @@ impl std::fmt::Display for AnonymousStruct3 {
         let __go_fmt_9 = format!("{}", (*self.has_d_i_t.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_10 = format!("{}", (*self.is_neoverse.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_11 = format!("{}", (*self.__blank_11_0.lock().unwrap().as_ref().unwrap()));
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11)
+        write!(
+            f,
+            "{{{} {} {} {} {} {} {} {} {} {} {} {}}}",
+            __go_fmt_0,
+            __go_fmt_1,
+            __go_fmt_2,
+            __go_fmt_3,
+            __go_fmt_4,
+            __go_fmt_5,
+            __go_fmt_6,
+            __go_fmt_7,
+            __go_fmt_8,
+            __go_fmt_9,
+            __go_fmt_10,
+            __go_fmt_11
+        )
     }
 }
 
@@ -999,7 +1040,33 @@ impl std::fmt::Display for AnonymousStruct7 {
         let __go_fmt_20 = format!("{}", (*self.has_e_c_d_s_a.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_21 = format!("{}", (*self.has_e_d_d_s_a.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_22 = format!("{}", (*self.__blank_22_0.lock().unwrap().as_ref().unwrap()));
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12, __go_fmt_13, __go_fmt_14, __go_fmt_15, __go_fmt_16, __go_fmt_17, __go_fmt_18, __go_fmt_19, __go_fmt_20, __go_fmt_21, __go_fmt_22)
+        write!(
+            f,
+            "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}",
+            __go_fmt_0,
+            __go_fmt_1,
+            __go_fmt_2,
+            __go_fmt_3,
+            __go_fmt_4,
+            __go_fmt_5,
+            __go_fmt_6,
+            __go_fmt_7,
+            __go_fmt_8,
+            __go_fmt_9,
+            __go_fmt_10,
+            __go_fmt_11,
+            __go_fmt_12,
+            __go_fmt_13,
+            __go_fmt_14,
+            __go_fmt_15,
+            __go_fmt_16,
+            __go_fmt_17,
+            __go_fmt_18,
+            __go_fmt_19,
+            __go_fmt_20,
+            __go_fmt_21,
+            __go_fmt_22
+        )
     }
 }
 

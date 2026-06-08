@@ -348,7 +348,46 @@ impl std::fmt::Display for mheap {
         let __go_fmt_33 = format!("{}", (*self.user_arena.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_34 = format!("{}", (*self.cleanup_i_d.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_35 = format!("{}", { let __guard = self.unused.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12, __go_fmt_13, __go_fmt_14, __go_fmt_15, __go_fmt_16, __go_fmt_17, __go_fmt_18, __go_fmt_19, __go_fmt_20, __go_fmt_21, __go_fmt_22, __go_fmt_23, __go_fmt_24, __go_fmt_25, __go_fmt_26, __go_fmt_27, __go_fmt_28, __go_fmt_29, __go_fmt_30, __go_fmt_31, __go_fmt_32, __go_fmt_33, __go_fmt_34, __go_fmt_35)
+        write!(
+            f,
+            "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}",
+            __go_fmt_0,
+            __go_fmt_1,
+            __go_fmt_2,
+            __go_fmt_3,
+            __go_fmt_4,
+            __go_fmt_5,
+            __go_fmt_6,
+            __go_fmt_7,
+            __go_fmt_8,
+            __go_fmt_9,
+            __go_fmt_10,
+            __go_fmt_11,
+            __go_fmt_12,
+            __go_fmt_13,
+            __go_fmt_14,
+            __go_fmt_15,
+            __go_fmt_16,
+            __go_fmt_17,
+            __go_fmt_18,
+            __go_fmt_19,
+            __go_fmt_20,
+            __go_fmt_21,
+            __go_fmt_22,
+            __go_fmt_23,
+            __go_fmt_24,
+            __go_fmt_25,
+            __go_fmt_26,
+            __go_fmt_27,
+            __go_fmt_28,
+            __go_fmt_29,
+            __go_fmt_30,
+            __go_fmt_31,
+            __go_fmt_32,
+            __go_fmt_33,
+            __go_fmt_34,
+            __go_fmt_35
+        )
     }
 }
 
@@ -1181,7 +1220,38 @@ impl std::fmt::Display for mspan {
         let __go_fmt_25 = format!("{}", { let __guard = self.specials.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         let __go_fmt_26 = format!("{}", (*self.user_arena_chunk_free.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_27 = format!("{}", { if self.large_type.is_nil() { "<nil>".to_string() } else { "<ptr>".to_string() } });
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12, __go_fmt_13, __go_fmt_14, __go_fmt_15, __go_fmt_16, __go_fmt_17, __go_fmt_18, __go_fmt_19, __go_fmt_20, __go_fmt_21, __go_fmt_22, __go_fmt_23, __go_fmt_24, __go_fmt_25, __go_fmt_26, __go_fmt_27)
+        write!(
+            f,
+            "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}",
+            __go_fmt_0,
+            __go_fmt_1,
+            __go_fmt_2,
+            __go_fmt_3,
+            __go_fmt_4,
+            __go_fmt_5,
+            __go_fmt_6,
+            __go_fmt_7,
+            __go_fmt_8,
+            __go_fmt_9,
+            __go_fmt_10,
+            __go_fmt_11,
+            __go_fmt_12,
+            __go_fmt_13,
+            __go_fmt_14,
+            __go_fmt_15,
+            __go_fmt_16,
+            __go_fmt_17,
+            __go_fmt_18,
+            __go_fmt_19,
+            __go_fmt_20,
+            __go_fmt_21,
+            __go_fmt_22,
+            __go_fmt_23,
+            __go_fmt_24,
+            __go_fmt_25,
+            __go_fmt_26,
+            __go_fmt_27
+        )
     }
 }
 

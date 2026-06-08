@@ -763,7 +763,53 @@ impl std::fmt::Display for workType {
         let __go_fmt_40 = format!("{}", (*self.heap1.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_41 = format!("{}", (*self.heap2.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_42 = format!("{}", (*self.cpu_stats.lock().unwrap().as_ref().unwrap()));
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12, __go_fmt_13, __go_fmt_14, __go_fmt_15, __go_fmt_16, __go_fmt_17, __go_fmt_18, __go_fmt_19, __go_fmt_20, __go_fmt_21, __go_fmt_22, __go_fmt_23, __go_fmt_24, __go_fmt_25, __go_fmt_26, __go_fmt_27, __go_fmt_28, __go_fmt_29, __go_fmt_30, __go_fmt_31, __go_fmt_32, __go_fmt_33, __go_fmt_34, __go_fmt_35, __go_fmt_36, __go_fmt_37, __go_fmt_38, __go_fmt_39, __go_fmt_40, __go_fmt_41, __go_fmt_42)
+        write!(
+            f,
+            "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}",
+            __go_fmt_0,
+            __go_fmt_1,
+            __go_fmt_2,
+            __go_fmt_3,
+            __go_fmt_4,
+            __go_fmt_5,
+            __go_fmt_6,
+            __go_fmt_7,
+            __go_fmt_8,
+            __go_fmt_9,
+            __go_fmt_10,
+            __go_fmt_11,
+            __go_fmt_12,
+            __go_fmt_13,
+            __go_fmt_14,
+            __go_fmt_15,
+            __go_fmt_16,
+            __go_fmt_17,
+            __go_fmt_18,
+            __go_fmt_19,
+            __go_fmt_20,
+            __go_fmt_21,
+            __go_fmt_22,
+            __go_fmt_23,
+            __go_fmt_24,
+            __go_fmt_25,
+            __go_fmt_26,
+            __go_fmt_27,
+            __go_fmt_28,
+            __go_fmt_29,
+            __go_fmt_30,
+            __go_fmt_31,
+            __go_fmt_32,
+            __go_fmt_33,
+            __go_fmt_34,
+            __go_fmt_35,
+            __go_fmt_36,
+            __go_fmt_37,
+            __go_fmt_38,
+            __go_fmt_39,
+            __go_fmt_40,
+            __go_fmt_41,
+            __go_fmt_42
+        )
     }
 }
 

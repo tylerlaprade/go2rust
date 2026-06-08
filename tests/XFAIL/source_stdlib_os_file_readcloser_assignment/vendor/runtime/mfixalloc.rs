@@ -131,7 +131,20 @@ impl std::fmt::Display for fixalloc {
         let __go_fmt_7 = format!("{}", (*self.inuse.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_8 = format!("{}", { let __guard = self.stat.lock().unwrap(); match __guard.as_ref() { Some(__v) => format!("{:p}", __v as *const _), None => "<nil>".to_string() } });
         let __go_fmt_9 = format!("{}", (*self.zero.lock().unwrap().as_ref().unwrap()));
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9)
+        write!(
+            f,
+            "{{{} {} {} {} {} {} {} {} {} {}}}",
+            __go_fmt_0,
+            __go_fmt_1,
+            __go_fmt_2,
+            __go_fmt_3,
+            __go_fmt_4,
+            __go_fmt_5,
+            __go_fmt_6,
+            __go_fmt_7,
+            __go_fmt_8,
+            __go_fmt_9
+        )
     }
 }
 

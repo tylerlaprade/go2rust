@@ -30,6 +30,8 @@ type rustTypeGenerics struct {
 	Phantom []string
 }
 
+const minStructDisplayMultilineWriteFields = 10
+
 func writeRustInherentImplHeader(out *strings.Builder, generics rustTypeGenerics, rustTypeName string) {
 	out.WriteString("impl")
 	out.WriteString(generics.Decl)
@@ -304,21 +306,45 @@ func generateStructDisplay(out *strings.Builder, structName string, structType *
 		out.WriteString(");\n")
 	}
 
-	out.WriteString("        write!(f, \"{{")
-	for i := range fields {
+	writeStructDisplayWriteCall(out, len(fields))
+	out.WriteString("    }\n")
+	out.WriteString("}\n")
+}
+
+func writeStructDisplayWriteCall(out *strings.Builder, fieldCount int) {
+	if fieldCount < minStructDisplayMultilineWriteFields {
+		out.WriteString("        write!(f, \"{{")
+		writeStructDisplayFormatPlaceholders(out, fieldCount)
+		out.WriteString("}}\"")
+		for i := 0; i < fieldCount; i++ {
+			out.WriteString(", __go_fmt_")
+			out.WriteString(fmt.Sprintf("%d", i))
+		}
+		out.WriteString(")\n")
+		return
+	}
+
+	out.WriteString("        write!(\n")
+	out.WriteString("            f,\n")
+	out.WriteString("            \"{{")
+	writeStructDisplayFormatPlaceholders(out, fieldCount)
+	out.WriteString("}}\"")
+	for i := 0; i < fieldCount; i++ {
+		out.WriteString(",\n")
+		out.WriteString("            __go_fmt_")
+		out.WriteString(fmt.Sprintf("%d", i))
+	}
+	out.WriteString("\n")
+	out.WriteString("        )\n")
+}
+
+func writeStructDisplayFormatPlaceholders(out *strings.Builder, fieldCount int) {
+	for i := 0; i < fieldCount; i++ {
 		if i > 0 {
 			out.WriteString(" ")
 		}
 		out.WriteString("{}")
 	}
-	out.WriteString("}}\"")
-	for i := range fields {
-		out.WriteString(", __go_fmt_")
-		out.WriteString(fmt.Sprintf("%d", i))
-	}
-	out.WriteString(")\n")
-	out.WriteString("    }\n")
-	out.WriteString("}\n")
 }
 
 func structDisplayFieldIsZeroLenArray(expr ast.Expr) bool {

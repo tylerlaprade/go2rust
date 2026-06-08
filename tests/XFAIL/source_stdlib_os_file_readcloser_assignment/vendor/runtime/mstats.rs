@@ -163,7 +163,27 @@ impl std::fmt::Display for mstats {
         let __go_fmt_14 = format!("{}", (*self.last_gc_nanotime.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_15 = format!("{}", (*self.last_heap_in_use.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_16 = format!("{}", (*self.enablegc.lock().unwrap().as_ref().unwrap()));
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12, __go_fmt_13, __go_fmt_14, __go_fmt_15, __go_fmt_16)
+        write!(
+            f,
+            "{{{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}}}",
+            __go_fmt_0,
+            __go_fmt_1,
+            __go_fmt_2,
+            __go_fmt_3,
+            __go_fmt_4,
+            __go_fmt_5,
+            __go_fmt_6,
+            __go_fmt_7,
+            __go_fmt_8,
+            __go_fmt_9,
+            __go_fmt_10,
+            __go_fmt_11,
+            __go_fmt_12,
+            __go_fmt_13,
+            __go_fmt_14,
+            __go_fmt_15,
+            __go_fmt_16
+        )
     }
 }
 
@@ -656,7 +676,23 @@ impl std::fmt::Display for heapStatsDelta {
         let __go_fmt_10 = format!("{}", (*self.large_free.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_11 = format!("{}", (*self.large_free_count.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_12 = format!("{}", format_slice(&self.small_free_count));
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10, __go_fmt_11, __go_fmt_12)
+        write!(
+            f,
+            "{{{} {} {} {} {} {} {} {} {} {} {} {} {}}}",
+            __go_fmt_0,
+            __go_fmt_1,
+            __go_fmt_2,
+            __go_fmt_3,
+            __go_fmt_4,
+            __go_fmt_5,
+            __go_fmt_6,
+            __go_fmt_7,
+            __go_fmt_8,
+            __go_fmt_9,
+            __go_fmt_10,
+            __go_fmt_11,
+            __go_fmt_12
+        )
     }
 }
 
@@ -815,7 +851,21 @@ impl std::fmt::Display for cpuStats {
         let __go_fmt_8 = format!("{}", (*self.idle_time.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_9 = format!("{}", (*self.user_time.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_10 = format!("{}", (*self.total_time.lock().unwrap().as_ref().unwrap()));
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10)
+        write!(
+            f,
+            "{{{} {} {} {} {} {} {} {} {} {} {}}}",
+            __go_fmt_0,
+            __go_fmt_1,
+            __go_fmt_2,
+            __go_fmt_3,
+            __go_fmt_4,
+            __go_fmt_5,
+            __go_fmt_6,
+            __go_fmt_7,
+            __go_fmt_8,
+            __go_fmt_9,
+            __go_fmt_10
+        )
     }
 }
 

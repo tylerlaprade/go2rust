@@ -671,7 +671,21 @@ impl std::fmt::Display for sysStatsAggregate {
         let __go_fmt_8 = format!("{}", (*self.heap_goal.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_9 = format!("{}", (*self.gc_cycles_done.lock().unwrap().as_ref().unwrap()));
         let __go_fmt_10 = format!("{}", (*self.gc_cycles_forced.lock().unwrap().as_ref().unwrap()));
-        write!(f, "{{{} {} {} {} {} {} {} {} {} {} {}}}", __go_fmt_0, __go_fmt_1, __go_fmt_2, __go_fmt_3, __go_fmt_4, __go_fmt_5, __go_fmt_6, __go_fmt_7, __go_fmt_8, __go_fmt_9, __go_fmt_10)
+        write!(
+            f,
+            "{{{} {} {} {} {} {} {} {} {} {} {}}}",
+            __go_fmt_0,
+            __go_fmt_1,
+            __go_fmt_2,
+            __go_fmt_3,
+            __go_fmt_4,
+            __go_fmt_5,
+            __go_fmt_6,
+            __go_fmt_7,
+            __go_fmt_8,
+            __go_fmt_9,
+            __go_fmt_10
+        )
     }
 }
 
