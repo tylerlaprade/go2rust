@@ -5163,6 +5163,39 @@ func short() int {
 	}
 }
 
+func TestConcurrentTupleReassignmentCallArgumentsBreakAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type info struct {
+	pcfile uint32
+	pcln uint32
+}
+
+func pair(f info, off uint32, target uint32, strict bool) (int32, uint32) {
+	if strict {
+		return int32(off + target), f.pcfile
+	}
+	return int32(off), f.pcln
+}
+
+func assign(f *info, target uint32, strict bool) int32 {
+	go func() {}()
+	var line int32
+	line, _ = pair(*f, f.pcln, target, strict)
+	return line
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "{ let (__tmp_0, __tmp_1) = pair(") && strings.Contains(line, "__arg_holder") {
+			t.Fatalf("tuple reassignment call arguments should not stay on one line:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "{ let (__tmp_0, __tmp_1) = pair(\n") {
+		t.Fatalf("tuple reassignment call should break arguments across lines:\n%s", rust)
+	}
+}
+
 func TestTupleBareScalarShortDeclWrapsForGeneratedCallArgument(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

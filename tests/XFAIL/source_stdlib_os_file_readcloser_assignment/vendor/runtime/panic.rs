@@ -1494,7 +1494,12 @@ pub fn dopanic_m(gp: Arc<Mutex<Option<g>>>, pc: Arc<Mutex<Option<usize>>>, sp: A
             eprint!("{}", __go_print_arg_0)
         };
         goroutineheader(GoPtr::local(gp.clone()));
-        traceback(Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = sp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(0 as usize))), GoPtr::local(gp.clone()));
+        traceback(
+            Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = sp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(0 as usize))),
+            GoPtr::local(gp.clone())
+        );
     } else if {
         let __go_cond_0 = { let __tmp_x = level; let __tmp_y = 2 as i32; __tmp_x >= __tmp_y };
         if __go_cond_0 {
@@ -1512,7 +1517,12 @@ pub fn dopanic_m(gp: Arc<Mutex<Option<g>>>, pc: Arc<Mutex<Option<usize>>>, sp: A
             let __go_print_arg_0 = format!("{}", "\nruntime stack:\n".to_string());
             eprint!("{}", __go_print_arg_0)
         };
-        traceback(Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = sp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(0 as usize))), GoPtr::local(gp.clone()));
+        traceback(
+            Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = sp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(0 as usize))),
+            GoPtr::local(gp.clone())
+        );
     }
         if !(*didothers.lock().unwrap().as_ref().unwrap()) && all {
         { let new_val = true; *didothers.lock().unwrap() = Some(new_val); };

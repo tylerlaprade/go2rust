@@ -5352,7 +5352,13 @@ pub fn free_special(s: Arc<Mutex<Option<special>>>, p: Arc<Mutex<Option<usize>>>
     { let _switch_val = { let __v = (*s.lock().unwrap().as_ref().unwrap()).kind.clone(); let __owned = (*__v.lock().unwrap().as_ref().unwrap()).clone(); __owned };
     if _switch_val == (__KIND_SPECIAL_FINALIZER as u8) {
             let mut sf: GoPtr<specialfinalizer> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&s) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
-            queuefinalizer(Arc::new(Mutex::new(Some({ let __arg_holder = p.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), { let __field = { let __ptr_value = sf.with_mut(|__ptr_value| __ptr_value.r#fn.clone()); __ptr_value }.clone(); __field }, Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = sf.with_mut(|__ptr_value| __ptr_value.nret.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), { let __field = { let __ptr_value = sf.with_mut(|__ptr_value| __ptr_value.fint.clone()); __ptr_value }.clone(); __field }, { let __ptr_value = sf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().ot.clone(); __field_value });
+            queuefinalizer(
+                Arc::new(Mutex::new(Some({ let __arg_holder = p.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                { let __field = { let __ptr_value = sf.with_mut(|__ptr_value| __ptr_value.r#fn.clone()); __ptr_value }.clone(); __field },
+                Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = sf.with_mut(|__ptr_value| __ptr_value.nret.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+                { let __field = { let __ptr_value = sf.with_mut(|__ptr_value| __ptr_value.fint.clone()); __ptr_value }.clone(); __field },
+                { let __ptr_value = sf.borrow(); let __field_value = __ptr_value.as_ref().unwrap().ot.clone(); __field_value }
+            );
             lock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).speciallock.clone()));
             (*(*mheap_.lock().unwrap().as_ref().unwrap()).specialfinalizeralloc.lock().unwrap().as_mut().unwrap()).free(Arc::new(Mutex::new(Some(sf.addr()))));
             unlock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).speciallock.clone()));
@@ -5380,7 +5386,13 @@ pub fn free_special(s: Arc<Mutex<Option<special>>>, p: Arc<Mutex<Option<usize>>>
                         // Cleanups, unlike finalizers, do not resurrect the objects
                         // they're attached to, so we only need to pass the cleanup
                         // function, not the object.
-            queuefinalizer(Arc::new(Mutex::new(None)), { let __field = { let __ptr_value = sc.with_mut(|__ptr_value| __ptr_value.r#fn.clone()); __ptr_value }.clone(); __field }, Arc::new(Mutex::new(Some(0 as usize))), Arc::new(Mutex::new(None)), GoPtr::nil());
+            queuefinalizer(
+                Arc::new(Mutex::new(None)),
+                { let __field = { let __ptr_value = sc.with_mut(|__ptr_value| __ptr_value.r#fn.clone()); __ptr_value }.clone(); __field },
+                Arc::new(Mutex::new(Some(0 as usize))),
+                Arc::new(Mutex::new(None)),
+                GoPtr::nil()
+            );
             lock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).speciallock.clone()));
             (*(*mheap_.lock().unwrap().as_ref().unwrap()).special_cleanup_alloc.lock().unwrap().as_mut().unwrap()).free(Arc::new(Mutex::new(Some(sc.addr()))));
             unlock(GoPtr::local((*mheap_.lock().unwrap().as_ref().unwrap()).speciallock.clone()));

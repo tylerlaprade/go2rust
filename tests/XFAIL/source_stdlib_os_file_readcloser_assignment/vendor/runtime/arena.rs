@@ -242,7 +242,12 @@ impl crate::mheap::mspan {
                 // Set up heap bitmap and do extra accounting.
         if { let __recv_value = typ.borrow(); let __result = (*__recv_value.as_ref().unwrap()).pointers(); __result } {
         if { let __tmp_x = { let __v = (*cap.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x >= __tmp_y } {
-        user_arena_heap_bits_set_slice_type(typ.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = cap.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = ptr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(self.clone()))));
+        user_arena_heap_bits_set_slice_type(
+            typ.clone(),
+            Arc::new(Mutex::new(Some({ let __arg_holder = cap.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = ptr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(self.clone())))
+        );
     } else {
         user_arena_heap_bits_set_type(typ.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = ptr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(self.clone()))));
     }

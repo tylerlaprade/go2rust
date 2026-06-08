@@ -2430,7 +2430,12 @@ pub fn fp_traceback_partial_expand(skip: Arc<Mutex<Option<i32>>>, mut fp: Arc<Mu
 }
 
 pub fn save_block_event_stack(cycles: Arc<Mutex<Option<i64>>>, rate: Arc<Mutex<Option<i64>>>, stk: Arc<Mutex<Option<Vec<usize>>>>, which: Arc<Mutex<Option<bucketType>>>) {
-    let mut b: GoPtr<bucket> = stkbucket(Arc::new(Mutex::new(Some({ let __arg_holder = which.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(0 as usize))), stk.clone(), Arc::new(Mutex::new(Some(true))));
+    let mut b: GoPtr<bucket> = stkbucket(
+        Arc::new(Mutex::new(Some({ let __arg_holder = which.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some(0 as usize))),
+        stk.clone(),
+        Arc::new(Mutex::new(Some(true)))
+    );
     let mut bp: GoPtr<blockRecord> = { let __result = b.with_mut(|__recv_value| __recv_value.bp()); __result };
 
     lock(GoPtr::local(profBlockLock.clone()));

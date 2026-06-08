@@ -335,7 +335,13 @@ pub fn chansend(c: Arc<Mutex<Option<hchan>>>, ep: Arc<Mutex<Option<usize>>>, blo
         if !{ let __v = (*block.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         return false;
     }
-        gopark(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_CHAN_SEND_NIL_CHAN as u8))))))), Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_FOREVER as u8))))))), Arc::new(Mutex::new(Some(2))));
+        gopark(
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_CHAN_SEND_NIL_CHAN as u8))))))),
+            Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_FOREVER as u8))))))),
+            Arc::new(Mutex::new(Some(2)))
+        );
         throw(Arc::new(Mutex::new(Some("unreachable".to_string()))));
     }
 
@@ -662,7 +668,13 @@ pub fn chanrecv(c: Arc<Mutex<Option<hchan>>>, ep: Arc<Mutex<Option<usize>>>, blo
         if !{ let __v = (*block.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         return ((*selected.lock().unwrap().as_ref().unwrap()), (*received.lock().unwrap().as_ref().unwrap()));
     }
-        gopark(Arc::new(Mutex::new(None)), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_CHAN_RECEIVE_NIL_CHAN as u8))))))), Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_FOREVER as u8))))))), Arc::new(Mutex::new(Some(2))));
+        gopark(
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(None)),
+            Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_CHAN_RECEIVE_NIL_CHAN as u8))))))),
+            Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_FOREVER as u8))))))),
+            Arc::new(Mutex::new(Some(2)))
+        );
         throw(Arc::new(Mutex::new(Some("unreachable".to_string()))));
     }
 

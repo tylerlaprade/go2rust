@@ -203,7 +203,12 @@ impl GoJsonDecode for inlineFrame {
 
 impl inlineUnwinder {
     pub fn resolve_internal(&self, pc: Arc<Mutex<Option<usize>>>) -> Arc<Mutex<Option<inlineFrame>>> {
-        Arc::new(Mutex::new(Some(inlineFrame { pc: Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), index: Arc::new(Mutex::new(Some(pcdatavalue1(Arc::new(Mutex::new(Some({ let __selector_holder = self.f.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))), Arc::new(Mutex::new(Some(internal_abi::P_C_D_A_T_A__INL_TREE_INDEX as u32))), Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(false))))))), ..Default::default() })))
+        Arc::new(Mutex::new(Some(inlineFrame { pc: Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), index: Arc::new(Mutex::new(Some(pcdatavalue1(
+            Arc::new(Mutex::new(Some({ let __selector_holder = self.f.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            Arc::new(Mutex::new(Some(internal_abi::P_C_D_A_T_A__INL_TREE_INDEX as u32))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(false)))
+        )))), ..Default::default() })))
     }
 
     /// next returns the frame representing uf's logical caller.

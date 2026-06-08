@@ -39,7 +39,14 @@ pub(crate) const KQ_IDENT: i64 = 0xee1eb9f4;
 pub fn add_wakeup_event(kq_local: Arc<Mutex<Option<i32>>>) {
     let mut ev = Arc::new(Mutex::new(Some(keventt { ident: Arc::new(Mutex::new(Some(KQ_IDENT as u64))), filter: Arc::new(Mutex::new(Some(__E_V_F_I_L_T__U_S_E_R as i16))), flags: Arc::new(Mutex::new(Some(((__E_V__A_D_D as u16) | (__E_V__C_L_E_A_R as u16)) as u16))), ..Default::default() })));
     loop {
-        let mut n = kevent(Arc::new(Mutex::new(Some({ let __arg_holder = kq_local.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), GoPtr::local(ev.clone()), Arc::new(Mutex::new(Some(1 as i32))), GoPtr::nil(), Arc::new(Mutex::new(Some(0 as i32))), Arc::new(Mutex::new(None)));
+        let mut n = kevent(
+            Arc::new(Mutex::new(Some({ let __arg_holder = kq_local.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            GoPtr::local(ev.clone()),
+            Arc::new(Mutex::new(Some(1 as i32))),
+            GoPtr::nil(),
+            Arc::new(Mutex::new(Some(0 as i32))),
+            Arc::new(Mutex::new(None))
+        );
         if { let __tmp_x = n; let __tmp_y = 0 as i32; __tmp_x == __tmp_y } {
         break
     }
@@ -64,7 +71,14 @@ pub fn add_wakeup_event(kq_local: Arc<Mutex<Option<i32>>>) {
 pub fn wake_netpoll(kq_local: Arc<Mutex<Option<i32>>>) {
     let mut ev = Arc::new(Mutex::new(Some(keventt { ident: Arc::new(Mutex::new(Some(KQ_IDENT as u64))), filter: Arc::new(Mutex::new(Some(__E_V_F_I_L_T__U_S_E_R as i16))), fflags: Arc::new(Mutex::new(Some(__N_O_T_E__T_R_I_G_G_E_R as u32))), ..Default::default() })));
     loop {
-        let mut n = kevent(Arc::new(Mutex::new(Some({ let __arg_holder = kq_local.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), GoPtr::local(ev.clone()), Arc::new(Mutex::new(Some(1 as i32))), GoPtr::nil(), Arc::new(Mutex::new(Some(0 as i32))), Arc::new(Mutex::new(None)));
+        let mut n = kevent(
+            Arc::new(Mutex::new(Some({ let __arg_holder = kq_local.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            GoPtr::local(ev.clone()),
+            Arc::new(Mutex::new(Some(1 as i32))),
+            GoPtr::nil(),
+            Arc::new(Mutex::new(Some(0 as i32))),
+            Arc::new(Mutex::new(None))
+        );
         if { let __tmp_x = n; let __tmp_y = 0 as i32; __tmp_x == __tmp_y } {
         break
     }

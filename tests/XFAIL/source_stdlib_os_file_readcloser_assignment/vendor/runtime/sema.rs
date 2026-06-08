@@ -872,7 +872,13 @@ pub fn ready_with_time(s: Arc<Mutex<Option<sudog>>>, traceskip: Arc<Mutex<Option
 
 /// Called from runtime.
 pub fn semacquire(addr: GoPtr<u32>) {
-    semacquire1(addr.clone(), Arc::new(Mutex::new(Some(false))), Arc::new(Mutex::new(Some(semaProfileFlags(Arc::new(Mutex::new(Some(0 as i32))))))), Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_SEMACQUIRE as u8))))))));
+    semacquire1(
+        addr.clone(),
+        Arc::new(Mutex::new(Some(false))),
+        Arc::new(Mutex::new(Some(semaProfileFlags(Arc::new(Mutex::new(Some(0 as i32))))))),
+        Arc::new(Mutex::new(Some(0))),
+        Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_SEMACQUIRE as u8)))))))
+    );
 }
 
 pub fn semacquire1(addr: GoPtr<u32>, lifo: Arc<Mutex<Option<bool>>>, profile: Arc<Mutex<Option<semaProfileFlags>>>, skipframes: Arc<Mutex<Option<i32>>>, reason: Arc<Mutex<Option<waitReason>>>) {

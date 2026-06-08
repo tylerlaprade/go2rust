@@ -968,7 +968,12 @@ impl scavengerState {
         throw(Arc::new(Mutex::new(Some("tried to park scavenger from another goroutine".to_string()))));
     }
         { let new_val = true; *self.parked.lock().unwrap() = Some(new_val); };
-        goparkunlock(self.lock.clone(), Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_G_C_SCAVENGE_WAIT as u8))))))), Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_SYSTEM_GOROUTINE as u8))))))), Arc::new(Mutex::new(Some(2))));
+        goparkunlock(
+            self.lock.clone(),
+            Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_G_C_SCAVENGE_WAIT as u8))))))),
+            Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_SYSTEM_GOROUTINE as u8))))))),
+            Arc::new(Mutex::new(Some(2)))
+        );
     }
 
     /// ready signals to sysmon that the scavenger should be awoken.
@@ -1056,7 +1061,12 @@ impl scavengerState {
         );
                 // Mark ourselves as asleep and go to sleep.
         { let new_val = true; *self.parked.lock().unwrap() = Some(new_val); };
-        goparkunlock(self.lock.clone(), Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_SLEEP as u8))))))), Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_SLEEP as u8))))))), Arc::new(Mutex::new(Some(2))));
+        goparkunlock(
+            self.lock.clone(),
+            Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_SLEEP as u8))))))),
+            Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_SLEEP as u8))))))),
+            Arc::new(Mutex::new(Some(2)))
+        );
                 // How long we actually slept for.
         { let new_val = { let __tmp_x = nanotime(); let __tmp_y = start; __tmp_x - __tmp_y }; *slept.lock().unwrap() = Some(new_val); };
         lock(GoPtr::local(self.lock.clone()));

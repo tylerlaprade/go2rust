@@ -603,7 +603,12 @@ pub fn sighandler(sig_local: Arc<Mutex<Option<u32>>>, info: Arc<Mutex<Option<sig
         startpanic_m();
     }
 
-    gp = fatalsignal(Arc::new(Mutex::new(Some({ let __arg_holder = sig_local.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), c.clone(), gp.clone(), mp.clone());
+    gp = fatalsignal(
+        Arc::new(Mutex::new(Some({ let __arg_holder = sig_local.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        c.clone(),
+        gp.clone(),
+        mp.clone()
+    );
 
     let (mut level, _, mut docrash) = gotraceback();
     if { let __tmp_x = level; let __tmp_y = 0 as i32; __tmp_x > __tmp_y } {

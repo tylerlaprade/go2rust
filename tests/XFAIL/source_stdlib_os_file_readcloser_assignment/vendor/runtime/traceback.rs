@@ -1901,7 +1901,13 @@ pub fn printcreatedby1(f: Arc<Mutex<Option<funcInfo>>>, pc: Arc<Mutex<Option<usi
 }
 
 pub fn traceback(pc: Arc<Mutex<Option<usize>>>, sp: Arc<Mutex<Option<usize>>>, lr: Arc<Mutex<Option<usize>>>, gp: GoPtr<crate::runtime2::g>) {
-    traceback1(Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = sp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = lr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), gp.clone(), Arc::new(Mutex::new(Some(unwindFlags(Arc::new(Mutex::new(Some(0 as u8))))))));
+    traceback1(
+        Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = sp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = lr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        gp.clone(),
+        Arc::new(Mutex::new(Some(unwindFlags(Arc::new(Mutex::new(Some(0 as u8)))))))
+    );
 }
 
 /// tracebacktrap is like traceback but expects that the PC and SP were obtained
@@ -1925,7 +1931,13 @@ pub fn tracebacktrap(pc: Arc<Mutex<Option<usize>>>, sp: Arc<Mutex<Option<usize>>
         return;
     }
         // We're in C code somewhere, traceback from the saved position.
-    traceback1(Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = sp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = lr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), gp.clone(), Arc::new(Mutex::new(Some(unwindFlags(Arc::new(Mutex::new(Some(UNWIND_TRAP as u8))))))));
+    traceback1(
+        Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = sp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = lr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        gp.clone(),
+        Arc::new(Mutex::new(Some(unwindFlags(Arc::new(Mutex::new(Some(UNWIND_TRAP as u8)))))))
+    );
 }
 
 pub fn traceback1(mut pc: Arc<Mutex<Option<usize>>>, mut sp: Arc<Mutex<Option<usize>>>, lr: Arc<Mutex<Option<usize>>>, gp: GoPtr<crate::runtime2::g>, mut flags: Arc<Mutex<Option<unwindFlags>>>) {
@@ -2067,12 +2079,22 @@ pub fn traceback1(mut pc: Arc<Mutex<Option<usize>>>, mut sp: Arc<Mutex<Option<us
             gp_closure_clone.clone(),
             Arc::new(Mutex::new(Some({ let __arg_holder = flags_closure_clone.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
         );
-        let (mut n, mut lastN) = traceback2(u_closure_clone.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = showRuntime.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(50))));
+        let (mut n, mut lastN) = traceback2(
+            u_closure_clone.clone(),
+            Arc::new(Mutex::new(Some({ let __arg_holder = showRuntime.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(0))),
+            Arc::new(Mutex::new(Some(50)))
+        );
         if { let __tmp_x = n; let __tmp_y = 50; __tmp_x < __tmp_y } {
         return n;
     }
         let mut u2 = { let __owned = u_closure_clone.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
-        let (mut remaining, _) = traceback2(u_closure_clone.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = showRuntime.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(2147483647))), Arc::new(Mutex::new(Some(0))));
+        let (mut remaining, _) = traceback2(
+            u_closure_clone.clone(),
+            Arc::new(Mutex::new(Some({ let __arg_holder = showRuntime.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(2147483647))),
+            Arc::new(Mutex::new(Some(0)))
+        );
         let mut elide = Arc::new(Mutex::new(Some({ let __tmp_x = { let __tmp_x = remaining; let __tmp_y = lastN; __tmp_x - __tmp_y }; let __tmp_y = 50; __tmp_x - __tmp_y })));
         if { let __tmp_x = { let __v = (*elide.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
         {
@@ -2088,7 +2110,12 @@ pub fn traceback1(mut pc: Arc<Mutex<Option<usize>>>, mut sp: Arc<Mutex<Option<us
             Arc::new(Mutex::new(Some(50)))
         );
     } else if { let __tmp_x = { let __v = (*elide.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x <= __tmp_y } {
-        traceback2(u2.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = showRuntime.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(lastN))), Arc::new(Mutex::new(Some(50))));
+        traceback2(
+            u2.clone(),
+            Arc::new(Mutex::new(Some({ let __arg_holder = showRuntime.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(lastN))),
+            Arc::new(Mutex::new(Some(50)))
+        );
     }
         n
     }) as Box<dyn FnMut(Arc<Mutex<Option<bool>>>) -> i32 + Send + Sync>)));

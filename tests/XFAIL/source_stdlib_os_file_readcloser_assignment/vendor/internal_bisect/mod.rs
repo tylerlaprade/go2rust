@@ -871,7 +871,12 @@ impl Matcher {
         if self.marker_only() {
         print_marker(w.clone(), Arc::new(Mutex::new(Some(h))));
     } else {
-        print_file_line(w.clone(), Arc::new(Mutex::new(Some(h))), Arc::new(Mutex::new(Some({ let __arg_holder = file.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = line.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        print_file_line(
+            w.clone(),
+            Arc::new(Mutex::new(Some(h))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = file.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = line.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        );
     }
     }
         self.should_enable(Arc::new(Mutex::new(Some(h))))

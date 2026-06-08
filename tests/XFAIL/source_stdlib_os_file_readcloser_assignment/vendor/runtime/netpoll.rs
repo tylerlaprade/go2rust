@@ -911,10 +911,20 @@ pub fn netpollready(toRun: Arc<Mutex<Option<gList>>>, pd: GoPtr<pollDesc>, mode:
     let mut delta = Arc::new(Mutex::new(Some(0 as i32)));
     let mut rg: GoPtr<crate::runtime2::g> = GoPtr::nil();let mut wg: GoPtr<crate::runtime2::g> = GoPtr::nil();
     if { let __tmp_x = { let __v = (*mode.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('r' as i32); __tmp_x == __tmp_y } || { let __tmp_x = { let __v = (*mode.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = ('r' as i32); let __tmp_y = ('w' as i32); __tmp_x + __tmp_y } as i32; __tmp_x == __tmp_y } {
-        rg = netpollunblock(pd.clone(), Arc::new(Mutex::new(Some(('r' as i32) as i32))), Arc::new(Mutex::new(Some(true))), delta.clone());
+        rg = netpollunblock(
+            pd.clone(),
+            Arc::new(Mutex::new(Some(('r' as i32) as i32))),
+            Arc::new(Mutex::new(Some(true))),
+            delta.clone()
+        );
     }
     if { let __tmp_x = { let __v = (*mode.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('w' as i32); __tmp_x == __tmp_y } || { let __tmp_x = { let __v = (*mode.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __tmp_x = ('r' as i32); let __tmp_y = ('w' as i32); __tmp_x + __tmp_y } as i32; __tmp_x == __tmp_y } {
-        wg = netpollunblock(pd.clone(), Arc::new(Mutex::new(Some(('w' as i32) as i32))), Arc::new(Mutex::new(Some(true))), delta.clone());
+        wg = netpollunblock(
+            pd.clone(),
+            Arc::new(Mutex::new(Some(('w' as i32) as i32))),
+            Arc::new(Mutex::new(Some(true))),
+            delta.clone()
+        );
     }
     if !rg.is_nil() {
         { let __recv = toRun.clone(); let __recv_ptr: *const crate::proc::gList = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const crate::proc::gList }; let __result = unsafe { &*__recv_ptr }.push(rg.clone()); __result };

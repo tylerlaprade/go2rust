@@ -10422,7 +10422,14 @@ func variadicPackedMethodArgsShouldUseMultiline(call *ast.CallExpr, sig *types.S
 }
 
 func functionCallArgumentsShouldUseMultiline(call *ast.CallExpr) bool {
-	if call == nil || (!callArgumentsShouldUseMultiline(call.Args) && !callArgumentsUseQualifiedGoPtrSelectorConversion(call)) {
+	if call == nil {
+		return false
+	}
+	if NeedsConcurrentWrapper() && len(call.Args) >= 4 {
+		sig, ok := callSignatureFromTypeInfo(call)
+		return !ok || !sig.Variadic()
+	}
+	if !callArgumentsShouldUseMultiline(call.Args) && !callArgumentsUseQualifiedGoPtrSelectorConversion(call) {
 		return false
 	}
 	sig, ok := callSignatureFromTypeInfo(call)

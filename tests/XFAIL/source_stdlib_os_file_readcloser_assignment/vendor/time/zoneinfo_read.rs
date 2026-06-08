@@ -668,7 +668,12 @@ let mut skip = Arc::new(Mutex::new(Some(__go_binary_18)));
             { let new_val = estart; *(*l.lock().unwrap().as_ref().unwrap()).cache_start.lock().unwrap() = Some(new_val); };;
             { let new_val = eend; *(*l.lock().unwrap().as_ref().unwrap()).cache_end.lock().unwrap() = Some(new_val); };;
             {
-        let mut zoneIdx = find_zone({ let __field = (*l.lock().unwrap().as_ref().unwrap()).zone.clone(); __field }, Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(offset))), Arc::new(Mutex::new(Some(isDST))));;
+        let mut zoneIdx = find_zone(
+            { let __field = (*l.lock().unwrap().as_ref().unwrap()).zone.clone(); __field },
+            Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(offset))),
+            Arc::new(Mutex::new(Some(isDST)))
+        );;
         if { let __tmp_x = zoneIdx; let __tmp_y = -1; __tmp_x != __tmp_y } {
             { let new_val = GoPtr::slice_elem(GoSliceElemPtr::new((*l.lock().unwrap().as_ref().unwrap()).zone.clone(), (zoneIdx) as usize)); (*l.lock().unwrap().as_mut().unwrap()).cache_zone = new_val; };;
         } else {

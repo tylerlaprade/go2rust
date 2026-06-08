@@ -1188,7 +1188,12 @@ pub fn bulk_barrier_pre_write(dst: Arc<Mutex<Option<usize>>>, src: Arc<Mutex<Opt
     const doubleCheck: bool = false;
 
     if doubleCheck {
-        double_check_type_pointers_of_type(s.clone(), typ.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = dst.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        double_check_type_pointers_of_type(
+            s.clone(),
+            typ.clone(),
+            Arc::new(Mutex::new(Some({ let __arg_holder = dst.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        );
     }
 
     let mut tp: Arc<Mutex<Option<typePointers>>> = Arc::new(Mutex::new(Some(Default::default())));
@@ -1250,7 +1255,13 @@ pub fn heap_set_type_no_header(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mutex
     }
     let mut scanSize = { let __recv_value = span.borrow(); let __result = (*__recv_value.as_ref().unwrap()).write_heap_bits_small(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = dataSize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), typ.clone()); __result };
     if DOUBLE_CHECK_HEAP_SET_TYPE {
-        double_check_heap_type(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = dataSize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), typ.clone(), GoPtr::nil(), span.clone());
+        double_check_heap_type(
+            Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = dataSize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            typ.clone(),
+            GoPtr::nil(),
+            span.clone()
+        );
     }
     scanSize
 }
@@ -1258,7 +1269,13 @@ pub fn heap_set_type_no_header(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mutex
 pub fn heap_set_type_small_header(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mutex<Option<usize>>>, typ: GoPtr<internal_abi::r#type::Type>, header: GoPtr<GoPtr<internal_abi::r#type::Type>>, span: GoPtr<crate::mheap::mspan>) -> usize {
     { let new_val = typ.clone(); header.assign(Some(new_val)); };
     if DOUBLE_CHECK_HEAP_SET_TYPE {
-        double_check_heap_type(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = dataSize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), typ.clone(), header.clone(), span.clone());
+        double_check_heap_type(
+            Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = dataSize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            typ.clone(),
+            header.clone(),
+            span.clone()
+        );
     }
     return (*{ let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.elemsize.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap());
 }
@@ -1269,13 +1286,25 @@ pub fn heap_set_type_large(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mutex<Opt
         // Write out the header.
     { let new_val = gctyp.clone(); span.with_mut(|__ptr_value| { __ptr_value.large_type = new_val; }); };
     if DOUBLE_CHECK_HEAP_SET_TYPE {
-        double_check_heap_type(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = dataSize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), typ.clone(), GoPtr::local(Arc::new(Mutex::new(Some({ let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.large_type.clone()); __ptr_value }.clone())))), span.clone());
+        double_check_heap_type(
+            Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = dataSize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            typ.clone(),
+            GoPtr::local(Arc::new(Mutex::new(Some({ let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.large_type.clone()); __ptr_value }.clone())))),
+            span.clone()
+        );
     }
     return (*{ let __ptr_value = span.with_mut(|__ptr_value| __ptr_value.elemsize.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap());
 }
 
 pub fn double_check_heap_type(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mutex<Option<usize>>>, gctyp: GoPtr<internal_abi::r#type::Type>, header: GoPtr<GoPtr<internal_abi::r#type::Type>>, span: GoPtr<crate::mheap::mspan>) {
-    double_check_heap_pointers(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = dataSize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), gctyp.clone(), header.clone(), span.clone());
+    double_check_heap_pointers(
+        Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = dataSize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        gctyp.clone(),
+        header.clone(),
+        span.clone()
+    );
 
         // To exercise the less common path more often, generate
         // a random interior pointer and make sure iterating from
@@ -1315,7 +1344,15 @@ pub fn double_check_heap_type(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mutex<
     if { let __tmp_x = { let __tmp_x = { let __v = (*interior.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*maxIterBytes.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; __tmp_x > __tmp_y } {
         { let new_val = { let __tmp_x = { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*maxIterBytes.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }; let __tmp_y = { let __v = (*interior.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }; *size.lock().unwrap() = Some(new_val); };
     }
-    double_check_heap_pointers_interior(Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = interior.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = dataSize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), gctyp.clone(), header.clone(), span.clone());
+    double_check_heap_pointers_interior(
+        Arc::new(Mutex::new(Some({ let __arg_holder = x.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = interior.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = size.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = dataSize.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        gctyp.clone(),
+        header.clone(),
+        span.clone()
+    );
 }
 
 pub fn double_check_heap_pointers(x: Arc<Mutex<Option<usize>>>, dataSize: Arc<Mutex<Option<usize>>>, typ: GoPtr<internal_abi::r#type::Type>, header: GoPtr<GoPtr<internal_abi::r#type::Type>>, span: GoPtr<crate::mheap::mspan>) {
@@ -1847,7 +1884,12 @@ pub fn find_object(p: Arc<Mutex<Option<usize>>>, refBase: Arc<Mutex<Option<usize
                 // Crash if clobberdeadPtr is seen. Only on AMD64 and ARM64 for now,
                 // as they are the only platform where compiler's clobberdead mode is
                 // implemented. On these platforms clobberdeadPtr cannot be a valid address.
-        bad_pointer(s.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = p.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = refBase.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = refOff.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        bad_pointer(
+            s.clone(),
+            Arc::new(Mutex::new(Some({ let __arg_holder = p.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = refBase.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = refOff.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        );
     }
                 // Crash if clobberdeadPtr is seen. Only on AMD64 and ARM64 for now,
                 // as they are the only platform where compiler's clobberdead mode is
@@ -1869,7 +1911,12 @@ pub fn find_object(p: Arc<Mutex<Option<usize>>>, refBase: Arc<Mutex<Option<usize
         return ((*base.lock().unwrap().as_ref().unwrap()), s.clone(), (*objIndex.lock().unwrap().as_ref().unwrap()));
     };
             if { let __tmp_x = (*{ let __field = (*debug.lock().unwrap().as_ref().unwrap()).invalidptr.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x != __tmp_y } {
-        bad_pointer(s.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = p.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = refBase.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = refOff.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        bad_pointer(
+            s.clone(),
+            Arc::new(Mutex::new(Some({ let __arg_holder = p.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = refBase.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = refOff.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        );
     };
             return ((*base.lock().unwrap().as_ref().unwrap()), s.clone(), (*objIndex.lock().unwrap().as_ref().unwrap()));;
         }

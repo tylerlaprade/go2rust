@@ -1680,7 +1680,12 @@ pub fn forcegchelper() {
         throw(Arc::new(Mutex::new(Some("forcegc: phase error".to_string()))));
     }
         (*(*forcegc.lock().unwrap().as_ref().unwrap()).idle.lock().unwrap().as_ref().unwrap()).store(Arc::new(Mutex::new(Some(true))));
-        goparkunlock((*forcegc.lock().unwrap().as_ref().unwrap()).lock.clone(), Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_FORCE_G_C_IDLE as u8))))))), Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_SYSTEM_GOROUTINE as u8))))))), Arc::new(Mutex::new(Some(1))));
+        goparkunlock(
+            (*forcegc.lock().unwrap().as_ref().unwrap()).lock.clone(),
+            Arc::new(Mutex::new(Some(crate::runtime2::waitReason(Arc::new(Mutex::new(Some(WAIT_REASON_FORCE_G_C_IDLE as u8))))))),
+            Arc::new(Mutex::new(Some(crate::traceruntime::traceBlockReason(Arc::new(Mutex::new(Some(TRACE_BLOCK_SYSTEM_GOROUTINE as u8))))))),
+            Arc::new(Mutex::new(Some(1)))
+        );
 
                 // this goroutine is explicitly resumed by sysmon
         if { let __tmp_x = (*{ let __field = (*debug.lock().unwrap().as_ref().unwrap()).gctrace.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x > __tmp_y } {
@@ -7774,7 +7779,12 @@ pub fn runqput(pp: GoPtr<crate::runtime2::p>, mut gp: GoPtr<crate::runtime2::g>,
         return;
     }
                 // store-release, makes the item available for consumption
-        if runqputslow(pp.clone(), gp.clone(), Arc::new(Mutex::new(Some(h))), Arc::new(Mutex::new(Some({ let __arg_holder = t.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))) {
+        if runqputslow(
+            pp.clone(),
+            gp.clone(),
+            Arc::new(Mutex::new(Some(h))),
+            Arc::new(Mutex::new(Some({ let __arg_holder = t.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+        ) {
         return;
     }
 
@@ -8104,7 +8114,12 @@ pub fn runqgrab(pp: Arc<Mutex<Option<p>>>, batch: Arc<Mutex<Option<[guintptr; 25
 /// Returns one of the stolen elements (or nil if failed).
 pub fn runqsteal(pp: GoPtr<crate::runtime2::p>, p2: Arc<Mutex<Option<p>>>, stealRunNextG: Arc<Mutex<Option<bool>>>) -> GoPtr<crate::runtime2::g> {
     let mut t = Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runqtail.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-    let mut n = runqgrab(p2.clone(), { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = t.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = stealRunNextG.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    let mut n = runqgrab(
+        p2.clone(),
+        { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.runq.clone()); __ptr_value }.clone(),
+        Arc::new(Mutex::new(Some({ let __arg_holder = t.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = stealRunNextG.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+    );
     if { let __tmp_x = n; let __tmp_y = 0 as u32; __tmp_x == __tmp_y } {
         return GoPtr::nil();
     }

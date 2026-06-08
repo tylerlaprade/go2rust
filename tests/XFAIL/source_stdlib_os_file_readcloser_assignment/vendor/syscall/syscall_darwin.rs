@@ -334,7 +334,12 @@ pub fn getdirentries(fd: Arc<Mutex<Option<i32>>>, mut buf: Arc<Mutex<Option<Vec<
                 // Just Dup'ing the file descriptor is not enough, as the
                 // result shares underlying state. Use openat to make a really
                 // new file descriptor referring to the same directory.
-        let (mut fd2, __tmp_1) = openat(Arc::new(Mutex::new(Some({ let __arg_holder = fd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(".".to_string()))), Arc::new(Mutex::new(Some(0))), Arc::new(Mutex::new(Some(0 as u32)))); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
+        let (mut fd2, __tmp_1) = openat(
+            Arc::new(Mutex::new(Some({ let __arg_holder = fd.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            Arc::new(Mutex::new(Some(".".to_string()))),
+            Arc::new(Mutex::new(Some(0))),
+            Arc::new(Mutex::new(Some(0 as u32)))
+        ); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1;;
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         {
         { let new_val = 0; *n.lock().unwrap() = Some(new_val); };;

@@ -1016,7 +1016,12 @@ pub fn open_dir_nolog(name: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<cra
         syscall::close_on_exec(Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     }
 
-    let mut f = new_file_1(Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(newFileKind(Arc::new(Mutex::new(Some(KIND_NO_POLL as i32))))))), Arc::new(Mutex::new(Some(false))));
+    let mut f = new_file_1(
+        Arc::new(Mutex::new(Some({ let __arg_holder = r.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some({ let __arg_holder = name.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        Arc::new(Mutex::new(Some(newFileKind(Arc::new(Mutex::new(Some(KIND_NO_POLL as i32))))))),
+        Arc::new(Mutex::new(Some(false)))
+    );
     { let new_val = s.lock().unwrap().as_ref().unwrap().clone(); *(*(*(*f.lock().unwrap().as_mut().unwrap()).file.lock().unwrap().as_mut().unwrap()).pfd.lock().unwrap().as_ref().unwrap()).sys_file.lock().unwrap() = Some(new_val); };
     return (f.clone(), Arc::new(Mutex::new(None)));
 }

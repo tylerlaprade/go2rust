@@ -202,7 +202,12 @@ pub fn notetsleep(n: Arc<Mutex<Option<note>>>, ns: Arc<Mutex<Option<i64>>>) -> b
         throw(Arc::new(Mutex::new(Some("notetsleep not on g0".to_string()))));
     }
     semacreate({ let __field = (*gp.lock().unwrap().as_ref().unwrap()).m.clone(); __field });
-    notetsleep_internal(n.clone(), Arc::new(Mutex::new(Some({ let __v = (*ns.lock().unwrap().as_ref().unwrap()).clone(); __v }))), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(0 as i64))))
+    notetsleep_internal(
+        n.clone(),
+        Arc::new(Mutex::new(Some({ let __v = (*ns.lock().unwrap().as_ref().unwrap()).clone(); __v }))),
+        Arc::new(Mutex::new(None)),
+        Arc::new(Mutex::new(Some(0 as i64)))
+    )
 }
 
 /// same as runtime·notetsleep, but called on user g (not g0)
@@ -214,7 +219,12 @@ pub fn notetsleepg(n: Arc<Mutex<Option<note>>>, ns: Arc<Mutex<Option<i64>>>) -> 
     }
     semacreate({ let __field = (*gp.lock().unwrap().as_ref().unwrap()).m.clone(); __field });
     entersyscallblock();
-    let mut ok = notetsleep_internal(n.clone(), Arc::new(Mutex::new(Some({ let __v = (*ns.lock().unwrap().as_ref().unwrap()).clone(); __v }))), Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(0 as i64))));
+    let mut ok = notetsleep_internal(
+        n.clone(),
+        Arc::new(Mutex::new(Some({ let __v = (*ns.lock().unwrap().as_ref().unwrap()).clone(); __v }))),
+        Arc::new(Mutex::new(None)),
+        Arc::new(Mutex::new(Some(0 as i64)))
+    );
     exitsyscall();
     ok
 }
