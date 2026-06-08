@@ -218,7 +218,10 @@ impl pinner {
         return;
     }
         for i in 0..(({ let __range_holder = self.refs.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
-        set_pinned(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.refs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }))), Arc::new(Mutex::new(Some(false))));
+        set_pinned(
+            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.refs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }))),
+            Arc::new(Mutex::new(Some(false)))
+        );
     }
                 // The following two lines make all pointers to references
                 // in p.refs unreachable, either by deleting them or dropping

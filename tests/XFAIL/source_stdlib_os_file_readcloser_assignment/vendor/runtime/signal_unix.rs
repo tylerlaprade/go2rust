@@ -451,11 +451,18 @@ pub fn sighandler(sig_local: Arc<Mutex<Option<u32>>>, info: Arc<Mutex<Option<sig
             }
         };
         if __go_cond_0 {
-            let __go_cond_3 = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<crate::defs_darwin_arm64::siginfo>>>, Arc<Mutex<Option<crate::signal_darwin_arm64::sigctxt>>>, GoPtr<crate::runtime2::g>) -> bool + Send + Sync> = { let mut __f_guard = testSigtrap.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<crate::defs_darwin_arm64::siginfo>>>, Arc<Mutex<Option<crate::signal_darwin_arm64::sigctxt>>>, GoPtr<crate::runtime2::g>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(
-                info.clone(),
-                Arc::new(Mutex::new({ let __ptr = noescape(Arc::new(Mutex::new(Some(Arc::as_ptr(&c) as usize)))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<sigctxt>(unimplemented!("unsafe.Pointer conversion to sigctxt")) } })),
-                gp.clone()
-            ) };
+            let __go_cond_3 = {
+                let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<crate::defs_darwin_arm64::siginfo>>>, Arc<Mutex<Option<crate::signal_darwin_arm64::sigctxt>>>, GoPtr<crate::runtime2::g>) -> bool + Send + Sync> = {
+                    let mut __f_guard = testSigtrap.lock().unwrap();
+                    __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<crate::defs_darwin_arm64::siginfo>>>, Arc<Mutex<Option<crate::signal_darwin_arm64::sigctxt>>>, GoPtr<crate::runtime2::g>) -> bool + Send + Sync>
+                };
+                let __f = unsafe { &mut *__f_ptr };
+                (*__f)(
+                    info.clone(),
+                    Arc::new(Mutex::new({ let __ptr = noescape(Arc::new(Mutex::new(Some(Arc::as_ptr(&c) as usize)))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<sigctxt>(unimplemented!("unsafe.Pointer conversion to sigctxt")) } })),
+                    gp.clone()
+                )
+            };
             __go_cond_3
         } else {
             false

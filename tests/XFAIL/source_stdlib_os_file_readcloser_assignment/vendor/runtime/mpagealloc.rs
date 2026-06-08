@@ -1606,13 +1606,20 @@ impl pageAlloc {
                 // that we should skip it altogether.
                 // We've encountered a non-zero summary which means
                 // free memory, so update firstFree.
-        { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<offAddr>>>, Arc<Mutex<Option<usize>>>) -> () + Send + Sync> = { let mut __f_guard = foundFree.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<offAddr>>>, Arc<Mutex<Option<usize>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(
-            level_index_to_off_addr(
-                Arc::new(Mutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
-                Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })))
-            ),
-            Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = (1 as usize); let __tmp_y = { let __v = (*logMaxPages.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }); let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y })))
-        ) };
+        {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<offAddr>>>, Arc<Mutex<Option<usize>>>) -> () + Send + Sync> = {
+                let mut __f_guard = foundFree.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<offAddr>>>, Arc<Mutex<Option<usize>>>) -> () + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                level_index_to_off_addr(
+                    Arc::new(Mutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                    Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*j.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y })))
+                ),
+                Arc::new(Mutex::new(Some({ let __tmp_x = ({ let __tmp_x = (1 as usize); let __tmp_y = { let __v = (*logMaxPages.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }); let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y })))
+            )
+        };
 
         let mut s = pallocSum::start(&(*sum.lock().unwrap().as_ref().unwrap()));
         if { let __tmp_x = { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = s; __tmp_x + __tmp_y }; let __tmp_y = (*Arc::new(Mutex::new(Some((*npages.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y } {
@@ -1849,10 +1856,17 @@ impl pageAlloc {
                 // Since we actually searched the chunk, we may have
                 // found an even narrower free window.
         let mut searchAddr = Arc::new(Mutex::new(Some({ let __tmp_x = chunk_base(Arc::new(Mutex::new(Some({ let __arg_holder = ci.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __tmp_y = { let __tmp_x = (*Arc::new(Mutex::new(Some(searchIdx as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y }; __tmp_x + __tmp_y })));
-        { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<offAddr>>>, Arc<Mutex<Option<usize>>>) -> () + Send + Sync> = { let mut __f_guard = foundFree.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<offAddr>>>, Arc<Mutex<Option<usize>>>) -> () + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(
-            Arc::new(Mutex::new(Some(offAddr { a: Arc::new(Mutex::new(Some({ let __arg_holder = searchAddr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))),
-            Arc::new(Mutex::new(Some({ let __tmp_x = chunk_base(Arc::new(Mutex::new(Some(chunkIdx(Arc::new(Mutex::new(Some(((*{ let __v = (*ci.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) + 1))))))))); let __tmp_y = { let __v = (*searchAddr.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y })))
-        ) };
+        {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<offAddr>>>, Arc<Mutex<Option<usize>>>) -> () + Send + Sync> = {
+                let mut __f_guard = foundFree.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<offAddr>>>, Arc<Mutex<Option<usize>>>) -> () + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                Arc::new(Mutex::new(Some(offAddr { a: Arc::new(Mutex::new(Some({ let __arg_holder = searchAddr.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }))),
+                Arc::new(Mutex::new(Some({ let __tmp_x = chunk_base(Arc::new(Mutex::new(Some(chunkIdx(Arc::new(Mutex::new(Some(((*{ let __v = (*ci.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) + 1))))))))); let __tmp_y = { let __v = (*searchAddr.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y })))
+            )
+        };
         return (
             { let __v = (*addr.lock().unwrap().as_ref().unwrap()).clone(); __v },
             self.find_mapped_addr(Arc::new(Mutex::new(Some({ let __selector_holder = (*firstFree.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))))

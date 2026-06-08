@@ -89,7 +89,10 @@ pub fn byte_ptr_from_string(s: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Option<
     if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
         return (Arc::new(Mutex::new(None)), err.clone());
     }
-    return (unimplemented!("slice element pointer return requires pointer representation support"), Arc::new(Mutex::new(None)));
+    return (
+        unimplemented!("slice element pointer return requires pointer representation support"),
+        Arc::new(Mutex::new(None))
+    );
 }
 
 pub(crate) fn __go_init_functions() {

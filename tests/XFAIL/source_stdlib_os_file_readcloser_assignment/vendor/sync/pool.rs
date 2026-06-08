@@ -444,7 +444,10 @@ impl Pool {
         while let Some(f) = __defer_stack.pop() {
             f();
         }
-        return (GoPtr::slice_elem(GoSliceElemPtr::new(local.clone(), (pid) as usize)), pid);
+        return (
+            GoPtr::slice_elem(GoSliceElemPtr::new(local.clone(), (pid) as usize)),
+            pid
+        );
     }
         }));
         std::panic::set_hook(__go_previous_panic_hook);

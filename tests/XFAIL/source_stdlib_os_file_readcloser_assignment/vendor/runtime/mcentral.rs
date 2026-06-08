@@ -104,10 +104,22 @@ impl mcentral {
     /// Initialize a single central free list.
     pub fn init(&mut self, spc: Arc<Mutex<Option<spanClass>>>) {
         { let new_val = spc.lock().unwrap().as_ref().unwrap().clone(); *self.spanclass.lock().unwrap() = Some(new_val); };
-        lock_init(GoPtr::local({ let __seq = { let __seq_holder = self.partial.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.spine_lock.clone()), Arc::new(Mutex::new(Some(crate::lockrank::lockRank(Arc::new(Mutex::new(Some(LOCK_RANK_SPAN_SET_SPINE as i32))))))));
-        lock_init(GoPtr::local({ let __seq = { let __seq_holder = self.partial.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.spine_lock.clone()), Arc::new(Mutex::new(Some(crate::lockrank::lockRank(Arc::new(Mutex::new(Some(LOCK_RANK_SPAN_SET_SPINE as i32))))))));
-        lock_init(GoPtr::local({ let __seq = { let __seq_holder = self.full.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.spine_lock.clone()), Arc::new(Mutex::new(Some(crate::lockrank::lockRank(Arc::new(Mutex::new(Some(LOCK_RANK_SPAN_SET_SPINE as i32))))))));
-        lock_init(GoPtr::local({ let __seq = { let __seq_holder = self.full.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.spine_lock.clone()), Arc::new(Mutex::new(Some(crate::lockrank::lockRank(Arc::new(Mutex::new(Some(LOCK_RANK_SPAN_SET_SPINE as i32))))))));
+        lock_init(
+            GoPtr::local({ let __seq = { let __seq_holder = self.partial.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.spine_lock.clone()),
+            Arc::new(Mutex::new(Some(crate::lockrank::lockRank(Arc::new(Mutex::new(Some(LOCK_RANK_SPAN_SET_SPINE as i32)))))))
+        );
+        lock_init(
+            GoPtr::local({ let __seq = { let __seq_holder = self.partial.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.spine_lock.clone()),
+            Arc::new(Mutex::new(Some(crate::lockrank::lockRank(Arc::new(Mutex::new(Some(LOCK_RANK_SPAN_SET_SPINE as i32)))))))
+        );
+        lock_init(
+            GoPtr::local({ let __seq = { let __seq_holder = self.full.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }.spine_lock.clone()),
+            Arc::new(Mutex::new(Some(crate::lockrank::lockRank(Arc::new(Mutex::new(Some(LOCK_RANK_SPAN_SET_SPINE as i32)))))))
+        );
+        lock_init(
+            GoPtr::local({ let __seq = { let __seq_holder = self.full.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(1) as usize].clone() }.spine_lock.clone()),
+            Arc::new(Mutex::new(Some(crate::lockrank::lockRank(Arc::new(Mutex::new(Some(LOCK_RANK_SPAN_SET_SPINE as i32)))))))
+        );
     }
 
     /// partialUnswept returns the spanSet which holds partially-filled

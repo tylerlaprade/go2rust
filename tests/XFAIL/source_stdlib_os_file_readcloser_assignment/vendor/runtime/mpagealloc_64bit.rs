@@ -237,10 +237,17 @@ impl crate::mpagealloc::pageAlloc {
                 // Walk up the radix tree and map summaries in as needed.
         for l in 0..(({ let __range_holder = self.summary.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
                 // Figure out what part of the summary array this new address space needs.
-        let (mut needIdxBase, mut needIdxLimit) = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<addrRange>>>) -> (i32, i32) + Send + Sync> = { let mut __f_guard = addrRangeToSummaryRange.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<addrRange>>>) -> (i32, i32) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(
-            Arc::new(Mutex::new(Some(l as i32))),
-            make_addr_range(Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = limit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))
-        ) };
+        let (mut needIdxBase, mut needIdxLimit) = {
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<addrRange>>>) -> (i32, i32) + Send + Sync> = {
+                let mut __f_guard = addrRangeToSummaryRange.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<addrRange>>>) -> (i32, i32) + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                Arc::new(Mutex::new(Some(l as i32))),
+                make_addr_range(Arc::new(Mutex::new(Some({ let __arg_holder = base.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = limit.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))))
+            )
+        };
                 // Update the summary slices with a new upper-bound. This ensures
                 // we get tight bounds checks on at least the top bound.
                 //
@@ -270,17 +277,34 @@ impl crate::mpagealloc::pageAlloc {
                 // memory twice, it should never be possible to prune in such a way that causes
                 // need to be split.
         if { let __tmp_x = inUseIndex; let __tmp_y = 0; __tmp_x > __tmp_y } {
-        { let new_val = (*need.lock().unwrap().as_ref().unwrap()).subtract({ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<addrRange>>>) -> Arc<Mutex<Option<addrRange>>> + Send + Sync> = { let mut __f_guard = addrRangeToSumAddrRange.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<addrRange>>>) -> Arc<Mutex<Option<addrRange>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(
-            Arc::new(Mutex::new(Some(l as i32))),
-            Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*self.in_use.lock().unwrap().as_ref().unwrap()).ranges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = inUseIndex; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
-        ) }); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *need.lock().unwrap() = __moved_val; };
+        { let new_val = (*need.lock().unwrap().as_ref().unwrap()).subtract({
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<addrRange>>>) -> Arc<Mutex<Option<addrRange>>> + Send + Sync> = {
+                let mut __f_guard = addrRangeToSumAddrRange.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<addrRange>>>) -> Arc<Mutex<Option<addrRange>>> + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                Arc::new(Mutex::new(Some(l as i32))),
+                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*self.in_use.lock().unwrap().as_ref().unwrap()).ranges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = inUseIndex; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })))
+            )
+        }); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *need.lock().unwrap() = __moved_val; };
     }
         if {
             let __tmp_x = (inUseIndex as i32);
             let __tmp_y = (({ let __len_target = { let __field = (*self.in_use.lock().unwrap().as_ref().unwrap()).ranges.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32);
             __tmp_x < __tmp_y
         } {
-        { let new_val = (*need.lock().unwrap().as_ref().unwrap()).subtract({ let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<addrRange>>>) -> Arc<Mutex<Option<addrRange>>> + Send + Sync> = { let mut __f_guard = addrRangeToSumAddrRange.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<addrRange>>>) -> Arc<Mutex<Option<addrRange>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(l as i32))), Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*self.in_use.lock().unwrap().as_ref().unwrap()).ranges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(inUseIndex) as usize].clone() })))) }); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *need.lock().unwrap() = __moved_val; };
+        { let new_val = (*need.lock().unwrap().as_ref().unwrap()).subtract({
+            let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<addrRange>>>) -> Arc<Mutex<Option<addrRange>>> + Send + Sync> = {
+                let mut __f_guard = addrRangeToSumAddrRange.lock().unwrap();
+                __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<addrRange>>>) -> Arc<Mutex<Option<addrRange>>> + Send + Sync>
+            };
+            let __f = unsafe { &mut *__f_ptr };
+            (*__f)(
+                Arc::new(Mutex::new(Some(l as i32))),
+                Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*self.in_use.lock().unwrap().as_ref().unwrap()).ranges.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(inUseIndex) as usize].clone() })))
+            )
+        }); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *need.lock().unwrap() = __moved_val; };
     }
                 // It's possible that after our pruning above, there's nothing new to map.
         if { let __tmp_x = (*need.lock().unwrap().as_ref().unwrap()).size(); let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {

@@ -6114,6 +6114,44 @@ func (m *Mapper) Map(length uintptr, prot int, flags int, fd int, offset int64) 
 	}
 }
 
+func TestConcurrentClosureVariableCallBreaksSetupAndArgumentsAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type addrRange struct {
+	base uintptr
+	limit uintptr
+}
+
+type pageAlloc struct {
+	ranges []addrRange
+}
+
+func (r addrRange) subtract(other addrRange) addrRange {
+	return r
+}
+
+func prune(p *pageAlloc, need addrRange, level int, index int) addrRange {
+	go func() {}()
+	toSummary := func(level int, r addrRange) addrRange {
+		return r
+	}
+	return need.subtract(toSummary(level, p.ranges[index]))
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "let __f_ptr") && strings.Contains(line, "let __f =") {
+			t.Fatalf("closure variable call should split function pointer setup across lines:\n%s", rust)
+		}
+		if strings.Contains(line, "(*__f)(") && strings.Contains(line, "Arc::new") {
+			t.Fatalf("closure variable call should split arguments across lines:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "(*__f)(\n") {
+		t.Fatalf("closure variable call should use multiline call syntax:\n%s", rust)
+	}
+}
+
 func TestConcurrentMethodCallOnCallReceiverBreaksBlockAcrossLines(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

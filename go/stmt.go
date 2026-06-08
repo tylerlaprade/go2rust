@@ -9656,7 +9656,7 @@ func countLogicalConditionOperandComplexity(expr ast.Expr) int {
 		return count
 	case *ast.IndexExpr:
 		count := 2 + countLogicalConditionOperandComplexity(e.X) + countLogicalConditionOperandComplexity(e.Index)
-		if logicalConditionIndexReadsConcurrentSequence(e) {
+		if indexReadsConcurrentSequence(e) {
 			count += concurrentSequenceIndexLogicalConditionComplexity
 		}
 		return count
@@ -9693,7 +9693,7 @@ func countLogicalConditionOperandComplexity(expr ast.Expr) int {
 	}
 }
 
-func logicalConditionIndexReadsConcurrentSequence(index *ast.IndexExpr) bool {
+func indexReadsConcurrentSequence(index *ast.IndexExpr) bool {
 	if index == nil || !NeedsConcurrentWrapper() {
 		return false
 	}

@@ -236,7 +236,10 @@ impl dataIO {
         { let new_val = true; *self.error.lock().unwrap() = Some(new_val); };
         return (0, false);
     }
-        return ({ let __seq = { let __seq_holder = p.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }, true);
+        return (
+            { let __seq = { let __seq_holder = p.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() },
+            true
+        );
     }
 
     /// rest returns the rest of the data in the buffer.

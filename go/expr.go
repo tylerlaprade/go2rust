@@ -7629,10 +7629,15 @@ func compositeLiteralElementIsComplex(expr ast.Expr) bool {
 		if found {
 			return false
 		}
-		switch node.(type) {
+		switch n := node.(type) {
 		case *ast.BinaryExpr, *ast.CallExpr, *ast.SliceExpr, *ast.CompositeLit:
 			found = true
 			return false
+		case *ast.IndexExpr:
+			if indexReadsConcurrentSequence(n) {
+				found = true
+				return false
+			}
 		}
 		return true
 	})
@@ -21353,6 +21358,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 
 	// Check if this is a closure call (calling a variable that holds a function)
 	closureCallSuffix := ""
+	forceMultilineFunctionArgs := false
 	explicitGenericFuncName := ""
 	if ident, ok := call.Fun.(*ast.Ident); ok {
 		// Check if this is a known function or a variable
@@ -21373,15 +21379,41 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 			}
 			boxType := functionBoxTypeForCallTarget(ident)
-			out.WriteString("{ let __f_ptr: *mut ")
-			out.WriteString(boxType)
-			out.WriteString(" = { let mut __f_guard = ")
-			out.WriteString(varName)
-			WriteBorrowMethod(out, true)
-			out.WriteString("; __f_guard.as_mut().unwrap() as *mut ")
-			out.WriteString(boxType)
-			out.WriteString(" }; let __f = unsafe { &mut *__f_ptr }; (*__f)")
-			closureCallSuffix = " }"
+			if functionCallArgumentsShouldUseMultiline(call) {
+				indent := currentLineIndent(out)
+				out.WriteString("{\n")
+				out.WriteString(indent)
+				out.WriteString("    let __f_ptr: *mut ")
+				out.WriteString(boxType)
+				out.WriteString(" = {\n")
+				out.WriteString(indent)
+				out.WriteString("        let mut __f_guard = ")
+				out.WriteString(varName)
+				WriteBorrowMethod(out, true)
+				out.WriteString(";\n")
+				out.WriteString(indent)
+				out.WriteString("        __f_guard.as_mut().unwrap() as *mut ")
+				out.WriteString(boxType)
+				out.WriteString("\n")
+				out.WriteString(indent)
+				out.WriteString("    };\n")
+				out.WriteString(indent)
+				out.WriteString("    let __f = unsafe { &mut *__f_ptr };\n")
+				out.WriteString(indent)
+				out.WriteString("    (*__f)")
+				closureCallSuffix = "\n" + indent + "}"
+				forceMultilineFunctionArgs = true
+			} else {
+				out.WriteString("{ let __f_ptr: *mut ")
+				out.WriteString(boxType)
+				out.WriteString(" = { let mut __f_guard = ")
+				out.WriteString(varName)
+				WriteBorrowMethod(out, true)
+				out.WriteString("; __f_guard.as_mut().unwrap() as *mut ")
+				out.WriteString(boxType)
+				out.WriteString(" }; let __f = unsafe { &mut *__f_ptr }; (*__f)")
+				closureCallSuffix = " }"
+			}
 		}
 	} else if funcName, ok := writeExplicitGenericFunctionCallTarget(out, call.Fun); ok {
 		explicitGenericFuncName = funcName
@@ -21496,7 +21528,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		return
 	}
 
-	multilineFunctionArgs := functionCallArgumentsShouldUseMultiline(call)
+	multilineFunctionArgs := forceMultilineFunctionArgs || functionCallArgumentsShouldUseMultiline(call)
 	functionArgIndent := ""
 	if multilineFunctionArgs {
 		functionArgIndent = currentLineIndent(out)

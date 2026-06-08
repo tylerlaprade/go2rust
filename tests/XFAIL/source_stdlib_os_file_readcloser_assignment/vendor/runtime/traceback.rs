@@ -3113,10 +3113,17 @@ pub fn call_cgo_symbolizer(arg: Arc<Mutex<Option<cgoSymbolizerArg>>>) {
             Arc::new(Mutex::new(Some(std::mem::size_of::<cgoSymbolizerArg>())))
         );
     }
-    { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<usize>>>) -> i32 + Send + Sync> = { let mut __f_guard = call.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<usize>>>) -> i32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(
-        cgoSymbolizer.clone(),
-        noescape(Arc::new(Mutex::new(Some(Arc::as_ptr(&arg) as usize))))
-    ) };
+    {
+        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<usize>>>) -> i32 + Send + Sync> = {
+            let mut __f_guard = call.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<usize>>>) -> i32 + Send + Sync>
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+            cgoSymbolizer.clone(),
+            noescape(Arc::new(Mutex::new(Some(Arc::as_ptr(&arg) as usize))))
+        )
+    };
 }
 
 /// cgoContextPCs gets the PC values from a cgo traceback.
@@ -3158,10 +3165,17 @@ pub fn cgo_context_p_cs(ctxt: Arc<Mutex<Option<usize>>>, buf_local: Arc<Mutex<Op
             Arc::new(Mutex::new(Some(std::mem::size_of::<cgoTracebackArg>())))
         );
     }
-    { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<usize>>>) -> i32 + Send + Sync> = { let mut __f_guard = call.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<usize>>>) -> i32 + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(
-        cgoTraceback.clone(),
-        noescape(Arc::new(Mutex::new(Some(Arc::as_ptr(&arg.clone()) as usize))))
-    ) };
+    {
+        let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<usize>>>) -> i32 + Send + Sync> = {
+            let mut __f_guard = call.lock().unwrap();
+            __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<usize>>>, Arc<Mutex<Option<usize>>>) -> i32 + Send + Sync>
+        };
+        let __f = unsafe { &mut *__f_ptr };
+        (*__f)(
+            cgoTraceback.clone(),
+            noescape(Arc::new(Mutex::new(Some(Arc::as_ptr(&arg.clone()) as usize))))
+        )
+    };
 }
 
 pub(crate) fn __go_init_functions() {

@@ -453,7 +453,13 @@ pub fn sysctl_uint32(name: Arc<Mutex<Option<String>>>) -> (u32, Arc<Mutex<Option
     let mut n = Arc::new(Mutex::new(Some(4 as usize)));
     let mut buf = Arc::new(Mutex::new(Some(vec![0; (4) as usize])));
     {
-        { let __rhs_holder = sysctl_1(mib.clone(), GoPtr::slice_elem(GoSliceElemPtr::new(buf.clone(), (0) as usize)), n.clone(), GoPtr::nil(), Arc::new(Mutex::new(Some(0 as usize)))).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };;
+        { let __rhs_holder = sysctl_1(
+            mib.clone(),
+            GoPtr::slice_elem(GoSliceElemPtr::new(buf.clone(), (0) as usize)),
+            n.clone(),
+            GoPtr::nil(),
+            Arc::new(Mutex::new(Some(0 as usize)))
+        ).clone(); let new_val = { let mut guard = __rhs_holder.lock().unwrap(); guard.take() }; *err.lock().unwrap() = new_val; };;
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
             return (0, err.clone());;
         }
