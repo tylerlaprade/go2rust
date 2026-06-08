@@ -5391,7 +5391,16 @@ impl Duration {
             { let new_val = 3; *prec.lock().unwrap() = Some(new_val); };
                         // U+00B5 'µ' micro sign == 0xC2 0xB5
             { let mut guard = w.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
-            { let _dst_start = ({ let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let _dst_len = (*buf.lock().unwrap().as_ref().unwrap()).len() - _dst_start; let _src = "\u{b5}".to_string().as_bytes().to_vec(); let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*buf.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+            {
+                let _dst_start = ({ let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
+                let _dst_len = (*buf.lock().unwrap().as_ref().unwrap()).len() - _dst_start;
+                let _src = "\u{b5}".to_string().as_bytes().to_vec();
+                let _n = std::cmp::min(_dst_len, _src.len());
+                for _i in 0.._n {
+                    (*buf.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
+                }
+                Arc::new(Mutex::new(Some(_n as i32)))
+            };
         } else {
                         // print milliseconds
             { let new_val = 6; *prec.lock().unwrap() = Some(new_val); };

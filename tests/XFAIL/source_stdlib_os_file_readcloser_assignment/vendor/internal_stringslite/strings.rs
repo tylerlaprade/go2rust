@@ -25,6 +25,13 @@ pub fn clone(s: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {
         return Arc::new(Mutex::new(Some("".to_string())));
     }
     let mut b = Arc::new(Mutex::new(Some(vec![0; ((*s.lock().unwrap().as_ref().unwrap()).len()) as usize])));
-    { let _src = (*s.lock().unwrap().as_ref().unwrap()).clone().as_bytes().to_vec(); let _n = std::cmp::min((*b.lock().unwrap().as_ref().unwrap()).len(), _src.len()); for _i in 0.._n { (*b.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+    {
+        let _src = (*s.lock().unwrap().as_ref().unwrap()).clone().as_bytes().to_vec();
+        let _n = std::cmp::min((*b.lock().unwrap().as_ref().unwrap()).len(), _src.len());
+        for _i in 0.._n {
+            (*b.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].clone();
+        }
+        Arc::new(Mutex::new(Some(_n as i32)))
+    };
     return Arc::new(Mutex::new(Some({ let __bytes_holder = b.clone(); let __bytes_guard = __bytes_holder.lock().unwrap(); let __bytes = __bytes_guard.as_ref().unwrap(); let __start = (0) as usize; let __len = __bytes.len(); let __end = __start + __len; String::from_utf8(__bytes[__start..__end].to_vec()).unwrap() })));
 }

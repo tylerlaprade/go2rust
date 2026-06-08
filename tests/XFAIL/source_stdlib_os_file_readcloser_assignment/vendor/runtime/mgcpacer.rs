@@ -694,7 +694,16 @@ impl gcControllerState {
         { let new_val = { let __seq = { let __seq_holder = self.last_cons_mark.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(i) as usize].clone() }; *self.cons_mark.lock().unwrap() = Some(new_val); };
     }
     }
-        { let _dst_start = 0; let _dst_len = (*self.last_cons_mark.lock().unwrap().as_ref().unwrap()).len() - _dst_start; let _src = (*Arc::new(Mutex::new(Some({ let __seq_holder = self.last_cons_mark.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone(); let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*self.last_cons_mark.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+        {
+            let _dst_start = 0;
+            let _dst_len = (*self.last_cons_mark.lock().unwrap().as_ref().unwrap()).len() - _dst_start;
+            let _src = (*Arc::new(Mutex::new(Some({ let __seq_holder = self.last_cons_mark.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone();
+            let _n = std::cmp::min(_dst_len, _src.len());
+            for _i in 0.._n {
+                (*self.last_cons_mark.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
+            }
+            Arc::new(Mutex::new(Some(_n as i32)))
+        };
         (*self.last_cons_mark.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = 4; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize] = { let __v = (*currentConsMark.lock().unwrap().as_ref().unwrap()).clone(); __v };
         if { let __tmp_x = (*{ let __field = (*debug.lock().unwrap().as_ref().unwrap()).gcpacertrace.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as i32; __tmp_x > __tmp_y } {
         printlock();

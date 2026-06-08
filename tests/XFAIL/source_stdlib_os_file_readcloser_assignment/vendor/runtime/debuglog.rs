@@ -581,7 +581,16 @@ impl debugLogWriter {
         let mut pos = Arc::new(Mutex::new(Some({ let __selector_holder = self.write.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         { let __target = self.write.clone(); let __rhs = (*Arc::new(Mutex::new(Some((*x.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as u64))).lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         while { let __tmp_x = ((*x.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
-        let mut n = { let _dst_start = ({ let __tmp_x = { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64; __tmp_x % __tmp_y }) as usize; let _dst_len = (*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() - _dst_start; let _src = { let __copy_src_holder = x.clone(); let __copy_src_guard = __copy_src_holder.lock().unwrap(); __copy_src_guard.as_ref().cloned().unwrap_or_default() }; let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+        let mut n = {
+            let _dst_start = ({ let __tmp_x = { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() as u64))).lock().unwrap().as_ref().unwrap()) as u64; __tmp_x % __tmp_y }) as usize;
+            let _dst_len = (*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_ref().unwrap()).len() - _dst_start;
+            let _src = { let __copy_src_holder = x.clone(); let __copy_src_guard = __copy_src_holder.lock().unwrap(); __copy_src_guard.as_ref().cloned().unwrap_or_default() };
+            let _n = std::cmp::min(_dst_len, _src.len());
+            for _i in 0.._n {
+                (*(*self.data.lock().unwrap().as_ref().unwrap()).b.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
+            }
+            Arc::new(Mutex::new(Some(_n as i32)))
+        };
         { let __rhs = (*Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); let mut guard = pos.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = x.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); x = new_val; };
     }

@@ -59,7 +59,14 @@ pub fn byte_slice_from_string(s: Arc<Mutex<Option<String>>>) -> (Arc<Mutex<Optio
         return (Arc::new(Mutex::new(None)), Arc::new(Mutex::new(Some(Box::new(crate::syscall_unix::Errno(Arc::new(Mutex::new(Some(E_I_N_V_A_L as usize))))) as Box<dyn StdError + Send + Sync>))));
     }
     let mut a = Arc::new(Mutex::new(Some(vec![0; ({ let __tmp_x = ((*s.lock().unwrap().as_ref().unwrap()).len() as i32); let __tmp_y = 1; __tmp_x + __tmp_y }) as usize])));
-    { let _src = (*s.lock().unwrap().as_ref().unwrap()).clone().as_bytes().to_vec(); let _n = std::cmp::min((*a.lock().unwrap().as_ref().unwrap()).len(), _src.len()); for _i in 0.._n { (*a.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+    {
+        let _src = (*s.lock().unwrap().as_ref().unwrap()).clone().as_bytes().to_vec();
+        let _n = std::cmp::min((*a.lock().unwrap().as_ref().unwrap()).len(), _src.len());
+        for _i in 0.._n {
+            (*a.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].clone();
+        }
+        Arc::new(Mutex::new(Some(_n as i32)))
+    };
     return (a.clone(), Arc::new(Mutex::new(None)));
 }
 

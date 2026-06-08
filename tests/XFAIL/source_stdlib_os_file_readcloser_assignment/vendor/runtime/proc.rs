@@ -5787,7 +5787,16 @@ pub fn sigprof(mut pc: Arc<Mutex<Option<usize>>>, sp: Arc<Mutex<Option<usize>>>,
         while { let __tmp_x = ({ let __v = (*cgoOff.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = 32; __tmp_x < __tmp_y } && { let __tmp_x = { let __seq_holder = { let __named_array = (*(*mp.lock().unwrap().as_ref().unwrap()).cgo_callers.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __seq_guard = __seq_holder.lock().unwrap(); let __seq = __seq_guard.as_ref().unwrap(); __seq[({ let __v = (*cgoOff.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
         { let mut guard = cgoOff.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
-        { let __rhs = (*{ let _dst_start = 0; let _dst_len = (*stk.lock().unwrap().as_ref().unwrap()).len() - _dst_start; let _src = { let __array_holder = { let __named_array = (*(*mp.lock().unwrap().as_ref().unwrap()).cgo_callers.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __array_guard = __array_holder.lock().unwrap(); let __seq = __array_guard.as_ref().unwrap(); __seq[..({ let __v = (*cgoOff.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].to_vec() }; let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*stk.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) }.lock().unwrap().as_ref().unwrap()); let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __rhs = (*{
+            let _dst_start = 0;
+            let _dst_len = (*stk.lock().unwrap().as_ref().unwrap()).len() - _dst_start;
+            let _src = { let __array_holder = { let __named_array = (*(*mp.lock().unwrap().as_ref().unwrap()).cgo_callers.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }; let __array_guard = __array_holder.lock().unwrap(); let __seq = __array_guard.as_ref().unwrap(); __seq[..({ let __v = (*cgoOff.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].to_vec() };
+            let _n = std::cmp::min(_dst_len, _src.len());
+            for _i in 0.._n {
+                (*stk.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
+            }
+            Arc::new(Mutex::new(Some(_n as i32)))
+        }.lock().unwrap().as_ref().unwrap()); let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         (*{ let __named_array = (*(*mp.lock().unwrap().as_ref().unwrap()).cgo_callers.lock().unwrap().as_ref().unwrap()).0.clone(); __named_array }.lock().unwrap().as_mut().unwrap())[(0) as usize] = 0 as usize;
     }
                 // Collect Go stack that leads to the cgo call.
@@ -5901,7 +5910,14 @@ pub fn procresize(nprocs: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<crate::ru
         let mut nallp: Arc<Mutex<Option<Vec<Arc<Mutex<Option<crate::runtime2::p>>>>>>> = Arc::new(Mutex::new(Some(vec![Arc::new(Mutex::new(None)); ({ let __v = (*nprocs.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize])));
                 // Copy everything up to allp's cap so we
                 // never lose old allocated Ps.
-        { let _src = (*Arc::new(Mutex::new(Some({ let __seq_holder = allp.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ((*allp.lock().unwrap()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone(); let _n = std::cmp::min((*nallp.lock().unwrap().as_ref().unwrap()).len(), _src.len()); for _i in 0.._n { (*nallp.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+        {
+            let _src = (*Arc::new(Mutex::new(Some({ let __seq_holder = allp.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ((*allp.lock().unwrap()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone();
+            let _n = std::cmp::min((*nallp.lock().unwrap().as_ref().unwrap()).len(), _src.len());
+            for _i in 0.._n {
+                (*nallp.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].clone();
+            }
+            Arc::new(Mutex::new(Some(_n as i32)))
+        };
         { let new_val = { let __collection_holder = nallp.clone(); let __collection_guard = __collection_holder.lock().unwrap(); (*__collection_guard).clone() }; *allp.lock().unwrap() = new_val; };
     }
                 // Copy everything up to allp's cap so we
@@ -5912,10 +5928,24 @@ pub fn procresize(nprocs: Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<crate::ru
     } else {
         let mut nidlepMask = Arc::new(Mutex::new(Some(vec![0; ({ let __v = (*maskWords.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize])));
                 // No need to copy beyond len, old Ps are irrelevant.
-        { let _src = { let __slice_holder = { let __named_slice = (*idlepMask.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().cloned().unwrap_or_default() }; let _n = std::cmp::min((*nidlepMask.lock().unwrap().as_ref().unwrap()).len(), _src.len()); for _i in 0.._n { (*nidlepMask.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+        {
+            let _src = { let __slice_holder = { let __named_slice = (*idlepMask.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().cloned().unwrap_or_default() };
+            let _n = std::cmp::min((*nidlepMask.lock().unwrap().as_ref().unwrap()).len(), _src.len());
+            for _i in 0.._n {
+                (*nidlepMask.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].clone();
+            }
+            Arc::new(Mutex::new(Some(_n as i32)))
+        };
         { let new_val = Some(pMask(nidlepMask.clone())); *idlepMask.lock().unwrap() = new_val; };
         let mut ntimerpMask = Arc::new(Mutex::new(Some(vec![0; ({ let __v = (*maskWords.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize])));
-        { let _src = { let __slice_holder = { let __named_slice = (*timerpMask.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().cloned().unwrap_or_default() }; let _n = std::cmp::min((*ntimerpMask.lock().unwrap().as_ref().unwrap()).len(), _src.len()); for _i in 0.._n { (*ntimerpMask.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+        {
+            let _src = { let __slice_holder = { let __named_slice = (*timerpMask.lock().unwrap().as_ref().unwrap()).0.clone(); __named_slice }; let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().cloned().unwrap_or_default() };
+            let _n = std::cmp::min((*ntimerpMask.lock().unwrap().as_ref().unwrap()).len(), _src.len());
+            for _i in 0.._n {
+                (*ntimerpMask.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].clone();
+            }
+            Arc::new(Mutex::new(Some(_n as i32)))
+        };
         { let new_val = Some(pMask(ntimerpMask.clone())); *timerpMask.lock().unwrap() = new_val; };
     }
                 // No need to copy beyond len, old Ps are irrelevant.

@@ -942,7 +942,16 @@ impl traceBuf {
     ///
     ///go:nosplit
     pub fn string_data(&mut self, s: Arc<Mutex<Option<String>>>) {
-        { let __target = (*self.trace_buf_header.lock().unwrap().as_ref().unwrap()).pos.clone(); let __rhs = (*{ let _dst_start = (*(*self.trace_buf_header.lock().unwrap().as_ref().unwrap()).pos.clone().lock().unwrap().as_ref().unwrap()) as usize; let _dst_len = (*self.arr.lock().unwrap().as_ref().unwrap()).len() - _dst_start; let _src = (*s.lock().unwrap().as_ref().unwrap()).clone().as_bytes().to_vec(); let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*self.arr.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) }.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+        { let __target = (*self.trace_buf_header.lock().unwrap().as_ref().unwrap()).pos.clone(); let __rhs = (*{
+            let _dst_start = (*(*self.trace_buf_header.lock().unwrap().as_ref().unwrap()).pos.clone().lock().unwrap().as_ref().unwrap()) as usize;
+            let _dst_len = (*self.arr.lock().unwrap().as_ref().unwrap()).len() - _dst_start;
+            let _src = (*s.lock().unwrap().as_ref().unwrap()).clone().as_bytes().to_vec();
+            let _n = std::cmp::min(_dst_len, _src.len());
+            for _i in 0.._n {
+                (*self.arr.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
+            }
+            Arc::new(Mutex::new(Some(_n as i32)))
+        }.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     }
 
     /// nosplit because it's part of writing an event for an M, which must not

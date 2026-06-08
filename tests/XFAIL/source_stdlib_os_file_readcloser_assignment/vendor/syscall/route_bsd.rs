@@ -673,26 +673,80 @@ pub fn parse_network_layer_addr(b: Arc<Mutex<Option<Vec<u8>>>>, family: Arc<Mute
         // The case expressions for IPv6 must come first.
     if { let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __tmp_y = SIZEOF_SOCKADDR_INET6 as u8; __tmp_x == __tmp_y } {
             let mut sa = Arc::new(Mutex::new(Some(SockaddrInet6 { port: Arc::new(Mutex::new(Some(0))), zone_id: Arc::new(Mutex::new(Some(0))), addr: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), raw: Arc::new(Mutex::new(Some(Default::default()))) })));
-            { let _dst_start = 0; let _dst_len = (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_ref().unwrap()).len() - _dst_start; let _src = (*Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (OFFSETOF_INET6) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone(); let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+            {
+                let _dst_start = 0;
+                let _dst_len = (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_ref().unwrap()).len() - _dst_start;
+                let _src = (*Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (OFFSETOF_INET6) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone();
+                let _n = std::cmp::min(_dst_len, _src.len());
+                for _i in 0.._n {
+                    (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
+                }
+                Arc::new(Mutex::new(Some(_n as i32)))
+            };
             return (Arc::new(Mutex::new(Some(Box::new(crate::syscall_unix::SockaddrInet6Ptr(sa.clone())) as Box<dyn Sockaddr + Send + Sync>))), Arc::new(Mutex::new(None)));
         } else if { let __tmp_x = { let __v = (*family.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = A_F__I_N_E_T6 as u8; __tmp_x == __tmp_y } {
             let mut sa = Arc::new(Mutex::new(Some(SockaddrInet6 { port: Arc::new(Mutex::new(Some(0))), zone_id: Arc::new(Mutex::new(Some(0))), addr: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), raw: Arc::new(Mutex::new(Some(Default::default()))) })));
             if { let __tmp_x = { let __tmp_x = { let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }; let __tmp_y = 8; __tmp_x < __tmp_y } {
-        { let _dst_start = 0; let _dst_len = (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_ref().unwrap()).len() - _dst_start; let _src = (*Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = ({ let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone(); let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+        {
+            let _dst_start = 0;
+            let _dst_len = (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_ref().unwrap()).len() - _dst_start;
+            let _src = (*Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = ({ let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone();
+            let _n = std::cmp::min(_dst_len, _src.len());
+            for _i in 0.._n {
+                (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
+            }
+            Arc::new(Mutex::new(Some(_n as i32)))
+        };
     } else {
-        { let _dst_start = 0; let _dst_len = (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_ref().unwrap()).len() - _dst_start; let _src = (*Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({ let __tmp_x = { let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8; __tmp_x - __tmp_y }) as usize; let __high = ({ let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone(); let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+        {
+            let _dst_start = 0;
+            let _dst_len = (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_ref().unwrap()).len() - _dst_start;
+            let _src = (*Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({ let __tmp_x = { let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8; __tmp_x - __tmp_y }) as usize; let __high = ({ let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone();
+            let _n = std::cmp::min(_dst_len, _src.len());
+            for _i in 0.._n {
+                (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
+            }
+            Arc::new(Mutex::new(Some(_n as i32)))
+        };
     }
             return (Arc::new(Mutex::new(Some(Box::new(crate::syscall_unix::SockaddrInet6Ptr(sa.clone())) as Box<dyn Sockaddr + Send + Sync>))), Arc::new(Mutex::new(None)));
         } else if { let __tmp_x = { let __seq = { let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() }; let __tmp_y = SIZEOF_SOCKADDR_INET4 as u8; __tmp_x == __tmp_y } {
             let mut sa = Arc::new(Mutex::new(Some(SockaddrInet4 { port: Arc::new(Mutex::new(Some(0))), addr: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), raw: Arc::new(Mutex::new(Some(Default::default()))) })));
-            { let _dst_start = 0; let _dst_len = (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_ref().unwrap()).len() - _dst_start; let _src = (*Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (OFFSETOF_INET4) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone(); let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+            {
+                let _dst_start = 0;
+                let _dst_len = (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_ref().unwrap()).len() - _dst_start;
+                let _src = (*Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (OFFSETOF_INET4) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone();
+                let _n = std::cmp::min(_dst_len, _src.len());
+                for _i in 0.._n {
+                    (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
+                }
+                Arc::new(Mutex::new(Some(_n as i32)))
+            };
             return (Arc::new(Mutex::new(Some(Box::new(crate::syscall_unix::SockaddrInet4Ptr(sa.clone())) as Box<dyn Sockaddr + Send + Sync>))), Arc::new(Mutex::new(None)));
         } else {
             let mut sa = Arc::new(Mutex::new(Some(SockaddrInet4 { port: Arc::new(Mutex::new(Some(0))), addr: Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0)))), raw: Arc::new(Mutex::new(Some(Default::default()))) })));
             if { let __tmp_x = { let __tmp_x = { let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }; let __tmp_y = 4; __tmp_x < __tmp_y } {
-        { let _dst_start = 0; let _dst_len = (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_ref().unwrap()).len() - _dst_start; let _src = (*Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = ({ let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone(); let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+        {
+            let _dst_start = 0;
+            let _dst_len = (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_ref().unwrap()).len() - _dst_start;
+            let _src = (*Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = ({ let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone();
+            let _n = std::cmp::min(_dst_len, _src.len());
+            for _i in 0.._n {
+                (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
+            }
+            Arc::new(Mutex::new(Some(_n as i32)))
+        };
     } else {
-        { let _dst_start = 0; let _dst_len = (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_ref().unwrap()).len() - _dst_start; let _src = (*Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({ let __tmp_x = { let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x - __tmp_y }) as usize; let __high = ({ let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone(); let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+        {
+            let _dst_start = 0;
+            let _dst_len = (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_ref().unwrap()).len() - _dst_start;
+            let _src = (*Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({ let __tmp_x = { let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x - __tmp_y }) as usize; let __high = ({ let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone();
+            let _n = std::cmp::min(_dst_len, _src.len());
+            for _i in 0.._n {
+                (*(*sa.lock().unwrap().as_ref().unwrap()).addr.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
+            }
+            Arc::new(Mutex::new(Some(_n as i32)))
+        };
     }
             return (Arc::new(Mutex::new(Some(Box::new(crate::syscall_unix::SockaddrInet4Ptr(sa.clone())) as Box<dyn Sockaddr + Send + Sync>))), Arc::new(Mutex::new(None)));
         }

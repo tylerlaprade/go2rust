@@ -56,13 +56,17 @@ pub struct buf {
 
 impl buf {
     pub fn __go_value_clone(&self) -> Self {
-        Self { dst: self.dst.clone() }
+        let __go_clone_0_0 = self.dst.clone();
+        Self {
+            dst: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for buf {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_slice(&self.dst))
+        let __go_fmt_0 = format!("{}", format_slice(&self.dst));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -70,7 +74,14 @@ impl std::fmt::Display for buf {
 impl buf {
     pub fn fill(&mut self, src: Rc<RefCell<Option<Vec<u8>>>>) {
         { let new_val = Rc::new(RefCell::new(Some(vec![0; ((*src.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize]))); self.dst = new_val; };
-        { let _src = { let __copy_src_holder = src.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().cloned().unwrap_or_default() }; let _n = std::cmp::min((*self.dst.borrow().as_ref().unwrap()).len(), _src.len()); for _i in 0.._n { (*self.dst.borrow_mut().as_mut().unwrap())[_i] = _src[_i].clone(); } Rc::new(RefCell::new(Some(_n as i32))) };
+        {
+            let _src = { let __copy_src_holder = src.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().cloned().unwrap_or_default() };
+            let _n = std::cmp::min((*self.dst.borrow().as_ref().unwrap()).len(), _src.len());
+            for _i in 0.._n {
+                (*self.dst.borrow_mut().as_mut().unwrap())[_i] = _src[_i].clone();
+            }
+            Rc::new(RefCell::new(Some(_n as i32)))
+        };
     }
 }
 

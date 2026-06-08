@@ -1781,7 +1781,14 @@ pub fn stkbucket(typ: Arc<Mutex<Option<bucketType>>>, size: Arc<Mutex<Option<usi
 
         // Create new bucket.
     let mut b: GoPtr<bucket> = new_bucket(Arc::new(Mutex::new(Some({ let __arg_holder = typ.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some((*stk.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32))));
-    { let _src = { let __copy_src_holder = stk.clone(); let __copy_src_guard = __copy_src_holder.lock().unwrap(); __copy_src_guard.as_ref().cloned().unwrap_or_default() }; let _n = std::cmp::min((*{ let __result = b.with_mut(|__recv_value| __recv_value.stk()); __result }.lock().unwrap().as_ref().unwrap()).len(), _src.len()); for _i in 0.._n { (*{ let __result = b.with_mut(|__recv_value| __recv_value.stk()); __result }.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+    {
+        let _src = { let __copy_src_holder = stk.clone(); let __copy_src_guard = __copy_src_holder.lock().unwrap(); __copy_src_guard.as_ref().cloned().unwrap_or_default() };
+        let _n = std::cmp::min((*{ let __result = b.with_mut(|__recv_value| __recv_value.stk()); __result }.lock().unwrap().as_ref().unwrap()).len(), _src.len());
+        for _i in 0.._n {
+            (*{ let __result = b.with_mut(|__recv_value| __recv_value.stk()); __result }.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].clone();
+        }
+        Arc::new(Mutex::new(Some(_n as i32)))
+    };
     { let new_val = h.lock().unwrap().as_ref().unwrap().clone(); *{ let __ptr_value = b.with_mut(|__ptr_value| __ptr_value.hash.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
     { let new_val = size.lock().unwrap().as_ref().unwrap().clone(); *{ let __ptr_value = b.with_mut(|__ptr_value| __ptr_value.size.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
 
@@ -2243,7 +2250,14 @@ pub fn saveg(pc: Arc<Mutex<Option<usize>>>, sp: Arc<Mutex<Option<usize>>>, gp: G
     (*u.lock().unwrap().as_mut().unwrap()).init_at(Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = sp.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(0 as usize))), gp.clone(), Arc::new(Mutex::new(Some(crate::traceback::unwindFlags(Arc::new(Mutex::new(Some(UNWIND_SILENT_ERRORS as u8))))))));
     let mut n = traceback_p_cs(u.clone(), Arc::new(Mutex::new(Some(0))), pcbuf.clone());
     { let new_val = Arc::new(Mutex::new(Some(vec![0; (n) as usize]))); r.with_mut(|__ptr_value| { __ptr_value.stack = new_val; }); };
-    { let _src = { let __copy_src_holder = pcbuf.clone(); let __copy_src_guard = __copy_src_holder.lock().unwrap(); __copy_src_guard.as_ref().cloned().unwrap_or_default() }; let _n = std::cmp::min((*{ let __ptr_value = r.with_mut(|__ptr_value| __ptr_value.stack.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len(), _src.len()); for _i in 0.._n { (*{ let __ptr_value = r.with_mut(|__ptr_value| __ptr_value.stack.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+    {
+        let _src = { let __copy_src_holder = pcbuf.clone(); let __copy_src_guard = __copy_src_holder.lock().unwrap(); __copy_src_guard.as_ref().cloned().unwrap_or_default() };
+        let _n = std::cmp::min((*{ let __ptr_value = r.with_mut(|__ptr_value| __ptr_value.stack.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).len(), _src.len());
+        for _i in 0.._n {
+            (*{ let __ptr_value = r.with_mut(|__ptr_value| __ptr_value.stack.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].clone();
+        }
+        Arc::new(Mutex::new(Some(_n as i32)))
+    };
 }
 
 #[derive(Clone)]

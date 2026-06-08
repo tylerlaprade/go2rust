@@ -189,7 +189,16 @@ impl cpuProfile {
         if { let __tmp_x = ({ let __tmp_x = ({ let __tmp_x = (*{ let __field = (*cpuprof.lock().unwrap().as_ref().unwrap()).num_extra.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 1; __tmp_x + __tmp_y } as i32); let __tmp_y = ((*stk.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x + __tmp_y } as i32); let __tmp_y = 1000; __tmp_x < __tmp_y } {
         let mut i = Arc::new(Mutex::new(Some({ let __selector_holder = (*cpuprof.lock().unwrap().as_ref().unwrap()).num_extra.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
         (*(*cpuprof.lock().unwrap().as_ref().unwrap()).extra.lock().unwrap().as_mut().unwrap())[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = (*Arc::new(Mutex::new(Some(({ let __tmp_x = 1; let __tmp_y = ((*stk.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x + __tmp_y }) as usize))).lock().unwrap().as_ref().unwrap()).clone();
-        { let _dst_start = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize; let _dst_len = (*(*cpuprof.lock().unwrap().as_ref().unwrap()).extra.lock().unwrap().as_ref().unwrap()).len() - _dst_start; let _src = { let __copy_src_holder = stk.clone(); let __copy_src_guard = __copy_src_holder.lock().unwrap(); __copy_src_guard.as_ref().cloned().unwrap_or_default() }; let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*(*cpuprof.lock().unwrap().as_ref().unwrap()).extra.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+        {
+            let _dst_start = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize;
+            let _dst_len = (*(*cpuprof.lock().unwrap().as_ref().unwrap()).extra.lock().unwrap().as_ref().unwrap()).len() - _dst_start;
+            let _src = { let __copy_src_holder = stk.clone(); let __copy_src_guard = __copy_src_holder.lock().unwrap(); __copy_src_guard.as_ref().cloned().unwrap_or_default() };
+            let _n = std::cmp::min(_dst_len, _src.len());
+            for _i in 0.._n {
+                (*(*cpuprof.lock().unwrap().as_ref().unwrap()).extra.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
+            }
+            Arc::new(Mutex::new(Some(_n as i32)))
+        };
         { let __target = (*cpuprof.lock().unwrap().as_ref().unwrap()).num_extra.clone(); let __rhs = { let __tmp_x = 1; let __tmp_y = ((*stk.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x + __tmp_y }; let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     } else {
         { let __target = (*cpuprof.lock().unwrap().as_ref().unwrap()).lost_extra.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }

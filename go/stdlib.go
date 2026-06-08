@@ -5419,65 +5419,87 @@ func transpileCopy(out *strings.Builder, call *ast.CallExpr) {
 		}
 
 		if isNamedSliceExpression(call.Args[0]) {
-			out.WriteString("{ let _dst_holder = ")
+			indent, innerIndent := startCopyBlock(out)
+			out.WriteString(innerIndent)
+			out.WriteString("let _dst_holder = ")
 			writeNamedSliceInnerHandleClone(out, call.Args[0])
-			out.WriteString("; let _src = ")
+			out.WriteString(";\n")
+			out.WriteString(innerIndent)
+			out.WriteString("let _src = ")
 			writeCopySourceValue(out, call.Args[1], srcIsString)
-			out.WriteString("; let _dst_len = { let _dst_guard = _dst_holder")
+			out.WriteString(";\n")
+			out.WriteString(innerIndent)
+			out.WriteString("let _dst_len = { let _dst_guard = _dst_holder")
 			WriteBorrowMethod(out, false)
-			out.WriteString("; _dst_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }; let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*_dst_holder")
-			WriteBorrowMethod(out, true)
-			out.WriteString(".as_mut().unwrap())[_i] = _src[_i].clone(); } ")
-			WriteWrapperPrefix(out)
-			out.WriteString("_n as i32")
-			WriteWrapperSuffix(out)
-			out.WriteString(" }")
+			out.WriteString("; _dst_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) };\n")
+			writeCopyCountLine(out, innerIndent, "_dst_len")
+			writeCopyLoop(out, innerIndent, func() {
+				out.WriteString("(*_dst_holder")
+				WriteBorrowMethod(out, true)
+				out.WriteString(".as_mut().unwrap())[_i]")
+			})
+			finishCopyBlock(out, indent, innerIndent)
 			return
 		}
 
 		if dstSlice, ok := call.Args[0].(*ast.SliceExpr); ok {
-			out.WriteString("{ let _dst_start = ")
+			indent, innerIndent := startCopyBlock(out)
+			out.WriteString(innerIndent)
+			out.WriteString("let _dst_start = ")
 			writeCopySliceLow(out, dstSlice)
-			out.WriteString("; let _dst_len = ")
+			out.WriteString(";\n")
+			out.WriteString(innerIndent)
+			out.WriteString("let _dst_len = ")
 			writeCopySliceLen(out, dstSlice)
-			out.WriteString("; let _src = ")
+			out.WriteString(";\n")
+			out.WriteString(innerIndent)
+			out.WriteString("let _src = ")
 			writeCopySourceValue(out, call.Args[1], srcIsString)
-			out.WriteString("; let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*")
-			TranspileExpressionContext(out, dstSlice.X, LValue)
-			WriteBorrowMethod(out, true)
-			out.WriteString(".as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } ")
-			WriteWrapperPrefix(out)
-			out.WriteString("_n as i32")
-			WriteWrapperSuffix(out)
-			out.WriteString(" }")
+			out.WriteString(";\n")
+			writeCopyCountLine(out, innerIndent, "_dst_len")
+			writeCopyLoop(out, innerIndent, func() {
+				out.WriteString("(*")
+				TranspileExpressionContext(out, dstSlice.X, LValue)
+				WriteBorrowMethod(out, true)
+				out.WriteString(".as_mut().unwrap())[_dst_start + _i]")
+			})
+			finishCopyBlock(out, indent, innerIndent)
 			return
 		}
 
 		if copyDestinationIsBareSlice(call.Args[0]) {
-			out.WriteString("{ let mut _dst = ")
+			indent, innerIndent := startCopyBlock(out)
+			out.WriteString(innerIndent)
+			out.WriteString("let mut _dst = ")
 			TranspileExpression(out, call.Args[0])
-			out.WriteString("; let _src = ")
+			out.WriteString(";\n")
+			out.WriteString(innerIndent)
+			out.WriteString("let _src = ")
 			writeCopySourceValue(out, call.Args[1], srcIsString)
-			out.WriteString("; let _n = std::cmp::min(_dst.len(), _src.len()); for _i in 0.._n { _dst[_i] = _src[_i].clone(); } ")
-			WriteWrapperPrefix(out)
-			out.WriteString("_n as i32")
-			WriteWrapperSuffix(out)
-			out.WriteString(" }")
+			out.WriteString(";\n")
+			writeCopyCountLine(out, innerIndent, "_dst.len()")
+			writeCopyLoop(out, innerIndent, func() {
+				out.WriteString("_dst[_i]")
+			})
+			finishCopyBlock(out, indent, innerIndent)
 			return
 		}
 
-		out.WriteString("{ let _src = ")
+		indent, innerIndent := startCopyBlock(out)
+		out.WriteString(innerIndent)
+		out.WriteString("let _src = ")
 		writeCopySourceValue(out, call.Args[1], srcIsString)
-		out.WriteString("; let _n = std::cmp::min(")
+		out.WriteString(";\n")
+		out.WriteString(innerIndent)
+		out.WriteString("let _n = std::cmp::min(")
 		writeCopyDestination(out, call.Args[0], false)
-		out.WriteString(".len(), _src.len()); for _i in 0.._n { ")
+		out.WriteString(".len(), _src.len());\n")
 		// Destination needs mutable borrow for assignment.
-		writeCopyDestination(out, call.Args[0], true)
-		out.WriteString("[_i] = _src[_i].clone(); } ")
-		WriteWrapperPrefix(out)
-		out.WriteString("_n as i32")
-		WriteWrapperSuffix(out)
-		out.WriteString(" }")
+		writeCopyLoop(out, innerIndent, func() {
+			writeCopyDestination(out, call.Args[0], true)
+			out.WriteString("[_i]")
+		})
+		finishCopyBlock(out, indent, innerIndent)
 	}
 }
 
@@ -5486,11 +5508,17 @@ func writeCopyNamedSliceDestinationSlice(out *strings.Builder, dstSlice *ast.Sli
 	if !isNamedSliceExpression(sliceSubject) {
 		return false
 	}
-	out.WriteString("{ let _dst_holder = ")
+	indent, innerIndent := startCopyBlock(out)
+	out.WriteString(innerIndent)
+	out.WriteString("let _dst_holder = ")
 	writeNamedSliceInnerHandleClone(out, sliceSubject)
-	out.WriteString("; let _dst_start = ")
+	out.WriteString(";\n")
+	out.WriteString(innerIndent)
+	out.WriteString("let _dst_start = ")
 	writeCopySliceLow(out, dstSlice)
-	out.WriteString("; let _dst_len = ")
+	out.WriteString(";\n")
+	out.WriteString(innerIndent)
+	out.WriteString("let _dst_len = ")
 	if dstSlice.High != nil {
 		out.WriteString("(")
 		writeExpressionAsUsize(out, dstSlice.High)
@@ -5500,16 +5528,53 @@ func writeCopyNamedSliceDestinationSlice(out *strings.Builder, dstSlice *ast.Sli
 		WriteBorrowMethod(out, false)
 		out.WriteString("; _dst_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } - _dst_start")
 	}
-	out.WriteString("; let _src = ")
+	out.WriteString(";\n")
+	out.WriteString(innerIndent)
+	out.WriteString("let _src = ")
 	writeCopySourceValue(out, src, srcIsString)
-	out.WriteString("; let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*_dst_holder")
-	WriteBorrowMethod(out, true)
-	out.WriteString(".as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } ")
+	out.WriteString(";\n")
+	writeCopyCountLine(out, innerIndent, "_dst_len")
+	writeCopyLoop(out, innerIndent, func() {
+		out.WriteString("(*_dst_holder")
+		WriteBorrowMethod(out, true)
+		out.WriteString(".as_mut().unwrap())[_dst_start + _i]")
+	})
+	finishCopyBlock(out, indent, innerIndent)
+	return true
+}
+
+func startCopyBlock(out *strings.Builder) (string, string) {
+	indent := currentLineIndent(out)
+	out.WriteString("{\n")
+	return indent, indent + "    "
+}
+
+func writeCopyCountLine(out *strings.Builder, innerIndent string, dstLen string) {
+	out.WriteString(innerIndent)
+	out.WriteString("let _n = std::cmp::min(")
+	out.WriteString(dstLen)
+	out.WriteString(", _src.len());\n")
+}
+
+func writeCopyLoop(out *strings.Builder, innerIndent string, writeDestination func()) {
+	out.WriteString(innerIndent)
+	out.WriteString("for _i in 0.._n {\n")
+	out.WriteString(innerIndent)
+	out.WriteString("    ")
+	writeDestination()
+	out.WriteString(" = _src[_i].clone();\n")
+	out.WriteString(innerIndent)
+	out.WriteString("}\n")
+}
+
+func finishCopyBlock(out *strings.Builder, indent, innerIndent string) {
+	out.WriteString(innerIndent)
 	WriteWrapperPrefix(out)
 	out.WriteString("_n as i32")
 	WriteWrapperSuffix(out)
-	out.WriteString(" }")
-	return true
+	out.WriteString("\n")
+	out.WriteString(indent)
+	out.WriteString("}")
 }
 
 func copyDestinationIsBareSlice(dst ast.Expr) bool {

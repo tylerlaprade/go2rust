@@ -51,13 +51,17 @@ pub struct Group {
 
 impl Group {
     pub fn __go_value_clone(&self) -> Self {
-        Self { items: self.items.clone() }
+        let __go_clone_0_0 = self.items.clone();
+        Self {
+            items: __go_clone_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Group {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", format_slice_wrapped(&self.items))
+        let __go_fmt_0 = format!("{}", format_slice_wrapped(&self.items));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -69,20 +73,27 @@ pub struct Item {
 
 impl Item {
     pub fn __go_value_clone(&self) -> Self {
-        Self { n: { let __guard = self.n.borrow(); Rc::new(RefCell::new((*__guard).clone())) } }
+        let __go_clone_0_0 = { let __guard = self.n.borrow(); Rc::new(RefCell::new((*__guard).clone())) };
+        Self {
+            n: __go_clone_0_0,
+        }
     }
 }
 
 
 impl Default for Item {
     fn default() -> Self {
-        Self { n: Rc::new(RefCell::new(Some(0))) }
+        let __go_default_0_0 = Rc::new(RefCell::new(Some(0)));
+        Self {
+            n: __go_default_0_0,
+        }
     }
 }
 
 impl std::fmt::Display for Item {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{{{}}}", (*self.n.borrow().as_ref().unwrap()))
+        let __go_fmt_0 = format!("{}", (*self.n.borrow().as_ref().unwrap()));
+        write!(f, "{{{}}}", __go_fmt_0)
     }
 }
 
@@ -97,8 +108,26 @@ fn main() {
     let mut h = Rc::new(RefCell::new(Some(Group { items: Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(Some(Item { n: Rc::new(RefCell::new(Some(4))), ..Default::default() }))), Rc::new(RefCell::new(Some(Item { n: Rc::new(RefCell::new(Some(5))), ..Default::default() })))]))), ..Default::default() })));
     let mut combined: Rc<RefCell<Option<Vec<Rc<RefCell<Option<Item>>>>>>> = Rc::new(RefCell::new(Some(vec![Rc::new(RefCell::new(None)); (5) as usize])));
     let mut i = Rc::new(RefCell::new(Some(0)));
-    { let __rhs = (*{ let _dst_start = ((*i.borrow().as_ref().unwrap())) as usize; let _dst_len = (*combined.borrow().as_ref().unwrap()).len() - _dst_start; let _src = { let __copy_src_holder = (*g.borrow().as_ref().unwrap()).items.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().cloned().unwrap_or_default() }; let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*combined.borrow_mut().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } Rc::new(RefCell::new(Some(_n as i32))) }.borrow().as_ref().unwrap()); let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
-    { let __rhs = (*{ let _dst_start = ((*i.borrow().as_ref().unwrap())) as usize; let _dst_len = (*combined.borrow().as_ref().unwrap()).len() - _dst_start; let _src = { let __copy_src_holder = (*h.borrow().as_ref().unwrap()).items.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().cloned().unwrap_or_default() }; let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*combined.borrow_mut().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } Rc::new(RefCell::new(Some(_n as i32))) }.borrow().as_ref().unwrap()); let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+    { let __rhs = (*{
+        let _dst_start = ((*i.borrow().as_ref().unwrap())) as usize;
+        let _dst_len = (*combined.borrow().as_ref().unwrap()).len() - _dst_start;
+        let _src = { let __copy_src_holder = (*g.borrow().as_ref().unwrap()).items.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().cloned().unwrap_or_default() };
+        let _n = std::cmp::min(_dst_len, _src.len());
+        for _i in 0.._n {
+            (*combined.borrow_mut().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
+        }
+        Rc::new(RefCell::new(Some(_n as i32)))
+    }.borrow().as_ref().unwrap()); let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
+    { let __rhs = (*{
+        let _dst_start = ((*i.borrow().as_ref().unwrap())) as usize;
+        let _dst_len = (*combined.borrow().as_ref().unwrap()).len() - _dst_start;
+        let _src = { let __copy_src_holder = (*h.borrow().as_ref().unwrap()).items.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().cloned().unwrap_or_default() };
+        let _n = std::cmp::min(_dst_len, _src.len());
+        for _i in 0.._n {
+            (*combined.borrow_mut().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
+        }
+        Rc::new(RefCell::new(Some(_n as i32)))
+    }.borrow().as_ref().unwrap()); let mut guard = i.borrow_mut(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
     { let __range_holder = combined.clone(); let __range_guard = __range_holder.borrow(); let __range_values = __range_guard.as_ref().cloned().unwrap_or_default(); drop(__range_guard); for it in __range_values.iter() {
         println!("{}", format!("{}", (*(*it.borrow().as_ref().unwrap()).n.borrow().as_ref().unwrap())));
     } }

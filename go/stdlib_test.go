@@ -1553,6 +1553,46 @@ func main() {
 	}
 }
 
+func TestBuiltinCopyComplexUnsafeSliceOperandsUseMultilineBlock(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "unsafe"
+
+type name struct {
+	bytes *byte
+}
+
+func (n name) DataChecked(off int, why string) *byte {
+	return n.bytes
+}
+
+func read(n name, off int) int32 {
+	go func() {}()
+	var nameOff int32
+	copy((*[4]byte)(unsafe.Pointer(&nameOff))[:], (*[4]byte)(unsafe.Pointer(n.DataChecked(off, "name offset field")))[:])
+	return nameOff
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "let _dst_start =") && strings.Contains(line, "let _src =") {
+			t.Fatalf("complex copy lowering should split destination and source setup across lines:\n%s", rust)
+		}
+		if strings.Contains(line, "let _n = std::cmp::min") && strings.Contains(line, "for _i in 0.._n") {
+			t.Fatalf("complex copy lowering should split count calculation and loop across lines:\n%s", rust)
+		}
+	}
+	for _, want := range []string{
+		"{\n        let _dst_start =",
+		"\n        let _src =",
+		"\n        for _i in 0.._n {\n",
+	} {
+		if !strings.Contains(rust, want) {
+			t.Fatalf("complex copy lowering missing multiline fragment %q:\n%s", want, rust)
+		}
+	}
+}
+
 func TestBuiltinClearNamedSliceAndSliceExprUsesTypedBuiltin(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

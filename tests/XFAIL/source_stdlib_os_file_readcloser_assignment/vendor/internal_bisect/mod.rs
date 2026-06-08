@@ -1204,7 +1204,16 @@ pub fn append_marker(dst: Arc<Mutex<Option<Vec<u8>>>>, mut id: Arc<Mutex<Option<
     const prefix: &'static str = "[bisect-match 0x";
 
     let mut buf: Arc<Mutex<Option<[u8; 33]>>> = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
-    { let _dst_start = 0; let _dst_len = (*buf.lock().unwrap().as_ref().unwrap()).len() - _dst_start; let _src = prefix.as_bytes().to_vec(); let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*buf.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+    {
+        let _dst_start = 0;
+        let _dst_len = (*buf.lock().unwrap().as_ref().unwrap()).len() - _dst_start;
+        let _src = prefix.as_bytes().to_vec();
+        let _n = std::cmp::min(_dst_len, _src.len());
+        for _i in 0.._n {
+            (*buf.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
+        }
+        Arc::new(Mutex::new(Some(_n as i32)))
+    };
     let mut i = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 16; __tmp_x < __tmp_y } {
         (*buf.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = 16; let __tmp_y = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); __tmp_x + __tmp_y }) as usize] = { let __s = &("0123456789abcdef".to_string()); __s.as_bytes()[({ let __tmp_x = { let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 60; __tmp_x >> __tmp_y }) as usize] };

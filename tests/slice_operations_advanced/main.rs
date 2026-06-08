@@ -54,16 +54,23 @@ fn main() {
     print!("len={} cap={} {}\n", (*s.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0), (*s.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0), format_slice(&s));
 
         // Three-index slice
-    let mut s2 = Rc::new(RefCell::new(Some({ let __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; let _slice = &__seq[(2) as usize..(5) as usize]; let mut _v = Vec::with_capacity((((7) as usize) - ((2) as usize)) as usize); _v.extend_from_slice(_slice); _v })));
+    let mut s2 = Rc::new(RefCell::new(Some({ let mut __seq = { let __seq_holder = s.clone(); let __seq_guard = __seq_holder.borrow(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; let __low = (2) as usize; let __high = (5) as usize; let __max = (7) as usize; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })));
     print!("s2: len={} cap={} {}\n", (*s2.borrow()).as_ref().map(|__v| __v.len()).unwrap_or(0), (*s2.borrow()).as_ref().map(|__v| __v.capacity()).unwrap_or(0), format_slice(&s2));
 
         // Copy
     let mut s3 = Rc::new(RefCell::new(Some(vec![0; (3) as usize])));
-    let mut n = { let _src = { let __copy_src_holder = s.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().cloned().unwrap_or_default() }; let _n = std::cmp::min((*s3.borrow().as_ref().unwrap()).len(), _src.len()); for _i in 0.._n { (*s3.borrow_mut().as_mut().unwrap())[_i] = _src[_i].clone(); } Rc::new(RefCell::new(Some(_n as i32))) };
+    let mut n = {
+        let _src = { let __copy_src_holder = s.clone(); let __copy_src_guard = __copy_src_holder.borrow(); __copy_src_guard.as_ref().cloned().unwrap_or_default() };
+        let _n = std::cmp::min((*s3.borrow().as_ref().unwrap()).len(), _src.len());
+        for _i in 0.._n {
+            (*s3.borrow_mut().as_mut().unwrap())[_i] = _src[_i].clone();
+        }
+        Rc::new(RefCell::new(Some(_n as i32)))
+    };
     print!("Copied {} elements: {}\n", { let __v = (*n.borrow().as_ref().unwrap()).clone(); __v }, format_slice(&s3));
 
         // Nil slice vs empty slice
     let mut s4: Rc<RefCell<Option<Vec<i32>>>> = Rc::new(RefCell::new(None));
     let mut s5 = Rc::new(RefCell::new(Some(Vec::<i32>::new())));
-    print!("s4==nil: {}, s5==nil: {}\n", (*s4.borrow()).is_none(), (*s5.borrow()).is_none());
+    print!("s4==nil: {}, s5==nil: {}\n", { let __nil_result = (*s4.borrow()).is_none(); __nil_result }, { let __nil_result = (*s5.borrow()).is_none(); __nil_result });
 }

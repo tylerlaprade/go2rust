@@ -531,7 +531,14 @@ impl crate::mheap::mheap {
     }
         let mut oldSlice = self.all_arenas.clone();
         { unimplemented!("unsafe.Pointer dereference assignment"); };
-        { let _src = { let __copy_src_holder = oldSlice.clone(); let __copy_src_guard = __copy_src_holder.lock().unwrap(); __copy_src_guard.as_ref().cloned().unwrap_or_default() }; let _n = std::cmp::min((*self.all_arenas.lock().unwrap().as_ref().unwrap()).len(), _src.len()); for _i in 0.._n { (*self.all_arenas.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+        {
+            let _src = { let __copy_src_holder = oldSlice.clone(); let __copy_src_guard = __copy_src_holder.lock().unwrap(); __copy_src_guard.as_ref().cloned().unwrap_or_default() };
+            let _n = std::cmp::min((*self.all_arenas.lock().unwrap().as_ref().unwrap()).len(), _src.len());
+            for _i in 0.._n {
+                (*self.all_arenas.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].clone();
+            }
+            Arc::new(Mutex::new(Some(_n as i32)))
+        };
     }
                 // Do not free the old backing array because
                 // there may be concurrent readers. Since we

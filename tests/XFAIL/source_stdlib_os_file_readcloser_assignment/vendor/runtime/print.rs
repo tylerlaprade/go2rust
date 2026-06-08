@@ -459,7 +459,16 @@ pub fn record_for_panic(b: Arc<Mutex<Option<Vec<u8>>>>) {
                 // Not actively crashing: maintain circular buffer of print output.
         let mut i = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*b.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x < __tmp_y } {
-        let mut n = { let _dst_start = ((*printBacklogIndex.lock().unwrap().as_ref().unwrap())) as usize; let _dst_len = (*printBacklog.lock().unwrap().as_ref().unwrap()).len() - _dst_start; let _src = (*Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone(); let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*printBacklog.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+        let mut n = {
+            let _dst_start = ((*printBacklogIndex.lock().unwrap().as_ref().unwrap())) as usize;
+            let _dst_len = (*printBacklog.lock().unwrap().as_ref().unwrap()).len() - _dst_start;
+            let _src = (*Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone();
+            let _n = std::cmp::min(_dst_len, _src.len());
+            for _i in 0.._n {
+                (*printBacklog.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
+            }
+            Arc::new(Mutex::new(Some(_n as i32)))
+        };
         { let __rhs = (*n.lock().unwrap().as_ref().unwrap()); let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let __rhs = (*n.lock().unwrap().as_ref().unwrap()); let mut guard = printBacklogIndex.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         { let __rhs = 512; let mut guard = printBacklogIndex.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() % __rhs); };
@@ -507,7 +516,16 @@ pub fn gwrite(b: Arc<Mutex<Option<Vec<u8>>>>) {
         return;
     }
 
-    let mut n = { let _dst_start = (({ let __len_target = { let __field = (*gp.lock().unwrap().as_ref().unwrap()).writebuf.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) as usize; let _dst_len = ((({ let __cap_target = { let __field = (*gp.lock().unwrap().as_ref().unwrap()).writebuf.clone(); __field }; let __cap_guard = __cap_target.lock().unwrap(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) })) as usize) - _dst_start; let _src = { let __copy_src_holder = b.clone(); let __copy_src_guard = __copy_src_holder.lock().unwrap(); __copy_src_guard.as_ref().cloned().unwrap_or_default() }; let _n = std::cmp::min(_dst_len, _src.len()); for _i in 0.._n { (*(*gp.lock().unwrap().as_ref().unwrap()).writebuf.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+    let mut n = {
+        let _dst_start = (({ let __len_target = { let __field = (*gp.lock().unwrap().as_ref().unwrap()).writebuf.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) as usize;
+        let _dst_len = ((({ let __cap_target = { let __field = (*gp.lock().unwrap().as_ref().unwrap()).writebuf.clone(); __field }; let __cap_guard = __cap_target.lock().unwrap(); __cap_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0) })) as usize) - _dst_start;
+        let _src = { let __copy_src_holder = b.clone(); let __copy_src_guard = __copy_src_holder.lock().unwrap(); __copy_src_guard.as_ref().cloned().unwrap_or_default() };
+        let _n = std::cmp::min(_dst_len, _src.len());
+        for _i in 0.._n {
+            (*(*gp.lock().unwrap().as_ref().unwrap()).writebuf.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
+        }
+        Arc::new(Mutex::new(Some(_n as i32)))
+    };
     { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = (*gp.lock().unwrap().as_ref().unwrap()).writebuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ({ let __tmp_x = (({ let __len_target = { let __field = (*gp.lock().unwrap().as_ref().unwrap()).writebuf.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); __tmp_x + __tmp_y }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); (*gp.lock().unwrap().as_mut().unwrap()).writebuf = new_val; };
 }
 

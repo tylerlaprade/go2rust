@@ -4612,7 +4612,14 @@ pub fn recordspan(vh: Arc<Mutex<Option<usize>>>, p: Arc<Mutex<Option<usize>>>) {
         { let new_val = ({ let __len_target = { let __field = { let __ptr_value = h.with_mut(|__ptr_value| __ptr_value.allspans.clone()); __ptr_value }.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32; *{ let __ptr_value = sp.with_mut(|__ptr_value| __ptr_value.len.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
         { let new_val = n.lock().unwrap().as_ref().unwrap().clone(); *{ let __ptr_value = sp.with_mut(|__ptr_value| __ptr_value.cap.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
         if { let __tmp_x = (({ let __len_target = { let __field = { let __ptr_value = h.with_mut(|__ptr_value| __ptr_value.allspans.clone()); __ptr_value }.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
-        { let _src = { let __copy_src_holder = { let __ptr_value = h.with_mut(|__ptr_value| __ptr_value.allspans.clone()); __ptr_value }.clone(); let __copy_src_guard = __copy_src_holder.lock().unwrap(); __copy_src_guard.as_ref().cloned().unwrap_or_default() }; let _n = std::cmp::min((*new.lock().unwrap().as_ref().unwrap()).len(), _src.len()); for _i in 0.._n { (*new.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].clone(); } Arc::new(Mutex::new(Some(_n as i32))) };
+        {
+            let _src = { let __copy_src_holder = { let __ptr_value = h.with_mut(|__ptr_value| __ptr_value.allspans.clone()); __ptr_value }.clone(); let __copy_src_guard = __copy_src_holder.lock().unwrap(); __copy_src_guard.as_ref().cloned().unwrap_or_default() };
+            let _n = std::cmp::min((*new.lock().unwrap().as_ref().unwrap()).len(), _src.len());
+            for _i in 0.._n {
+                (*new.lock().unwrap().as_mut().unwrap())[_i] = _src[_i].clone();
+            }
+            Arc::new(Mutex::new(Some(_n as i32)))
+        };
     }
         let mut oldAllspans = { let __ptr_value = h.with_mut(|__ptr_value| __ptr_value.allspans.clone()); __ptr_value }.clone();
         { unimplemented!("unsafe.Pointer dereference assignment"); };
