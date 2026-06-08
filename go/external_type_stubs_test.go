@@ -792,6 +792,20 @@ func TestRuntimeGOROOTStubUsesHostGoRoot(t *testing.T) {
 	}
 }
 
+func TestIoWriterWriteBytesBridgePointsAtRegistry(t *testing.T) {
+	var out strings.Builder
+	writeIoWriterStub(&out)
+	got := out.String()
+	for _, want := range []string{
+		"io_Writer.__go_write_bytes bridge: unsupported concrete receiver",
+		"docs/bridge_debt.md#io-writer-trait-bridging",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("io.Writer bridge panic should include %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestFsDirEntryStubImplementsTypeMethod(t *testing.T) {
 	var out strings.Builder
 	writeFsDirEntryStub(&out, "fs_DirEntry", map[string]externalTypeStubMethod{

@@ -1936,7 +1936,7 @@ impl io_Writer {
 
     pub fn __go_write_bytes(&self, data: &[u8]) {
         let _ = data;
-        panic!("io_Writer.__go_write_bytes bridge: unsupported concrete receiver; transpile io source instead - see AGENTS.md")
+        panic!("io_Writer.__go_write_bytes bridge: unsupported concrete receiver; transpile io source instead - see AGENTS.md and docs/bridge_debt.md#io-writer-trait-bridging")
     }
 
     pub fn write<T0: 'static>(&self, arg0: T0) -> (%s, %s) {
