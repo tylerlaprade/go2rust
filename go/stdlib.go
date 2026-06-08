@@ -4040,15 +4040,21 @@ func unwrapStoredRustType(rustType string) string {
 }
 
 func transpileUnsafeOffsetof(out *strings.Builder, call *ast.CallExpr) {
+	var value strings.Builder
+	writeConstUnsafeOffsetofCall(&value, call)
 	if NeedsConcurrentWrapper() {
 		TrackImport("Arc")
 		TrackImport("Mutex")
-		out.WriteString("Arc::new(Mutex::new(Some::<usize>(unimplemented!(\"unsafe.Offsetof requires struct layout support\"))))")
+		out.WriteString("Arc::new(Mutex::new(Some(")
+		out.WriteString(value.String())
+		out.WriteString(")))")
 		return
 	}
 	TrackImport("Rc")
 	TrackImport("RefCell")
-	out.WriteString("Rc::new(RefCell::new(Some::<usize>(unimplemented!(\"unsafe.Offsetof requires struct layout support\"))))")
+	out.WriteString("Rc::new(RefCell::new(Some(")
+	out.WriteString(value.String())
+	out.WriteString(")))")
 }
 
 func transpileUnsafeAdd(out *strings.Builder, call *ast.CallExpr) {

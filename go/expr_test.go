@@ -5953,6 +5953,30 @@ func call(s string) {
 	}
 }
 
+func TestUnsafeOffsetofExpressionUsesTypeInfo(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+import "unsafe"
+
+var cpu struct {
+	HasSSE42 bool
+	Count uint64
+}
+
+func offset() uintptr {
+	return unsafe.Offsetof(cpu.Count)
+}
+`)
+
+	if strings.Contains(rust, "unsafe.Offsetof requires struct layout support") {
+		t.Fatalf("unsafe.Offsetof expression should not fall back when go/types provides the field selector:\n%s", rust)
+	}
+	if !strings.Contains(rust, "Arc::new(Mutex::new(Some(std::mem::offset_of!(") &&
+		!strings.Contains(rust, "Rc::new(RefCell::new(Some(std::mem::offset_of!(") {
+		t.Fatalf("unsafe.Offsetof expression should emit a wrapped offset_of! value:\n%s", rust)
+	}
+}
+
 func TestUnsafeStringFromByteSliceAddressUsesSliceBytes(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 
