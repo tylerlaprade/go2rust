@@ -477,7 +477,10 @@ pub fn stackpoolalloc(order: Arc<Mutex<Option<u8>>>) -> Arc<Mutex<Option<crate::
     if crate::mcache::gclinkptr::ptr(&(*x.lock().unwrap().as_ref().unwrap())).is_nil() {
         throw(Arc::new(Mutex::new(Some("span has no free stacks".to_string()))));
     }
-    { let new_val = crate::mcache::gclinkptr(Arc::new(Mutex::new(Some((*(*{ let __ptr = crate::mcache::gclinkptr::ptr(&(*x.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().next.clone() }.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.manual_free_list.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
+    {
+        let new_val = crate::mcache::gclinkptr(Arc::new(Mutex::new(Some((*(*{ let __ptr = crate::mcache::gclinkptr::ptr(&(*x.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().next.clone() }.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap())))));
+        *{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.manual_free_list.clone()); __ptr_value }.lock().unwrap() = Some(new_val);
+    };
     { let __target = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.alloc_count.clone()); __ptr_value }.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     if crate::mcache::gclinkptr::ptr(&(*{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.manual_free_list.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap())).is_nil() {
                 // all stacks in s are allocated.
@@ -694,7 +697,10 @@ pub fn stackalloc(mut n: Arc<Mutex<Option<u32>>>) -> Arc<Mutex<Option<crate::run
         stackcacherefill(c.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = order.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         { let new_val = crate::mcache::gclinkptr(Arc::new(Mutex::new(Some((*(*{ let __seq = { let __seq_holder = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.stackcache.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*order.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.list.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *x.lock().unwrap() = Some(new_val); };
     }
-        { let new_val = crate::mcache::gclinkptr(Arc::new(Mutex::new(Some((*(*{ let __ptr = crate::mcache::gclinkptr::ptr(&(*x.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().next.clone() }.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap()))))); *{ let __seq = { let __seq_holder = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.stackcache.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*order.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.list.lock().unwrap() = Some(new_val); };
+        {
+            let new_val = crate::mcache::gclinkptr(Arc::new(Mutex::new(Some((*(*{ let __ptr = crate::mcache::gclinkptr::ptr(&(*x.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().next.clone() }.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap())))));
+            *{ let __seq = { let __seq_holder = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.stackcache.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*order.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.list.lock().unwrap() = Some(new_val);
+        };
         { let __target = { let __seq = { let __seq_holder = { let __ptr_value = c.with_mut(|__ptr_value| __ptr_value.stackcache.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*order.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }.size.clone(); let __rhs = (*Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
     }
                 // thisg.m.p == 0 can happen in the guts of exitsyscall

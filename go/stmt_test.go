@@ -7744,6 +7744,46 @@ func use(ts *timers) {
 	}
 }
 
+func TestConcurrentSelectorAssignmentFromNestedSelectorCloneBreaksAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type timers struct {
+	raceCtx uintptr
+}
+
+type proc struct {
+	timers timers
+}
+
+func (p *proc) ptr() *proc {
+	return p
+}
+
+type machine struct {
+	p *proc
+}
+
+type g struct {
+	m *machine
+	racectx uintptr
+}
+
+func use(gp *g) {
+	go func() {}()
+	gp.racectx = gp.m.p.ptr().timers.raceCtx
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "let new_val = { let __selector_holder") && strings.Contains(line, " = Some(new_val); }") {
+			t.Fatalf("selector clone assignment should not keep value clone and target write on one line:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "let new_val = { let __selector_holder") {
+		t.Fatalf("test setup should clone a selector value through a temporary holder:\n%s", rust)
+	}
+}
+
 func TestWrappedUint64AssignmentFromSelectorConstCastsValue(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

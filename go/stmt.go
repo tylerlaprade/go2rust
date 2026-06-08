@@ -717,6 +717,99 @@ func writeWrappedSlotAssignmentBlock(out *strings.Builder, lhs ast.Expr, forceMu
 	out.WriteString("}")
 }
 
+func wrappedSlotAssignmentShouldUseMultiline(rhs ast.Expr) bool {
+	if expressionContainsFunctionValue(rhs) {
+		return true
+	}
+	return selectorCloneAssignmentValueShouldUseMultiline(rhs)
+}
+
+func selectorCloneAssignmentValueShouldUseMultiline(rhs ast.Expr) bool {
+	if !NeedsConcurrentWrapper() {
+		return false
+	}
+	sel, ok := unwrapParens(rhs).(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	if _, ok := methodExpressionSignature(sel); ok {
+		return false
+	}
+	if !selectorChainContainsCall(sel) {
+		return false
+	}
+	if selectorSyntaxValueNeedsClone(sel) {
+		return true
+	}
+	if isExpressionResultBare(sel) {
+		return false
+	}
+	return isCloneableNonPointerExpr(sel)
+}
+
+func selectorChainContainsCall(sel *ast.SelectorExpr) bool {
+	found := false
+	ast.Inspect(sel.X, func(node ast.Node) bool {
+		if found {
+			return false
+		}
+		if _, ok := node.(*ast.CallExpr); ok {
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
+}
+
+func wrappedSlotAssignmentRHSIsWrappedVar(rhs ast.Expr) bool {
+	rhsIdent, ok := rhs.(*ast.Ident)
+	if !ok || rhsIdent.Name == "true" || rhsIdent.Name == "false" || rhsIdent.Name == "nil" {
+		return false
+	}
+	if _, isRange := rangeLoopVars[rhsIdent.Name]; isRange {
+		return false
+	}
+	if _, isConst := localConstants[rhsIdent.Name]; isConst {
+		return false
+	}
+	return !isConstIdent(rhsIdent) && !isVarBare(rhsIdent.Name)
+}
+
+func writeRegularWrappedSlotAssignmentValue(out *strings.Builder, lhs ast.Expr, rhs ast.Expr, rhsIsWrappedVar bool) {
+	if writeCurrentReceiverAssignmentValue(out, rhs) {
+		// Method receivers are Rust self, not wrapped locals named after the Go receiver.
+	} else if rhsIsWrappedVar {
+		// Use clone to avoid moving non-Copy types like String.
+		rhsIdent := rhs.(*ast.Ident)
+		rhsVarName := RustIdentForUse(rhsIdent)
+		if currentCaptureRenames != nil {
+			if renamed, exists := currentCaptureRenames[rhsIdent.Name]; exists {
+				rhsVarName = RustLocalIdent(renamed)
+			}
+		}
+		out.WriteString(rhsVarName)
+		WriteBorrowMethod(out, false)
+		out.WriteString(".as_ref().unwrap().clone()")
+	} else if writeNamedIntegerAssignmentValue(out, rhs) {
+		// Named integer arithmetic returns the underlying scalar; assignments store the named value in the existing wrapper.
+	} else if writeConstAssignmentValue(out, lhs, rhs) {
+		// Constants assigned to wrapped slots need the target type from go/types.
+	} else if writeByteConstAssignmentValue(out, lhs, rhs) {
+		// Byte constants assigned to byte slots need the same go/types context as call arguments.
+	} else if writeRangeIndexAssignmentValue(out, lhs, rhs) {
+		// Range indexes emit usize, but Go int assignment targets use i32.
+	} else if writeRangeCharAssignmentValue(out, lhs, rhs) {
+		// String range runes are Rust char but Go rune targets are i32.
+	} else if rhsIdent, ok := rhs.(*ast.Ident); ok && writeOwnedRangeValue(out, rhsIdent) {
+		// Reference-style range values must be cloned into ordinary wrapped assignment targets.
+	} else if writeOwnedExpressionValue(out, rhs) {
+		// Copied by value from an existing wrapped field or handle.
+	} else {
+		TranspileExpression(out, rhs)
+	}
+}
+
 func typeIsPredeclaredMutableBareScalar(t types.Type) bool {
 	t = types.Unalias(t)
 	basic, ok := t.(*types.Basic)
@@ -12001,7 +12094,7 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 										writeMoveWrappedInnerAssignment(out, s.Lhs[0], s.Rhs[0])
 									} else { // Regular function call
 										isLenCapCall := isBareLenCapCall(s.Rhs[0])
-										writeWrappedSlotAssignmentBlock(out, s.Lhs[0], expressionContainsFunctionValue(s.Rhs[0]), func(valueOut *strings.Builder) {
+										writeWrappedSlotAssignmentBlock(out, s.Lhs[0], wrappedSlotAssignmentShouldUseMultiline(s.Rhs[0]), func(valueOut *strings.Builder) {
 											TranspileExpression(valueOut, s.Rhs[0])
 											if isLenCapCall {
 												valueOut.WriteString(" as i32")
@@ -12012,57 +12105,10 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 									if writeEmptyInterfaceAssignment(out, s.Lhs[0], s.Rhs[0]) {
 										// Assignment to interface{} boxes non-interface values and clones interface handles.
 									} else {
-										// Check if RHS is a wrapped variable - use clone for non-Copy types
-										rhsIsWrappedVar := false
-										if rhsIdent, ok := s.Rhs[0].(*ast.Ident); ok {
-											if rhsIdent.Name != "true" && rhsIdent.Name != "false" && rhsIdent.Name != "nil" {
-												if _, isRange := rangeLoopVars[rhsIdent.Name]; !isRange {
-													if _, isConst := localConstants[rhsIdent.Name]; !isConst {
-														if !isConstIdent(rhsIdent) && !isVarBare(rhsIdent.Name) {
-															rhsIsWrappedVar = true
-														}
-													}
-												}
-											}
-										}
-										out.WriteString("{ ")
-										out.WriteString("let new_val = ")
-										if writeCurrentReceiverAssignmentValue(out, s.Rhs[0]) {
-											// Method receivers are Rust self, not wrapped locals named after the Go receiver.
-										} else if rhsIsWrappedVar {
-											// Use clone to avoid moving non-Copy types like String
-											rhsIdent := s.Rhs[0].(*ast.Ident)
-											rhsVarName := RustIdentForUse(rhsIdent)
-											if currentCaptureRenames != nil {
-												if renamed, exists := currentCaptureRenames[rhsIdent.Name]; exists {
-													rhsVarName = RustLocalIdent(renamed)
-												}
-											}
-											out.WriteString(rhsVarName)
-											WriteBorrowMethod(out, false)
-											out.WriteString(".as_ref().unwrap().clone()")
-										} else if writeNamedIntegerAssignmentValue(out, s.Rhs[0]) {
-											// Named integer arithmetic returns the underlying scalar; assignments store the named value in the existing wrapper.
-										} else if writeConstAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
-											// Constants assigned to wrapped slots need the target type from go/types.
-										} else if writeByteConstAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
-											// Byte constants assigned to byte slots need the same go/types context as call arguments.
-										} else if writeRangeIndexAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
-											// Range indexes emit usize, but Go int assignment targets use i32.
-										} else if writeRangeCharAssignmentValue(out, s.Lhs[0], s.Rhs[0]) {
-											// String range runes are Rust char but Go rune targets are i32.
-										} else if rhsIdent, ok := s.Rhs[0].(*ast.Ident); ok && writeOwnedRangeValue(out, rhsIdent) {
-											// Reference-style range values must be cloned into ordinary wrapped assignment targets.
-										} else if writeOwnedExpressionValue(out, s.Rhs[0]) {
-											// Copied by value from an existing wrapped field or handle.
-										} else {
-											TranspileExpression(out, s.Rhs[0])
-										}
-										out.WriteString("; ")
-										out.WriteString("*")
-										TranspileExpressionContext(out, s.Lhs[0], LValue)
-										WriteBorrowMethod(out, true)
-										out.WriteString(" = Some(new_val); }")
+										rhsIsWrappedVar := wrappedSlotAssignmentRHSIsWrappedVar(s.Rhs[0])
+										writeWrappedSlotAssignmentBlock(out, s.Lhs[0], wrappedSlotAssignmentShouldUseMultiline(s.Rhs[0]), func(valueOut *strings.Builder) {
+											writeRegularWrappedSlotAssignmentValue(valueOut, s.Lhs[0], s.Rhs[0], rhsIsWrappedVar)
+										})
 									}
 								}
 							}

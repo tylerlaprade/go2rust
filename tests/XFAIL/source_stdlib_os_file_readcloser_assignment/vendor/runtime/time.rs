@@ -854,7 +854,10 @@ impl timer {
         if { let __tmp_x = (*{ let __field = (*gp.lock().unwrap().as_ref().unwrap()).racectx.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x != __tmp_y } {
         throw(Arc::new(Mutex::new(Some("unexpected racectx".to_string()))));
     }
-        { let new_val = { let __selector_holder = (*{ let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().timers.clone() }.lock().unwrap().as_ref().unwrap()).race_ctx.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *(*gp.lock().unwrap().as_ref().unwrap()).racectx.lock().unwrap() = Some(new_val); };
+        {
+            let new_val = { let __selector_holder = (*{ let __ptr = crate::runtime2::puintptr::ptr(&(*(*(*gp.lock().unwrap().as_ref().unwrap()).m.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap())); let __ptr_value = __ptr.borrow(); __ptr_value.as_ref().unwrap().timers.clone() }.lock().unwrap().as_ref().unwrap()).race_ctx.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned };
+            *(*gp.lock().unwrap().as_ref().unwrap()).racectx.lock().unwrap() = Some(new_val);
+        };
     }
                 // Temporarily use the current P's racectx for g0.
         if { let __nil_result = (*ts.lock().unwrap()).is_some(); __nil_result } {
