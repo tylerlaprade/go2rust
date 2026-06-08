@@ -218,7 +218,7 @@ This ensures semantic correctness for ANY Go program, even edge cases like takin
 | └ Worker pool pattern with channels | ✅ |
 | └ Method receiver captures with deferred receiver calls | ✅ |
 | └ Function-typed parameter captures | ✅ |
-| **`goto` - Goto statements** | ✅ (basic top-level label patterns) |
+| **`goto` - Goto statements** | ✅ (basic top-level and loop-body label patterns) |
 | **`if` - If statements** | |
 | └ Basic if | ✅ |
 | └ If with init statement | ✅ |

@@ -1510,6 +1510,34 @@ out:
 	}
 }
 
+func TestForwardGotoInsideNestedLoopUsesEnclosingLoopBodyLabel(t *testing.T) {
+	rust := transpileTypedRegression(t, `package main
+
+func find(names []string, want string) int {
+	i := 0
+	for {
+		for _, name := range names {
+			if name == want {
+				goto found
+			}
+			i++
+		}
+		return -1
+
+	found:
+		return i
+	}
+}
+`)
+
+	if strings.Contains(rust, "TODO: unsupported goto found") {
+		t.Fatalf("nested loop forward goto should be lowered by the enclosing body planner:\n%s", rust)
+	}
+	if !strings.Contains(rust, "'found: {") || !strings.Contains(rust, "break 'found;") {
+		t.Fatalf("nested loop forward goto should break to the emitted label block:\n%s", rust)
+	}
+}
+
 func TestMultiShortDeclLenCapWrapsGoInt(t *testing.T) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "main.go", `package main

@@ -13305,18 +13305,22 @@ func TranspileStatement(out *strings.Builder, stmt ast.Stmt, fnType *ast.FuncTyp
 		currentLoopDepth++
 		var prevStmt ast.Stmt
 		var forBodyLastPos token.Pos = s.Body.Lbrace
-		for i, stmt := range s.Body.List {
-			// Add blank line if there was one in the source
-			if prevStmt != nil && hasBlankLineBetween(fileSet, prevStmt.End(), stmt.Pos()) {
+		if stmtListHasPlannedGoto(s.Body.List) {
+			prevStmt = TranspileGotoStatementList(out, s.Body.List, fnType, fileSet, comments, &forBodyLastPos, "        ")
+		} else {
+			for i, stmt := range s.Body.List {
+				// Add blank line if there was one in the source
+				if prevStmt != nil && hasBlankLineBetween(fileSet, prevStmt.End(), stmt.Pos()) {
+					out.WriteString("\n")
+				}
+
+				out.WriteString("        ")
+				TranspileStatement(out, stmt, fnType, fileSet, comments, &forBodyLastPos, "        ")
+				writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.Body.List)-1 || s.Post != nil)
 				out.WriteString("\n")
+
+				prevStmt = stmt
 			}
-
-			out.WriteString("        ")
-			TranspileStatement(out, stmt, fnType, fileSet, comments, &forBodyLastPos, "        ")
-			writeStatementSeparatorBeforeFollowingStatement(out, stmt, i < len(s.Body.List)-1 || s.Post != nil)
-			out.WriteString("\n")
-
-			prevStmt = stmt
 		}
 
 		// Add the post statement (increment) if present

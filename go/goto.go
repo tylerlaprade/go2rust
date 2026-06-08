@@ -200,6 +200,11 @@ func TranspileGotoStatementList(out *strings.Builder, stmts []ast.Stmt, fnType *
 	return prevStmt
 }
 
+func stmtListHasPlannedGoto(stmts []ast.Stmt) bool {
+	plan := buildGotoPlan(stmts)
+	return len(plan.modes) > 0
+}
+
 func stmtPreventsSyntheticBackwardBreak(stmt ast.Stmt, label string) bool {
 	if stmtTerminates(stmt) {
 		return true
