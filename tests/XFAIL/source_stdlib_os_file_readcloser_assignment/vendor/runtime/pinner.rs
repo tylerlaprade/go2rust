@@ -269,7 +269,13 @@ impl pinnerBits {
     ///
     ///go:nosplit
     pub fn of_object(&self, n: Arc<Mutex<Option<usize>>>) -> Arc<Mutex<Option<pinState>>> {
-        let (mut bytep, mut mask) = { let __recv = Arc::new(Mutex::new(Some(gcBits::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).bitp(Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x * __tmp_y })))); __result };
+        let (mut bytep, mut mask) = {
+            let __recv = Arc::new(Mutex::new(Some(gcBits::default())));
+            let __result = (*__recv.lock().unwrap().as_mut().unwrap()).bitp(
+                Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x * __tmp_y }))),
+            );
+            __result
+        };
         let mut byteVal = internal_runtime_atomic::load8({ let __go_ptr = bytep.clone(); match __go_ptr { GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(), GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } });
         Arc::new(Mutex::new(Some(pinState { bytep: bytep.clone(), byte_val: Arc::new(Mutex::new(Some(byteVal))), mask: Arc::new(Mutex::new(Some(mask))), ..Default::default() })))
     }

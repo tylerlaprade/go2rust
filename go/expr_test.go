@@ -5971,6 +5971,65 @@ func (m *Mapper) Map(length uintptr, prot int, flags int, fd int, offset int64) 
 	}
 }
 
+func TestConcurrentMethodCallOnCallReceiverBreaksBlockAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type eventWriter struct{}
+
+func (eventWriter) event(kind int, args ...int) {}
+
+type traceWriter struct{}
+
+func (traceWriter) eventWriter(goStatus int, procStatus int) eventWriter {
+	return eventWriter{}
+}
+
+func emit(t traceWriter, skip int) {
+	go func() {}()
+	t.eventWriter(1, 2).event(3, skip, skip + 1, skip + 2)
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "let __recv =") && strings.Contains(line, "let __result =") {
+			t.Fatalf("method call on call receiver should split receiver setup from result call:\n%s", rust)
+		}
+		if strings.Contains(line, "let __result =") && strings.Contains(line, "vec![") {
+			t.Fatalf("method call on call receiver should split complex call arguments:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "{\n        let __recv =") {
+		t.Fatalf("method call on call receiver should use multiline receiver block:\n%s", rust)
+	}
+	if !strings.Contains(rust, ".event(\n") {
+		t.Fatalf("method call on call receiver should use multiline method arguments:\n%s", rust)
+	}
+	if !strings.Contains(rust, ");\n        __result\n    }") {
+		t.Fatalf("method call on call receiver should terminate the multiline result assignment:\n%s", rust)
+	}
+}
+
+func TestConcurrentVariadicMethodCallWithNoVariadicArgsDoesNotDoubleComma(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type eventWriter struct{}
+
+func (eventWriter) event(kind int, args ...int) {}
+
+func emit(w eventWriter) {
+	go func() {}()
+	w.event(3)
+}
+`)
+
+	if strings.Contains(rust, ", ,") {
+		t.Fatalf("variadic method call with no variadic args should not emit a double comma:\n%s", rust)
+	}
+	if !strings.Contains(rust, "vec![]") {
+		t.Fatalf("variadic method call with no variadic args should pack an empty variadic vector:\n%s", rust)
+	}
+}
+
 func TestMethodExpressionFunctionArgumentUsesClosure(t *testing.T) {
 	rust := transpileTypedRegression(t, `package main
 

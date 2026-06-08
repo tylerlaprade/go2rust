@@ -1815,16 +1815,32 @@ func variadicElementTypeExpr(funcSig *FunctionSignature, variadicStart int) ast.
 }
 
 func writeMethodCallArguments(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr, externalStdlibStubMethodCall bool, bareArgumentMethodCall bool) bool {
+	return writeMethodCallArgumentsWithLayout(out, sel, call, externalStdlibStubMethodCall, bareArgumentMethodCall, false, "")
+}
+
+func writeMethodCallArgumentsWithLayout(out *strings.Builder, sel *ast.SelectorExpr, call *ast.CallExpr, externalStdlibStubMethodCall bool, bareArgumentMethodCall bool, multiline bool, indent string) bool {
 	sig, ok := callSignatureFromTypeInfo(call)
 	if !ok || !sig.Variadic() || sig.Params() == nil || sig.Params().Len() == 0 {
 		return false
 	}
 
-	variadicStart := sig.Params().Len() - 1
-	for i := 0; i < variadicStart && i < len(call.Args); i++ {
-		if i > 0 {
+	writeArgPrefix := func(i int) {
+		if multiline {
+			out.WriteString(indent)
+			out.WriteString("    ")
+		} else if i > 0 {
 			out.WriteString(", ")
 		}
+	}
+	writeArgSuffix := func() {
+		if multiline {
+			out.WriteString(",\n")
+		}
+	}
+
+	variadicStart := sig.Params().Len() - 1
+	for i := 0; i < variadicStart && i < len(call.Args); i++ {
+		writeArgPrefix(i)
 		if externalStdlibStubMethodCall {
 			writeExternalStubCallArgument(out, call.Args[i], selectedMethodParamType(sel, i))
 		} else if bareArgumentMethodCall {
@@ -1832,13 +1848,11 @@ func writeMethodCallArguments(out *strings.Builder, sel *ast.SelectorExpr, call 
 		} else {
 			writeRegularMethodCallArgument(out, sel, call, call.Args[i], i)
 		}
-	}
-
-	if variadicStart > 0 {
-		out.WriteString(", ")
+		writeArgSuffix()
 	}
 
 	if call.Ellipsis.IsValid() {
+		writeArgPrefix(variadicStart)
 		lastArg := call.Args[len(call.Args)-1]
 		if ident, ok := lastArg.(*ast.Ident); ok {
 			out.WriteString(RustIdentForUse(ident))
@@ -1849,21 +1863,37 @@ func writeMethodCallArguments(out *strings.Builder, sel *ast.SelectorExpr, call 
 		} else {
 			TranspileExpression(out, lastArg)
 		}
+		writeArgSuffix()
 		return true
 	}
 
+	writeArgPrefix(variadicStart)
 	variadicElemType := callParamTypeFromTypeInfo(call, variadicStart)
 	variadicElemIsAny := isEmptyInterfaceType(variadicElemType)
 	WriteWrapperPrefix(out)
 	out.WriteString("vec![")
+	if multiline && variadicStart < len(call.Args) {
+		out.WriteString("\n")
+	}
 	for i := variadicStart; i < len(call.Args); i++ {
-		if i > variadicStart {
+		if multiline {
+			out.WriteString(indent)
+			out.WriteString("        ")
+		} else if i > variadicStart {
 			out.WriteString(", ")
 		}
 		writeVariadicPackedElementValue(out, call.Args[i], variadicElemType, nil, variadicElemIsAny)
+		if multiline {
+			out.WriteString(",\n")
+		}
+	}
+	if multiline && variadicStart < len(call.Args) {
+		out.WriteString(indent)
+		out.WriteString("    ")
 	}
 	out.WriteString("]")
 	WriteWrapperSuffix(out)
+	writeArgSuffix()
 	return true
 }
 
@@ -9775,12 +9805,20 @@ func callArgumentsShouldUseMultiline(args []ast.Expr) bool {
 	if !NeedsConcurrentWrapper() || len(args) < 3 {
 		return false
 	}
+	return callArgumentsContainComplex(args)
+}
+
+func callArgumentsContainComplex(args []ast.Expr) bool {
 	for _, arg := range args {
 		if compositeLiteralElementIsComplex(arg) {
 			return true
 		}
 	}
 	return false
+}
+
+func methodReceiverTempBlockShouldUseMultiline(call *ast.CallExpr) bool {
+	return call != nil && NeedsConcurrentWrapper() && callArgumentsContainComplex(call.Args)
 }
 
 func methodCallArgumentsShouldUseMultiline(call *ast.CallExpr) bool {
@@ -20362,6 +20400,7 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		needsUnwrap := false
 		closeReceiverBlock := false
 		receiverBlockSuffix := "; __result }"
+		forceMultilineMethodArgs := false
 
 		// A named-integer constant receiver (current-package or
 		// source-transpiled stdlib) is emitted as a raw scalar, so calling a
@@ -20621,7 +20660,16 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				closeReceiverBlock = true
 			} else if methodReceiverExpressionNeedsUnwrap(sel.X) {
 				needsMut := methodCallNeedsMutableReceiver(sel)
-				out.WriteString("{ let __recv = ")
+				multilineReceiverBlock := methodReceiverTempBlockShouldUseMultiline(call)
+				receiverBlockIndent := ""
+				if multilineReceiverBlock {
+					receiverBlockIndent = currentLineIndent(out)
+					out.WriteString("{\n")
+					out.WriteString(receiverBlockIndent)
+					out.WriteString("    let __recv = ")
+				} else {
+					out.WriteString("{ let __recv = ")
+				}
 				restoreForceInnerClones := func() {}
 				prevForceInnerClones := forceInnerFuncLitCaptureClones
 				forceInnerFuncLitCaptureClones = true
@@ -20630,7 +20678,15 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 				}
 				TranspileExpression(out, sel.X)
 				restoreForceInnerClones()
-				out.WriteString("; let __result = (*__recv")
+				if multilineReceiverBlock {
+					out.WriteString(";\n")
+					out.WriteString(receiverBlockIndent)
+					out.WriteString("    let __result = (*__recv")
+					receiverBlockSuffix = ";\n" + receiverBlockIndent + "    __result\n" + receiverBlockIndent + "}"
+					forceMultilineMethodArgs = true
+				} else {
+					out.WriteString("; let __result = (*__recv")
+				}
 				WriteBorrowMethod(out, needsMut)
 				if needsMut {
 					out.WriteString(".as_mut().unwrap()).")
@@ -20644,7 +20700,16 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			}
 		} else if methodReceiverExpressionNeedsUnwrap(sel.X) {
 			needsMut := methodCallNeedsMutableReceiver(sel)
-			out.WriteString("{ let __recv = ")
+			multilineReceiverBlock := methodReceiverTempBlockShouldUseMultiline(call)
+			receiverBlockIndent := ""
+			if multilineReceiverBlock {
+				receiverBlockIndent = currentLineIndent(out)
+				out.WriteString("{\n")
+				out.WriteString(receiverBlockIndent)
+				out.WriteString("    let __recv = ")
+			} else {
+				out.WriteString("{ let __recv = ")
+			}
 			restoreForceInnerClones := func() {}
 			if _, ok := sel.X.(*ast.CallExpr); ok {
 				prevForceInnerClones := forceInnerFuncLitCaptureClones
@@ -20655,7 +20720,15 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 			}
 			TranspileExpression(out, sel.X)
 			restoreForceInnerClones()
-			out.WriteString("; let __result = (*__recv")
+			if multilineReceiverBlock {
+				out.WriteString(";\n")
+				out.WriteString(receiverBlockIndent)
+				out.WriteString("    let __result = (*__recv")
+				receiverBlockSuffix = ";\n" + receiverBlockIndent + "    __result\n" + receiverBlockIndent + "}"
+				forceMultilineMethodArgs = true
+			} else {
+				out.WriteString("; let __result = (*__recv")
+			}
 			WriteBorrowMethod(out, needsMut)
 			if needsMut {
 				out.WriteString(".as_mut().unwrap()).")
@@ -20675,14 +20748,14 @@ func TranspileCall(out *strings.Builder, call *ast.CallExpr) {
 		externalStdlibStubMethodCall := IsExternalStdlibSelectorMethod(sel)
 
 		out.WriteString(rustMethodSelectorName(sel))
-		multilineMethodArgs := methodCallArgumentsShouldUseMultiline(call)
+		multilineMethodArgs := forceMultilineMethodArgs || methodCallArgumentsShouldUseMultiline(call)
 		methodArgIndent := ""
 		out.WriteString("(")
 		if multilineMethodArgs {
 			methodArgIndent = currentLineIndent(out)
 			out.WriteString("\n")
 		}
-		if !writeMethodCallArguments(out, sel, call, externalStdlibStubMethodCall, bareArgumentMethodCall) {
+		if !writeMethodCallArgumentsWithLayout(out, sel, call, externalStdlibStubMethodCall, bareArgumentMethodCall, multilineMethodArgs, methodArgIndent) {
 			for i, arg := range call.Args {
 				if multilineMethodArgs {
 					out.WriteString(methodArgIndent)

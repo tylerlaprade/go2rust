@@ -1205,7 +1205,17 @@ impl traceLocker {
     /// Gomaxprocs emits a ProcsChange event.
     pub fn gomaxprocs(&self, procs: Arc<Mutex<Option<i32>>>) {
         let mut __self = self.clone();
-        { let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8)))))))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_PROCS_CHANGE as u8))))))), Arc::new(Mutex::new(Some(vec![crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*procs.lock().unwrap().as_ref().unwrap()) as u64)))), (*__self.stack(Arc::new(Mutex::new(Some(1)))).lock().unwrap().as_ref().unwrap()).clone()])))); __result };
+        {
+            let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8))))))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(
+                Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_PROCS_CHANGE as u8))))))),
+                Arc::new(Mutex::new(Some(vec![
+                    crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*procs.lock().unwrap().as_ref().unwrap()) as u64)))),
+                    (*__self.stack(Arc::new(Mutex::new(Some(1)))).lock().unwrap().as_ref().unwrap()).clone(),
+                ]))),
+            );
+            __result
+        };
     }
 
     /// ProcStart traces a ProcStart event.
@@ -1217,7 +1227,17 @@ impl traceLocker {
                 // Procs are typically started within the scheduler when there is no user goroutine. If there is a user goroutine,
                 // it must be in _Gsyscall because the only time a goroutine is allowed to have its Proc moved around from under it
                 // is during a syscall.
-        { let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_SYSCALL as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_IDLE as u8)))))))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_PROC_START as u8))))))), Arc::new(Mutex::new(Some(vec![crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.id.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))), (*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).next_seq(Arc::new(Mutex::new(Some({ let __selector_holder = __self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap()).clone()])))); __result };
+        {
+            let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_SYSCALL as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_IDLE as u8))))))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(
+                Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_PROC_START as u8))))))),
+                Arc::new(Mutex::new(Some(vec![
+                    crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.id.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))),
+                    (*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).next_seq(Arc::new(Mutex::new(Some({ let __selector_holder = __self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap()).clone(),
+                ]))),
+            );
+            __result
+        };
     }
 
     /// ProcStop traces a ProcStop event.
@@ -1234,7 +1254,16 @@ impl traceLocker {
     /// easily and only depends on where it's currently called.
     pub fn g_c_active(&self) {
         let mut __self = self.clone();
-        { let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8)))))))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_G_C_ACTIVE as u8))))))), Arc::new(Mutex::new(Some(vec![crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = (*trace.lock().unwrap().as_ref().unwrap()).seq_g_c.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))])))); __result };
+        {
+            let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8))))))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(
+                Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_G_C_ACTIVE as u8))))))),
+                Arc::new(Mutex::new(Some(vec![
+                    crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = (*trace.lock().unwrap().as_ref().unwrap()).seq_g_c.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))),
+                ]))),
+            );
+            __result
+        };
                 // N.B. Only one GC can be running at a time, so this is naturally
                 // serialized by the caller.
         { let __target = (*trace.lock().unwrap().as_ref().unwrap()).seq_g_c.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -1246,7 +1275,17 @@ impl traceLocker {
     /// easily and only depends on where it's currently called.
     pub fn g_c_start(&self) {
         let mut __self = self.clone();
-        { let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8)))))))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_G_C_BEGIN as u8))))))), Arc::new(Mutex::new(Some(vec![crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = (*trace.lock().unwrap().as_ref().unwrap()).seq_g_c.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))), (*__self.stack(Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_ref().unwrap()).clone()])))); __result };
+        {
+            let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8))))))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(
+                Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_G_C_BEGIN as u8))))))),
+                Arc::new(Mutex::new(Some(vec![
+                    crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = (*trace.lock().unwrap().as_ref().unwrap()).seq_g_c.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))),
+                    (*__self.stack(Arc::new(Mutex::new(Some(3)))).lock().unwrap().as_ref().unwrap()).clone(),
+                ]))),
+            );
+            __result
+        };
                 // N.B. Only one GC can be running at a time, so this is naturally
                 // serialized by the caller.
         { let __target = (*trace.lock().unwrap().as_ref().unwrap()).seq_g_c.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -1258,7 +1297,16 @@ impl traceLocker {
     /// easily and only depends on where it's currently called.
     pub fn g_c_done(&self) {
         let mut __self = self.clone();
-        { let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8)))))))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_G_C_END as u8))))))), Arc::new(Mutex::new(Some(vec![crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = (*trace.lock().unwrap().as_ref().unwrap()).seq_g_c.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))])))); __result };
+        {
+            let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8))))))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(
+                Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_G_C_END as u8))))))),
+                Arc::new(Mutex::new(Some(vec![
+                    crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = (*trace.lock().unwrap().as_ref().unwrap()).seq_g_c.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))),
+                ]))),
+            );
+            __result
+        };
                 // N.B. Only one GC can be running at a time, so this is naturally
                 // serialized by the caller.
         { let __target = (*trace.lock().unwrap().as_ref().unwrap()).seq_g_c.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
@@ -1269,7 +1317,17 @@ impl traceLocker {
         let mut __self = self.clone();
                 // Although the current P may be in _Pgcstop here, we model the P as running during the STW. This deviates from the
                 // runtime's state tracking, but it's more accurate and doesn't result in any loss of information.
-        { let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8)))))))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_S_T_W_BEGIN as u8))))))), Arc::new(Mutex::new(Some(vec![(*__self.string(crate::proc::stwReason::string(&(*reason.lock().unwrap().as_ref().unwrap()))).lock().unwrap().as_ref().unwrap()).clone(), (*__self.stack(Arc::new(Mutex::new(Some(2)))).lock().unwrap().as_ref().unwrap()).clone()])))); __result };
+        {
+            let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8))))))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(
+                Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_S_T_W_BEGIN as u8))))))),
+                Arc::new(Mutex::new(Some(vec![
+                    (*__self.string(crate::proc::stwReason::string(&(*reason.lock().unwrap().as_ref().unwrap()))).lock().unwrap().as_ref().unwrap()).clone(),
+                    (*__self.stack(Arc::new(Mutex::new(Some(2)))).lock().unwrap().as_ref().unwrap()).clone(),
+                ]))),
+            );
+            __result
+        };
     }
 
     /// STWDone traces a STWEnd event.
@@ -1317,7 +1375,16 @@ impl traceLocker {
         let mut pp: GoPtr<crate::runtime2::p> = crate::runtime2::puintptr::ptr(&(*(*__self.mp.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()));
         if (*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).may_sweep.lock().unwrap().as_ref().unwrap()) {
         if { let __tmp_x = (*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).swept.lock().unwrap().as_ref().unwrap()); let __tmp_y = 0 as usize; __tmp_x == __tmp_y } {
-        { let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8)))))))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_G_C_SWEEP_BEGIN as u8))))))), Arc::new(Mutex::new(Some(vec![(*__self.stack(Arc::new(Mutex::new(Some(1)))).lock().unwrap().as_ref().unwrap()).clone()])))); __result };
+        {
+            let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8))))))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(
+                Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_G_C_SWEEP_BEGIN as u8))))))),
+                Arc::new(Mutex::new(Some(vec![
+                    (*__self.stack(Arc::new(Mutex::new(Some(1)))).lock().unwrap().as_ref().unwrap()).clone(),
+                ]))),
+            );
+            __result
+        };
         { let new_val = true; *(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).in_sweep.lock().unwrap() = Some(new_val); };
     }
         { let __target = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).swept.clone(); let __rhs = (*bytesSwept.lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
@@ -1336,7 +1403,17 @@ impl traceLocker {
         throw(Arc::new(Mutex::new(Some("missing traceGCSweepStart".to_string()))));
     }
         if (*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).in_sweep.lock().unwrap().as_ref().unwrap()) {
-        { let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8)))))))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_G_C_SWEEP_END as u8))))))), Arc::new(Mutex::new(Some(vec![crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).swept.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))), crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).reclaimed.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))])))); __result };
+        {
+            let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8))))))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(
+                Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_G_C_SWEEP_END as u8))))))),
+                Arc::new(Mutex::new(Some(vec![
+                    crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).swept.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))),
+                    crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).reclaimed.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))),
+                ]))),
+            );
+            __result
+        };
         { let new_val = false; *(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).in_sweep.lock().unwrap() = Some(new_val); };
     }
         { let new_val = false; *(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).may_sweep.lock().unwrap() = Some(new_val); };
@@ -1345,7 +1422,16 @@ impl traceLocker {
     /// GCMarkAssistStart emits a MarkAssistBegin event.
     pub fn g_c_mark_assist_start(&self) {
         let mut __self = self.clone();
-        { let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8)))))))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_G_C_MARK_ASSIST_BEGIN as u8))))))), Arc::new(Mutex::new(Some(vec![(*__self.stack(Arc::new(Mutex::new(Some(1)))).lock().unwrap().as_ref().unwrap()).clone()])))); __result };
+        {
+            let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8))))))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(
+                Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_G_C_MARK_ASSIST_BEGIN as u8))))))),
+                Arc::new(Mutex::new(Some(vec![
+                    (*__self.stack(Arc::new(Mutex::new(Some(1)))).lock().unwrap().as_ref().unwrap()).clone(),
+                ]))),
+            );
+            __result
+        };
     }
 
     /// GCMarkAssistDone emits a MarkAssistEnd event.
@@ -1362,7 +1448,18 @@ impl traceLocker {
         if { let __v = (*blocked.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         { let new_val = crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_GO_CREATE_BLOCKED as u8)))); *ev.lock().unwrap() = Some(new_val); };
     }
-        { let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8)))))))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(Arc::new(Mutex::new(Some({ let __arg_holder = ev.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(vec![crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = newg.with_mut(|__ptr_value| __ptr_value.goid.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))), (*__self.start_p_c(Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()).clone(), (*__self.stack(Arc::new(Mutex::new(Some(2)))).lock().unwrap().as_ref().unwrap()).clone()])))); __result };
+        {
+            let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8))))))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(
+                Arc::new(Mutex::new(Some({ let __arg_holder = ev.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+                Arc::new(Mutex::new(Some(vec![
+                    crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = newg.with_mut(|__ptr_value| __ptr_value.goid.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))),
+                    (*__self.start_p_c(Arc::new(Mutex::new(Some({ let __arg_holder = pc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()).clone(),
+                    (*__self.stack(Arc::new(Mutex::new(Some(2)))).lock().unwrap().as_ref().unwrap()).clone(),
+                ]))),
+            );
+            __result
+        };
     }
 
     /// GoStart emits a GoStart event.
@@ -1402,7 +1499,17 @@ impl traceLocker {
     /// GoStop emits a GoStop event with the provided reason.
     pub fn go_stop(&self, reason: Arc<Mutex<Option<traceGoStopReason>>>) {
         let mut __self = self.clone();
-        { let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8)))))))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_GO_STOP as u8))))))), Arc::new(Mutex::new(Some(vec![crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*{ let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).go_stop_reasons.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (*__self.gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }[(*{ let __v = (*reason.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone().0.lock().unwrap().as_ref().unwrap()) as u64)))), (*__self.stack(Arc::new(Mutex::new(Some(1)))).lock().unwrap().as_ref().unwrap()).clone()])))); __result };
+        {
+            let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8))))))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(
+                Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_GO_STOP as u8))))))),
+                Arc::new(Mutex::new(Some(vec![
+                    crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*{ let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).go_stop_reasons.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (*__self.gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }[(*{ let __v = (*reason.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone().0.lock().unwrap().as_ref().unwrap()) as u64)))),
+                    (*__self.stack(Arc::new(Mutex::new(Some(1)))).lock().unwrap().as_ref().unwrap()).clone(),
+                ]))),
+            );
+            __result
+        };
     }
 
     /// GoPark emits a GoBlock event with the provided reason.
@@ -1411,7 +1518,17 @@ impl traceLocker {
     /// that we have both, and waitReason is way more descriptive.
     pub fn go_park(&self, reason: Arc<Mutex<Option<traceBlockReason>>>, skip: Arc<Mutex<Option<i32>>>) {
         let mut __self = self.clone();
-        { let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8)))))))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_GO_BLOCK as u8))))))), Arc::new(Mutex::new(Some(vec![crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*{ let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).go_block_reasons.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (*__self.gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }[(*{ let __v = (*reason.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone().0.lock().unwrap().as_ref().unwrap()) as u64)))), (*__self.stack(Arc::new(Mutex::new(Some({ let __arg_holder = skip.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()).clone()])))); __result };
+        {
+            let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8))))))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(
+                Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_GO_BLOCK as u8))))))),
+                Arc::new(Mutex::new(Some(vec![
+                    crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*{ let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).go_block_reasons.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = (*__self.gen.lock().unwrap().as_ref().unwrap()); let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }[(*{ let __v = (*reason.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize].clone().0.lock().unwrap().as_ref().unwrap()) as u64)))),
+                    (*__self.stack(Arc::new(Mutex::new(Some({ let __arg_holder = skip.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()).clone(),
+                ]))),
+            );
+            __result
+        };
     }
 
     /// GoUnpark emits a GoUnblock event.
@@ -1419,7 +1536,18 @@ impl traceLocker {
         let mut __self = self.clone();
                 // Emit a GoWaiting status if necessary for the unblocked goroutine.
         __self.emit_unblock_status(gp.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = __self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
-        { let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8)))))))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_GO_UNBLOCK as u8))))))), Arc::new(Mutex::new(Some(vec![crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.goid.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))), (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).next_seq(Arc::new(Mutex::new(Some({ let __selector_holder = __self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap()).clone(), (*__self.stack(Arc::new(Mutex::new(Some({ let __arg_holder = skip.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()).clone()])))); __result };
+        {
+            let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8))))))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(
+                Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_GO_UNBLOCK as u8))))))),
+                Arc::new(Mutex::new(Some(vec![
+                    crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.goid.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))),
+                    (*(*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).next_seq(Arc::new(Mutex::new(Some({ let __selector_holder = __self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap()).clone(),
+                    (*__self.stack(Arc::new(Mutex::new(Some({ let __arg_holder = skip.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))).lock().unwrap().as_ref().unwrap()).clone(),
+                ]))),
+            );
+            __result
+        };
     }
 
     /// GoSwitch emits a GoSwitch event. If destroy is true, the calling goroutine
@@ -1456,7 +1584,17 @@ impl traceLocker {
                 // Scribble down the M that the P is currently attached to.
         let mut pp: GoPtr<crate::runtime2::p> = crate::runtime2::puintptr::ptr(&(*(*__self.mp.lock().unwrap().as_ref().unwrap()).p.lock().unwrap().as_ref().unwrap()));
         { let new_val = Arc::new(Mutex::new(Some({ let __selector_holder = (*__self.mp.lock().unwrap().as_ref().unwrap()).procid.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))); let __moved_val = { let mut __guard = new_val.lock().unwrap(); __guard.take() }; *(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).m_syscall_i_d.lock().unwrap() = __moved_val; };
-        { let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8)))))))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_GO_SYSCALL_BEGIN as u8))))))), Arc::new(Mutex::new(Some(vec![(*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).next_seq(Arc::new(Mutex::new(Some({ let __selector_holder = __self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap()).clone(), (*__self.stack(Arc::new(Mutex::new(Some(1)))).lock().unwrap().as_ref().unwrap()).clone()])))); __result };
+        {
+            let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8))))))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(
+                Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_GO_SYSCALL_BEGIN as u8))))))),
+                Arc::new(Mutex::new(Some(vec![
+                    (*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).next_seq(Arc::new(Mutex::new(Some({ let __selector_holder = __self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap()).clone(),
+                    (*__self.stack(Arc::new(Mutex::new(Some(1)))).lock().unwrap().as_ref().unwrap()).clone(),
+                ]))),
+            );
+            __result
+        };
     }
 
     /// GoSysExit emits a GoSyscallEnd event, possibly along with a GoSyscallBlocked event
@@ -1500,11 +1638,15 @@ impl traceLocker {
         if !(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).status_was_traced(Arc::new(Mutex::new(Some({ let __selector_holder = __self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) && (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).acquire_status(Arc::new(Mutex::new(Some({ let __selector_holder = __self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))) {
                 // Careful: don't use the event writer. We never want status or in-progress events
                 // to trigger more in-progress events.
-        { let __recv = { let __recv = __self.writer(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).write_proc_status(
-            Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.id.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))),
-            Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_SYSCALL_ABANDONED as u8))))))),
-            Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).in_sweep.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
-        ); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result };
+        { let __recv = {
+            let __recv = __self.writer();
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).write_proc_status(
+                Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.id.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))),
+                Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_SYSCALL_ABANDONED as u8))))))),
+                Arc::new(Mutex::new(Some({ let __selector_holder = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).in_sweep.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
+            );
+            __result
+        }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).end(); __result };
     }
                 // Careful: don't use the event writer. We never want status or in-progress events
                 // to trigger more in-progress events.
@@ -1520,13 +1662,33 @@ impl traceLocker {
         { let new_val = crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_SYSCALL as u8)))); *goStatus.lock().unwrap() = Some(new_val); };
         { let new_val = crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_SYSCALL_ABANDONED as u8)))); *procStatus.lock().unwrap() = Some(new_val); };
     }
-        { let __recv = __self.event_writer(Arc::new(Mutex::new(Some({ let __arg_holder = goStatus.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = procStatus.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_PROC_STEAL as u8))))))), Arc::new(Mutex::new(Some(vec![crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.id.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))), (*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).next_seq(Arc::new(Mutex::new(Some({ let __selector_holder = __self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap()).clone(), crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*mStolenFrom.lock().unwrap().as_ref().unwrap()) as u64))))])))); __result };
+        {
+            let __recv = __self.event_writer(Arc::new(Mutex::new(Some({ let __arg_holder = goStatus.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = procStatus.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(
+                Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_PROC_STEAL as u8))))))),
+                Arc::new(Mutex::new(Some(vec![
+                    crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.id.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))),
+                    (*(*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).next_seq(Arc::new(Mutex::new(Some({ let __selector_holder = __self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))).lock().unwrap().as_ref().unwrap()).clone(),
+                    crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*mStolenFrom.lock().unwrap().as_ref().unwrap()) as u64)))),
+                ]))),
+            );
+            __result
+        };
     }
 
     /// HeapAlloc emits a HeapAlloc event.
     pub fn heap_alloc(&self, live: Arc<Mutex<Option<u64>>>) {
         let mut __self = self.clone();
-        { let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8)))))))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_HEAP_ALLOC as u8))))))), Arc::new(Mutex::new(Some(vec![crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*live.lock().unwrap().as_ref().unwrap()) as u64))))])))); __result };
+        {
+            let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8))))))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(
+                Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_HEAP_ALLOC as u8))))))),
+                Arc::new(Mutex::new(Some(vec![
+                    crate::traceevent::traceArg(Arc::new(Mutex::new(Some((*live.lock().unwrap().as_ref().unwrap()) as u64)))),
+                ]))),
+            );
+            __result
+        };
     }
 
     /// HeapGoal reads the current heap goal and emits a HeapGoal event.
@@ -1538,7 +1700,16 @@ impl traceLocker {
         { let new_val = 0 as u64; heapGoal = new_val; };
     }
                 // Heap-based triggering is disabled.
-        { let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8)))))))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_HEAP_GOAL as u8))))))), Arc::new(Mutex::new(Some(vec![crate::traceevent::traceArg(Arc::new(Mutex::new(Some(heapGoal as u64))))])))); __result };
+        {
+            let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_RUNNING as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_RUNNING as u8))))))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(
+                Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_HEAP_GOAL as u8))))))),
+                Arc::new(Mutex::new(Some(vec![
+                    crate::traceevent::traceArg(Arc::new(Mutex::new(Some(heapGoal as u64)))),
+                ]))),
+            );
+            __result
+        };
     }
 
     /// GoCreateSyscall indicates that a goroutine has transitioned from dead to GoSyscall.
@@ -1552,7 +1723,16 @@ impl traceLocker {
                 // N.B. We should never trace a status for this goroutine (which we're currently running on),
                 // since we want this to appear like goroutine creation.
         (*{ let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.trace.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).set_status_traced(Arc::new(Mutex::new(Some({ let __selector_holder = __self.gen.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
-        { let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_BAD as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_BAD as u8)))))))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_GO_CREATE_SYSCALL as u8))))))), Arc::new(Mutex::new(Some(vec![crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.goid.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64))))])))); __result };
+        {
+            let __recv = __self.event_writer(Arc::new(Mutex::new(Some(crate::tracestatus::traceGoStatus(Arc::new(Mutex::new(Some(TRACE_GO_BAD as u8))))))), Arc::new(Mutex::new(Some(crate::tracestatus::traceProcStatus(Arc::new(Mutex::new(Some(TRACE_PROC_BAD as u8))))))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).event(
+                Arc::new(Mutex::new(Some(crate::traceevent::traceEv(Arc::new(Mutex::new(Some(TRACE_EV_GO_CREATE_SYSCALL as u8))))))),
+                Arc::new(Mutex::new(Some(vec![
+                    crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = gp.with_mut(|__ptr_value| __ptr_value.goid.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as u64)))),
+                ]))),
+            );
+            __result
+        };
     }
 
     /// GoDestroySyscall indicates that a goroutine has transitioned from GoSyscall to dead.

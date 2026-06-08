@@ -913,7 +913,13 @@ impl spanSet {
                 // We may be reading a stale spine pointer, but because the length
                 // grows monotonically and we've already verified it, we'll definitely
                 // be reading from a valid block.
-        let mut blockp: GoPtr<internal_runtime_atomic::types::Pointer<spanSetBlock>> = { let __recv = (*self.spine.lock().unwrap().as_ref().unwrap()).load(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).lookup(Arc::new(Mutex::new(Some((*top.lock().unwrap().as_ref().unwrap()) as usize)))); __result };
+        let mut blockp: GoPtr<internal_runtime_atomic::types::Pointer<spanSetBlock>> = {
+            let __recv = (*self.spine.lock().unwrap().as_ref().unwrap()).load();
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).lookup(
+                Arc::new(Mutex::new(Some((*top.lock().unwrap().as_ref().unwrap()) as usize))),
+            );
+            __result
+        };
                 // Given that the spine length is correct, we know we will never
                 // see a nil block here, since the length is always updated after
                 // the block is set.
@@ -982,7 +988,13 @@ impl spanSet {
                 // since it may be pushed into again. In order to avoid leaking
                 // memory since we're going to reset the head and tail, clean
                 // up such a block now, if it exists.
-        let mut blockp: GoPtr<internal_runtime_atomic::types::Pointer<spanSetBlock>> = { let __recv = (*self.spine.lock().unwrap().as_ref().unwrap()).load(); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).lookup(Arc::new(Mutex::new(Some((*top.lock().unwrap().as_ref().unwrap()) as usize)))); __result };
+        let mut blockp: GoPtr<internal_runtime_atomic::types::Pointer<spanSetBlock>> = {
+            let __recv = (*self.spine.lock().unwrap().as_ref().unwrap()).load();
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).lookup(
+                Arc::new(Mutex::new(Some((*top.lock().unwrap().as_ref().unwrap()) as usize))),
+            );
+            __result
+        };
         let mut block = { let __recv_value = blockp.borrow(); let __result = (*__recv_value.as_ref().unwrap()).load(); __result };
         if { let __nil_result = (*block.lock().unwrap()).is_some(); __nil_result } {
                 // Check the popped value.

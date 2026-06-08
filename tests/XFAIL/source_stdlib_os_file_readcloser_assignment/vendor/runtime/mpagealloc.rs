@@ -1547,7 +1547,13 @@ impl pageAlloc {
         if { let __tmp_x = { let __v = (*size.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = (*Arc::new(Mutex::new(Some((*npages.lock().unwrap().as_ref().unwrap()) as u64))).lock().unwrap().as_ref().unwrap()); __tmp_x >= __tmp_y } {
                 // We found a sufficiently large run of free pages straddling
                 // some boundary, so compute the address and return it.
-        let mut addr = { let __recv = { let __recv = level_index_to_off_addr(Arc::new(Mutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.lock().unwrap().as_ref().unwrap()).add(Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y })))); __result }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).addr(); __result };
+        let mut addr = { let __recv = {
+            let __recv = level_index_to_off_addr(Arc::new(Mutex::new(Some({ let __arg_holder = l.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __arg_holder = i.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+            let __result = (*__recv.lock().unwrap().as_ref().unwrap()).add(
+                Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some((*base.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = PAGE_SIZE as usize; __tmp_x * __tmp_y }))),
+            );
+            __result
+        }; let __result = (*__recv.lock().unwrap().as_ref().unwrap()).addr(); __result };
         return (addr, self.find_mapped_addr(Arc::new(Mutex::new(Some({ let __selector_holder = (*firstFree.lock().unwrap().as_ref().unwrap()).base.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })))));
     }
                 // We found a sufficiently large run of free pages straddling

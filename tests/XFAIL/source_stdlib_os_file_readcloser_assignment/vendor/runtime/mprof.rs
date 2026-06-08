@@ -1704,11 +1704,24 @@ impl goroutineProfileStateHolder {
     }
 
     pub fn store(&self, value: Arc<Mutex<Option<goroutineProfileState>>>) {
-        { let __recv = Arc::new(Mutex::new(Some(internal_runtime_atomic::types::Uint32::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).store(Arc::new(Mutex::new(Some((*{ let __v = (*value.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u32)))); __result };
+        {
+            let __recv = Arc::new(Mutex::new(Some(internal_runtime_atomic::types::Uint32::default())));
+            let __result = (*__recv.lock().unwrap().as_mut().unwrap()).store(
+                Arc::new(Mutex::new(Some((*{ let __v = (*value.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u32))),
+            );
+            __result
+        };
     }
 
     pub fn compare_and_swap(&self, old: Arc<Mutex<Option<goroutineProfileState>>>, new: Arc<Mutex<Option<goroutineProfileState>>>) -> bool {
-        { let __recv = Arc::new(Mutex::new(Some(internal_runtime_atomic::types::Uint32::default()))); let __result = (*__recv.lock().unwrap().as_mut().unwrap()).compare_and_swap(Arc::new(Mutex::new(Some((*{ let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u32))), Arc::new(Mutex::new(Some((*{ let __v = (*new.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u32)))); __result }
+        {
+            let __recv = Arc::new(Mutex::new(Some(internal_runtime_atomic::types::Uint32::default())));
+            let __result = (*__recv.lock().unwrap().as_mut().unwrap()).compare_and_swap(
+                Arc::new(Mutex::new(Some((*{ let __v = (*old.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u32))),
+                Arc::new(Mutex::new(Some((*{ let __v = (*new.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as u32))),
+            );
+            __result
+        }
     }
 }
 
