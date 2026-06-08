@@ -862,7 +862,16 @@ pub fn deferconvert(d0: Arc<Mutex<Option<_defer>>>) {
         { let new_val = { let __recv = head.clone(); let __recv_ptr: *const internal_runtime_atomic::types::Pointer<crate::runtime2::_defer> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const internal_runtime_atomic::types::Pointer<crate::runtime2::_defer> }; let __result = unsafe { &*__recv_ptr }.load(); __result }.clone(); d = new_val; };
         if { let __recv = head.clone(); let __recv_ptr: *const internal_runtime_atomic::types::Pointer<crate::runtime2::_defer> = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const internal_runtime_atomic::types::Pointer<crate::runtime2::_defer> }; let __result = unsafe { &*__recv_ptr }.compare_and_swap(
             d.clone(),
-            { let __go_ptr = bad_defer().clone(); match __go_ptr { GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(), GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } },
+            {
+                let __go_ptr = bad_defer().clone();
+                match __go_ptr {
+                    GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(),
+                    GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()),
+                    GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr),
+                    GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                    GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                }
+            },
         ); __result } {
         break
     }

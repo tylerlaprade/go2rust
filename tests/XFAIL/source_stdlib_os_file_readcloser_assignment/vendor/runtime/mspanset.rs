@@ -832,7 +832,16 @@ impl spanSet {
         block = (*spanSetBlockPool.lock().unwrap().as_ref().unwrap()).alloc();
                 // Add it to the spine.
                 // Blocks are allocated off-heap, so no write barrier.
-        { let __recv = (*spine.lock().unwrap().as_ref().unwrap()).lookup(Arc::new(Mutex::new(Some({ let __arg_holder = top.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __recv_value = __recv.borrow(); let __result = (*__recv_value.as_ref().unwrap()).store_no_w_b({ let __go_ptr = block.clone(); match __go_ptr { GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(), GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }); __result };
+        { let __recv = (*spine.lock().unwrap().as_ref().unwrap()).lookup(Arc::new(Mutex::new(Some({ let __arg_holder = top.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __recv_value = __recv.borrow(); let __result = (*__recv_value.as_ref().unwrap()).store_no_w_b({
+            let __go_ptr = block.clone();
+            match __go_ptr {
+                GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(),
+                GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()),
+                GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr),
+                GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        }); __result };
         (*self.spine_len.lock().unwrap().as_mut().unwrap()).store(Arc::new(Mutex::new(Some({ let __tmp_x = spineLen; let __tmp_y = 1 as usize; __tmp_x + __tmp_y }))));
         unlock(GoPtr::local(self.spine_lock.clone()));
     }

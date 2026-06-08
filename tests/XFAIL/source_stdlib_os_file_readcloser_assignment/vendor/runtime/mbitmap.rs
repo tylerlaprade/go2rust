@@ -1008,7 +1008,16 @@ impl markBits {
                 // Might be racing with other updates, so use atomic update always.
                 // We used to be clever here and use a non-atomic update in certain
                 // cases, but it's not worth the risk.
-        internal_runtime_atomic::or8({ let __go_ptr = self.bytep.clone(); match __go_ptr { GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(), GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }, Arc::new(Mutex::new(Some({ let __selector_holder = self.mask.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+        internal_runtime_atomic::or8({
+            let __go_ptr = self.bytep.clone();
+            match __go_ptr {
+                GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(),
+                GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()),
+                GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr),
+                GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        }, Arc::new(Mutex::new(Some({ let __selector_holder = self.mask.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
     }
 
     /// setMarkedNonAtomic sets the marked bit in the markbits, non-atomically.
@@ -1022,7 +1031,16 @@ impl markBits {
                 // Might be racing with other updates, so use atomic update always.
                 // We used to be clever here and use a non-atomic update in certain
                 // cases, but it's not worth the risk.
-        internal_runtime_atomic::and8({ let __go_ptr = self.bytep.clone(); match __go_ptr { GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(), GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }, Arc::new(Mutex::new(Some(!{ let __selector_holder = self.mask.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
+        internal_runtime_atomic::and8({
+            let __go_ptr = self.bytep.clone();
+            match __go_ptr {
+                GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(),
+                GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()),
+                GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr),
+                GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        }, Arc::new(Mutex::new(Some(!{ let __selector_holder = self.mask.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))));
     }
 
     /// advance advances the markBits to the next object in the span.

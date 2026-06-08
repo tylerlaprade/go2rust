@@ -281,9 +281,27 @@ impl pinState {
         { let __rhs = 1 as u8; let mut guard = mask.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() << __rhs); };
     }
         if { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v } {
-        internal_runtime_atomic::or8({ let __go_ptr = self.bytep.clone(); match __go_ptr { GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(), GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }, Arc::new(Mutex::new(Some({ let __arg_holder = mask.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+        internal_runtime_atomic::or8({
+            let __go_ptr = self.bytep.clone();
+            match __go_ptr {
+                GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(),
+                GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()),
+                GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr),
+                GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        }, Arc::new(Mutex::new(Some({ let __arg_holder = mask.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     } else {
-        internal_runtime_atomic::and8({ let __go_ptr = self.bytep.clone(); match __go_ptr { GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(), GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }, Arc::new(Mutex::new(Some(!(*mask.lock().unwrap().as_ref().unwrap())))));
+        internal_runtime_atomic::and8({
+            let __go_ptr = self.bytep.clone();
+            match __go_ptr {
+                GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(),
+                GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()),
+                GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr),
+                GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        }, Arc::new(Mutex::new(Some(!(*mask.lock().unwrap().as_ref().unwrap())))));
     }
     }
 }
@@ -301,7 +319,16 @@ impl pinnerBits {
             );
             __result
         };
-        let mut byteVal = internal_runtime_atomic::load8({ let __go_ptr = bytep.clone(); match __go_ptr { GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(), GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } });
+        let mut byteVal = internal_runtime_atomic::load8({
+            let __go_ptr = bytep.clone();
+            match __go_ptr {
+                GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(),
+                GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()),
+                GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr),
+                GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        });
         Arc::new(Mutex::new(Some(pinState { bytep: bytep.clone(), byte_val: Arc::new(Mutex::new(Some(byteVal))), mask: Arc::new(Mutex::new(Some(mask))), ..Default::default() })))
     }
 }

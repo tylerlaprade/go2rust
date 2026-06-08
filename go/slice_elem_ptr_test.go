@@ -3978,7 +3978,8 @@ func use(inter *Type) {
 		t.Fatalf("foreign generated GoPtr field should lower as a call argument")
 	}
 	rust := out.String()
-	if !strings.Contains(rust, "match __go_ptr { example_com_abi::GoPtr::Nil => GoPtr::nil()") {
+	if !strings.Contains(rust, "match __go_ptr {\n") ||
+		!strings.Contains(rust, "example_com_abi::GoPtr::Nil => GoPtr::nil(),") {
 		t.Fatalf("foreign generated GoPtr field should convert from the owner helper type:\n%s", rust)
 	}
 	if strings.Contains(rust, "GoPtr::local({ let __ptr_value = m.borrow(); __ptr_value.as_ref().unwrap().inter.clone() }.clone())") {
@@ -4061,7 +4062,8 @@ func store(e *EmptyInterface, t *Type) {
 	if strings.Contains(rust, `unimplemented!("slice element pointer field assignment requires compatible pointer value")`) {
 		t.Fatalf("foreign GoPtr field assignment should not fall back to an unimplemented value path:\n%s", rust)
 	}
-	if !strings.Contains(rust, "match __go_ptr { GoPtr::Nil => example_com_abi::GoPtr::nil()") {
+	if !strings.Contains(rust, "match __go_ptr {\n") ||
+		!strings.Contains(rust, "GoPtr::Nil => example_com_abi::GoPtr::nil(),") {
 		t.Fatalf("foreign GoPtr field assignment should convert the RHS helper type:\n%s", rust)
 	}
 	if !strings.Contains(rust, "e.with_mut(|__ptr_value| { __ptr_value.r#type = new_val; });") {
@@ -5763,6 +5765,20 @@ func touch(addr uintptr, i int) int {
 	}
 	if !strings.Contains(rust, "n.with_mut(|__ptr_value| __ptr_value.children.clone())") {
 		t.Fatalf("GoPtr local field handle should borrow the original pointee:\n%s", rust)
+	}
+}
+
+func TestGoPtrConversionSplitsMatchArms(t *testing.T) {
+	var out strings.Builder
+	writeGoPtrConversion(&out, "sync_atomic", "", func() {
+		out.WriteString("slot.load()")
+	})
+	rust := out.String()
+	if !strings.Contains(rust, "match __go_ptr {\n") {
+		t.Fatalf("cross-package GoPtr conversion should split the match arms across lines:\n%s", rust)
+	}
+	if strings.Contains(rust, "match __go_ptr { sync_atomic::GoPtr::Nil") {
+		t.Fatalf("cross-package GoPtr conversion should not keep the full match inline:\n%s", rust)
 	}
 }
 

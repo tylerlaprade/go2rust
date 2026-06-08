@@ -50,7 +50,16 @@ pub(crate) fn __go_zero_globals() {
 /// Logger returns the current test logger implementation.
 /// It returns nil if there is no logger.
 pub fn logger() -> Arc<Mutex<Option<Box<dyn Interface + Send + Sync>>>> {
-    let mut r#impl: GoPtr<Arc<Mutex<Option<Box<dyn Interface + Send + Sync>>>>> = { let __go_ptr = (*logger_1.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+    let mut r#impl: GoPtr<Arc<Mutex<Option<Box<dyn Interface + Send + Sync>>>>> = {
+        let __go_ptr = (*logger_1.lock().unwrap().as_mut().unwrap()).load().clone();
+        match __go_ptr {
+            sync_atomic::GoPtr::Nil => GoPtr::nil(),
+            sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+            sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+            sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+            sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+        }
+    };
     if r#impl.is_nil() {
         return Arc::new(Mutex::new(None));
     }

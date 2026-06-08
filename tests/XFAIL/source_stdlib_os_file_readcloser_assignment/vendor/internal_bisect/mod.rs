@@ -946,12 +946,30 @@ impl Matcher {
         if self.should_print(Arc::new(Mutex::new(Some(h)))) {
         let mut d: GoPtr<dedup> = GoPtr::nil();
         loop {
-        d = { let __go_ptr = (*self.dedup.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        d = {
+            let __go_ptr = (*self.dedup.lock().unwrap().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
         if !d.is_nil() {
         break
     }
         d = GoPtr::local(Arc::new(Mutex::new(Some(dedup::default()))));
-        if (*self.dedup.lock().unwrap().as_mut().unwrap()).compare_and_swap(sync_atomic::GoPtr::nil(), { let __go_ptr = d.clone(); match __go_ptr { GoPtr::Nil => sync_atomic::GoPtr::nil(), GoPtr::Local(__value) => sync_atomic::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => sync_atomic::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => sync_atomic::GoPtr::slice_elem(sync_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }) {
+        if (*self.dedup.lock().unwrap().as_mut().unwrap()).compare_and_swap(sync_atomic::GoPtr::nil(), {
+            let __go_ptr = d.clone();
+            match __go_ptr {
+                GoPtr::Nil => sync_atomic::GoPtr::nil(),
+                GoPtr::Local(__value) => sync_atomic::GoPtr::local(__value.clone()),
+                GoPtr::Raw(__addr) => sync_atomic::GoPtr::raw(__addr),
+                GoPtr::SliceElem(__value) => sync_atomic::GoPtr::slice_elem(sync_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        }) {
         break
     }
     }

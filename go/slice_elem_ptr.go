@@ -7610,21 +7610,32 @@ func writeQualifiedGoPtrSelectorConversion(out *strings.Builder, sel *ast.Select
 }
 
 func writeGoPtrConversion(out *strings.Builder, inputHelperQualifier string, outputHelperQualifier string, writeValue func()) {
-	out.WriteString("{ let __go_ptr = ")
+	indent := currentLineIndent(out)
+	innerIndent := indent + "    "
+	armIndent := innerIndent + "    "
+	out.WriteString("{\n")
+	out.WriteString(innerIndent)
+	out.WriteString("let __go_ptr = ")
 	writeValue()
-	out.WriteString(".clone(); match __go_ptr { ")
+	out.WriteString(".clone();\n")
+	out.WriteString(innerIndent)
+	out.WriteString("match __go_ptr {\n")
+	out.WriteString(armIndent)
 	writeGoPtrQualifiedVariant(out, inputHelperQualifier, "Nil")
 	out.WriteString(" => ")
 	writeGoPtrQualifiedConstructor(out, outputHelperQualifier, "nil")
-	out.WriteString("(), ")
+	out.WriteString("(),\n")
+	out.WriteString(armIndent)
 	writeGoPtrQualifiedVariant(out, inputHelperQualifier, "Local")
 	out.WriteString("(__value) => ")
 	writeGoPtrQualifiedConstructor(out, outputHelperQualifier, "local")
-	out.WriteString("(__value.clone()), ")
+	out.WriteString("(__value.clone()),\n")
+	out.WriteString(armIndent)
 	writeGoPtrQualifiedVariant(out, inputHelperQualifier, "Raw")
 	out.WriteString("(__addr) => ")
 	writeGoPtrQualifiedConstructor(out, outputHelperQualifier, "raw")
-	out.WriteString("(__addr), ")
+	out.WriteString("(__addr),\n")
+	out.WriteString(armIndent)
 	writeGoPtrQualifiedVariant(out, inputHelperQualifier, "SliceElem")
 	out.WriteString("(__value) => ")
 	writeGoPtrQualifiedConstructor(out, outputHelperQualifier, "slice_elem")
@@ -7633,11 +7644,16 @@ func writeGoPtrConversion(out *strings.Builder, inputHelperQualifier string, out
 		out.WriteString(outputHelperQualifier)
 		out.WriteString("::")
 	}
-	out.WriteString("GoSliceElemPtr::new(__value.slice_handle(), __value.index())), ")
+	out.WriteString("GoSliceElemPtr::new(__value.slice_handle(), __value.index())),\n")
+	out.WriteString(armIndent)
 	writeGoPtrQualifiedVariant(out, inputHelperQualifier, "ArrayElem")
 	out.WriteString("(_) => ")
 	writeCrossPackageGoPtrArrayElemForwardingGap(out)
-	out.WriteString(" } }")
+	out.WriteString(",\n")
+	out.WriteString(innerIndent)
+	out.WriteString("}\n")
+	out.WriteString(indent)
+	out.WriteString("}")
 }
 
 func writeCrossPackageGoPtrArrayElemForwardingGap(out *strings.Builder) {

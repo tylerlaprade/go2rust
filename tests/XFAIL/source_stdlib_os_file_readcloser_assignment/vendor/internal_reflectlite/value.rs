@@ -580,7 +580,16 @@ impl StdError for ValueError {}
 /// assumed to be two stack frames above.
 pub fn method_name() -> Arc<Mutex<Option<String>>> {
     let (mut pc, _, _, _) = runtime::caller(Arc::new(Mutex::new(Some(2))));
-    let mut f: GoPtr<runtime::symtab::Func> = { let __go_ptr = runtime::func_for_p_c(Arc::new(Mutex::new(Some(pc)))).clone(); match __go_ptr { runtime::GoPtr::Nil => GoPtr::nil(), runtime::GoPtr::Local(__value) => GoPtr::local(__value.clone()), runtime::GoPtr::Raw(__addr) => GoPtr::raw(__addr), runtime::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), runtime::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+    let mut f: GoPtr<runtime::symtab::Func> = {
+        let __go_ptr = runtime::func_for_p_c(Arc::new(Mutex::new(Some(pc)))).clone();
+        match __go_ptr {
+            runtime::GoPtr::Nil => GoPtr::nil(),
+            runtime::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+            runtime::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+            runtime::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+            runtime::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+        }
+    };
     if f.is_nil() {
         return Arc::new(Mutex::new(Some("unknown method".to_string())));
     }

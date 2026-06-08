@@ -479,7 +479,16 @@ impl poolChain {
 
                 // There may still be unconsumed elements in the
                 // previous dequeue, so try backing up.
-        d = { let __go_ptr = (*{ let __ptr_value = d.with_mut(|__ptr_value| __ptr_value.prev.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        d = {
+            let __go_ptr = (*{ let __ptr_value = d.with_mut(|__ptr_value| __ptr_value.prev.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
     }
                 // There may still be unconsumed elements in the
                 // previous dequeue, so try backing up.
@@ -487,7 +496,16 @@ impl poolChain {
     }
 
     pub fn pop_tail(&self) -> (Arc<StdMutex<Option<Box<dyn Any + Send + Sync>>>>, bool) {
-        let mut d: GoPtr<poolChainElt> = { let __go_ptr = (*self.tail.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        let mut d: GoPtr<poolChainElt> = {
+            let __go_ptr = (*self.tail.lock().unwrap().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
         if d.is_nil() {
         return (Arc::new(StdMutex::new(None)), false);
     }
@@ -498,7 +516,16 @@ impl poolChain {
                 // the pop and the pop fails, then d is permanently
                 // empty, which is the only condition under which it's
                 // safe to drop d from the chain.
-        let mut d2: GoPtr<poolChainElt> = { let __go_ptr = (*{ let __ptr_value = d.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        let mut d2: GoPtr<poolChainElt> = {
+            let __go_ptr = (*{ let __ptr_value = d.with_mut(|__ptr_value| __ptr_value.next.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
 
         {
         let (mut val, mut ok) = { let __recv_value = d.borrow(); let __result = (*__recv_value.as_ref().unwrap()).pop_tail(); __result };;
@@ -519,7 +546,25 @@ impl poolChain {
                 // to the next dequeue. Try to drop it from the chain
                 // so the next pop doesn't have to look at the empty
                 // dequeue again.
-        if (*self.tail.lock().unwrap().as_mut().unwrap()).compare_and_swap({ let __go_ptr = d.clone(); match __go_ptr { GoPtr::Nil => sync_atomic::GoPtr::nil(), GoPtr::Local(__value) => sync_atomic::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => sync_atomic::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => sync_atomic::GoPtr::slice_elem(sync_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }, { let __go_ptr = d2.clone(); match __go_ptr { GoPtr::Nil => sync_atomic::GoPtr::nil(), GoPtr::Local(__value) => sync_atomic::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => sync_atomic::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => sync_atomic::GoPtr::slice_elem(sync_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }) {
+        if (*self.tail.lock().unwrap().as_mut().unwrap()).compare_and_swap({
+            let __go_ptr = d.clone();
+            match __go_ptr {
+                GoPtr::Nil => sync_atomic::GoPtr::nil(),
+                GoPtr::Local(__value) => sync_atomic::GoPtr::local(__value.clone()),
+                GoPtr::Raw(__addr) => sync_atomic::GoPtr::raw(__addr),
+                GoPtr::SliceElem(__value) => sync_atomic::GoPtr::slice_elem(sync_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        }, {
+            let __go_ptr = d2.clone();
+            match __go_ptr {
+                GoPtr::Nil => sync_atomic::GoPtr::nil(),
+                GoPtr::Local(__value) => sync_atomic::GoPtr::local(__value.clone()),
+                GoPtr::Raw(__addr) => sync_atomic::GoPtr::raw(__addr),
+                GoPtr::SliceElem(__value) => sync_atomic::GoPtr::slice_elem(sync_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        }) {
                 // We won the race. Clear the prev pointer so
                 // the garbage collector can collect the empty
                 // dequeue and so popHead doesn't back up

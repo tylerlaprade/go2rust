@@ -977,7 +977,16 @@ pub fn semrelease(addr: GoPtr<u32>) {
 
 pub fn semrelease1(addr: GoPtr<u32>, handoff: Arc<Mutex<Option<bool>>>, skipframes: Arc<Mutex<Option<i32>>>) {
     let mut root = (*semtable.lock().unwrap().as_ref().unwrap()).root_for(addr.clone());
-    internal_runtime_atomic::xadd({ let __go_ptr = addr.clone(); match __go_ptr { GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(), GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }, Arc::new(Mutex::new(Some(1 as i32))));
+    internal_runtime_atomic::xadd({
+        let __go_ptr = addr.clone();
+        match __go_ptr {
+            GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(),
+            GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()),
+            GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr),
+            GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+            GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+        }
+    }, Arc::new(Mutex::new(Some(1 as i32))));
 
         // Easy case: no waiters?
         // This check must happen after the xadd, to avoid a missed wakeup
@@ -1095,11 +1104,29 @@ pub fn semrelease1(addr: GoPtr<u32>, handoff: Arc<Mutex<Option<bool>>>, skipfram
 
 pub fn cansemacquire(addr: GoPtr<u32>) -> bool {
     loop {
-        let mut v = internal_runtime_atomic::load({ let __go_ptr = addr.clone(); match __go_ptr { GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(), GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } });
+        let mut v = internal_runtime_atomic::load({
+            let __go_ptr = addr.clone();
+            match __go_ptr {
+                GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(),
+                GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()),
+                GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr),
+                GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        });
         if { let __tmp_x = v; let __tmp_y = 0 as u32; __tmp_x == __tmp_y } {
         return false;
     }
-        if internal_runtime_atomic::cas({ let __go_ptr = addr.clone(); match __go_ptr { GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(), GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }, Arc::new(Mutex::new(Some(v))), Arc::new(Mutex::new(Some({ let __tmp_x = v; let __tmp_y = 1 as u32; __tmp_x - __tmp_y })))) {
+        if internal_runtime_atomic::cas({
+            let __go_ptr = addr.clone();
+            match __go_ptr {
+                GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(),
+                GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()),
+                GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr),
+                GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        }, Arc::new(Mutex::new(Some(v))), Arc::new(Mutex::new(Some({ let __tmp_x = v; let __tmp_y = 1 as u32; __tmp_x - __tmp_y })))) {
         return true;
     }
     }

@@ -589,7 +589,16 @@ impl crate::types::File {
     let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
 
         {
-        let mut info: GoPtr<crate::dir_darwin::dirInfo> = { let __go_ptr = (*(*self.file.lock().unwrap().as_ref().unwrap()).dirinfo.lock().unwrap().as_mut().unwrap()).swap(sync_atomic::GoPtr::nil()).clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };;
+        let mut info: GoPtr<crate::dir_darwin::dirInfo> = {
+            let __go_ptr = (*(*self.file.lock().unwrap().as_ref().unwrap()).dirinfo.lock().unwrap().as_mut().unwrap()).swap(sync_atomic::GoPtr::nil()).clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };;
         if !info.is_nil() {
             { let __result = info.with_mut(|__recv_value| __recv_value.close()); __result };;
         }
@@ -608,7 +617,16 @@ impl file {
         return Arc::new(Mutex::new(Some(Box::new(syscall::syscall_unix::Errno(Arc::new(Mutex::new(Some(syscall::E_I_N_V_A_L as usize))))) as Box<dyn StdError + Send + Sync>)));
     }
         {
-        let mut info: GoPtr<crate::dir_darwin::dirInfo> = { let __go_ptr = (*self.dirinfo.lock().unwrap().as_mut().unwrap()).swap(sync_atomic::GoPtr::nil()).clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };;
+        let mut info: GoPtr<crate::dir_darwin::dirInfo> = {
+            let __go_ptr = (*self.dirinfo.lock().unwrap().as_mut().unwrap()).swap(sync_atomic::GoPtr::nil()).clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };;
         if !info.is_nil() {
             { let __result = info.with_mut(|__recv_value| __recv_value.close()); __result };;
         }

@@ -1478,8 +1478,26 @@ impl itabTableType {
         let mut h = Arc::new(Mutex::new(Some({
             let __tmp_x =
                 itab_hash_func(
-                    { let __go_ptr = { let __ptr_value = m.with_mut(|__ptr_value| __ptr_value.inter.clone()); __ptr_value }.clone(); match __go_ptr { internal_abi::GoPtr::Nil => GoPtr::nil(), internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()), internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr), internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } },
-                    { let __go_ptr = { let __ptr_value = m.with_mut(|__ptr_value| __ptr_value.r#type.clone()); __ptr_value }.clone(); match __go_ptr { internal_abi::GoPtr::Nil => GoPtr::nil(), internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()), internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr), internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }
+                    {
+                        let __go_ptr = { let __ptr_value = m.with_mut(|__ptr_value| __ptr_value.inter.clone()); __ptr_value }.clone();
+                        match __go_ptr {
+                            internal_abi::GoPtr::Nil => GoPtr::nil(),
+                            internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                            internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                            internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                            internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                        }
+                    },
+                    {
+                        let __go_ptr = { let __ptr_value = m.with_mut(|__ptr_value| __ptr_value.r#type.clone()); __ptr_value }.clone();
+                        match __go_ptr {
+                            internal_abi::GoPtr::Nil => GoPtr::nil(),
+                            internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                            internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                            internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                            internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                        }
+                    }
                 );
             let __tmp_y = { let __v = (*mask.lock().unwrap().as_ref().unwrap()).clone(); __v };
             __tmp_x & __tmp_y
@@ -1603,8 +1621,26 @@ pub fn getitab(inter: GoPtr<internal_abi::r#type::InterfaceType>, typ: GoPtr<int
             Arc::new(Mutex::new(Some(0 as usize))),
             (*memstats.lock().unwrap().as_ref().unwrap()).other_sys.clone()
         ).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
-        { let new_val = { let __go_ptr = inter.clone(); match __go_ptr { GoPtr::Nil => internal_abi::GoPtr::nil(), GoPtr::Local(__value) => internal_abi::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => internal_abi::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => internal_abi::GoPtr::slice_elem(internal_abi::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }; m.with_mut(|__ptr_value| { __ptr_value.inter = new_val; }); };
-        { let new_val = { let __go_ptr = typ.clone(); match __go_ptr { GoPtr::Nil => internal_abi::GoPtr::nil(), GoPtr::Local(__value) => internal_abi::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => internal_abi::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => internal_abi::GoPtr::slice_elem(internal_abi::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }; m.with_mut(|__ptr_value| { __ptr_value.r#type = new_val; }); };
+        { let new_val = {
+            let __go_ptr = inter.clone();
+            match __go_ptr {
+                GoPtr::Nil => internal_abi::GoPtr::nil(),
+                GoPtr::Local(__value) => internal_abi::GoPtr::local(__value.clone()),
+                GoPtr::Raw(__addr) => internal_abi::GoPtr::raw(__addr),
+                GoPtr::SliceElem(__value) => internal_abi::GoPtr::slice_elem(internal_abi::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        }; m.with_mut(|__ptr_value| { __ptr_value.inter = new_val; }); };
+        { let new_val = {
+            let __go_ptr = typ.clone();
+            match __go_ptr {
+                GoPtr::Nil => internal_abi::GoPtr::nil(),
+                GoPtr::Local(__value) => internal_abi::GoPtr::local(__value.clone()),
+                GoPtr::Raw(__addr) => internal_abi::GoPtr::raw(__addr),
+                GoPtr::SliceElem(__value) => internal_abi::GoPtr::slice_elem(internal_abi::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        }; m.with_mut(|__ptr_value| { __ptr_value.r#type = new_val; }); };
 
                 // The hash is used in type switches. However, compiler statically generates itab's
                 // for all interface/type pairs used in switches (which are added to itabTable
@@ -1705,8 +1741,26 @@ pub fn itab_add(m: GoPtr<internal_abi::iface::ITab>) {
 /// It is ok to call this multiple times on the same m, even concurrently
 /// (although it will only be called once with firstTime==true).
 pub fn itab_init(m: GoPtr<internal_abi::iface::ITab>, firstTime: Arc<Mutex<Option<bool>>>) -> Arc<Mutex<Option<String>>> {
-    let mut inter: GoPtr<internal_abi::r#type::InterfaceType> = { let __go_ptr = { let __ptr_value = m.with_mut(|__ptr_value| __ptr_value.inter.clone()); __ptr_value }.clone(); match __go_ptr { internal_abi::GoPtr::Nil => GoPtr::nil(), internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()), internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr), internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
-    let mut typ: GoPtr<internal_abi::r#type::Type> = { let __go_ptr = { let __ptr_value = m.with_mut(|__ptr_value| __ptr_value.r#type.clone()); __ptr_value }.clone(); match __go_ptr { internal_abi::GoPtr::Nil => GoPtr::nil(), internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()), internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr), internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+    let mut inter: GoPtr<internal_abi::r#type::InterfaceType> = {
+        let __go_ptr = { let __ptr_value = m.with_mut(|__ptr_value| __ptr_value.inter.clone()); __ptr_value }.clone();
+        match __go_ptr {
+            internal_abi::GoPtr::Nil => GoPtr::nil(),
+            internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+            internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+            internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+            internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+        }
+    };
+    let mut typ: GoPtr<internal_abi::r#type::Type> = {
+        let __go_ptr = { let __ptr_value = m.with_mut(|__ptr_value| __ptr_value.r#type.clone()); __ptr_value }.clone();
+        match __go_ptr {
+            internal_abi::GoPtr::Nil => GoPtr::nil(),
+            internal_abi::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+            internal_abi::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+            internal_abi::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+            internal_abi::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+        }
+    };
     let mut x = { let __result = typ.with_mut(|__recv_value| __recv_value.uncommon()); __result };
 
         // both inter and typ have method sorted by name,

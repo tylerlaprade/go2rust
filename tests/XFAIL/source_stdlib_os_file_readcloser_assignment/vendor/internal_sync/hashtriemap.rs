@@ -398,12 +398,30 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 Arc::new(StdMutex::new(Some({ let __selector_holder = self.seed.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }))),
             )
         };
-        let mut i: GoPtr<indirect<K, V>> = { let __go_ptr = (*self.root.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        let mut i: GoPtr<indirect<K, V>> = {
+            let __go_ptr = (*self.root.lock().unwrap().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
         let mut hashShift = Arc::new(StdMutex::new(Some({ let __tmp_x = 8; let __tmp_y = internal_goarch::PTR_SIZE; __tmp_x * __tmp_y })));
         while { let __tmp_x = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x != __tmp_y } {
         { let __rhs = 4; let mut guard = hashShift.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
 
-        let mut n: GoPtr<node<K, V>> = { let __go_ptr = { let __seq = { let __seq_holder = { let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ({ let __tmp_x = hash; let __tmp_y = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x >> __tmp_y }); let __tmp_y = N_CHILDREN_MASK as usize; __tmp_x & __tmp_y }) as usize].clone() }.load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        let mut n: GoPtr<node<K, V>> = {
+            let __go_ptr = { let __seq = { let __seq_holder = { let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = ({ let __tmp_x = hash; let __tmp_y = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x >> __tmp_y }); let __tmp_y = N_CHILDREN_MASK as usize; __tmp_x & __tmp_y }) as usize].clone() }.load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
         if n.is_nil() {
         return (
             Arc::new(StdMutex::new(None)),
@@ -449,14 +467,32 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
             let mut n: GoPtr<node<K, V>> = GoPtr::nil();
             loop {
                 // Find the key or a candidate location for insertion.
-        i = { let __go_ptr = (*self.root.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        i = {
+            let __go_ptr = (*self.root.lock().unwrap().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
         { let new_val = ((8 as u64) * (internal_goarch::PTR_SIZE as u64)) as u64; *hashShift.lock().unwrap() = Some(new_val); };
         let mut haveInsertPoint = Arc::new(StdMutex::new(Some(false)));
         while { let __tmp_x = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
         { let __rhs = N_CHILDREN_LOG2 as u64; let mut guard = hashShift.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
 
         slot = Some(GoArrayElemPtr::new({ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(), ({ let __tmp_x = ({ let __tmp_x = hash; let __tmp_y = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x >> __tmp_y }); let __tmp_y = N_CHILDREN_MASK as usize; __tmp_x & __tmp_y }) as usize));
-        n = { let __go_ptr = (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        n = {
+            let __go_ptr = (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
         if n.is_nil() {
                 // We found a nil slot which is a candidate for insertion.
         { let new_val = true; *haveInsertPoint.lock().unwrap() = Some(new_val); };
@@ -499,7 +535,16 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
 
                 // Grab the lock and double-check what we saw.
         (*{ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.mu.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).lock();
-        n = { let __go_ptr = (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        n = {
+            let __go_ptr = (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
         if (n.is_nil() || (*{ let __ptr_value = n.borrow(); __ptr_value.as_ref().unwrap().is_entry.clone() }.lock().unwrap().as_ref().unwrap())) && !(*{ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.dead.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load() {
                 // What we saw is still true, so we can continue with the insert.
         break
@@ -609,7 +654,16 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         if { let __tmp_x = oldHash; let __tmp_y = { let __v = (*newHash.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x == __tmp_y } {
                 // Store the old entry in the new entry's overflow list, then store
                 // the new entry.
-        (*(*newEntry.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).store({ let __go_ptr = oldEntry.clone(); match __go_ptr { GoPtr::Nil => sync_atomic::GoPtr::nil(), GoPtr::Local(__value) => sync_atomic::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => sync_atomic::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => sync_atomic::GoPtr::slice_elem(sync_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } });
+        (*(*newEntry.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).store({
+            let __go_ptr = oldEntry.clone();
+            match __go_ptr {
+                GoPtr::Nil => sync_atomic::GoPtr::nil(),
+                GoPtr::Local(__value) => sync_atomic::GoPtr::local(__value.clone()),
+                GoPtr::Raw(__addr) => sync_atomic::GoPtr::raw(__addr),
+                GoPtr::SliceElem(__value) => sync_atomic::GoPtr::slice_elem(sync_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        });
         return (*newEntry.lock().unwrap().as_ref().unwrap()).node.clone();
     }
                 // Store the old entry in the new entry's overflow list, then store
@@ -672,14 +726,32 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
             let mut n: GoPtr<node<K, V>> = GoPtr::nil();
             loop {
                 // Find the key or a candidate location for insertion.
-        i = { let __go_ptr = (*self.root.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        i = {
+            let __go_ptr = (*self.root.lock().unwrap().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
         { let new_val = ((8 as u64) * (internal_goarch::PTR_SIZE as u64)) as u64; *hashShift.lock().unwrap() = Some(new_val); };
         let mut haveInsertPoint = Arc::new(StdMutex::new(Some(false)));
         while { let __tmp_x = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
         { let __rhs = N_CHILDREN_LOG2 as u64; let mut guard = hashShift.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
 
         slot = Some(GoArrayElemPtr::new({ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(), ({ let __tmp_x = ({ let __tmp_x = hash; let __tmp_y = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x >> __tmp_y }); let __tmp_y = N_CHILDREN_MASK as usize; __tmp_x & __tmp_y }) as usize));
-        n = { let __go_ptr = (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        n = {
+            let __go_ptr = (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
         if n.is_nil() || (*{ let __ptr_value = n.borrow(); __ptr_value.as_ref().unwrap().is_entry.clone() }.lock().unwrap().as_ref().unwrap()) {
                 // We found a nil slot which is a candidate for insertion,
                 // or an existing entry that we'll replace.
@@ -698,7 +770,16 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
 
                 // Grab the lock and double-check what we saw.
         (*{ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.mu.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).lock();
-        n = { let __go_ptr = (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        n = {
+            let __go_ptr = (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
         if (n.is_nil() || (*{ let __ptr_value = n.borrow(); __ptr_value.as_ref().unwrap().is_entry.clone() }.lock().unwrap().as_ref().unwrap())) && !(*{ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.dead.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load() {
                 // What we saw is still true, so we can continue with the insert.
         break
@@ -1044,14 +1125,32 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
 
         loop {
                 // Find the key or return if it's not there.
-        i = { let __go_ptr = (*self.root.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        i = {
+            let __go_ptr = (*self.root.lock().unwrap().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
         { let new_val = ((8 as u64) * (internal_goarch::PTR_SIZE as u64)) as u64; *hashShift.lock().unwrap() = Some(new_val); };
         let mut found = Arc::new(StdMutex::new(Some(false)));
         while { let __tmp_x = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u64; __tmp_x != __tmp_y } {
         { let __rhs = N_CHILDREN_LOG2 as u64; let mut guard = hashShift.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
 
         slot = Some(GoArrayElemPtr::new({ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(), ({ let __tmp_x = ({ let __tmp_x = { let __v = (*hash.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*hashShift.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x >> __tmp_y }); let __tmp_y = N_CHILDREN_MASK as usize; __tmp_x & __tmp_y }) as usize));
-        n = { let __go_ptr = (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        n = {
+            let __go_ptr = (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
         if n.is_nil() {
                 // Nothing to compare with. Give up.
         i = GoPtr::nil();
@@ -1088,7 +1187,16 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
 
                 // Grab the lock and double-check what we saw.
         (*{ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.mu.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).lock();
-        n = { let __go_ptr = (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        n = {
+            let __go_ptr = (*slot.as_ref().unwrap().borrow_mut().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
         if !(*{ let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.dead.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load() && (n.is_nil() || (*{ let __ptr_value = n.borrow(); __ptr_value.as_ref().unwrap().is_entry.clone() }.lock().unwrap().as_ref().unwrap())) {
                 // Either we've got a valid node or the node is now nil under the lock.
                 // In either case, we're done here.
@@ -1113,7 +1221,16 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
     pub fn all(&mut self) -> Arc<StdMutex<Option<Box<dyn FnMut(Arc<StdMutex<Option<Box<dyn FnMut(Arc<StdMutex<Option<K>>>, Arc<StdMutex<Option<V>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>>>> {
         self.init();
         let mut ht_closure_clone = (*self).clone(); return Arc::new(StdMutex::new(Some(Box::new(move |r#yield: Arc<StdMutex<Option<Box<dyn FnMut(Arc<StdMutex<Option<K>>>, Arc<StdMutex<Option<V>>>) -> bool + Send + Sync>>>>| {
-        { let __method_arg0 = { let __go_ptr = (*ht_closure_clone.root.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }; let __method_arg1 = r#yield.clone(); ht_closure_clone.iter(__method_arg0, __method_arg1) };
+        { let __method_arg0 = {
+            let __go_ptr = (*ht_closure_clone.root.lock().unwrap().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        }; let __method_arg1 = r#yield.clone(); ht_closure_clone.iter(__method_arg0, __method_arg1) };
     }) as Box<dyn FnMut(Arc<StdMutex<Option<Box<dyn FnMut(Arc<StdMutex<Option<K>>>, Arc<StdMutex<Option<V>>>) -> bool + Send + Sync>>>>) -> () + Send + Sync>)));
     }
 
@@ -1124,12 +1241,30 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
     /// It provides the same guarantees as sync.Map, and All.
     pub fn range(&mut self, r#yield: Arc<StdMutex<Option<Box<dyn FnMut(Arc<StdMutex<Option<K>>>, Arc<StdMutex<Option<V>>>) -> bool + Send + Sync>>>>) {
         self.init();
-        { let __method_arg0 = { let __go_ptr = (*self.root.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }; let __method_arg1 = r#yield.clone(); self.iter(__method_arg0, __method_arg1) };
+        { let __method_arg0 = {
+            let __go_ptr = (*self.root.lock().unwrap().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        }; let __method_arg1 = r#yield.clone(); self.iter(__method_arg0, __method_arg1) };
     }
 
     pub fn iter(&self, i: GoPtr<indirect<K, V>>, r#yield: Arc<StdMutex<Option<Box<dyn FnMut(Arc<StdMutex<Option<K>>>, Arc<StdMutex<Option<V>>>) -> bool + Send + Sync>>>>) -> bool {
         for j in 0..(({ let __range_holder = { let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
-        let mut n: GoPtr<node<K, V>> = { let __go_ptr = { let __seq = { let __seq_holder = { let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(j) as usize].clone() }.load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        let mut n: GoPtr<node<K, V>> = {
+            let __go_ptr = { let __seq = { let __seq_holder = { let __ptr_value = i.with_mut(|__ptr_value| __ptr_value.children.clone()); __ptr_value }.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(j) as usize].clone() }.load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
         if n.is_nil() {
         continue
     }
@@ -1147,7 +1282,16 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         if !{ let __f_ptr: *mut Box<dyn FnMut(Arc<StdMutex<Option<K>>>, Arc<StdMutex<Option<V>>>) -> bool + Send + Sync> = { let mut __f_guard = r#yield.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<StdMutex<Option<K>>>, Arc<StdMutex<Option<V>>>) -> bool + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)({ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.key.clone()); __ptr_value }.clone(), { let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.value.clone()); __ptr_value }.clone()) } {
         return false;
     }
-        e = { let __go_ptr = (*{ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        e = {
+            let __go_ptr = (*{ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
     }
     }
         true
@@ -1197,7 +1341,16 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         if { let __left = { let __ptr_value = __self.with_mut(|__ptr_value| __ptr_value.key.clone()); __ptr_value }.clone(); let __right = key.clone(); let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (None, None) => true, (Some(__left_value), Some(__right_value)) => GoComparable::go_eq(__left_value, __right_value), _ => false }; __eq } {
         return ({ let __return_value_0 = { let __ptr_value = __self.with_mut(|__ptr_value| __ptr_value.value.clone()); __ptr_value }.clone(); __return_value_0 }, true);
     }
-        { let new_val = { let __go_ptr = (*{ let __ptr_value = __self.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }; __self = new_val; };
+        { let new_val = {
+            let __go_ptr = (*{ let __ptr_value = __self.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        }; __self = new_val; };
     }
         (
             Arc::new(StdMutex::new(None)),
@@ -1230,7 +1383,16 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         } {
         return ({ let __return_value_0 = { let __ptr_value = __self.with_mut(|__ptr_value| __ptr_value.value.clone()); __ptr_value }.clone(); __return_value_0 }, true);
     }
-        { let new_val = { let __go_ptr = (*{ let __ptr_value = __self.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } }; __self = new_val; };
+        { let new_val = {
+            let __go_ptr = (*{ let __ptr_value = __self.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        }; __self = new_val; };
     }
         (
             Arc::new(StdMutex::new(None)),
@@ -1247,16 +1409,43 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 // Return the new head of the list.
         let mut e = new_entry_node::<K, V>(key.clone(), new.clone());
         {
-        let mut chain: GoPtr<entry<K, V>> = { let __go_ptr = (*self.overflow.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };;
+        let mut chain: GoPtr<entry<K, V>> = {
+            let __go_ptr = (*self.overflow.lock().unwrap().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };;
         if !chain.is_nil() {
-            (*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).store({ let __go_ptr = chain.clone(); match __go_ptr { GoPtr::Nil => sync_atomic::GoPtr::nil(), GoPtr::Local(__value) => sync_atomic::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => sync_atomic::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => sync_atomic::GoPtr::slice_elem(sync_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } });;
+            (*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).store({
+                let __go_ptr = chain.clone();
+                match __go_ptr {
+                    GoPtr::Nil => sync_atomic::GoPtr::nil(),
+                    GoPtr::Local(__value) => sync_atomic::GoPtr::local(__value.clone()),
+                    GoPtr::Raw(__addr) => sync_atomic::GoPtr::raw(__addr),
+                    GoPtr::SliceElem(__value) => sync_atomic::GoPtr::slice_elem(sync_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                    GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                }
+            });;
         }
     }
         return (e.clone(), { let __return_value_1 = self.value.clone(); __return_value_1 }, true);
     }
                 // Return the new head of the list.
         let mut i = self.overflow.clone();
-        let mut e: GoPtr<entry<K, V>> = { let __go_ptr = { let __recv = i.clone(); let __recv_ptr: *mut sync_atomic::r#type::Pointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut sync_atomic::r#type::Pointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result }.clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        let mut e: GoPtr<entry<K, V>> = {
+            let __go_ptr = { let __recv = i.clone(); let __recv_ptr: *mut sync_atomic::r#type::Pointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut sync_atomic::r#type::Pointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result }.clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
         while !e.is_nil() {
         if { let __left = { let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.key.clone()); __ptr_value }.clone(); let __right = key.clone(); let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (None, None) => true, (Some(__left_value), Some(__right_value)) => GoComparable::go_eq(__left_value, __right_value), _ => false }; __eq } {
         let mut eNew = new_entry_node::<K, V>(key.clone(), new.clone());
@@ -1265,7 +1454,16 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         return (Arc::new(StdMutex::new(Some(self.clone()))), { let __return_value_1 = { let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.value.clone()); __ptr_value }.clone(); __return_value_1 }, true);
     }
         { let new_val = { let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.clone().clone(); i = new_val; };
-        e = { let __go_ptr = (*{ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        e = {
+            let __go_ptr = (*{ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
     }
         let mut zero: Arc<StdMutex<Option<V>>> = Arc::new(StdMutex::new(None));
         return (Arc::new(StdMutex::new(Some(self.clone()))), zero.clone(), false);
@@ -1291,16 +1489,43 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 // Return the new head of the list.
         let mut e = new_entry_node::<K, V>(key.clone(), new.clone());
         {
-        let mut chain: GoPtr<entry<K, V>> = { let __go_ptr = (*self.overflow.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };;
+        let mut chain: GoPtr<entry<K, V>> = {
+            let __go_ptr = (*self.overflow.lock().unwrap().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };;
         if !chain.is_nil() {
-            (*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).store({ let __go_ptr = chain.clone(); match __go_ptr { GoPtr::Nil => sync_atomic::GoPtr::nil(), GoPtr::Local(__value) => sync_atomic::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => sync_atomic::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => sync_atomic::GoPtr::slice_elem(sync_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } });;
+            (*(*e.lock().unwrap().as_ref().unwrap()).overflow.lock().unwrap().as_mut().unwrap()).store({
+                let __go_ptr = chain.clone();
+                match __go_ptr {
+                    GoPtr::Nil => sync_atomic::GoPtr::nil(),
+                    GoPtr::Local(__value) => sync_atomic::GoPtr::local(__value.clone()),
+                    GoPtr::Raw(__addr) => sync_atomic::GoPtr::raw(__addr),
+                    GoPtr::SliceElem(__value) => sync_atomic::GoPtr::slice_elem(sync_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                    GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                }
+            });;
         }
     }
         return (e.clone(), true);
     }
                 // Return the new head of the list.
         let mut i = self.overflow.clone();
-        let mut e: GoPtr<entry<K, V>> = { let __go_ptr = { let __recv = i.clone(); let __recv_ptr: *mut sync_atomic::r#type::Pointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut sync_atomic::r#type::Pointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result }.clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        let mut e: GoPtr<entry<K, V>> = {
+            let __go_ptr = { let __recv = i.clone(); let __recv_ptr: *mut sync_atomic::r#type::Pointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut sync_atomic::r#type::Pointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result }.clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
         while !e.is_nil() {
         if {
             let __go_cond_0 = { let __left = { let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.key.clone()); __ptr_value }.clone(); let __right = key.clone(); let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (None, None) => true, (Some(__left_value), Some(__right_value)) => GoComparable::go_eq(__left_value, __right_value), _ => false }; __eq };
@@ -1320,7 +1545,16 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         return (Arc::new(StdMutex::new(Some(self.clone()))), true);
     }
         { let new_val = { let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.clone().clone(); i = new_val; };
-        e = { let __go_ptr = (*{ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        e = {
+            let __go_ptr = (*{ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
     }
         (Arc::new(StdMutex::new(Some(self.clone()))), false)
     }
@@ -1334,20 +1568,47 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
                 // Drop the head of the list.
         return (
             { let __return_value_0 = self.value.clone(); __return_value_0 },
-            { let __go_ptr = (*self.overflow.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } },
+            {
+                let __go_ptr = (*self.overflow.lock().unwrap().as_mut().unwrap()).load().clone();
+                match __go_ptr {
+                    sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                    sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                    sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                    sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                    sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                }
+            },
             true
         );
     }
                 // Drop the head of the list.
         let mut i = self.overflow.clone();
-        let mut e: GoPtr<entry<K, V>> = { let __go_ptr = { let __recv = i.clone(); let __recv_ptr: *mut sync_atomic::r#type::Pointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut sync_atomic::r#type::Pointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result }.clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        let mut e: GoPtr<entry<K, V>> = {
+            let __go_ptr = { let __recv = i.clone(); let __recv_ptr: *mut sync_atomic::r#type::Pointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut sync_atomic::r#type::Pointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result }.clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
         while !e.is_nil() {
         if { let __left = { let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.key.clone()); __ptr_value }.clone(); let __right = key.clone(); let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (None, None) => true, (Some(__left_value), Some(__right_value)) => GoComparable::go_eq(__left_value, __right_value), _ => false }; __eq } {
         { let __recv = i.clone(); let __recv_ptr: *mut sync_atomic::r#type::Pointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut sync_atomic::r#type::Pointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.store((*{ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load()); __result };
         return ({ let __return_value_0 = { let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.value.clone()); __ptr_value }.clone(); __return_value_0 }, GoPtr::local(Arc::new(StdMutex::new(Some(self.clone())))), true);
     }
         { let new_val = { let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.clone().clone(); i = new_val; };
-        e = { let __go_ptr = (*{ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        e = {
+            let __go_ptr = (*{ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
     }
         (
             Arc::new(StdMutex::new(None)),
@@ -1375,13 +1636,31 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         } {
                 // Drop the head of the list.
         return (
-            { let __go_ptr = (*self.overflow.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } },
+            {
+                let __go_ptr = (*self.overflow.lock().unwrap().as_mut().unwrap()).load().clone();
+                match __go_ptr {
+                    sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                    sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                    sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                    sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                    sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+                }
+            },
             true
         );
     }
                 // Drop the head of the list.
         let mut i = self.overflow.clone();
-        let mut e: GoPtr<entry<K, V>> = { let __go_ptr = { let __recv = i.clone(); let __recv_ptr: *mut sync_atomic::r#type::Pointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut sync_atomic::r#type::Pointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result }.clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        let mut e: GoPtr<entry<K, V>> = {
+            let __go_ptr = { let __recv = i.clone(); let __recv_ptr: *mut sync_atomic::r#type::Pointer<entry<K, V>> = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut sync_atomic::r#type::Pointer<entry<K, V>> }; let __result = unsafe { &mut *__recv_ptr }.load(); __result }.clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
         while !e.is_nil() {
         if {
             let __go_cond_0 = { let __left = { let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.key.clone()); __ptr_value }.clone(); let __right = key.clone(); let __left_guard = __left.lock().unwrap(); let __right_guard = __right.lock().unwrap(); let __eq = match (__left_guard.as_ref(), __right_guard.as_ref()) { (None, None) => true, (Some(__left_value), Some(__right_value)) => GoComparable::go_eq(__left_value, __right_value), _ => false }; __eq };
@@ -1399,7 +1678,16 @@ impl<K: Any + GoComparable + GoValueClone + Send + Sync + 'static, V: Any + GoVa
         return (GoPtr::local(Arc::new(StdMutex::new(Some(self.clone())))), true);
     }
         { let new_val = { let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.clone().clone(); i = new_val; };
-        e = { let __go_ptr = (*{ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load().clone(); match __go_ptr { sync_atomic::GoPtr::Nil => GoPtr::nil(), sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()), sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr), sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())), sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } };
+        e = {
+            let __go_ptr = (*{ let __ptr_value = e.with_mut(|__ptr_value| __ptr_value.overflow.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).load().clone();
+            match __go_ptr {
+                sync_atomic::GoPtr::Nil => GoPtr::nil(),
+                sync_atomic::GoPtr::Local(__value) => GoPtr::local(__value.clone()),
+                sync_atomic::GoPtr::Raw(__addr) => GoPtr::raw(__addr),
+                sync_atomic::GoPtr::SliceElem(__value) => GoPtr::slice_elem(GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+                sync_atomic::GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+            }
+        };
     }
         (GoPtr::local(Arc::new(StdMutex::new(Some(self.clone())))), false)
     }

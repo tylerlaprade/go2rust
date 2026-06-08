@@ -1121,7 +1121,16 @@ pub fn print_debug_log_impl() {
 
         // Get the list of all debug logs.
     let mut allp_local: GoPtr<usize> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(Arc::as_ptr(&Arc::new(Mutex::new(Some(allDloggers.clone())))) as usize))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
-    let mut all: GoPtr<dloggerImpl> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(internal_runtime_atomic::loaduintptr({ let __go_ptr = allp_local.clone(); match __go_ptr { GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(), GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()), GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr), GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())), GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers") } })))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
+    let mut all: GoPtr<dloggerImpl> = GoPtr::raw({ let __ptr = Arc::new(Mutex::new(Some(internal_runtime_atomic::loaduintptr({
+        let __go_ptr = allp_local.clone();
+        match __go_ptr {
+            GoPtr::Nil => internal_runtime_atomic::GoPtr::nil(),
+            GoPtr::Local(__value) => internal_runtime_atomic::GoPtr::local(__value.clone()),
+            GoPtr::Raw(__addr) => internal_runtime_atomic::GoPtr::raw(__addr),
+            GoPtr::SliceElem(__value) => internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(__value.slice_handle(), __value.index())),
+            GoPtr::ArrayElem(_) => unimplemented!("cross-package GoPtr array element forwarding requires shared GoPtr helpers"),
+        }
+    })))).clone(); let __ptr_guard = __ptr.lock().unwrap(); __ptr_guard.as_ref().copied().unwrap_or(0) });
 
         // Count the logs.
     let mut n = Arc::new(Mutex::new(Some(0)));
