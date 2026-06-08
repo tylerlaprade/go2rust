@@ -3913,6 +3913,26 @@ type noEscapeElemPtrCallArg struct {
 	arg   ast.Expr
 }
 
+func noEscapeElemPtrCallShouldUseMultiline(call *ast.CallExpr, elemArgs []noEscapeElemPtrCallArg) bool {
+	if functionCallArgumentsShouldUseMultiline(call) {
+		return true
+	}
+	for _, elemArg := range elemArgs {
+		if noEscapeElemPtrArgShouldUseMultiline(elemArg.arg) {
+			return true
+		}
+	}
+	return false
+}
+
+func noEscapeElemPtrArgShouldUseMultiline(arg ast.Expr) bool {
+	unwrapped := unwrapParens(arg)
+	if unary, ok := unwrapped.(*ast.UnaryExpr); ok && unary.Op == token.AND {
+		return compositeLiteralElementIsComplex(unary.X)
+	}
+	return false
+}
+
 func writeNoEscapeElemPtrCall(out *strings.Builder, call *ast.CallExpr) bool {
 	if call == nil || !sourceFunctionNoEscapeBodylessDecl(call) {
 		return false
@@ -3941,14 +3961,39 @@ func writeNoEscapeElemPtrCall(out *strings.Builder, call *ast.CallExpr) bool {
 	}
 
 	trackWrapperImports()
-	out.WriteString("{ ")
+	multiline := noEscapeElemPtrCallShouldUseMultiline(call, elemArgs)
+	indent := ""
+	innerIndent := ""
+	if multiline {
+		indent = currentLineIndent(out)
+		innerIndent = indent + "    "
+		out.WriteString("{\n")
+	} else {
+		out.WriteString("{ ")
+	}
+	writeStmtIndent := func() {
+		if multiline {
+			out.WriteString(innerIndent)
+		}
+	}
+	finishStmt := func() {
+		if multiline {
+			out.WriteString("\n")
+		} else {
+			out.WriteString(" ")
+		}
+	}
 	for _, elemArg := range elemArgs {
+		writeStmtIndent()
 		index := strconv.Itoa(elemArg.index)
 		out.WriteString("let __elem_ptr_")
 		out.WriteString(index)
 		out.WriteString(" = ")
 		writeElemPtrNoEscapeOptionValue(out, elemArg.arg)
-		out.WriteString("; let __arg")
+		out.WriteString(";")
+		finishStmt()
+		writeStmtIndent()
+		out.WriteString("let __arg")
 		out.WriteString(index)
 		out.WriteString(" = ")
 		out.WriteString(GetOuterWrapperType())
@@ -3956,13 +4001,24 @@ func writeNoEscapeElemPtrCall(out *strings.Builder, call *ast.CallExpr) bool {
 		out.WriteString(GetInnerWrapperType())
 		out.WriteString("::new(__elem_ptr_")
 		out.WriteString(index)
-		out.WriteString(".as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); ")
+		out.WriteString(".as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())));")
+		finishStmt()
 	}
+	writeStmtIndent()
 	out.WriteString("let __result = ")
 	writeNoEscapeElemPtrCallTarget(out, call)
 	out.WriteString("(")
+	if multiline {
+		out.WriteString("\n")
+	}
 	for i, arg := range call.Args {
-		if i > 0 {
+		if multiline {
+			if i > 0 {
+				out.WriteString(",\n")
+			}
+			out.WriteString(innerIndent)
+			out.WriteString("    ")
+		} else if i > 0 {
 			out.WriteString(", ")
 		}
 		if adapted[i] {
@@ -3973,21 +4029,57 @@ func writeNoEscapeElemPtrCall(out *strings.Builder, call *ast.CallExpr) bool {
 		}
 		writeFunctionSignatureCallArgument(out, arg, params.At(i).Type())
 	}
-	out.WriteString("); ")
+	if multiline {
+		out.WriteString("\n")
+		out.WriteString(innerIndent)
+	}
+	out.WriteString(");")
+	finishStmt()
 	for _, elemArg := range elemArgs {
 		index := strconv.Itoa(elemArg.index)
+		writeStmtIndent()
 		out.WriteString("if let Some(__ptr) = __elem_ptr_")
 		out.WriteString(index)
-		out.WriteString(".as_ref() { let mut __elem_guard_")
+		out.WriteString(".as_ref() {")
+		if multiline {
+			out.WriteString("\n")
+			out.WriteString(innerIndent)
+			out.WriteString("    ")
+		} else {
+			out.WriteString(" ")
+		}
+		out.WriteString("let mut __elem_guard_")
 		out.WriteString(index)
-		out.WriteString(" = __ptr.borrow_mut(); *__elem_guard_")
+		out.WriteString(" = __ptr.borrow_mut();")
+		if multiline {
+			out.WriteString("\n")
+			out.WriteString(innerIndent)
+			out.WriteString("    ")
+		} else {
+			out.WriteString(" ")
+		}
+		out.WriteString("*__elem_guard_")
 		out.WriteString(index)
 		out.WriteString(" = (*__arg")
 		out.WriteString(index)
 		WriteBorrowMethod(out, false)
-		out.WriteString(").clone(); }; ")
+		out.WriteString(").clone();")
+		if multiline {
+			out.WriteString("\n")
+			out.WriteString(innerIndent)
+			out.WriteString("};\n")
+		} else {
+			out.WriteString(" }; ")
+		}
 	}
-	out.WriteString("__result }")
+	if multiline {
+		out.WriteString(innerIndent)
+		out.WriteString("__result\n")
+		out.WriteString(indent)
+		out.WriteString("}")
+	} else {
+		out.WriteString("__result }")
+	}
 	return true
 }
 

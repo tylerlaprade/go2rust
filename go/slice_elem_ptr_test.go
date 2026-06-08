@@ -6618,6 +6618,38 @@ func use(s *stats) {
 	}
 }
 
+func TestNoEscapeWritablePointerParamBreaksComplexArrayElemWriteback(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+//go:noescape
+func store(p *uint64, v uint64)
+
+func use(cache *[4]uint64, ch uint64, h uint64) {
+	go func() {}()
+	store(&(*cache)[uint(ch)%uint(len(*cache))], h)
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "let __elem_ptr_0") && strings.Contains(line, "let __arg0") {
+			t.Fatalf("noescape array element temporary setup should be split across lines:\n%s", rust)
+		}
+		if strings.Contains(line, "store(__arg0.clone()") && strings.Contains(line, "if let Some(__ptr)") {
+			t.Fatalf("noescape array element call and writeback should be split across lines:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "let __elem_ptr_0 = Some(GoArrayElemPtr::") {
+		t.Fatalf("noescape array element argument should still evaluate the pointer once:\n%s", rust)
+	}
+	if !strings.Contains(rust, "store(\n") {
+		t.Fatalf("noescape call should use multiline arguments in concurrent mode:\n%s", rust)
+	}
+	if !strings.Contains(rust, "*__elem_guard_0 = (*__arg0.borrow()).clone();") &&
+		!strings.Contains(rust, "*__elem_guard_0 = (*__arg0.lock().unwrap()).clone();") {
+		t.Fatalf("noescape array element argument should still write the temporary handle back:\n%s", rust)
+	}
+}
+
 func TestReadOnlyPointerParamThroughFuncLitAcceptsSliceElemAddress(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 

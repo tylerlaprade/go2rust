@@ -1015,7 +1015,19 @@ pub fn die_from_signal(sig_local: Arc<Mutex<Option<u32>>>) {
     unblocksig(Arc::new(Mutex::new(Some({ let __arg_holder = sig_local.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
 
         // Mark the signal as unhandled to ensure it is forwarded.
-    { let __elem_ptr_0 = Some(GoArrayElemPtr::new(handlingSig.clone(), ({ let __v = (*sig_local.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize)); let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = internal_runtime_atomic::store(__arg0.clone(), Arc::new(Mutex::new(Some(0 as u32)))); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.lock().unwrap()).clone(); }; __result };
+    {
+        let __elem_ptr_0 = Some(GoArrayElemPtr::new(handlingSig.clone(), ({ let __v = (*sig_local.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize));
+        let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())));
+        let __result = internal_runtime_atomic::store(
+            __arg0.clone(),
+            Arc::new(Mutex::new(Some(0 as u32)))
+        );
+        if let Some(__ptr) = __elem_ptr_0.as_ref() {
+            let mut __elem_guard_0 = __ptr.borrow_mut();
+            *__elem_guard_0 = (*__arg0.lock().unwrap()).clone();
+        };
+        __result
+    };
     raise(Arc::new(Mutex::new(Some({ let __arg_holder = sig_local.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
 
         // That should have killed us. On some systems, though, raise

@@ -679,7 +679,19 @@ impl mcache {
             let __tmp_y = (*Arc::new(Mutex::new(Some({ let __selector_holder = { let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.alloc_count_before_cache.clone()); __ptr_value }.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))).lock().unwrap().as_ref().unwrap());
             __tmp_x - __tmp_y
         })));
-        { let __elem_ptr_0 = Some(GoArrayElemPtr::new((*stats.as_ref().unwrap().borrow().as_ref().unwrap()).small_alloc_count.clone(), (crate::mheap::spanClass::sizeclass(&(*spc.lock().unwrap().as_ref().unwrap()))) as usize)); let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = internal_runtime_atomic::xadd64(__arg0.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = slotsUsed.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.lock().unwrap()).clone(); }; __result };
+        {
+            let __elem_ptr_0 = Some(GoArrayElemPtr::new((*stats.as_ref().unwrap().borrow().as_ref().unwrap()).small_alloc_count.clone(), (crate::mheap::spanClass::sizeclass(&(*spc.lock().unwrap().as_ref().unwrap()))) as usize));
+            let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())));
+            let __result = internal_runtime_atomic::xadd64(
+                __arg0.clone(),
+                Arc::new(Mutex::new(Some({ let __arg_holder = slotsUsed.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+            );
+            if let Some(__ptr) = __elem_ptr_0.as_ref() {
+                let mut __elem_guard_0 = __ptr.borrow_mut();
+                *__elem_guard_0 = (*__arg0.lock().unwrap()).clone();
+            };
+            __result
+        };
                 // Flush tinyAllocs.
         if { let __tmp_x = (*spc.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = crate::mheap::spanClass(Arc::new(Mutex::new(Some(TINY_SPAN_CLASS as u8)))); __tmp_x == __tmp_y } {
         internal_runtime_atomic::xadd64((*stats.as_ref().unwrap().borrow().as_ref().unwrap()).tiny_alloc_count.clone(), Arc::new(Mutex::new(Some({ let __selector_holder = self.tiny_allocs.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned } as i64))));
@@ -809,7 +821,19 @@ impl mcache {
         { let new_val = 0 as u16; *{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.alloc_count_before_cache.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
                 // Adjust smallAllocCount for whatever was allocated.
         let mut stats: Option<GoArrayElemPtr<heapStatsDelta, 3>> = (*(*memstats.lock().unwrap().as_ref().unwrap()).heap_stats.lock().unwrap().as_mut().unwrap()).acquire();
-        { let __elem_ptr_0 = Some(GoArrayElemPtr::new((*stats.as_ref().unwrap().borrow().as_ref().unwrap()).small_alloc_count.clone(), (crate::mheap::spanClass::sizeclass(&(crate::mheap::spanClass(Arc::new(Mutex::new(Some(i as u8))))))) as usize)); let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = internal_runtime_atomic::xadd64(__arg0.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = slotsUsed.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.lock().unwrap()).clone(); }; __result };
+        {
+            let __elem_ptr_0 = Some(GoArrayElemPtr::new((*stats.as_ref().unwrap().borrow().as_ref().unwrap()).small_alloc_count.clone(), (crate::mheap::spanClass::sizeclass(&(crate::mheap::spanClass(Arc::new(Mutex::new(Some(i as u8))))))) as usize));
+            let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())));
+            let __result = internal_runtime_atomic::xadd64(
+                __arg0.clone(),
+                Arc::new(Mutex::new(Some({ let __arg_holder = slotsUsed.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+            );
+            if let Some(__ptr) = __elem_ptr_0.as_ref() {
+                let mut __elem_guard_0 = __ptr.borrow_mut();
+                *__elem_guard_0 = (*__arg0.lock().unwrap()).clone();
+            };
+            __result
+        };
         (*(*memstats.lock().unwrap().as_ref().unwrap()).heap_stats.lock().unwrap().as_mut().unwrap()).release();
                 // Adjust the actual allocs in inconsistent, internal stats.
                 // We assumed earlier that the full span gets allocated.

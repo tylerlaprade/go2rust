@@ -1491,7 +1491,19 @@ impl sweepLocked {
                 // free slots zeroed.
         { let new_val = 1 as u8; *{ let __ptr_value = s.with_mut(|__ptr_value| __ptr_value.needzero.clone()); __ptr_value }.lock().unwrap() = Some(new_val); };
         let mut stats: Option<GoArrayElemPtr<heapStatsDelta, 3>> = (*(*memstats.lock().unwrap().as_ref().unwrap()).heap_stats.lock().unwrap().as_mut().unwrap()).acquire();
-        { let __elem_ptr_0 = Some(GoArrayElemPtr::new((*stats.as_ref().unwrap().borrow().as_ref().unwrap()).small_free_count.clone(), (crate::mheap::spanClass::sizeclass(&(*spc.lock().unwrap().as_ref().unwrap()))) as usize)); let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = internal_runtime_atomic::xadd64(__arg0.clone(), Arc::new(Mutex::new(Some((*nfreed.lock().unwrap().as_ref().unwrap()) as i64)))); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.lock().unwrap()).clone(); }; __result };
+        {
+            let __elem_ptr_0 = Some(GoArrayElemPtr::new((*stats.as_ref().unwrap().borrow().as_ref().unwrap()).small_free_count.clone(), (crate::mheap::spanClass::sizeclass(&(*spc.lock().unwrap().as_ref().unwrap()))) as usize));
+            let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())));
+            let __result = internal_runtime_atomic::xadd64(
+                __arg0.clone(),
+                Arc::new(Mutex::new(Some((*nfreed.lock().unwrap().as_ref().unwrap()) as i64)))
+            );
+            if let Some(__ptr) = __elem_ptr_0.as_ref() {
+                let mut __elem_guard_0 = __ptr.borrow_mut();
+                *__elem_guard_0 = (*__arg0.lock().unwrap()).clone();
+            };
+            __result
+        };
         (*(*memstats.lock().unwrap().as_ref().unwrap()).heap_stats.lock().unwrap().as_mut().unwrap()).release();
                 // Count the frees in the inconsistent, internal stats.
         (*(*gcController.lock().unwrap().as_ref().unwrap()).total_free.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some({

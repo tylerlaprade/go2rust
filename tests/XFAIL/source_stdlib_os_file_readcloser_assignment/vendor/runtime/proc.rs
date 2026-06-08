@@ -1465,14 +1465,38 @@ impl pMask {
     pub fn set(&self, id: Arc<Mutex<Option<i32>>>) {
         let mut word = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 32 as i32; __tmp_x / __tmp_y })));
         let mut mask = Arc::new(Mutex::new(Some({ let __tmp_x = (1 as u32); let __tmp_y = ({ let __tmp_x = { let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 32 as i32; __tmp_x % __tmp_y }); __tmp_x << __tmp_y })));
-        { let __elem_ptr_0 = Some(GoSliceElemPtr::new(self.0.clone(), ({ let __v = (*word.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize)); let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = internal_runtime_atomic::or(__arg0.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = mask.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.lock().unwrap()).clone(); }; __result };
+        {
+            let __elem_ptr_0 = Some(GoSliceElemPtr::new(self.0.clone(), ({ let __v = (*word.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize));
+            let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())));
+            let __result = internal_runtime_atomic::or(
+                __arg0.clone(),
+                Arc::new(Mutex::new(Some({ let __arg_holder = mask.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))
+            );
+            if let Some(__ptr) = __elem_ptr_0.as_ref() {
+                let mut __elem_guard_0 = __ptr.borrow_mut();
+                *__elem_guard_0 = (*__arg0.lock().unwrap()).clone();
+            };
+            __result
+        };
     }
 
     /// clear clears P id's bit.
     pub fn clear(&self, id: Arc<Mutex<Option<i32>>>) {
         let mut word = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 32 as i32; __tmp_x / __tmp_y })));
         let mut mask = Arc::new(Mutex::new(Some({ let __tmp_x = (1 as u32); let __tmp_y = ({ let __tmp_x = { let __v = (*id.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 32 as i32; __tmp_x % __tmp_y }); __tmp_x << __tmp_y })));
-        { let __elem_ptr_0 = Some(GoSliceElemPtr::new(self.0.clone(), ({ let __v = (*word.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize)); let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone()))); let __result = internal_runtime_atomic::and(__arg0.clone(), Arc::new(Mutex::new(Some(!(*mask.lock().unwrap().as_ref().unwrap()))))); if let Some(__ptr) = __elem_ptr_0.as_ref() { let mut __elem_guard_0 = __ptr.borrow_mut(); *__elem_guard_0 = (*__arg0.lock().unwrap()).clone(); }; __result };
+        {
+            let __elem_ptr_0 = Some(GoSliceElemPtr::new(self.0.clone(), ({ let __v = (*word.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize));
+            let __arg0 = Arc::new(Mutex::new(__elem_ptr_0.as_ref().and_then(|__ptr| (*__ptr.borrow()).clone())));
+            let __result = internal_runtime_atomic::and(
+                __arg0.clone(),
+                Arc::new(Mutex::new(Some(!(*mask.lock().unwrap().as_ref().unwrap()))))
+            );
+            if let Some(__ptr) = __elem_ptr_0.as_ref() {
+                let mut __elem_guard_0 = __ptr.borrow_mut();
+                *__elem_guard_0 = (*__arg0.lock().unwrap()).clone();
+            };
+            __result
+        };
     }
 }
 
