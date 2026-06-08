@@ -4612,6 +4612,34 @@ func call(s string) byte {
 	}
 }
 
+func TestGoPtrPointerParamAcceptsUnsafeSliceData(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+func write(p *byte) {
+	*p = 7
+}
+
+func call(b []byte) {
+	write(unsafe.SliceData(b))
+}
+`)
+
+	if strings.Contains(rust, `unimplemented!("unsafe.SliceData requires unsafe intrinsic support")`) {
+		t.Fatalf("unsafe.SliceData passed to a GoPtr byte parameter should not use the unsupported intrinsic fallback:\n%s", rust)
+	}
+	if !strings.Contains(rust, "write(GoPtr::array_elem_foreign(") {
+		t.Fatalf("unsafe.SliceData should lower to a foreign GoPtr for byte pointer parameters:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__values.get(0).cloned()") {
+		t.Fatalf("unsafe.SliceData GoPtr should borrow the first slice element from the slice handle:\n%s", rust)
+	}
+	if !strings.Contains(rust, "__values.get_mut(0).expect(\"nil pointer dereference\")") {
+		t.Fatalf("unsafe.SliceData GoPtr should mutate the first slice element through the slice handle:\n%s", rust)
+	}
+}
+
 func TestGoPtrLocalKeepsUnsafeStringDataProvenance(t *testing.T) {
 	rust := transpileTypedSliceElemPtrRegression(t, `package main
 
@@ -4631,6 +4659,28 @@ func addr(s string) uintptr {
 	}
 	if !strings.Contains(rust, "p.addr()") {
 		t.Fatalf("unsafe.Pointer conversion from unsafe.StringData local should use the GoPtr address token:\n%s", rust)
+	}
+}
+
+func TestGoPtrLocalKeepsUnsafeSliceDataProvenance(t *testing.T) {
+	rust := transpileTypedSliceElemPtrRegression(t, `package main
+
+import "unsafe"
+
+func addr(b []byte) uintptr {
+	p := unsafe.SliceData(b)
+	return uintptr(unsafe.Pointer(p))
+}
+`)
+
+	if strings.Contains(rust, `unimplemented!("unsafe.SliceData requires unsafe intrinsic support")`) {
+		t.Fatalf("unsafe.SliceData local should not use the unsupported intrinsic fallback:\n%s", rust)
+	}
+	if !strings.Contains(rust, "let mut p: GoPtr<u8> = GoPtr::array_elem_foreign(") {
+		t.Fatalf("unsafe.SliceData local should lower to GoPtr storage:\n%s", rust)
+	}
+	if !strings.Contains(rust, "p.addr()") {
+		t.Fatalf("unsafe.Pointer conversion from unsafe.SliceData local should use the GoPtr address token:\n%s", rust)
 	}
 }
 

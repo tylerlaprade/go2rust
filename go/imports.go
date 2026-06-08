@@ -3381,7 +3381,7 @@ impl<T: Send + Sync + 'static> GoPtr<T> {
                 let guard = value.slice.lock().unwrap();
                 guard.as_ref().and_then(|values| values.get(value.index)).is_none()
             }
-            GoPtr::ArrayElem(value) => value.borrow_dyn().is_none(),
+            GoPtr::ArrayElem(value) => value.identity_dyn().0.is_null(),
         }
     }
 
@@ -3905,7 +3905,7 @@ impl<T: 'static> GoPtr<T> {
                 let guard = value.slice.borrow();
                 guard.as_ref().and_then(|values| values.get(value.index)).is_none()
             }
-            GoPtr::ArrayElem(value) => value.borrow_dyn().is_none(),
+            GoPtr::ArrayElem(value) => value.identity_dyn().0.is_null(),
         }
     }
 

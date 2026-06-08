@@ -5323,6 +5323,9 @@ func goPtrAssignmentValueInfo(expr ast.Expr, resultIndex int, candidates map[typ
 		if _, info, ok := unsafeStringDataGoPtrValueInfo(call, typeInfo); ok {
 			return info, true, true
 		}
+		if _, info, ok := unsafeSliceDataGoPtrValueInfo(call, typeInfo); ok {
+			return info, true, true
+		}
 		if info, ok := goPtrRawPointerValueInfo(call, typeInfo); ok {
 			return info, true, true
 		}
@@ -7702,6 +7705,9 @@ func writeGoPtrCallArgumentWithQualifierForInfo(out *strings.Builder, arg ast.Ex
 		return true
 	}
 	if call, ok := unwrapParens(arg).(*ast.CallExpr); ok {
+		if writeUnsafeSliceDataGoPtrCallArgument(out, call, info, helperQualifier) {
+			return true
+		}
 		if writeUnsafeStringDataGoPtrCallArgument(out, call, info, helperQualifier) {
 			return true
 		}
@@ -7784,6 +7790,43 @@ func writeGoPtrCallArgumentWithQualifierForInfo(out *strings.Builder, arg ast.Ex
 	return false
 }
 
+func writeUnsafeSliceDataGoPtrCallArgument(out *strings.Builder, call *ast.CallExpr, info goPtrResultInfo, helperQualifier string) bool {
+	typeInfo := GetTypeInfo()
+	sliceExpr, sliceDataInfo, ok := unsafeSliceDataGoPtrValueInfo(call, typeInfo)
+	if !ok || !goPtrResultElemCompatible(sliceDataInfo, info) {
+		return false
+	}
+
+	out.WriteString("{ let __slice_data_holder = ")
+	if _, _, ok := namedSliceTypeForExpr(sliceExpr); ok {
+		writeNamedSliceInnerHandleClone(out, sliceExpr)
+	} else {
+		TranspileExpressionContext(out, sliceExpr, LValue)
+		out.WriteString(".clone()")
+	}
+	out.WriteString("; ")
+	writeGoPtrQualifiedConstructor(out, helperQualifier, "array_elem_foreign")
+	out.WriteString("(")
+	writeGoPtrForeignClosurePrefix(out)
+	out.WriteString("({ let __slice_data_holder = __slice_data_holder.clone(); move || { let __slice_guard = __slice_data_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; __slice_guard.as_ref().and_then(|__values| __values.get(0).cloned()) } }), ")
+	writeGoPtrForeignClosurePrefix(out)
+	out.WriteString("({ let __slice_data_holder = __slice_data_holder.clone(); move |__assigned| { let mut __slice_guard = __slice_data_holder")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; let __values = __slice_guard.as_mut().expect(\"nil pointer dereference\"); let __slot = __values.get_mut(0).expect(\"nil pointer dereference\"); *__slot = __assigned.expect(\"nil pointer dereference\"); } }), ")
+	writeGoPtrForeignClosurePrefix(out)
+	out.WriteString("({ let __slice_data_holder = __slice_data_holder.clone(); move |__callback| { let mut __slice_guard = __slice_data_holder")
+	WriteBorrowMethod(out, true)
+	out.WriteString("; let __values = __slice_guard.as_mut().expect(\"nil pointer dereference\"); let __slot = __values.get_mut(0).expect(\"nil pointer dereference\"); __callback(__slot); } }), ")
+	writeGoPtrForeignClosurePrefix(out)
+	out.WriteString("({ let __slice_data_holder = __slice_data_holder.clone(); move || { let __slice_guard = __slice_data_holder")
+	WriteBorrowMethod(out, false)
+	out.WriteString("; match __slice_guard.as_ref() { Some(__values) => (__values.as_ptr() as *const (), 0usize), None => (std::ptr::null(), 0usize) } } })")
+	out.WriteString(") }")
+	return true
+}
+
 func writeUnsafeStringDataGoPtrCallArgument(out *strings.Builder, call *ast.CallExpr, info goPtrResultInfo, helperQualifier string) bool {
 	typeInfo := GetTypeInfo()
 	stringExpr, stringDataInfo, ok := unsafeStringDataGoPtrValueInfo(call, typeInfo)
@@ -7810,6 +7853,31 @@ func writeUnsafeStringDataGoPtrCallArgument(out *strings.Builder, call *ast.Call
 	out.WriteString("; match __string_guard.as_ref() { Some(__s) => (__s.as_ptr() as *const (), 0usize), None => (std::ptr::null(), 0usize) } } })")
 	out.WriteString(") }")
 	return true
+}
+
+func unsafeSliceDataGoPtrValueInfo(call *ast.CallExpr, typeInfo *TypeInfo) (ast.Expr, goPtrResultInfo, bool) {
+	sliceExpr, ok := unsafeSliceDataCallArg(call, typeInfo)
+	if !ok {
+		return nil, goPtrResultInfo{}, false
+	}
+	callType := typeInfo.GetType(call)
+	sliceType := typeInfo.GetType(sliceExpr)
+	if callType == nil || sliceType == nil {
+		return nil, goPtrResultInfo{}, false
+	}
+	ptr, ok := types.Unalias(callType).Underlying().(*types.Pointer)
+	if !ok {
+		return nil, goPtrResultInfo{}, false
+	}
+	slice, ok := types.Unalias(sliceType).Underlying().(*types.Slice)
+	if !ok || !types.Identical(types.Unalias(ptr.Elem()), types.Unalias(slice.Elem())) {
+		return nil, goPtrResultInfo{}, false
+	}
+	info, ok := goPtrInfoForPointerType(callType)
+	if !ok {
+		return nil, goPtrResultInfo{}, false
+	}
+	return sliceExpr, info, true
 }
 
 func unsafeStringDataGoPtrValueInfo(call *ast.CallExpr, typeInfo *TypeInfo) (ast.Expr, goPtrResultInfo, bool) {
@@ -7863,12 +7931,16 @@ func unsafeStringDataCallArg(expr ast.Expr, typeInfo *TypeInfo) (ast.Expr, bool)
 	return call.Args[0], true
 }
 
-func writeUnsafeStringDataForeignClosurePrefix(out *strings.Builder) {
+func writeGoPtrForeignClosurePrefix(out *strings.Builder) {
 	if NeedsConcurrentWrapper() {
 		out.WriteString("std::sync::Arc::new")
 		return
 	}
 	out.WriteString("std::rc::Rc::new")
+}
+
+func writeUnsafeStringDataForeignClosurePrefix(out *strings.Builder) {
+	writeGoPtrForeignClosurePrefix(out)
 }
 
 func writeGoPtrArrayFieldIndexRead(out *strings.Builder, indexExpr *ast.IndexExpr) {

@@ -117,6 +117,7 @@ func TestGoPtrHelperCloneDoesNotRequireCloneablePointee(t *testing.T) {
 		"pub struct GoForeignArrayElemPtrDyn<T: 'static>",
 		"Rc<dyn Fn() -> Option<T>>",
 		"pub fn array_elem_foreign(",
+		"GoPtr::ArrayElem(value) => value.identity_dyn().0.is_null()",
 	} {
 		if !strings.Contains(helper, want) {
 			t.Fatalf("single-threaded GoPtr helper missing %q:\n%s", want, helper)
@@ -144,6 +145,7 @@ func TestGoPtrHelperCloneDoesNotRequireCloneablePointee(t *testing.T) {
 		"pub struct GoForeignArrayElemPtrDyn<T: Send + Sync + 'static>",
 		"Arc<dyn Fn() -> Option<T> + Send + Sync>",
 		"pub fn array_elem_foreign(",
+		"GoPtr::ArrayElem(value) => value.identity_dyn().0.is_null()",
 	} {
 		if !strings.Contains(helper, want) {
 			t.Fatalf("concurrent GoPtr helper missing %q:\n%s", want, helper)
