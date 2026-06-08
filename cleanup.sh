@@ -469,7 +469,7 @@ print_pressure_report() {
     echo
     echo "Process group summary:"
     if [ -n "$process_cpu_snapshot" ]; then
-        printf '%s\n' "$process_cpu_snapshot" | awk '
+        printf '%s\n' "$process_cpu_snapshot" | awk -v repo_root="$repo_root" '
             NR == 1 {
                 next
             }
@@ -483,10 +483,14 @@ print_pressure_report() {
                 }
 
                 group = "Other"
-                if (command ~ /(^|[[:space:]])(rustc|cargo)([[:space:]]|$)/ ||
+                rust_or_cargo = command ~ /(^|[[:space:]\/])(rustc|cargo)([[:space:]]|$)/
+                go2rust_validation = (rust_or_cargo && index(command, repo_root) > 0) ||
                     command ~ /(^|[[:space:]])(\.\/)?test\.sh([[:space:]]|$)/ ||
-                    command ~ /(^|[[:space:]])self_transpile_check\.sh([[:space:]]|$)/) {
+                    command ~ /(^|[[:space:]])self_transpile_check\.sh([[:space:]]|$)/
+                if (go2rust_validation) {
                     group = "go2rust validation"
+                } else if (rust_or_cargo) {
+                    group = "Rust/Cargo outside go2rust"
                 } else if (command ~ /ANECompilerService/ ||
                            command ~ /siriinferenced/ ||
                            command ~ /SiriSuggestions/) {
@@ -527,6 +531,7 @@ print_pressure_report() {
                 printf "%-30s %7s %7s %8s %6s\n", "Group", "%CPU", "%MEM", "RSS", "Count"
                 print_group("Apple ML/Siri services")
                 print_group("go2rust validation")
+                print_group("Rust/Cargo outside go2rust")
                 print_group("Codex")
                 print_group("Claude")
                 print_group("Ghostty")
@@ -559,7 +564,21 @@ print_pressure_report() {
     echo "Active go2rust validation processes:"
     local validation_processes
     validation_processes=$(printf '%s\n' "$process_cpu_snapshot" |
-        awk 'NR > 1 && /(^|[[:space:]])(go2rust|cargo|rustc|test\.sh|self_transpile_check\.sh)([[:space:]]|$)/' |
+        awk -v repo_root="$repo_root" '
+            NR > 1 {
+                command = ""
+                for (i = 6; i <= NF; i++) {
+                    command = command " " $i
+                }
+                rust_or_cargo = command ~ /(^|[[:space:]\/])(cargo|rustc)([[:space:]]|$)/
+                if (command ~ /(^|[[:space:]\/])go2rust([[:space:].-]|$)/ ||
+                    command ~ /(^|[[:space:]])(\.\/)?test\.sh([[:space:]]|$)/ ||
+                    command ~ /(^|[[:space:]])self_transpile_check\.sh([[:space:]]|$)/ ||
+                    (rust_or_cargo && index(command, repo_root) > 0)) {
+                    print
+                }
+            }
+        ' |
         awk 'NR <= 25')
     if [ -n "$validation_processes" ]; then
         printf '%s\n' "$process_cpu_snapshot" | awk 'NR == 1'
