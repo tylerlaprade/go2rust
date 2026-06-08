@@ -14,6 +14,7 @@ _test_sh_cleanup() {
     [ -n "$TEST_GOCACHE_DIR" ] && rm -rf "$TEST_GOCACHE_DIR"
 }
 trap _test_sh_cleanup EXIT
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 # Parse command line arguments before acquiring the test lock or rewriting
 # tests.bats. Read-only exits such as --help should not dirty the repo or wait
@@ -118,6 +119,24 @@ if [ "$HELP" = true ]; then
     exit 0
 fi
 
+enforce_fixture_memory_floor() {
+    local min_var="${1:-GO2RUST_TEST_MIN_AVAILABLE_MEM_MB}"
+    local default_min_mb="${2:-1024}"
+    local work_label="${3:-fixture Cargo work}"
+    "$SCRIPT_DIR/pressure_guard.sh" \
+        --min-env "$min_var" \
+        --default-min-mb "$default_min_mb" \
+        --skip-env GO2RUST_TEST_SKIP_PRESSURE_GUARD \
+        --label "$work_label" \
+        --hint "Run ./cleanup.sh --pressure --quick to inspect current pressure, or set GO2RUST_TEST_SKIP_PRESSURE_GUARD=1 to force the run." || exit $?
+}
+
+if [ "$TRANSPILE_ONLY" = true ]; then
+    enforce_fixture_memory_floor GO2RUST_TEST_TRANSPILE_ONLY_MIN_AVAILABLE_MEM_MB 256 "transpile-only fixture work"
+else
+    enforce_fixture_memory_floor GO2RUST_TEST_MIN_AVAILABLE_MEM_MB 1024 "fixture Cargo work"
+fi
+
 # Single-instance lock. Concurrent ./test.sh runs would corrupt the in-place
 # tests.bats rewrite below and the startup sweep would clobber active per-test
 # workspaces. mkdir is atomic. The lock dir name avoids the 'go2rust-test.*'
@@ -143,9 +162,7 @@ echo $$ > "$LOCK_DIR/pid"
 
 cleanup_stale_test_artifacts() {
     [ "${GO2RUST_TEST_CLEAN_STALE:-1}" = "0" ] && return
-    local script_dir
-    script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-    "$script_dir/cleanup.sh" --age-minutes "${GO2RUST_TEST_CLEAN_AGE_MINUTES:-60}" --keep-repo-artifacts >/dev/null
+    "$SCRIPT_DIR/cleanup.sh" --age-minutes "${GO2RUST_TEST_CLEAN_AGE_MINUTES:-60}" --keep-repo-artifacts >/dev/null
 }
 
 # Generate test cases and update the GENERATED TESTS section in tests.bats
@@ -237,92 +254,6 @@ export SHOW_XFAIL_ERRORS
 # (OOM, kill -9, etc.) — SIGKILL bypasses the run_test EXIT trap.
 cleanup_stale_test_artifacts
 
-detect_available_memory_bytes() {
-    if [ -r /proc/meminfo ]; then
-        awk '/MemAvailable/ { printf "%.0f\n", $2 * 1024 }' /proc/meminfo 2>/dev/null
-        return
-    fi
-
-    if command -v vm_stat >/dev/null 2>&1; then
-        vm_stat 2>/dev/null | awk '
-            /page size of/ {
-                page_size = $8
-                gsub(/[^0-9]/, "", page_size)
-            }
-            /Pages free:/ {
-                free_pages = $3
-                gsub(/[^0-9]/, "", free_pages)
-            }
-            /Pages speculative:/ {
-                speculative_pages = $3
-                gsub(/[^0-9]/, "", speculative_pages)
-            }
-            END {
-                if (page_size > 0) {
-                    printf "%.0f\n", (free_pages + speculative_pages) * page_size
-                }
-            }
-        '
-        return
-    fi
-
-    if command -v memory_pressure >/dev/null 2>&1; then
-        memory_pressure 2>/dev/null | awk '
-            /^The system has / {
-                total = $4
-            }
-            /System-wide memory free percentage:/ {
-                pct = $5
-                gsub(/%/, "", pct)
-            }
-            END {
-                if (total ~ /^[0-9]+$/ && pct ~ /^[0-9]+$/) {
-                    printf "%.0f\n", total * pct / 100
-                }
-            }
-        '
-        return
-    fi
-}
-
-enforce_available_memory_floor() {
-    local min_var="${1:-GO2RUST_TEST_MIN_AVAILABLE_MEM_MB}"
-    local default_min_mb="${2:-1024}"
-    local work_label="${3:-fixture Cargo work}"
-
-    case "${GO2RUST_TEST_SKIP_PRESSURE_GUARD:-0}" in
-        1|true|TRUE|yes|YES)
-            return
-            ;;
-    esac
-
-    local min_mb="${!min_var:-$default_min_mb}"
-    case "$min_mb" in
-        ''|*[!0-9]*)
-            echo "error: $min_var must be a non-negative integer" >&2
-            exit 2
-            ;;
-    esac
-    [ "$min_mb" -eq 0 ] && return
-
-    local available_bytes
-    available_bytes=$(detect_available_memory_bytes)
-    case "$available_bytes" in
-        ''|*[!0-9]*)
-            return
-            ;;
-    esac
-
-    local min_bytes=$(( min_mb * 1024 * 1024 ))
-    if [ "$available_bytes" -lt "$min_bytes" ]; then
-        local available_mb=$(( available_bytes / 1024 / 1024 ))
-        echo "Error: available memory is ${available_mb} MiB, below ${min_var}=${min_mb} MiB." >&2
-        echo "Refusing to start $work_label while the machine is under memory pressure." >&2
-        echo "Run ./cleanup.sh --pressure --quick to inspect current pressure, or set GO2RUST_TEST_SKIP_PRESSURE_GUARD=1 to force the run." >&2
-        exit 1
-    fi
-}
-
 # Fixture-level parallelism controls suite throughput. Keep each nested Cargo
 # invocation low-memory by default so parallel fixtures do not multiply rustc
 # worker pools.
@@ -365,10 +296,7 @@ if [ -z "${GOCACHE:-}" ]; then
 fi
 
 if [ "$TRANSPILE_ONLY" = true ]; then
-    enforce_available_memory_floor GO2RUST_TEST_TRANSPILE_ONLY_MIN_AVAILABLE_MEM_MB 256 "transpile-only fixture work"
     export GO2RUST_TEST_TRANSPILE_ONLY=1
-else
-    enforce_available_memory_floor GO2RUST_TEST_MIN_AVAILABLE_MEM_MB 1024 "fixture Cargo work"
 fi
 
 # Build the transpiler once before running the suite. Bats parallelism is
@@ -419,7 +347,7 @@ if [ -z "$JOBS" ]; then
             fi
         fi
 
-        AVAILABLE_MEM_BYTES=$(detect_available_memory_bytes)
+        AVAILABLE_MEM_BYTES=$("$SCRIPT_DIR/pressure_guard.sh" --available-bytes 2>/dev/null || true)
         case "$AVAILABLE_MEM_BYTES" in ''|*[!0-9]*) AVAILABLE_MEM_BYTES=0 ;; esac
         if [ "$AVAILABLE_MEM_BYTES" -gt 0 ]; then
             AVAILABLE_MEM_JOBS=$(( AVAILABLE_MEM_BYTES / BYTES_PER_JOB ))

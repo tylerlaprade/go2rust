@@ -157,14 +157,13 @@ func TestSelfTranspileRefusesUnderMemoryPressure(t *testing.T) {
 		`GO2RUST_SELF_MIN_AVAILABLE_MEM_MB`,
 		`GO2RUST_SELF_CARGO_MIN_AVAILABLE_MEM_MB`,
 		`GO2RUST_SELF_SKIP_PRESSURE_GUARD=1`,
-		`detect_available_memory_bytes()`,
-		`memory_pressure`,
-		`System-wide memory free percentage:`,
-		`/MemAvailable/`,
-		`vm_stat`,
 		`enforce_available_memory_floor()`,
-		`available memory is ${available_mb} MiB`,
-		`Refusing to start $work_label while the machine is under memory pressure.`,
+		`"$repo_root/pressure_guard.sh"`,
+		`--min-env "$min_var"`,
+		`--default-min-mb "$default_min_mb"`,
+		`--skip-env GO2RUST_SELF_SKIP_PRESSURE_GUARD`,
+		`--label "$work_label"`,
+		`|| exit $?`,
 		`./cleanup.sh --pressure --quick`,
 		`enforce_available_memory_floor GO2RUST_SELF_CARGO_MIN_AVAILABLE_MEM_MB 2048 "self-transpile Cargo validation"`,
 		`enforce_available_memory_floor GO2RUST_SELF_MIN_AVAILABLE_MEM_MB 1024 "self-transpile work"`,
@@ -183,12 +182,6 @@ func TestSelfTranspileRefusesUnderMemoryPressure(t *testing.T) {
 	if cargoGuardIndex > workspaceIndex || baseGuardIndex > workspaceIndex {
 		t.Fatalf("self_transpile_check.sh should run the memory-pressure guard before creating the self-transpile workspace")
 	}
-
-	vmStatIndex := strings.Index(script, `if command -v vm_stat`)
-	memoryPressureIndex := strings.Index(script, `if command -v memory_pressure`)
-	if vmStatIndex < 0 || memoryPressureIndex < 0 || vmStatIndex > memoryPressureIndex {
-		t.Fatalf("self_transpile_check.sh should prefer vm_stat over memory_pressure for current macOS pressure")
-	}
 }
 
 func TestSelfTranspileBehaviorSuiteCopiesCleanupScript(t *testing.T) {
@@ -199,7 +192,8 @@ func TestSelfTranspileBehaviorSuiteCopiesCleanupScript(t *testing.T) {
 	script := string(data)
 	for _, want := range []string{
 		`cp "$repo_root/cleanup.sh" "$suite/cleanup.sh"`,
-		`chmod +x "$suite/test.sh" "$suite/cleanup.sh"`,
+		`cp "$repo_root/pressure_guard.sh" "$suite/pressure_guard.sh"`,
+		`chmod +x "$suite/test.sh" "$suite/cleanup.sh" "$suite/pressure_guard.sh"`,
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("self_transpile_check.sh behavior suite should copy cleanup tooling; missing %q", want)

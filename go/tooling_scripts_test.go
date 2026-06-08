@@ -42,10 +42,11 @@ func TestTestScriptDelegatesStaleSweepToCleanupScript(t *testing.T) {
 	}
 	script := string(data)
 	for _, want := range []string{
+		`SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)`,
 		`GO2RUST_TEST_CLEAN_STALE`,
 		`GO2RUST_TEST_CLEAN_AGE_MINUTES`,
 		`cleanup_stale_test_artifacts()`,
-		`"$script_dir/cleanup.sh" --age-minutes "${GO2RUST_TEST_CLEAN_AGE_MINUTES:-60}" --keep-repo-artifacts`,
+		`"$SCRIPT_DIR/cleanup.sh" --age-minutes "${GO2RUST_TEST_CLEAN_AGE_MINUTES:-60}" --keep-repo-artifacts`,
 		`echo "$$" > "$TEST_GOCACHE_DIR/go2rust-test.pid"`,
 		`echo "$$" > "$BUILT_TEST_BINARY_DIR/go2rust-test.pid"`,
 		`echo "$$" > "$SHARD_DIR/go2rust-test.pid"`,
@@ -207,13 +208,14 @@ func TestGoTestScriptRefusesUnderMemoryPressure(t *testing.T) {
 	for _, want := range []string{
 		`GO2RUST_GO_TEST_MIN_AVAILABLE_MEM_MB Minimum available memory before go test (default: 512; 0 disables).`,
 		`GO2RUST_GO_TEST_SKIP_PRESSURE_GUARD=1`,
-		`detect_available_memory_bytes()`,
-		`memory_pressure`,
-		`System-wide memory free percentage:`,
 		`enforce_available_memory_floor()`,
 		`GO2RUST_GO_TEST_MIN_AVAILABLE_MEM_MB`,
-		`available memory is ${available_mb} MiB`,
-		`Refusing to start go test while the machine is under memory pressure.`,
+		`"$repo_root/pressure_guard.sh"`,
+		`--min-env GO2RUST_GO_TEST_MIN_AVAILABLE_MEM_MB`,
+		`--default-min-mb 512`,
+		`--skip-env GO2RUST_GO_TEST_SKIP_PRESSURE_GUARD`,
+		`--label "go test"`,
+		`|| exit $?`,
 		`./cleanup.sh --pressure --quick`,
 		`enforce_available_memory_floor`,
 		`go test ./go "$@"`,
@@ -231,11 +233,36 @@ func TestGoTestScriptRefusesUnderMemoryPressure(t *testing.T) {
 	if guardIndex > goTestIndex {
 		t.Fatalf("go_test.sh should run the memory-pressure guard before go test")
 	}
+}
 
+func TestPressureGuardScriptOwnsAvailableMemoryDetection(t *testing.T) {
+	data, err := os.ReadFile("../pressure_guard.sh")
+	if err != nil {
+		t.Fatalf("ReadFile(pressure_guard.sh) error = %v", err)
+	}
+	script := string(data)
+	for _, want := range []string{
+		`--available-bytes`,
+		`--min-env`,
+		`--default-min-mb`,
+		`--skip-env`,
+		`truthy_env()`,
+		`detect_available_memory_bytes()`,
+		`/MemAvailable/`,
+		`vm_stat`,
+		`memory_pressure`,
+		`System-wide memory free percentage:`,
+		`available memory is ${available_mb} MiB`,
+		`Refusing to start $label while the machine is under memory pressure.`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("pressure_guard.sh should own memory-pressure detection; missing %q", want)
+		}
+	}
 	vmStatIndex := strings.Index(script, `if command -v vm_stat`)
 	memoryPressureIndex := strings.Index(script, `if command -v memory_pressure`)
 	if vmStatIndex < 0 || memoryPressureIndex < 0 || vmStatIndex > memoryPressureIndex {
-		t.Fatalf("go_test.sh should prefer vm_stat over memory_pressure for current macOS pressure")
+		t.Fatalf("pressure_guard.sh should prefer vm_stat over memory_pressure for current macOS pressure")
 	}
 }
 
@@ -266,11 +293,7 @@ func TestTestScriptDefaultJobsRespectCurrentMemoryPressure(t *testing.T) {
 	}
 	script := string(data)
 	for _, want := range []string{
-		`detect_available_memory_bytes()`,
-		`memory_pressure`,
-		`System-wide memory free percentage:`,
-		`/MemAvailable/`,
-		`vm_stat`,
+		`"$SCRIPT_DIR/pressure_guard.sh" --available-bytes`,
 		`AVAILABLE_MEM_JOBS=$(( AVAILABLE_MEM_BYTES / BYTES_PER_JOB ))`,
 		`AVAILABLE_MEM_GB=$(( AVAILABLE_MEM_BYTES / 1024 / 1024 / 1024 ))`,
 		`JOBS_REASON="available memory cap (${AVAILABLE_MEM_GB} GiB free, ${MEMORY_PER_JOB_GB} GiB/job)"`,
@@ -280,11 +303,6 @@ func TestTestScriptDefaultJobsRespectCurrentMemoryPressure(t *testing.T) {
 		}
 	}
 
-	vmStatIndex := strings.Index(script, `if command -v vm_stat`)
-	memoryPressureIndex := strings.Index(script, `if command -v memory_pressure`)
-	if vmStatIndex < 0 || memoryPressureIndex < 0 || vmStatIndex > memoryPressureIndex {
-		t.Fatalf("test.sh should prefer vm_stat over memory_pressure for current macOS pressure")
-	}
 }
 
 func TestTestScriptRefusesFixtureCargoUnderSevereMemoryPressure(t *testing.T) {
@@ -296,25 +314,33 @@ func TestTestScriptRefusesFixtureCargoUnderSevereMemoryPressure(t *testing.T) {
 	for _, want := range []string{
 		`GO2RUST_TEST_MIN_AVAILABLE_MEM_MB`,
 		`GO2RUST_TEST_SKIP_PRESSURE_GUARD`,
-		`enforce_available_memory_floor`,
-		`available memory is ${available_mb} MiB`,
-		`Refusing to start $work_label while the machine is under memory pressure.`,
+		`enforce_fixture_memory_floor`,
+		`"$SCRIPT_DIR/pressure_guard.sh"`,
+		`--min-env "$min_var"`,
+		`--default-min-mb "$default_min_mb"`,
+		`--skip-env GO2RUST_TEST_SKIP_PRESSURE_GUARD`,
+		`--label "$work_label"`,
+		`|| exit $?`,
 		`./cleanup.sh --pressure --quick`,
 		`GO2RUST_TEST_SKIP_PRESSURE_GUARD=1`,
-		`enforce_available_memory_floor GO2RUST_TEST_MIN_AVAILABLE_MEM_MB 1024 "fixture Cargo work"`,
+		`enforce_fixture_memory_floor GO2RUST_TEST_MIN_AVAILABLE_MEM_MB 1024 "fixture Cargo work"`,
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("test.sh should refuse fixture Cargo work under severe memory pressure; missing %q", want)
 		}
 	}
 
-	guardIndex := strings.Index(script, `enforce_available_memory_floor GO2RUST_TEST_MIN_AVAILABLE_MEM_MB 1024 "fixture Cargo work"`)
+	guardIndex := strings.Index(script, `enforce_fixture_memory_floor GO2RUST_TEST_MIN_AVAILABLE_MEM_MB 1024 "fixture Cargo work"`)
+	lockIndex := strings.Index(script, `# Single-instance lock`)
 	buildIndex := strings.Index(script, `go build -o "$BUILT_TEST_BINARY" ./go`)
 	if guardIndex < 0 || buildIndex < 0 || guardIndex > buildIndex {
 		t.Fatalf("test.sh should run the memory-pressure guard before building the fixture transpiler")
 	}
+	if lockIndex < 0 || guardIndex > lockIndex {
+		t.Fatalf("test.sh should run the memory-pressure guard before acquiring the test lock")
+	}
 
-	transpileOnlyGuardIndex := strings.Index(script, `enforce_available_memory_floor GO2RUST_TEST_TRANSPILE_ONLY_MIN_AVAILABLE_MEM_MB 256 "transpile-only fixture work"`)
+	transpileOnlyGuardIndex := strings.Index(script, `enforce_fixture_memory_floor GO2RUST_TEST_TRANSPILE_ONLY_MIN_AVAILABLE_MEM_MB 256 "transpile-only fixture work"`)
 	if transpileOnlyGuardIndex < 0 || buildIndex < 0 || transpileOnlyGuardIndex > buildIndex {
 		t.Fatalf("test.sh should run the transpile-only memory-pressure guard before building the fixture transpiler")
 	}
@@ -333,8 +359,8 @@ func TestTestScriptTranspileOnlySkipsCargoPressureGuard(t *testing.T) {
 		`Transpile-only mode: skipping fixture Cargo build/run.`,
 		`if [ "$TRANSPILE_ONLY" = true ]; then`,
 		`GO2RUST_TEST_TRANSPILE_ONLY_MIN_AVAILABLE_MEM_MB`,
-		`enforce_available_memory_floor GO2RUST_TEST_TRANSPILE_ONLY_MIN_AVAILABLE_MEM_MB 256 "transpile-only fixture work"`,
-		`enforce_available_memory_floor GO2RUST_TEST_MIN_AVAILABLE_MEM_MB 1024 "fixture Cargo work"`,
+		`enforce_fixture_memory_floor GO2RUST_TEST_TRANSPILE_ONLY_MIN_AVAILABLE_MEM_MB 256 "transpile-only fixture work"`,
+		`enforce_fixture_memory_floor GO2RUST_TEST_MIN_AVAILABLE_MEM_MB 1024 "fixture Cargo work"`,
 	} {
 		if !strings.Contains(script, want) {
 			t.Fatalf("test.sh should expose transpile-only mode with a lighter pressure gate; missing %q", want)

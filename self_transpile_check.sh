@@ -110,90 +110,16 @@ copy_behavior_suite_tests() {
     find "$suite/tests" -name "Cargo.lock" -type f -delete
 }
 
-detect_available_memory_bytes() {
-    if [ -r /proc/meminfo ]; then
-        awk '/MemAvailable/ { printf "%.0f\n", $2 * 1024 }' /proc/meminfo 2>/dev/null
-        return
-    fi
-
-    if command -v vm_stat >/dev/null 2>&1; then
-        vm_stat 2>/dev/null | awk '
-            /page size of/ {
-                page_size = $8
-                gsub(/[^0-9]/, "", page_size)
-            }
-            /Pages free:/ {
-                free_pages = $3
-                gsub(/[^0-9]/, "", free_pages)
-            }
-            /Pages speculative:/ {
-                speculative_pages = $3
-                gsub(/[^0-9]/, "", speculative_pages)
-            }
-            END {
-                if (page_size > 0) {
-                    printf "%.0f\n", (free_pages + speculative_pages) * page_size
-                }
-            }
-        '
-        return
-    fi
-
-    if command -v memory_pressure >/dev/null 2>&1; then
-        memory_pressure 2>/dev/null | awk '
-            /^The system has / {
-                total = $4
-            }
-            /System-wide memory free percentage:/ {
-                pct = $5
-                gsub(/%/, "", pct)
-            }
-            END {
-                if (total ~ /^[0-9]+$/ && pct ~ /^[0-9]+$/) {
-                    printf "%.0f\n", total * pct / 100
-                }
-            }
-        '
-        return
-    fi
-}
-
 enforce_available_memory_floor() {
     local min_var="${1:-GO2RUST_SELF_MIN_AVAILABLE_MEM_MB}"
     local default_min_mb="${2:-1024}"
     local work_label="${3:-self-transpile work}"
-
-    case "${GO2RUST_SELF_SKIP_PRESSURE_GUARD:-0}" in
-        1|true|TRUE|yes|YES)
-            return
-            ;;
-    esac
-
-    local min_mb="${!min_var:-$default_min_mb}"
-    case "$min_mb" in
-        ''|*[!0-9]*)
-            echo "error: $min_var must be a non-negative integer" >&2
-            exit 2
-            ;;
-    esac
-    [ "$min_mb" -eq 0 ] && return
-
-    local available_bytes
-    available_bytes=$(detect_available_memory_bytes)
-    case "$available_bytes" in
-        ''|*[!0-9]*)
-            return
-            ;;
-    esac
-
-    local min_bytes=$(( min_mb * 1024 * 1024 ))
-    if [ "$available_bytes" -lt "$min_bytes" ]; then
-        local available_mb=$(( available_bytes / 1024 / 1024 ))
-        echo "Error: available memory is ${available_mb} MiB, below ${min_var}=${min_mb} MiB." >&2
-        echo "Refusing to start $work_label while the machine is under memory pressure." >&2
-        echo "Run ./cleanup.sh --pressure --quick to inspect current pressure, or set GO2RUST_SELF_SKIP_PRESSURE_GUARD=1 to force the run." >&2
-        exit 1
-    fi
+    "$repo_root/pressure_guard.sh" \
+        --min-env "$min_var" \
+        --default-min-mb "$default_min_mb" \
+        --skip-env GO2RUST_SELF_SKIP_PRESSURE_GUARD \
+        --label "$work_label" \
+        --hint "Run ./cleanup.sh --pressure --quick to inspect current pressure, or set GO2RUST_SELF_SKIP_PRESSURE_GUARD=1 to force the run." || exit $?
 }
 
 cleanup_stale_self_workspaces
@@ -284,7 +210,8 @@ if [ "$behavior_suite" = true ]; then
     mkdir -p "$suite"
     cp "$repo_root/test.sh" "$suite/test.sh"
     cp "$repo_root/cleanup.sh" "$suite/cleanup.sh"
-    chmod +x "$suite/test.sh" "$suite/cleanup.sh"
+    cp "$repo_root/pressure_guard.sh" "$suite/pressure_guard.sh"
+    chmod +x "$suite/test.sh" "$suite/cleanup.sh" "$suite/pressure_guard.sh"
     cp "$repo_root/tests.bats" "$suite/tests.bats"
     cp "$repo_root/go.mod" "$suite/go.mod"
     cp "$repo_root/go.sum" "$suite/go.sum"
