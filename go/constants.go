@@ -471,13 +471,64 @@ func constStringLiteral(expr ast.Expr) (string, bool) {
 	return RustStringLiteral(strconv.Quote(constant.StringVal(value))), true
 }
 
+const maxInlineConstStringLiteralLen = 200
+const constStringLiteralChunkBytes = 32
+const constByteSliceLiteralChunkBytes = 16
+
 func writeConstStringLiteralValue(out *strings.Builder, expr ast.Expr) bool {
-	lit, ok := constStringLiteral(expr)
+	value, ok := constStringValue(expr)
 	if !ok {
 		return false
 	}
+	if !utf8.ValidString(value) {
+		return false
+	}
+	lit := RustStringLiteral(strconv.Quote(value))
+	if len(lit) > maxInlineConstStringLiteralLen {
+		writeChunkedConstStringLiteral(out, value)
+		return true
+	}
 	out.WriteString(lit)
 	return true
+}
+
+func writeChunkedConstStringLiteral(out *strings.Builder, value string) {
+	indent := currentLineIndent(out)
+	out.WriteString("concat!(\n")
+	for _, chunk := range constStringLiteralChunks(value, constStringLiteralChunkBytes) {
+		out.WriteString(indent)
+		out.WriteString("    ")
+		out.WriteString(RustStringLiteral(strconv.Quote(chunk)))
+		out.WriteString(",\n")
+	}
+	out.WriteString(indent)
+	out.WriteString(")")
+}
+
+func constStringLiteralChunks(value string, maxBytes int) []string {
+	if value == "" {
+		return []string{""}
+	}
+	if maxBytes <= 0 {
+		maxBytes = len(value)
+	}
+	chunks := make([]string, 0, (len(value)+maxBytes-1)/maxBytes)
+	for len(value) > 0 {
+		n := maxBytes
+		if n > len(value) {
+			n = len(value)
+		}
+		for n < len(value) && n > 0 && !utf8.RuneStart(value[n]) {
+			n--
+		}
+		if n == 0 {
+			_, size := utf8.DecodeRuneInString(value)
+			n = size
+		}
+		chunks = append(chunks, value[:n])
+		value = value[n:]
+	}
+	return chunks
 }
 
 func constStringValue(expr ast.Expr) (string, bool) {
@@ -504,12 +555,41 @@ func rustByteSliceLiteralForStringValue(value string) string {
 		if i > 0 {
 			out.WriteString(", ")
 		}
-		out.WriteString("0x")
-		out.WriteString(strconv.FormatUint(uint64(b), 16))
-		out.WriteString("u8")
+		writeRustByteLiteral(&out, b)
 	}
 	out.WriteString("]")
 	return out.String()
+}
+
+func writeRustByteLiteral(out *strings.Builder, b byte) {
+	out.WriteString("0x")
+	out.WriteString(strconv.FormatUint(uint64(b), 16))
+	out.WriteString("u8")
+}
+
+func writeConstByteSliceLiteralForStringValue(out *strings.Builder, value string) {
+	lit := rustByteSliceLiteralForStringValue(value)
+	if len(lit) <= maxInlineConstStringLiteralLen {
+		out.WriteString(lit)
+		return
+	}
+	indent := currentLineIndent(out)
+	out.WriteString("&[\n")
+	for i, b := range []byte(value) {
+		if i%constByteSliceLiteralChunkBytes == 0 {
+			out.WriteString(indent)
+			out.WriteString("    ")
+		} else {
+			out.WriteString(" ")
+		}
+		writeRustByteLiteral(out, b)
+		out.WriteString(",")
+		if i%constByteSliceLiteralChunkBytes == constByteSliceLiteralChunkBytes-1 || i == len(value)-1 {
+			out.WriteString("\n")
+		}
+	}
+	out.WriteString(indent)
+	out.WriteString("]")
 }
 
 func writeConstByteSliceLiteralValue(out *strings.Builder, expr ast.Expr) bool {
@@ -517,7 +597,7 @@ func writeConstByteSliceLiteralValue(out *strings.Builder, expr ast.Expr) bool {
 	if !ok || utf8.ValidString(value) {
 		return false
 	}
-	out.WriteString(rustByteSliceLiteralForStringValue(value))
+	writeConstByteSliceLiteralForStringValue(out, value)
 	return true
 }
 
