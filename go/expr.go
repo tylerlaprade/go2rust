@@ -10038,6 +10038,10 @@ func typesStructCompositeLiteralWrappedLocalFieldsShouldUseMultiline(elts []ast.
 }
 
 func structCompositeLiteralValueCopiesWrappedLocal(value ast.Expr, fieldType types.Type) bool {
+	return structCompositeLiteralValueCopiesWrappedLocalForField(value, nil, fieldType)
+}
+
+func structCompositeLiteralValueCopiesWrappedLocalForField(value ast.Expr, fieldExpr ast.Expr, fieldType types.Type) bool {
 	ident, ok := value.(*ast.Ident)
 	if !ok || ident.Name == "nil" || ident.Name == "true" || ident.Name == "false" {
 		return false
@@ -10045,7 +10049,7 @@ func structCompositeLiteralValueCopiesWrappedLocal(value ast.Expr, fieldType typ
 	if _, isLocalConst := localConstants[ident.Name]; isLocalConst || isConstIdent(ident) || isConstantExpression(value) {
 		return false
 	}
-	if structFieldValueKeepsHandle(nil, fieldType) {
+	if structFieldValueKeepsHandle(fieldExpr, fieldType) {
 		return false
 	}
 	typeInfo := GetTypeInfo()
@@ -10072,6 +10076,9 @@ func localStructCompositeLiteralShouldUseMultiline(typeName string, elts []ast.E
 	}
 	fields := localStructLiteralFieldEntries(sd.ASTType)
 	if structCompositeLiteralComplexPointerFieldsShouldUseMultiline(localStructCompositeLiteralFieldValues(elts, fields)) {
+		return true
+	}
+	if localStructCompositeLiteralWrappedLocalFieldsShouldUseMultiline(elts, fields) {
 		return true
 	}
 	allPositional := true
@@ -10112,6 +10119,19 @@ func localStructCompositeLiteralShouldUseMultiline(typeName string, elts []ast.E
 		}
 	}
 	return false
+}
+
+func localStructCompositeLiteralWrappedLocalFieldsShouldUseMultiline(elts []ast.Expr, fields []localStructLiteralFieldEntry) bool {
+	if len(elts) < 4 {
+		return false
+	}
+	count := 0
+	for _, field := range localStructCompositeLiteralFieldValues(elts, fields) {
+		if structCompositeLiteralValueCopiesWrappedLocalForField(field.value, field.fieldExpr, nil) {
+			count++
+		}
+	}
+	return count >= 4
 }
 
 func localStructCompositeLiteralFieldValues(elts []ast.Expr, fields []localStructLiteralFieldEntry) []structCompositeLiteralFieldValue {

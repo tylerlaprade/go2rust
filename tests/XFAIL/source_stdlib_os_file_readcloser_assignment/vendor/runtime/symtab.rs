@@ -2196,7 +2196,13 @@ pub fn pcvalue(f: Arc<Mutex<Option<funcInfo>>>, off: Arc<Mutex<Option<u32>>>, ta
         let mut e: Option<GoArrayElemPtr<[pcvalueCacheEnt; 8], 2>> = Some(GoArrayElemPtr::new((*cache.lock().unwrap().as_ref().unwrap()).entries.clone(), (ck) as usize));
         let mut ci = cheaprandn(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*cache.lock().unwrap().as_ref().unwrap()).entries.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(ck) as usize].clone() }.len() as u32))));
         { let new_val = { let __seq = e.as_ref().unwrap().borrow(); __seq.as_ref().unwrap()[(0) as usize].clone() }; (*e.as_ref().unwrap().borrow_mut().as_mut().unwrap())[(ci) as usize] = new_val; };
-        { let new_val = pcvalueCacheEnt { targetpc: Arc::new(Mutex::new(Some({ let __arg_holder = targetpc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), off: Arc::new(Mutex::new(Some({ let __arg_holder = off.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), val: Arc::new(Mutex::new(Some({ let __arg_holder = val.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), val_p_c: Arc::new(Mutex::new(Some({ let __arg_holder = prevpc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() }; (*e.as_ref().unwrap().borrow_mut().as_mut().unwrap())[(0) as usize] = new_val; };
+        { let new_val = pcvalueCacheEnt {
+            targetpc: Arc::new(Mutex::new(Some({ let __arg_holder = targetpc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            off: Arc::new(Mutex::new(Some({ let __arg_holder = off.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            val: Arc::new(Mutex::new(Some({ let __arg_holder = val.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            val_p_c: Arc::new(Mutex::new(Some({ let __arg_holder = prevpc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+            ..Default::default()
+        }; (*e.as_ref().unwrap().borrow_mut().as_mut().unwrap())[(0) as usize] = new_val; };
     }
         { let __target = (*cache.lock().unwrap().as_ref().unwrap()).in_use.clone(); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
         releasem(GoPtr::local(mp.clone()));

@@ -7340,6 +7340,39 @@ func parse(b []byte) (int, error) {
 	}
 }
 
+func TestConcurrentLocalStructLiteralWithWrappedLocalFieldsBreaksFieldsAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+type ParseError struct {
+	layout string
+	value string
+	layoutElem string
+	valueElem string
+	message string
+}
+
+func clone(s string) string {
+	return s
+}
+
+func newParseError(layout, value, layoutElem, valueElem, message string) *ParseError {
+	go func() {}()
+	valueCopy := clone(value)
+	valueElemCopy := clone(valueElem)
+	return &ParseError{layout, valueCopy, layoutElem, valueElemCopy, message}
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Contains(line, "ParseError {") && strings.Contains(line, "value_elem:") {
+			t.Fatalf("struct literal with wrapped local fields should split fields across lines:\n%s", rust)
+		}
+	}
+	if !strings.Contains(rust, "ParseError {\n") {
+		t.Fatalf("struct literal with wrapped local fields should use multiline struct syntax:\n%s", rust)
+	}
+}
+
 func TestConcurrentStructLiteralAssignmentBreaksFieldsAcrossLines(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

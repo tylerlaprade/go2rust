@@ -1444,7 +1444,14 @@ pub fn append_nano(mut b: Arc<Mutex<Option<Vec<u8>>>>, nanosec: Arc<Mutex<Option
 pub fn new_parse_error(layout: Arc<Mutex<Option<String>>>, value: Arc<Mutex<Option<String>>>, layoutElem: Arc<Mutex<Option<String>>>, valueElem: Arc<Mutex<Option<String>>>, message: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<ParseError>>> {
     let mut valueCopy = internal_stringslite::clone(Arc::new(Mutex::new(Some({ let __arg_holder = value.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     let mut valueElemCopy = internal_stringslite::clone(Arc::new(Mutex::new(Some({ let __arg_holder = valueElem.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
-    return Arc::new(Mutex::new(Some(ParseError { layout: Arc::new(Mutex::new(Some({ let __arg_holder = layout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), value: Arc::new(Mutex::new(Some({ let __arg_holder = valueCopy.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), layout_elem: Arc::new(Mutex::new(Some({ let __arg_holder = layoutElem.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), value_elem: Arc::new(Mutex::new(Some({ let __arg_holder = valueElemCopy.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), message: Arc::new(Mutex::new(Some({ let __arg_holder = message.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
+    return Arc::new(Mutex::new(Some(ParseError {
+        layout: Arc::new(Mutex::new(Some({ let __arg_holder = layout.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        value: Arc::new(Mutex::new(Some({ let __arg_holder = valueCopy.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        layout_elem: Arc::new(Mutex::new(Some({ let __arg_holder = layoutElem.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        value_elem: Arc::new(Mutex::new(Some({ let __arg_holder = valueElemCopy.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        message: Arc::new(Mutex::new(Some({ let __arg_holder = message.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        ..Default::default()
+    })));
 }
 
 pub fn quote(s: Arc<Mutex<Option<String>>>) -> Arc<Mutex<Option<String>>> {

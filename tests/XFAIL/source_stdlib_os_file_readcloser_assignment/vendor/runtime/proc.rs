@@ -2813,7 +2813,13 @@ pub fn stop_the_world_with_sema(reason: Arc<Mutex<Option<stwReason>>>) -> Arc<Mu
         Arc::new(Mutex::new(Some(__GRUNNING as u32)))
     );
 
-    return Arc::new(Mutex::new(Some(worldStop { reason: Arc::new(Mutex::new(Some({ let __arg_holder = reason.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), started_stopping: Arc::new(Mutex::new(Some(start))), finished_stopping: Arc::new(Mutex::new(Some(finish))), stopping_c_p_u_time: Arc::new(Mutex::new(Some({ let __arg_holder = stoppingCPUTime.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), ..Default::default() })));
+    return Arc::new(Mutex::new(Some(worldStop {
+        reason: Arc::new(Mutex::new(Some({ let __arg_holder = reason.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        started_stopping: Arc::new(Mutex::new(Some(start))),
+        finished_stopping: Arc::new(Mutex::new(Some(finish))),
+        stopping_c_p_u_time: Arc::new(Mutex::new(Some({ let __arg_holder = stoppingCPUTime.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))),
+        ..Default::default()
+    })));
 }
 
 /// reason is the same STW reason passed to stopTheWorld. start is the start
