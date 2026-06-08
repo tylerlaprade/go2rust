@@ -1659,6 +1659,22 @@ func runes(s string) []rune {
 	}
 }
 
+func TestConcurrentNestedSliceCopyBreaksBlocksAcrossLines(t *testing.T) {
+	rust := transpileTypedConcurrentRegression(t, `package main
+
+func prefix(b []byte, off int) []byte {
+	go func() {}()
+	return b[off:][:1]
+}
+`)
+
+	for _, line := range strings.Split(rust, "\n") {
+		if strings.Count(line, "let __seq_holder") > 1 {
+			t.Fatalf("nested slice copies should not stay on one line:\n%s", rust)
+		}
+	}
+}
+
 func TestConcurrentAppendManyElementsBreaksExtendVecAcrossLines(t *testing.T) {
 	rust := transpileTypedConcurrentRegression(t, `package main
 

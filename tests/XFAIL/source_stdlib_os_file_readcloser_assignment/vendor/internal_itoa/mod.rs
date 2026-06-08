@@ -29,5 +29,18 @@ pub fn uitoa(mut val: Arc<Mutex<Option<u64>>>) -> Arc<Mutex<Option<String>>> {
 
         // val < 10
     (*buf.lock().unwrap().as_mut().unwrap())[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = (*Arc::new(Mutex::new(Some(({ let __tmp_x = ('0' as u64); let __tmp_y = { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone();
-    return Arc::new(Mutex::new(Some(String::from_utf8((*Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone()).unwrap())));
+    return Arc::new(Mutex::new(Some(String::from_utf8((*Arc::new(Mutex::new(Some({
+        let __seq_holder = buf.clone();
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+        let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+        drop(__seq_guard);
+        let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
+        let __high = __seq.len();
+        let __max = __source_cap;
+        let _slice = &__seq[__low..__high];
+        let mut _v = Vec::with_capacity((__max - __low) as usize);
+        _v.extend_from_slice(_slice);
+        _v
+    }))).lock().unwrap().as_ref().unwrap()).clone()).unwrap())));
 }

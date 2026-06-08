@@ -229,7 +229,17 @@ impl crate::mpagealloc::pageAlloc {
                 //
                 // We must do this regardless of whether we map new memory.
         if { let __tmp_x = (needIdxLimit as i32); let __tmp_y = ({ let __seq = { let __seq_holder = self.summary.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(l) as usize].clone() }.len() as i32); __tmp_x > __tmp_y } {
-        (*self.summary.lock().unwrap().as_mut().unwrap())[(l) as usize] = (*Arc::new(Mutex::new(Some({ let mut __seq = { let __seq = { let __seq_holder = self.summary.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(l) as usize].clone() }; let __low = 0; let __high = (needIdxLimit) as usize; let __max = __seq.capacity(); if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone();
+        (*self.summary.lock().unwrap().as_mut().unwrap())[(l) as usize] = (*Arc::new(Mutex::new(Some({
+            let mut __seq = { let __seq = { let __seq_holder = self.summary.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(l) as usize].clone() };
+            let __low = 0;
+            let __high = (needIdxLimit) as usize;
+            let __max = __seq.capacity();
+            if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        }))).lock().unwrap().as_ref().unwrap()).clone();
     }
                 // Compute the needed address range in the summary array for level l.
         let mut need = { let __f_ptr: *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<addrRange>>> + Send + Sync> = { let mut __f_guard = summaryRangeToSumAddrRange.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut(Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>, Arc<Mutex<Option<i32>>>) -> Arc<Mutex<Option<addrRange>>> + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)(Arc::new(Mutex::new(Some(l as i32))), Arc::new(Mutex::new(Some(needIdxBase))), Arc::new(Mutex::new(Some(needIdxLimit)))) };

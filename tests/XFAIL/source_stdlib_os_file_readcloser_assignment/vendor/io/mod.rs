@@ -400,7 +400,21 @@ impl LimitedReader {
         return (0, EOF.clone());
     }
         if { let __tmp_x = (*Arc::new(Mutex::new(Some((*p.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = (*self.n.lock().unwrap().as_ref().unwrap()); __tmp_x > __tmp_y } {
-        { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = p.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (0) as usize; let __high = (*self.n.clone().lock().unwrap().as_ref().unwrap()) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); p = new_val; };
+        { let new_val = Arc::new(Mutex::new(Some({
+            let __seq_holder = p.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+            let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+            drop(__seq_guard);
+            let __low = (0) as usize;
+            let __high = (*self.n.clone().lock().unwrap().as_ref().unwrap()) as usize;
+            let __max = __source_cap;
+            if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        }))); p = new_val; };
     }
         { let (__tmp_0, __tmp_1) = (*self.r.lock().unwrap().as_mut().unwrap()).read(p.clone()); *n.lock().unwrap() = Some(__tmp_0); let __moved_tmp_1 = { let mut __guard = __tmp_1.lock().unwrap(); __guard.take() }; *err.lock().unwrap() = __moved_tmp_1; };
         { let __target = self.n.clone(); let __rhs = (*Arc::new(Mutex::new(Some((*n.lock().unwrap().as_ref().unwrap()) as i64))).lock().unwrap().as_ref().unwrap()); let mut guard = __target.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };
@@ -725,7 +739,21 @@ pub fn copy_buffer_1(dst: Arc<Mutex<Option<Box<dyn Writer + Send + Sync>>>>, src
     loop {
         let (mut nr, mut er) = (*src.lock().unwrap().as_mut().unwrap()).read(buf.clone());
         if { let __tmp_x = nr; let __tmp_y = 0; __tmp_x > __tmp_y } {
-        let (mut nw, mut ew) = (*dst.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (0) as usize; let __high = (nr) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))));
+        let (mut nw, mut ew) = (*dst.lock().unwrap().as_mut().unwrap()).write(Arc::new(Mutex::new(Some({
+            let __seq_holder = buf.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+            let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+            drop(__seq_guard);
+            let __low = (0) as usize;
+            let __high = (nr) as usize;
+            let __max = __source_cap;
+            if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        }))));
         if { let __tmp_x = nw; let __tmp_y = 0; __tmp_x < __tmp_y } || { let __tmp_x = nr; let __tmp_y = nw; __tmp_x < __tmp_y } {
         { let new_val = 0; nw = new_val; };
         if { let __nil_result = (*ew.lock().unwrap()).is_none(); __nil_result } {

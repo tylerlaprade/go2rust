@@ -2700,7 +2700,20 @@ pub fn gc_mark_termination(stw: Arc<Mutex<Option<worldStop>>>) {
             let __go_print_arg_1 = format!("{}", (*{ let __field = (*memstats.lock().unwrap().as_ref().unwrap()).numgc.clone(); __field }.lock().unwrap().as_ref().unwrap()));
             let __go_print_arg_2 = format!("{}", " @".to_string());
             let __go_print_arg_3 = format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8((*itoa_div(
-                Arc::new(Mutex::new(Some({ let __seq_holder = sbuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))),
+                Arc::new(Mutex::new(Some({
+                    let __seq_holder = sbuf.clone();
+                    let __seq_guard = __seq_holder.lock().unwrap();
+                    let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+                    let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+                    drop(__seq_guard);
+                    let __low = 0;
+                    let __high = __seq.len();
+                    let __max = __source_cap;
+                    let _slice = &__seq[__low..__high];
+                    let mut _v = Vec::with_capacity((__max - __low) as usize);
+                    _v.extend_from_slice(_slice);
+                    _v
+                }))),
                 Arc::new(Mutex::new(Some({ let __tmp_x = (*Arc::new(Mutex::new(Some(({ let __tmp_x = (*{ let __field = (*work.lock().unwrap().as_ref().unwrap()).t_sweep_term.clone(); __field }.lock().unwrap().as_ref().unwrap()); let __tmp_y = (*runtimeInitTime.lock().unwrap().as_ref().unwrap()); __tmp_x - __tmp_y }) as u64))).lock().unwrap().as_ref().unwrap()); let __tmp_y = 1e6 as u64; __tmp_x / __tmp_y }))),
                 Arc::new(Mutex::new(Some(3)))
             ).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap()));
@@ -2718,7 +2731,20 @@ pub fn gc_mark_termination(stw: Arc<Mutex<Option<worldStop>>>) {
         };
     }
         {
-            let __go_print_arg_0 = format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8((*fmt_n_s_as_m_s(Arc::new(Mutex::new(Some({ let __seq_holder = sbuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(Some(({ let __tmp_x = ns; let __tmp_y = { let __v = (*prev.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }) as u64)))).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_0 = format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8((*fmt_n_s_as_m_s(Arc::new(Mutex::new(Some({
+                let __seq_holder = sbuf.clone();
+                let __seq_guard = __seq_holder.lock().unwrap();
+                let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+                let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+                drop(__seq_guard);
+                let __low = 0;
+                let __high = __seq.len();
+                let __max = __source_cap;
+                let _slice = &__seq[__low..__high];
+                let mut _v = Vec::with_capacity((__max - __low) as usize);
+                _v.extend_from_slice(_slice);
+                _v
+            }))), Arc::new(Mutex::new(Some(({ let __tmp_x = ns; let __tmp_y = { let __v = (*prev.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x - __tmp_y }) as u64)))).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap()));
             eprint!("{}", __go_print_arg_0)
         };
         { let new_val = ns.clone(); *prev.lock().unwrap() = Some(new_val); };
@@ -2760,7 +2786,20 @@ pub fn gc_mark_termination(stw: Arc<Mutex<Option<worldStop>>>) {
     }
                 // Separate mark time components with /.
         {
-            let __go_print_arg_0 = format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8((*fmt_n_s_as_m_s(Arc::new(Mutex::new(Some({ let __seq_holder = sbuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(Some(ns as u64)))).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap()));
+            let __go_print_arg_0 = format!("{}", (*Arc::new(Mutex::new(Some(String::from_utf8((*fmt_n_s_as_m_s(Arc::new(Mutex::new(Some({
+                let __seq_holder = sbuf.clone();
+                let __seq_guard = __seq_holder.lock().unwrap();
+                let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+                let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+                drop(__seq_guard);
+                let __low = 0;
+                let __high = __seq.len();
+                let __max = __source_cap;
+                let _slice = &__seq[__low..__high];
+                let mut _v = Vec::with_capacity((__max - __low) as usize);
+                _v.extend_from_slice(_slice);
+                _v
+            }))), Arc::new(Mutex::new(Some(ns as u64)))).lock().unwrap().as_ref().unwrap()).clone()).unwrap()))).lock().unwrap().as_ref().unwrap()));
             eprint!("{}", __go_print_arg_0)
         };
     }
@@ -3446,7 +3485,21 @@ pub fn itoa_div(buf_local: Arc<Mutex<Option<Vec<u8>>>>, mut val: Arc<Mutex<Optio
         { let __rhs = 10 as u64; let mut guard = val.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() / __rhs); };
     }
     (*buf_local.lock().unwrap().as_mut().unwrap())[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*val.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = ('0' as u64); __tmp_x + __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()).clone();
-    return Arc::new(Mutex::new(Some({ let __seq_holder = buf_local.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })));
+    return Arc::new(Mutex::new(Some({
+        let __seq_holder = buf_local.clone();
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+        let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+        drop(__seq_guard);
+        let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
+        let __high = __seq.len();
+        let __max = __source_cap;
+        if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+        let _slice = &__seq[__low..__high];
+        let mut _v = Vec::with_capacity((__max - __low) as usize);
+        _v.extend_from_slice(_slice);
+        _v
+    })));
 }
 
 /// fmtNSAsMS nicely formats ns nanoseconds as milliseconds.
@@ -3465,7 +3518,21 @@ pub fn fmt_n_s_as_m_s(buf_local: Arc<Mutex<Option<Vec<u8>>>>, ns: Arc<Mutex<Opti
     let mut x = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*ns.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1e3 as u64; __tmp_x / __tmp_y })));
     if { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0 as u64; __tmp_x == __tmp_y } {
         (*buf_local.lock().unwrap().as_mut().unwrap())[(0) as usize] = ('0' as i32) as u8;
-        return Arc::new(Mutex::new(Some({ let __seq_holder = buf_local.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = (1) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })));
+        return Arc::new(Mutex::new(Some({
+            let __seq_holder = buf_local.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+            let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+            drop(__seq_guard);
+            let __low = 0;
+            let __high = (1) as usize;
+            let __max = __source_cap;
+            if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        })));
     }
     let mut dec = Arc::new(Mutex::new(Some(3)));
     while { let __tmp_x = { let __v = (*x.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 100 as u64; __tmp_x >= __tmp_y } {

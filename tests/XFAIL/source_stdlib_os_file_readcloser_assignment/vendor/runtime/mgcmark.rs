@@ -869,8 +869,35 @@ pub fn markroot_spans(gcw: Arc<Mutex<Option<gcWork>>>, shard: Arc<Mutex<Option<i
     let mut arenaPage = Arc::new(Mutex::new(Some(({ let __tmp_x = { let __tmp_x = (*Arc::new(Mutex::new(Some((*shard.lock().unwrap().as_ref().unwrap()) as usize))).lock().unwrap().as_ref().unwrap()); let __tmp_y = PAGES_PER_SPAN_ROOT as usize; __tmp_x * __tmp_y }; let __tmp_y = PAGES_PER_ARENA as usize; __tmp_x % __tmp_y }) as u64)));
 
         // Construct slice of bitmap which we'll iterate over.
-    let mut specialsbits = Arc::new(Mutex::new(Some({ let __seq_holder = (*ha.lock().unwrap().as_ref().unwrap()).page_specials.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = ({ let __tmp_x = { let __v = (*arenaPage.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as u64; __tmp_x / __tmp_y }) as usize; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })));
-    { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = specialsbits.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ({ let __tmp_x = PAGES_PER_SPAN_ROOT; let __tmp_y = 8; __tmp_x / __tmp_y }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); specialsbits = new_val; };
+    let mut specialsbits = Arc::new(Mutex::new(Some({
+        let __seq_holder = (*ha.lock().unwrap().as_ref().unwrap()).page_specials.clone();
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+        let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+        drop(__seq_guard);
+        let __low = ({ let __tmp_x = { let __v = (*arenaPage.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 8 as u64; __tmp_x / __tmp_y }) as usize;
+        let __high = __seq.len();
+        let __max = __source_cap;
+        let _slice = &__seq[__low..__high];
+        let mut _v = Vec::with_capacity((__max - __low) as usize);
+        _v.extend_from_slice(_slice);
+        _v
+    })));
+    { let new_val = Arc::new(Mutex::new(Some({
+        let __seq_holder = specialsbits.clone();
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+        let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+        drop(__seq_guard);
+        let __low = 0;
+        let __high = ({ let __tmp_x = PAGES_PER_SPAN_ROOT; let __tmp_y = 8; __tmp_x / __tmp_y }) as usize;
+        let __max = __source_cap;
+        if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+        let _slice = &__seq[__low..__high];
+        let mut _v = Vec::with_capacity((__max - __low) as usize);
+        _v.extend_from_slice(_slice);
+        _v
+    }))); specialsbits = new_val; };
     for i in 0..(({ let __range_holder = specialsbits.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
                 // Find set bits, which correspond to spans with specials.
         let mut specials = internal_runtime_atomic::load8(internal_runtime_atomic::GoPtr::slice_elem(internal_runtime_atomic::GoSliceElemPtr::new(specialsbits.clone(), (i) as usize)));

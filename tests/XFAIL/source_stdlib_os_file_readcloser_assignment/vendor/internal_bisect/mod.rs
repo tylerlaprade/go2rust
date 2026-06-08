@@ -893,17 +893,56 @@ impl Matcher {
         const maxStack: i32 = 16;
 
         let mut stk: Arc<Mutex<Option<[usize; 16]>>> = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
-        let mut n = runtime::callers(Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some({ let __seq_holder = stk.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))));
+        let mut n = runtime::callers(Arc::new(Mutex::new(Some(2))), Arc::new(Mutex::new(Some({
+            let __seq_holder = stk.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+            let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+            drop(__seq_guard);
+            let __low = 0;
+            let __high = __seq.len();
+            let __max = __source_cap;
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        }))));
                 // caller #2 is not for printing; need it to normalize PCs if ASLR.
         if { let __tmp_x = n; let __tmp_y = 1; __tmp_x <= __tmp_y } {
         return false;
     }
         let mut base = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = stk.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[(0) as usize].clone() })));
                 // normalize PCs
-        for i in 0..({ let __seq_holder = stk.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = (n) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }.len()) {
+        for i in 0..({
+            let __seq_holder = stk.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+            let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+            drop(__seq_guard);
+            let __low = 0;
+            let __high = (n) as usize;
+            let __max = __source_cap;
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        }.len()) {
         { let __idx = i as usize; let __rhs = (*base.lock().unwrap().as_ref().unwrap()); let mut __seq_guard = stk.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] - __rhs; };
     }
-        let mut h = hash(Arc::new(Mutex::new(Some(vec![Box::new(Arc::new(Mutex::new(Some({ let __seq_holder = stk.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = (n) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).clone()) as Box<dyn Any + Send + Sync>]))));
+        let mut h = hash(Arc::new(Mutex::new(Some(vec![Box::new(Arc::new(Mutex::new(Some({
+            let __seq_holder = stk.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+            let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+            drop(__seq_guard);
+            let __low = 0;
+            let __high = (n) as usize;
+            let __max = __source_cap;
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        }))).clone()) as Box<dyn Any + Send + Sync>]))));
         if self.should_print(Arc::new(Mutex::new(Some(h)))) {
         let mut d: GoPtr<dedup> = GoPtr::nil();
         loop {
@@ -923,13 +962,39 @@ impl Matcher {
     } else {
         if !{ let __result = d.with_mut(|__recv_value| __recv_value.seen(Arc::new(Mutex::new(Some(h))))); __result } {
                 // Restore PCs in stack for printing
-        for i in 0..({ let __seq_holder = stk.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = (n) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }.len()) {
+        for i in 0..({
+            let __seq_holder = stk.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+            let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+            drop(__seq_guard);
+            let __low = 0;
+            let __high = (n) as usize;
+            let __max = __source_cap;
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        }.len()) {
         { let __idx = i as usize; let __rhs = (*base.lock().unwrap().as_ref().unwrap()); let mut __seq_guard = stk.lock().unwrap(); let __seq = __seq_guard.as_mut().unwrap(); __seq[__idx] = __seq[__idx] + __rhs; };
     }
         print_stack(
             w.clone(),
             Arc::new(Mutex::new(Some(h))),
-            Arc::new(Mutex::new(Some({ let __seq_holder = stk.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = (1) as usize; let __high = (n) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))
+            Arc::new(Mutex::new(Some({
+                let __seq_holder = stk.clone();
+                let __seq_guard = __seq_holder.lock().unwrap();
+                let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+                let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+                drop(__seq_guard);
+                let __low = (1) as usize;
+                let __high = (n) as usize;
+                let __max = __source_cap;
+                let _slice = &__seq[__low..__high];
+                let mut _v = Vec::with_capacity((__max - __low) as usize);
+                _v.extend_from_slice(_slice);
+                _v
+            })))
         );
     }
     }
@@ -1199,7 +1264,20 @@ pub fn append_file_line(mut dst: Arc<Mutex<Option<Vec<u8>>>>, file: Arc<Mutex<Op
         (*buf.lock().unwrap().as_mut().unwrap())[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = { let __tmp_x = ('0' as i32) as u8; let __tmp_y = (*Arc::new(Mutex::new(Some(({ let __tmp_x = { let __v = (*u.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10 as u64; __tmp_x % __tmp_y }) as u8))).lock().unwrap().as_ref().unwrap()); __tmp_x + __tmp_y };
         { let __rhs = 10 as u64; let mut guard = u.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() / __rhs); };
     }
-    { let new_val = { let __append_target = dst.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend({ let __slice_holder = Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned()); __append_target.clone() }; dst = new_val; };
+    { let new_val = { let __append_target = dst.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend({ let __slice_holder = Arc::new(Mutex::new(Some({
+        let __seq_holder = buf.clone();
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+        let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+        drop(__seq_guard);
+        let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
+        let __high = __seq.len();
+        let __max = __source_cap;
+        let _slice = &__seq[__low..__high];
+        let mut _v = Vec::with_capacity((__max - __low) as usize);
+        _v.extend_from_slice(_slice);
+        _v
+    }))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned()); __append_target.clone() }; dst = new_val; };
     return dst.clone();
 }
 
@@ -1207,7 +1285,20 @@ pub fn append_file_line(mut dst: Arc<Mutex<Option<Vec<u8>>>>, file: Arc<Mutex<Op
 /// It is appropriate to use when [Matcher.ShouldPrint] and [Matcher.MarkerOnly] both return true.
 pub fn print_marker(w: Arc<Mutex<Option<Box<dyn Writer + Send + Sync>>>>, h: Arc<Mutex<Option<u64>>>) -> Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> {
     let mut buf: Arc<Mutex<Option<[u8; 50]>>> = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
-    let mut b = append_marker(Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = (0) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    let mut b = append_marker(Arc::new(Mutex::new(Some({
+        let __seq_holder = buf.clone();
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+        let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+        drop(__seq_guard);
+        let __low = 0;
+        let __high = (0) as usize;
+        let __max = __source_cap;
+        let _slice = &__seq[__low..__high];
+        let mut _v = Vec::with_capacity((__max - __low) as usize);
+        _v.extend_from_slice(_slice);
+        _v
+    }))), Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
     { let new_val = { let __append_target = b.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).push(('\n' as i32) as u8); __append_target.clone() }; b = new_val; };
     let (_, mut err) = (*w.lock().unwrap().as_mut().unwrap()).write(b.clone());
     return err.clone();
@@ -1219,7 +1310,20 @@ pub fn print_stack(w: Arc<Mutex<Option<Box<dyn Writer + Send + Sync>>>>, h: Arc<
     let mut buf = Arc::new(Mutex::new(Some(Vec::<u8>::with_capacity((2048) as usize))));
 
     let mut prefixBuf: Arc<Mutex<Option<[u8; 100]>>> = Arc::new(Mutex::new(Some(std::array::from_fn(|_| 0))));
-    let mut prefix = append_marker(Arc::new(Mutex::new(Some({ let __seq_holder = prefixBuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = (0) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))), Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
+    let mut prefix = append_marker(Arc::new(Mutex::new(Some({
+        let __seq_holder = prefixBuf.clone();
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+        let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+        drop(__seq_guard);
+        let __low = 0;
+        let __high = (0) as usize;
+        let __max = __source_cap;
+        let _slice = &__seq[__low..__high];
+        let mut _v = Vec::with_capacity((__max - __low) as usize);
+        _v.extend_from_slice(_slice);
+        _v
+    }))), Arc::new(Mutex::new(Some({ let __arg_holder = h.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
 
     let mut frames = runtime::callers_frames(stk.clone());
     loop {
@@ -1263,7 +1367,20 @@ pub fn append_marker(dst: Arc<Mutex<Option<Vec<u8>>>>, mut id: Arc<Mutex<Option<
         { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + 1); }
     }
     (*buf.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = 16; let __tmp_y = 16; __tmp_x + __tmp_y }) as usize] = (']' as i32) as u8;
-    return { let __append_target = dst.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend({ let __slice_holder = Arc::new(Mutex::new(Some({ let __seq_holder = buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned()); __append_target.clone() };
+    return { let __append_target = dst.clone(); (*__append_target.lock().unwrap()).get_or_insert_with(Vec::new).extend({ let __slice_holder = Arc::new(Mutex::new(Some({
+        let __seq_holder = buf.clone();
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+        let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+        drop(__seq_guard);
+        let __low = 0;
+        let __high = __seq.len();
+        let __max = __source_cap;
+        let _slice = &__seq[__low..__high];
+        let mut _v = Vec::with_capacity((__max - __low) as usize);
+        _v.extend_from_slice(_slice);
+        _v
+    }))).clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.clone()).unwrap_or_default() }.iter().cloned()); __append_target.clone() };
 }
 
 /// Hash computes a hash of the data arguments,

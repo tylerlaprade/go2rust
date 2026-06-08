@@ -1203,7 +1203,17 @@ impl pageAlloc {
     } else if { let __v = (*contig.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         let mut summary = Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = self.summary.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = 5; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() })));
         (*summary.lock().unwrap().as_mut().unwrap())[(*{ let __v = (*sc.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize] = pallocSum(Arc::new(Mutex::new(Some((*(*{ let __recv = self.chunk_of(Arc::new(Mutex::new(Some({ let __arg_holder = sc.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() })))); let __result = (*__recv.as_ref().unwrap().borrow().as_ref().unwrap()).summarize(); __result }.lock().unwrap().as_ref().unwrap()).0.lock().unwrap().as_ref().unwrap())))));
-        let mut whole = Arc::new(Mutex::new(Some({ let mut __seq = { let __seq = { let __seq_holder = self.summary.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = 5; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() }; let __low = ((*{ let __v = (*sc.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) + 1) as usize; let __high = (*{ let __v = (*ec.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize; let __max = __seq.capacity(); if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })));
+        let mut whole = Arc::new(Mutex::new(Some({
+            let mut __seq = { let __seq = { let __seq_holder = self.summary.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = 5; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() };
+            let __low = ((*{ let __v = (*sc.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) + 1) as usize;
+            let __high = (*{ let __v = (*ec.lock().unwrap().as_ref().unwrap()).clone(); __v }.0.lock().unwrap().as_ref().unwrap()) as usize;
+            let __max = __seq.capacity();
+            if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        })));
         if { let __v = (*alloc.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         { let __clear_holder = whole.clone(); let mut __clear_guard = __clear_holder.lock().unwrap(); if let Some(__clear_seq) = __clear_guard.as_mut() { for __clear_elem in __clear_seq.iter_mut() { *__clear_elem = pallocSum(Arc::new(Mutex::new(Some(0)))); } } };
     } else {
@@ -1255,7 +1265,17 @@ impl pageAlloc {
                 // Iterate over each block, updating the corresponding summary in the less-granular level.
         let mut i = Arc::new(Mutex::new(Some(lo)));
     while { let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = hi; __tmp_x < __tmp_y } {
-        let mut children = Arc::new(Mutex::new(Some({ let mut __seq = { let __seq = { let __seq_holder = self.summary.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize].clone() }; let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*logEntriesPerBlock.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }) as usize; let __high = ({ let __tmp_x = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }); let __tmp_y = { let __v = (*logEntriesPerBlock.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }) as usize; let __max = __seq.capacity(); if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })));
+        let mut children = Arc::new(Mutex::new(Some({
+            let mut __seq = { let __seq = { let __seq_holder = self.summary.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }) as usize].clone() };
+            let __low = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*logEntriesPerBlock.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }) as usize;
+            let __high = ({ let __tmp_x = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x + __tmp_y }); let __tmp_y = { let __v = (*logEntriesPerBlock.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x << __tmp_y }) as usize;
+            let __max = __seq.capacity();
+            if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        })));
         let mut sum = merge_summaries(children.clone(), Arc::new(Mutex::new(Some({ let __arg_holder = logMaxPages.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))));
         let mut old = Arc::new(Mutex::new(Some(pallocSum(Arc::new(Mutex::new(Some((*{ let __seq = { let __seq_holder = self.summary.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone().0.lock().unwrap().as_ref().unwrap()))))))));
         if { let __tmp_x = (*old.lock().unwrap().as_ref().unwrap()).clone(); let __tmp_y = (*sum.lock().unwrap().as_ref().unwrap()).clone(); __tmp_x != __tmp_y } {
@@ -1477,7 +1497,17 @@ impl pageAlloc {
         { let __rhs = { let __seq = { let __seq_holder = levelBits.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() << __rhs); };
 
                 // Slice out the block of entries we care about.
-        let mut entries = Arc::new(Mutex::new(Some({ let mut __seq = { let __seq = { let __seq_holder = self.summary.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() }; let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*entriesPerBlock.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize; let __max = __seq.capacity(); if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })));
+        let mut entries = Arc::new(Mutex::new(Some({
+            let mut __seq = { let __seq = { let __seq_holder = self.summary.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*l.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
+            let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
+            let __high = ({ let __tmp_x = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*entriesPerBlock.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }) as usize;
+            let __max = __seq.capacity();
+            if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        })));
 
                 // Determine j0, the first index we should start iterating from.
                 // The searchAddr may help us eliminate iterations if we followed the

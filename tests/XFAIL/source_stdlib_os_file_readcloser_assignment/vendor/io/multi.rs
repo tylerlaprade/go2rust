@@ -190,7 +190,21 @@ impl multiReader {
                 // Use eofReader instead of nil to avoid nil panic
                 // after performing flatten (Issue 18232).
         (*self.readers.lock().unwrap().as_mut().unwrap())[(0) as usize] = Arc::new(Mutex::new(Some(Box::new(eofReader {  }) as Box<dyn Reader + Send + Sync>)));
-        { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = self.readers.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (1) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); self.readers = new_val; };
+        { let new_val = Arc::new(Mutex::new(Some({
+            let __seq_holder = self.readers.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+            let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+            drop(__seq_guard);
+            let __low = (1) as usize;
+            let __high = __seq.len();
+            let __max = __source_cap;
+            if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        }))); self.readers = new_val; };
     }
                 // Use eofReader instead of nil to avoid nil panic
                 // after performing flatten (Issue 18232).
@@ -247,7 +261,21 @@ impl multiReader {
     }
         { let __rhs = (*n.lock().unwrap().as_ref().unwrap()); let mut guard = sum.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };
         if { let __nil_result = (*err.lock().unwrap()).is_some(); __nil_result } {
-        { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = self.readers.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = (i) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); self.readers = new_val; };
+        { let new_val = Arc::new(Mutex::new(Some({
+            let __seq_holder = self.readers.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+            let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+            drop(__seq_guard);
+            let __low = (i) as usize;
+            let __high = __seq.len();
+            let __max = __source_cap;
+            if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        }))); self.readers = new_val; };
         return ({ let __v = (*sum.lock().unwrap().as_ref().unwrap()).clone(); __v }, err.clone());
     }
                 // permit resume / retry after error

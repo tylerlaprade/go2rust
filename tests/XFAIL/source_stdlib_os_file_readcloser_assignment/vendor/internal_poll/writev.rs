@@ -80,7 +80,21 @@ impl crate::fd_unix::FD {
             let mut n: Arc<Mutex<Option<i64>>> = Arc::new(Mutex::new(Some(0)));
             let mut err: Arc<Mutex<Option<Box<dyn StdError + Send + Sync>>>> = Arc::new(Mutex::new(None));
             while { let __tmp_x = ({ let __slice_holder = v.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
-        { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = iovecs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = (0) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); iovecs = new_val; };
+        { let new_val = Arc::new(Mutex::new(Some({
+            let __seq_holder = iovecs.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+            let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+            drop(__seq_guard);
+            let __low = 0;
+            let __high = (0) as usize;
+            let __max = __source_cap;
+            if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        }))); iovecs = new_val; };
         for chunk in &{ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v } {
         if { let __tmp_x = (chunk.len() as i32); let __tmp_y = 0; __tmp_x == __tmp_y } {
         continue

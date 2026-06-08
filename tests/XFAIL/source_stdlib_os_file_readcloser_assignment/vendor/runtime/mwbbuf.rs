@@ -270,7 +270,20 @@ pub fn wb_buf_flush1(pp: GoPtr<crate::runtime2::p>) {
         let __tmp_y = (*Arc::new(Mutex::new(Some(std::mem::size_of::<usize>()))).lock().unwrap().as_ref().unwrap()) as usize;
         __tmp_x / __tmp_y
     })));
-    let mut ptrs = Arc::new(Mutex::new(Some({ let __seq_holder = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.wb_buf.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).buf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })));
+    let mut ptrs = Arc::new(Mutex::new(Some({
+        let __seq_holder = (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.wb_buf.clone()); __ptr_value }.lock().unwrap().as_ref().unwrap()).buf.clone();
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+        let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+        drop(__seq_guard);
+        let __low = 0;
+        let __high = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
+        let __max = __source_cap;
+        let _slice = &__seq[__low..__high];
+        let mut _v = Vec::with_capacity((__max - __low) as usize);
+        _v.extend_from_slice(_slice);
+        _v
+    })));
 
         // Poison the buffer to make extra sure nothing is enqueued
         // while we're processing the buffer.
@@ -352,7 +365,21 @@ pub fn wb_buf_flush1(pp: GoPtr<crate::runtime2::p>) {
         // just prefetches the mark bits.
         // Mark span.
         // Enqueue the greyed objects.
-    { let __recv = gcw.clone(); let __recv_ptr: *mut crate::mgcwork::gcWork = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::mgcwork::gcWork }; let __result = unsafe { &mut *__recv_ptr }.put_batch(Arc::new(Mutex::new(Some({ let __seq_holder = ptrs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ({ let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))); __result };
+    { let __recv = gcw.clone(); let __recv_ptr: *mut crate::mgcwork::gcWork = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut crate::mgcwork::gcWork }; let __result = unsafe { &mut *__recv_ptr }.put_batch(Arc::new(Mutex::new(Some({
+        let __seq_holder = ptrs.clone();
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+        let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+        drop(__seq_guard);
+        let __low = 0;
+        let __high = ({ let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
+        let __max = __source_cap;
+        if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+        let _slice = &__seq[__low..__high];
+        let mut _v = Vec::with_capacity((__max - __low) as usize);
+        _v.extend_from_slice(_slice);
+        _v
+    })))); __result };
 
     (*{ let __ptr_value = pp.with_mut(|__ptr_value| __ptr_value.wb_buf.clone()); __ptr_value }.lock().unwrap().as_mut().unwrap()).reset();
 }

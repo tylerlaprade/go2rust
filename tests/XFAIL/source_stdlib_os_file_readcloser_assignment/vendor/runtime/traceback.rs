@@ -1530,7 +1530,20 @@ pub fn traceback_p_cs(u: Arc<Mutex<Option<unwinder>>>, mut skip: Arc<Mutex<Optio
     let mut n = Arc::new(Mutex::new(Some(0)));
     while { let __tmp_x = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); let __tmp_y = ((*pcBuf.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0) as i32); __tmp_x < __tmp_y } && { let __recv = u.clone(); let __recv_ptr: *const unwinder = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const unwinder }; let __result = unsafe { &*__recv_ptr }.valid(); __result } {
         let mut f = Arc::new(Mutex::new(Some({ let __selector_holder = (*(*u.lock().unwrap().as_ref().unwrap()).frame.lock().unwrap().as_ref().unwrap()).r#fn.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        let mut cgoN = { let __recv = u.clone(); let __recv_ptr: *mut unwinder = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut unwinder }; let __result = unsafe { &mut *__recv_ptr }.cgo_callers(Arc::new(Mutex::new(Some({ let __seq_holder = cgoBuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))); __result };
+        let mut cgoN = { let __recv = u.clone(); let __recv_ptr: *mut unwinder = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut unwinder }; let __result = unsafe { &mut *__recv_ptr }.cgo_callers(Arc::new(Mutex::new(Some({
+            let __seq_holder = cgoBuf.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+            let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+            drop(__seq_guard);
+            let __low = 0;
+            let __high = __seq.len();
+            let __max = __source_cap;
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        })))); __result };
 
                 // TODO: Why does &u.cache cause u to escape? (Same in traceback2)
         let (mut iu, mut uf) = new_inline_unwinder(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some({ let __recv = u.clone(); let __recv_ptr: *const unwinder = { let __recv_guard = __recv.lock().unwrap(); __recv_guard.as_ref().unwrap() as *const unwinder }; let __result = unsafe { &*__recv_ptr }.sym_p_c(); __result }))));
@@ -1579,7 +1592,20 @@ pub fn traceback_p_cs(u: Arc<Mutex<Option<unwinder>>>, mut skip: Arc<Mutex<Optio
         { let __rhs = (*{
             let _dst_start = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
             let _dst_len = (*pcBuf.lock().unwrap().as_ref().unwrap()).len() - _dst_start;
-            let _src = (*Arc::new(Mutex::new(Some({ let __seq_holder = cgoBuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = (cgoN) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone();
+            let _src = (*Arc::new(Mutex::new(Some({
+                let __seq_holder = cgoBuf.clone();
+                let __seq_guard = __seq_holder.lock().unwrap();
+                let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+                let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+                drop(__seq_guard);
+                let __low = 0;
+                let __high = (cgoN) as usize;
+                let __max = __source_cap;
+                let _slice = &__seq[__low..__high];
+                let mut _v = Vec::with_capacity((__max - __low) as usize);
+                _v.extend_from_slice(_slice);
+                _v
+            }))).lock().unwrap().as_ref().unwrap()).clone();
             let _n = std::cmp::min(_dst_len, _src.len());
             for _i in 0.._n {
                 (*pcBuf.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
@@ -2196,12 +2222,38 @@ pub fn traceback2(u: Arc<Mutex<Option<unwinder>>>, showRuntime: Arc<Mutex<Option
                 //
                 // Print cgo frames.
         {
-        let mut cgoN = { let __recv = u.clone(); let __recv_ptr: *mut unwinder = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut unwinder }; let __result = unsafe { &mut *__recv_ptr }.cgo_callers(Arc::new(Mutex::new(Some({ let __seq_holder = cgoBuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })))); __result };;
+        let mut cgoN = { let __recv = u.clone(); let __recv_ptr: *mut unwinder = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut unwinder }; let __result = unsafe { &mut *__recv_ptr }.cgo_callers(Arc::new(Mutex::new(Some({
+            let __seq_holder = cgoBuf.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+            let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+            drop(__seq_guard);
+            let __low = 0;
+            let __high = __seq.len();
+            let __max = __source_cap;
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        })))); __result };;
         if { let __tmp_x = cgoN; let __tmp_y = 0; __tmp_x > __tmp_y } {
             let mut arg: Arc<Mutex<Option<cgoSymbolizerArg>>> = Arc::new(Mutex::new(Some(Default::default())));;
             let mut anySymbolized = Arc::new(Mutex::new(Some(false)));;
             let mut stop = Arc::new(Mutex::new(Some(false)));;
-            for pc in { let __seq_holder = cgoBuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = (cgoN) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }.iter().copied() {
+            for pc in {
+                let __seq_holder = cgoBuf.clone();
+                let __seq_guard = __seq_holder.lock().unwrap();
+                let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+                let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+                drop(__seq_guard);
+                let __low = 0;
+                let __high = (cgoN) as usize;
+                let __max = __source_cap;
+                let _slice = &__seq[__low..__high];
+                let mut _v = Vec::with_capacity((__max - __low) as usize);
+                _v.extend_from_slice(_slice);
+                _v
+            }.iter().copied() {
         if { let __nil_result = (*cgoSymbolizer.lock().unwrap()).is_none(); __nil_result } {
         {
         let (mut pr, mut stop) = { let __f_ptr: *mut Box<dyn FnMut() -> (bool, bool) + Send + Sync> = { let mut __f_guard = commitFrame.lock().unwrap(); __f_guard.as_mut().unwrap() as *mut Box<dyn FnMut() -> (bool, bool) + Send + Sync> }; let __f = unsafe { &mut *__f_ptr }; (*__f)() };;

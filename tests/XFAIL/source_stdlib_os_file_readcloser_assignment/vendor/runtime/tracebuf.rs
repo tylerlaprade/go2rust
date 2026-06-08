@@ -920,7 +920,20 @@ impl traceBuf {
     ///go:nosplit
     pub fn varint(&mut self, mut v: Arc<Mutex<Option<u64>>>) {
         let mut pos = Arc::new(Mutex::new(Some({ let __selector_holder = (*self.trace_buf_header.lock().unwrap().as_ref().unwrap()).pos.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned })));
-        let mut arr = Arc::new(Mutex::new(Some({ let __seq_holder = self.arr.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = ({ let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = ({ let __tmp_x = { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x + __tmp_y }) as usize; let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v })));
+        let mut arr = Arc::new(Mutex::new(Some({
+            let __seq_holder = self.arr.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+            let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+            drop(__seq_guard);
+            let __low = ({ let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
+            let __high = ({ let __tmp_x = { let __v = (*pos.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 10; __tmp_x + __tmp_y }) as usize;
+            let __max = __source_cap;
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        })));
         for i in 0..(({ let __range_holder = arr.clone(); let __range_guard = __range_holder.lock().unwrap(); __range_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) })) {
         if { let __tmp_x = { let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0x80 as u64; __tmp_x < __tmp_y } {
         { let __rhs = { let __tmp_x = i as i32; let __tmp_y = 1; __tmp_x + __tmp_y }; let mut guard = pos.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() + __rhs); };

@@ -1410,8 +1410,8 @@ func writeSliceVecFromSeqMultiline(out *strings.Builder, low ast.Expr, high ast.
 	out.WriteString("}")
 }
 
-func threeIndexSliceCopyShouldUseMultiline(slice *ast.SliceExpr) bool {
-	if slice == nil || !NeedsConcurrentWrapper() || !slice.Slice3 {
+func sliceCopyShouldUseMultiline(slice *ast.SliceExpr) bool {
+	if slice == nil || !NeedsConcurrentWrapper() {
 		return false
 	}
 	if countLogicalConditionOperandComplexity(slice.X) >= minStatementBuiltLogicalConditionOperandComplexity {
@@ -13107,7 +13107,7 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 		} else if e.Slice3 && e.Max != nil && !isStringSlice {
 			// Three-index slice: s[low:high:max] → cap = max - low
 			WriteWrapperPrefix(out)
-			if threeIndexSliceCopyShouldUseMultiline(e) {
+			if sliceCopyShouldUseMultiline(e) {
 				closeIndent := currentLineIndent(out)
 				indent := closeIndent + "    "
 				out.WriteString("{\n")
@@ -13143,28 +13143,69 @@ func TranspileExpressionContext(out *strings.Builder, expr ast.Expr, ctx ExprCon
 			// Pointer-to-slice/array dereference is represented by the pointee sequence handle.
 		} else if isExpressionResultBare(e.X) {
 			WriteWrapperPrefix(out)
-			out.WriteString("{ let mut __seq = ")
-			TranspileExpressionContext(out, e.X, LValue)
-			if subjectIsArray {
-				writeSliceVecFromSeq(out, e.Low, e.High, nil, "__seq.len()", false)
+			if sliceCopyShouldUseMultiline(e) {
+				closeIndent := currentLineIndent(out)
+				indent := closeIndent + "    "
+				out.WriteString("{\n")
+				out.WriteString(indent)
+				out.WriteString("let mut __seq = ")
+				TranspileExpressionContext(out, e.X, LValue)
+				if subjectIsArray {
+					writeSliceVecFromSeqMultiline(out, e.Low, e.High, nil, "__seq.len()", false, indent, closeIndent)
+				} else {
+					writeSliceVecFromSeqMultiline(out, e.Low, e.High, nil, "__seq.capacity()", true, indent, closeIndent)
+				}
 			} else {
-				writeSliceVecFromSeq(out, e.Low, e.High, nil, "__seq.capacity()", true)
+				out.WriteString("{ let mut __seq = ")
+				TranspileExpressionContext(out, e.X, LValue)
+				if subjectIsArray {
+					writeSliceVecFromSeq(out, e.Low, e.High, nil, "__seq.len()", false)
+				} else {
+					writeSliceVecFromSeq(out, e.Low, e.High, nil, "__seq.capacity()", true)
+				}
 			}
 			WriteWrapperSuffix(out)
 		} else {
 			WriteWrapperPrefix(out)
-			out.WriteString("{ let __seq_holder = ")
-			TranspileExpressionContext(out, e.X, LValue)
-			out.WriteString(".clone(); let __seq_guard = __seq_holder")
-			WriteBorrowMethod(out, false)
-			if subjectIsArray {
-				out.WriteString("; let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = ")
+			if sliceCopyShouldUseMultiline(e) {
+				closeIndent := currentLineIndent(out)
+				indent := closeIndent + "    "
+				out.WriteString("{\n")
+				out.WriteString(indent)
+				out.WriteString("let __seq_holder = ")
+				TranspileExpressionContext(out, e.X, LValue)
+				out.WriteString(".clone();\n")
+				out.WriteString(indent)
+				out.WriteString("let __seq_guard = __seq_holder")
+				WriteBorrowMethod(out, false)
+				out.WriteString(";\n")
+				out.WriteString(indent)
+				if subjectIsArray {
+					out.WriteString("let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);\n")
+				} else {
+					out.WriteString("let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);\n")
+				}
+				out.WriteString(indent)
+				out.WriteString("let mut __seq = ")
+				writeClonedValueFromGuard(out, e.X, "__seq_guard")
+				out.WriteString(";\n")
+				out.WriteString(indent)
+				out.WriteString("drop(__seq_guard)")
+				writeSliceVecFromSeqMultiline(out, e.Low, e.High, nil, "__source_cap", !subjectIsArray, indent, closeIndent)
 			} else {
-				out.WriteString("; let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = ")
+				out.WriteString("{ let __seq_holder = ")
+				TranspileExpressionContext(out, e.X, LValue)
+				out.WriteString(".clone(); let __seq_guard = __seq_holder")
+				WriteBorrowMethod(out, false)
+				if subjectIsArray {
+					out.WriteString("; let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = ")
+				} else {
+					out.WriteString("; let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = ")
+				}
+				writeClonedValueFromGuard(out, e.X, "__seq_guard")
+				out.WriteString("; drop(__seq_guard)")
+				writeSliceVecFromSeq(out, e.Low, e.High, nil, "__source_cap", !subjectIsArray)
 			}
-			writeClonedValueFromGuard(out, e.X, "__seq_guard")
-			out.WriteString("; drop(__seq_guard)")
-			writeSliceVecFromSeq(out, e.Low, e.High, nil, "__source_cap", !subjectIsArray)
 			WriteWrapperSuffix(out)
 		}
 

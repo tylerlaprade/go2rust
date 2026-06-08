@@ -200,7 +200,17 @@ pub fn consume(v: Arc<Mutex<Option<Vec<Vec<u8>>>>>, mut n: Arc<Mutex<Option<i64>
     while { let __tmp_x = ({ let __slice_holder = v.clone(); let __slice_guard = __slice_holder.lock().unwrap(); __slice_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) } as i32); let __tmp_y = 0; __tmp_x > __tmp_y } {
         let mut ln0 = Arc::new(Mutex::new(Some({ let __seq = ({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }); __seq[(0) as usize].clone() }.len() as i64)));
         if { let __tmp_x = { let __v = (*ln0.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x > __tmp_y } {
-        { let __slice_holder = v.clone(); let mut __slice_guard = __slice_holder.lock().unwrap(); let __slice = __slice_guard.as_mut().unwrap(); __slice[(0) as usize] = (*Arc::new(Mutex::new(Some({ let mut __seq = { let __seq = ({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }); __seq[(0) as usize].clone() }; let __low = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = __seq.len(); let __max = __seq.capacity(); if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone(); };
+        { let __slice_holder = v.clone(); let mut __slice_guard = __slice_holder.lock().unwrap(); let __slice = __slice_guard.as_mut().unwrap(); __slice[(0) as usize] = (*Arc::new(Mutex::new(Some({
+            let mut __seq = { let __seq = ({ let __v = (*v.lock().unwrap().as_ref().unwrap()).clone(); __v }); __seq[(0) as usize].clone() };
+            let __low = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
+            let __high = __seq.len();
+            let __max = __seq.capacity();
+            if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        }))).lock().unwrap().as_ref().unwrap()).clone(); };
         return;
     }
         { let __rhs = (*ln0.lock().unwrap().as_ref().unwrap()); let mut guard = n.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - __rhs); };

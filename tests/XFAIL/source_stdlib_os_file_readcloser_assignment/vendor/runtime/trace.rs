@@ -607,7 +607,21 @@ pub fn trace_advance(stopTrace: Arc<Mutex<Option<bool>>>) {
         // events to indicate whether a P exists, rather than just making its
         // existence implicit.
     { let new_val = acquirem().clone(); mp = new_val; };
-    for pp in &{ let __seq_holder = allp.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ((*allp.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize; let __high = ((*allp.lock().unwrap()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v } {
+    for pp in &{
+        let __seq_holder = allp.clone();
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+        let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+        drop(__seq_guard);
+        let __low = ((*allp.lock().unwrap()).as_ref().map(|__v| __v.len()).unwrap_or(0)) as usize;
+        let __high = ((*allp.lock().unwrap()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)) as usize;
+        let __max = __source_cap;
+        if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+        let _slice = &__seq[__low..__high];
+        let mut _v = Vec::with_capacity((__max - __low) as usize);
+        _v.extend_from_slice(_slice);
+        _v
+    } {
         (*(*pp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_mut().unwrap()).ready_next_gen(Arc::new(Mutex::new(Some(trace_next_gen(Arc::new(Mutex::new(Some(gen))))))));
     }
     releasem(GoPtr::local(mp.clone()));
@@ -709,7 +723,21 @@ pub fn trace_advance(stopTrace: Arc<Mutex<Option<bool>>>) {
                 // bad state on dead Ps too. Prevent a STW and a concurrent GOMAXPROCS that
                 // might mutate allp by making ourselves briefly non-preemptible.
         let mut mp = acquirem();
-        for pp in &{ let __seq_holder = allp.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ((*allp.lock().unwrap()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v } {
+        for pp in &{
+            let __seq_holder = allp.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+            let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+            drop(__seq_guard);
+            let __low = 0;
+            let __high = ((*allp.lock().unwrap()).as_ref().map(|__v| __v.capacity()).unwrap_or(0)) as usize;
+            let __max = __source_cap;
+            if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        } {
         { let new_val = false; *(*(*pp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).in_sweep.lock().unwrap() = Some(new_val); };
         { let new_val = false; *(*(*pp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).may_sweep.lock().unwrap() = Some(new_val); };
         { let new_val = 0 as usize; *(*(*pp.lock().unwrap().as_ref().unwrap()).trace.lock().unwrap().as_ref().unwrap()).swept.lock().unwrap() = Some(new_val); };
@@ -762,13 +790,52 @@ pub fn trace_next_gen(gen: Arc<Mutex<Option<usize>>>) -> usize {
 /// goroutine stop/block reasons in the string table for the provided
 /// generation. Note: the provided generation must not have started yet.
 pub fn trace_register_labels_and_reasons(gen: Arc<Mutex<Option<usize>>>) {
-    for (i, label) in { let __seq_holder = gcMarkWorkerModeStrings.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }.iter().enumerate() {
+    for (i, label) in {
+        let __seq_holder = gcMarkWorkerModeStrings.clone();
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+        let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+        drop(__seq_guard);
+        let __low = 0;
+        let __high = __seq.len();
+        let __max = __source_cap;
+        let _slice = &__seq[__low..__high];
+        let mut _v = Vec::with_capacity((__max - __low) as usize);
+        _v.extend_from_slice(_slice);
+        _v
+    }.iter().enumerate() {
         (*(*trace.lock().unwrap().as_ref().unwrap()).mark_worker_labels.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize][(i) as usize] = crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).string_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }.put(Arc::new(Mutex::new(Some({ let __arg_holder = gen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some((*label).clone())))) as u64))));
     }
-    for (i, str) in { let __seq_holder = traceBlockReasonStrings.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }.iter().enumerate() {
+    for (i, str) in {
+        let __seq_holder = traceBlockReasonStrings.clone();
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+        let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+        drop(__seq_guard);
+        let __low = 0;
+        let __high = __seq.len();
+        let __max = __source_cap;
+        let _slice = &__seq[__low..__high];
+        let mut _v = Vec::with_capacity((__max - __low) as usize);
+        _v.extend_from_slice(_slice);
+        _v
+    }.iter().enumerate() {
         (*(*trace.lock().unwrap().as_ref().unwrap()).go_block_reasons.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize][(i) as usize] = crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).string_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }.put(Arc::new(Mutex::new(Some({ let __arg_holder = gen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some((*str).clone())))) as u64))));
     }
-    for (i, str) in { let __seq_holder = traceGoStopReasonStrings.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }.iter().enumerate() {
+    for (i, str) in {
+        let __seq_holder = traceGoStopReasonStrings.clone();
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+        let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+        drop(__seq_guard);
+        let __low = 0;
+        let __high = __seq.len();
+        let __max = __source_cap;
+        let _slice = &__seq[__low..__high];
+        let mut _v = Vec::with_capacity((__max - __low) as usize);
+        _v.extend_from_slice(_slice);
+        _v
+    }.iter().enumerate() {
         (*(*trace.lock().unwrap().as_ref().unwrap()).go_stop_reasons.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize][(i) as usize] = crate::traceevent::traceArg(Arc::new(Mutex::new(Some({ let __seq = { let __seq_holder = (*trace.lock().unwrap().as_ref().unwrap()).string_tab.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*gen.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 2 as usize; __tmp_x % __tmp_y }) as usize].clone() }.put(Arc::new(Mutex::new(Some({ let __arg_holder = gen.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some((*str).clone())))) as u64))));
     }
 }

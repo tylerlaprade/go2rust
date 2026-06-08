@@ -462,7 +462,21 @@ pub fn record_for_panic(b: Arc<Mutex<Option<Vec<u8>>>>) {
         let mut n = {
             let _dst_start = ((*printBacklogIndex.lock().unwrap().as_ref().unwrap())) as usize;
             let _dst_len = (*printBacklog.lock().unwrap().as_ref().unwrap()).len() - _dst_start;
-            let _src = (*Arc::new(Mutex::new(Some({ let __seq_holder = b.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = __seq.len(); let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))).lock().unwrap().as_ref().unwrap()).clone();
+            let _src = (*Arc::new(Mutex::new(Some({
+                let __seq_holder = b.clone();
+                let __seq_guard = __seq_holder.lock().unwrap();
+                let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+                let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+                drop(__seq_guard);
+                let __low = ({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
+                let __high = __seq.len();
+                let __max = __source_cap;
+                if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+                let _slice = &__seq[__low..__high];
+                let mut _v = Vec::with_capacity((__max - __low) as usize);
+                _v.extend_from_slice(_slice);
+                _v
+            }))).lock().unwrap().as_ref().unwrap()).clone();
             let _n = std::cmp::min(_dst_len, _src.len());
             for _i in 0.._n {
                 (*printBacklog.lock().unwrap().as_mut().unwrap())[_dst_start + _i] = _src[_i].clone();
@@ -526,7 +540,21 @@ pub fn gwrite(b: Arc<Mutex<Option<Vec<u8>>>>) {
         }
         Arc::new(Mutex::new(Some(_n as i32)))
     };
-    { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = (*gp.lock().unwrap().as_ref().unwrap()).writebuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ({ let __tmp_x = (({ let __len_target = { let __field = (*gp.lock().unwrap().as_ref().unwrap()).writebuf.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); __tmp_x + __tmp_y }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); (*gp.lock().unwrap().as_mut().unwrap()).writebuf = new_val; };
+    { let new_val = Arc::new(Mutex::new(Some({
+        let __seq_holder = (*gp.lock().unwrap().as_ref().unwrap()).writebuf.clone();
+        let __seq_guard = __seq_holder.lock().unwrap();
+        let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+        let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+        drop(__seq_guard);
+        let __low = 0;
+        let __high = ({ let __tmp_x = (({ let __len_target = { let __field = (*gp.lock().unwrap().as_ref().unwrap()).writebuf.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32); let __tmp_y = ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32); __tmp_x + __tmp_y }) as usize;
+        let __max = __source_cap;
+        if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+        let _slice = &__seq[__low..__high];
+        let mut _v = Vec::with_capacity((__max - __low) as usize);
+        _v.extend_from_slice(_slice);
+        _v
+    }))); (*gp.lock().unwrap().as_mut().unwrap()).writebuf = new_val; };
 }
 
 /// hexdumpWords prints a word-oriented hex dump of [p, end).
@@ -558,7 +586,20 @@ pub fn hexdump_words(p: Arc<Mutex<Option<usize>>>, end: Arc<Mutex<Option<usize>>
         (*markbuf.lock().unwrap().as_mut().unwrap())[(0) as usize] = (' ' as i32) as u8;
     }
     }
-        gwrite(Arc::new(Mutex::new(Some({ let __seq_holder = markbuf.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))));
+        gwrite(Arc::new(Mutex::new(Some({
+            let __seq_holder = markbuf.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+            let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+            drop(__seq_guard);
+            let __low = 0;
+            let __high = __seq.len();
+            let __max = __source_cap;
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        }))));
         let mut val = Arc::new(Mutex::new(Some({ let __v = (*Arc::new(Mutex::new({ let __ptr = Arc::new(Mutex::new(Some({ let __tmp_x = { let __v = (*p.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = { let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x + __tmp_y }))).clone(); let __ptr_guard = __ptr.lock().unwrap(); if __ptr_guard.as_ref().map(|__v| *__v == 0).unwrap_or(true) { None } else { Some::<usize>(unimplemented!("unsafe.Pointer conversion to usize")) } })).lock().unwrap().as_ref().unwrap()).clone(); __v })));
         {
             let __go_print_arg_0 = format!("{}", hex(Arc::new(Mutex::new(Some((*val.lock().unwrap().as_ref().unwrap()) as u64)))));

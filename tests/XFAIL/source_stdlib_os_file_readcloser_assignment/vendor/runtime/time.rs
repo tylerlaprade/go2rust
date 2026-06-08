@@ -1011,7 +1011,21 @@ impl timers {
         (*self.heap.lock().unwrap().as_mut().unwrap())[(0) as usize] = { let __seq = { let __seq_holder = self.heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __v = (*last.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize].clone() };
     }
         (*self.heap.lock().unwrap().as_mut().unwrap())[({ let __v = (*last.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = timerWhen { timer: Default::default(), when: Arc::new(Mutex::new(Some(0))) };
-        { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = self.heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ({ let __v = (*last.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); self.heap = new_val; };
+        { let new_val = Arc::new(Mutex::new(Some({
+            let __seq_holder = self.heap.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+            let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+            drop(__seq_guard);
+            let __low = 0;
+            let __high = ({ let __v = (*last.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
+            let __max = __source_cap;
+            if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        }))); self.heap = new_val; };
         if { let __tmp_x = { let __v = (*last.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 0; __tmp_x > __tmp_y } {
         self.sift_down(Arc::new(Mutex::new(Some(0))));
     }
@@ -1057,7 +1071,21 @@ impl timers {
         *(*t.lock().unwrap().as_ref().unwrap()).ts.lock().unwrap() = None;
         (*self.zombies.lock().unwrap().as_mut().unwrap()).add(Arc::new(Mutex::new(Some(-1 as i32))));
         (*self.heap.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize] = timerWhen { timer: Default::default(), when: Arc::new(Mutex::new(Some(0))) };
-        { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = self.heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); self.heap = new_val; };
+        { let new_val = Arc::new(Mutex::new(Some({
+            let __seq_holder = self.heap.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+            let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+            drop(__seq_guard);
+            let __low = 0;
+            let __high = ({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize;
+            let __max = __source_cap;
+            if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        }))); self.heap = new_val; };
     };
             { let __recv = t.clone(); let __recv_ptr: *mut timer = { let mut __recv_guard = __recv.lock().unwrap(); __recv_guard.as_mut().unwrap() as *mut timer }; let __result = unsafe { &mut *__recv_ptr }.unlock(); __result };;
             continue;
@@ -1222,7 +1250,21 @@ impl timers {
             let mut n = Arc::new(Mutex::new(Some(({ let __len_target = { let __field = self.heap.clone(); __field }; let __len_guard = __len_target.lock().unwrap(); __len_guard.as_ref().map(|__v| __v.len()).unwrap_or(0) }) as i32)));
             (*self.heap.lock().unwrap().as_mut().unwrap())[({ let __v = (*i.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize] = { let __seq = { let __seq_holder = self.heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __cloned = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); __cloned }; __seq[({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize].clone() };
             (*self.heap.lock().unwrap().as_mut().unwrap())[({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize] = timerWhen { timer: Default::default(), when: Arc::new(Mutex::new(Some(0))) };
-            { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = self.heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = 0; let __high = ({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); self.heap = new_val; };
+            { let new_val = Arc::new(Mutex::new(Some({
+                let __seq_holder = self.heap.clone();
+                let __seq_guard = __seq_holder.lock().unwrap();
+                let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+                let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+                drop(__seq_guard);
+                let __low = 0;
+                let __high = ({ let __tmp_x = { let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 1; __tmp_x - __tmp_y }) as usize;
+                let __max = __source_cap;
+                if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+                let _slice = &__seq[__low..__high];
+                let mut _v = Vec::with_capacity((__max - __low) as usize);
+                _v.extend_from_slice(_slice);
+                _v
+            }))); self.heap = new_val; };
             *(*t.lock().unwrap().as_ref().unwrap()).ts.lock().unwrap() = None;
             { let mut guard = i.lock().unwrap(); *guard = Some(guard.as_ref().unwrap() - 1); }
             { let new_val = true; *changed.lock().unwrap() = Some(new_val); };
@@ -1562,7 +1604,21 @@ impl timers {
     }
         let mut w = { let __owned = when.lock().unwrap().as_ref().unwrap().clone(); Arc::new(Mutex::new(Some(__owned))) };
         let mut c = Arc::new(Mutex::new(Some(-(1))));
-        for (j, tw) in { let __seq_holder = heap.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0); let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default(); drop(__seq_guard); let __low = ({ let __v = (*leftChild.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize; let __high = (std::cmp::min(({ let __tmp_x = { let __v = (*leftChild.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x + __tmp_y } as i32), ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32))) as usize; let __max = __source_cap; if __seq.len() < __high { __seq.resize_with(__high, Default::default); }; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }.iter().enumerate() {
+        for (j, tw) in {
+            let __seq_holder = heap.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.capacity()).unwrap_or(0);
+            let mut __seq = __seq_guard.as_ref().cloned().unwrap_or_default();
+            drop(__seq_guard);
+            let __low = ({ let __v = (*leftChild.lock().unwrap().as_ref().unwrap()).clone(); __v }) as usize;
+            let __high = (std::cmp::min(({ let __tmp_x = { let __v = (*leftChild.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = 4; __tmp_x + __tmp_y } as i32), ({ let __v = (*n.lock().unwrap().as_ref().unwrap()).clone(); __v } as i32))) as usize;
+            let __max = __source_cap;
+            if __seq.len() < __high { __seq.resize_with(__high, Default::default); }
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        }.iter().enumerate() {
         if { let __tmp_x = (*tw.when.lock().unwrap().as_ref().unwrap()); let __tmp_y = { let __v = (*w.lock().unwrap().as_ref().unwrap()).clone(); __v }; __tmp_x < __tmp_y } {
         { let new_val = { let __selector_holder = tw.when.clone(); let __selector_guard = __selector_holder.lock().unwrap(); let __cloned = (*__selector_guard.as_ref().unwrap()).clone(); drop(__selector_guard); __cloned }; *w.lock().unwrap() = Some(new_val); };
         { let new_val = { let __tmp_x = { let __v = (*leftChild.lock().unwrap().as_ref().unwrap()).clone(); __v }; let __tmp_y = j as i32; __tmp_x + __tmp_y }; *c.lock().unwrap() = Some(new_val); };

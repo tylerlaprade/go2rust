@@ -548,7 +548,20 @@ impl stkframe {
                 // we need to fake the stack object record.
                 // These frames contain an internal/abi.RegArgs at a hard-coded offset.
                 // This offset matches the assembly code on amd64 and arm64.
-        { let new_val = Arc::new(Mutex::new(Some({ let __seq_holder = methodValueCallFrameObjs.clone(); let __seq_guard = __seq_holder.lock().unwrap(); let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0); let mut __seq = (*__seq_guard.as_ref().unwrap()).clone(); drop(__seq_guard); let __low = 0; let __high = __seq.len(); let __max = __source_cap; let _slice = &__seq[__low..__high]; let mut _v = Vec::with_capacity((__max - __low) as usize); _v.extend_from_slice(_slice); _v }))); objs = new_val; };
+        { let new_val = Arc::new(Mutex::new(Some({
+            let __seq_holder = methodValueCallFrameObjs.clone();
+            let __seq_guard = __seq_holder.lock().unwrap();
+            let __source_cap = __seq_guard.as_ref().map(|__v| __v.len()).unwrap_or(0);
+            let mut __seq = (*__seq_guard.as_ref().unwrap()).clone();
+            drop(__seq_guard);
+            let __low = 0;
+            let __high = __seq.len();
+            let __max = __source_cap;
+            let _slice = &__seq[__low..__high];
+            let mut _v = Vec::with_capacity((__max - __low) as usize);
+            _v.extend_from_slice(_slice);
+            _v
+        }))); objs = new_val; };
     } else {
         let mut p = funcdata(Arc::new(Mutex::new(Some({ let __arg_holder = f.clone(); let __arg_guard = __arg_holder.lock().unwrap(); (*__arg_guard.as_ref().unwrap()).clone() }))), Arc::new(Mutex::new(Some(internal_abi::F_U_N_C_D_A_T_A__STACK_OBJECTS as u8))));
         if { let __nil_result = (*p.lock().unwrap()).is_some(); __nil_result } {
